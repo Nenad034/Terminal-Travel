@@ -38,6 +38,7 @@ Isključivo preko M1: `account_type = STAFF`, obavezna 2FA za sve interne uloge 
 | Katalog proizvoda | M2 | Faza 1 |
 | Dobavljači i ugovori | M3 | Faza 1 |
 | Pretraga i rezervacije | M5 (+ M4 uživo) | Faza 1 |
+| Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5 | Faza 1 |
 | Finansije (fakture, plaćanja) | M10 | Faza 2 |
 | Compliance (eTurista, boravišna taksa, garancija) | M11 | Faza 2 |
 | Gosti i nalogodavci (CRM) | M6 | Faza 3 |

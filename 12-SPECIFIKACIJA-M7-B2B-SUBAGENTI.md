@@ -106,7 +106,7 @@ preko svih rezervacija tog subagenta potvrđenih u tekućem periodu **pre** prel
 
 ## 4. Kreditni limit — sprovodi se pri potvrdi rezervacije (rešava otvoreno pitanje iz M5)
 
-M5 specifikacija (poglavlje 11) je ovo ostavila otvorenim — ovim dokumentom se zatvara: **da**, kreditni limit blokira potvrdu rezervacije. Kad `Quote.client_account_id` pripada Subagentu, M5 pre pokretanja toka potvrde (poglavlje 4 M5 specifikacije, pre bilo kakvog poziva ka M3/M4) proverava:
+M5 specifikacija (poglavlje 13, "Otvoreno za dalje") je ovo ostavila otvorenim — ovim dokumentom se zatvara: **da**, kreditni limit blokira potvrdu rezervacije. Kad `Quote.client_account_id` pripada Subagentu, M5 pre pokretanja toka potvrde (poglavlje 4 M5 specifikacije, pre bilo kakvog poziva ka M3/M4) proverava:
 
 `current_outstanding_balance + Quote.total_price <= Subagent.credit_limit`
 

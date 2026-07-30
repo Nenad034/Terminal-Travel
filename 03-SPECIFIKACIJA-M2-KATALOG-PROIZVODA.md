@@ -59,7 +59,7 @@ Nije prinudno na nivou baze (JSONB je fleksibilan), ali svaki modul koji čita/p
 
 | Tip | Očekivana polja u `attributes` |
 | :---- | :---- |
-| `ACCOMMODATION` | `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]`, `amenities[]` |
+| `ACCOMMODATION` | `accommodation_type` (enum: `HOTEL`, `VILA`, `APARTMAN`, `HOSTEL`, `KAMP`, `KABINA_NA_BRODU`, `DRUGO` — proširivo bez izmene strukture), `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]`, `amenities[]` |
 | `PACKAGE` | `duration_days`, `included_products[]` (reference na druge Product id-jeve), `itinerary` |
 | `TRANSFER` | `vehicle_type`, `max_passengers`, `route` |
 | `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level` |
