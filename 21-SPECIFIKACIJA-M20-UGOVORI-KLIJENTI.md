@@ -1,0 +1,132 @@
+# Specifikacija modula M20 — Ugovori sa klijentima
+
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M20) i poglavlje 8 (Faza 2)
+**Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
+**Status:** Nacrt za usvajanje
+**Verzija:** 1.0 — dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
+**Zavisi od:** M1, M2, M3, M5, M11. Formalno i od M6 (poglavlje 4 Master dokumenta) kad taj modul postoji — do tada koristi minimalan zapis nalogodavca iz `Booking.client_account_id`, isti obrazac kao M10/M11.
+
+---
+
+## 1. Svrha i obim modula
+
+M20 generiše i čuva **Ugovor o organizovanju putovanja** (ili odgovarajući tip ugovora, poglavlje 2.2) sa gostom/nalogodavcem — zakonski obavezan dokument po Zakonu o turizmu, koji dosad nije postojao nigde u sistemu. Ovo je **treći, zaseban pravni dokument** u lancu rezervacije, različit od:
+- M3 (ugovori sa dobavljačima — obrnut smer, agencija kao kupac usluge),
+- M10 (fiskalni dokument — poreski/računovodstveni dokaz naplate).
+
+M20 ne duplira podatke — sastavlja ugovor **isključivo iz podataka koji već postoje** u M2 (sadržaj proizvoda), M3 (uslovi otkazivanja), M5 (rezervacija, cena, tip nastupanja), M11 (garancija putovanja). Van obima: sam sadržaj/izgled dokumenta (poglavlje 8), pravno savetovanje o graničnim slučajevima (poglavlje 8).
+
+---
+
+## 2. Model podataka
+
+### 2.1 `ClientContract`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking), unique | jedan ugovor po rezervaciji |
+| contract_type | enum: `ORGANIZOVANO_PUTOVANJE`, `POSREDOVANJE`, `PRODAJA_AVIO_KARTE`, `TRANSFER`, `KORPORATIVNI_OKVIRNI` | vidi poglavlje 2.2 |
+| status | enum: `DRAFT`, `GENERATED`, `ACCEPTED`, `VOIDED` | `DRAFT` — u pripremi; `GENERATED` — PDF sastavljen, čeka prihvatanje; `ACCEPTED` — gost prihvatio/potpisao; `VOIDED` — poništen (npr. duplikat, greška u rezervaciji) |
+| document_url | string, nullable | PDF, EU cloud skladište, generiše se pri prelasku u `GENERATED` |
+| generated_at | timestamp, nullable | |
+| accepted_at | timestamp, nullable | |
+| accepted_method | enum: `ELECTRONIC_CLICKWRAP`, `WET_SIGNATURE_SCAN`, nullable | vidi poglavlje 3.2 |
+| voided_by | UUID (FK → M1 User), nullable | |
+| created_at / updated_at | timestamp | |
+
+### 2.2 `contract_type` — određuje se automatski iz `Booking.tip_nastupanja` (M5 poglavlje 4.1) i tipa proizvoda
+
+| `contract_type` | Kad se primenjuje |
+| :---- | :---- |
+| `ORGANIZOVANO_PUTOVANJE` | `tip_nastupanja = ORGANIZATOR`, proizvod tipa `PACKAGE`/`ACCOMMODATION` sa organizacijom putovanja |
+| `POSREDOVANJE` | `tip_nastupanja = POSREDNIK` |
+| `PRODAJA_AVIO_KARTE` | Samostalna prodaja `FLIGHT` proizvoda bez organizacije putovanja (granični slučaj — vidi ogradu u poglavlju 8, isti kao otvoreno pitanje u M10 poglavlje 4.4) |
+| `TRANSFER` | Samostalna prodaja `TRANSFER` proizvoda van paketa |
+| `KORPORATIVNI_OKVIRNI` | Rezervacija B2B nalogodavca sa unapred sklopljenim okvirnim ugovorom (van obima automatskog generisanja — vidi poglavlje 8) |
+
+Agent nikad ručno ne bira `contract_type` — sistem ga izvodi iz postojećih podataka, isti princip kao izbor `document_type` u M10 poglavlje 2.
+
+### 2.3 Obavezni elementi ugovora — mapiranje na postojeće podatke (bez dupliranja unosa)
+
+Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se popunjava iz već postojećeg izvora, nikad ručno ponovo unosi:
+
+| Obavezan element | Izvor |
+| :---- | :---- |
+| Naziv/adresa/broj licence agencije | Statička konfiguracija agencije (van modela podataka) |
+| Dnevni program (itinerar) | M2 `Product.attributes.itinerary` |
+| Naziv/kategorija hotela | M2 `Product.attributes.stars`, naziv iz `ProductTranslation` |
+| Tip prevoza i klasa | M2 `Product.attributes` (za `TRANSFER`/`FLIGHT`) |
+| Tip usluge (pansion) | M3 `RateLine.board_type`, preko `BookingItem.rate_line_id` (M5 poglavlje 4.2) |
+| Cena i valuta | `Booking.total_price`/`currency` (M5) |
+| Uslovi i penali otkazivanja | M3 `CancellationRule` / M4 `cancellationPolicy`, agregirano po `BookingItem` |
+| Naziv osiguravača i broj polise garancije | M11 `TravelGuarantee.provider`/`policy_number` |
+| Rok za reklamacije na promenu cene | Statička pravna konfiguracija (konfigurabilno, ne hardkodovano) |
+| Kontakt za hitne slučajeve | Statička konfiguracija agencije |
+
+**Ograda:** dinamika plaćanja (avans + rok balansa) trenutno se prikazuje kao slobodan tekst izveden iz uslova prodaje — M10 `Payment` ne drži strukturiran plan rata (vidi poglavlje 8, otvoreno pitanje).
+
+---
+
+## 3. Generisanje i prihvatanje
+
+### 3.1 Automatsko generisanje — nivo "Autonomno"
+
+Čim `Booking.status` pređe u `CONFIRMED` (M5 poglavlje 4, događaj `booking.confirmed`), M20 automatski generiše `ClientContract` (`DRAFT → GENERATED`) — mehaničko sastavljanje PDF-a iz već proverenih podataka (poglavlje 2.3), bez novog rizika, isti nivo autonomije kao automatska eTurista prijava (M11 poglavlje 2.2). Sistem ne šalje ništa spolja niti stvara novu obavezu — samo formalizuje uslove koji već postoje.
+
+### 3.2 Prihvatanje
+
+- **B2C/sajt (M8):** gost elektronski prihvata (clickwrap — potvrdno polje "Prihvatam uslove ugovora") u toku checkout toka, pre finalne potvrde kartičnog plaćanja (M10 poglavlje 7.2) — `accepted_method = ELECTRONIC_CLICKWRAP`.
+- **Interni panel (M17) / telefon:** ugovor se šalje gostu (email/lično), prihvatanje se evidentira ručno od strane prodajnog agenta kad stigne potpisan/skeniran primerak — `accepted_method = WET_SIGNATURE_SCAN`.
+
+### 3.3 Ograda — veza sa vaučerom (dopuna M5 poglavlje 6)
+
+Za `tip_nastupanja = ORGANIZATOR` rezervacije, automatsko generisanje vaučera (M5 poglavlje 6) dodatno zahteva da `ClientContract.status` bude bar `GENERATED` — ugovor mora postojati pre nego što gost dobije vaučer. Tačan trenutak kad `ACCEPTED` (potpis/prihvatanje) mora biti završen u odnosu na izdavanje vaučera potvrđuje se sa pravnikom (poglavlje 8).
+
+---
+
+## 4. Uloga AI agenta
+
+Priprema nacrta (`DRAFT → GENERATED`, poglavlje 3.1) je nivo **"Autonomno"** — deterministično sastavljanje iz postojećih podataka, princip #4 (determinizam pre autonomije) iz poglavlja 3 Master dokumenta. AI agent **nikad** ne menja sadržaj ugovora niti odlučuje o `contract_type` mimo automatskog izvođenja iz poglavlja 2.2, i nikad sam ne beleži `accepted_at`/`ACCEPTED` u ime gosta.
+
+---
+
+## 5. Dozvole (registruju se u M1 katalog dozvola)
+
+| Dozvola | Podrazumevana dodela po ulozi |
+| :---- | :---- |
+| `M20/client-contract/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Gost (sopstvena rezervacija) |
+| `M20/client-contract/ACCEPT` (ručno evidentiranje) | Vlasnik, Direktor, Sales Manager, Prodajni agent — Gost prihvata sam kroz M8 tok (poglavlje 3.2), ne kroz ovu dozvolu |
+| `M20/client-contract/VOID` | Vlasnik, Direktor |
+
+---
+
+## 6. API ugovor (REST, OpenAPI) — ključni endpoint-i
+
+Prefiks: `/api/v1/client-contracts`
+
+| Endpoint | Metod | Opis |
+| :---- | :---- | :---- |
+| `/client-contracts` | GET | lista, filtrirano po `booking_id`/statusu (prava pristupa iz poglavlja 5) |
+| `/client-contracts/:id` | GET | detalji, uključujući `document_url` |
+| `/client-contracts/:id/accept` | POST | beleži prihvatanje — gost sam (M8 tok) ili ručno (`M20/client-contract/ACCEPT`) |
+| `/client-contracts/:id/void` | POST | zahteva `M20/client-contract/VOID` |
+
+---
+
+## 7. Izlazni kriterijum (M20 deo Faze 2)
+
+- [ ] Ugovor se automatski generiše čim rezervacija pređe u `CONFIRMED`, sa svim obaveznim elementima iz poglavlja 2.3 popunjenim isključivo iz postojećih podataka (M2/M3/M5/M11), bez ručnog dupliranja unosa.
+- [ ] `contract_type` se ispravno bira iz `Booking.tip_nastupanja` i tipa proizvoda, bez ručnog izbora.
+- [ ] Elektronsko prihvatanje na sajtu (M8) ispravno beleži `accepted_at`/`accepted_method` pre finalne potvrde kartičnog plaćanja.
+- [ ] Vaučer za `ORGANIZATOR` rezervaciju se ne generiše dok `ClientContract` ne postoji bar u statusu `GENERATED`.
+- [ ] Svaki `VOID` upisan je u M1 audit log sa identitetom osobe.
+
+---
+
+## 8. Otvoreno za dalje
+
+- Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje, van obima ove specifikacije, isto obrazloženje kao za format vaučera (M5).
+- **Tačan trenutak kad prihvatanje/potpis (`ACCEPTED`) mora biti završen u odnosu na izdavanje vaučera** (poglavlje 3.3) — potvrditi sa pravnikom pre implementacije.
+- Da li dinamika plaćanja treba strukturirano polje (plan rata) u M10 `Payment`, ili je dovoljan slobodan tekst iz uslova prodaje na ugovoru — otvoreno dok se ne pokaže stvarna potreba.
+- `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` (samostalna prodaja van paketa) — uskladiti sa istim otvorenim pitanjem graničnih slučajeva u M10 poglavlje 4.4/12 (PDV tretman van sistema posebnog oporezivanja).
+- `KORPORATIVNI_OKVIRNI` tip — puna specifikacija čeka razradu B2B okvirnih ugovora, van obima ove verzije.

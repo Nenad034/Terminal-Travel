@@ -30,6 +30,7 @@ Isti problem kao u M10: M6 (CRM) formalno je zavisnost, ali još ne postoji kad 
 | document_number | string | |
 | nationality | string | |
 | date_of_birth | date | |
+| document_expiry_date | date, nullable | datum isteka putne isprave — nullable dok podatak nije dostupan (npr. lična karta za domaće putovanje bez tog polja), obavezan za sve slučajeve gde se prelazi granica |
 | check_in_date / check_out_date | date | |
 | status | enum: `NOT_SUBMITTED`, `SUBMITTED`, `CONFIRMED`, `FAILED` | |
 | eturista_reference | string, nullable | potvrda sistema |
@@ -41,6 +42,10 @@ Kad `check_in_date` nastupi (ili odmah po potvrdi rezervacije, ako je poznato un
 
 - Neuspeh (`FAILED`) odmah generiše upozorenje timu (interni panel + email Vlasniku/Direktoru) — ovo **ne** sme tiho da propadne s obzirom na zakonski rok.
 - Odjava (checkout) prijava se šalje na sličan način kad `check_out_date` nastupi, ako to eTurista/CIS proces zahteva (potvrditi tačan tehnički zahtev pri implementaciji — vidi poglavlje 7).
+
+### 2.3 Alarm za rok važenja putne isprave
+
+Sistem upozorava tim kad je `document_expiry_date` gosta ili pratećeg putnika **manje od 6 meseci od datuma polaska** (`check_in_date` odgovarajuće `BookingItem` stavke iz M5) — standardan uslov ulaska u većinu destinacija. Provera se pokreće u dva trenutka: (1) pri kreiranju `GuestRegistration` (ako je podatak već poznat), i (2) ponovnom proverom u periodičnom poslu koji prati nadolazeće polaske (isti mehanizam kao provera roka boravišne takse i garancije, poglavlje 4.2). Ovo je nivo **"Autonomno"** iz poglavlja 7 Master dokumenta — čisto informativno upozorenje, sistem ne blokira rezervaciju niti prijavu, samo obaveštava tim da kontaktira gosta na vreme.
 
 ---
 
@@ -88,6 +93,15 @@ Iznos boravišne takse se obračunava po gostu-noćenju i unosi kao stavka na `F
 
 **Nikad autonomno:** izmena ili obnavljanje garancije je eksplicitno na listi "Nikad autonomno" iz poglavlja 7 Master dokumenta — AI agent **nikad** sam ne menja ovaj zapis niti komunicira sa YUTA u ime agencije. Agent sme (nivo "Autonomno") samo da **prati datum isteka i šalje podsetnik** timu unapred (npr. 60/30/7 dana pre `valid_to`) — čisto informativna radnja, ne izvršenje.
 
+### 4.2 Iskorišćenost garancije — tvrda blokada prodaje preko limita
+
+Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Booking.tip_nastupanja = ORGANIZATOR`, dopuna M10 specifikacije poglavlje 4.1; `Booking.status` nije `CANCELLED`) **nikad ne sme preći** `TravelGuarantee.coverage_amount` tekuće aktivne garancije — ovo je zakonski uslov za pravo agencije da uopšte prodaje organizovana putovanja, ne interna politika upravljanja rizikom.
+
+- **Prag upozorenja (80%):** kad kumulativna prodata vrednost dostigne 80% od `coverage_amount`, sistem upozorava Vlasnika/Direktora — nivo "Autonomno" (informativno).
+- **Tvrda blokada (100%):** M5, u koraku potvrde rezervacije (M5 poglavlje 4, pre bilo kog poziva ka M3/M4 — isti obrazac kao provera B2B kreditnog limita u M7 poglavlje 4), poziva `GET /travel-guarantee/utilization` iz M11 za svaku stavku sa `tip_nastupanja = ORGANIZATOR`. Ako bi potvrda te rezervacije prevazišla `coverage_amount`, potvrda se odbija **pre** rezervisanja bilo kog kapaciteta — gost/agent dobija jasnu poruku, ne generičku grešku.
+- Otkazivanje rezervacije (M5 poglavlje 6) smanjuje kumulativnu iskorišćenost nazad — provera je uvek nad trenutnim, ne istorijskim stanjem.
+- Ova provera se odnosi isključivo na `ORGANIZATOR` promet — `POSREDNIK` rezervacije (M10 poglavlje 4.3) ne troše kapacitet sopstvene garancije agencije, jer odgovornost za izvršenje snosi stvarni organizator čiji aranžman se preprodaje.
+
 ---
 
 ## 5. Evidencije za inspekciju
@@ -121,6 +135,7 @@ Prefiks: `/api/v1/compliance`
 | `/tourist-tax/remittances` | GET | lista mesečnih izveštaja |
 | `/tourist-tax/remittances/:id/submit` | POST | ljudska potvrda slanja nadležnom organu |
 | `/travel-guarantee` | GET / PATCH | trenutna garancija, ručna izmena (uvek ljudska akcija) |
+| `/travel-guarantee/utilization` | GET | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 4.2) i interni panel za prikaz |
 | `/inspection-export` | POST | generiše izvoz za zadati period |
 
 ---
@@ -131,6 +146,8 @@ Prefiks: `/api/v1/compliance`
 - [ ] Boravišna taksa se ispravno obračunava po opštini/kategoriji i pojavljuje kao stavka na fiskalnom dokumentu iz M10.
 - [ ] Mesečni izveštaj boravišne takse (`TouristTaxRemittance`) se pravilno generiše kao nacrt, sa rokom do 5. u mesecu, i zahteva ljudsku potvrdu pre slanja.
 - [ ] Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.
+- [ ] Alarm za rok putne isprave (<6 meseci do polaska) se ispravno generiše, bez blokiranja rezervacije.
+- [ ] Provera iskorišćenosti garancije upozorava na 80% i ispravno blokira potvrdu nove `ORGANIZATOR` rezervacije koja bi prevazišla `coverage_amount`; `POSREDNIK` rezervacije nisu pogođene ovom proverom.
 - [ ] Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.
 - [ ] Svaka radnja koja zahteva ljudsku potvrdu (slanje boravišne takse, izmena garancije) upisana je u M1 audit log sa identitetom osobe.
 

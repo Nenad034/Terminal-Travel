@@ -29,11 +29,13 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 | requester_type | enum: `GUEST`, `SUBAGENT`, `STAFF_ON_BEHALF` | poslednje — kad tim unese tiket u ime gosta koji je zvao telefonom |
 | related_booking_id | UUID, nullable (FK → M5) | kontekst, ako se tiče konkretne rezervacije |
 | subject | string | |
-| category | enum: `REZERVACIJA`, `PLACANJE`, `TEHNICKI_PROBLEM`, `DRUGO` | |
+| category | enum: `REZERVACIJA`, `PLACANJE`, `TEHNICKI_PROBLEM`, `REKLAMACIJA`, `DRUGO` | `REKLAMACIJA` je pravno posebna kategorija — vidi poglavlje 3.1 |
 | priority | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT` | |
 | status | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` | |
 | channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE` | |
 | assigned_to | UUID, nullable (FK → M1 User) | |
+| zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
+| zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |
 | created_at / updated_at / resolved_at | timestamp | |
 
 ### 2.2 `TicketMessage`
@@ -50,13 +52,29 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 
 ---
 
-## 3. Uloga AI agenta (isti obrazac kao M6 `CommunicationLog`)
+## 3. Reklamacije — zakonski rok (Zakon o zaštiti potrošača)
+
+### 3.1 Rok od 8 dana i eskalacija posle 5
+
+Za tiket sa `category = REKLAMACIJA`, agencija je zakonski obavezna da odgovori na pisanu reklamaciju u roku od **8 dana** od prijema (`zzp_response_deadline = created_at + 8 dana`). Ako reklamacija ostane bez odgovora tima (nijedna `TicketMessage` sa `sender_type = STAFF` i popunjenim `sent_by`) **5 dana** od `created_at`, sistem automatski:
+1. Popunjava `zzp_escalated_at`.
+2. Obaveštava Vlasnika/Direktora (interni panel + email) — nivo **"Autonomno"** iz poglavlja 7 Master dokumenta, čisto informativna eskalacija, ne izvršenje.
+
+Neodgovaranje u roku od 8 dana pravno ovlašćuje gosta na sniženje cene ili raskid ugovora — sistem ovo ne sprovodi automatski (to je pravna posledica van dometa tiketing sistema), samo obezbeđuje da rok nikad tiho ne prođe neprimećen.
+
+### 3.2 Automatski nacrt storno dokumenta pri povraćaju
+
+Ako se rešenje reklamacije (`status → RESOLVED`) veže za odluku o povraćaju novca, M14 emituje događaj `ticket.resolved_with_refund` (Event Bus, referencira `related_booking_id`) — M10 se pretplaćuje i **automatski priprema nacrt** storno fiskalnog dokumenta (`FiscalDocument.status = DRAFT`, M10 poglavlje 6.1), isto kao svaki drugi nacrt u M10. Ovo ne menja pravilo iz M10: **slanje** storno dokumenta i dalje zahteva ljudsku potvrdu (`M10/fiscal-document/SUBMIT`) — M14 samo ubrzava pripremu, nikad sam ne izvršava fiskalnu radnju.
+
+---
+
+## 4. Uloga AI agenta (isti obrazac kao M6 `CommunicationLog`)
 
 AI agent sme samostalno (nivo "Autonomno") da sažme upit gosta i pripremi nacrt odgovora (`sender_type = AI_DRAFT`). Ako nacrt pominje cenu, obavezu, ili odluku o povraćaju novca — poruka se **ne šalje** dok je čovek ne pregleda i pošalje (`sent_by` popunjeno), u skladu sa nivoom "Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta. Čisto informativni odgovori (npr. "kako da preuzmete vaučer") mogu biti poslati direktno ako je tako podešeno — ali podrazumevano, svaki odgovor ide na ljudski pregled dok se sistem ne pokaže pouzdan.
 
 ---
 
-## 4. Dozvole (registruju se u M1 katalog dozvola)
+## 5. Dozvole (registruju se u M1 katalog dozvola)
 
 | Dozvola | Podrazumevana dodela po ulozi |
 | :---- | :---- |
@@ -65,7 +83,7 @@ AI agent sme samostalno (nivo "Autonomno") da sažme upit gosta i pripremi nacrt
 
 ---
 
-## 5. API ugovor (REST, OpenAPI) — ključni endpoint-i
+## 6. API ugovor (REST, OpenAPI) — ključni endpoint-i
 
 Prefiks: `/api/v1/helpdesk`
 
@@ -78,16 +96,19 @@ Prefiks: `/api/v1/helpdesk`
 
 ---
 
-## 6. Izlazni kriterijum (M14 deo Faze 5)
+## 7. Izlazni kriterijum (M14 deo Faze 5)
 
 - [ ] Gost sa sajta (M8) i subagent sa B2B portala (M7) mogu da otvore tiket i vide status/odgovore.
 - [ ] Interne beleške (`is_internal_note`) nikad nisu vidljive van internog panela (M17).
 - [ ] AI-generisan nacrt koji pominje cenu/obavezu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
 - [ ] Tiket vezan za rezervaciju (`related_booking_id`) prikazuje kontekst iz M5 bez dupliranja podataka.
+- [ ] `zzp_response_deadline` se automatski postavlja na 8 dana za `REKLAMACIJA` tikete; `zzp_escalated_at` se popunjava i menadžment obaveštava tačno posle 5 dana bez odgovora tima.
+- [ ] Rešavanje reklamacije uz povraćaj novca automatski priprema nacrt storno dokumenta u M10, ali slanje i dalje zahteva ljudsku potvrdu.
 
 ---
 
-## 7. Otvoreno za dalje
+## 8. Otvoreno za dalje
 
-- SLA pravila (npr. automatsko eskaliranje tiketa otvorenog duže od X sati) — dodaju se ako se pokaže potreba, trenutno nije u obimu.
+- SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema otvorenog duže od X sati) — dodaju se ako se pokaže potreba; `REKLAMACIJA` kategorija već ima zakonski rok (poglavlje 3.1), ne čeka ovu opštu odluku.
 - Integracija sa M9 mobilnom aplikacijom (Faza 6) za goste — dodaje se kad taj kanal bude gotov.
+- Tačan mehanizam kojim se odluka o povraćaju novca formalno beleži na tiketu (npr. novo polje `refund_decision`) pre nego što se emituje `ticket.resolved_with_refund` — definiše se kad se dođe do stvarne izrade, van obima ove specifikacije.

@@ -54,15 +54,33 @@ Jedan ugovor može pokrivati više sezona sa različitim cenama i alotmanom (npr
 | contract_id | UUID (FK → Contract) | |
 | stay_from / stay_to | date | period boravka gosta na koji ova sezona/cena važi |
 | room_type | string | odgovara `room_type` u `attributes` odgovarajućeg M2 Product-a (konvencija, ne strogi FK — vidi princip granica modula) |
-| allotment_mode | enum: `FIXED`, `ON_REQUEST` | potvrđeno: oba tipa postoje |
-| total_capacity | integer, nullable | **samo za `FIXED`** — ukupan broj jedinica (soba/mesta) u ovom periodu |
-| units_sold | integer, default 0 | **samo za `FIXED`** — atomski se uvećava pri svakoj potvrđenoj rezervaciji (M5); vidi napomenu o konkurentnosti niže |
-| release_days_before | integer, nullable | **samo za `FIXED`** — koliko dana pre `stay_from` agencija mora da najavi hotelu šta vraća od neprodatog alotmana |
+| allotment_mode | enum: `FIXED`, `ON_REQUEST`, `CHARTER`, `FIXED_LEASE` | vidi poglavlje 2.3a za `CHARTER`/`FIXED_LEASE` |
+| total_capacity | integer, nullable | za `FIXED`, `CHARTER`, `FIXED_LEASE` — ukupan broj jedinica (soba/mesta) u ovom periodu |
+| units_sold | integer, default 0 | za `FIXED`, `CHARTER`, `FIXED_LEASE` — atomski se uvećava pri svakoj potvrđenoj rezervaciji (M5); vidi napomenu o konkurentnosti niže |
+| release_days_before | integer, nullable | **samo za `FIXED`** — koliko dana pre `stay_from` agencija mora da najavi hotelu šta vraća od neprodatog alotmana; **ne primenjuje se na `CHARTER`/`FIXED_LEASE`** (poglavlje 2.3a) |
+| ukupna_fiksna_obaveza / fixed_obligation_currency | decimal / string, nullable | **samo za `CHARTER`/`FIXED_LEASE`** — vidi poglavlje 2.3a |
+| payment_schedule | JSONB, nullable | **samo za `FIXED_LEASE`** — vidi poglavlje 2.3a |
 | created_at / updated_at | timestamp | |
 
 **`ON_REQUEST` period nema `total_capacity` ni `units_sold`** — sistem ne garantuje kapacitet; svaki pokušaj rezervacije u ovom periodu mora proći kroz ručnu ili API potvrdu dobavljača pre nego što se gostu potvrdi (M5 ovo tretira kao status "Na čekanju potvrde dobavljača", ne kao trenutnu potvrdu).
 
-**Napomena o konkurentnosti (za implementaciju M5):** uvećanje `units_sold` mora biti atomska operacija sa proverom (`UPDATE ... SET units_sold = units_sold + 1 WHERE units_sold + n <= total_capacity`, unutar transakcije sa row-level lock-om) — sprečava da dva agenta istovremeno rezervišu poslednju sobu i pređu kapacitet.
+**Napomena o konkurentnosti (za implementaciju M5):** uvećanje `units_sold` mora biti atomska operacija sa proverom (`UPDATE ... SET units_sold = units_sold + 1 WHERE units_sold + n <= total_capacity`, unutar transakcije sa row-level lock-om) — sprečava da dva agenta istovremeno rezervišu poslednju sobu i pređu kapacitet. Isto važi za `CHARTER`/`FIXED_LEASE`.
+
+### 2.3a `CHARTER` i `FIXED_LEASE` — kapacitet sa fiksnom obavezom nezavisno od prodaje
+
+Za razliku od `FIXED` (gde agencija drži kontingent kod dobavljača, ali dobavljač i dalje snosi rizik neprodatog dela — zato postoji `release_days_before`), kod `CHARTER` i `FIXED_LEASE` agencija **unapred preuzima punu finansijsku obavezu** za ceo kapacitet, bez obzira na to koliko se stvarno proda:
+
+- **`CHARTER`** — agencija otkupljuje ceo kapacitet leta/broda/autobusa za period, jednokratno.
+- **`FIXED_LEASE`** (fiksni zakup) — agencija zakupljuje ceo objekat (hotel, brod) za sezonu, uz fiksnu mesečnu/periodičnu obavezu, nezavisno od popunjenosti.
+
+| Polje (dopuna 2.3) | Napomena |
+| :---- | :---- |
+| `ukupna_fiksna_obaveza` | Ukupan iznos koji agencija duguje dobavljaču za ceo period, nezavisno od `units_sold` — jednokratan iznos za `CHARTER`, zbir svih rata za `FIXED_LEASE` |
+| `payment_schedule` | Samo za `FIXED_LEASE` — niz `{due_date, amount}` rata. Svaka rata, kad dospe, generiše zapis u M10 `SupplierObligation` (M10 poglavlje 8) — isti mehanizam kao svaka druga obaveza prema dobavljaču, ne poseban tok |
+
+**Break-even i P&L pregled** (koliko treba prodati da se pokrije `ukupna_fiksna_obaveza`, i koliki je trenutni jaz) računa se iz `ukupna_fiksna_obaveza` (M3) naspram stvarno naplaćene vrednosti prodatih stavki (M5/M10) — ovo je **read-only agregacija preko modula**, pripada M13 (BI), ne čuva se kao duplirano polje ovde (princip "jedan izvor istine") — vidi M13 poglavlje 9, otvoreno pitanje.
+
+**`release_days_before` se ne primenjuje** — nema koncepta "vraćanja" dobavljaču, kapacitet je već otkupljen/zakupljen, neprodato je sunk cost agencije, ne dobavljača.
 
 ### 2.4 `RateLine` — cena po kombinaciji unutar perioda
 | Polje | Tip | Napomena |
@@ -92,9 +110,47 @@ Kad se ugovori nova sezona/tip sobe, kreira se (ili se ažurira) odgovarajući `
 
 ---
 
-## 4. Uloga AI agenta — upozorenje pred rok za povrat (release)
+## 4. Uloga AI agenta
+
+### 4.1 Upozorenje pred rok za povrat (release)
 
 Kad `release_days_before` period priđe (npr. ostalo je onoliko dana koliko piše u polju), a `units_sold < total_capacity`, agent zadužen za M3 **predlaže** akciju (npr. "vratiti dobavljaču 4 neprodate sobe za period X" ili "tražiti produžetak roka") — ovo spada u nivo **"Predloži pa čovek odobri"** iz poglavlja 7 Master dokumenta, jer povrat kapaciteta dobavljaču je poslovna odluka sa finansijskim uticajem, ne čisto informativna radnja. Agent nikad sam ne šalje potvrdu dobavljaču o vraćanju kapaciteta.
+
+### 4.2 AI uvoz cenovnika (PDF/Excel/scan → strukturirani podaci)
+
+Dobavljači šalju cenovnike u proizvoljnom formatu (PDF, Excel, Word, HTML, email, uključujući skenirane PDF-ove). Umesto ručnog prekucavanja u `ContractPeriod`/`RateLine`, sistem podržava AI-potpomognut uvoz.
+
+#### 4.2.1 `PricelistImport`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID (FK → Supplier) | |
+| source_file_url | string | originalni fajl, EU cloud skladište |
+| source_format | enum: `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF` | `SCANNED_PDF` ide kroz OCR pre parsiranja |
+| status | enum: `PROCESSING`, `READY_FOR_REVIEW`, `COMPLETED`, `REJECTED` | |
+| created_by / created_at | UUID / timestamp | |
+
+#### 4.2.2 `PricelistImportRow` — jedan red = jedna kombinacija hotel/soba/usluga/period/cena
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| pricelist_import_id | UUID (FK) | |
+| extracted_hotel_name | string | tekst tačno kako piše u izvornom dokumentu, pre mapiranja |
+| matched_product_id | UUID, nullable (FK → M2 Product) | kandidat pronađen fuzzy-matching-om (poglavlje 4.2.3) |
+| match_confidence | decimal (0–100), nullable | |
+| extracted_room_type / extracted_board_type | string | |
+| extracted_stay_from / extracted_stay_to | date | |
+| extracted_price / extracted_currency | decimal / string | |
+| review_status | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` | |
+| reviewed_by | UUID (FK → M1 User), nullable | |
+
+#### 4.2.3 Fuzzy-matching i prag pouzdanosti
+
+Ime hotela iz dokumenta se upoređuje sa postojećim M2 katalogom preko Levenštajnove distance, filtrirano po destinaciji i kategoriji (`stars`) radi smanjenja lažnih poklapanja. Redovi sa `match_confidence ≥ 85%` se predlažu kao automatsko mapiranje; ispod praga, red ide na ručno mapiranje (`review_status = PENDING`, bez predloženog `matched_product_id`).
+
+#### 4.2.4 Nivo autonomije — ekstrakcija sme sama, upis cene nikad sam
+
+Ekstrakcija podataka iz dokumenta i predlog mapiranja (`PROCESSING → READY_FOR_REVIEW`) je nivo **"Autonomno"** — čisto informativna priprema, ništa se još ne piše u stvarni `ContractPeriod`/`RateLine`, pa ni pogrešno mapiranje ne utiče na prodajnu cenu. **Kreiranje ili izmena stvarnog `ContractPeriod`/`RateLine` zapisa iz potvrđenog reda** (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) je nivo **"Predloži pa čovek odobri"** — zahteva ljudsku potvrdu (isti nosilac dozvole kao `M3/contract-period/EDIT`, poglavlje 5) pre nego što red postane aktivna cena, u skladu sa principom #4 (determinizam pre autonomije) iz poglavlja 3 Master dokumenta — greška ovde je direktno pogrešna prodajna cena, ne kozmetika.
 
 ---
 
@@ -108,6 +164,8 @@ Kad `release_days_before` period priđe (npr. ostalo je onoliko dana koliko piš
 | `M3/contract/CREATE`, `EDIT`, `DELETE` | Vlasnik, Direktor |
 | `M3/contract-period/VIEW` (uključuje preostali alotman) | Vlasnik, Direktor, Sales Manager, Prodajni agent — prodajni agent mora da vidi preostali kapacitet da bi prodavao |
 | `M3/contract-period/EDIT` (cene, alotman, rokovi) | Vlasnik, Direktor |
+| `M3/pricelist-import/CREATE`, `VIEW` | Vlasnik, Direktor; i AI agent zadužen za M3 (poglavlje 4.2.4 — samo ekstrakcija/predlog) |
+| `M3/pricelist-import/APPROVE_ROW` | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M3/contract-period/EDIT` (poglavlje 4.2.4) |
 
 ---
 
@@ -127,6 +185,10 @@ Prefiks: `/api/v1/contracting`
 | `/contracts/:id/periods/:periodId/availability` | GET | preostali kapacitet — koristi M5 pri pretrazi |
 | `/contracts/:id/periods/:periodId/reserve` | POST | interni poziv (samo M5) — atomski umanjuje `units_sold`, vraća grešku ako nema kapaciteta |
 | `/contracts/expiring-releases` | GET | lista perioda kojima se bliži `release_days_before` rok, za AI agenta i za interni panel |
+| `/pricelist-imports` | GET / POST | lista / upload novog cenovnika (pokreće AI ekstrakciju, poglavlje 4.2) |
+| `/pricelist-imports/:id/rows` | GET | pregled ekstraktovanih redova sa `match_confidence` |
+| `/pricelist-imports/:id/rows/:rowId/approve` | POST | zahteva `M3/pricelist-import/APPROVE_ROW`; kreira/ažurira stvarni `ContractPeriod`/`RateLine` |
+| `/pricelist-imports/:id/rows/:rowId/reject` | POST | odbacuje red bez upisa |
 
 ---
 
@@ -134,9 +196,13 @@ Prefiks: `/api/v1/contracting`
 
 - [ ] Moguće je kreirati dobavljača, ugovor u proizvoljnoj valuti (EUR/RSD), i period sa `FIXED` alotmanom, cenama i pravilima otkazivanja.
 - [ ] Moguće je kreirati period sa `ON_REQUEST` modom, bez kapaciteta.
-- [ ] Konkurentni pokušaji rezervacije (test: dva simultana zahteva za poslednju preostalu jedinicu) — tačno jedan uspeva, kapacitet se nikad ne pređe.
+- [ ] Moguće je kreirati period sa `CHARTER` ili `FIXED_LEASE` modom, sa `ukupna_fiksna_obaveza` (i `payment_schedule` za `FIXED_LEASE`), bez `release_days_before`.
+- [ ] Dospela rata iz `FIXED_LEASE.payment_schedule` ispravno generiše zapis u M10 `SupplierObligation`.
+- [ ] Konkurentni pokušaji rezervacije (test: dva simultana zahteva za poslednju preostalu jedinicu) — tačno jedan uspeva, kapacitet se nikad ne pređe, za sve tipove `allotment_mode` sa kapacitetom (`FIXED`, `CHARTER`, `FIXED_LEASE`).
 - [ ] `/contracts/expiring-releases` tačno prijavljuje periode kojima se bliži rok povrata sa neprodatim kapacitetom.
 - [ ] M2 proizvod ispravno referencira `Contract` preko `source_contract_id`, bez duplirane cene.
+- [ ] Upload testnog cenovnika (PDF i Excel) rezultuje ekstraktovanim redovima sa `match_confidence` za svaki red.
+- [ ] Odobravanje reda cenovnika kreira ispravan `ContractPeriod`/`RateLine` zapis tek posle ljudske potvrde — nijedan red se ne upisuje kao aktivna cena automatski, bez obzira na `match_confidence`.
 
 ---
 
@@ -145,3 +211,6 @@ Prefiks: `/api/v1/contracting`
 - Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano) — dovoljno je slobodan tekst za sada; ako se pokaže potreba za automatskim tumačenjem uslova van `CancellationRule` tabele, revidira se.
 - Obračun konverzije valute za potrebe fakturisanja u RSD (kad ugovor nije u RSD) definiše se detaljno u specifikaciji M10, ne ovde — M3 samo čuva izvornu valutu i cenu.
 - Da li `PACKAGE` proizvodi (iz M2) mogu imati sopstveni ugovor u M3 nezavisno od komponenti koje ga čine, ili se uvek sastavljaju od već ugovorenih komponenti — otvoreno dok se ne dođe do stvarnog paket-aranžmana u praksi.
+- Break-even/P&L pregled za `CHARTER`/`FIXED_LEASE` periode (poglavlje 2.3a) — definiše se kao izveštaj u M13 (BI) kad ta specifikacija dobije ovu dopunu, ne ovde.
+- Tačan OCR provajder/servis za `SCANNED_PDF` (poglavlje 4.2.1) — bira se pri implementaciji, ovaj dokument samo predviđa mesto za tu integraciju.
+- Da li prag od 85% (poglavlje 4.2.3) treba biti podesiv po dobavljaču/formatu dokumenta, ili ostaje globalna konstanta — otvoreno dok se ne pokaže potreba iz prakse.

@@ -84,7 +84,7 @@ Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacit
 
 Korak po korak:
 
-1. Proveri da `Quote.status = DRAFT` i da nije istekla. Ako je istekla, **ponovo izračunaj cenu/dostupnost** (nova pitanja ka M3/M4) pre nastavka — nikad se ne potvrđuje na osnovu zastarele cene.
+1. Proveri da `Quote.status = DRAFT` i da nije istekla. Ako je istekla, **ponovo izračunaj cenu/dostupnost** (nova pitanja ka M3/M4) pre nastavka — nikad se ne potvrđuje na osnovu zastarele cene. Ako je `tip_nastupanja = ORGANIZATOR` (poglavlje 4.1), pre bilo kog poziva ka M3/M4 pozovi M11 `GET /travel-guarantee/utilization` (M11 poglavlje 4.2) — prekoračenje limita garancije odbija potvrdu bez rezervisanja kapaciteta, isti obrazac kao provera B2B kreditnog limita (M7 poglavlje 4).
 2. Za svaku `QuoteItem`:
    - Ako `CONTRACTED`: pozovi M3 `/contracts/:id/periods/:periodId/reserve`. Uspeh → `item_status = CONFIRMED`. Ako je period `ON_REQUEST` → `item_status = PENDING_SUPPLIER_CONFIRMATION`. Neuspeh (nema kapaciteta) → stavka pada.
    - Ako `API`: pozovi M4 `/internal/providers/:code/bookings` sa jedinstvenim `idempotency_key`. Mapiraj `BookingConfirmation.status` u `item_status`.
@@ -99,10 +99,14 @@ Korak po korak:
 | booking_number | string, unique | čitljiva oznaka za gosta (npr. `TT-2027-000482`) |
 | client_account_id | UUID (FK → M6) | ko plaća |
 | channel | enum (isto kao Quote) | |
+| tip_nastupanja | enum: `ORGANIZATOR`, `POSREDNIK` | dodato u M10 specifikaciji, poglavlje 4.1 — bira ga prodajni tim pri potvrdi, **nepromenljivo posle kreiranja rezervacije**; određuje PDV tretman (M10) i tip klijentskog ugovora (M20) |
 | status | enum: `PENDING_SUPPLIER_CONFIRMATION`, `CONFIRMED`, `MODIFIED`, `CANCELLED`, `COMPLETED` | |
 | payment_status | enum: `UNPAID`, `PARTIALLY_PAID`, `PAID`, `INVOICE_PENDING` | **potvrđeno: potvrda rezervacije ne zavisi od statusa plaćanja** — B2B kredit i avansno plaćanje su podržani od starta |
 | total_price / currency | decimal / string | zbir `final_price` svih stavki |
-| voucher_url | string, nullable | generiše se posle prelaska u `CONFIRMED` |
+| voucher_url | string, nullable | generiše se kad su ispunjeni uslovi iz poglavlja 6 (puna uplata, ili odobren izuzetak) |
+| voucher_override_approved_by | UUID, nullable (FK → M1 User) | popunjeno samo ako je vaučer izdat bez pune uplate — vidi poglavlje 6 |
+| voucher_override_reason | text, nullable | obrazloženje izuzetka, unosi ga odobravalac |
+| voucher_override_at | timestamp, nullable | |
 | created_at / confirmed_at / cancelled_at | timestamp | |
 | created_by | UUID | user ili "GOST_SELF" |
 
@@ -137,7 +141,11 @@ Korak po korak:
 
 - **Izmena** (datum, broj gostiju): tretira se interno kao otkazivanje pogođene stavke + nova provera dostupnosti/cene za novi zahtev, prikazano gostu kao jedna radnja "izmeni rezervaciju". Razlika u ceni (doplata ili povraćaj) se beleži, stvarna naplata/povraćaj opet ide kroz M10.
 - **Otkazivanje:** za svaku stavku koja se otkazuje, `cancellation_refund_percentage` se izračunava iz M3 `CancellationRule` (po broju dana do `stay_from`) ili M4 `cancellationPolicy`; kapacitet se oslobađa nazad (M3 `units_sold` se umanjuje, ili M4 `cancelBooking`). Booking prelazi u `CANCELLED` samo ako se otkazuju sve stavke; ako se otkazuje samo deo, booking ostaje `MODIFIED` sa preostalim aktivnim stavkama.
-- **Vaučer:** generiše se PDF sa detaljima rezervacije čim `Booking.status = CONFIRMED`, čuva se u EU cloud skladištu, referenca u `voucher_url`.
+- **Vaučer:** generiše se PDF sa detaljima rezervacije, čuva se u EU cloud skladištu, referenca u `voucher_url`. **Podrazumevano se generiše tek kad je `Booking.status = CONFIRMED` I `payment_status = PAID`** (puna uplata) — sistem ne generiše vaučer za `UNPAID`, `PARTIALLY_PAID` ili `INVOICE_PENDING` bez izričitog odobrenja. Pošto uplata (posebno B2B kredit/avans) često stiže posle same potvrde rezervacije, sistem proverava ovaj uslov ne samo pri potvrdi nego i pri svakoj promeni `payment_status` (`PATCH /bookings/:id/payment-status`, poglavlje 5) — čim stavka pređe u `PAID`, vaučer se generiše automatski ako do tada nije već izdat.
+
+  **Izuzetak — izdavanje bez pune uplate:** Vlasnik ili Direktor mogu ručno odobriti izdavanje vaučera bez uplate ili sa delimičnom uplatom. Ovo je uvek eksplicitna ljudska radnja — nivo **"Nikad autonomno"** iz poglavlja 7 Master dokumenta (AI agent zadužen za M5 nikad sam ne pokreće ovo odobrenje, isto obrazloženje kao izuzeci od finansijskih ograda u M3/M11) — beleži se u `voucher_override_approved_by`/`voucher_override_reason`/`voucher_override_at` (poglavlje 4.1) i vidljivo je u M1 audit logu.
+
+  **Dodatni uslov za `tip_nastupanja = ORGANIZATOR`** (dopuna M20 specifikacije, poglavlje 3.3): vaučer se ne generiše — ni automatski ni preko izuzetka iznad — dok `ClientContract` (M20) ne postoji bar u statusu `GENERATED`. Ugovor sa klijentom mora postojati pre nego što gost dobije vaučer.
 
 ---
 
@@ -222,6 +230,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 | `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager (sve); Prodajni agent (podrazumevano samo sopstveni klijenti — širi se pojedinačnim izuzetkom iz M1 ako treba); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
 | `M5/booking/MODIFY`, `CANCEL` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Gost (sopstvena rezervacija, u skladu sa pravilima otkazivanja) |
 | `M5/markup-rule/VIEW`, `EDIT` | Vlasnik, Direktor — cenovna politika je osetljiva, ne deli se šire podrazumevano |
+| `M5/voucher/OVERRIDE_ISSUE` (izdavanje bez pune uplate) | Vlasnik, Direktor — **nikad AI agent, nikad Sales Manager/Prodajni agent**, u skladu sa poglavljem 6 (finansijski rizik) |
 | `M5/supplier-manifest/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
 | `M5/supplier-manifest/CREATE` (nacrt) | Vlasnik, Direktor, Sales Manager, Prodajni agent; i AI agent zadužen za M5 (poglavlje 8.4) |
 | `M5/supplier-manifest/SEND` | Vlasnik, Direktor, Sales Manager — **nikad AI agent**, u skladu sa poglavljem 8.4 |
@@ -242,7 +251,8 @@ Prefiks: `/api/v1/sales`
 | `/bookings/:id` | GET | detalji rezervacije |
 | `/bookings/:id/modify` | POST | izmena datuma/gostiju |
 | `/bookings/:id/cancel` | POST | otkazivanje (celo ili po stavci) |
-| `/bookings/:id/payment-status` | PATCH | poziva isključivo M10 |
+| `/bookings/:id/payment-status` | PATCH | poziva isključivo M10; ako novi status prelazi u `PAID`, automatski proverava i pokreće generisanje vaučera (poglavlje 6) |
+| `/bookings/:id/voucher/override` | POST | zahteva `M5/voucher/OVERRIDE_ISSUE`; generiše vaučer bez obzira na `payment_status`, popunjava `voucher_override_*` polja (poglavlje 4.1/6) |
 | `/markup-rules` | GET / POST / PATCH | upravljanje pravilima marže |
 | `/bookings/calendar-summary` | GET | `?from=&to=` (npr. opseg meseca) — vraća niz `{date, arrivals_count, departures_count, stayovers_count, single_day_count}` po danu, za brzo iscrtavanje meseca bez učitavanja pojedinačnih stavki (poglavlje 7.2) |
 | `/bookings/calendar/:date` | GET | pun spisak `BookingItem` razvrstan u dolazi/odlazi/u toku/jednodnevno za taj dan (poglavlje 7.1), sa istim pravima pristupa kao `/bookings` |
@@ -258,6 +268,8 @@ Prefiks: `/api/v1/sales`
 - [ ] Marža se ispravno primenjuje po hijerarhiji iz poglavlja 2, sa dokazivim izračunom (ista ulazna cena uvek daje istu izlaznu cenu).
 - [ ] Rezervacija sa više stavki gde jedna stavka ne uspe ne ostavlja "napola" rezervaciju — sve već rezervisane stavke se oslobađaju.
 - [ ] Rezervacija može biti `CONFIRMED` sa `payment_status = UNPAID` ili `INVOICE_PENDING`, bez greške.
+- [ ] Vaučer se ne generiše automatski dok `payment_status != PAID`; prelazak u `PAID` (i pre i posle potvrde) automatski generiše vaučer bez ručne akcije.
+- [ ] `POST /bookings/:id/voucher/override` ispravno generiše vaučer bez pune uplate samo za Vlasnika/Direktora, upisuje `voucher_override_*` polja i vidljiv je u audit logu; ista radnja je odbijena za sve ostale uloge i za AI agenta.
 - [ ] Otkazivanje ispravno računa procenat povraćaja iz `CancellationRule` i oslobađa kapacitet nazad u M3.
 - [ ] Svaka promena statusa rezervacije vidljiva je u M1 audit logu.
 - [ ] Klikom na datum u kalendaru tim vidi stavke tog dana ispravno razvrstane u dolazi/odlazi/u toku/jednodnevno (poglavlje 7.1), bez duplog brojanja i bez otkazanih stavki.
