@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodato: konvencija celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -17,6 +17,8 @@ Van obima: sama rezervacija i naplata (M5, M10), i proizvodi koji dolaze preko A
 ---
 
 ## 2. Model podataka
+
+**Konvencija za novčane vrednosti:** svaki novčani iznos u ovom dokumentu (`price`, `ukupna_fiksna_obaveza`, itd.) čuva se kao `integer` u najmanjoj jedinici valute (RSD → para, EUR → cent), **nikad kao `decimal`/float** — sprečava greške zaokruživanja pri sabiranju/množenju cena kroz lanac M3 → M5 → M10. Prikaz gostu/korisniku (npr. "1.234,56 RSD") je isključivo formatiranje na UI sloju, ne menja tip skladištenja. Izuzetak: procenti (`refund_percentage`) nisu novčani iznosi i ne podležu ovom pravilu. Ista konvencija važi kroz M5 i M10 — M10 poglavlje 3.2 je kanonski izvor ovog pravila (potvrđeno poređenjem sa PrimeTravel `supplier_integration_guide.md`, vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 1).
 
 ### 2.1 `Supplier` — dobavljač
 | Polje | Tip | Napomena |
@@ -58,7 +60,7 @@ Jedan ugovor može pokrivati više sezona sa različitim cenama i alotmanom (npr
 | total_capacity | integer, nullable | za `FIXED`, `CHARTER`, `FIXED_LEASE` — ukupan broj jedinica (soba/mesta) u ovom periodu |
 | units_sold | integer, default 0 | za `FIXED`, `CHARTER`, `FIXED_LEASE` — atomski se uvećava pri svakoj potvrđenoj rezervaciji (M5); vidi napomenu o konkurentnosti niže |
 | release_days_before | integer, nullable | **samo za `FIXED`** — koliko dana pre `stay_from` agencija mora da najavi hotelu šta vraća od neprodatog alotmana; **ne primenjuje se na `CHARTER`/`FIXED_LEASE`** (poglavlje 2.3a) |
-| ukupna_fiksna_obaveza / fixed_obligation_currency | decimal / string, nullable | **samo za `CHARTER`/`FIXED_LEASE`** — vidi poglavlje 2.3a |
+| ukupna_fiksna_obaveza / fixed_obligation_currency | integer / string, nullable | **samo za `CHARTER`/`FIXED_LEASE`** — u najmanjoj jedinici valute (poglavlje 2); vidi poglavlje 2.3a |
 | payment_schedule | JSONB, nullable | **samo za `FIXED_LEASE`** — vidi poglavlje 2.3a |
 | created_at / updated_at | timestamp | |
 
@@ -82,6 +84,14 @@ Za razliku od `FIXED` (gde agencija drži kontingent kod dobavljača, ali dobavl
 
 **`release_days_before` se ne primenjuje** — nema koncepta "vraćanja" dobavljaču, kapacitet je već otkupljen/zakupljen, neprodato je sunk cost agencije, ne dobavljača.
 
+### 2.3b Sprečavanje preklapanja perioda (overlap prevention)
+
+Dva `ContractPeriod` zapisa sa istim `contract_id` i `room_type` **ne smeju imati preklapajuće opsege `stay_from`/`stay_to`** — preklapanje bi značilo da dve različite cene/alotmana važe za isti datum boravka iste sobe, što je dvosmisleno (koja cena/kapacitet se primenjuje?). Dodato poređenjem sa PrimeTravel `PRICING_BLUEPRINT.md`, koji ovo eksplicitno navodi kao planiranu validaciju (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 3).
+
+**Sprovođenje:** provera se radi pri kreiranju/izmeni perioda (`M3/contract-period/EDIT`, poglavlje 5) i pri odobravanju reda iz AI uvoza cenovnika (poglavlje 4.2.4, `review_status → CONFIRMED`/`MANUALLY_MATCHED`) — pokušaj upisa perioda čiji se opseg seče sa postojećim (isti `contract_id` + `room_type`) se odbija sa jasnom porukom koji postojeći period je u sukobu. Na nivou baze, preporučuje se PostgreSQL `EXCLUDE USING gist` ograničenje nad `(contract_id, room_type, daterange(stay_from, stay_to))` — tehnička, ne samo aplikativna prepreka, isti nivo opreza kao ograda u M5 poglavlje 2.2 za `MarkupRule`.
+
+Granični slučaj: susedni periodi (npr. jedan se završava 2027-08-31, drugi počinje 2027-09-01) **nisu** preklapanje — u sukobu je samo strogo presecanje opsega (`stay_from < other.stay_to AND stay_to > other.stay_from`). Ova provera se primenjuje jednako na sve vrednosti `allotment_mode` — dva perioda za isti datum/sobu su dvosmislena bez obzira da li je jedan `FIXED` a drugi `ON_REQUEST`.
+
 ### 2.4 `RateLine` — cena po kombinaciji unutar perioda
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
@@ -89,7 +99,7 @@ Za razliku od `FIXED` (gde agencija drži kontingent kod dobavljača, ali dobavl
 | contract_period_id | UUID (FK → ContractPeriod) | |
 | board_type | string | npr. "polupansion", "all-inclusive" |
 | occupancy | string | npr. "odrasla osoba u dvokrevetnoj", "doplata za jednokrevetnu" |
-| price | decimal | u valuti ugovora (`Contract.currency`) |
+| price | integer | u najmanjoj jedinici valute ugovora (`Contract.currency`) — vidi konvenciju u poglavlju 2 |
 | created_at / updated_at | timestamp | |
 
 ### 2.5 `CancellationRule` — pravila otkazivanja po periodu
@@ -140,7 +150,7 @@ Dobavljači šalju cenovnike u proizvoljnom formatu (PDF, Excel, Word, HTML, ema
 | match_confidence | decimal (0–100), nullable | |
 | extracted_room_type / extracted_board_type | string | |
 | extracted_stay_from / extracted_stay_to | date | |
-| extracted_price / extracted_currency | decimal / string | |
+| extracted_price / extracted_currency | integer / string | u najmanjoj jedinici valute (poglavlje 2) — konvertuje se pri ekstrakciji, čak i ako je izvorni dokument prikazivao cenu sa decimalama |
 | review_status | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` | |
 | reviewed_by | UUID (FK → M1 User), nullable | |
 
@@ -179,7 +189,7 @@ Prefiks: `/api/v1/contracting`
 | `/suppliers/:id` | GET / PATCH | |
 | `/contracts` | GET / POST | lista / kreiranje ugovora |
 | `/contracts/:id` | GET / PATCH | |
-| `/contracts/:id/periods` | GET / POST | sezone unutar ugovora |
+| `/contracts/:id/periods` | GET / POST | sezone unutar ugovora — `POST`/`PATCH` odbija period koji se datumski preklapa sa postojećim za isti `room_type` (poglavlje 2.3b) |
 | `/contracts/:id/periods/:periodId/rates` | GET / PUT | cenovne stavke |
 | `/contracts/:id/periods/:periodId/cancellation-rules` | GET / PUT | pravila otkazivanja |
 | `/contracts/:id/periods/:periodId/availability` | GET | preostali kapacitet — koristi M5 pri pretrazi |
@@ -203,6 +213,8 @@ Prefiks: `/api/v1/contracting`
 - [ ] M2 proizvod ispravno referencira `Contract` preko `source_contract_id`, bez duplirane cene.
 - [ ] Upload testnog cenovnika (PDF i Excel) rezultuje ekstraktovanim redovima sa `match_confidence` za svaki red.
 - [ ] Odobravanje reda cenovnika kreira ispravan `ContractPeriod`/`RateLine` zapis tek posle ljudske potvrde — nijedan red se ne upisuje kao aktivna cena automatski, bez obzira na `match_confidence`.
+- [ ] Nijedno novčano polje (`price`, `ukupna_fiksna_obaveza`) nije tipa `decimal`/float — provereno da su sva `integer` u najmanjoj jedinici valute (poglavlje 2).
+- [ ] Pokušaj kreiranja ili odobravanja (iz uvoza cenovnika) `ContractPeriod` koji se datumski preklapa sa postojećim periodom za isti `contract_id`/`room_type` se odbija sa jasnom porukom (poglavlje 2.3b); susedni (ne-presecajući) periodi se prihvataju.
 
 ---
 

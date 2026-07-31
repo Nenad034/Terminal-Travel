@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato: PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, ograničenje gotovine, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.3 — dodato: konvencija celobrojnih novčanih iznosa (poglavlje 3.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, ograničenje gotovine, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -42,6 +42,16 @@ Ugovori (M3) mogu biti u EUR ili drugoj valuti, ali **fiskalni dokument prema sr
 | created_at | timestamp | |
 
 Svaki `FiscalDocument` čuva i originalni iznos (iz `Booking.total_price`, u izvornoj valuti) i RSD iznos, izračunat po `nbs_middle_rate` **na dan prometa** (dan izdavanja dokumenta, standardna računovodstvena praksa u Srbiji) — ne na dan rezervacije ako se ta dva datuma razlikuju. Isti mehanizam (kurs na dan X) koristi se i za obaveze prema dobavljačima (poglavlje 8), samo sa druge strane transakcije.
+
+### 3.2 Konvencija skladištenja novčanih iznosa — integer, ne decimal
+
+Svaki novčani iznos u M10 (i kroz ceo lanac M3 → M5 → M10) čuva se kao **`integer` u najmanjoj jedinici valute** (RSD → para, EUR → cent), **nikad kao `decimal`/float** — sprečava greške zaokruživanja koje se akumuliraju kroz sabiranje/množenje/konverziju cena (npr. `Booking.total_price` iz M5 → PDV izračun → `FiscalDocument.amount_rsd`). Ovo je kanonski izvor pravila za ceo sistem — M3 (poglavlje 2) i M5 (poglavlje 2) upućuju ovde. Potvrđeno poređenjem sa PrimeTravel `supplier_integration_guide.md`, koji ovo eksplicitno propisuje kao `{ amountCents: number, currency: "EUR" }` obrazac (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 1).
+
+**Izuzeci — nisu novčani iznosi, ostaju `decimal`:**
+- Kursevi (`nbs_middle_rate`) — odnos dve valute, ne iznos u valuti.
+- Procenti (`percentage`, `vat_rate`, `refund_percentage`, `discount_percentage`) — količnik, ne iznos.
+
+Prikaz korisniku (npr. "1.234,56 RSD") je isključivo formatiranje na UI sloju (deljenje sa 100 i lokalizovan zapis) — ne menja tip skladištenja niti bilo koji izračun u backend-u.
 
 ---
 
@@ -84,9 +94,9 @@ Novo polje: `vat_calculation_basis`, enum `MARZA` (poglavlje 4.2) | `PROVIZIJA` 
 | status | enum: `DRAFT`, `SUBMITTED`, `ISSUED`, `REJECTED`, `STORNIRANO` | vidi poglavlje 6 — `SUBMITTED` je nepovratan korak |
 | vat_calculation_basis | enum: `MARZA`, `PROVIZIJA`, `PUNA_OSNOVICA` | vidi poglavlje 4.4 |
 | external_reference | string, nullable | broj fakture kod SEF-a ili fiskalni broj/QR kod ESIR-a — **ovo je pravno merodavan identifikator, ne interni `id`** |
-| amount_original / currency_original | decimal / string | iz Booking-a |
-| amount_rsd | decimal | posle konverzije (poglavlje 3) |
-| vat_rate / vat_amount | decimal | obračunato po osnovici iz `vat_calculation_basis` (poglavlje 4) |
+| amount_original / currency_original | integer / string | iz Booking-a, u najmanjoj jedinici valute (poglavlje 3.2) |
+| amount_rsd | integer | posle konverzije (poglavlje 3), u para |
+| vat_rate / vat_amount | decimal / integer | `vat_rate` procenat (decimal, izuzetak iz poglavlja 3.2); `vat_amount` iznos u najmanjoj jedinici valute — obračunato po osnovici iz `vat_calculation_basis` (poglavlje 4) |
 | exchange_rate_snapshot_id | UUID (FK), nullable | koji kurs je korišćen, radi sledljivosti |
 | buyer_name_snapshot | string | ime/naziv nalogodavca (iz M6) u trenutku slanja — dodato u M6 specifikaciji, poglavlje 6/8, jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni |
 | buyer_tax_id_snapshot | string, nullable | PIB u trenutku slanja, ako je pravno lice |
@@ -102,7 +112,7 @@ Novo polje: `vat_calculation_basis`, enum `MARZA` (poglavlje 4.2) | `PROVIZIJA` 
 | id | UUID (PK) | |
 | booking_id | UUID (FK → M5 Booking), nullable | **nullable** — kod kartičnog plaćanja uplata se pokreće pre nego što rezervacija uopšte postoji (vidi poglavlje 7.2); popunjava se čim/ako se rezervacija uspešno potvrdi |
 | quote_id | UUID (FK → M5 Quote), nullable | popunjeno za kartično plaćanje dok `booking_id` još ne postoji |
-| amount / currency | decimal / string | |
+| amount / currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2) |
 | method | enum: `BANK_TRANSFER`, `CASH`, `CARD` | |
 | status | enum: `PENDING`, `RECEIVED`, `FAILED`, `REFUNDED`, `VOIDED` | `VOIDED` — kartica naplaćena, ali booking potvrda ipak nije uspela (vidi 7.2), iznos se automatski poništava/vraća |
 | reference | string, nullable | poziv na broj / izvod banke — za `BANK_TRANSFER`/`CASH` |
@@ -181,14 +191,14 @@ Simetrično potraživanjima od gostiju (poglavlje 5.2 `Payment`), M10 mora da pr
 | supplier_id | UUID (FK → M3 Supplier) | |
 | booking_item_id | UUID (FK → M5 BookingItem), nullable | veza ka konkretnoj prodatoj stavci — **obavezna pre nego što obaveza pređe u `APPROVED`** (poglavlje 8.3) |
 | invoice_reference | string, nullable | broj ulazne fakture dobavljača |
-| amount_original / currency_original | decimal / string | iz M3 `RateLine` cene ili stvarne ulazne fakture ako se razlikuje |
+| amount_original / currency_original | integer / string | iz M3 `RateLine` cene ili stvarne ulazne fakture ako se razlikuje, u najmanjoj jedinici valute (poglavlje 3.2) |
 | exchange_rate_snapshot_id_at_invoice | UUID (FK → `ExchangeRateSnapshot`), nullable | kurs na dan prijema fakture dobavljača |
-| amount_rsd_at_invoice | decimal, nullable | |
+| amount_rsd_at_invoice | integer, nullable | u para |
 | due_date | date | rok plaćanja, iz uslova u M3 `Contract` |
 | status | enum: `PENDING`, `APPROVED`, `PAID`, `DISPUTED` | `DISPUTED` — obaveza osporena (npr. dobavljač fakturisao pogrešan iznos), ne plaća se dok se ne razreši |
 | paid_at | timestamp, nullable | |
 | exchange_rate_snapshot_id_at_payment | UUID (FK → `ExchangeRateSnapshot`), nullable | kurs na dan stvarnog plaćanja |
-| exchange_rate_difference | decimal, nullable | `(kurs_na_dan_placanja − kurs_na_dan_fakture) × amount_original` — popunjava se automatski pri prelasku u `PAID`, pozitivna ili negativna |
+| exchange_rate_difference | integer, nullable | `(kurs_na_dan_placanja − kurs_na_dan_fakture) × amount_original`, zaokruženo na najbližu paru — popunjava se automatski pri prelasku u `PAID`, pozitivna ili negativna |
 | created_at / updated_at | timestamp | |
 
 ### 8.2 Alarm pred rok
@@ -254,6 +264,7 @@ Prefiks: `/api/v1/finance`
 - [ ] `SupplierObligation` ne može preći u `APPROVED` bez popunjenog `booking_item_id`.
 - [ ] Alarm 5 dana pre `due_date` neplaćene obaveze prema dobavljaču se ispravno generiše.
 - [ ] `exchange_rate_difference` se ispravno izračunava pri plaćanju obaveze kad se kurs na dan fakture razlikuje od kursa na dan plaćanja.
+- [ ] Nijedno novčano polje (`amount_original`, `amount_rsd`, `vat_amount`, `amount`, `amount_rsd_at_invoice`, `exchange_rate_difference`) nije tipa `decimal`/float — provereno da su sva `integer` u najmanjoj jedinici valute (poglavlje 3.2); kursevi i procenti ostaju `decimal`.
 
 ---
 

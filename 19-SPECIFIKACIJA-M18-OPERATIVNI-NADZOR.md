@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodat kriterijum kritičnosti/bezbednosne osetljivosti za izbor modela (poglavlje 6.2a) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -110,6 +110,12 @@ Dodaju se polja: `model_tier` (enum: `LIGHT`, `STANDARD`, `HEAVY`), `model_ident
 
 **Najvažniji nalaz ovog poglavlja:** dobar deo onoga što je u ranijim specifikacijama opisano kao "AI agent, nivo Autonomno" (npr. M3 upozorenje, M11 podsetnik) **uopšte ne zahteva poziv jezičkom modelu** — to je obična provera datuma/broja u kodu. Pozivanje LLM-a za takve provere bilo bi čist trošak tokena bez ikakve koristi. Ovo se eksplicitno navodi u tabeli iznad da bi implementacija to poštovala od starta, ne tek kad račun za tokene postane primetan.
 
+### 6.2a Dopunski kriterijum — kritičnost/bezbednosna osetljivost akcije, ne samo tekstualna složenost
+
+Tabela iz 6.2 bira nivo modela isključivo po tome koliko je *tekstualni* zadatak zahtevan (kratka klasifikacija naspram kreativne sinteze). Ovo nije jedini relevantan kriterijum: neka akcija može biti tekstualno jednostavna, a ipak nositi **asimetričnu cenu greške** (npr. propuštena bezbednosna anomalija, pogrešno prepoznata prevara) koja opravdava jači/skuplji model bez obzira na složenost samog teksta. Potvrđeno poređenjem sa PrimeTravel `orchestratorV2Config.ts` ("Model Matrix") — njihov bezbednosni agent ("sentinel") koristi jači model (Claude 3.5 Sonnet) dok većina agenata koristi lakši model, nezavisno od dužine/složenosti pojedinačnog zadatka (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 10).
+
+**Pravilo:** za akciju koja dotiče bezbednost (npr. buduća AI klasifikacija `HealthSignal.signal_type = AUTH_ANOMALY`, poglavlje 2.1 — ako se ikad automatizuje AI analizom umesto pravila zasnovanih na obrascu), PII, ili sprečavanje prevare, koristi se **najmanje `STANDARD`, po difoltu `HEAVY`** — bez obzira gde bi po tekstualnoj složenosti sama akcija spadala u tabeli 6.2. Ovo je nezavisan, dodatni kriterijum uz onaj iz 6.2 — kad se rezultati dva kriterijuma razlikuju, primenjuje se **jači (skuplji) od ta dva**, nikad slabiji.
+
 ### 6.3 `AgentInvocationLog` — vidljivost potrošnje
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
@@ -167,6 +173,7 @@ Prefiks: `/api/v1/ops`
 - [ ] `TrendSuggestion` se ne unosi u Dodatak A Master dokumenta bez `approved_by` popunjenog.
 - [ ] Nijedna čisto deterministička provera (rok, limit, datum) ne troši pozive jezičkom modelu — proverljivo kroz `AgentInvocationLog` (nema zapisa za te akcije).
 - [ ] Neuobičajen skok potrošnje tokena generiše sopstveni `HealthSignal`.
+- [ ] Akcija koja dotiče bezbednost/PII/prevaru koristi bar `STANDARD`, podrazumevano `HEAVY` nivo modela, bez obzira na tekstualnu složenost zadatka (poglavlje 6.2a) — proverljivo kroz `AgentInvocationLog.model_tier` za takve `action_code` zapise.
 
 ---
 

@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodato: konvencija celobrojnih novčanih iznosa (poglavlje 2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4
 
 ---
@@ -22,6 +22,8 @@ Van obima: naplata i fiskalizacija (M10, Faza 2), eTurista prijava (M11, Faza 2)
 
 Potvrđeno: potreban je fleksibilan sistem koji podržava procenat, fiksan iznos, i kombinaciju oba, sa podrazumevanom vrednošću po dobavljaču/provajderu koja se može override-ovati na finijem nivou.
 
+**Konvencija za novčane vrednosti:** svi novčani iznosi (`base_cost`, `final_price`, `fixed_amount`, `total_price`, itd.) čuvaju se kao `integer` u najmanjoj jedinici valute (para/cent), nikad kao `decimal`/float — ista konvencija kao M3 (poglavlje 2) i M10 (poglavlje 3.2, kanonski izvor pravila). `percentage` ostaje `decimal` jer nije novčani iznos.
+
 ### 2.1 `MarkupRule`
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
@@ -29,14 +31,14 @@ Potvrđeno: potreban je fleksibilan sistem koji podržava procenat, fiksan iznos
 | scope_type | enum: `M3_SUPPLIER`, `M3_CONTRACT`, `M3_CONTRACT_PERIOD`, `M4_PROVIDER`, `M2_PRODUCT` | nivo na koji se pravilo odnosi |
 | scope_id | UUID | referenca ka entitetu tog nivoa |
 | percentage | decimal, nullable | npr. `15.00` = 15% |
-| fixed_amount | decimal, nullable | dodaje se posle procenta |
+| fixed_amount | integer, nullable | dodaje se posle procenta, u najmanjoj jedinici valute (poglavlje 2) |
 | fixed_amount_currency | string, nullable | |
 | active_from / active_to | date, nullable | omogućava vremenski ograničene kampanje marže |
 | created_by / created_at / updated_at | UUID / timestamp | |
 
 **Formula (fiksan redosled, da bude deterministički i proverljiv):**
 `finalna_cena = round(nabavna_cena * (1 + percentage / 100)) + fixed_amount`
-Ako `percentage` nije postavljen, tretira se kao 0. Ako `fixed_amount` nije postavljen, tretira se kao 0. Bar jedno od dva mora biti postavljeno da bi pravilo bilo validno.
+Ako `percentage` nije postavljen, tretira se kao 0. Ako `fixed_amount` nije postavljen, tretira se kao 0. Bar jedno od dva mora biti postavljeno da bi pravilo bilo validno. Pošto su `nabavna_cena`/`fixed_amount`/`finalna_cena` celi brojevi (poglavlje 2, konvencija), `round()` ovde zaokružuje na najbližu celu jedinicu najmanje valute (cent/para) — izbegava se float aritmetika kroz ceo lanac izračuna.
 
 ### 2.2 Razrešavanje pravila (najspecifičnije pobeđuje)
 Za proizvod iz M3 (ugovoren): `M2_PRODUCT` → `M3_CONTRACT_PERIOD` → `M3_CONTRACT` → `M3_SUPPLIER` (podrazumevano).
@@ -72,10 +74,10 @@ Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacit
 | source_type | enum: `CONTRACTED`, `API` | |
 | stay_from / stay_to | date | |
 | occupancy | JSONB | `{adults, children, room_config}` |
-| base_cost / base_cost_currency | decimal / string | iz M3 RateLine ili M4 AvailabilityQuote |
+| base_cost / base_cost_currency | integer / string | iz M3 RateLine ili M4 AvailabilityQuote, u najmanjoj jedinici valute (poglavlje 2) |
 | rate_line_id | UUID, nullable (FK → M3 RateLine) | za `CONTRACTED` stavke — koja konkretna cenovna kombinacija (usluga/`board_type`) je izabrana; nullable za `API` stavke. `room_type` se ne duplira ovde — dobija se preko `ContractPeriod.room_type` (roditelj izabranog `RateLine`, vidi M3 §2.3/2.4) |
 | markup_rule_id | UUID (FK → MarkupRule) | koje je pravilo primenjeno — čuva se radi sledljivosti čak i ako se pravilo kasnije promeni |
-| final_price / final_price_currency | decimal / string | rezultat formule iz 2.1 |
+| final_price / final_price_currency | integer / string | rezultat formule iz 2.1, u najmanjoj jedinici valute |
 | provider_quote_reference | string, nullable | za API stavke, radi ponovne provere pred potvrdu |
 
 ---
@@ -102,7 +104,7 @@ Korak po korak:
 | tip_nastupanja | enum: `ORGANIZATOR`, `POSREDNIK` | dodato u M10 specifikaciji, poglavlje 4.1 — bira ga prodajni tim pri potvrdi, **nepromenljivo posle kreiranja rezervacije**; određuje PDV tretman (M10) i tip klijentskog ugovora (M20) |
 | status | enum: `PENDING_SUPPLIER_CONFIRMATION`, `CONFIRMED`, `MODIFIED`, `CANCELLED`, `COMPLETED` | |
 | payment_status | enum: `UNPAID`, `PARTIALLY_PAID`, `PAID`, `INVOICE_PENDING` | **potvrđeno: potvrda rezervacije ne zavisi od statusa plaćanja** — B2B kredit i avansno plaćanje su podržani od starta |
-| total_price / currency | decimal / string | zbir `final_price` svih stavki |
+| total_price / currency | integer / string | zbir `final_price` svih stavki, u najmanjoj jedinici valute |
 | voucher_url | string, nullable | generiše se kad su ispunjeni uslovi iz poglavlja 6 (puna uplata, ili odobren izuzetak) |
 | voucher_override_approved_by | UUID, nullable (FK → M1 User) | popunjeno samo ako je vaučer izdat bez pune uplate — vidi poglavlje 6 |
 | voucher_override_reason | text, nullable | obrazloženje izuzetka, unosi ga odobravalac |
@@ -274,6 +276,7 @@ Prefiks: `/api/v1/sales`
 - [ ] Svaka promena statusa rezervacije vidljiva je u M1 audit logu.
 - [ ] Klikom na datum u kalendaru tim vidi stavke tog dana ispravno razvrstane u dolazi/odlazi/u toku/jednodnevno (poglavlje 7.1), bez duplog brojanja i bez otkazanih stavki.
 - [ ] Mesečni pregled kalendara prikazuje tačne brojeve po danu bez učitavanja pune liste stavki (poglavlje 7.2).
+- [ ] Nijedno novčano polje (`base_cost`, `final_price`, `total_price`, `fixed_amount`) nije tipa `decimal`/float — provereno da su sva `integer` u najmanjoj jedinici valute (poglavlje 2).
 - [ ] Moguće je generisati nacrt operativne liste za dobavljača agregacijom potvrđenih `CONTRACTED` stavki po `ContractPeriod`, i ručno je poslati — poslata lista dobija status `SENT` sa zapisom ko je poslao i kada.
 - [ ] Izmena ili otkazivanje stavke koja je već na poslatoj listi automatski priprema revidiran nacrt (`SUPERSEDED` + novi `DRAFT`), nikad tiho ne menja već poslat dokument.
 - [ ] Cena (nabavna, prodajna, marža) se nikad ne pojavljuje u dokumentu poslatom dobavljaču.
