@@ -4,7 +4,7 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 **Verzija:** 1.0
-**Zavisi od:** M1. Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M10, M11 do sad specificirani; M7, M12, M13, M14 kasnije).
+**Zavisi od:** M1. Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20 do sad specificirani).
 
 ---
 
@@ -41,6 +41,7 @@ Isključivo preko M1: `account_type = STAFF`, obavezna 2FA za sve interne uloge 
 | Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5 | Faza 1 |
 | Finansije (fakture, plaćanja) | M10 | Faza 2 |
 | Compliance (eTurista, boravišna taksa, garancija) | M11 | Faza 2 |
+| Ugovori sa klijentima | M20 | Faza 2 |
 | Gosti i nalogodavci (CRM) | M6 | Faza 3 |
 | B2B partneri | M7 | Faza 4 |
 | Izveštaji | M13 | Faza 5 |

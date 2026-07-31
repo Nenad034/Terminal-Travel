@@ -76,7 +76,7 @@ Istorija putovanja se **ne duplira** kao sopstveni podatak — čita se uživo i
 | manual_override_reason | text, nullable | obavezno ako je override postavljen |
 | manual_override_by | UUID, nullable (FK → M1 User) | |
 
-**Automatski preračun:** M6 se pretplaćuje na `booking.confirmed` i `booking.cancelled` događaje iz M5 (Event Bus, već predviđeno u M5 specifikaciji, poglavlje 7) i ponovo računa `calculated_metric_value` i `current_tier_id` za pogođeni `client_account_id`. Ako postoji `manual_override_tier_id`, on uvek pobeđuje nad automatski izračunatim nivoom (isti obrazac "eksplicitni izuzetak pobeđuje" kao `UserPermissionOverride` u M1).
+**Automatski preračun:** M6 se pretplaćuje na `booking.confirmed` i `booking.cancelled` događaje iz M5 (Event Bus, već predviđeno u M5 specifikaciji, poglavlje 9) i ponovo računa `calculated_metric_value` i `current_tier_id` za pogođeni `client_account_id`. Ako postoji `manual_override_tier_id`, on uvek pobeđuje nad automatski izračunatim nivoom (isti obrazac "eksplicitni izuzetak pobeđuje" kao `UserPermissionOverride` u M1).
 
 ### 3.3 Primena popusta — dodatak na tok cene iz M5
 Popust nivoa lojalnosti se primenjuje **posle** marže iz M5 (poglavlje 2 M5 specifikacije), kao poslednji korak: `konačna_cena_za_gosta = cena_iz_M5 * (1 - discount_percentage / 100)`. M5 poziva `GET /loyalty-status/:clientAccountId` u trenutku kreiranja `Quote` i primenjuje popust pre prikaza konačne cene — ovo je mala dopuna toka opisanog u M5 specifikaciji, ne izmena njegove osnovne logike marže.

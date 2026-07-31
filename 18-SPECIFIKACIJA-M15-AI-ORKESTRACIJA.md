@@ -57,13 +57,17 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 
 | module_code | action_code | tier | Izvor odluke |
 | :---- | :---- | :---- | :---- |
-| M3 | `contract_period.release_warning` | `PROPOSE_THEN_APPROVE` | M3 poglavlje 4 |
+| M3 | `contract_period.release_warning` | `PROPOSE_THEN_APPROVE` | M3 poglavlje 4.1 |
+| M3 | `pricelist_import.extract` | `AUTONOMOUS` | M3 poglavlje 4.2.4 |
+| M3 | `pricelist_import.approve_row` | `PROPOSE_THEN_APPROVE` | M3 poglavlje 4.2.4 |
+| M5 | `supplier_manifest.draft` | `AUTONOMOUS` | M5 poglavlje 8.4 |
+| M5 | `supplier_manifest.send` | `PROPOSE_THEN_APPROVE` | M5 poglavlje 8.4 |
 | M6 | `communication.draft` | `AUTONOMOUS` | M6 poglavlje 4 |
 | M6 | `communication.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M6 poglavlje 4 |
 | M7 | `commission_rebate.calculate_draft` | `AUTONOMOUS` | M7 poglavlje 3.2 |
 | M7 | `commission_rebate.apply` | `PROPOSE_THEN_APPROVE` | M7 poglavlje 3.2 |
-| M10 | `fiscal_document.draft` | `AUTONOMOUS` | M10 poglavlje 5 |
-| M10 | `fiscal_document.submit` | `NEVER_AUTONOMOUS` | M10 poglavlje 5 |
+| M10 | `fiscal_document.draft` | `AUTONOMOUS` | M10 poglavlje 6 |
+| M10 | `fiscal_document.submit` | `NEVER_AUTONOMOUS` | M10 poglavlje 6 |
 | M11 | `travel_guarantee.expiry_reminder` | `AUTONOMOUS` | M11 poglavlje 4 |
 | M11 | `travel_guarantee.edit` | `NEVER_AUTONOMOUS` | M11 poglavlje 4 |
 | M11 | `tourist_tax_remittance.draft` | `AUTONOMOUS` | M11 poglavlje 3.3 |

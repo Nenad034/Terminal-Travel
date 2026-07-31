@@ -61,7 +61,7 @@ Sistem upozorava tim kad je `document_expiry_date` gosta ili pratećeg putnika *
 | valid_from / valid_to | date, nullable | opštine povremeno menjaju iznos |
 
 ### 3.2 Naplata (veza sa M10)
-Iznos boravišne takse se obračunava po gostu-noćenju i unosi kao stavka na `FiscalDocument` u M10 (već predviđeno u M10 specifikaciji, poglavlje 10, kao otvorena stavka — ovim dokumentom se to zatvara). M11 ne naplaćuje ništa direktno — samo čita naplaćene iznose iz M10 radi izveštavanja.
+Iznos boravišne takse se obračunava po gostu-noćenju i unosi kao stavka na `FiscalDocument` u M10 (već predviđeno u M10 specifikaciji, poglavlje 12, kao otvorena stavka — ovim dokumentom se to zatvara). M11 ne naplaćuje ništa direktno — samo čita naplaćene iznose iz M10 radi izveštavanja.
 
 ### 3.3 `TouristTaxRemittance` — mesečno izveštavanje
 | Polje | Tip | Napomena |
