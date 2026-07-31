@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta)
 
 ---
@@ -49,6 +49,9 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | client_account_id | UUID | iz M6 |
 | base_cost / final_price / currency | decimal / decimal / string | iz M5 |
 | margin | decimal | izračunato: `final_price − base_cost` |
+| product_name | string | snapshot naziva proizvoda (M2), radi brzog grupisanja bez join-a (poglavlje 4.2) |
+| supplier_name | string, nullable | snapshot naziva dobavljača (M3), popunjeno za `CONTRACTED` (poglavlje 4.2) |
+| subagent_name | string, nullable | snapshot naziva subagenta (M7), popunjeno kad `client_account_id` pripada B2B nalogodavcu; `null` = direktna prodaja (poglavlje 4.2) |
 | status | enum (isto kao BookingItem) | |
 | last_synced_at | timestamp | |
 
@@ -88,6 +91,27 @@ Svi filtrirani na period (`stay_from`/`stay_to` unutar opsega) i na aktivne stav
 
 **Ograda:** `API`-sourced stavke (M4) po pravilu nemaju `room_type`/`board_type` popunjeno (poglavlje 3.1) — izveštaji "po tipu sobe" i "po usluzi" ih automatski isključuju iz razbijanja (ali ih broje u ukupnom "Prodate sobe — ukupno" i u "Broj osoba"/"Noćenja"), uz jasnu napomenu u prikazu koliko stavki nije razvrstano, da broj ne deluje kao da je nešto tiho izostavljeno.
 
+### 4.2 Dinamički izveštaj — korisnički sastavljiv redosled dimenzija grupisanja
+
+Pored fiksnih izveštaja iznad (unapred određene dimenzije), M13 izlaže i **dinamički drill-down izveštaj**: korisnik bira proizvoljan podskup i redosled dimenzija grupisanja, sistem gradi stablo rezultata tim tačnim redosledom — svaki sledeći nivo grupiše unutar prethodnog. Dodato poređenjem sa PrimeTravel `Dynamic Analytics` obrascem (biranje dimenzija klikom, sa vidljivim brojem redosleda) — konkretno korisnije rešenje od fiksnog skupa izveštaja (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md`).
+
+**Dostupne dimenzije** (svaka je postojeće ili dopunjeno polje na `FactBooking`, poglavlje 3.1 — bez novog modela podataka):
+
+| Dimenzija | Polje |
+| :---- | :---- |
+| Država | `destination_country` |
+| Destinacija | `destination_city` |
+| Proizvod | `product_name` |
+| Dobavljač | `supplier_name` (ili `provider_code` za `API` stavke) |
+| Kanal | `channel` |
+| Subagent | `subagent_name` (nullable — "Direktna prodaja" kad rezervacija nije preko subagenta) |
+
+#### 4.2.1 Rezultat po čvoru stabla
+Svaki čvor grupisanja vraća: `count` (broj rezervacija), `pax` (`SUM(guest_count)`), `nights` (`SUM(guest_count * nights)`, gost-noćenja — isti koncept kao poglavlje 4.1), `revenue` (`SUM(final_price)`), `paid` (`SUM(FactPayment.amount_rsd)` za rezervacije u tom čvoru, poglavlje 3.2), `balance` (`revenue − paid`), i `children[]` — sledeći nivo grupisanja unutar ovog čvora, po redosledu koji je korisnik odabrao.
+
+#### 4.2.2 Nivo autonomije
+Sastavljanje i prikaz izveštaja je čist read-only upit nad projekcijom — nivo **"Autonomno"**, isto obrazloženje kao poglavlje 5. Agent sme da predloži koristan redosled grupisanja (npr. "profitabilnost po dobavljaču unutar tri najprodavanije destinacije") na osnovu upita korisnika, ali ne menja nijedan podatak.
+
 ---
 
 ## 5. Uloga AI agenta
@@ -104,6 +128,7 @@ Priprema internih izveštaja i uočavanje trendova (npr. "profitabilnost destina
 | `M13/report:sales/VIEW` | Vlasnik, Direktor, Sales Manager |
 | `M13/report:financial/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M13/report:occupancy/VIEW` | Vlasnik, Direktor, Sales Manager — operativna statistika smeštaja nije cenovno osetljiva (ne sadrži maržu), pa se deli šire od profitabilnosti |
+| `M13/report:dynamic/VIEW` | Vlasnik, Direktor — kao i profitabilnost, prikazuje `revenue`/`paid`/`balance` po čvoru (poglavlje 4.2) |
 
 Napomena: `resource` polje koristi format `report:podtip`, isti obrazac koji M1 specifikacija (poglavlje 3.3) daje kao primer (`report:sales`) — ne uvodi se četvrti segment u ključ dozvole.
 
@@ -118,6 +143,7 @@ Prefiks: `/api/v1/bi`
 | `/reports/profitability` | GET | filtri: period, destinacija, dobavljač/provajder, kanal |
 | `/reports/sales` | GET | filtri: period, kanal, tip proizvoda |
 | `/reports/occupancy` | GET | filtri: period, destinacija, dobavljač; `?group_by=` jedno od `room_type`, `board_type`, `stars`, `accommodation_type` — vraća broj osoba, noćenja i broj prodatih soba (poglavlje 4.1) |
+| `/reports/dynamic` | GET | `?group_by=` uređena, zarezom razdvojena lista dimenzija iz poglavlja 4.2 (npr. `destination_country,destination_city,supplier`); vraća stablo čvorova (poglavlje 4.2.1) |
 | `/reconciliation/run` | POST | ručno pokretanje rekonsilijacije (van noćnog rasporeda) — Vlasnik/Direktor |
 
 ---
@@ -130,6 +156,7 @@ Prefiks: `/api/v1/bi`
 - [ ] Brisanje cele M13 projekcije i njena rekonstrukcija iz izvornih modula daje identičan rezultat kao pre brisanja.
 - [ ] Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba (ukupno i po `room_type`) za zadati period.
 - [ ] Isti izveštaj se ispravno razvrstava po `board_type`, `stars` i `accommodation_type`, uz jasnu naznaku broja stavki koje nisu razvrstane (npr. `API`-sourced stavke bez `room_type`/`board_type`).
+- [ ] Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim `revenue`/`paid`/`balance` po čvoru na svakom nivou.
 
 ---
 
@@ -138,3 +165,4 @@ Prefiks: `/api/v1/bi`
 - Marketing performanse — dodaju se kad M12 bude specificiran (Faza 6).
 - Tačan skup KPI-jeva koje AI agent (poglavlje 5) treba proaktivno da ističe — počinje se sa osnovnim (pad profitabilnosti, neuobičajen pad prodaje) i širi po potrebi.
 - **Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode** (M3 poglavlje 2.3a) — poredi `ContractPeriod.ukupna_fiksna_obaveza` naspram stvarno naplaćene vrednosti prodatih stavki iz tog perioda; dodaje se kad se za ovim pokaže stvarna potreba (prvi charter/fiksni zakup ugovor).
+- Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj (poglavlje 4.2, npr. brzi prečac "sve po državi pa dobavljaču") — UX pogodnost za M17, ne menja API iz poglavlja 4.2; dodaje se ako se pokaže potreba.

@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato: konvencija celobrojnih novčanih iznosa (poglavlje 2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.2 — dodat izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4
 
 ---
@@ -185,6 +185,7 @@ Odvojeno od vaučera koji dobija gost (poglavlje 6), agencija mora dobavljaču �
 | supplier_id | UUID (FK → M3 Supplier) | rešava se preko `BookingItem.product_id` → M2 `Product.source_contract_id` → M3 `Contract.supplier_id`, u trenutku generisanja |
 | contract_period_id | UUID, nullable (FK → M3 ContractPeriod) | period na koji se lista odnosi, kad su sve stavke iz istog perioda (uobičajen slučaj); nullable ako lista objedinjuje više perioda istog dobavljača za isti opseg datuma |
 | supplier_type_snapshot | enum (isto kao M3 `Supplier.type`) | kopira se u trenutku generisanja — određuje format liste (poglavlje 8.3); ne menja se retroaktivno ako se `Supplier.type` kasnije izmeni |
+| language | enum: `SR`, `EN`, podrazumevano `SR` | bira korisnik pri generisanju nacrta (poglavlje 8.3) — ne menja se retroaktivno na već poslatoj listi, isti princip kao `supplier_type_snapshot` |
 | period_from / period_to | date | opseg boravka/polaska koji lista pokriva |
 | status | enum: `DRAFT`, `SENT`, `SUPERSEDED` | `DRAFT` — generisana, nije poslata; `SENT` — poslata dobavljaču; `SUPERSEDED` — zamenjena novijom verzijom (poglavlje 8.5) |
 | document_url | string, nullable | PDF, generiše se pri prelasku u `DRAFT`, isto EU cloud skladište kao vaučer |
@@ -205,6 +206,8 @@ Odvojeno od vaučera koji dobija gost (poglavlje 6), agencija mora dobavljaču �
 | `DRUGO` | Generički spisak — ime i period, bez dodatnih pretpostavki |
 
 **Ograda:** cena (`base_cost`, `final_price`, marža) se **nikad** ne uključuje u listu ka dobavljaču — to je interni podatak agencije; dobavljač već zna svoju ugovorenu cenu iz sopstvenog `RateLine` (M3).
+
+**Jezik dokumenta:** operativna lista se generiše na srpskom ili engleskom (`SupplierManifest.language`, poglavlje 8.1) — dovoljno za sada; ne mora pratiti punih 8 jezika M2 kataloga, pošto je ovo interni operativni dokument ka dobavljaču, ne B2C sadržaj. Korisnik bira jezik pri generisanju nacrta; izabrani jezik ostaje nepromenjen i na revizijama (poglavlje 8.5). Dodato poređenjem sa PrimeTravel rooming-listom (SR/EN prekidač), vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md`.
 
 ### 8.4 Generisanje i slanje — uloga AI agenta
 Agent zadužen za M5 sme **automatski da pripremi nacrt** (`status = DRAFT`) — npr. periodičan posao koji za svaki `ContractPeriod` čiji `stay_from` pada u narednih N dana agregira potvrđene (`item_status = CONFIRMED`) stavke po dobavljaču — ovo je čisto informativna priprema, nivo **"Autonomno"** iz poglavlja 7 Master dokumenta. **Slanje dobavljaču** (prelazak u `status = SENT`) zahteva ljudsku potvrdu, nivo **"Predloži pa čovek odobri"** — isti princip kao slanje ponuda B2B partnerima, i isto obrazloženje kao u M3 poglavlju 4 (agent nikad sam ne šalje potvrdu dobavljaču).
@@ -258,7 +261,7 @@ Prefiks: `/api/v1/sales`
 | `/markup-rules` | GET / POST / PATCH | upravljanje pravilima marže |
 | `/bookings/calendar-summary` | GET | `?from=&to=` (npr. opseg meseca) — vraća niz `{date, arrivals_count, departures_count, stayovers_count, single_day_count}` po danu, za brzo iscrtavanje meseca bez učitavanja pojedinačnih stavki (poglavlje 7.2) |
 | `/bookings/calendar/:date` | GET | pun spisak `BookingItem` razvrstan u dolazi/odlazi/u toku/jednodnevno za taj dan (poglavlje 7.1), sa istim pravima pristupa kao `/bookings` |
-| `/supplier-manifests` | GET / POST | lista postojećih / generisanje nacrta (agregacija potvrđenih stavki po dobavljaču + periodu, poglavlje 8.4) |
+| `/supplier-manifests` | GET / POST | lista postojećih / generisanje nacrta (agregacija potvrđenih stavki po dobavljaču + periodu, poglavlje 8.4; `POST` prima i `language`, poglavlje 8.3) |
 | `/supplier-manifests/:id` | GET | detalji, uključujući stavke i lanac revizija (`supersedes_manifest_id`) |
 | `/supplier-manifests/:id/send` | POST | zahteva `M5/supplier-manifest/SEND`; menja status u `SENT`, šalje dokument na `sent_to_email`, popunjava `sent_at`/`sent_by` |
 
@@ -280,6 +283,7 @@ Prefiks: `/api/v1/sales`
 - [ ] Moguće je generisati nacrt operativne liste za dobavljača agregacijom potvrđenih `CONTRACTED` stavki po `ContractPeriod`, i ručno je poslati — poslata lista dobija status `SENT` sa zapisom ko je poslao i kada.
 - [ ] Izmena ili otkazivanje stavke koja je već na poslatoj listi automatski priprema revidiran nacrt (`SUPERSEDED` + novi `DRAFT`), nikad tiho ne menja već poslat dokument.
 - [ ] Cena (nabavna, prodajna, marža) se nikad ne pojavljuje u dokumentu poslatom dobavljaču.
+- [ ] Operativna lista se može generisati na srpskom ili engleskom, i izabrani jezik ostaje nepromenjen na već poslatoj listi i njenim revizijama.
 
 ---
 
