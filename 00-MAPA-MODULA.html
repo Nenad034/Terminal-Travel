@@ -139,14 +139,15 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 .node:hover{ transform:translateY(-2px); border-color:var(--accent); }
 .node .top{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
 .node .code{ font-family:var(--mono); font-weight:800; font-size:clamp(12.5px,1.05vw,16px); color:var(--accent); }
-.node .chan{
+.node .chan, .detail-panel .chan{
   font-family:var(--mono); font-size:clamp(8.5px,.68vw,10.5px); font-weight:700; letter-spacing:.04em;
   background:var(--info-bg); color:var(--info); padding:1px 5px; border-radius:3px;
 }
-.node .umb{
+.node .umb, .detail-panel .umb{
   font-family:var(--mono); font-size:clamp(8.5px,.68vw,10.5px); font-weight:700; letter-spacing:.02em;
   background:var(--gray-bg); color:var(--gray); padding:1px 5px; border-radius:3px;
 }
+.detail-panel .chan, .detail-panel .umb{ font-size:10px; padding:2px 6px; }
 .node .title{ font-size:clamp(12.8px,1.05vw,16px); font-weight:600; line-height:1.3; }
 .node .status{ margin-top:6px; display:flex; align-items:center; gap:5px; font-size:clamp(10px,.75vw,12px); color:var(--text-dim); }
 .node .status .dot{ width:7px; height:7px; }
@@ -162,14 +163,54 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
   border-color:var(--accent); box-shadow:var(--shadow), 0 0 0 2px var(--accent-soft);
 }
 .graph.dim-mode .node.focused{
-  opacity:1; transform:scale(1.45); z-index:8; border-color:var(--accent); border-width:2px;
-  box-shadow:0 10px 30px rgba(0,0,0,.3), 0 0 0 5px var(--accent-soft);
+  opacity:1; transform:scale(1.7); z-index:8; border-color:var(--accent); border-width:2px;
+  box-shadow:0 14px 36px rgba(0,0,0,.35), 0 0 0 5px var(--accent-soft);
 }
 .graph.dim-mode .node.focused .title{ font-size:14.5px; }
 .graph.dim-mode path.hi{ opacity:1 !important; stroke-width:2.4; }
 .graph.dim-mode path{ opacity:.06; }
 
-@media (prefers-reduced-motion: reduce){ .node{ transition:none; } }
+/* ---- detail popup panel ---- */
+.detail-panel{
+  position:fixed; top:calc(var(--header-h) + 16px); right:-380px; bottom:16px; width:340px;
+  background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+  box-shadow:0 18px 44px rgba(0,0,0,.3); z-index:50;
+  transition:right .22s ease; display:flex; flex-direction:column; overflow:hidden;
+}
+.detail-panel.open{ right:16px; }
+.detail-panel .dp-head{
+  padding:16px 18px 12px; border-bottom:1px dashed var(--rule); flex:none;
+}
+.detail-panel .dp-close{
+  position:absolute; top:10px; right:12px; background:none; border:none; cursor:pointer;
+  font-size:18px; color:var(--text-dim); line-height:1;
+}
+.detail-panel .dp-close:hover{ color:var(--accent); }
+.detail-panel .dp-top{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.detail-panel .dp-code{ font-family:var(--mono); font-weight:800; font-size:16px; color:var(--accent); }
+.detail-panel .dp-title{ font-size:17px; font-weight:700; }
+.detail-panel .dp-badges{ display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; }
+.detail-panel .dp-body{ padding:14px 18px 18px; overflow-y:auto; flex:1; font-size:13.5px; color:var(--text); }
+.detail-panel .dp-section{ margin-bottom:16px; }
+.detail-panel .dp-section h4{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--text-dim); margin:0 0 7px;
+}
+.detail-panel .dp-desc{ line-height:1.5; color:var(--text); }
+.detail-panel .dp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.detail-panel .chip{
+  font-family:var(--mono); font-size:11.5px; background:var(--paper); border:1px solid var(--rule);
+  padding:3px 9px; border-radius:5px; color:var(--text);
+}
+.detail-panel .chip.linkable{ cursor:pointer; }
+.detail-panel .chip.linkable:hover{ border-color:var(--accent); color:var(--accent); }
+.detail-panel .dp-entities li{ margin:3px 0; font-family:var(--mono); font-size:12.5px; }
+.detail-panel .dp-open{
+  display:inline-block; margin-top:4px; font-size:12.5px; text-decoration:none; color:var(--accent); font-weight:600;
+}
+@media (max-width:760px){ .detail-panel{ width:calc(100% - 32px); } }
+
+@media (prefers-reduced-motion: reduce){ .node{ transition:none; } .detail-panel{ transition:none; } }
 </style>
 
 <div class="board">
@@ -201,6 +242,33 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
   </div>
 </main>
 
+<div class="detail-panel" id="detailPanel">
+  <div class="dp-head">
+    <button class="dp-close" id="dpClose" aria-label="Zatvori">×</button>
+    <div class="dp-top"><span class="dp-code" id="dpCode"></span><span class="dp-title" id="dpTitle"></span></div>
+    <div class="dp-badges" id="dpBadges"></div>
+  </div>
+  <div class="dp-body">
+    <div class="dp-section">
+      <h4>Šta radi</h4>
+      <div class="dp-desc" id="dpDesc"></div>
+    </div>
+    <div class="dp-section">
+      <h4>Ključni entiteti</h4>
+      <ul class="dp-entities" id="dpEntities"></ul>
+    </div>
+    <div class="dp-section">
+      <h4>Zavisi od</h4>
+      <div class="dp-chips" id="dpDeps"></div>
+    </div>
+    <div class="dp-section">
+      <h4>Koristi ga / oslanja se na njega</h4>
+      <div class="dp-chips" id="dpUsedBy"></div>
+    </div>
+    <a class="dp-open" id="dpOpen" href="#" target="_blank" rel="noopener">Otvori punu specifikaciju ↗</a>
+  </div>
+</div>
+
 <script>
 (function(){
 "use strict";
@@ -214,26 +282,66 @@ var PHASES = [
 ];
 
 var NODES = [
-  {id:"m1",  code:"M1",  title:"Core / Identitet",           phase:"F0", chan:false},
-  {id:"m17", code:"M17", title:"Interni radni panel",         phase:"F0", chan:true},
-  {id:"m2",  code:"M2",  title:"Katalog proizvoda",           phase:"F1", chan:false},
-  {id:"m3",  code:"M3",  title:"Ugovaranje i alotmani",       phase:"F1", chan:false},
-  {id:"m4",  code:"M4",  title:"Integracije API",             phase:"F1", chan:false},
-  {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false},
-  {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false},
-  {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false},
-  {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false},
-  {id:"m6",  code:"M6",  title:"CRM",                         phase:"F3", chan:false},
-  {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true},
-  {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true},
-  {id:"m13", code:"M13", title:"BI / Izveštavanje",           phase:"F5", chan:false, umb:true},
-  {id:"m14", code:"M14", title:"Helpdesk",                    phase:"F5", chan:false},
-  {id:"m12", code:"M12", title:"Marketing",                   phase:"F6", chan:false},
-  {id:"m9",  code:"M9",  title:"Mobilna aplikacija",          phase:"F6", chan:true},
-  {id:"m16", code:"M16", title:"MCP distribucija",            phase:"F6", chan:true},
-  {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true},
-  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false},
-  {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true}
+  {id:"m1",  code:"M1",  title:"Core / Identitet",           phase:"F0", chan:false,
+    desc:"Korisnici, uloge, dozvole (RBAC), autentikacija i audit log — temelj svih ostalih modula.",
+    entities:["User","Role","Permission","UserPermissionOverride","AuditLogEntry"]},
+  {id:"m17", code:"M17", title:"Interni radni panel",         phase:"F0", chan:true,
+    desc:"Next.js prikaz nad svim ostalim modulima za tim agencije — nema sopstvenu bazu ni poslovnu logiku, čist kanal.",
+    entities:["(bez sopstvenih entiteta — kompozicija prikaza)"]},
+  {id:"m2",  code:"M2",  title:"Katalog proizvoda",           phase:"F1", chan:false,
+    desc:"Centralni registar svih prodajnih proizvoda, bez obzira na izvor (ugovor ili API), na 8 jezika.",
+    entities:["Product","ProductTranslation"]},
+  {id:"m3",  code:"M3",  title:"Ugovaranje i alotmani",       phase:"F1", chan:false,
+    desc:"Direktni ugovori sa dobavljačima — kapaciteti, cenovnici, rokovi povrata, AI-potpomognut uvoz cenovnika.",
+    entities:["Supplier","Contract","ContractPeriod","RateLine","CancellationRule","PricelistImport"]},
+  {id:"m4",  code:"M4",  title:"Integracije API",             phase:"F1", chan:false,
+    desc:"Adapteri ka spoljnim provajderima (Travelgate, budući GDS/avio) — jedan unificiran interni oblik za sve.",
+    entities:["ProviderConfig","ProviderCallLog"]},
+  {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false,
+    desc:"Search → Ponuda → Potvrda → Upravljanje rezervacijom; jedino mesto koje pravi konačnu prodajnu cenu.",
+    entities:["Quote","Booking","BookingItem","MarkupRule","SupplierManifest"]},
+  {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false,
+    desc:"Fakturisanje, fiskalizacija (SEF/ESIR), PDV po sistemu marže (organizator/posrednik), obaveze prema dobavljačima.",
+    entities:["FiscalDocument","Payment","SupplierObligation"]},
+  {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false,
+    desc:"eTurista prijava, boravišna taksa, garancija putovanja, evidencije za inspekciju.",
+    entities:["GuestRegistration","TouristTaxRemittance","TravelGuarantee"]},
+  {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false,
+    desc:"Zakonski obavezan ugovor o putovanju sa gostom, sastavljen automatski iz podataka koji već postoje.",
+    entities:["ClientContract"]},
+  {id:"m6",  code:"M6",  title:"CRM",                         phase:"F3", chan:false,
+    desc:"Profili gostiju i nalogodavaca, istorija putovanja (uživo iz M5), program lojalnosti, komunikacija.",
+    entities:["ClientAccount","GuestProfile","LoyaltyTier","CommunicationLog"]},
+  {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true,
+    desc:"Javni sajt agencije — nema sopstvenu bazu, čisto čita/piše kroz M1/M2/M5/M6/M10.",
+    entities:["(bez sopstvenih entiteta — čist kanal)"]},
+  {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true,
+    desc:"Portal za subagente — provizija (i po obimu prodaje), kreditni limit, mreža partnera sa više nivoa.",
+    entities:["Subagent","CommissionVolumeTier","CommissionRebate"]},
+  {id:"m13", code:"M13", title:"BI / Izveštavanje",           phase:"F5", chan:false, umb:true,
+    desc:"Upravljački izveštaji nad svim modulima — profitabilnost, prodaja, operativna statistika smeštaja.",
+    entities:["FactBooking","FactPayment"]},
+  {id:"m14", code:"M14", title:"Helpdesk",                    phase:"F5", chan:false,
+    desc:"Tiketing za goste i subagente, uključujući zakonski rok za reklamacije (8 dana, ZZP).",
+    entities:["Ticket","TicketMessage"]},
+  {id:"m12", code:"M12", title:"Marketing",                   phase:"F6", chan:false,
+    desc:"Proizvod → generisanje sadržaja (AI nacrt) → kalendar/odobrenje → distribucija na kanale.",
+    entities:["ContentPiece","ContentTranslation"]},
+  {id:"m9",  code:"M9",  title:"Mobilna aplikacija",          phase:"F6", chan:true,
+    desc:"Aplikacija za goste (isti tok kao M8) i za vodiče na terenu (offline-first, sinhronizacija).",
+    entities:["FieldCheckIn","FieldIncidentNote"]},
+  {id:"m16", code:"M16", title:"MCP distribucija",            phase:"F6", chan:true,
+    desc:"Izlaže deo API-ja eksternim AI agentima (MCP standard) — isti kanal, iste provere kao svaki drugi.",
+    entities:["MCPClientRegistration"]},
+  {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true,
+    desc:"Glavni agent i domenski agenti; centralni registar akcija i nivoa autonomije za ceo sistem.",
+    entities:["AIAgent","ModuleAgentActivation","AgentActionType"]},
+  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false,
+    desc:"Kvalitetni nadzor nad svim modulima (Telegram/email upozorenja), nedeljni pregled, model-tiering za troškove.",
+    entities:["HealthSignal","NotificationChannel","WeeklyHealthReview","TrendSuggestion"]},
+  {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true,
+    desc:"Interni real-time tim-chat; komunikacija sa gostima/subagentima ostaje u M14, samo lepši prikaz.",
+    entities:["Conversation","Message","PresenceStatus"]}
 ];
 
 var DEPS = [
@@ -369,9 +477,49 @@ function clearAll(){
   graph.classList.remove("dim-mode");
   graph.querySelectorAll(".node").forEach(function(n){ n.classList.remove("hi","neighbor","focused"); });
   svg.querySelectorAll("path").forEach(function(p){ p.classList.remove("hi"); });
+  detailPanel.classList.remove("open");
 }
 
-// ---- click-to-focus (enlarge clicked module, clearly show its connections) ----
+var NODE_BY_ID = {}; NODES.forEach(function(n){ NODE_BY_ID[n.id] = n; });
+
+function dependsOn(id){ return DEPS.filter(function(e){ return e[0] === id; }).map(function(e){ return e[1]; }); }
+function usedBy(id){
+  var out = DEPS.filter(function(e){ return e[1] === id; }).map(function(e){ return e[0]; });
+  EVENTS.forEach(function(e){ if (e[0] === id && out.indexOf(e[1]) === -1) out.push(e[1]); });
+  return out;
+}
+
+var detailPanel = document.getElementById("detailPanel");
+var dpClose = document.getElementById("dpClose");
+
+function chip(id, linkable){
+  var n = NODE_BY_ID[id];
+  if (!n) return "";
+  return '<span class="chip'+(linkable?' linkable':'')+'" data-goto="'+id+'">'+n.code+' · '+n.title+'</span>';
+}
+
+function showDetail(id){
+  var n = NODE_BY_ID[id];
+  document.getElementById("dpCode").textContent = n.code;
+  document.getElementById("dpTitle").textContent = n.title;
+  var badges = (n.chan ? '<span class="chan">KANAL</span>' : "") + (n.umb ? '<span class="umb">SVI</span>' : "");
+  document.getElementById("dpBadges").innerHTML = badges;
+  document.getElementById("dpDesc").textContent = n.desc || "";
+  document.getElementById("dpEntities").innerHTML = (n.entities||[]).map(function(e){ return "<li>"+e+"</li>"; }).join("");
+  var deps = dependsOn(id), used = usedBy(id);
+  document.getElementById("dpDeps").innerHTML = deps.length ? deps.map(function(d){ return chip(d, true); }).join("") : '<span class="chip">— (temelj)</span>';
+  document.getElementById("dpUsedBy").innerHTML = used.length ? used.map(function(d){ return chip(d, true); }).join("") : '<span class="chip">—</span>';
+  document.getElementById("dpOpen").href = DOC_BASE + "#doc-" + id;
+  detailPanel.classList.add("open");
+}
+
+detailPanel.addEventListener("click", function(ev){
+  var c = ev.target.closest(".chip.linkable");
+  if (c) toggleFocus(c.dataset.goto);
+});
+dpClose.addEventListener("click", function(){ focusedId = null; clearAll(); });
+
+// ---- click-to-focus (enlarge clicked module, clearly show its connections + detail popup) ----
 var focusedId = null;
 
 function toggleFocus(id){
@@ -391,11 +539,12 @@ function toggleFocus(id){
   });
   var el = graph.querySelector('.node[data-id="'+id+'"]');
   if (el && el.scrollIntoView) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
+  showDetail(id);
 }
 
 document.addEventListener("click", function(ev){
   if (!focusedId) return;
-  if (ev.target.closest(".node") || ev.target.closest(".wf-btn")) return;
+  if (ev.target.closest(".node") || ev.target.closest(".wf-btn") || ev.target.closest(".detail-panel")) return;
   focusedId = null;
   clearAll();
 });
@@ -406,6 +555,7 @@ var wfCaption = document.getElementById("wfCaption");
 var wfActive = false;
 wfBtn.addEventListener("click", function(){
   focusedId = null;
+  detailPanel.classList.remove("open");
   wfActive = !wfActive;
   wfBtn.classList.toggle("active", wfActive);
   wfCaption.classList.toggle("show", wfActive);
