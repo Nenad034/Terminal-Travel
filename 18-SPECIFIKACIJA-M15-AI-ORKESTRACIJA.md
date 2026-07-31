@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — konzistentnost registra (poglavlje 4): ispravljena zastarela referenca na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija), dodate nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -36,7 +36,7 @@ Dodaje se `account_type = AI_AGENT` u M1 `User.account_type` enum (`02-SPECIFIKA
 
 ## 3. Postepeno uvođenje — `ModuleAgentActivation`
 
-Princip #4 iz poglavlja 7 Master dokumenta ("agent se uvodi tek kad je modul deterministički stabilan") postaje sprovodiv gate, ne samo preporuka:
+Princip #4 iz poglavlja 3 Master dokumenta ("determinizam pre autonomije", razrađeno u poglavlju 7) postaje sprovodiv gate, ne samo preporuka:
 
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
@@ -75,8 +75,11 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M12 | `content.draft` | `AUTONOMOUS` | M12 poglavlje 3 |
 | M12 | `content.approve_publish` | `PROPOSE_THEN_APPROVE` | M12 poglavlje 3 |
 | M13 | `insight.surface_trend` | `AUTONOMOUS` | M13 poglavlje 5 |
-| M14 | `ticket_response.draft` | `AUTONOMOUS` | M14 poglavlje 3 |
-| M14 | `ticket_response.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M14 poglavlje 3 |
+| M14 | `ticket_response.draft` | `AUTONOMOUS` | M14 poglavlje 4 |
+| M14 | `ticket_response.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M14 poglavlje 4 |
+| M14 | `complaint.escalate_notify` | `AUTONOMOUS` | M14 poglavlje 3.1 — čisto informativna eskalacija (ZZP rok), ne izvršenje |
+| M11 | `travel_guarantee.utilization_warning` | `AUTONOMOUS` | M11 poglavlje 4.2 — upozorenje na 80% praga, ne tvrda blokada (ta je deterministička, ne AI odluka) |
+| M20 | `client_contract.generate_draft` | `AUTONOMOUS` | M20 poglavlje 4 |
 | (globalno) | `contract.sign` | `NEVER_AUTONOMOUS` | poglavlje 7 Master dokumenta |
 | (globalno) | `money.transfer` | `NEVER_AUTONOMOUS` | poglavlje 7 Master dokumenta |
 | (globalno) | `license_data.edit` | `NEVER_AUTONOMOUS` | poglavlje 7 Master dokumenta |
