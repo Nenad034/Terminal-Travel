@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M4) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — raniji "Travelgate predlog" pomenut u Master dokumentu nije pronađen)
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodato: tipizirane greške, pluggable auth strategije, circuit breaker, deklarativni profil mogućnosti provajdera — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -39,6 +39,24 @@ interface ProviderAdapter {
 - **`AvailabilityQuote`** — `{ externalId, priceAmount, currency, availableUnits, cancellationPolicy, quoteExpiresAt }`. Nikad se ne čuva trajno kao cena proizvoda (u skladu sa M2 spec, poglavlje 4) — koristi se odmah ili se odbacuje.
 - **`BookingConfirmation`** — `{ providerBookingReference, status: "CONFIRMED" | "PENDING_SUPPLIER_CONFIRMATION" | "FAILED", confirmedPrice, confirmedAt }`. Status `PENDING_SUPPLIER_CONFIRMATION` postoji jer neki spoljni hoteli (baš kao `ON_REQUEST` alotman u M3) ne potvrđuju rezervaciju odmah — M5 tretira ovo isto kao "na čekanju" status, bez obzira da li dolazi iz M3 ili M4.
 
+### 2.2 Autentikacija — pluggable strategije po dobavljaču
+
+Različiti provajderi koriste različite metode autentikacije (API ključ, Basic auth, OAuth2 client credentials, potpisivanje zahteva). Umesto if/else grane po provajderu unutar svakog adaptera, autentikacija je zasebna, uključiva strategija:
+
+```
+interface AuthStrategy {
+  strategyType: "API_KEY" | "BASIC" | "OAUTH2_CLIENT_CREDENTIALS" | "REQUEST_SIGNING";
+  applyAuth(request): request; // ubacuje header/potpis pre slanja
+  refreshIfNeeded(): Promise<void>; // no-op za API_KEY/BASIC, stvaran refresh za OAUTH2
+}
+```
+
+Svaki adapter deklariše koju strategiju koristi (`ProviderConfig.auth_strategy`, poglavlje 3.1); dodavanje provajdera sa novim tipom autentikacije znači dodavanje nove implementacije `AuthStrategy`, ne izmenu postojećih adaptera. Potvrđeno poređenjem sa PrimeTravel `auth.strategies.ts` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 2).
+
+### 2.3 Deklarativni profil mogućnosti provajdera
+
+Svaki `ProviderConfig` nosi `capabilities_profile` (JSONB) — deklarativan, statički opis šta taj provajder podržava/ograničava (npr. `{ maxResultsPerSearch: 50, supportsCancelBooking: true, rateLimit: "100/min" }`). M4 čita ovo pre poziva da izbegne slanje operacije koju provajder ne podržava ili prekoračenje njegovog rate limit-a, umesto da to otkriva tek iz greške odgovora. Potvrđeno poređenjem sa PrimeTravel `.profile.json` obrascem po adapteru (isti izvor kao 2.2).
+
 ---
 
 ## 3. Model podataka
@@ -51,8 +69,13 @@ interface ProviderAdapter {
 | display_name | string | |
 | category | enum (vidi 2.) | |
 | auth_config_encrypted | string | API ključevi/endpoint, enkriptovano u mirovanju; stvarni sekret nikad u kodu ili plain konfiguraciji (poglavlje 9) |
+| auth_strategy | enum: `API_KEY`, `BASIC`, `OAUTH2_CLIENT_CREDENTIALS`, `REQUEST_SIGNING` | koju `AuthStrategy` implementaciju adapter koristi (poglavlje 2.2) |
+| capabilities_profile | JSONB | deklarativni opis mogućnosti/ograničenja provajdera (poglavlje 2.3) |
 | status | enum: `ACTIVE`, `INACTIVE` | isključivanje provajdera bez brisanja konfiguracije |
 | timeout_search_ms / timeout_booking_ms | integer | po provajderu — pretraga sme kraće da čeka od potvrde rezervacije |
+| circuit_state | enum: `CLOSED`, `OPEN`, `HALF_OPEN` | vidi poglavlje 4.1 — `CLOSED` podrazumevano |
+| circuit_failure_threshold | integer | uzastopnih grešaka pre otvaranja kola (poglavlje 4.1), podrazumevano npr. 5 |
+| circuit_cooldown_seconds | integer | koliko dugo `OPEN` traje pre probnog poziva (poglavlje 4.1) |
 | created_at / updated_at | timestamp | |
 
 ### 3.2 `ProviderCallLog` — operativni log (odvojeno od M1 audit loga)
@@ -63,6 +86,7 @@ interface ProviderAdapter {
 | operation | enum: `SEARCH`, `CONTENT`, `AVAILABILITY`, `BOOK`, `CANCEL` | |
 | request_summary | JSONB | bez ličnih podataka gosta gde god je moguće (poglavlje 7, tačka 5 Master dokumenta) |
 | response_status | string | HTTP/GraphQL status ili "TIMEOUT" |
+| error_code | enum: `TIMEOUT`, `RATE_LIMITED`, `AUTH_FAILED`, `INVALID_REQUEST`, `NO_AVAILABILITY`, `PROVIDER_UNAVAILABLE`, `UNKNOWN`, nullable | normalizovan tip greške nezavisan od HTTP/GraphQL specifičnosti provajdera — omogućava agregaciju i alarme u M18 (`PROVIDER_ERROR_SPIKE`) bez parsiranja slobodnog teksta iz `error_message`. Potvrđeno poređenjem sa PrimeTravel `error.types.ts` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 2) |
 | latency_ms | integer | |
 | error_message | text, nullable | |
 | timestamp | timestamp | |
@@ -77,6 +101,16 @@ Svrha: dijagnostika integracije (da li Travelgate usporava, da li određeni pozi
 - **Degradacija bez pada:** ako jedan provajder ne odgovori na `search`, M5 dobija rezultate od ostalih dostupnih izvora (M3 ugovoreni proizvodi + drugi API provajderi), uz grešku samo za taj jedan zabeleženu u `ProviderCallLog` — pretraga gosta se nikad ne prekida zbog jednog neispravnog provajdera.
 - **Idempotentnost za `confirmBooking`:** ovo je jedina operacija gde slepo ponavljanje posle timeout-a može izazvati duplu rezervaciju (mrežni timeout ne znači da poziv nije uspeo na strani provajdera). Svaki poziv nosi jedinstveni `idempotency_key` (generisan u M5 po pokušaju rezervacije); pre bilo kog ponovnog pokušaja, M4 prvo proverava `ProviderCallLog` da li je taj `idempotency_key` već poslat i sa kojim ishodom, umesto da automatski ponovi poziv. Ovo je direktna primena principa #4 (determinizam pre autonomije) — greška ovde je novac, ne kozmetika.
 - **Retry dozvoljen** samo za operacije koje se sigurno mogu ponoviti bez posledice (`search`, `getStaticContent`, `checkAvailabilityAndPrice`) — do 2 pokušaja sa kratkim razmakom.
+
+### 4.1 Circuit breaker — privremeno isključivanje provajdera koji stalno pada
+
+Pored timeout-a po pozivu, M4 formalno prati stanje **kola (circuit)** po provajderu (`ProviderConfig.circuit_state`, poglavlje 3.1):
+
+- **`CLOSED`** (normalno) — pozivi idu ka provajderu kao i inače; svaka greška se broji.
+- Kad broj uzastopnih grešaka dostigne `circuit_failure_threshold`, kolo prelazi u **`OPEN`** — M4 **prestaje da zove** taj provajder (isti efekat kao degradacija iz gornje tačke, ali proaktivno, ne čeka svaki pojedinačni timeout) do isteka `circuit_cooldown_seconds`.
+- Posle `circuit_cooldown_seconds`, kolo prelazi u **`HALF_OPEN`** — pušta se tačno jedan probni poziv; uspeh vraća kolo u `CLOSED`, neuspeh ga vraća u `OPEN` sa novim odbrojavanjem.
+
+Svaka promena `circuit_state` se beleži u `ProviderCallLog` i, za prelazak u `OPEN`, generiše `HealthSignal` (M18 poglavlje 2.1, tip `PROVIDER_ERROR_SPIKE`) — tim se obaveštava da je provajder isključen, ne mora sam da otkrije obrazac u logovima. Potvrđeno poređenjem sa PrimeTravel `circuit.breaker.ts` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 2).
 
 ---
 
@@ -128,6 +162,8 @@ Prefiks: `/api/v1/integrations`
 - [ ] Test simuliranog timeout-a pri `confirmBooking` sa ponovljenim pokušajem ne pravi duplu rezervaciju (provera preko `idempotency_key`).
 - [ ] Simulirani pad Travelgate-a ne ruši pretragu — ostali izvori i dalje vraćaju rezultate, greška je zabeležena.
 - [ ] Kredencijali provajdera enkriptovani u bazi, nikad u čistom tekstu u logovima (`ProviderCallLog.request_summary` redaktovan).
+- [ ] Provajder sa `circuit_failure_threshold` uzastopnih grešaka prelazi u `OPEN` i M4 prestaje da ga zove do isteka `circuit_cooldown_seconds`, potom šalje tačno jedan probni poziv (`HALF_OPEN`).
+- [ ] Svaki zapis u `ProviderCallLog` ima popunjen normalizovan `error_code` kad poziv ne uspe, nezavisno od stvarnog HTTP/GraphQL statusa provajdera.
 
 ---
 

@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M6) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M5
 
 ---
@@ -30,6 +30,7 @@ Istorija putovanja se **ne duplira** kao sopstveni podatak — čita se uživo i
 | linked_user_id | UUID, nullable (FK → M1 User) | ako nalogodavac ima login nalog |
 | marketing_consent | boolean | obavezno pre bilo kakve marketinške komunikacije (M12) |
 | marketing_consent_date | timestamp, nullable | |
+| tags | string[] (JSONB niz), nullable | slobodne oznake za segmentaciju (npr. "VIP", "porodica", "senior", "čest putnik") — čisto informativna kategorizacija, ne utiče na M5 cenu ni M6 lojalnost; koristi ih M12 za ciljano slanje kad taj modul dođe na red. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5) |
 | created_at / updated_at | timestamp | |
 
 ### 2.2 `GuestProfile` — Gost
@@ -98,6 +99,19 @@ Popust nivoa lojalnosti se primenjuje **posle** marže iz M5 (poglavlje 2 M5 spe
 | created_at | timestamp | |
 
 **Napomena o autonomiji (poglavlje 7 Master dokumenta):** AI agent sme samostalno da sažima upite i priprema nacrt odgovora (`drafted_by_ai = true`, nivo "Autonomno"). Ako nacrt pominje cenu ili obavezu prema gostu, poruka se **ne šalje** dok je čovek ne pregleda i pošalje (`sent_by` popunjeno) — nivo "Predloži pa čovek odobri".
+
+**Sažimanje poziva/sastanaka (`channel = PHONE`/`IN_PERSON`):** isti "Autonomno" nivo se primenjuje i kad agent sažima telefonski poziv ili sastanak direktno u `summary` posle završenog razgovora (npr. iz transkripta ili beleški tima), ne samo pisanu prepisku — ne menja arhitekturu, samo eksplicitno pokriva ovaj slučaj. Potvrđeno poređenjem sa PrimeTravel `CRMNotetaker` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5).
+
+### 4.2 Automatizovane komunikacije po okidaču — rođendan, godišnjica, pred put
+
+Pored ručno pokrenutih poruka (4.1), M6 periodičnim poslom prepoznaje tri tipa okidača i priprema nacrt poruke u `CommunicationLog`:
+- **Rođendan gosta** — `GuestProfile.date_of_birth`, godišnje na taj datum.
+- **Godišnjica prve rezervacije** — datum prve `Booking.confirmed_at` (M5) za dati `client_account_id`, godišnje.
+- **Pred put (pre-departure)** — T-7, T-3, T-1 dana pre `BookingItem.stay_from` (M5) za aktivne, potvrđene stavke.
+
+Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo **"Autonomno"** — sadržaj je informativan/čestitka, ne pominje cenu ni obavezu, pa **sme da se pošalje bez ljudskog pregleda** ako je `ClientAccount.marketing_consent = true` (poglavlje 2.1), isti izuzetak koji već postoji za "čisto informativne odgovore" u 4.1. Bez saglasnosti, poruka se priprema kao nacrt i čeka ljudsko slanje.
+
+**Napomena o vlasništvu sadržaja:** kad M12 (Marketing/Content Engine) bude specificiran, stvarni tekst/šablon ovih poruka postaje njegov `ContentPiece`, a M6 samo emituje okidač (događaj) — ovaj dokument definiše *kada* se šalje, ne finalni izgled poruke. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5).
 
 ---
 
@@ -170,6 +184,8 @@ Prefiks: `/api/v1/crm`
 - [ ] M5 tok cene ispravno primenjuje popust lojalnosti kao poslednji korak, posle marže.
 - [ ] Istorija putovanja se ispravno prikazuje bez ijednog duplog zapisa rezervacije u M6 bazi.
 - [ ] AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
+- [ ] Rođendan/godišnjica/pred-put okidači ispravno generišu `CommunicationLog` zapis na tačan datum, i šalju se automatski samo uz `marketing_consent = true`.
+- [ ] `ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na izračun cene ili lojalnosti.
 
 ---
 

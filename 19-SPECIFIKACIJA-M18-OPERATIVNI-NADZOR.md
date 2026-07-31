@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodat kriterijum kritičnosti/bezbednosne osetljivosti za izbor modela (poglavlje 6.2a) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.2 — dodato: per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosna kategorizacija signala (poglavlje 2.4), potrošnja po AI provajderu (poglavlje 6.4) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.1 dodala kriterijum kritičnosti/bezbednosne osetljivosti za izbor modela (poglavlje 6.2a), isti izvor
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -27,8 +27,9 @@ Dodatno, M18 uvodi **okvir za izbor jezičkog modela po složenosti zadatka** �
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | source_module | string | npr. `M4`, `M10`, `M11`, `M9`, `M1` |
-| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY` | proširivo — novi tipovi se dodaju kad se pokaže potreba |
+| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike) |
 | severity | enum: `INFO`, `WARNING`, `CRITICAL` | |
+| security_category | enum: `AUTH`, `PII`, `GDPR`, `API_ABUSE`, `ENCRYPTION`, nullable | popunjava se samo za bezbednosno relevantne signale — vidi poglavlje 2.4 |
 | details | JSONB | |
 | detected_at | timestamp | |
 | notified_at | timestamp, nullable | |
@@ -39,6 +40,27 @@ Dodatno, M18 uvodi **okvir za izbor jezičkog modela po složenosti zadatka** �
 
 ### 2.2 Trenutna obaveštenja (bez čekanja na ciklus)
 `CRITICAL` i `WARNING` signali se **odmah** šalju preko `NotificationChannel` (poglavlje 3) — ne čekaju nedeljni pregled iz poglavlja 4.
+
+### 2.3 Per-provajder infrastrukturne metrike
+
+Pored agregatnog praćenja grešaka (poglavlje 2.1, izvor M4 `ProviderCallLog`), M18 periodičnim poslom računa i čuva metriku **po pojedinačnom provajderu** — latencija, dostupnost, broj grešaka u poslednjem satu:
+
+`ProviderHealthSnapshot`:
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| provider_code | string (isti kao M4 `ProviderConfig.provider_code`) | |
+| latency_ms_avg | integer | prosečna latencija u poslednjem prozoru (npr. 15 min) |
+| uptime_percentage | decimal | procenat uspešnih poziva u prozoru |
+| error_count_last_hour | integer | |
+| status | enum: `ONLINE`, `UNSTABLE`, `OFFLINE` | izvedeno iz `uptime_percentage`/`error_count_last_hour` naspram konfigurabilnog praga |
+| computed_at | timestamp | |
+
+Prelazak u `UNSTABLE`/`OFFLINE` generiše `HealthSignal` tipa `PROVIDER_DEGRADED` (poglavlje 2.1) — ovo je precizniji, per-provajder pandan postojećem `PROVIDER_ERROR_SPIKE`, koji ostaje agregatni okidač. Potvrđeno poređenjem sa PrimeTravel `SystemPulse.tsx` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 10).
+
+### 2.4 Bezbednosna kategorizacija signala
+
+`HealthSignal.security_category` (poglavlje 2.1) popunjava se samo za bezbednosno relevantne signale — trenutno `AUTH_ANOMALY`, sa prostorom za buduće, finije tipove (npr. neuobičajen masovni izvoz ličnih podataka) — radi preciznijeg filtriranja i izveštavanja, po uzoru na PrimeTravel `Fortress.tsx` obrazac kategorizacije (#PII #GDPR #security #audit #encryption — vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 10). Signal sa popunjenim `security_category` po difoltu koristi bar `STANDARD`, podrazumevano `HEAVY` nivo modela za bilo kakvu AI klasifikaciju/analizu — kriterijum kritičnosti iz poglavlja 6.2a ovde direktno važi.
 
 ---
 
@@ -130,6 +152,23 @@ Tabela iz 6.2 bira nivo modela isključivo po tome koliko je *tekstualni* zadata
 
 Ovaj log je i sam izvor za `HealthSignal` tipa `TOKEN_USAGE_ANOMALY` (poglavlje 2.1) — neuobičajen skok potrošnje (npr. agent zapeo u petlji) se prijavljuje kao i svaki drugi kvar.
 
+### 6.4 Potrošnja po AI provajderu (ne samo po agentu)
+
+Pored `AgentInvocationLog` (poglavlje 6.3, praćenje po agentu), M18 agregira potrošnju i **po AI provajderu** (Anthropic/OpenAI/Google, izvedeno iz `model_identifier`) naspram globalnog kvota-limita tog provajdera — drugačiji način otkaza od pojedinačnog agenta koji troši previše (npr. ceo nalog kod provajdera dostiže mesečni limit, bez obzira koji pojedinačni agent je najviše trošio). Potvrđeno poređenjem sa PrimeTravel `AIQuotaDashboard.tsx` obrascem, uključujući isti izbor kanala obaveštenja — Telegram i email (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 10).
+
+`AIProviderQuota`:
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| provider_name | string | npr. `ANTHROPIC`, `OPENAI`, `GOOGLE` |
+| period | enum: `DAILY`, `WEEKLY`, `MONTHLY` | |
+| quota_limit | integer | limit provajdera za taj period (tokeni ili trošak, po ugovoru sa provajderom) |
+| consumed | integer | agregirano iz `AgentInvocationLog` za sve agente čiji `model_identifier` pripada ovom provajderu |
+| period_start / period_end | date | |
+| alert_threshold_percentage | integer | podrazumevano 80 |
+
+Kad `consumed` dostigne `alert_threshold_percentage` od `quota_limit`, generiše se `HealthSignal` tipa `TOKEN_USAGE_ANOMALY` (poglavlje 2.1) — isti mehanizam kao postojeća anomalija potrošnje, samo na nivou provajdera umesto pojedinačnog agenta.
+
 ---
 
 ## 7. Dozvole (registruju se u M1 katalog dozvola)
@@ -141,6 +180,8 @@ Ovaj log je i sam izvor za `HealthSignal` tipa `TOKEN_USAGE_ANOMALY` (poglavlje 
 | `M18/weekly-review/VIEW` | Vlasnik, Direktor |
 | `M18/trend-suggestion/VIEW`, `APPROVE` | Vlasnik, Direktor |
 | `M18/agent-invocation-log/VIEW` | Vlasnik, Direktor |
+| `M18/provider-health/VIEW` | Vlasnik, Direktor |
+| `M18/ai-provider-quota/VIEW` | Vlasnik, Direktor |
 
 ---
 
@@ -163,6 +204,8 @@ Prefiks: `/api/v1/ops`
 | `/trend-suggestions` | GET / POST | |
 | `/trend-suggestions/:id/approve`, `/reject` | POST | |
 | `/agent-invocations` | GET | log potrošnje, filtriran po agentu/periodu |
+| `/provider-health` | GET | trenutni `ProviderHealthSnapshot` po provajderu (poglavlje 2.3) |
+| `/ai-provider-quota` | GET | trenutna potrošnja naspram limita po AI provajderu (poglavlje 6.4) |
 
 ---
 
@@ -174,6 +217,9 @@ Prefiks: `/api/v1/ops`
 - [ ] Nijedna čisto deterministička provera (rok, limit, datum) ne troši pozive jezičkom modelu — proverljivo kroz `AgentInvocationLog` (nema zapisa za te akcije).
 - [ ] Neuobičajen skok potrošnje tokena generiše sopstveni `HealthSignal`.
 - [ ] Akcija koja dotiče bezbednost/PII/prevaru koristi bar `STANDARD`, podrazumevano `HEAVY` nivo modela, bez obzira na tekstualnu složenost zadatka (poglavlje 6.2a) — proverljivo kroz `AgentInvocationLog.model_tier` za takve `action_code` zapise.
+- [ ] Provajder čiji `uptime_percentage`/`error_count_last_hour` pređe konfigurabilni prag prelazi u `UNSTABLE`/`OFFLINE` i generiše `PROVIDER_DEGRADED` signal (poglavlje 2.3).
+- [ ] `HealthSignal` tipa `AUTH_ANOMALY` ima popunjen `security_category = AUTH` (poglavlje 2.4).
+- [ ] Potrošnja tokena agregirana po AI provajderu generiše upozorenje na `alert_threshold_percentage` (podrazumevano 80%) od `quota_limit` (poglavlje 6.4).
 
 ---
 
