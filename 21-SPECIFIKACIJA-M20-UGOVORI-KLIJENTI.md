@@ -32,6 +32,7 @@ M20 ne duplira podatke — sastavlja ugovor **isključivo iz podataka koji već 
 | accepted_at | timestamp, nullable | |
 | accepted_method | enum: `ELECTRONIC_CLICKWRAP`, `WET_SIGNATURE_SCAN`, nullable | vidi poglavlje 3.2 |
 | voided_by | UUID (FK → M1 User), nullable | |
+| supersedes_contract_id | UUID, nullable (FK → self) | popunjeno ako je ovo revidovana verzija ranijeg ugovora — vidi poglavlje 3.4 |
 | created_at / updated_at | timestamp | |
 
 ### 2.2 `contract_type` — određuje se automatski iz `Booking.tip_nastupanja` (M5 poglavlje 4.1) i tipa proizvoda
@@ -53,7 +54,7 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 | Obavezan element | Izvor |
 | :---- | :---- |
 | Naziv/adresa/broj licence agencije | Statička konfiguracija agencije (van modela podataka) |
-| Dnevni program (itinerar) | M2 `Product.attributes.itinerary` |
+| Dnevni program (itinerar) | M2 `Product.attributes.itinerary` — **samo za `PACKAGE`/`EXCURSION` proizvode, koji jedini imaju ovo polje** (M2 poglavlje 2.3); za čist `ACCOMMODATION` bez paketa, element se izostavlja kao neprimenjiv, ne prikazuje se kao prazno polje |
 | Naziv/kategorija hotela | M2 `Product.attributes.stars`, naziv iz `ProductTranslation` |
 | Tip prevoza i klasa | M2 `Product.attributes` (za `TRANSFER`/`FLIGHT`) |
 | Tip usluge (pansion) | M3 `RateLine.board_type`, preko `BookingItem.rate_line_id` (M5 poglavlje 4.2) |
@@ -75,12 +76,23 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 
 ### 3.2 Prihvatanje
 
-- **B2C/sajt (M8):** gost elektronski prihvata (clickwrap — potvrdno polje "Prihvatam uslove ugovora") u toku checkout toka, pre finalne potvrde kartičnog plaćanja (M10 poglavlje 7.2) — `accepted_method = ELECTRONIC_CLICKWRAP`.
+- **B2C/sajt (M8) i mobilna aplikacija (M9):** gost elektronski prihvata (clickwrap — potvrdno polje "Prihvatam uslove ugovora") u toku checkout toka, pre finalne potvrde kartičnog plaćanja (M10 poglavlje 7.2) — `accepted_method = ELECTRONIC_CLICKWRAP`. M9 koristi isti API kao M8 (M9 specifikacija, poglavlje 2), pa je tok identičan.
 - **Interni panel (M17) / telefon:** ugovor se šalje gostu (email/lično), prihvatanje se evidentira ručno od strane prodajnog agenta kad stigne potpisan/skeniran primerak — `accepted_method = WET_SIGNATURE_SCAN`.
+- **B2B portal (M7):** ugovor je i dalje između agencije i **nalogodavca koji plaća** (`Booking.client_account_id` = subagent, M7 poglavlje 5), ne krajnjeg putnika kog subagent prijavljuje — subagent (`SUBAGENT_ADMIN`) prihvata u ime svog naloga kroz isti clickwrap obrazac kao M8, u trenutku potvrde rezervacije na portalu, `accepted_method = ELECTRONIC_CLICKWRAP`. Odnos subagenta sa svojim krajnjim klijentom (ako subagent dalje preprodaje) ostaje van obima ovog ugovora — to je posao subagentovog sopstvenog poslovanja, ne agencije Terminal Travel.
 
 ### 3.3 Ograda — veza sa vaučerom (dopuna M5 poglavlje 6)
 
 Za `tip_nastupanja = ORGANIZATOR` rezervacije, automatsko generisanje vaučera (M5 poglavlje 6) dodatno zahteva da `ClientContract.status` bude bar `GENERATED` — ugovor mora postojati pre nego što gost dobije vaučer. Tačan trenutak kad `ACCEPTED` (potpis/prihvatanje) mora biti završen u odnosu na izdavanje vaučera potvrđuje se sa pravnikom (poglavlje 8).
+
+### 3.4 Izmena rezervacije posle prihvatanja — obavezna revizija ugovora
+
+Ugovor opisuje konkretne uslove (datumi, cena, sadržaj) rezervacije u trenutku prihvatanja — ako se rezervacija posle toga **izmeni** (M5 poglavlje 6: datum, broj gostiju, sastav stavki), već prihvaćen ugovor više ne opisuje stvarno stanje, što je pravno neprihvatljivo, ne samo kozmetički nedostatak. **Otkazivanje** (delimično ili potpuno) ne pokreće ovo — originalni ugovor ostaje merodavan istorijski zapis uslova pod kojima je otkazivanje/penal i nastao (uključujući `CancellationRule` iz poglavlja 2.3), ne treba mu revizija.
+
+Kad M5 emituje `booking.modified` (M5 poglavlje 9), M20 se pretplaćuje i:
+1. Postojeći `ClientContract` (bio `GENERATED` ili `ACCEPTED`) prelazi u `VOIDED` (`voided_by = null` — sistemski, ne ljudska radnja, jer je uzrok već odobrena izmena rezervacije, ne greška).
+2. Automatski se generiše nova verzija (`DRAFT → GENERATED`, isti nivo autonomije kao poglavlje 3.1) sa `supersedes_contract_id` ka prethodnoj verziji, sa ažuriranim podacima iz izmenjene rezervacije.
+3. Nova verzija **zahteva ponovno prihvatanje** (`status` ne prelazi u `ACCEPTED` automatski, čak i ako je prethodna verzija bila prihvaćena) — isti tok kao poglavlje 3.2, na kanalu kojim je izmena izvršena.
+4. Ako je `tip_nastupanja = ORGANIZATOR` i vaučer je već izdat pre izmene, prethodno izdati vaučer ostaje važeći dokument dok se ne izda revidovan (van obima ove specifikacije da definiše tačan mehanizam revizije vaučera — isto pravno pitanje kao poglavlje 3.3).
 
 ---
 
@@ -119,7 +131,10 @@ Prefiks: `/api/v1/client-contracts`
 - [ ] `contract_type` se ispravno bira iz `Booking.tip_nastupanja` i tipa proizvoda, bez ručnog izbora.
 - [ ] Elektronsko prihvatanje na sajtu (M8) ispravno beleži `accepted_at`/`accepted_method` pre finalne potvrde kartičnog plaćanja.
 - [ ] Vaučer za `ORGANIZATOR` rezervaciju se ne generiše dok `ClientContract` ne postoji bar u statusu `GENERATED`.
-- [ ] Svaki `VOID` upisan je u M1 audit log sa identitetom osobe.
+- [ ] Svaki `VOID` upisan je u M1 audit log sa identitetom osobe (ili sistema, za automatsko poništavanje pri izmeni rezervacije — poglavlje 3.4).
+- [ ] Izmena rezervacije (`booking.modified`) automatski poništava stari ugovor i generiše novu verziju sa `supersedes_contract_id`, koja zahteva ponovno prihvatanje bez obzira na status prethodne verzije.
+- [ ] Otkazivanje rezervacije ne pokreće reviziju ugovora — originalni ugovor ostaje nepromenjen kao istorijski zapis.
+- [ ] Subagent na B2B portalu (M7) ispravno prihvata ugovor u ime sopstvenog naloga u trenutku potvrde rezervacije.
 
 ---
 
@@ -130,3 +145,4 @@ Prefiks: `/api/v1/client-contracts`
 - Da li dinamika plaćanja treba strukturirano polje (plan rata) u M10 `Payment`, ili je dovoljan slobodan tekst iz uslova prodaje na ugovoru — otvoreno dok se ne pokaže stvarna potreba.
 - `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` (samostalna prodaja van paketa) — uskladiti sa istim otvorenim pitanjem graničnih slučajeva u M10 poglavlje 4.4/12 (PDV tretman van sistema posebnog oporezivanja).
 - `KORPORATIVNI_OKVIRNI` tip — puna specifikacija čeka razradu B2B okvirnih ugovora, van obima ove verzije.
+- Samostalna prodaja `INSURANCE` proizvoda (M2) bez ikakvog drugog proizvoda u rezervaciji ne odgovara nijednom postojećem `contract_type` — posredovanje u osiguranju je zasebno regulisano van Zakona o turizmu; potvrditi sa pravnikom da li takva rezervacija uopšte treba `ClientContract` ili se rešava potpuno drugim dokumentom, pre implementacije ovog graničnog slučaja.

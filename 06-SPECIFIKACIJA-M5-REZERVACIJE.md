@@ -217,7 +217,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 
 ## 9. Događaji (Event Bus) koje M5 emituje
 
-`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava, M12 marketing) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
+`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
 
 ---
 
