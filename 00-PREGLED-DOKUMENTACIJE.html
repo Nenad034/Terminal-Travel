@@ -3744,6 +3744,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M10 | `fiscal_document.submit` | `NEVER_AUTONOMOUS` | M10 poglavlje 6 |
 | M11 | `travel_guarantee.expiry_reminder` | `AUTONOMOUS` | M11 poglavlje 4 |
 | M11 | `travel_guarantee.edit` | `NEVER_AUTONOMOUS` | M11 poglavlje 4 |
+| M11 | `travel_guarantee.utilization_warning` | `AUTONOMOUS` | M11 poglavlje 4.2 — upozorenje na 80% praga, ne tvrda blokada (ta je deterministička, ne AI odluka) |
 | M11 | `tourist_tax_remittance.draft` | `AUTONOMOUS` | M11 poglavlje 3.3 |
 | M11 | `tourist_tax_remittance.submit` | `PROPOSE_THEN_APPROVE` | M11 poglavlje 3.3 |
 | M12 | `content.draft` | `AUTONOMOUS` | M12 poglavlje 3 |
@@ -3752,7 +3753,6 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M14 | `ticket_response.draft` | `AUTONOMOUS` | M14 poglavlje 4 |
 | M14 | `ticket_response.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M14 poglavlje 4 |
 | M14 | `complaint.escalate_notify` | `AUTONOMOUS` | M14 poglavlje 3.1 — čisto informativna eskalacija (ZZP rok), ne izvršenje |
-| M11 | `travel_guarantee.utilization_warning` | `AUTONOMOUS` | M11 poglavlje 4.2 — upozorenje na 80% praga, ne tvrda blokada (ta je deterministička, ne AI odluka) |
 | M20 | `client_contract.generate_draft` | `AUTONOMOUS` | M20 poglavlje 4 |
 | (globalno) | `contract.sign` | `NEVER_AUTONOMOUS` | poglavlje 7 Master dokumenta |
 | (globalno) | `money.transfer` | `NEVER_AUTONOMOUS` | poglavlje 7 Master dokumenta |
