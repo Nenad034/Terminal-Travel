@@ -83,7 +83,7 @@ a{color:var(--accent);}
 .wf-btn.active{ background:#e7a339; color:#171c25; border-color:#e7a339; }
 
 main{ padding-top:calc(var(--header-h) + 20px); padding-bottom:60px; }
-.wrap{ max-width:1400px; margin:0 auto; padding:0 24px; }
+.wrap{ width:100%; margin:0 auto; padding:0 clamp(16px,2.4vw,40px); }
 
 .intro{
   background:var(--surface); border:1px solid var(--rule); border-radius:10px;
@@ -107,42 +107,55 @@ main{ padding-top:calc(var(--header-h) + 20px); padding-bottom:60px; }
 
 .graph-outer{ position:relative; overflow-x:auto; }
 .graph{
-  position:relative; display:grid; grid-template-columns:repeat(9, 172px); gap:34px 26px;
-  padding:10px 10px 30px; min-width:1650px;
+  position:relative; display:grid; grid-template-columns:repeat(9, minmax(0, 1fr)); gap:clamp(28px,3.4vw,56px) clamp(14px,1.8vw,30px);
+  padding:10px 10px 30px; width:100%; min-width:920px;
 }
 .col-head{
-  font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  font-family:var(--mono); font-size:clamp(11px,.85vw,13.5px); letter-spacing:.08em; text-transform:uppercase;
   color:var(--text-dim); text-align:center; padding-bottom:6px; border-bottom:1px dashed var(--rule);
   grid-row:1;
 }
-.col{ display:flex; flex-direction:column; gap:26px; grid-row:2; align-items:stretch; padding-top:8px; }
+.col{ display:flex; flex-direction:column; gap:clamp(22px,2.6vw,42px); grid-row:2; align-items:stretch; padding-top:8px; }
 
 svg.edges{ position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
 
 .node{
   position:relative; z-index:2; background:var(--surface); border:1.5px solid var(--rule);
-  border-radius:10px; padding:10px 12px; box-shadow:var(--shadow); cursor:pointer;
+  border-radius:10px; padding:clamp(10px,1.15vw,18px) clamp(12px,1.3vw,20px); box-shadow:var(--shadow); cursor:pointer;
   transition:opacity .18s ease, transform .12s ease, border-color .12s ease;
 }
 .node:hover{ transform:translateY(-2px); border-color:var(--accent); }
 .node .top{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
-.node .code{ font-family:var(--mono); font-weight:800; font-size:12.5px; color:var(--accent); }
+.node .code{ font-family:var(--mono); font-weight:800; font-size:clamp(12.5px,1.05vw,16px); color:var(--accent); }
 .node .chan{
-  font-family:var(--mono); font-size:8.5px; font-weight:700; letter-spacing:.04em;
+  font-family:var(--mono); font-size:clamp(8.5px,.68vw,10.5px); font-weight:700; letter-spacing:.04em;
   background:var(--info-bg); color:var(--info); padding:1px 5px; border-radius:3px;
 }
 .node .umb{
-  font-family:var(--mono); font-size:8.5px; font-weight:700; letter-spacing:.02em;
+  font-family:var(--mono); font-size:clamp(8.5px,.68vw,10.5px); font-weight:700; letter-spacing:.02em;
   background:var(--gray-bg); color:var(--gray); padding:1px 5px; border-radius:3px;
 }
-.node .title{ font-size:12.8px; font-weight:600; line-height:1.25; }
-.node .status{ margin-top:6px; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text-dim); }
+.node .title{ font-size:clamp(12.8px,1.05vw,16px); font-weight:600; line-height:1.3; }
+.node .status{ margin-top:6px; display:flex; align-items:center; gap:5px; font-size:clamp(10px,.75vw,12px); color:var(--text-dim); }
 .node .status .dot{ width:7px; height:7px; }
+.node .open-link{
+  position:absolute; top:8px; right:9px; font-size:12px; line-height:1; color:var(--text-dim);
+  text-decoration:none; opacity:.45; padding:2px;
+}
+.node .open-link:hover{ opacity:1; color:var(--accent); }
 
-.graph.dim-mode .node{ opacity:.22; }
+.graph.dim-mode .node{ opacity:.2; }
 .graph.dim-mode .node.hi{ opacity:1; }
-.graph.dim-mode path.hi{ opacity:1 !important; }
-.graph.dim-mode path{ opacity:.08; }
+.graph.dim-mode .node.neighbor{
+  border-color:var(--accent); box-shadow:var(--shadow), 0 0 0 2px var(--accent-soft);
+}
+.graph.dim-mode .node.focused{
+  opacity:1; transform:scale(1.45); z-index:8; border-color:var(--accent); border-width:2px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3), 0 0 0 5px var(--accent-soft);
+}
+.graph.dim-mode .node.focused .title{ font-size:14.5px; }
+.graph.dim-mode path.hi{ opacity:1 !important; stroke-width:2.4; }
+.graph.dim-mode path{ opacity:.06; }
 
 @media (prefers-reduced-motion: reduce){ .node{ transition:none; } }
 </style>
@@ -158,7 +171,7 @@ svg.edges{ position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
 <main>
   <div class="wrap">
     <div class="intro">
-      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik</b> na modul otvara njegovu punu specifikaciju u novom tabu. <b>Prelazak mišem</b> preko modula ističe sa kojima je direktno povezan. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
       <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
@@ -258,12 +271,12 @@ PHASES.forEach(function(p, i){
     var chanBadge = n.chan ? '<span class="chan">KANAL</span>' : "";
     var umbBadge = n.umb ? '<span class="umb">SVI</span>' : "";
     card.innerHTML =
+      '<a class="open-link" href="'+DOC_BASE+'#doc-'+n.id+'" target="_blank" rel="noopener" title="Otvori specifikaciju">↗</a>'+
       '<div class="top"><span class="code">'+n.code+'</span>'+chanBadge+umbBadge+'</div>'+
       '<div class="title">'+n.title+'</div>'+
       '<div class="status"><span class="dot" style="background:var(--info)"></span>Specificirano</div>';
-    card.addEventListener("click", function(){
-      window.open(DOC_BASE + "#doc-" + n.id, "_blank", "noopener");
-    });
+    card.querySelector(".open-link").addEventListener("click", function(ev){ ev.stopPropagation(); });
+    card.addEventListener("click", function(){ toggleFocus(n.id); });
     col.appendChild(card);
   });
   graph.appendChild(col);
@@ -331,9 +344,6 @@ window.addEventListener("load", drawEdges);
 setTimeout(drawEdges, 50);
 setTimeout(drawEdges, 400);
 
-// ---- hover highlight ----
-var wfActive = false;
-
 function neighborsOf(id){
   var s = {};
   DEPS.concat(EVENTS).forEach(function(e){
@@ -343,30 +353,47 @@ function neighborsOf(id){
   return s;
 }
 
-graph.addEventListener("mouseover", function(ev){
-  if (wfActive) return;
-  var card = ev.target.closest(".node");
-  if (!card) return;
-  var id = card.dataset.id;
-  var nb = neighborsOf(id); nb[id] = true;
+function clearAll(){
+  graph.classList.remove("dim-mode");
+  graph.querySelectorAll(".node").forEach(function(n){ n.classList.remove("hi","neighbor","focused"); });
+  svg.querySelectorAll("path").forEach(function(p){ p.classList.remove("hi"); });
+}
+
+// ---- click-to-focus (enlarge clicked module, clearly show its connections) ----
+var focusedId = null;
+
+function toggleFocus(id){
+  if (wfActive) { wfActive = false; wfBtn.classList.remove("active"); wfCaption.classList.remove("show"); }
+  if (focusedId === id) { focusedId = null; clearAll(); return; }
+  focusedId = id;
+  var nb = neighborsOf(id);
   graph.classList.add("dim-mode");
   graph.querySelectorAll(".node").forEach(function(n){
-    n.classList.toggle("hi", !!nb[n.dataset.id]);
+    var nid = n.dataset.id;
+    n.classList.toggle("focused", nid === id);
+    n.classList.toggle("neighbor", !!nb[nid] && nid !== id);
+    n.classList.toggle("hi", nid === id || !!nb[nid]);
   });
   svg.querySelectorAll("path").forEach(function(p){
-    p.classList.toggle("hi", nb[p.dataset.a] && nb[p.dataset.b]);
+    p.classList.toggle("hi", (p.dataset.a === id || p.dataset.b === id));
   });
-});
-graph.addEventListener("mouseout", function(ev){
-  if (wfActive) return;
-  if (ev.relatedTarget && graph.contains(ev.relatedTarget)) return;
-  graph.classList.remove("dim-mode");
+  var el = graph.querySelector('.node[data-id="'+id+'"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior:"smooth", inline:"center", block:"nearest" });
+}
+
+document.addEventListener("click", function(ev){
+  if (!focusedId) return;
+  if (ev.target.closest(".node") || ev.target.closest(".wf-btn")) return;
+  focusedId = null;
+  clearAll();
 });
 
 // ---- workflow toggle ----
 var wfBtn = document.getElementById("wfBtn");
 var wfCaption = document.getElementById("wfCaption");
+var wfActive = false;
 wfBtn.addEventListener("click", function(){
+  focusedId = null;
   wfActive = !wfActive;
   wfBtn.classList.toggle("active", wfActive);
   wfCaption.classList.toggle("show", wfActive);
@@ -374,15 +401,14 @@ wfBtn.addEventListener("click", function(){
     var set = {}; WORKFLOW.forEach(function(id){ set[id] = true; });
     graph.classList.add("dim-mode");
     graph.querySelectorAll(".node").forEach(function(n){
+      n.classList.remove("focused","neighbor");
       n.classList.toggle("hi", !!set[n.dataset.id]);
     });
     svg.querySelectorAll("path").forEach(function(p){
       p.classList.toggle("hi", set[p.dataset.a] && set[p.dataset.b]);
     });
   } else {
-    graph.classList.remove("dim-mode");
-    graph.querySelectorAll(".node").forEach(function(n){ n.classList.remove("hi"); });
-    svg.querySelectorAll("path").forEach(function(p){ p.classList.remove("hi"); });
+    clearAll();
   }
 });
 })();
