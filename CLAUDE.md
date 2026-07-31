@@ -41,7 +41,7 @@ Nenad Tomić je vlasnik i **arhitekta projekta, ne programer**. Njegova uloga je
 ## Održavanje dokumentacije
 
 - Kad izmena u jednom dokumentu utiče na drugi (novo polje, novi događaj, promenjena numeracija poglavlja), izmeni **oba** u istom prolazu — ne ostavljaj "TODO uskladiti kasnije".
-- `00-PREGLED-DOKUMENTACIJE.html` je generisan iz svih `.md` fajlova — svaka `<section class="doc" id="doc-XX">` nosi sirov markdown u `<script type="text/plain" class="src">`, klijentski JS ga renderuje. Posle izmene bilo kog `.md` fajla, pokreni `python tools/sync-html-overview.py` iz korena repozitorijuma da se pregled osveži. Ako se doda nov modul, prvo ubaci nav-link i praznu `doc-<id>` sekciju ručno (skripta ne kreira nove sekcije, samo osvežava postojeće), pa dodaj red u `DOC_MAP` u skripti, pa je pokreni.
+- `00-PREGLED-DOKUMENTACIJE.html` je generisan iz svih `.md` fajlova. Posle izmene bilo kog `.md` fajla, pokreni `python tools/sync-html-overview.py` iz korena repozitorijuma da se pregled osveži (mehanizam i uputstvo za nov modul su u docstring-u same skripte).
 - Ovaj repozitorijum se automatski commit-uje i push-uje na `https://github.com/Nenad034/Terminal-Travel` posle svake izmene — bez čekanja na potvrdu (dogovoreno sa vlasnikom).
 
 ## Šta ne raditi
