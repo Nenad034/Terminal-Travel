@@ -224,7 +224,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 <main>
   <div class="wrap">
     <div class="intro">
-      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
       <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
@@ -313,7 +313,7 @@ var NODES = [
     desc:"Profili gostiju i nalogodavaca, istorija putovanja (uživo iz M5), program lojalnosti, komunikacija.",
     entities:["ClientAccount","GuestProfile","LoyaltyTier","CommunicationLog"]},
   {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true,
-    desc:"Javni sajt agencije — nema sopstvenu bazu, čisto čita/piše kroz M1/M2/M5/M6/M10.",
+    desc:"Javni sajt agencije — nema sopstvenu bazu, čisto čita/piše kroz M1/M2/M5/M6/M10/M20.",
     entities:["(bez sopstvenih entiteta — čist kanal)"]},
   {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true,
     desc:"Portal za subagente — provizija (i po obimu prodaje), kreditni limit, mreža partnera sa više nivoa.",
@@ -336,9 +336,9 @@ var NODES = [
   {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true,
     desc:"Glavni agent i domenski agenti; centralni registar akcija i nivoa autonomije za ceo sistem.",
     entities:["AIAgent","ModuleAgentActivation","AgentActionType"]},
-  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false,
+  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false, umb:true,
     desc:"Kvalitetni nadzor nad svim modulima (Telegram/email upozorenja), nedeljni pregled, model-tiering za troškove.",
-    entities:["HealthSignal","NotificationChannel","WeeklyHealthReview","TrendSuggestion"]},
+    entities:["HealthSignal","NotificationChannel","WeeklyHealthReview","TrendSuggestion","ProviderHealthSnapshot","AIProviderQuota"]},
   {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true,
     desc:"Interni real-time tim-chat; komunikacija sa gostima/subagentima ostaje u M14, samo lepši prikaz.",
     entities:["Conversation","Message","PresenceStatus"]}
@@ -349,8 +349,8 @@ var DEPS = [
   ["m5","m1"],["m5","m2"],["m5","m3"],["m5","m4"],
   ["m6","m1"],["m6","m5"],
   ["m7","m1"],["m7","m2"],["m7","m5"],["m7","m6"],
-  ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],
-  ["m9","m1"],["m9","m2"],["m9","m5"],["m9","m6"],
+  ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],["m8","m20"],
+  ["m9","m1"],["m9","m2"],["m9","m5"],["m9","m6"],["m9","m10"],["m9","m20"],
   ["m10","m1"],["m10","m3"],["m10","m5"],
   ["m11","m1"],["m11","m5"],
   ["m12","m1"],["m12","m2"],["m12","m6"],
