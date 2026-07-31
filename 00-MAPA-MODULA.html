@@ -114,20 +114,22 @@ main{
 .legend svg{ display:block; }
 .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
 
-.graph-outer{ position:relative; flex:1; min-height:0; overflow:auto; }
+.graph-outer{ position:relative; flex:1; min-height:0; overflow:auto; display:flex; }
 .graph{
   position:relative; display:grid; grid-template-columns:repeat(9, minmax(0, 1fr)); grid-template-rows:auto 1fr;
   gap:clamp(20px,3vw,44px) clamp(14px,1.8vw,30px);
-  padding:6px 10px 16px; width:100%; min-width:920px; height:100%;
+  padding:6px 10px 16px; width:100%; min-width:920px; margin:auto 0;
 }
 .col-head{
   font-family:var(--mono); font-size:clamp(11px,.85vw,13.5px); letter-spacing:.08em; text-transform:uppercase;
   color:var(--text-dim); text-align:center; padding-bottom:6px; border-bottom:1px dashed var(--rule);
   grid-row:1;
 }
-.col{ display:flex; flex-direction:column; gap:clamp(22px,2.6vw,42px); grid-row:2; align-items:stretch; padding-top:8px; }
+.col{ display:flex; flex-direction:column; gap:clamp(22px,2.6vw,42px); grid-row:2; align-items:stretch; justify-content:center; padding-top:8px; }
 
 svg.edges{ position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
+svg.edges path{ opacity:.16; transition:opacity .15s ease; }
+svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 
 .node{
   position:relative; z-index:2; background:var(--surface); border:1.5px solid var(--rule);
