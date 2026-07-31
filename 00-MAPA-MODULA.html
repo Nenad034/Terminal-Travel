@@ -1,0 +1,389 @@
+<title>Terminal — Mapa modula</title>
+<style>
+:root{
+  --ink:#12161d; --ink-2:#1b212b;
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --sans: "Avenir Next", "Century Gothic", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --header-h: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+    --text:#e7e9ed; --text-dim:#98a2b3;
+    --accent:#e7a339; --accent-soft:#3a2c14;
+    --rule:#2b3242;
+    --success:#5cd39a; --success-bg:#173023;
+    --warn:#e7a339; --warn-bg:#332411;
+    --info:#7ab6ec; --info-bg:#122a3d;
+    --gray:#8b95a5; --gray-bg:#232a37;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+  --text:#e7e9ed; --text-dim:#98a2b3;
+  --accent:#e7a339; --accent-soft:#3a2c14;
+  --rule:#2b3242;
+  --success:#5cd39a; --success-bg:#173023;
+  --warn:#e7a339; --warn-bg:#332411;
+  --info:#7ab6ec; --info-bg:#122a3d;
+  --gray:#8b95a5; --gray-bg:#232a37;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+:root[data-theme="light"]{
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+}
+a{color:var(--accent);}
+
+.board{
+  position:fixed; inset:0 0 auto 0; height:var(--header-h); z-index:40;
+  background:linear-gradient(180deg,#171c25,#12161d); color:#eef0f4;
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+  border-bottom:1px solid #05070a; box-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.board .brand{
+  font-family:var(--mono); font-weight:700; letter-spacing:.14em; font-size:16px;
+  color:#f4f6f9; text-transform:uppercase; display:flex; align-items:baseline; gap:8px; white-space:nowrap;
+}
+.board .brand small{ font-family:var(--sans); font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; color:#9aa6b8; }
+.board .actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+.board a.back{ color:#c7ceda; font-size:12.5px; text-decoration:none; border:1px solid #333c4a; padding:6px 10px; border-radius:6px; }
+.board a.back:hover{ background:#1f2530; }
+.wf-btn{
+  font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.03em;
+  background:#1f2530; color:#e7a339; border:1px solid #3a4356; border-radius:6px;
+  padding:8px 14px; cursor:pointer;
+}
+.wf-btn.active{ background:#e7a339; color:#171c25; border-color:#e7a339; }
+
+main{ padding-top:calc(var(--header-h) + 20px); padding-bottom:60px; }
+.wrap{ max-width:1400px; margin:0 auto; padding:0 24px; }
+
+.intro{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:16px 20px; margin-bottom:20px; box-shadow:var(--shadow); font-size:14px; color:var(--text-dim);
+}
+.intro b{ color:var(--text); }
+#wfCaption{
+  display:none; background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+  padding:14px 20px; margin-bottom:20px; font-size:14px; color:var(--text);
+}
+#wfCaption.show{ display:block; }
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:18px; align-items:center;
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:12px 18px; margin-bottom:22px; box-shadow:var(--shadow); font-size:12.5px; color:var(--text-dim);
+}
+.legend .item{ display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.legend svg{ display:block; }
+.dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+.graph-outer{ position:relative; overflow-x:auto; }
+.graph{
+  position:relative; display:grid; grid-template-columns:repeat(9, 172px); gap:34px 26px;
+  padding:10px 10px 30px; min-width:1650px;
+}
+.col-head{
+  font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text-dim); text-align:center; padding-bottom:6px; border-bottom:1px dashed var(--rule);
+  grid-row:1;
+}
+.col{ display:flex; flex-direction:column; gap:26px; grid-row:2; align-items:stretch; padding-top:8px; }
+
+svg.edges{ position:absolute; top:0; left:0; pointer-events:none; z-index:1; }
+
+.node{
+  position:relative; z-index:2; background:var(--surface); border:1.5px solid var(--rule);
+  border-radius:10px; padding:10px 12px; box-shadow:var(--shadow); cursor:pointer;
+  transition:opacity .18s ease, transform .12s ease, border-color .12s ease;
+}
+.node:hover{ transform:translateY(-2px); border-color:var(--accent); }
+.node .top{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.node .code{ font-family:var(--mono); font-weight:800; font-size:12.5px; color:var(--accent); }
+.node .chan{
+  font-family:var(--mono); font-size:8.5px; font-weight:700; letter-spacing:.04em;
+  background:var(--info-bg); color:var(--info); padding:1px 5px; border-radius:3px;
+}
+.node .umb{
+  font-family:var(--mono); font-size:8.5px; font-weight:700; letter-spacing:.02em;
+  background:var(--gray-bg); color:var(--gray); padding:1px 5px; border-radius:3px;
+}
+.node .title{ font-size:12.8px; font-weight:600; line-height:1.25; }
+.node .status{ margin-top:6px; display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text-dim); }
+.node .status .dot{ width:7px; height:7px; }
+
+.graph.dim-mode .node{ opacity:.22; }
+.graph.dim-mode .node.hi{ opacity:1; }
+.graph.dim-mode path.hi{ opacity:1 !important; }
+.graph.dim-mode path{ opacity:.08; }
+
+@media (prefers-reduced-motion: reduce){ .node{ transition:none; } }
+</style>
+
+<div class="board">
+  <div class="brand">Terminal <small>Mapa modula i zavisnosti</small></div>
+  <div class="actions">
+    <button class="wf-btn" id="wfBtn">Prikaži tok rezervacije</button>
+    <a class="back" href="https://claude.ai/code/artifact/5a986131-4564-4683-8c6d-119556fceebb" target="_blank" rel="noopener">← Puna dokumentacija</a>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik</b> na modul otvara njegovu punu specifikaciju u novom tabu. <b>Prelazak mišem</b> preko modula ističe sa kojima je direktno povezan. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
+    </div>
+    <div id="wfCaption">
+      <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
+    </div>
+    <div class="legend">
+      <div class="item"><svg width="30" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2"/></svg> API zavisnost</div>
+      <div class="item"><svg width="30" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2" stroke-dasharray="4,3"/></svg> Event Bus</div>
+      <div class="item"><span class="dot" style="background:var(--info)"></span> Kanal (prikaz, bez sopstvene baze)</div>
+      <div class="item"><span class="dot" style="background:var(--gray)"></span> Read-only nad svim modulima</div>
+      <div class="item"><span class="dot" style="background:var(--info)"></span> Status: Specificirano <span style="opacity:.6">(ažurira se ručno kad implementacija počne — Nije započeto / U izradi / Završeno)</span></div>
+    </div>
+    <div class="graph-outer">
+      <div class="graph" id="graph"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+"use strict";
+
+var DOC_BASE = "https://claude.ai/code/artifact/5a986131-4564-4683-8c6d-119556fceebb";
+
+var PHASES = [
+  {id:"F0", label:"Faza 0"}, {id:"F1", label:"Faza 1"}, {id:"F2", label:"Faza 2"},
+  {id:"F3", label:"Faza 3"}, {id:"F4", label:"Faza 4"}, {id:"F5", label:"Faza 5"},
+  {id:"F6", label:"Faza 6"}, {id:"F7", label:"Faza 7"}, {id:"FX", label:"Dodatno"}
+];
+
+var NODES = [
+  {id:"m1",  code:"M1",  title:"Core / Identitet",           phase:"F0", chan:false},
+  {id:"m17", code:"M17", title:"Interni radni panel",         phase:"F0", chan:true},
+  {id:"m2",  code:"M2",  title:"Katalog proizvoda",           phase:"F1", chan:false},
+  {id:"m3",  code:"M3",  title:"Ugovaranje i alotmani",       phase:"F1", chan:false},
+  {id:"m4",  code:"M4",  title:"Integracije API",             phase:"F1", chan:false},
+  {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false},
+  {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false},
+  {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false},
+  {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false},
+  {id:"m6",  code:"M6",  title:"CRM",                         phase:"F3", chan:false},
+  {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true},
+  {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true},
+  {id:"m13", code:"M13", title:"BI / Izveštavanje",           phase:"F5", chan:false, umb:true},
+  {id:"m14", code:"M14", title:"Helpdesk",                    phase:"F5", chan:false},
+  {id:"m12", code:"M12", title:"Marketing",                   phase:"F6", chan:false},
+  {id:"m9",  code:"M9",  title:"Mobilna aplikacija",          phase:"F6", chan:true},
+  {id:"m16", code:"M16", title:"MCP distribucija",            phase:"F6", chan:true},
+  {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true},
+  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false},
+  {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true}
+];
+
+var DEPS = [
+  ["m2","m1"],["m3","m1"],["m3","m2"],["m4","m1"],["m4","m2"],
+  ["m5","m1"],["m5","m2"],["m5","m3"],["m5","m4"],
+  ["m6","m1"],["m6","m5"],
+  ["m7","m1"],["m7","m2"],["m7","m5"],["m7","m6"],
+  ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],
+  ["m9","m1"],["m9","m2"],["m9","m5"],["m9","m6"],
+  ["m10","m1"],["m10","m3"],["m10","m5"],
+  ["m11","m1"],["m11","m5"],
+  ["m12","m1"],["m12","m2"],["m12","m6"],
+  ["m14","m1"],["m14","m5"],["m14","m6"],["m14","m7"],
+  ["m16","m1"],["m16","m2"],["m16","m5"],
+  ["m17","m1"],
+  ["m18","m1"],["m18","m15"],
+  ["m19","m1"],["m19","m14"],["m19","m17"],["m19","m9"],["m19","m18"],
+  ["m20","m1"],["m20","m2"],["m20","m3"],["m20","m5"],["m20","m11"]
+];
+
+var EVENTS = [
+  ["m5","m6"],["m5","m10"],["m5","m11"],["m5","m12"],["m5","m20"],["m5","m13"],
+  ["m2","m12"]
+];
+
+var WORKFLOW = ["m2","m3","m4","m5","m6","m10","m11","m12","m20","m13","m7","m8","m9","m16","m17"];
+
+// ---- build DOM ----
+var graph = document.getElementById("graph");
+
+PHASES.forEach(function(p, i){
+  var h = document.createElement("div");
+  h.className = "col-head";
+  h.style.gridColumn = (i+1);
+  h.textContent = p.label;
+  graph.appendChild(h);
+});
+
+PHASES.forEach(function(p, i){
+  var col = document.createElement("div");
+  col.className = "col";
+  col.style.gridColumn = (i+1);
+  NODES.filter(function(n){ return n.phase === p.id; }).forEach(function(n){
+    var card = document.createElement("div");
+    card.className = "node";
+    card.dataset.id = n.id;
+    var chanBadge = n.chan ? '<span class="chan">KANAL</span>' : "";
+    var umbBadge = n.umb ? '<span class="umb">SVI</span>' : "";
+    card.innerHTML =
+      '<div class="top"><span class="code">'+n.code+'</span>'+chanBadge+umbBadge+'</div>'+
+      '<div class="title">'+n.title+'</div>'+
+      '<div class="status"><span class="dot" style="background:var(--info)"></span>Specificirano</div>';
+    card.addEventListener("click", function(){
+      window.open(DOC_BASE + "#doc-" + n.id, "_blank", "noopener");
+    });
+    col.appendChild(card);
+  });
+  graph.appendChild(col);
+});
+
+var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+svg.setAttribute("class", "edges");
+graph.insertBefore(svg, graph.firstChild);
+
+var defs = document.createElementNS(svg.namespaceURI, "defs");
+["arrow","arrow-hi"].forEach(function(id){
+  var marker = document.createElementNS(svg.namespaceURI, "marker");
+  marker.setAttribute("id", id);
+  marker.setAttribute("markerWidth", "8"); marker.setAttribute("markerHeight", "8");
+  marker.setAttribute("refX", "6"); marker.setAttribute("refY", "3");
+  marker.setAttribute("orient", "auto");
+  var path = document.createElementNS(svg.namespaceURI, "path");
+  path.setAttribute("d", "M0,0 L6,3 L0,6 Z");
+  path.setAttribute("fill", id === "arrow-hi" ? "#e7a339" : "currentColor");
+  marker.appendChild(path);
+  defs.appendChild(marker);
+});
+svg.appendChild(defs);
+
+function nodeCenter(id){
+  var el = graph.querySelector('.node[data-id="'+id+'"]');
+  if (!el) return null;
+  var gr = graph.getBoundingClientRect();
+  var r = el.getBoundingClientRect();
+  return { x: r.left - gr.left + r.width/2, y: r.top - gr.top + r.height/2, w:r.width, h:r.height };
+}
+
+function drawEdges(){
+  var gr = graph.getBoundingClientRect();
+  svg.setAttribute("width", graph.scrollWidth);
+  svg.setAttribute("height", graph.scrollHeight);
+  svg.style.width = graph.scrollWidth + "px";
+  svg.style.height = graph.scrollHeight + "px";
+  while (svg.childNodes.length > 1) svg.removeChild(svg.lastChild);
+
+  function addEdge(a, b, dashed){
+    var ca = nodeCenter(a), cb = nodeCenter(b);
+    if (!ca || !cb) return;
+    var sameSide = ca.x < cb.x ? 1 : -1;
+    var x1 = ca.x + (sameSide * ca.w/2 * 0.9), y1 = ca.y;
+    var x2 = cb.x - (sameSide * cb.w/2 * 0.9), y2 = cb.y;
+    var dx = (x2 - x1) * 0.5;
+    var d = "M"+x1+","+y1+" C "+(x1+dx)+","+y1+" "+(x2-dx)+","+y2+" "+x2+","+y2;
+    var path = document.createElementNS(svg.namespaceURI, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", dashed ? "#8b95a5" : "#94a0b4");
+    path.setAttribute("stroke-width", "1.6");
+    if (dashed) path.setAttribute("stroke-dasharray", "5,4");
+    path.setAttribute("marker-end", "url(#arrow)");
+    path.dataset.a = a; path.dataset.b = b;
+    svg.appendChild(path);
+  }
+  DEPS.forEach(function(e){ addEdge(e[0], e[1], false); });
+  EVENTS.forEach(function(e){ addEdge(e[0], e[1], true); });
+}
+
+window.addEventListener("resize", drawEdges);
+window.addEventListener("load", drawEdges);
+setTimeout(drawEdges, 50);
+setTimeout(drawEdges, 400);
+
+// ---- hover highlight ----
+var wfActive = false;
+
+function neighborsOf(id){
+  var s = {};
+  DEPS.concat(EVENTS).forEach(function(e){
+    if (e[0] === id) s[e[1]] = true;
+    if (e[1] === id) s[e[0]] = true;
+  });
+  return s;
+}
+
+graph.addEventListener("mouseover", function(ev){
+  if (wfActive) return;
+  var card = ev.target.closest(".node");
+  if (!card) return;
+  var id = card.dataset.id;
+  var nb = neighborsOf(id); nb[id] = true;
+  graph.classList.add("dim-mode");
+  graph.querySelectorAll(".node").forEach(function(n){
+    n.classList.toggle("hi", !!nb[n.dataset.id]);
+  });
+  svg.querySelectorAll("path").forEach(function(p){
+    p.classList.toggle("hi", nb[p.dataset.a] && nb[p.dataset.b]);
+  });
+});
+graph.addEventListener("mouseout", function(ev){
+  if (wfActive) return;
+  if (ev.relatedTarget && graph.contains(ev.relatedTarget)) return;
+  graph.classList.remove("dim-mode");
+});
+
+// ---- workflow toggle ----
+var wfBtn = document.getElementById("wfBtn");
+var wfCaption = document.getElementById("wfCaption");
+wfBtn.addEventListener("click", function(){
+  wfActive = !wfActive;
+  wfBtn.classList.toggle("active", wfActive);
+  wfCaption.classList.toggle("show", wfActive);
+  if (wfActive){
+    var set = {}; WORKFLOW.forEach(function(id){ set[id] = true; });
+    graph.classList.add("dim-mode");
+    graph.querySelectorAll(".node").forEach(function(n){
+      n.classList.toggle("hi", !!set[n.dataset.id]);
+    });
+    svg.querySelectorAll("path").forEach(function(p){
+      p.classList.toggle("hi", set[p.dataset.a] && set[p.dataset.b]);
+    });
+  } else {
+    graph.classList.remove("dim-mode");
+    graph.querySelectorAll(".node").forEach(function(n){ n.classList.remove("hi"); });
+    svg.querySelectorAll("path").forEach(function(p){ p.classList.remove("hi"); });
+  }
+});
+})();
+</script>
