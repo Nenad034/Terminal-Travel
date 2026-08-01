@@ -42,9 +42,29 @@
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; background:var(--bg); color:var(--text);
+  margin:0; background:var(--panel-2); color:var(--text);
   font-family:ui-sans-serif,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   -webkit-font-smoothing:antialiased;
+  height:100vh; width:100vw; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+#appFrame{
+  width:90vw; height:90vh; max-width:1400px;
+  background:var(--bg); border:1px solid var(--border); border-radius:16px;
+  box-shadow:0 2px 6px rgba(20,30,45,.08), 0 24px 64px -24px rgba(20,30,45,.35);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+#appScroll{
+  flex:1 1 auto; overflow-y:auto; overflow-x:hidden; min-height:0;
+}
+.sticky-bar{
+  position:sticky; top:0; z-index:6; background:var(--bg);
+  padding-top:2px; border-bottom:1px solid transparent;
+}
+.sticky-bar.stuck{border-bottom-color:var(--border)}
+@media (max-width:760px){
+  body{padding:0}
+  #appFrame{width:96vw; height:96vh; border-radius:10px}
 }
 code{
   font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Menlo,Consolas,monospace;
@@ -140,7 +160,7 @@ h1{
 main{max-width:1100px; margin:0 auto; padding:0 20px 60px}
 
 /* phase section */
-.phase{margin-bottom:34px; scroll-margin-top:14px}
+.phase{margin-bottom:34px; scroll-margin-top:140px}
 .phase-head{
   display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding-bottom:8px;
   border-bottom:2px solid var(--border); margin-bottom:14px; cursor:pointer; user-select:none;
@@ -222,6 +242,9 @@ footer .btn{margin-top:10px}
 .empty-msg{color:var(--text-faint); font-size:.85rem; padding:20px; text-align:center; display:none}
 </style>
 
+<div id="appFrame">
+<div id="appScroll">
+
 <nav class="suite-nav">
   <a href="https://claude.ai/code/artifact/5a986131-4564-4683-8c6d-119556fceebb">📄 Pregled dokumentacije</a>
   <a href="https://claude.ai/code/artifact/8f7a5ec5-951c-4647-8d6f-734a2d757732">🗺️ Mapa modula</a>
@@ -252,6 +275,7 @@ footer .btn{margin-top:10px}
   </div>
 </div>
 
+<div class="sticky-bar" id="stickyBar">
 <div class="controls">
   <label class="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -264,6 +288,7 @@ footer .btn{margin-top:10px}
 </div>
 
 <div class="phase-strip" id="phaseStrip"></div>
+</div>
 
 <main id="main"></main>
 
@@ -274,6 +299,9 @@ footer .btn{margin-top:10px}
   Izvor svake stavke: „Izlazni kriterijum" sekcija odgovarajuće specifikacije (`0X-SPECIFIKACIJA-MY-*.md`) i poglavlja 8/9 `00-MASTER-ARHITEKTURA.md`. Ako se specifikacija izmeni, ova lista se ručno ažurira da ostane usklađena.
   <div><button class="btn" id="btnResetFooter">Resetuj celokupan napredak</button></div>
 </footer>
+
+</div>
+</div>
 
 <script>
 // ---------- Podaci: faze → moduli → stavke Izlaznog kriterijuma ----------
@@ -697,4 +725,11 @@ function resetAll(){
 }
 document.getElementById('btnReset').addEventListener('click', resetAll);
 document.getElementById('btnResetFooter').addEventListener('click', resetAll);
+
+// ---------- Scroll-shadow na sticky traci ----------
+const appScroll = document.getElementById('appScroll');
+const stickyBar = document.getElementById('stickyBar');
+appScroll.addEventListener('scroll', ()=>{
+  stickyBar.classList.toggle('stuck', appScroll.scrollTop > 4);
+});
 </script>
