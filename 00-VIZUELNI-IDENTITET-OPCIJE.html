@@ -1,0 +1,211 @@
+<title>Terminal — vizuelni identitet, 5 pravaca</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --border:#e2e5ea; --text:#171a20; --text-dim:#666d78; --text-faint:#9aa1ac;
+  --shadow:0 1px 2px rgba(20,20,30,.05), 0 12px 32px -16px rgba(20,20,30,.15);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0b0d11; --panel:#14171d; --border:#262b34; --text:#eceef2; --text-dim:#9aa1ac; --text-faint:#666d78;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.6); }
+}
+:root[data-theme="dark"]{ --bg:#0b0d11; --panel:#14171d; --border:#262b34; --text:#eceef2; --text-dim:#9aa1ac; --text-faint:#666d78;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 16px 40px -16px rgba(0,0,0,.6); }
+:root[data-theme="light"]{ --bg:#f5f6f8; --panel:#ffffff; --border:#e2e5ea; --text:#171a20; --text-dim:#666d78; --text-faint:#9aa1ac;
+  --shadow:0 1px 2px rgba(20,20,30,.05), 0 12px 32px -16px rgba(20,20,30,.15); }
+*{box-sizing:border-box}
+body{margin:0; background:var(--bg); color:var(--text); font-family:ui-sans-serif,"Segoe UI",Roboto,Arial,sans-serif; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px; margin:0 auto; padding:44px 28px 90px}
+header{margin-bottom:36px; max-width:70ch}
+.eyebrow{text-transform:uppercase; letter-spacing:.14em; font-size:.72rem; font-weight:800; color:var(--text-faint)}
+h1{font-size:clamp(1.6rem,3vw,2.3rem); margin:8px 0 10px; letter-spacing:-.01em; text-wrap:balance}
+header p{color:var(--text-dim); font-size:1rem; line-height:1.6; margin:0}
+
+.grid{display:grid; grid-template-columns:repeat(2,1fr); gap:26px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card.featured{grid-column:1 / -1}
+.featured .inner-split{display:grid; grid-template-columns:1.1fr .9fr}
+@media (max-width:760px){.featured .inner-split{grid-template-columns:1fr}}
+
+.card{
+  border-radius:18px; overflow:hidden; box-shadow:var(--shadow); border:1px solid var(--border);
+  display:flex; flex-direction:column;
+}
+.card-head{padding:22px 24px 18px}
+.card-head .letter{
+  display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:8px;
+  font-weight:800; font-size:.85rem; margin-bottom:12px;
+}
+.card-head h2{margin:0 0 4px; font-size:1.2rem}
+.card-head .tagline{font-size:.85rem; opacity:.75; margin:0}
+
+.swatches{display:flex}
+.swatch{flex:1; height:52px; position:relative}
+.swatch .label{
+  position:absolute; bottom:5px; left:7px; font-size:8.5px; font-family:ui-monospace,Menlo,Consolas,monospace;
+  opacity:.75; letter-spacing:.02em;
+}
+
+.type-demo{padding:22px 24px; border-top:1px solid rgba(127,127,127,.15)}
+.type-demo .headline{font-size:1.5rem; margin:0 0 6px; line-height:1.2}
+.type-demo .body{font-size:.85rem; line-height:1.55; margin:0; max-width:42ch; opacity:.8}
+
+.ui-demo{padding:20px 24px 26px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; border-top:1px solid rgba(127,127,127,.15)}
+.pill{font-size:.7rem; font-weight:700; padding:4px 11px; border-radius:999px}
+.btn-demo{font-size:.8rem; font-weight:700; padding:9px 18px; border-radius:9px; border:0; cursor:default}
+.card-caption{padding:14px 24px 20px; font-size:.78rem; line-height:1.6; opacity:.7; border-top:1px dashed rgba(127,127,127,.2)}
+
+footer{margin-top:46px; max-width:70ch; color:var(--text-faint); font-size:.82rem; line-height:1.7}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Terminal — predlog vizuelnog identiteta</div>
+    <h1>Pet pravaca, pre nego što izaberemo jedan</h1>
+    <p>Nema postojećeg brenda za usklađivanje — potpuno smo slobodni. Svaka kartica pokazuje istu logiku primenjenu na naslov, tekst, i mali UI isečak (dugme + status oznake), da se vidi kako bi stvarno izgledalo, ne samo paleta boja u apstrakciji. Peti pravac (E) je nov, dodat na vaš zahtev — spaja terminal/nebo/sunce/more u luksuznijem tonu.</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- A — Aviation / Departures board -->
+    <div class="card" style="background:#11151b">
+      <div class="card-head" style="color:#f2efe6">
+        <span class="letter" style="background:#e7a339; color:#171208">A</span>
+        <h2>Aeродром / Odlazna tabla</h2>
+        <p class="tagline" style="color:#a9b0bc">Samouvereno, tehnično, doslovno "Terminal" — već korišćeno u mapi/checklisti.</p>
+      </div>
+      <div class="swatches">
+        <div class="swatch" style="background:#0b0d11"><span class="label" style="color:#8a93a2">#0B0D11</span></div>
+        <div class="swatch" style="background:#171c25"><span class="label" style="color:#8a93a2">#171C25</span></div>
+        <div class="swatch" style="background:#e7a339"><span class="label" style="color:#3a2606">#E7A339</span></div>
+        <div class="swatch" style="background:#4fd1c5"><span class="label" style="color:#062a26">#4FD1C5</span></div>
+        <div class="swatch" style="background:#eef0f4"><span class="label" style="color:#3a3f47">#EEF0F4</span></div>
+      </div>
+      <div class="type-demo" style="background:#11151b; color:#f2efe6">
+        <p class="headline" style="font-family:ui-monospace,'Cascadia Code',Menlo,Consolas,monospace; font-weight:700; letter-spacing:-.01em">Poletanje 14:35 → Beograd</p>
+        <p class="body" style="color:#a9b0bc">Grotesk za tekst, monospace za brojeve/oznake — svaki podatak deluje kao tabla na aerodromu: precizno, čitljivo, pod kontrolom.</p>
+      </div>
+      <div class="ui-demo" style="background:#171c25">
+        <button class="btn-demo" style="background:#e7a339; color:#171208">Potvrdi rezervaciju</button>
+        <span class="pill" style="background:#123330; color:#4fd1c5">NA VREME</span>
+        <span class="pill" style="background:#2e2210; color:#e7a339">NA ČEKANJU</span>
+      </div>
+      <div class="card-caption" style="color:#8a93a2">Rizik: može delovati "korporativno hladno" ako se ne ublaži dovoljno toplim akcentima drugde u sadržaju.</div>
+    </div>
+
+    <!-- B — Mediterranean warmth -->
+    <div class="card" style="background:#fffaf3">
+      <div class="card-head" style="color:#3a2a1c">
+        <span class="letter" style="background:#c1592f; color:#fff">B</span>
+        <h2>Mediteranska toplina</h2>
+        <p class="tagline" style="color:#8a6f57">Boje destinacije, ne alata — sunce, zemlja, more. Emotivnije, manje "tech".</p>
+      </div>
+      <div class="swatches">
+        <div class="swatch" style="background:#fffaf3"><span class="label" style="color:#8a6f57">#FFFAF3</span></div>
+        <div class="swatch" style="background:#f2e2c4"><span class="label" style="color:#5c4322">#F2E2C4</span></div>
+        <div class="swatch" style="background:#c1592f"><span class="label" style="color:#fff">#C1592F</span></div>
+        <div class="swatch" style="background:#1b4965"><span class="label" style="color:#fff">#1B4965</span></div>
+        <div class="swatch" style="background:#2f5233"><span class="label" style="color:#fff">#2F5233</span></div>
+      </div>
+      <div class="type-demo" style="background:#fffaf3; color:#3a2a1c">
+        <p class="headline" style="font-family:Georgia,'Iowan Old Style',serif; font-weight:700">Vaš put do Krfa počinje ovde</p>
+        <p class="body" style="color:#7a6350">Topao serif naslov + čitljiv sans tekst — poziva na putovanje, ne na tabelu podataka.</p>
+      </div>
+      <div class="ui-demo" style="background:#f7ecd9">
+        <button class="btn-demo" style="background:#c1592f; color:#fff">Potvrdi rezervaciju</button>
+        <span class="pill" style="background:#dcebe0; color:#2f5233">NA VREME</span>
+        <span class="pill" style="background:#f7ddc9; color:#a8471f">NA ČEKANJU</span>
+      </div>
+      <div class="card-caption" style="color:#8a6f57">Rizik: serif naslovi mogu delovati manje "softverski" — treba pažljivo dozirati u gustim ekranima (tabele, forme).</div>
+    </div>
+
+    <!-- C — Premium minimal -->
+    <div class="card" style="background:#1c1a17">
+      <div class="card-head" style="color:#f3ede2">
+        <span class="letter" style="background:#b08d57; color:#1c1a17">C</span>
+        <h2>Diskretno premium</h2>
+        <p class="tagline" style="color:#a99d89">Butik agencija, ne masovan sajt — suzdržano, negovano, malo zlatnog akcenta.</p>
+      </div>
+      <div class="swatches">
+        <div class="swatch" style="background:#141210"><span class="label" style="color:#8a8175">#141210</span></div>
+        <div class="swatch" style="background:#2a2521"><span class="label" style="color:#a99d89">#2A2521</span></div>
+        <div class="swatch" style="background:#b08d57"><span class="label" style="color:#1c1a17">#B08D57</span></div>
+        <div class="swatch" style="background:#f3ede2"><span class="label" style="color:#4a443a">#F3EDE2</span></div>
+        <div class="swatch" style="background:#6b7a6f"><span class="label" style="color:#fff">#6B7A6F</span></div>
+      </div>
+      <div class="type-demo" style="background:#1c1a17; color:#f3ede2">
+        <p class="headline" style="font-family:Georgia,'Iowan Old Style',serif; font-weight:400; letter-spacing:.01em">Vaše putovanje, pažljivo sastavljeno</p>
+        <p class="body" style="color:#a99d89">Tanak, negovan serif + puno praznog prostora — deluje kao rukom pisano pismo, ne kao formular.</p>
+      </div>
+      <div class="ui-demo" style="background:#141210">
+        <button class="btn-demo" style="background:#b08d57; color:#1c1a17">Potvrdi rezervaciju</button>
+        <span class="pill" style="background:#20291f; color:#9fb3a4">NA VREME</span>
+        <span class="pill" style="background:#332a18; color:#d8b877">NA ČEKANJU</span>
+      </div>
+      <div class="card-caption" style="color:#a99d89">Rizik: gust operativni UI (tabele u M17) mora ostati čitljiv i funkcionalan — "prefinjeno" ne sme usporiti svakodnevni rad tima.</div>
+    </div>
+
+    <!-- D — Fresh modern -->
+    <div class="card" style="background:#ffffff">
+      <div class="card-head" style="color:#14181f">
+        <span class="letter" style="background:#ff6b5b; color:#2b0e08">D</span>
+        <h2>Svež i pristupačan</h2>
+        <p class="tagline" style="color:#5c6472">Kao moderna potrošačka app — svetlo, energično, zaobljeno, direktno.</p>
+      </div>
+      <div class="swatches">
+        <div class="swatch" style="background:#ffffff; border-bottom:1px solid #eee"><span class="label" style="color:#8a92a0">#FFFFFF</span></div>
+        <div class="swatch" style="background:#f4f6fb"><span class="label" style="color:#5c6472">#F4F6FB</span></div>
+        <div class="swatch" style="background:#ff6b5b"><span class="label" style="color:#2b0e08">#FF6B5B</span></div>
+        <div class="swatch" style="background:#00b3a4"><span class="label" style="color:#fff">#00B3A4</span></div>
+        <div class="swatch" style="background:#2b2f3a"><span class="label" style="color:#fff">#2B2F3A</span></div>
+      </div>
+      <div class="type-demo" style="background:#ffffff; color:#14181f">
+        <p class="headline" style="font-family:ui-rounded,ui-sans-serif,'Segoe UI',sans-serif; font-weight:800">Spremni za sledeći let?</p>
+        <p class="body" style="color:#5c6472">Zaobljena, prijateljska tipografija i pun jedan živ akcent — deluje mlado, brzo, jednostavno za korišćenje.</p>
+      </div>
+      <div class="ui-demo" style="background:#f4f6fb">
+        <button class="btn-demo" style="background:#ff6b5b; color:#2b0e08; border-radius:999px">Potvrdi rezervaciju</button>
+        <span class="pill" style="background:#d9f5f0; color:#007367">NA VREME</span>
+        <span class="pill" style="background:#ffe4de; color:#b3392a">NA ČEKANJU</span>
+      </div>
+      <div class="card-caption" style="color:#5c6472">Rizik: najsličniji generičkim "startup" aplikacijama — manje se izdvaja od konkurencije ako svi biraju isti stil.</div>
+    </div>
+
+    <!-- E — Terminal at golden hour: sky, sun, sea, luxury -->
+    <div class="card featured" style="background:#0a1c30">
+      <div class="inner-split">
+        <div>
+          <div class="card-head" style="background:linear-gradient(150deg,#0a1c30 0%,#164066 45%,#3a6f8f 72%,#d9a24c 100%); padding-bottom:34px">
+            <span class="letter" style="background:#f0c880; color:#2a1c04">E</span>
+            <h2 style="color:#fbf4e4">Terminal u zlatni sat</h2>
+            <p class="tagline" style="color:#d8e3ee">Nebo koje prelazi u sunčev zalazak nad morem — terminal kao prag luksuznog putovanja, ne kancelarijski alat.</p>
+          </div>
+          <div class="type-demo" style="background:#0a1c30; color:#fbf4e4; border-top:1px solid rgba(255,255,255,.08)">
+            <p class="headline" style="font-family:Georgia,'Iowan Old Style',serif; font-weight:400; letter-spacing:.005em">Poslednji poziv za ukrcavanje u san</p>
+            <p class="body" style="color:#c3d2df">Tanak serif naslov nad tamnim nebom + jasan grotesk za sve podatke — poetično na naslovnim ekranima, precizno u tabelama i formama.</p>
+          </div>
+        </div>
+        <div>
+          <div class="swatches" style="height:100%; flex-direction:column">
+            <div class="swatch" style="background:#0a1c30; flex:1"><span class="label" style="color:#8fa4b8">#0A1C30 · noćno nebo</span></div>
+            <div class="swatch" style="background:#3a6f8f; flex:1"><span class="label" style="color:#e8eef2">#3A6F8F · dnevno nebo</span></div>
+            <div class="swatch" style="background:#d9a24c; flex:1"><span class="label" style="color:#2a1c04">#D9A24C · sunce</span></div>
+            <div class="swatch" style="background:#1f9d8f; flex:1"><span class="label" style="color:#032722">#1F9D8F · more</span></div>
+            <div class="swatch" style="background:#fbf4e4; flex:1"><span class="label" style="color:#5c4a2a">#FBF4E4 · slonovača</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="ui-demo" style="background:#0e2438">
+        <button class="btn-demo" style="background:linear-gradient(120deg,#f0c880,#d9a24c); color:#2a1c04">Potvrdi rezervaciju</button>
+        <span class="pill" style="background:#0f3d38; color:#5fd6c4">NA VREME</span>
+        <span class="pill" style="background:#3a2b0e; color:#f0c880">NA ČEKANJU</span>
+        <span class="pill" style="background:#173352; color:#9fc4e0">U LETU</span>
+      </div>
+      <div class="card-caption" style="color:#8fa4b8">Kombinuje A (terminal/tehničnost) i B (toplina destinacije), podignuto u premium ton kao C — najviše "vizuelnog rizika" ali i najviše ličnosti; gradijent nebo→sunce koristi se retko i namerno (naslovni ekrani, potvrde), ne na svakoj tabeli, da ne umori oko.</div>
+    </div>
+
+  </div>
+
+  <footer>
+    Svaka od ove četiri opcije je samo polazna tačka — možemo i kombinovati (npr. paleta iz B, ali tipografija iz D), ili tražiti peti pravac ako nijedna ne pogađa ono što zamišljate. Recite mi koja vam najviše leži, ili šta konkretno menjamo, pa to pretvaram u pravi referentni dokument sistema dizajna koji koristi svaki budući prototip.
+  </footer>
+</div>
