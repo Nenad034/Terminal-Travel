@@ -1,0 +1,700 @@
+<title>Terminal — Kontrolna tabla izgradnje</title>
+<style>
+:root{
+  --bg:#f5f7fa; --panel:#ffffff; --panel-2:#eef1f5; --border:#dbe1e8;
+  --text:#1a2230; --text-dim:#5b6675; --text-faint:#8b96a5;
+  --accent:#c97a12; --accent-strong:#a3620d; --accent-soft:#fbead2;
+  --done:#1f9d67; --done-soft:#e3f6ec;
+  --wip:#c97a12; --wip-soft:#fbead2;
+  --todo:#8b96a5; --todo-soft:#eef1f5;
+  --shadow:0 1px 2px rgba(20,30,45,.06), 0 8px 24px -12px rgba(20,30,45,.12);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a0e14; --panel:#111826; --panel-2:#161f30; --border:#263144;
+    --text:#e8ecf3; --text-dim:#9aa7ba; --text-faint:#65728a;
+    --accent:#f2a93c; --accent-strong:#ffc266; --accent-soft:#2e2210;
+    --done:#3ecf8e; --done-soft:#0f2b21;
+    --wip:#f2a93c; --wip-soft:#2e2210;
+    --todo:#65728a; --todo-soft:#1a2233;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0e14; --panel:#111826; --panel-2:#161f30; --border:#263144;
+  --text:#e8ecf3; --text-dim:#9aa7ba; --text-faint:#65728a;
+  --accent:#f2a93c; --accent-strong:#ffc266; --accent-soft:#2e2210;
+  --done:#3ecf8e; --done-soft:#0f2b21;
+  --wip:#f2a93c; --wip-soft:#2e2210;
+  --todo:#65728a; --todo-soft:#1a2233;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 12px 32px -14px rgba(0,0,0,.55);
+}
+:root[data-theme="light"]{
+  --bg:#f5f7fa; --panel:#ffffff; --panel-2:#eef1f5; --border:#dbe1e8;
+  --text:#1a2230; --text-dim:#5b6675; --text-faint:#8b96a5;
+  --accent:#c97a12; --accent-strong:#a3620d; --accent-soft:#fbead2;
+  --done:#1f9d67; --done-soft:#e3f6ec;
+  --wip:#c97a12; --wip-soft:#fbead2;
+  --todo:#8b96a5; --todo-soft:#eef1f5;
+  --shadow:0 1px 2px rgba(20,30,45,.06), 0 8px 24px -12px rgba(20,30,45,.12);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:ui-sans-serif,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+code{
+  font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Menlo,Consolas,monospace;
+  font-size:.92em; background:var(--panel-2); border:1px solid var(--border);
+  border-radius:4px; padding:.05em .35em; color:var(--text);
+}
+a{color:var(--accent-strong)}
+.tabular{font-variant-numeric:tabular-nums; font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace}
+
+/* suite nav */
+.suite-nav{
+  display:flex; gap:8px; flex-wrap:wrap; padding:10px 20px;
+  background:var(--panel-2); border-bottom:1px solid var(--border);
+  font-size:.82rem;
+}
+.suite-nav a{
+  display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+  color:var(--text-dim); padding:4px 10px; border-radius:999px; border:1px solid transparent;
+}
+.suite-nav a:hover{border-color:var(--border); color:var(--text)}
+.suite-nav a.current{color:var(--accent-strong); font-weight:700; background:var(--accent-soft)}
+
+/* header/dashboard */
+header.top{
+  padding:28px 20px 8px; max-width:1100px; margin:0 auto;
+}
+.eyebrow{
+  text-transform:uppercase; letter-spacing:.12em; font-size:.72rem; font-weight:800;
+  color:var(--accent-strong);
+}
+h1{
+  margin:6px 0 4px; font-size:clamp(1.5rem,3vw,2.1rem); font-weight:800; letter-spacing:-.01em;
+  text-wrap:balance;
+}
+.sub{color:var(--text-dim); font-size:.95rem; max-width:66ch; line-height:1.5; margin:0 0 18px}
+
+.dashboard{
+  max-width:1100px; margin:0 auto; padding:0 20px 18px;
+  display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center;
+}
+.ring-wrap{display:flex; align-items:center; gap:16px}
+.ring{position:relative; width:104px; height:104px; flex:0 0 auto}
+.ring svg{transform:rotate(-90deg); width:100%; height:100%}
+.ring .pct{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:1.35rem; font-weight:800; font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+.ring-label{font-size:.8rem; color:var(--text-dim); max-width:20ch; line-height:1.4}
+.ring-label b{color:var(--text); display:block; font-size:1rem}
+
+.stat-chips{display:flex; gap:10px; flex-wrap:wrap}
+.chip{
+  display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px;
+  background:var(--panel); border:1px solid var(--border); font-size:.85rem; box-shadow:var(--shadow);
+}
+.chip .n{font-weight:800; font-size:1.05rem; font-family:ui-monospace,Menlo,Consolas,monospace}
+.dot{width:9px; height:9px; border-radius:50%; flex:0 0 auto}
+.dot.todo{background:var(--todo)} .dot.wip{background:var(--wip)} .dot.done{background:var(--done)}
+
+.controls{
+  max-width:1100px; margin:0 auto; padding:0 20px 18px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+}
+.search{
+  flex:1 1 240px; display:flex; align-items:center; gap:8px; background:var(--panel);
+  border:1px solid var(--border); border-radius:10px; padding:9px 12px; box-shadow:var(--shadow);
+}
+.search input{
+  border:0; background:transparent; outline:0; color:var(--text); font-size:.9rem; width:100%;
+}
+.search svg{flex:0 0 auto; color:var(--text-faint)}
+.btn{
+  border:1px solid var(--border); background:var(--panel); color:var(--text); border-radius:10px;
+  padding:9px 14px; font-size:.85rem; font-weight:600; cursor:pointer; box-shadow:var(--shadow);
+}
+.btn:hover{border-color:var(--accent)}
+.btn.toggle-on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-strong)}
+.btn.danger:hover{border-color:#d9534f; color:#d9534f}
+
+/* phase quick nav */
+.phase-strip{
+  max-width:1100px; margin:0 auto; padding:0 20px 22px; display:flex; gap:8px; flex-wrap:wrap;
+}
+.phase-pill{
+  display:flex; flex-direction:column; gap:4px; padding:7px 12px; border-radius:10px;
+  background:var(--panel); border:1px solid var(--border); text-decoration:none; color:var(--text);
+  font-size:.72rem; min-width:64px; cursor:pointer;
+}
+.phase-pill b{font-size:.8rem; font-family:ui-monospace,Menlo,Consolas,monospace}
+.phase-pill .bar{height:4px; border-radius:2px; background:var(--panel-2); overflow:hidden}
+.phase-pill .bar i{display:block; height:100%; background:var(--done)}
+.phase-pill.cross{border-style:dashed}
+
+main{max-width:1100px; margin:0 auto; padding:0 20px 60px}
+
+/* phase section */
+.phase{margin-bottom:34px; scroll-margin-top:14px}
+.phase-head{
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; padding-bottom:8px;
+  border-bottom:2px solid var(--border); margin-bottom:14px; cursor:pointer; user-select:none;
+}
+.phase-head .code{
+  font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800; font-size:1.05rem;
+  color:var(--accent-strong); background:var(--accent-soft); padding:3px 10px; border-radius:8px;
+}
+.phase-head h2{font-size:1.15rem; margin:0; flex:1 1 auto; min-width:200px}
+.phase-head .exit{
+  flex-basis:100%; font-size:.85rem; color:var(--text-dim); font-weight:400; line-height:1.5; margin-top:2px;
+}
+.phase-progress{display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--text-dim)}
+.phase-progress .bar{width:110px; height:6px; border-radius:3px; background:var(--panel-2); overflow:hidden}
+.phase-progress .bar i{display:block; height:100%; background:var(--done)}
+.chev{transition:transform .15s ease; color:var(--text-faint)}
+.phase.collapsed .chev{transform:rotate(-90deg)}
+.phase.collapsed .modules{display:none}
+
+/* module card */
+.modules{display:flex; flex-direction:column; gap:14px}
+.module{
+  background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.module-head{
+  display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; flex-wrap:wrap;
+}
+.module-head .mcode{
+  font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:800; color:var(--accent-strong);
+  background:var(--accent-soft); border-radius:8px; padding:3px 9px; font-size:.85rem; flex:0 0 auto;
+}
+.module-title{font-weight:700; font-size:.98rem}
+.module-purpose{color:var(--text-dim); font-size:.82rem; flex-basis:100%; line-height:1.45}
+.deps{display:flex; gap:5px; flex-wrap:wrap; flex-basis:100%; margin-top:2px}
+.dep-chip{
+  font-size:.7rem; color:var(--text-faint); background:var(--panel-2); border:1px solid var(--border);
+  border-radius:999px; padding:1px 8px;
+}
+.module-meta{margin-left:auto; display:flex; align-items:center; gap:10px}
+.mini-bar{width:64px; height:5px; border-radius:3px; background:var(--panel-2); overflow:hidden}
+.mini-bar i{display:block; height:100%; background:var(--done)}
+.mini-count{font-size:.72rem; color:var(--text-dim); font-family:ui-monospace,Menlo,Consolas,monospace}
+
+.items{border-top:1px solid var(--border)}
+.module.collapsed .items{display:none}
+.module.collapsed .chev{transform:rotate(-90deg)}
+.item{
+  display:flex; gap:10px; align-items:flex-start; padding:10px 16px; border-bottom:1px solid var(--border);
+  font-size:.87rem; line-height:1.5;
+}
+.item:last-child{border-bottom:0}
+.item:hover{background:var(--panel-2)}
+.item.hidden{display:none}
+.state-btn{
+  flex:0 0 auto; width:20px; height:20px; border-radius:6px; border:2px solid var(--todo);
+  background:transparent; cursor:pointer; margin-top:1px; position:relative;
+}
+.state-btn[data-state="1"]{border-color:var(--wip); background:linear-gradient(135deg, var(--wip-soft) 50%, transparent 50%)}
+.state-btn[data-state="2"]{border-color:var(--done); background:var(--done)}
+.state-btn[data-state="2"]::after{
+  content:""; position:absolute; left:4px; top:0px; width:5px; height:9px;
+  border:solid white; border-width:0 2px 2px 0; transform:rotate(45deg);
+}
+.item-text{flex:1 1 auto; cursor:pointer}
+.item.state-2 .item-text{color:var(--text-dim); text-decoration:line-through; text-decoration-color:var(--done); text-decoration-thickness:1.5px}
+.item-mark{
+  font-size:.7rem; padding:1px 7px; border-radius:999px; font-weight:700; white-space:nowrap; flex:0 0 auto;
+}
+.item.state-0 .item-mark{background:var(--todo-soft); color:var(--todo)}
+.item.state-1 .item-mark{background:var(--wip-soft); color:var(--wip)}
+.item.state-2 .item-mark{background:var(--done-soft); color:var(--done)}
+
+footer{
+  max-width:1100px; margin:0 auto; padding:20px 20px 60px; color:var(--text-faint); font-size:.78rem;
+  border-top:1px solid var(--border); line-height:1.6;
+}
+footer .btn{margin-top:10px}
+.empty-msg{color:var(--text-faint); font-size:.85rem; padding:20px; text-align:center; display:none}
+</style>
+
+<nav class="suite-nav">
+  <a href="https://claude.ai/code/artifact/5a986131-4564-4683-8c6d-119556fceebb">📄 Pregled dokumentacije</a>
+  <a href="https://claude.ai/code/artifact/8f7a5ec5-951c-4647-8d6f-734a2d757732">🗺️ Mapa modula</a>
+  <a class="current">✅ Kontrolna tabla izgradnje</a>
+</nav>
+
+<header class="top">
+  <div class="eyebrow">Terminal — interna kontrolna tabla</div>
+  <h1>Dokle smo stigli, po fazama i modulima</h1>
+  <p class="sub">Svaka stavka je preuzeta doslovno iz „Izlazni kriterijum" sekcije odgovarajuće Nivo 2 specifikacije. Kliknite na kružić da promenite stanje — pamti se u ovom browseru.</p>
+</header>
+
+<div class="dashboard">
+  <div class="ring-wrap">
+    <div class="ring">
+      <svg viewBox="0 0 104 104">
+        <circle cx="52" cy="52" r="45" fill="none" stroke="var(--panel-2)" stroke-width="10"/>
+        <circle id="ringFg" cx="52" cy="52" r="45" fill="none" stroke="var(--done)" stroke-width="10" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283"/>
+      </svg>
+      <div class="pct" id="ringPct">0%</div>
+    </div>
+    <div class="ring-label"><b id="ringTotal">0 / 0</b>stavki završeno, ukupno kroz sve faze</div>
+  </div>
+  <div class="stat-chips">
+    <div class="chip"><span class="dot todo"></span>Nije početo: <span class="n" id="cntTodo">0</span></div>
+    <div class="chip"><span class="dot wip"></span>U izradi: <span class="n" id="cntWip">0</span></div>
+    <div class="chip"><span class="dot done"></span>Završeno: <span class="n" id="cntDone">0</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <label class="search">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    <input id="searchBox" type="text" placeholder="Pretraži stavke, module, faze…">
+  </label>
+  <button class="btn" id="btnOnlyOpen">Prikaži samo nezavršeno</button>
+  <button class="btn" id="btnExpandAll">Raširi sve</button>
+  <button class="btn" id="btnCollapseAll">Skupi sve</button>
+  <button class="btn danger" id="btnReset">Resetuj sve</button>
+</div>
+
+<div class="phase-strip" id="phaseStrip"></div>
+
+<main id="main"></main>
+
+<div class="empty-msg" id="emptyMsg">Nema stavki koje odgovaraju pretrazi/filteru.</div>
+
+<footer>
+  Stanje checkliste (nije početo / u izradi / završeno) čuva se isključivo lokalno u ovom browseru (localStorage) — ne šalje se nikuda, nije deljeno sa drugim uređajima. Ako otvorite stranicu na drugom računaru ili u drugom browseru, krenućete od praznog stanja.<br>
+  Izvor svake stavke: „Izlazni kriterijum" sekcija odgovarajuće specifikacije (`0X-SPECIFIKACIJA-MY-*.md`) i poglavlja 8/9 `00-MASTER-ARHITEKTURA.md`. Ako se specifikacija izmeni, ova lista se ručno ažurira da ostane usklađena.
+  <div><button class="btn" id="btnResetFooter">Resetuj celokupan napredak</button></div>
+</footer>
+
+<script>
+// ---------- Podaci: faze → moduli → stavke Izlaznog kriterijuma ----------
+const DATA = [
+{id:'f0', code:'Faza 0', title:'Temelj', exit:'Prazna ali funkcionalna platforma: prijava, uloge, audit log rade; infrastruktura se diže iz koda.', modules:[
+  {code:'M1', title:'Core / Identitet', purpose:'Autentikacija, uloge, dozvole (RBAC) i audit log — temelj svih ostalih modula.', deps:'—', items:[
+    'Korisnik se može prijaviti email-om i lozinkom; interne uloge ne mogu proći bez uspešno podešene 2FA.',
+    'Svih sedam osnovnih uloga postoje u bazi kao sistemske (`is_system_role = true`) sa razumnim podrazumevanim dozvolama.',
+    'Moguće je dodeliti i ukloniti pojedinačni izuzetak (`UserPermissionOverride`) korisniku, sa obaveznim razlogom, i taj izuzetak odmah utiče na sledeći zahtev tog korisnika.',
+    'Svaka izmena korisnika, uloge ili dozvole ostavlja zapis u `AuditLogEntry`; tabela je fizički zaštićena od izmene/brisanja.',
+    'Zaključavanje naloga posle neuspešnih pokušaja radi i beleži se.',
+    'Infrastruktura (baza, backend) se diže iz IaC koda, ne ručnim koracima.',
+  ]},
+]},
+{id:'f1', code:'Faza 1', title:'Jezgro prodaje', exit:'Tim može ručno, kroz interni panel, da pretraži, rezerviše i upravlja rezervacijom hotela — i iz sopstvenih ugovora i preko Travelgate-a.', modules:[
+  {code:'M2', title:'Katalog proizvoda', purpose:'Centralni katalog proizvoda (smeštaj, paketi, izleti…) sa prevodima na 8 jezika — nikad ne čuva cenu.', deps:'M1', items:[
+    'Moguće je ručno kreirati CONTRACTED proizvod sa prevodima na srpski i engleski (minimum), objaviti ga i videti ga kroz `/products` filtriran po kanalu.',
+    'Pretraga destinacije kroz M4 (kad taj modul bude spreman) automatski kreira `CACHED` zapis u M2 sa statičnim sadržajem, bez cene.',
+    'Mesečni AI ciklus provere sadržaja radi na test skupu proizvoda i ostavlja trag u audit logu (M1) za svaku promenu koju nađe.',
+    'Fallback jezika radi ispravno (traženi jezik → engleski → srpski).',
+    'Nijedan proizvod nema cenu upisanu kao trajno polje — cena se uvek dobija iz M3/M4 u trenutku upita.',
+  ]},
+  {code:'M3', title:'Ugovaranje / alotmani', purpose:'Dobavljači, ugovori, sezone/periodi, cenovnici i pravila otkazivanja — izvor sopstveno ugovorenih cena i kapaciteta.', deps:'M1, M2', items:[
+    'Moguće je kreirati dobavljača, ugovor u proizvoljnoj valuti (EUR/RSD), i period sa `FIXED` alotmanom, cenama i pravilima otkazivanja.',
+    'Moguće je kreirati period sa `ON_REQUEST` modom, bez kapaciteta.',
+    'Moguće je kreirati period sa `CHARTER` ili `FIXED_LEASE` modom, sa `ukupna_fiksna_obaveza` (i `payment_schedule` za `FIXED_LEASE`), bez `release_days_before`.',
+    'Dospela rata iz `FIXED_LEASE.payment_schedule` ispravno generiše zapis u M10 `SupplierObligation`.',
+    'Konkurentni pokušaji rezervacije (dva simultana zahteva za poslednju jedinicu) — tačno jedan uspeva, kapacitet se nikad ne pređe.',
+    '`/contracts/expiring-releases` tačno prijavljuje periode kojima se bliži rok povrata sa neprodatim kapacitetom.',
+    'M2 proizvod ispravno referencira `Contract` preko `source_contract_id`, bez duplirane cene.',
+    'Upload testnog cenovnika (PDF i Excel) rezultuje ekstraktovanim redovima sa `match_confidence` za svaki red.',
+    'Odobravanje reda cenovnika kreira ispravan `ContractPeriod`/`RateLine` zapis tek posle ljudske potvrde — nijedan red se ne upisuje automatski.',
+    'Nijedno novčano polje nije tipa `decimal`/float — sva su `integer` u najmanjoj jedinici valute.',
+    'Pokušaj kreiranja perioda koji se datumski preklapa sa postojećim (isti ugovor/tip sobe) se odbija; susedni periodi se prihvataju.',
+    'Rezervacija koja preostali kapacitet svede na 1–2 jedinice generiše `HealthSignal` tačne ozbiljnosti; preostalo > 2 ne generiše signal.',
+  ]},
+  {code:'M4', title:'Integracije / API', purpose:'Konekcija ka spoljnim dobavljačima (Travelgate i dr.) uz normalizaciju, keširanje i circuit breaker zaštitu.', deps:'M1, M2', items:[
+    'Travelgate adapter implementiran, ispunjava `ProviderAdapter` interfejs u potpunosti.',
+    'Rezultati pretrage se ispravno normalizuju i M2 lenjo keširanje radi kraj-do-kraja.',
+    '`AvailabilityQuote` poštuje `quoteExpiresAt` — M5 odbija potvrdu sa isteklom ponudom i traži novu proveru.',
+    'Test simuliranog timeout-a pri `confirmBooking` sa ponovljenim pokušajem ne pravi duplu rezervaciju (idempotency key).',
+    'Simulirani pad Travelgate-a ne ruši pretragu — ostali izvori i dalje vraćaju rezultate, greška je zabeležena.',
+    'Kredencijali provajdera enkriptovani u bazi, nikad u čistom tekstu u logovima.',
+    'Provajder sa uzastopnim greškama prelazi u `OPEN` (circuit breaker) i M4 prestaje da ga zove do isteka cooldown-a, potom šalje probni poziv.',
+    'Svaki zapis u `ProviderCallLog` ima popunjen normalizovan `error_code` kad poziv ne uspe.',
+  ]},
+  {code:'M5', title:'Rezervacije', purpose:'Pretraga → ponuda → potvrda → upravljanje rezervacijom; motor marže i kalendar dolazaka/odlazaka.', deps:'M1, M2, M3, M4', items:[
+    'Tim može kroz interni panel da pretraži, dobije ponudu i potvrdi rezervaciju hotela — i iz M3 i preko M4.',
+    'Marža se ispravno primenjuje po hijerarhiji pravila, sa dokazivim izračunom (ista ulazna cena → ista izlazna cena).',
+    'Rezervacija sa više stavki gde jedna ne uspe ne ostavlja "napola" rezervaciju — sve već rezervisane stavke se oslobađaju.',
+    'Rezervacija može biti `CONFIRMED` sa `payment_status = UNPAID` ili `INVOICE_PENDING`, bez greške.',
+    'Vaučer se ne generiše dok `payment_status != PAID`; prelazak u `PAID` automatski generiše vaučer bez ručne akcije.',
+    '`voucher/override` generiše vaučer bez pune uplate samo za Vlasnika/Direktora, vidljivo u audit logu; odbijeno za sve ostale i za AI agenta.',
+    'Otkazivanje ispravno računa procenat povraćaja iz `CancellationRule` i oslobađa kapacitet nazad u M3.',
+    'Svaka promena statusa rezervacije vidljiva je u M1 audit logu.',
+    'Klikom na datum u kalendaru tim vidi stavke razvrstane u dolazi/odlazi/u toku/jednodnevno, bez duplog brojanja i bez otkazanih stavki.',
+    'Mesečni pregled kalendara prikazuje tačne brojeve po danu bez učitavanja pune liste stavki.',
+    'Nijedno novčano polje nije tipa `decimal`/float — sva su `integer` u najmanjoj jedinici valute.',
+    'Moguće je generisati nacrt operativne liste za dobavljača i ručno je poslati — poslata lista dobija status `SENT` sa zapisom ko/kada.',
+    'Izmena ili otkazivanje stavke već na poslatoj listi automatski priprema revidiran nacrt, nikad tiho ne menja poslat dokument.',
+    'Cena (nabavna, prodajna, marža) se nikad ne pojavljuje u dokumentu poslatom dobavljaču.',
+    'Operativna lista se može generisati na srpskom ili engleskom, jezik ostaje nepromenjen na već poslatoj listi i revizijama.',
+  ]},
+]},
+{id:'f2', code:'Faza 2', title:'Zakonska usklađenost', exit:'Svaka rezervacija iz Faze 1 može zakonito da se fakturiše, fiskalizuje, prijavi nadležnim sistemima i prati kroz zakonski obavezan ugovor sa gostom.', modules:[
+  {code:'M10', title:'Finansije', purpose:'Fakturisanje (SEF/ESIR), PDV po sistemu marže, kartično plaćanje, obaveze prema dobavljačima.', deps:'M1, M3, M5', items:[
+    'Za pravno lice kao nalogodavca sistem automatski bira `SEF_EFAKTURA`; za fizičko lice, `ESIR_RACUN`.',
+    'Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan izdavanja.',
+    '`vat_calculation_basis` se ispravno određuje iz `tip_nastupanja` (MARŽA za organizatora, PROVIZIJA za posrednika), PDV bez posebnog iskazivanja gostu kod organizatorskog aranžmana.',
+    'Pokušaj izmene `tip_nastupanja` posle kreiranja rezervacije se odbija.',
+    'Slanje (`SUBMIT`) je fizički nemoguće bez ljudskog naloga.',
+    'Svaki `SUBMIT` i `STORNO` upisan je u M1 audit log sa identitetom osobe koja je potvrdila.',
+    '`buyer_acceptance_deadline` se ispravno postavlja na 15 dana od slanja SEF fakture i prelazi u `EXPIRED` bez odgovora.',
+    'Prijem uplate ispravno ažurira `payment_status`; prelazak u `PAID` pokreće generisanje vaučera u M5.',
+    'Unos `CASH` uplate preko 3.000 EUR (ili RSD protivvrednosti) se odbija.',
+    'Nijedan broj kartice se nigde ne čuva — samo `gateway_transaction_id`/token.',
+    'Test: kartično plaćanje uspe, ali potvrda rezervacije ne uspe → `Payment` prelazi u `VOIDED`, novac se automatski vraća, nijedna rezervacija nije kreirana.',
+    'Ponovljen klik/mrežni prekid pri kartičnom plaćanju ne rezultuje duplom naplatom (idempotency key).',
+    '`SupplierObligation` ne može preći u `APPROVED` bez popunjenog `booking_item_id`.',
+    'Alarm 5 dana pre `due_date` neplaćene obaveze prema dobavljaču se ispravno generiše.',
+    '`exchange_rate_difference` se ispravno izračunava kad se kurs na dan fakture razlikuje od kursa na dan plaćanja.',
+    'Nijedno novčano polje nije tipa `decimal`/float; kursevi i procenti ostaju `decimal`.',
+    'Potvrđena rezervacija bez izdatog fiskalnog dokumenta se prepoznaje kroz `/reconciliation/mismatches` i generiše `HealthSignal`.',
+  ]},
+  {code:'M11', title:'Compliance', purpose:'eTurista/CIS prijava, boravišna taksa, garancija putovanja (YUTA), rokovi putnih isprava.', deps:'M1, M5', items:[
+    'eTurista prijava se automatski šalje na datum prijave gosta, bez ljudske intervencije; neuspeh odmah generiše vidljivo upozorenje.',
+    'Boravišna taksa se ispravno obračunava po opštini/kategoriji i pojavljuje kao stavka na fiskalnom dokumentu iz M10.',
+    'Mesečni izveštaj boravišne takse se pravilno generiše kao nacrt, rok do 5. u mesecu, zahteva ljudsku potvrdu pre slanja.',
+    'Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.',
+    'Alarm za rok putne isprave (< 6 meseci do polaska) se ispravno generiše, bez blokiranja rezervacije.',
+    'Provera iskorišćenosti garancije upozorava na 80% i blokira potvrdu nove ORGANIZATOR rezervacije koja bi prevazišla `coverage_amount`; POSREDNIK rezervacije nisu pogođene.',
+    'Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.',
+    'Svaka radnja koja zahteva ljudsku potvrdu upisana je u M1 audit log sa identitetom osobe.',
+  ]},
+  {code:'M20', title:'Ugovori sa klijentima', purpose:'Zakonski obavezan ugovor o putovanju — automatski generisan i prihvaćen pre nego što gost dobije vaučer.', deps:'M1, M2, M3, M5, M11', items:[
+    'Ugovor se automatski generiše čim rezervacija pređe u `CONFIRMED`, sa svim obaveznim elementima popunjenim isključivo iz postojećih podataka.',
+    '`contract_type` se ispravno bira iz `tip_nastupanja` i tipa proizvoda, bez ručnog izbora.',
+    'Elektronsko prihvatanje na sajtu (M8) ispravno beleži `accepted_at`/`accepted_method` pre finalne potvrde kartičnog plaćanja.',
+    'Vaučer za ORGANIZATOR rezervaciju se ne generiše dok `ClientContract` ne postoji bar u statusu `GENERATED`.',
+    'Svaki `VOID` upisan je u M1 audit log sa identitetom osobe (ili sistema, za automatsko poništavanje).',
+    'Izmena rezervacije automatski poništava stari ugovor i generiše novu verziju koja zahteva ponovno prihvatanje.',
+    'Otkazivanje rezervacije ne pokreće reviziju ugovora — originalni ugovor ostaje nepromenjen kao istorijski zapis.',
+    'Subagent na B2B portalu (M7) ispravno prihvata ugovor u ime sopstvenog naloga u trenutku potvrde rezervacije.',
+  ]},
+]},
+{id:'f3', code:'Faza 3', title:'Gost i kanal', exit:'Gost može samostalno da pretraži i rezerviše na sajtu; podaci se pune iz istog kataloga/rezervacionog sistema, ne ručno.', modules:[
+  {code:'M6', title:'CRM', purpose:'Nalog gosta, istorija putovanja, program lojalnosti, automatizovane poruke.', deps:'M1, M5', items:[
+    'Gost može samostalno da se registruje na sajtu (kad M8 bude gotov) i time se kreira `ClientAccount` + `GuestProfile`.',
+    'Lojalnost se automatski preračunava po potvrdi/otkazivanju rezervacije (prelazak praga tačno menja nivo).',
+    'Ručni override nivoa radi i ostaje trajno vidljiv u audit logu (razlog, ko je odobrio).',
+    'M5 tok cene ispravno primenjuje popust lojalnosti kao poslednji korak, posle marže.',
+    'Istorija putovanja se ispravno prikazuje bez ijednog duplog zapisa rezervacije u M6 bazi.',
+    'AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.',
+    'Rođendan/godišnjica/pred-put okidači ispravno generišu zapis na tačan datum, šalju se samo uz `marketing_consent = true`.',
+    '`ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na cenu ili lojalnost.',
+  ]},
+  {code:'M8', title:'Sajt agencije (B2C)', purpose:'Javni sajt na kom gost samostalno pretražuje i rezerviše, bez sopstvene baze.', deps:'M1, M2, M5, M6, M10, M20', items:[
+    'Gost može samostalno da pretraži i rezerviše na sajtu, uključujući kartično plaćanje, bez ručne intervencije tima.',
+    'Podaci se pune isključivo iz M2/M5/M6/M10 — nema lokalne baze proizvoda ili rezervacija u M8.',
+    'Svih 8 jezika radi sa ispravnim fallback-om i zasebnim SEO URL-ovima.',
+    '"Moje rezervacije" prikazuje tačnu, uživo dobijenu istoriju, bez duplog čuvanja podataka.',
+    'Neuspelo kartično plaćanje ili neuspela potvrda posle plaćanja ne ostavlja gosta bez jasne poruke i bez naplate bez rezervacije.',
+    'Stranice proizvoda i sajta emituju odgovarajući schema.org JSON-LD blok, proverljivo Google Rich Results alatom.',
+    'Gost ne može preći na korak Plaćanje bez potvrđenog polja "Prihvatam uslove ugovora"; pristanak je vidljivo povezan na `ClientContract.accepted_method`.',
+  ]},
+]},
+{id:'f4', code:'Faza 4', title:'B2B', exit:'Poslovni partneri imaju sopstveni pristup sa svojim cenovnicima i mogu da prodaju bez ručne intervencije agencije.', modules:[
+  {code:'M7', title:'B2B / Subagenti', purpose:'Portal za poslovne partnere sa hijerarhijskim proviziama i kreditnim limitima.', deps:'M1, M2, M5, M6', items:[
+    'Novi subagent se registruje, ostaje `PENDING_APPROVAL`, i ne može da naruči dok se ne odobri.',
+    'Tier 1 proviziju postavlja isključivo agencija; sub-subagent proviziju postavlja isključivo roditeljski subagent, ne sme preći roditeljsku.',
+    'Rezervacija koja bi prekoračila kreditni limit se odbija pre bilo kakve rezervacije kapaciteta.',
+    'Cena prikazana subagentu ispravno odražava njegovu proviziju, bez obzira na nivo u lancu.',
+    'Subagent ne može da vidi rezervacije ili goste svog sub-subagenta, samo osnovne podatke potrebne za upravljanje mrežom.',
+    'Kad subagent pređe postavljeni prag obima, efektivna provizija se automatski podigne i sledeća ponuda odražava novu cenu.',
+    'Ako roditeljev obimski bonus istekne i padne ispod već postavljene provizije deteta, sistem prijavljuje upozorenje, ne menja tiho odnos.',
+    'Prelazak retroaktivnog praga usred perioda kreira `CommissionRebate` u statusu DRAFT; rabat se ne primeni bez ljudskog odobrenja; nijedan poslat fiskalni dokument se ne dira.',
+  ]},
+]},
+{id:'f5', code:'Faza 5', title:'Merenje i podrška', exit:'Menadžment vidi profitabilnost po destinaciji/dobavljaču/kanalu; gosti i subagenti imaju gde da prijave problem.', modules:[
+  {code:'M13', title:'BI / izveštaji', purpose:'Izveštaji o profitabilnosti po destinaciji/dobavljaču/kanalu — izvedena projekcija, ne nov izvor istine.', deps:'svi moduli (read-only)', items:[
+    'Menadžment vidi profitabilnost po destinaciji, dobavljaču/provajderu i kanalu, sa tačnim `margin` izračunom.',
+    'Gubitak pojedinačnog događaja (simuliran) se ispravlja narednom noćnom rekonsilijacijom, bez ručne intervencije.',
+    'Svaki izveštaj prikazuje vreme poslednjeg osvežavanja podataka.',
+    'Brisanje cele M13 projekcije i njena rekonstrukcija iz izvornih modula daje identičan rezultat kao pre brisanja.',
+    'Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba za zadati period.',
+    'Isti izveštaj se ispravno razvrstava po tipu usluge, kategoriji i tipu smeštaja, uz jasnu naznaku nerazvrstanih stavki.',
+    'Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim iznosima na svakom nivou.',
+  ]},
+  {code:'M14', title:'Helpdesk', purpose:'Tiketing za goste i subagente, uključujući zakonski rok za reklamacije.', deps:'M1, M5, M6, M7', items:[
+    'Gost sa sajta (M8) i subagent sa B2B portala (M7) mogu da otvore tiket i vide status/odgovore.',
+    'Interne beleške nikad nisu vidljive van internog panela (M17).',
+    'AI-generisan nacrt koji pominje cenu/obavezu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.',
+    'Tiket vezan za rezervaciju prikazuje kontekst iz M5 bez dupliranja podataka.',
+    '`zzp_response_deadline` se automatski postavlja na 8 dana za REKLAMACIJA tikete; menadžment se obaveštava tačno posle 5 dana bez odgovora.',
+    'Rešavanje reklamacije uz povraćaj novca automatski priprema nacrt storno dokumenta u M10, slanje i dalje zahteva ljudsku potvrdu.',
+  ]},
+]},
+{id:'f6', code:'Faza 6', title:'Rast dosega', exit:'Proizvod objavljen jednom u katalogu automatski generiše predloge sadržaja za sve kanale; gosti imaju mobilnu aplikaciju; agencija je vidljiva i rezervabilna za eksterne AI agente.', modules:[
+  {code:'M12', title:'Marketing', purpose:'Automatsko generisanje sadržaja za kanale iz kataloga proizvoda.', deps:'M1, M2, M6', items:[
+    'Objava proizvoda u M2 automatski generiše nacrt sadržaja u M12, bez ljudske intervencije do koraka odobrenja.',
+    'Sadržaj se ne može objaviti bez `approved_by` popunjenog ljudskim nalogom.',
+    'Email kanal nikad ne šalje nalozima bez `marketing_consent = true`.',
+    'Zakazana objava odobrenog sadržaja radi automatski u planirano vreme.',
+  ]},
+  {code:'M9', title:'Mobilna aplikacija', purpose:'Aplikacija za goste i teren (vodiči), offline-first za rad bez signala.', deps:'M1, M2, M5, M6, M10, M20', items:[
+    'Vodič bez signala može da vidi itinerar, listu gostiju i vaučere preuzete pre gubitka signala.',
+    'Radnje urađene bez signala (check-in, beleška) se ispravno sinhronizuju čim se veza vrati, bez duplikata.',
+    '`URGENT` beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji.',
+    'Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture.',
+    'Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u aplikaciji.',
+  ]},
+  {code:'M16', title:'MCP distribucija', purpose:'Vidljivost i rezervabilnost agencije za eksterne AI agente (Google, ChatGPT i sl.).', deps:'M1, M2, M5', items:[
+    'Registrovan MCP klijent u `READ_ONLY` režimu može uspešno da izvrši pretragu i dobije iste rezultate kao M8.',
+    'Potvrda rezervacije sa nepotpunim podacima gosta se odbija sa jasnom porukom, isto kao na bilo kom drugom kanalu.',
+    'Prelazak klijenta iz `READ_ONLY` u `READ_WRITE` zahteva eksplicitno ljudsko odobrenje, upisano u audit log.',
+    'Kreditni limit i provera kapaciteta rade identično bez obzira da li rezervacija dolazi sa M8, M9, M7 ili M16.',
+  ]},
+]},
+{id:'f7', code:'Faza 7', title:'AI orkestracija u punom obimu', exit:'Glavni agent koordinira domenske agente u svakodnevnom radu, uz zadržana pravila autonomije i audit trag.', modules:[
+  {code:'M15', title:'AI orkestracija', purpose:'Glavni agent koordinira domenske AI agente uz stroga pravila autonomije.', deps:'svi moduli', items:[
+    'Nijedan modul ne dobija aktivnog domenskog agenta dok status aktivacije nije potvrđen — ta odluka je uvek ljudska.',
+    'Pokušaj AI agenta da izvrši `NEVER_AUTONOMOUS` akciju se odbija na nivou koda, čak i ako bi dozvola to teorijski dozvolila.',
+    'Agent Inbox ispravno prikazuje sve stavke na čekanju iz svih modula koji ih trenutno proizvode.',
+    'Svaka akcija bilo kog agenta vidljiva je u M1 audit logu sa `actor_type = AI_AGENT`.',
+    'Registar akcija (`AgentActionType`) sadrži sve akcije nabrojane u specifikaciji, sa tačnim nivoom autonomije.',
+  ]},
+]},
+{id:'f8', code:'Faza 8', title:'Očvršćavanje', exit:'Sistem prošao nezavisnu proveru pre nego što se smatra dugoročno stabilnim za skaliranje.', modules:[
+  {code:'—', title:'Bezbednosni i regulatorni baseline', purpose:'Nezavisan bezbednosni audit, penetraciono testiranje i DR/backup vežba nad celim sistemom (poglavlje 8 i 9 Master dokumenta).', deps:'ceo sistem', items:[
+    'Enkripcija podataka u mirovanju i u transportu potvrđena za sve module bez izuzetka.',
+    'RBAC po modulu i po ulozi, sa audit logom svake izmene osetljivih podataka, proveren nezavisnom revizijom.',
+    'Fizička lokacija podataka u EU potvrđena; ugovori o obradi podataka potpisani sa svakim spoljnim provajderom koji dolazi u dodir sa ličnim podacima.',
+    'Sproveden stvaran test oporavka iz backupa (DR vežba), ne samo konfigurisan backup.',
+    'Nezavisan bezbednosni audit i penetraciono testiranje sprovedeni, nalazi otklonjeni.',
+    'Revizija usklađenosti sa svim zakonskim rokovima (SEF, ESIR, eTurista, boravišna taksa, YUTA garancija) potvrđena pre proglašenja sistema stabilnim za skaliranje.',
+  ]},
+]},
+{id:'cross', code:'Poprečno', title:'Moduli koji rade kroz sve faze', exit:'Ne pripadaju jednoj fazi — rastu ili prate sve module istovremeno, od Faze 0 nadalje.', modules:[
+  {code:'M17', title:'Interni panel', purpose:'Radni alat tima — jedina površina za rad zaposlenih, raste sa svakom fazom.', deps:'M1 (+ API svakog prikazanog modula)', items:[
+    'Faza 0: tim se prijavljuje, vidi svoju ulogu, Vlasnik/Direktor vidi audit log.',
+    'Faza 1: tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5).',
+    'Faza 2: Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).',
+    'Svaka naredna faza (M6, M7, M13, M14, M12…) dodaje svoju sekciju bez izmene već postojećih.',
+  ]},
+  {code:'M18', title:'Operativni nadzor', purpose:'Nadzorni agent koji odmah javlja probleme i mesečno prati industrijske/proizvodne trendove.', deps:'M1, M15 (čita signale iz svih modula, read-only)', items:[
+    '`CRITICAL`/`WARNING` signal odmah generiše Telegram i email obaveštenje, bez čekanja na nedeljni ciklus.',
+    'Nedeljni pregled stanja se generiše i šalje svakog ponedeljka, čak i bez ijednog signala u periodu.',
+    'Predlog iz mesečnog pregleda trendova se ne unosi u Master dokument bez ljudskog odobrenja.',
+    'Nijedna čisto deterministička provera (rok, limit, datum) ne troši pozive jezičkom modelu.',
+    'Neuobičajen skok potrošnje tokena generiše sopstveni signal.',
+    'Akcija koja dotiče bezbednost/PII/prevaru koristi bar STANDARD, podrazumevano HEAVY nivo modela, bez obzira na tekstualnu složenost.',
+    'Provajder čiji uptime/broj grešaka pređe prag prelazi u UNSTABLE/OFFLINE i generiše signal.',
+    'Signal tipa AUTH_ANOMALY ima popunjenu bezbednosnu kategoriju.',
+    'Potrošnja tokena po AI provajderu generiše upozorenje na 80% kvote.',
+  ]},
+  {code:'M19', title:'Komunikaciona platforma', purpose:'Interni real-time tim-chat, plus kanal isporuke za postojeće poruke gostiju/subagenata i M18 upozorenja.', deps:'M1, M14, M17, M9, M18', items:[
+    'Dva zaposlena mogu razmeniti poruke u realnom vremenu, sa vidljivim online statusom i indikatorom kucanja.',
+    'Poruka poslata dok primalac nije povezan stiže odmah pri sledećem povezivanju, uz mobilnu push notifikaciju.',
+    'Ekran razgovora sa gostom/subagentom prikazuje M14 podatke kroz istu komponentu, bez ijednog dupliranog zapisa poruke.',
+    'M18 CRITICAL upozorenje stiže i kao IN_APP poruka, pored Telegram/email.',
+    'M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna aplikacija nije napravljena od nule.',
+  ]},
+]},
+];
+
+// ---------- Render ----------
+const STORE_KEY = 'tt-checklist-state-v1';
+let state = {};
+try{ state = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); }catch(e){ state = {}; }
+
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function mono(text){
+  return text.replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+function itemId(phaseId, moduleCode, idx){ return phaseId+'__'+moduleCode+'__'+idx; }
+
+const main = document.getElementById('main');
+const phaseStrip = document.getElementById('phaseStrip');
+const allItemEls = []; // {el, text, state:getter}
+
+DATA.forEach(phase => {
+  const sec = document.createElement('section');
+  sec.className = 'phase';
+  sec.id = phase.id;
+
+  const head = document.createElement('div');
+  head.className = 'phase-head';
+  head.innerHTML = `
+    <span class="code">${phase.code}</span>
+    <h2>${phase.title}</h2>
+    <div class="phase-progress"><div class="bar"><i style="width:0%"></i></div><span class="pct-label tabular">0%</span></div>
+    <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+    <div class="exit">${phase.exit}</div>
+  `;
+  head.addEventListener('click', (e)=>{ sec.classList.toggle('collapsed'); });
+  sec.appendChild(head);
+
+  const modsWrap = document.createElement('div');
+  modsWrap.className = 'modules';
+
+  phase.modules.forEach(mod => {
+    const card = document.createElement('div');
+    card.className = 'module';
+
+    const mhead = document.createElement('div');
+    mhead.className = 'module-head';
+    mhead.innerHTML = `
+      <span class="mcode">${mod.code}</span>
+      <span class="module-title">${mod.title}</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto"><path d="M6 9l6 6 6-6"/></svg>
+      <div class="module-purpose">${mod.purpose}</div>
+      <div class="deps">${('Zavisi od: '+mod.deps).split(', ').map((d,i)=> i===0? `<span class="dep-chip">${d}</span>` : `<span class="dep-chip">${d}</span>`).join('')}</div>
+      <div class="module-meta"><div class="mini-bar"><i style="width:0%"></i></div><span class="mini-count tabular">0/${mod.items.length}</span></div>
+    `;
+    mhead.addEventListener('click', (e)=>{
+      if(e.target.closest('.mini-bar')) return;
+      card.classList.toggle('collapsed');
+    });
+    card.appendChild(mhead);
+
+    const itemsWrap = document.createElement('div');
+    itemsWrap.className = 'items';
+
+    mod.items.forEach((text, idx) => {
+      const id = itemId(phase.id, mod.code, idx);
+      const row = document.createElement('div');
+      row.className = 'item state-'+(state[id]||0);
+      row.innerHTML = `
+        <button class="state-btn" data-state="${state[id]||0}" title="Klikni da promeniš stanje"></button>
+        <span class="item-text">${mono(text)}</span>
+        <span class="item-mark"></span>
+      `;
+      const markEl = row.querySelector('.item-mark');
+      const btn = row.querySelector('.state-btn');
+      function labelFor(s){ return s==2?'ZAVRŠENO': s==1?'U IZRADI':'NIJE POČETO'; }
+      markEl.textContent = labelFor(state[id]||0);
+
+      function cycle(){
+        const cur = state[id]||0;
+        const next = (cur+1)%3;
+        state[id] = next;
+        save();
+        row.className = 'item state-'+next;
+        btn.dataset.state = next;
+        markEl.textContent = labelFor(next);
+        recompute();
+      }
+      btn.addEventListener('click', cycle);
+      row.querySelector('.item-text').addEventListener('click', cycle);
+
+      itemsWrap.appendChild(row);
+      allItemEls.push({el: row, text: (mod.code+' '+mod.title+' '+phase.title+' '+text).toLowerCase(), id});
+    });
+
+    card.appendChild(itemsWrap);
+    modsWrap.appendChild(card);
+
+    card._modInfo = {barFill: mhead.querySelector('.mini-bar i'), count: mhead.querySelector('.mini-count'), total: mod.items.length, ids: mod.items.map((_,idx)=>itemId(phase.id, mod.code, idx))};
+  });
+
+  sec.appendChild(modsWrap);
+  main.appendChild(sec);
+
+  sec._phaseInfo = {barFill: head.querySelector('.phase-progress .bar i'), pctLabel: head.querySelector('.pct-label'), total: phase.modules.reduce((a,m)=>a+m.items.length,0)};
+
+  // strip pill
+  const pill = document.createElement('div');
+  pill.className = 'phase-pill'+(phase.id==='cross'?' cross':'');
+  pill.innerHTML = `<b>${phase.code}</b><span style="color:var(--text-faint)">${phase.title}</span><div class="bar"><i style="width:0%"></i></div>`;
+  pill.addEventListener('click', ()=>{ sec.classList.remove('collapsed'); sec.scrollIntoView({behavior:'smooth', block:'start'}); });
+  phaseStrip.appendChild(pill);
+  sec._pillBar = pill.querySelector('.bar i');
+});
+
+function recompute(){
+  let todo=0, wip=0, done=0;
+  document.querySelectorAll('.module').forEach(card=>{
+    const info = card._modInfo;
+    let d=0;
+    info.ids.forEach(id=>{
+      const s = state[id]||0;
+      if(s===0) todo++; else if(s===1){wip++; d+=0.5;} else {done++; d+=1;}
+    });
+    const pct = info.total? Math.round(d/info.total*100):0;
+    info.barFill.style.width = pct+'%';
+    const doneCount = info.ids.filter(id=>(state[id]||0)===2).length;
+    info.count.textContent = doneCount+'/'+info.total;
+  });
+  document.querySelectorAll('.phase').forEach(sec=>{
+    const info = sec._phaseInfo;
+    let d=0, tot=0;
+    sec.querySelectorAll('.module').forEach(card=>{
+      card._modInfo.ids.forEach(id=>{ tot++; const s=state[id]||0; if(s===1)d+=0.5; else if(s===2)d+=1; });
+    });
+    const pct = tot? Math.round(d/tot*100):0;
+    info.barFill.style.width = pct+'%';
+    info.pctLabel.textContent = pct+'%';
+    sec._pillBar.style.width = pct+'%';
+  });
+  const total = todo+wip+done;
+  document.getElementById('cntTodo').textContent = todo;
+  document.getElementById('cntWip').textContent = wip;
+  document.getElementById('cntDone').textContent = done;
+  const overallPct = total? Math.round((done + wip*0.5)/total*100):0;
+  document.getElementById('ringPct').textContent = overallPct+'%';
+  document.getElementById('ringTotal').textContent = done+' / '+total;
+  const circumference = 283;
+  document.getElementById('ringFg').style.strokeDashoffset = circumference - (circumference*overallPct/100);
+}
+recompute();
+
+// ---------- Search / filter ----------
+const searchBox = document.getElementById('searchBox');
+const btnOnlyOpen = document.getElementById('btnOnlyOpen');
+let onlyOpen = false;
+
+function applyFilter(){
+  const q = searchBox.value.trim().toLowerCase();
+  let anyVisible = false;
+  allItemEls.forEach(({el, text, id})=>{
+    const matchesText = !q || text.includes(q);
+    const matchesOpen = !onlyOpen || (state[id]||0) !== 2;
+    const visible = matchesText && matchesOpen;
+    el.classList.toggle('hidden', !visible);
+    if(visible) anyVisible = true;
+  });
+  document.querySelectorAll('.module').forEach(card=>{
+    const visibleItems = card.querySelectorAll('.item:not(.hidden)').length;
+    card.style.display = visibleItems===0 && (q||onlyOpen) ? 'none':'';
+  });
+  document.querySelectorAll('.phase').forEach(sec=>{
+    const visibleMods = Array.from(sec.querySelectorAll('.module')).filter(m=>m.style.display!=='none').length;
+    sec.style.display = visibleMods===0 && (q||onlyOpen) ? 'none':'';
+  });
+  document.getElementById('emptyMsg').style.display = anyVisible? 'none':'block';
+}
+searchBox.addEventListener('input', applyFilter);
+btnOnlyOpen.addEventListener('click', ()=>{
+  onlyOpen = !onlyOpen;
+  btnOnlyOpen.classList.toggle('toggle-on', onlyOpen);
+  applyFilter();
+});
+
+document.getElementById('btnExpandAll').addEventListener('click', ()=>{
+  document.querySelectorAll('.phase, .module').forEach(el=>el.classList.remove('collapsed'));
+});
+document.getElementById('btnCollapseAll').addEventListener('click', ()=>{
+  document.querySelectorAll('.module').forEach(el=>el.classList.add('collapsed'));
+});
+
+function resetAll(){
+  if(!confirm('Sigurno resetovati kompletan napredak? Ovo se ne može vratiti.')) return;
+  state = {};
+  save();
+  document.querySelectorAll('.item').forEach(row=>{
+    row.className = 'item state-0';
+    row.querySelector('.state-btn').dataset.state = 0;
+    row.querySelector('.item-mark').textContent = 'NIJE POČETO';
+  });
+  recompute();
+}
+document.getElementById('btnReset').addEventListener('click', resetAll);
+document.getElementById('btnResetFooter').addEventListener('click', resetAll);
+</script>
