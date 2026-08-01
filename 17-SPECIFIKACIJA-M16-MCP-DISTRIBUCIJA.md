@@ -1,9 +1,9 @@
 # Specifikacija modula M16 — Agentski distribucioni interfejs (MCP)
 
-**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 1.1 (strateški kontekst), poglavlje 4 (M16), poglavlje 8 (Faza 6) i Dodatak A (nalaz od 28.7.2026. o MCP reviziji)
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 1.1 (strateški kontekst), poglavlje 4 (M16), poglavlje 8 (Faza 6) i Dodatak A (nalaz od 28.7.2026. o MCP reviziji; nalaz od 1.8.2026. o Sabre Agentic APIs)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde tačan protokol treba potvrditi pred implementaciju
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka u poglavlje 10 (Otvoreno za dalje) o payload optimizaciji i akcionim porukama o greškama za MCP alate, po uzoru na Sabre Agentic APIs (Dodatak A, 1.8.2026)
 **Zavisi od:** M1, M2, M5
 
 ---
@@ -100,3 +100,4 @@ Sam MCP server (alati iz poglavlja 2) implementira se prema zvaničnoj MCP speci
 - Tačan MCP wire-protokol (transport, autentikacija na nivou protokola) — potvrditi naspram zvanične specifikacije neposredno pre implementacije (poglavlje 1.1).
 - Mehanizam agentskog plaćanja — proveriti tekuće stanje standarda kroz mesečni pregled trendova pre implementacije (poglavlje 5).
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom (ChatGPT, Google, Sabre/MindTrip) pre `READ_WRITE` odobrenja — pravno pitanje, van obima ove tehničke specifikacije.
+- **Oblik odgovora MCP alata (poglavlje 2)** — pri implementaciji razmotriti da odgovor bude pljosnatiji/manji od internog M8 odgovora (poseban serializer za MCP sloj, ne isti DTO), i da poruke o greškama (npr. odbijen `confirm_booking` iz poglavlja 4) budu pisane tako da spoljni agent može sam da ispravi poziv, ne samo šifra greške. Uzor: Sabre-ova javno opisana praksa za sopstvene "agentic-ready" API-je (Dodatak A, nalaz od 1.8.2026) — nije obavezujući standard, samo potvrđen primer dobre prakse iz istog domena.
