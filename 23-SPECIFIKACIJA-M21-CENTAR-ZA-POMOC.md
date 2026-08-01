@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M21), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1 (identitet, RBAC, audit log), M14 (eskalacija ka tiketu), M15 (AI agent okvir), M17 (kanal za tim), M7 (kanal za subagente)
 
 ---
@@ -153,6 +153,7 @@ Prefiks: `/api/v1/help`
 - [ ] Neuobičajen obrazac pitanja (učestalost ili sadržaj koji liči na pokušaj zaobilaženja ograde) generiše `HELP_AGENT_ABUSE_PATTERN` signal u M18.
 - [ ] Fallback jezika radi ispravno (traženi jezik → engleski → srpski), isto pravilo kao M2.
 - [ ] `is_critical_example` članci prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.
+- [ ] Centar za pomoć (unutar M17 i M7) ostaje potpuno upotrebljiv na telefonu i tabletu — nasleđuje responsive zahtev kanala u kom se prikazuje (Master dokument poglavlje 5.1), bez sopstvenog dodatnog UI sloja.
 
 ---
 

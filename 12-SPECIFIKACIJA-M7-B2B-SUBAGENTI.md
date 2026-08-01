@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1, M2, M5, M6
 
 ---
@@ -196,6 +196,7 @@ Prefiks: `/api/v1/b2b`
 - [ ] Kad subagent u posmatranom periodu pređe postavljeni prag obima, `effective_commission_percentage` se automatski podigne i sledeća ponuda odražava novu cenu — bez ljudske intervencije.
 - [ ] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje, ne menja tiho postojeći odnos.
 - [ ] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
+- [ ] Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
 
 ---
 

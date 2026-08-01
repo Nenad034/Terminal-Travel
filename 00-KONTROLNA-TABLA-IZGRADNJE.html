@@ -456,6 +456,7 @@ const DATA = [
     'Neuspelo kartično plaćanje ili neuspela potvrda posle plaćanja ne ostavlja gosta bez jasne poruke i bez naplate bez rezervacije.',
     'Stranice proizvoda i sajta emituju odgovarajući schema.org JSON-LD blok, proverljivo Google Rich Results alatom.',
     'Gost ne može preći na korak Plaćanje bez potvrđenog polja "Prihvatam uslove ugovora"; pristanak je vidljivo povezan na `ClientContract.accepted_method`.',
+    'Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina.',
   ]},
 ]},
 {id:'f4', code:'Faza 4', title:'B2B', exit:'Poslovni partneri imaju sopstveni pristup sa svojim cenovnicima i mogu da prodaju bez ručne intervencije agencije.', modules:[
@@ -468,6 +469,7 @@ const DATA = [
     'Kad subagent pređe postavljeni prag obima, efektivna provizija se automatski podigne i sledeća ponuda odražava novu cenu.',
     'Ako roditeljev obimski bonus istekne i padne ispod već postavljene provizije deteta, sistem prijavljuje upozorenje, ne menja tiho odnos.',
     'Prelazak retroaktivnog praga usred perioda kreira `CommissionRebate` u statusu DRAFT; rabat se ne primeni bez ljudskog odobrenja; nijedan poslat fiskalni dokument se ne dira.',
+    'Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez desktop računara.',
   ]},
 ]},
 {id:'f5', code:'Faza 5', title:'Merenje i podrška', exit:'Menadžment vidi profitabilnost po destinaciji/dobavljaču/kanalu; gosti i subagenti imaju gde da prijave problem.', modules:[
@@ -502,6 +504,7 @@ const DATA = [
     '`URGENT` beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji.',
     'Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture.',
     'Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u aplikaciji.',
+    'Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu.',
   ]},
   {code:'M16', title:'MCP distribucija', purpose:'Vidljivost i rezervabilnost agencije za eksterne AI agente (Google, ChatGPT i sl.).', deps:'M1, M2, M5', items:[
     'Registrovan MCP klijent u `READ_ONLY` režimu može uspešno da izvrši pretragu i dobije iste rezultate kao M8.',
@@ -535,6 +538,7 @@ const DATA = [
     'Faza 1: tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5).',
     'Faza 2: Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).',
     'Svaka naredna faza (M6, M7, M13, M14, M12…) dodaje svoju sekciju bez izmene već postojećih.',
+    'Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija).',
   ]},
   {code:'M18', title:'Operativni nadzor', purpose:'Nadzorni agent koji odmah javlja probleme i mesečno prati industrijske/proizvodne trendove.', deps:'M1, M15 (čita signale iz svih modula, read-only)', items:[
     '`CRITICAL`/`WARNING` signal odmah generiše Telegram i email obaveštenje, bez čekanja na nedeljni ciklus.',
@@ -563,6 +567,7 @@ const DATA = [
     'Neuobičajen obrazac pitanja (učestalost ili pokušaj zaobilaženja ograde) generiše bezbednosni signal u M18.',
     'Fallback jezika radi ispravno (traženi jezik → engleski → srpski).',
     'Kritični primeri (korak-po-korak scenariji) prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.',
+    'Centar za pomoć ostaje potpuno upotrebljiv na telefonu i tabletu unutar M17/M7, bez sopstvenog dodatnog UI sloja.',
   ]},
 ]},
 ];

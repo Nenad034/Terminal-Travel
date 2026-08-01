@@ -299,7 +299,7 @@ main{
 
 ## Terminal — jedinstvena poslovna platforma agencije Terminal Travel (TT), turoperatora sa licencom
 
-**Verzija:** 1.4 — dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
+**Verzija:** 1.5 — dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
 
 ---
 
@@ -452,6 +452,15 @@ Napomena: M15, M16, M17, M18, M19, M20 i M21 nisu greška u numeraciji — namer
         M15 AI orkestracija  |  M1 Identitet/Audit  |  M13 BI (read-only nad svim)
 
 Ključna posledica ove šeme: **sajt (M8) i mobilna aplikacija (M9) nikada ne pozivaju Travelgate ili SEF direktno.** Uvek idu kroz interni API modula M5/M2. Ovo je isti princip koji je predložen u Travelgate dokumentu (Integration Gateway), sada proširen na ceo sistem. **Isto pravilo važi i za M16**: eksterni AI agenti se ne puštaju direktno u M4 ili u bazu — prolaze kroz isti interni API kao svaki drugi kanal, čime poslovna pravila (cene, dostupnost, blokade) ostaju na jednom mestu bez obzira ko ih poziva — čovek na sajtu ili AI agent u ime gosta.
+
+### 5.1 Responsive dizajn — jedan kod, svaki ekran (potvrđeno, avgust 2026.)
+
+Svaki kanal iz šeme iznad (M8, M17, M7, i naknadno M21) mora dobro raditi na telefonu, preklopnom telefonu, tabletu i desktopu — **bez građenja posebne aplikacije za svaku grupu korisnika.**
+
+- **M9 ostaje namerno uzak po obimu** — isključivo gost i vodič na terenu, jer jedino oni imaju stvaran razlog za zaseban mobilni sloj (offline-first rad bez signala, poglavlje 4). Direktor, Vlasnik, tim i subagenti **ne dobijaju posebnu aplikaciju** — oni već imaju svoj alat (M17, M7) koji mora lepo raditi na telefonu/tabletu. Ovo direktno sprovodi princip #1 (jedan izvor istine) i već zapisano pravilo iz M19 specifikacije da se ne grade nove samostalne aplikacije za isti podatak.
+- **PWA (Progressive Web App)** — M17 i M7 se instaliraju sa ekrana telefona kao aplikacija (ikonica, pun ekran, rad offline za već učitane podatke), bez odvojenog koda od desktop verzije. M8 dobija isti tretman gde ima smisla (javni sajt, manje kritično da bude "instaliran").
+- **Fluidan raspored, ne fiksne prelomne tačke.** Layout se gradi na procentima/grid/flex jedinicama koje se prilagođavaju svakoj širini ekrana, ne na fiksnom skupu "desktop/tablet/mobilni" piksela. Ovo automatski dobro pokriva i preklopne telefone (Galaxy Fold i slični) tretirajući svaku širinu kao regularan slučaj, ne poseban. Poseban režim za fizički pregib ekrana (tzv. viewport-segments API, prikaz "dve strane" preklopnog ekrana odvojeno) namerno je van obima v1 — dodaje se tek ako se pokaže stvarna potreba.
+- **Deo Izlaznog kriterijuma svakog kanala**, ne naknadna provera — svaka Nivo 2 specifikacija kanala (M8, M9, M17, M7, M21 kad se doradi) navodi sopstvenu stavku provere prikaza na telefonu/tabletu pre nego što se taj kanal smatra gotovim.
 
 ---
 
@@ -868,7 +877,7 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1. Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20 do sad specificirani).
 
 ---
@@ -942,6 +951,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [ ] **Faza 1:** tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5) — ovo je doslovan izlazni kriterijum Faze 1 iz poglavlja 8 Master dokumenta.
 - [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
+- [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 
 ---
 
@@ -949,7 +959,6 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 
 - Ako se agregacija upozorenja (poglavlje 5) pokaže nedovoljnom kad broj modula poraste (posebno posle M12/M13/M14), razmotriti zaseban modul za notifikacije/podsetnike sa sopstvenim pravilima prioriteta — trenutno namerno nije uveden dok ne postoji stvarna potreba.
 - Tačan izgled/UX (raspored menija, boje, itd.) — dizajnersko pitanje van obima ove specifikacije.
-
 </script>
 <div class="rendered"></div>
 </section>
@@ -2687,7 +2696,7 @@ Prefiks: `/api/v1/crm`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M8), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.3 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja)
 
 ---
@@ -2791,6 +2800,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 - [ ] Neuspelo kartično plaćanje ili neuspela potvrda posle plaćanja ne ostavlja gosta bez jasne poruke i bez naplate bez rezervacije.
 - [ ] Stranice proizvoda i sajta emituju odgovarajući schema.org JSON-LD blok iz liste u poglavlju 5.1, proverljivo Google Rich Results test alatom.
 - [ ] Gost ne može preći na korak Plaćanje bez potvrđenog polja "Prihvatam uslove ugovora" (poglavlje 3, korak 4); ovaj pristanak je vidljivo povezan na `ClientContract.accepted_method = ELECTRONIC_CLICKWRAP` čim se ugovor generiše.
+- [ ] Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina (Master dokument poglavlje 5.1).
 
 ---
 
@@ -2813,7 +2823,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1, M2, M5, M6
 
 ---
@@ -3006,6 +3016,7 @@ Prefiks: `/api/v1/b2b`
 - [ ] Kad subagent u posmatranom periodu pređe postavljeni prag obima, `effective_commission_percentage` se automatski podigne i sledeća ponuda odražava novu cenu — bez ljudske intervencije.
 - [ ] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje, ne menja tiho postojeći odnos.
 - [ ] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
+- [ ] Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
 
 ---
 
@@ -3013,7 +3024,6 @@ Prefiks: `/api/v1/b2b`
 
 - Da li agencija treba mogućnost da direktno vidi/interveniše u proviziji sub-subagenta u izuzetnim slučajevima (spor između subagenata) — trenutno agencija ima samo uvid (`VIEW`), ne i izmenu tuđe kaskadne provizije; dodaje se kao pojedinačni izuzetak (M1 `UserPermissionOverride`) ako se pokaže potreba.
 - Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima (ako agencija treba da im isplaćuje/knjiži proviziju kao trošak, ne samo da im daje popust) — otvoreno, zavisi od toga da li se provizija realizuje kao popust na cenu (kako je ovde modelovano) ili kao zasebna isplata; trenutni model (popust na cenu) ne zahteva dodatno fakturisanje unazad.
-
 </script>
 <div class="rendered"></div>
 </section>
@@ -3455,7 +3465,7 @@ Prefiks: `/api/v1/marketing`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M9) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
+**Verzija:** 1.2 — dodata napomena o namerno uskom obimu (poglavlje 1) i stavka izlaznog kriterijuma za prikaz na tabletu/preklopnom telefonu (Master dokument poglavlje 5.1); v1.1 dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja) — isti tok kao M8, vidi poglavlje 2
 
 ---
@@ -3463,6 +3473,8 @@ Prefiks: `/api/v1/marketing`
 ## 1. Svrha i obim modula
 
 M9 ima **dva različita iskustva** u istoj React Native aplikaciji (deljen kod sa Next.js, poglavlje 6 Master dokumenta): aplikacija za **goste** (pregled/rezervacija/vaučeri) i aplikacija za **interni tim/vodiče na terenu** (offline-first, potvrđeno u poglavlju 4 Master dokumenta). Koja se verzija prikaže zavisi od uloge prijavljenog korisnika (M1).
+
+**Namerno uzak obim (potvrđeno, Master dokument poglavlje 5.1):** M9 pokriva isključivo gosta i vodiča — jedine dve uloge kojima je zaseban mobilni sloj stvarno potreban (vodič radi bez signala na terenu). Prodajni agent, Sales Manager, HR, Računovođa, Direktor i Vlasnik **ne dobijaju aplikaciju iz M9** — oni koriste M17 (interni panel) na telefonu/tabletu, koji za to mora biti responsive i instalabilan kao PWA. Subagenti isto koriste M7 portal na telefonu, ne M9. Ovo sprečava dupliranje istog podatka kroz dve aplikacije.
 
 ---
 
@@ -3564,6 +3576,7 @@ Prefiks: `/api/v1/mobile`
 - [ ] `URGENT` beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji.
 - [ ] Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture.
 - [ ] Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u mobilnoj aplikaciji.
+- [ ] Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu, fluidnim rasporedom (Master dokument poglavlje 5.1).
 
 ---
 
@@ -4212,7 +4225,7 @@ WebSocket: `/ws/chat` — događaji `message.new`, `presence.updated`, `typing.s
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M21), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1 (identitet, RBAC, audit log), M14 (eskalacija ka tiketu), M15 (AI agent okvir), M17 (kanal za tim), M7 (kanal za subagente)
 
 ---
@@ -4362,6 +4375,7 @@ Prefiks: `/api/v1/help`
 - [ ] Neuobičajen obrazac pitanja (učestalost ili sadržaj koji liči na pokušaj zaobilaženja ograde) generiše `HELP_AGENT_ABUSE_PATTERN` signal u M18.
 - [ ] Fallback jezika radi ispravno (traženi jezik → engleski → srpski), isto pravilo kao M2.
 - [ ] `is_critical_example` članci prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.
+- [ ] Centar za pomoć (unutar M17 i M7) ostaje potpuno upotrebljiv na telefonu i tabletu — nasleđuje responsive zahtev kanala u kom se prikazuje (Master dokument poglavlje 5.1), bez sopstvenog dodatnog UI sloja.
 
 ---
 

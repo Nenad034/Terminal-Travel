@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M8), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.3 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja)
 
 ---
@@ -107,6 +107,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 - [ ] Neuspelo kartično plaćanje ili neuspela potvrda posle plaćanja ne ostavlja gosta bez jasne poruke i bez naplate bez rezervacije.
 - [ ] Stranice proizvoda i sajta emituju odgovarajući schema.org JSON-LD blok iz liste u poglavlju 5.1, proverljivo Google Rich Results test alatom.
 - [ ] Gost ne može preći na korak Plaćanje bez potvrđenog polja "Prihvatam uslove ugovora" (poglavlje 3, korak 4); ovaj pristanak je vidljivo povezan na `ClientContract.accepted_method = ELECTRONIC_CLICKWRAP` čim se ugovor generiše.
+- [ ] Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina (Master dokument poglavlje 5.1).
 
 ---
 

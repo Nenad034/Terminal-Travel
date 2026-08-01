@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1. Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20 do sad specificirani).
 
 ---
@@ -77,6 +77,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [ ] **Faza 1:** tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5) — ovo je doslovan izlazni kriterijum Faze 1 iz poglavlja 8 Master dokumenta.
 - [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
+- [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 
 ---
 

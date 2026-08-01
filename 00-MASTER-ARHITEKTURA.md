@@ -2,7 +2,7 @@
 
 ## Terminal — jedinstvena poslovna platforma agencije Terminal Travel (TT), turoperatora sa licencom
 
-**Verzija:** 1.4 — dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
+**Verzija:** 1.5 — dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
 
 ---
 
@@ -155,6 +155,15 @@ Napomena: M15, M16, M17, M18, M19, M20 i M21 nisu greška u numeraciji — namer
         M15 AI orkestracija  |  M1 Identitet/Audit  |  M13 BI (read-only nad svim)
 
 Ključna posledica ove šeme: **sajt (M8) i mobilna aplikacija (M9) nikada ne pozivaju Travelgate ili SEF direktno.** Uvek idu kroz interni API modula M5/M2. Ovo je isti princip koji je predložen u Travelgate dokumentu (Integration Gateway), sada proširen na ceo sistem. **Isto pravilo važi i za M16**: eksterni AI agenti se ne puštaju direktno u M4 ili u bazu — prolaze kroz isti interni API kao svaki drugi kanal, čime poslovna pravila (cene, dostupnost, blokade) ostaju na jednom mestu bez obzira ko ih poziva — čovek na sajtu ili AI agent u ime gosta.
+
+### 5.1 Responsive dizajn — jedan kod, svaki ekran (potvrđeno, avgust 2026.)
+
+Svaki kanal iz šeme iznad (M8, M17, M7, i naknadno M21) mora dobro raditi na telefonu, preklopnom telefonu, tabletu i desktopu — **bez građenja posebne aplikacije za svaku grupu korisnika.**
+
+- **M9 ostaje namerno uzak po obimu** — isključivo gost i vodič na terenu, jer jedino oni imaju stvaran razlog za zaseban mobilni sloj (offline-first rad bez signala, poglavlje 4). Direktor, Vlasnik, tim i subagenti **ne dobijaju posebnu aplikaciju** — oni već imaju svoj alat (M17, M7) koji mora lepo raditi na telefonu/tabletu. Ovo direktno sprovodi princip #1 (jedan izvor istine) i već zapisano pravilo iz M19 specifikacije da se ne grade nove samostalne aplikacije za isti podatak.
+- **PWA (Progressive Web App)** — M17 i M7 se instaliraju sa ekrana telefona kao aplikacija (ikonica, pun ekran, rad offline za već učitane podatke), bez odvojenog koda od desktop verzije. M8 dobija isti tretman gde ima smisla (javni sajt, manje kritično da bude "instaliran").
+- **Fluidan raspored, ne fiksne prelomne tačke.** Layout se gradi na procentima/grid/flex jedinicama koje se prilagođavaju svakoj širini ekrana, ne na fiksnom skupu "desktop/tablet/mobilni" piksela. Ovo automatski dobro pokriva i preklopne telefone (Galaxy Fold i slični) tretirajući svaku širinu kao regularan slučaj, ne poseban. Poseban režim za fizički pregib ekrana (tzv. viewport-segments API, prikaz "dve strane" preklopnog ekrana odvojeno) namerno je van obima v1 — dodaje se tek ako se pokaže stvarna potreba.
+- **Deo Izlaznog kriterijuma svakog kanala**, ne naknadna provera — svaka Nivo 2 specifikacija kanala (M8, M9, M17, M7, M21 kad se doradi) navodi sopstvenu stavku provere prikaza na telefonu/tabletu pre nego što se taj kanal smatra gotovim.
 
 ---
 

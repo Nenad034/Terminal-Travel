@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M9) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
+**Verzija:** 1.2 — dodata napomena o namerno uskom obimu (poglavlje 1) i stavka izlaznog kriterijuma za prikaz na tabletu/preklopnom telefonu (Master dokument poglavlje 5.1); v1.1 dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja) — isti tok kao M8, vidi poglavlje 2
 
 ---
@@ -11,6 +11,8 @@
 ## 1. Svrha i obim modula
 
 M9 ima **dva različita iskustva** u istoj React Native aplikaciji (deljen kod sa Next.js, poglavlje 6 Master dokumenta): aplikacija za **goste** (pregled/rezervacija/vaučeri) i aplikacija za **interni tim/vodiče na terenu** (offline-first, potvrđeno u poglavlju 4 Master dokumenta). Koja se verzija prikaže zavisi od uloge prijavljenog korisnika (M1).
+
+**Namerno uzak obim (potvrđeno, Master dokument poglavlje 5.1):** M9 pokriva isključivo gosta i vodiča — jedine dve uloge kojima je zaseban mobilni sloj stvarno potreban (vodič radi bez signala na terenu). Prodajni agent, Sales Manager, HR, Računovođa, Direktor i Vlasnik **ne dobijaju aplikaciju iz M9** — oni koriste M17 (interni panel) na telefonu/tabletu, koji za to mora biti responsive i instalabilan kao PWA. Subagenti isto koriste M7 portal na telefonu, ne M9. Ovo sprečava dupliranje istog podatka kroz dve aplikacije.
 
 ---
 
@@ -112,6 +114,7 @@ Prefiks: `/api/v1/mobile`
 - [ ] `URGENT` beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji.
 - [ ] Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture.
 - [ ] Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u mobilnoj aplikaciji.
+- [ ] Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu, fluidnim rasporedom (Master dokument poglavlje 5.1).
 
 ---
 
