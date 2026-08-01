@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.4 — dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -27,14 +27,14 @@ Dodatno, M18 uvodi **okvir za izbor jezičkog modela po složenosti zadatka** �
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | source_module | string | npr. `M4`, `M10`, `M11`, `M9`, `M1` |
-| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice) |
+| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL`, `HELP_AGENT_ABUSE_PATTERN` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice); `HELP_AGENT_ABUSE_PATTERN` dodat u M21 poglavlje 5.5 (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć — moguć pokušaj zaobilaženja ograde) |
 | severity | enum: `INFO`, `WARNING`, `CRITICAL` | |
 | security_category | enum: `AUTH`, `PII`, `GDPR`, `API_ABUSE`, `ENCRYPTION`, nullable | popunjava se samo za bezbednosno relevantne signale — vidi poglavlje 2.4 |
 | details | JSONB | |
 | detected_at | timestamp | |
 | notified_at | timestamp, nullable | |
 
-**Izvori (već postojeći podaci, ne novi ulazi):** M4 `ProviderCallLog` (učestalost grešaka/timeout-a), M10 `Payment` (`FAILED`/`VOIDED` učestalost), M11 `GuestRegistration.status = FAILED`, M9 `FieldIncidentNote.severity = URGENT`, M1 `AuditLogEntry` (neuobičajen obrazac neuspelih prijava ili dodela dozvola), M3 `ContractPeriod` (preostali kapacitet na 1–2 jedinice, poglavlje 4.3 te specifikacije), i novi `AgentInvocationLog` iz poglavlja 5 ovog dokumenta (neuobičajen skok potrošnje tokena — sam nadzorni sloj nadgleda i sopstvenu potrošnju).
+**Izvori (već postojeći podaci, ne novi ulazi):** M4 `ProviderCallLog` (učestalost grešaka/timeout-a), M10 `Payment` (`FAILED`/`VOIDED` učestalost), M11 `GuestRegistration.status = FAILED`, M9 `FieldIncidentNote.severity = URGENT`, M1 `AuditLogEntry` (neuobičajen obrazac neuspelih prijava ili dodela dozvola), M3 `ContractPeriod` (preostali kapacitet na 1–2 jedinice, poglavlje 4.3 te specifikacije), M21 `HelpQuestion` (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć, poglavlje 5.5 te specifikacije), i novi `AgentInvocationLog` iz poglavlja 5 ovog dokumenta (neuobičajen skok potrošnje tokena — sam nadzorni sloj nadgleda i sopstvenu potrošnju).
 
 **Razlika u odnosu na M17 kontrolnu tablu:** M17 (poglavlje 5 te specifikacije) je **pull** — vlasnik mora da otvori panel da vidi upozorenja. M18 je **push** — obaveštava aktivno, bez obzira da li je neko otvorio bilo šta. Isti izvori podataka, različit način isporuke.
 

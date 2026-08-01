@@ -554,6 +554,16 @@ const DATA = [
     'M18 CRITICAL upozorenje stiže i kao IN_APP poruka, pored Telegram/email.',
     'M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna aplikacija nije napravljena od nule.',
   ]},
+  {code:'M21', title:'Centar za pomoć', purpose:'Baza znanja za korišćenje platforme (tim + subagenti) + AI asistent koji odgovara iz objavljenog sadržaja.', deps:'M1, M14, M15, M7, M17', items:[
+    'Interni tim vidi članke sa audience ∈ {STAFF, BOTH}; subagent vidi isključivo audience ∈ {SUBAGENT, BOTH} — nijedna strana ne vidi članke namenjene isključivo drugoj.',
+    'AI agent odgovara isključivo na osnovu PUBLISHED članaka dostupnih toj publici; pokušaj da se agent nagovori da otkrije sadržaj van tog opsega se odbija.',
+    'Pitanje bez pouzdanog odgovora nudi eskalaciju; potvrda korisnika kreira M14 tiket sa channel = HELP_CENTER i pitanjem već upisanim u prvu poruku.',
+    'Ponovljena pitanja bez dobrog odgovora generišu predlog novog članka; predlog se ne objavljuje bez ljudskog odobrenja, a odobren predlog i dalje čeka zaseban korak objavljivanja.',
+    'Svako pitanje/odgovor upisano je u audit log sa actor_type = AI_AGENT.',
+    'Neuobičajen obrazac pitanja (učestalost ili pokušaj zaobilaženja ograde) generiše bezbednosni signal u M18.',
+    'Fallback jezika radi ispravno (traženi jezik → engleski → srpski).',
+    'Kritični primeri (korak-po-korak scenariji) prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.',
+  ]},
 ]},
 ];
 

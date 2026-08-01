@@ -225,7 +225,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 <main>
   <div class="wrap">
     <div class="intro">
-      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 19 nisu iscrtane radi preglednosti.
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
       <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
@@ -342,7 +342,10 @@ var NODES = [
     entities:["HealthSignal","NotificationChannel","WeeklyHealthReview","TrendSuggestion","ProviderHealthSnapshot","AIProviderQuota"]},
   {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true,
     desc:"Interni real-time tim-chat; komunikacija sa gostima/subagentima ostaje u M14, samo lepši prikaz.",
-    entities:["Conversation","Message","PresenceStatus"]}
+    entities:["Conversation","Message","PresenceStatus"]},
+  {id:"m21", code:"M21", title:"Centar za pomoć",             phase:"FX", chan:false,
+    desc:"Baza znanja za korišćenje platforme (tim + subagenti) + AI asistent koji odgovara iz objavljenog sadržaja i eskalira ka M14 kad ne zna.",
+    entities:["HelpArticle","HelpArticleTranslation","HelpQuestion","HelpArticleSuggestion"]}
 ];
 
 var DEPS = [
@@ -360,7 +363,8 @@ var DEPS = [
   ["m17","m1"],
   ["m18","m1"],["m18","m15"],
   ["m19","m1"],["m19","m14"],["m19","m17"],["m19","m9"],["m19","m18"],
-  ["m20","m1"],["m20","m2"],["m20","m3"],["m20","m5"],["m20","m11"]
+  ["m20","m1"],["m20","m2"],["m20","m3"],["m20","m5"],["m20","m11"],
+  ["m21","m1"],["m21","m14"],["m21","m15"],["m21","m7"],["m21","m17"]
 ];
 
 var EVENTS = [

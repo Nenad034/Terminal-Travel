@@ -223,7 +223,7 @@ main{
   <div class="flip">
     <a href="https://claude.ai/code/artifact/85f819c6-f599-4a8b-aade-2418ff4f65a7" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">✅ Kontrolna tabla</a>
     <a href="https://claude.ai/code/artifact/8f7a5ec5-951c-4647-8d6f-734a2d757732" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">🗺️ Mapa modula</a>
-    <span><b>22</b> dokumenta</span><span><b>20</b> modula</span><span>Faza 0–7</span>
+    <span><b>24</b> dokumenta</span><span><b>21</b> modul</span><span>Faza 0–7</span>
   </div>
 </div>
 
@@ -283,6 +283,7 @@ main{
         <div class="nav-group-title"><span class="gate">Dodatno</span> Naknadno dodato</div>
         <a class="nav-link" data-text="m18 operativni nadzor kvalitet telegram" href="#doc-m18"><span class="code">M18</span><span class="label">Operativni nadzor</span></a>
         <a class="nav-link" data-text="m19 komunikaciona platforma chat" href="#doc-m19"><span class="code">M19</span><span class="label">Komunikaciona platforma</span></a>
+        <a class="nav-link" data-text="m21 centar za pomoc baza znanja ai asistent" href="#doc-m21"><span class="code">M21</span><span class="label">Centar za pomoć</span></a>
       </div>
     </div>
   </nav>
@@ -298,7 +299,7 @@ main{
 
 ## Terminal — jedinstvena poslovna platforma agencije Terminal Travel (TT), turoperatora sa licencom
 
-**Verzija:** 1.3 — konzistentnost tabele modula (poglavlje 4): dopunjene zavisnosti M8/M9 (M10, M20) i M10 (M3) da odgovaraju sopstvenim specifikacijama tih modula; M20 dodat u napomenu o kasnim brojevima/ranim fazama **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
+**Verzija:** 1.4 — dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
 
 ---
 
@@ -380,8 +381,9 @@ Da bi svi moduli i svi AI agenti koristili iste termine (izbegava se situacija d
 | M18 | **Operativni nadzor i AI optimizacija** | Kvalitetni/nadzorni agent koji kontinuirano prati signale kvarova kroz sve module i obaveštava spoljnim kanalima (Telegram, email); nedeljni sveobuhvatan pregled; agent za praćenje proizvodnih/tehnoloških trendova (proširenje poglavlja 10); okvir za izbor jezičkog modela po složenosti zadatka radi optimizacije tokena. Dodat naknadno (jul 2026). | M1, M15 (deo funkcija — praćenje signala/obaveštenja — ne zahteva pun M15 okvir i može krenuti ranije; trend-agent i model-tiering zahtevaju M15) |
 | M19 | **Komunikaciona platforma** | Interni real-time tim-chat (zaposleni ↔ zaposleni) — jedina zaista nova komunikaciona celina; komunikacija sa gostima/subagentima ostaje u M14/M6, samo dobija chat-stil prikaz. Desktop iskustvo kroz M17 (PWA), mobilno kroz novi tab u M9 — ne grade se nove samostalne aplikacije. Dodat naknadno (jul 2026). | M1, M14, M17, M9, M18 |
 | M20 | **Ugovori sa klijentima** | Generiše zakonski obavezan Ugovor o organizovanju putovanja (ili posredovanju) sa gostom/nalogodavcem, po Zakonu o turizmu — treći pravni dokument u lancu rezervacije, uz ugovor sa dobavljačem (M3) i fiskalni dokument (M10). Sastavlja se isključivo iz podataka koji već postoje u M2/M3/M5/M11, bez dupliranja unosa. Dodat naknadno (jul 2026), poređenjem sa ranijim paralelnim dokumentom projekta. | M1, M2, M3, M5, M11 |
+| M21 | **Centar za pomoć (baza znanja + AI asistent)** | Uputstvo za korišćenje same platforme (ne za putovanje) — za interni tim (kanal M17) i B2B subagente (kanal M7), sa AI asistentom koji odgovara isključivo iz objavljenog sadržaja, eskalira ka M14 kad ne zna, i predlaže nove članke na osnovu stvarnih pitanja koja ostanu bez odgovora. Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M14, M15, M7, M17 |
 
-Napomena: M15, M16, M17, M18, M19 i M20 nisu greška u numeraciji — namerno su izdvojeni jer njihovo uvođenje prati sazrevanje ostalih modula, ne ide paralelno sa njihovom izgradnjom. M16 dodatno zavisi od toga da M2/M5 imaju čist, dokumentovan API (princip \#2 i \#3 iz poglavlja 3\) — ako taj API nije čist, M16 postaje mnogo skuplji projekat nego što bi trebalo da bude. M17, za razliku od M15/M16, mora postojati već od Faze 0/1 (poglavlje 8) — kasni broj je posledica toga kad je formalno imenovan, ne toga kad se gradi. M18 i M19 su naknadno dodati (jul 2026) na zahtev vlasnika — deo M18 funkcija (praćenje signala, obaveštenja) je nezavisan od M15 i može se graditi čim postoji dovoljno modula da se prati (praktično od Faze 2/3), dok trend-agent i model-tiering deo M18-a, kao i M19 u celosti, zahtevaju da M15 i M14/M9 već postoje. M20 je, kao i M17, primer kasnog broja sa ranom fazom (Faza 2) — naknadno formalizovan (jul 2026, poređenjem sa ranijim paralelnim dokumentom projekta) modul koji je zakonski neophodan od početka produkcijskog rada, ne od početka razvoja.
+Napomena: M15, M16, M17, M18, M19, M20 i M21 nisu greška u numeraciji — namerno su izdvojeni jer njihovo uvođenje prati sazrevanje ostalih modula, ne ide paralelno sa njihovom izgradnjom. M16 dodatno zavisi od toga da M2/M5 imaju čist, dokumentovan API (princip \#2 i \#3 iz poglavlja 3\) — ako taj API nije čist, M16 postaje mnogo skuplji projekat nego što bi trebalo da bude. M17, za razliku od M15/M16, mora postojati već od Faze 0/1 (poglavlje 8) — kasni broj je posledica toga kad je formalno imenovan, ne toga kad se gradi. M18 i M19 su naknadno dodati (jul 2026) na zahtev vlasnika — deo M18 funkcija (praćenje signala, obaveštenja) je nezavisan od M15 i može se graditi čim postoji dovoljno modula da se prati (praktično od Faze 2/3), dok trend-agent i model-tiering deo M18-a, kao i M19 u celosti, zahtevaju da M15 i M14/M9 već postoje. M20 je, kao i M17, primer kasnog broja sa ranom fazom (Faza 2) — naknadno formalizovan (jul 2026, poređenjem sa ranijim paralelnim dokumentom projekta) modul koji je zakonski neophodan od početka produkcijskog rada, ne od početka razvoja. M21 je poprečan kao M17/M18/M19 — sadržaj za tim može početi od Faze 0 (raste sa svakim modulom, isti obrazac kao M17), dok sadržaj za subagente prirodno čeka M7 (Faza 4); AI asistent deo zahteva da M15 okvir postoji.
 
 ---
 
@@ -3201,7 +3203,7 @@ Prefiks: `/api/v1/bi`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M14) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
 **Zavisi od:** M1, M5, M6, M7
 
 ---
@@ -3230,7 +3232,7 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 | category | enum: `REZERVACIJA`, `PLACANJE`, `TEHNICKI_PROBLEM`, `REKLAMACIJA`, `DRUGO` | `REKLAMACIJA` je pravno posebna kategorija — vidi poglavlje 3.1 |
 | priority | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT` | |
 | status | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` | |
-| channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE` | |
+| channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE`, `HELP_CENTER` *(dodato pri specifikaciji M21)* | `HELP_CENTER` — tiket kreiran eskalacijom iz AI asistenta (M21 poglavlje 5.3), prva poruka već sadrži tekst pitanja |
 | assigned_to | UUID, nullable (FK → M1 User) | |
 | zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
 | zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |
@@ -3310,7 +3312,6 @@ Prefiks: `/api/v1/helpdesk`
 - SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema otvorenog duže od X sati) — dodaju se ako se pokaže potreba; `REKLAMACIJA` kategorija već ima zakonski rok (poglavlje 3.1), ne čeka ovu opštu odluku.
 - Integracija sa M9 mobilnom aplikacijom (Faza 6) za goste — dodaje se kad taj kanal bude gotov.
 - Tačan mehanizam kojim se odluka o povraćaju novca formalno beleži na tiketu (npr. novo polje `refund_decision`) pre nego što se emituje `ticket.resolved_with_refund` — definiše se kad se dođe do stvarne izrade, van obima ove specifikacije.
-
 </script>
 <div class="rendered"></div>
 </section>
@@ -3694,7 +3695,7 @@ Sam MCP server (alati iz poglavlja 2) implementira se prema zvaničnoj MCP speci
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
+**Verzija:** 1.3 — dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -3778,6 +3779,10 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M18 | `trend_research.draft` | `AUTONOMOUS` | M18 poglavlje 5 |
 | M18 | `trend_research.apply_to_docs` | `PROPOSE_THEN_APPROVE` | M18 poglavlje 5 |
 | M18 | `health_signal.detect_and_notify` | `AUTONOMOUS` | M18 poglavlje 2 — čisto informativno, isporuka upozorenja nije poslovna odluka |
+| M21 | `help_question.answer` | `AUTONOMOUS` | M21 poglavlje 5.2 — isključivo pretraga objavljenog sadržaja, bez pristupa živim podacima |
+| M21 | `help_escalation.create_ticket` | `AUTONOMOUS` | M21 poglavlje 5.3 — korisnik koji pita sam potvrđuje eskalaciju sopstvenog pitanja, ne treći čovek koji odobrava tuđu akciju |
+| M21 | `help_article_suggestion.draft` | `AUTONOMOUS` | M21 poglavlje 5.4 — čisto pripremni nacrt iz obrasca ponovljenih pitanja |
+| M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
 
 **Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 eTurista prijava, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
@@ -3857,7 +3862,7 @@ Prefiks: `/api/v1/ai-orchestration`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.4 — dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -3881,14 +3886,14 @@ Dodatno, M18 uvodi **okvir za izbor jezičkog modela po složenosti zadatka** �
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | source_module | string | npr. `M4`, `M10`, `M11`, `M9`, `M1` |
-| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice) |
+| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL`, `HELP_AGENT_ABUSE_PATTERN` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice); `HELP_AGENT_ABUSE_PATTERN` dodat u M21 poglavlje 5.5 (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć — moguć pokušaj zaobilaženja ograde) |
 | severity | enum: `INFO`, `WARNING`, `CRITICAL` | |
 | security_category | enum: `AUTH`, `PII`, `GDPR`, `API_ABUSE`, `ENCRYPTION`, nullable | popunjava se samo za bezbednosno relevantne signale — vidi poglavlje 2.4 |
 | details | JSONB | |
 | detected_at | timestamp | |
 | notified_at | timestamp, nullable | |
 
-**Izvori (već postojeći podaci, ne novi ulazi):** M4 `ProviderCallLog` (učestalost grešaka/timeout-a), M10 `Payment` (`FAILED`/`VOIDED` učestalost), M11 `GuestRegistration.status = FAILED`, M9 `FieldIncidentNote.severity = URGENT`, M1 `AuditLogEntry` (neuobičajen obrazac neuspelih prijava ili dodela dozvola), M3 `ContractPeriod` (preostali kapacitet na 1–2 jedinice, poglavlje 4.3 te specifikacije), i novi `AgentInvocationLog` iz poglavlja 5 ovog dokumenta (neuobičajen skok potrošnje tokena — sam nadzorni sloj nadgleda i sopstvenu potrošnju).
+**Izvori (već postojeći podaci, ne novi ulazi):** M4 `ProviderCallLog` (učestalost grešaka/timeout-a), M10 `Payment` (`FAILED`/`VOIDED` učestalost), M11 `GuestRegistration.status = FAILED`, M9 `FieldIncidentNote.severity = URGENT`, M1 `AuditLogEntry` (neuobičajen obrazac neuspelih prijava ili dodela dozvola), M3 `ContractPeriod` (preostali kapacitet na 1–2 jedinice, poglavlje 4.3 te specifikacije), M21 `HelpQuestion` (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć, poglavlje 5.5 te specifikacije), i novi `AgentInvocationLog` iz poglavlja 5 ovog dokumenta (neuobičajen skok potrošnje tokena — sam nadzorni sloj nadgleda i sopstvenu potrošnju).
 
 **Razlika u odnosu na M17 kontrolnu tablu:** M17 (poglavlje 5 te specifikacije) je **pull** — vlasnik mora da otvori panel da vidi upozorenja. M18 je **push** — obaveštava aktivno, bez obzira da li je neko otvorio bilo šta. Isti izvori podataka, različit način isporuke.
 
@@ -4194,6 +4199,178 @@ WebSocket: `/ws/chat` — događaji `message.new`, `presence.updated`, `typing.s
 - Da li interni chat treba grupne kanale po timovima/odeljenjima (npr. "Prodaja", "Finansije") od starta, ili počinje samo sa direktnim i ad-hok grupnim razgovorima — počinje se jednostavnije, širi se po potrebi.
 - Pretraga istorije poruka — dodaje se ako obim komunikacije to zahteva, van obima ove verzije.
 
+</script>
+<div class="rendered"></div>
+</section>
+<section class="doc" id="doc-m21">
+<div class="doc-meta"><span class="phase-pill">Dodatno</span><span class="code-pill">M21</span>
+<span class="status-pill nacrt">NACRT</span>
+</div>
+<script type="text/plain" class="src">
+# Specifikacija modula M21 — Centar za pomoć (baza znanja + AI asistent)
+
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M21), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19)
+**Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
+**Status:** Nacrt za usvajanje
+**Verzija:** 1.0
+**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (eskalacija ka tiketu), M15 (AI agent okvir), M17 (kanal za tim), M7 (kanal za subagente)
+
+---
+
+## 1. Svrha i obim modula
+
+M21 je baza znanja za korišćenje same Terminal platforme — uputstvo za rad, ne uputstvo za putovanje. Dve odvojene publike, oštro razdvojene:
+
+1. **Interni tim** — kako se koristi interni panel (M17) i svaki modul u njemu, kako se rade konkretni radni postupci (npr. "kako obraditi otkazivanje sa delimičnim povraćajem").
+2. **B2B subagenti** — kako se koristi portal (M7), kako se poručuje u ime gosta, kako se prati provizija i kreditni limit.
+
+**Razlika u odnosu na M14 (Helpdesk):** M14 rešava problem koji je već nastao ("nešto ne radi", "imam pritužbu"). M21 sprečava da problem uopšte nastane — odgovara na "kako da..." pre nego što korisnik zapne. Kad M21 ne zna odgovor, prosleđuje ka M14 (poglavlje 5) — jedan tok, dva različita trenutka.
+
+**Razlika u odnosu na M12 (Marketing/Content Engine):** M12 proizvodi sadržaj za goste na javnim kanalima radi prodaje. M21 proizvodi sadržaj za tim/subagente radi rada sa alatom — interna publika, interna svrha, potpuno odvojen sadržajni tok.
+
+**Namerno van obima v1:** sadržaj za krajnje goste (M8/M9). Gost tipično ne treba uputstvo za korišćenje internog alata — ako se pokaže potreba za AI-asistiranim FAQ na sajtu, to je prirodno proširenje M21 na treću publiku, ne novi modul, ali se ne pretpostavlja unapred.
+
+---
+
+## 2. Model podataka
+
+### 2.1 `HelpArticle` — jedan članak baze znanja
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| slug | string, unique | |
+| audience | enum: `STAFF`, `SUBAGENT`, `BOTH` | određuje ko sme da vidi — vidi poglavlje 3 (RBAC) |
+| related_module | string, nullable | kod modula na koji se odnosi (npr. `M5`, `M10`), radi filtriranja i pretrage |
+| is_critical_example | boolean | `true` za korak-po-korak radne scenarije (poglavlje 4) — izdvaja se vizuelno od opisnih članaka |
+| status | enum: `DRAFT`, `PENDING_APPROVAL`, `PUBLISHED`, `ARCHIVED` | isti obrazac kao M12 `ContentPiece.status` |
+| generated_by | enum: `AI`, `HUMAN` | |
+| approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** — isto pravilo kao M12 |
+| created_at / updated_at / published_at | timestamp | |
+
+### 2.2 `HelpArticleTranslation`
+Isti obrazac kao M2 `ProductTranslation` / M12 `ContentTranslation` — redovi po jeziku, isti fallback (traženi jezik → engleski → srpski). U praksi se za internu/subagentsku publiku očekuje da će većina članaka postojati samo na srpskom i engleskom (za sada), ali se ne ograničava strukturno — isti skup jezika kao M2.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| help_article_id | UUID (FK) | |
+| language_code | enum (isti skup kao M2) | |
+| title | string | |
+| body | text (markdown) | za `is_critical_example = true`, telo je strukturirano kao numerisani niz koraka (obična markdown lista — nema potrebe za posebnim poljem) |
+
+### 2.3 `HelpQuestion` — svako pitanje postavljeno AI asistentu (log)
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| asked_by | UUID (FK → M1 User) | i tim i subagenti su M1 nalozi (`account_type = STAFF` ili `SUBAGENT_CONTACT`) |
+| audience_context | enum: `STAFF`, `SUBAGENT` | određuje iz kog seta članaka agent sme da povuče odgovor — izvedeno iz `asked_by.account_type`, ne unosi ga korisnik |
+| question_text | text | |
+| answer_text | text, nullable | `null` ako agent nije našao pouzdan odgovor |
+| matched_article_ids | niz UUID | koji članci su korišćeni za odgovor — radi sledljivosti (isto načelo kao M13 "svaki izveštaj pokazuje izvor") |
+| confidence | enum: `HIGH`, `LOW`, `NONE` | `NONE` automatski pokreće ponudu za eskalaciju (poglavlje 5) |
+| was_helpful | boolean, nullable | povratna informacija korisnika (👍/👎), nullable dok se ne oceni |
+| escalated_ticket_id | UUID, nullable (FK → M14 `Ticket`) | popunjeno ako je korisnik potvrdio eskalaciju |
+| created_at | timestamp | |
+
+### 2.4 `HelpArticleSuggestion` — predlog novog članka iz stvarne upotrebe
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| based_on_question_ids | niz UUID (FK → `HelpQuestion`) | grupa pitanja koja su dovela do predloga (ponovljena `NONE`/`LOW` pitanja na istu temu, ili `was_helpful = false` obrazac) |
+| draft_title / draft_body | string / text | AI nacrt, na osnovu stvarnih pitanja koja su ostala bez dobrog odgovora |
+| status | enum: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED` | `APPROVED` kreira stvarni `HelpArticle` (status `PENDING_APPROVAL`, čeka i sopstveno objavljivanje — dva odvojena koraka odobrenja, isto kao što `pricelist_import` (M3) razdvaja ekstrakciju od upisa |
+| reviewed_by | UUID, nullable (FK → M1 User) | |
+| created_at / reviewed_at | timestamp | |
+
+---
+
+## 3. Vidljivost po publici (RBAC — ponovo koristi M1, ne nov sistem prava)
+
+Nema paralelnog sistema dozvola. Filtriranje ide kroz iste M1 `Permission` zapise:
+
+| Permission (module/resource/action) | Podrazumevana dodela |
+| :---- | :---- |
+| `M21/article:staff/VIEW` | Sve interne uloge (Vlasnik, Direktor, HR, Sales Manager, Prodajni agent, Računovođa) |
+| `M21/article:subagent/VIEW` | `SUBAGENT_ADMIN` |
+| `M21/article:staff/EDIT`, `M21/article:staff/PUBLISH` | HR, Direktor, Vlasnik (tačna podela dorađuje se pri implementaciji — vidi poglavlje 8) |
+| `M21/article:subagent/EDIT`, `M21/article:subagent/PUBLISH` | Isti krug kao gore — subagenti nikad ne uređuju sopstveni help sadržaj, samo ga čitaju |
+| `M21/suggestion/APPROVE` | HR, Direktor, Vlasnik |
+| `M21/question-log/VIEW` | HR, Direktor, Vlasnik — uvid u istoriju pitanja radi kvaliteta sadržaja i bezbednosnog pregleda |
+
+Član sa `audience = BOTH` vidljiv je oboma bez dodatne dozvole. Provera se radi identično kao svuda u sistemu — uživo nad bazom, ne iz tokena (M1 poglavlje 3.6).
+
+---
+
+## 4. Kritični primeri — korak-po-korak radni scenariji
+
+`HelpArticle.is_critical_example = true` označava članke koji ne opisuju ekran, nego **rešavaju konkretnu situaciju od početka do kraja**, npr.:
+
+- "Gost traži otkazivanje sa delimičnim povraćajem — koraci kroz M5/M10"
+- "Novi subagent se prijavio — kako odobriti i podesiti proviziju (M7)"
+- "Rezervacija zahteva fiskalni dokument ka pravnom licu — SEF tok (M10)"
+- "Subagent pita gde je njegova provizija za prošli mesec (portal, M7)"
+
+Ovi članci se prikazuju izdvojeno (poseban prikaz u UI, ne pomešano sa opisnim člancima) i imaju prioritet u pretrazi i u odgovorima AI agenta — kad postoji `is_critical_example` članak koji odgovara pitanju, agent ga navodi pre opisnih članaka o istoj temi.
+
+---
+
+## 5. AI asistent — ponašanje, ograda, eskalacija
+
+### 5.1 Registracija u M15
+Agent se registruje kao još jedan `AIAgent` u M15 okviru (M15 poglavlje 2), ne poseban mehanizam. `model_tier`: podrazumevano `LIGHT` (čisto pretraživanje/sažimanje objavljenog teksta — niska složenost, niska osetljivost po kriterijumu iz M18 poglavlja 6.2a).
+
+### 5.2 Ograda — samo objavljen sadržaj, nikad živi podaci
+Agent u v1 **isključivo pretražuje `HelpArticleTranslation` gde je `HelpArticle.status = PUBLISHED`**, filtrirano po `audience_context` pitaoca. **Nema pristup API-jima drugih modula (M5, M7, M10...) i ne izvršava nikakvu radnju nad stvarnim podacima** — ovo je namerna, tvrda ograda: agent ne sme biti nagovoren (upitom ili pokušajem manipulacije) da otkrije podatke van sopstvenog dokumentovanog opsega (npr. proviziju drugog subagenta, interni sadržaj namenjen samo timu ako pita subagent). Proširenje na pristup živim podacima je moguće u budućoj verziji, ali zahteva sopstvenu bezbednosnu analizu pre uvođenja — ne pretpostavlja se ovde.
+
+### 5.3 Kad agent ne zna — eskalacija ka M14
+Ako `confidence = NONE` (ili `LOW` uz eksplicitan zahtev korisnika), agent nudi: *"Nisam siguran — da otvorim tiket podršci sa ovim pitanjem?"* Ako korisnik potvrdi, kreira se M14 `Ticket` (`category` po najboljoj proceni konteksta, `channel = HELP_CENTER` — nova vrednost dodata u M14 `Ticket.channel` enum ovom specifikacijom) sa prvom `TicketMessage` već popunjenom tekstom pitanja. **Ovo nije "Predloži pa čovek odobri" u uobičajenom smislu** — potvrdu daje sam korisnik koji pita (o sopstvenom zahtevu), ne treći čovek koji odobrava tuđu akciju, pa je nivo autonomije `AUTONOMOUS` (agent priprema, korisnikov klik izvršava sopstveni zahtev — isti princip kao popunjavanje formulara koji korisnik sam šalje).
+
+### 5.4 Petlja povratne informacije — praznine u sadržaju postaju predlozi
+Kad se nagomilaju `HelpQuestion` zapisi sa `confidence = NONE`/`LOW` ili `was_helpful = false` na istu temu (prag i tačan algoritam grupisanja dorađuju se pri implementaciji — poglavlje 8), agent kreira `HelpArticleSuggestion` (`AUTONOMOUS` — čisto pripremni nacrt, ništa se ne objavljuje). Odobravanje (`PROPOSE_THEN_APPROVE`) prevodi predlog u stvarni `HelpArticle` u statusu `PENDING_APPROVAL`, koji i dalje čeka sopstveno objavljivanje kao svaki drugi članak.
+
+### 5.5 Bezbednosno praćenje (M18)
+Svako pitanje i odgovor upisuje se u `HelpQuestion` (ovaj modul) **i** u M1 `AuditLogEntry` (`actor_type = AI_AGENT`, isto kao svaki drugi agent). M18 dobija novi tip signala:
+
+`HELP_AGENT_ABUSE_PATTERN` — dodato u M18 `HealthSignal.signal_type` enum ovom specifikacijom, `security_category = API_ABUSE`. Okidači (bilo koji): neuobičajen broj pitanja od jednog naloga u kratkom periodu; ponovljeni pokušaji formulacije koji liče na pokušaj zaobilaženja ograde iz poglavlja 5.2 (npr. traženje podataka van dokumentovanog opsega uz razne parafraze); pitanje koje eksplicitno traži da agent "zanemari prethodna uputstva" ili slično. Detekcija obrazaca je heuristička u v1 (jednostavna pravila — učestalost, ključne fraze), ne poseban ML model — dorađuje se ako se pokaže potreba.
+
+---
+
+## 6. API ugovor (REST, OpenAPI) — ključni endpoint-i
+
+Prefiks: `/api/v1/help`
+
+| Endpoint | Metod | Opis |
+| :---- | :---- | :---- |
+| `/articles` | GET | lista članaka, filtrirano po `audience` (prema pozivaocu), `related_module`, jeziku, `is_critical_example` |
+| `/articles` | POST | novi nacrt članka (samo uloge sa `EDIT` dozvolom za odgovarajuću publiku) |
+| `/articles/:id` | GET / PATCH | izmena; prelazak u `PUBLISHED` zahteva `PUBLISH` dozvolu i popunjen `approved_by` |
+| `/ask` | POST | glavno pitanje ka AI agentu — `{question, }` (publika se izvodi iz naloga koji pita); vraća `{answer, matched_article_ids, confidence}` |
+| `/questions/:id/feedback` | POST | 👍/👎 — upisuje `was_helpful` |
+| `/questions/:id/escalate` | POST | korisnikova potvrda eskalacije → kreira M14 `Ticket`, upisuje `escalated_ticket_id` |
+| `/suggestions` | GET | predlozi na čekanju (vidljivo kroz M15 Agent Inbox, poglavlje 6 te specifikacije) |
+| `/suggestions/:id` | PATCH | odobri (→ kreira `HelpArticle`) ili odbij |
+
+---
+
+## 7. Izlazni kriterijum
+
+- [ ] Interni tim vidi članke sa `audience ∈ {STAFF, BOTH}`; subagent vidi isključivo `audience ∈ {SUBAGENT, BOTH}` — provereno da nijedna strana ne vidi članke namenjene isključivo drugoj.
+- [ ] AI agent odgovara isključivo na osnovu `PUBLISHED` članaka dostupnih toj publici; test-pokušaj da se agent nagovori da otkrije sadržaj van tog opsega (parafraziran zahtev za "tuđe" članke ili podatke) se odbija.
+- [ ] Pitanje bez pouzdanog odgovora (`confidence = NONE`) nudi eskalaciju; potvrda korisnika kreira M14 tiket sa `channel = HELP_CENTER` i pitanjem već upisanim u prvu poruku.
+- [ ] Ponovljena `NONE`/`LOW` pitanja na istu temu generišu `HelpArticleSuggestion`; predlog se ne pretvara u vidljiv članak bez ljudskog odobrenja, a odobren predlog i dalje čeka zaseban korak objavljivanja.
+- [ ] Svako pitanje/odgovor upisano je u `AuditLogEntry` sa `actor_type = AI_AGENT`.
+- [ ] Neuobičajen obrazac pitanja (učestalost ili sadržaj koji liči na pokušaj zaobilaženja ograde) generiše `HELP_AGENT_ABUSE_PATTERN` signal u M18.
+- [ ] Fallback jezika radi ispravno (traženi jezik → engleski → srpski), isto pravilo kao M2.
+- [ ] `is_critical_example` članci prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.
+
+---
+
+## 8. Otvoreno za dalje
+
+- Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj (da li HR ima puno pravo objave ili samo predlaže, sa Direktorom kao konačnim odobravačem) — dorađuje se sa vlasnikom pri implementaciji, van obima ove specifikacije.
+- Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` (poglavlje 5.4) — konkretna vrednost (npr. "3+ slična pitanja u 30 dana") određuje se kad postoji stvarna količina pitanja da se proceni razumno.
+- Prošireno na treću publiku (krajnji gosti, M8/M9) — namerno van obima v1, vidi poglavlje 1.
+- Da li agent u budućoj verziji dobija ograničen, pažljivo ograđen pristup nekim živim podacima (npr. sopstveni kreditni limit subagenta) — zahteva sopstvenu bezbednosnu analizu pre uvođenja, ne pretpostavlja se ovde (poglavlje 5.2).
 </script>
 <div class="rendered"></div>
 </section>
