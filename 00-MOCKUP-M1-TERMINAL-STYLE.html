@@ -94,16 +94,45 @@ button,input,select{font-family:inherit; color:inherit}
 .pal-dot{width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.15)}
 
 .term-tabs{
-  height:38px; flex:0 0 auto; display:flex; align-items:flex-end; gap:2px; padding:0 10px;
-  background:var(--bg); border-bottom:1px solid var(--border);
+  height:38px; flex:0 0 auto; display:flex; align-items:flex-end; gap:2px; padding:0 6px;
+  background:var(--bg); border-bottom:1px solid var(--border); position:relative;
 }
 .term-tab{
-  font-family:var(--font-mono); font-size:12px; padding:8px 16px 9px; border-radius:8px 8px 0 0; cursor:pointer;
-  color:var(--text-faint); border:1px solid transparent; border-bottom:none; display:flex; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-size:12px; padding:8px 8px 9px 14px; border-radius:8px 8px 0 0; cursor:pointer;
+  color:var(--text-faint); border:1px solid transparent; border-bottom:none; display:flex; align-items:center; gap:8px;
+  max-width:180px;
 }
 .term-tab .prompt{color:var(--accent); opacity:.8}
+.term-tab .lbl{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.term-tab .tab-close{
+  width:16px; height:16px; border-radius:4px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; opacity:.5; flex:0 0 auto;
+}
+.term-tab .tab-close:hover{opacity:1; background:var(--danger-bg); color:var(--danger)}
 .term-tab.active{background:var(--panel); color:var(--text); border-color:var(--border)}
 .term-tab:hover:not(.active){color:var(--text-dim)}
+.tab-add{
+  width:28px; height:28px; margin:4px 0 5px 2px; border-radius:7px; border:1px dashed var(--border);
+  background:transparent; color:var(--text-faint); cursor:pointer; font-size:14px; flex:0 0 auto;
+}
+.tab-add:hover{border-color:var(--accent); color:var(--accent); border-style:solid}
+
+/* new-tab picker + settings dropdowns */
+.dropdown{
+  position:absolute; top:44px; background:var(--panel-blur); backdrop-filter:blur(16px); border:1px solid var(--border);
+  border-radius:10px; box-shadow:0 20px 50px -16px rgba(0,0,0,.5); z-index:60; display:none; overflow:hidden; min-width:220px;
+}
+.dropdown.show{display:block}
+.dropdown .dd-item{
+  display:flex; align-items:center; gap:10px; padding:9px 13px; font-size:12.5px; cursor:pointer; color:var(--text);
+}
+.dropdown .dd-item:hover{background:var(--accent-soft)}
+.dropdown .dd-item.locked{opacity:.4; cursor:default}
+.dropdown .dd-item.locked:hover{background:transparent}
+.dropdown .dd-item .k{margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-faint)}
+.dropdown .dd-sep{height:1px; background:var(--border); margin:5px 0}
+.dropdown .dd-label{padding:8px 13px 4px; font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); font-family:var(--font-mono)}
+.dropdown .dd-row{display:flex; gap:6px; padding:6px 13px 10px}
 
 .term-body{flex:1; display:flex; min-height:0; position:relative}
 
@@ -290,6 +319,48 @@ button,input,select{font-family:inherit; color:inherit}
 .empty-msg{color:var(--text-faint); font-size:.85rem; padding:24px; text-align:center; display:none; font-family:var(--font-mono)}
 .hidden{display:none !important}
 
+/* ============ Bottom AI/command bar ============ */
+.bottom-bar{
+  flex:0 0 auto; background:var(--panel-blur); backdrop-filter:blur(16px); border-top:1px solid var(--border);
+  display:flex; flex-direction:column;
+}
+.bottom-drawer{
+  max-height:0; overflow:hidden; transition:max-height .22s ease; border-bottom:1px solid transparent;
+}
+.bottom-drawer.open{max-height:38vh; border-bottom-color:var(--border)}
+.chat-log{max-height:38vh; overflow-y:auto; padding:14px 20px; display:flex; flex-direction:column; gap:12px}
+.chat-msg{display:flex; gap:10px; max-width:760px}
+.chat-msg .who{
+  flex:0 0 auto; width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; font-family:var(--font-mono);
+}
+.chat-msg.user .who{background:var(--panel-2); color:var(--text-dim)}
+.chat-msg.agent .who{background:var(--accent-soft); color:var(--accent-strong)}
+.chat-msg .bubble{font-size:12.5px; line-height:1.55; padding-top:2px}
+.chat-msg .bubble .from{font-family:var(--font-mono); font-size:10.5px; color:var(--text-faint); margin-bottom:2px; display:block}
+.chat-msg.agent .bubble{color:var(--text)}
+.chat-msg .bubble code{background:var(--panel-2); border:1px solid var(--border); padding:.05em .35em; border-radius:4px}
+
+.bottom-input-row{display:flex; align-items:center; gap:10px; padding:10px 16px; min-height:44px}
+.bottom-input-row .prompt{font-family:var(--font-mono); color:var(--accent); font-weight:700; flex:0 0 auto}
+.bottom-input-row input{
+  flex:1; border:0; background:transparent; outline:0; font-family:var(--font-mono); font-size:12.5px; color:var(--text);
+}
+.bottom-input-row input::placeholder{color:var(--text-faint)}
+.bottom-hint{font-size:10px; color:var(--text-faint); font-family:var(--font-mono); flex:0 0 auto; display:flex; gap:8px; align-items:center}
+.bottom-hint kbd{background:var(--panel-2); border:1px solid var(--border); border-radius:4px; padding:1px 5px}
+.bottom-toggle{
+  flex:0 0 auto; width:24px; height:24px; border-radius:6px; border:1px solid var(--border); background:var(--panel);
+  color:var(--text-faint); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px;
+  transition:transform .18s ease;
+}
+.bottom-toggle:hover{color:var(--accent); border-color:var(--accent)}
+.bottom-drawer.open ~ .bottom-input-row .bottom-toggle{transform:rotate(180deg)}
+.agent-typing{display:flex; gap:4px; padding:2px 0}
+.agent-typing span{width:5px; height:5px; border-radius:50%; background:var(--accent); opacity:.4; animation:blink 1.2s infinite}
+.agent-typing span:nth-child(2){animation-delay:.2s} .agent-typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25} 40%{opacity:1}}
+
 @media (max-width:760px){
   .nav-side{width:56px}
   .content{padding:16px}
@@ -331,19 +402,45 @@ button,input,select{font-family:inherit; color:inherit}
       <div class="spacer"></div>
       <div class="term-controls">
         <button class="cmdk-trigger" id="cmdkTrigger"><span>🔎</span>traži ili izvrši<kbd>Ctrl</kbd><kbd>K</kbd></button>
-        <button class="chip-btn" id="btnNavToggle" title="Raspored glavnog menija">☰ meni: <span id="navModeLabel">levo</span></button>
-        <button class="chip-btn" id="btnThemeToggle" title="Dark / Light">◐ <span id="themeLabel">dark</span></button>
-        <span class="pal-dot" data-pal="1" style="background:linear-gradient(135deg,#e8a63c,#150e08); cursor:pointer" title="Paleta 1 — Zalazak"></span>
-        <span class="pal-dot" data-pal="2" style="background:linear-gradient(135deg,#29d9c2,#071019); cursor:pointer" title="Paleta 2 — Noćni let"></span>
-        <span class="pal-dot" data-pal="3" style="background:linear-gradient(135deg,#e3a94a,#2fbfa8); cursor:pointer" title="Paleta 3 — Horizont"></span>
         <button class="chip-btn" id="btnLogout">⏻ odjava</button>
       </div>
     </div>
 
-    <div class="term-tabs">
-      <div class="term-tab active" data-view="users"><span class="prompt">$</span> korisnici</div>
-      <div class="term-tab" data-view="roles"><span class="prompt">$</span> uloge</div>
-      <div class="term-tab" data-view="audit"><span class="prompt">$</span> audit-log</div>
+    <div class="term-tabs" id="tabStrip">
+      <div id="tabsList" style="display:flex; align-items:flex-end; gap:2px; position:relative"></div>
+      <button class="tab-add" id="btnTabAdd" title="Novi tab">+</button>
+      <div class="dropdown" id="ddNewTab" style="left:10px">
+        <div class="dd-label">Otvori novi tab</div>
+        <div class="dd-item" data-open="users">👤 <span>Korisnici</span></div>
+        <div class="dd-item" data-open="roles">🪪 <span>Uloge</span></div>
+        <div class="dd-item" data-open="audit">📜 <span>Audit log</span></div>
+        <div class="dd-sep"></div>
+        <div class="dd-item locked">🔎 <span>Pretraga (M5)</span><span class="k">Faza 1</span></div>
+        <div class="dd-item locked">🧾 <span>Rezervacije (M5)</span><span class="k">Faza 1</span></div>
+        <div class="dd-item locked">💬 <span>Centar za pomoć (M21)</span><span class="k">uskoro</span></div>
+      </div>
+      <span style="flex:1"></span>
+      <div class="dropdown" id="ddSettings" style="right:10px; left:auto">
+        <div class="dd-label">Raspored menija</div>
+        <div class="dd-row">
+          <button class="chip-btn" id="ddNavSide" style="flex:1">☰ levo</button>
+          <button class="chip-btn" id="ddNavTop" style="flex:1">▬ gore</button>
+        </div>
+        <div class="dd-label">Tema</div>
+        <div class="dd-row">
+          <button class="chip-btn" id="ddThemeDark" style="flex:1">◐ dark</button>
+          <button class="chip-btn" id="ddThemeLight" style="flex:1">○ light</button>
+        </div>
+        <div class="dd-label">Paleta boja</div>
+        <div class="dd-row">
+          <span class="pal-dot" data-pal="1" style="background:linear-gradient(135deg,#e8a63c,#150e08); cursor:pointer; width:22px; height:22px" title="1 — Zalazak"></span>
+          <span class="pal-dot" data-pal="2" style="background:linear-gradient(135deg,#29d9c2,#071019); cursor:pointer; width:22px; height:22px" title="2 — Noćni let"></span>
+          <span class="pal-dot" data-pal="3" style="background:linear-gradient(135deg,#e3a94a,#2fbfa8); cursor:pointer; width:22px; height:22px" title="3 — Horizont"></span>
+        </div>
+        <div class="dd-sep"></div>
+        <div class="dd-item" id="ddSettingsLink">⚙️ <span>Sva podešavanja…</span></div>
+      </div>
+      <button class="tab-add" id="btnSettingsToggle" title="Podešavanja">⌄</button>
     </div>
 
     <div class="nav-top-strip">
@@ -409,6 +506,18 @@ button,input,select{font-family:inherit; color:inherit}
 
           <div class="empty-msg" id="emptyMsg">// nema rezultata</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ================= BOTTOM BAR — komande + AI agent ================= -->
+    <div class="bottom-bar">
+      <div class="bottom-drawer" id="bottomDrawer">
+        <div class="chat-log" id="chatLog"></div>
+      </div>
+      <div class="bottom-input-row">
+        <span class="prompt">&gt;</span>
+        <input id="bottomInput" placeholder="ukucaj komandu (npr. „korisnici”, „uloge”) ili pitaj AI agenta…" autocomplete="off">
+        <div class="bottom-hint"><kbd>Enter</kbd> pošalji <button class="bottom-toggle" id="btnDrawerToggle" title="Istorija razgovora">︿</button></div>
       </div>
     </div>
   </div>
@@ -530,23 +639,69 @@ function setPalette(p){
 }
 function setTheme(t){
   appShell.dataset.theme = t; loginScreen.dataset.theme = t;
-  document.getElementById('themeLabel').textContent = t;
+  updateSettingsHighlight();
 }
 function toggleTheme(){ setTheme(appShell.dataset.theme==='dark' ? 'light' : 'dark'); }
 function toggleNav(){
   const next = appShell.dataset.nav==='side' ? 'top' : 'side';
   appShell.dataset.nav = next;
-  document.getElementById('navModeLabel').textContent = next==='side' ? 'levo' : 'gore';
+  updateSettingsHighlight();
+}
+function updateSettingsHighlight(){
+  document.getElementById('ddNavSide').classList.toggle('on', appShell.dataset.nav==='side');
+  document.getElementById('ddNavTop').classList.toggle('on', appShell.dataset.nav==='top');
+  document.getElementById('ddThemeDark').classList.toggle('on', appShell.dataset.theme==='dark');
+  document.getElementById('ddThemeLight').classList.toggle('on', appShell.dataset.theme==='light');
 }
 document.querySelectorAll('.pal-dot').forEach(d=> d.addEventListener('click', ()=> setPalette(d.dataset.pal)));
 setPalette(3);
 setTheme('dark');
 
-// ============ Tabs ============
+// ============ Tabs (višestruki, kao terminal) ============
+const VIEW_LABEL = {users:'korisnici', roles:'uloge', audit:'audit-log'};
+let tabs = [
+  {id:1, view:'users'},
+  {id:2, view:'roles'},
+  {id:3, view:'audit'},
+];
+let activeTabId = 1;
+let tabIdSeq = 4;
+
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));
   document.getElementById('view-'+name).classList.remove('hidden');
-  document.querySelectorAll('.term-tab').forEach(t=> t.classList.toggle('active', t.dataset.view===name));
+  if(name==='audit') renderAudit();
+}
+
+function renderTabs(){
+  const list = document.getElementById('tabsList');
+  list.innerHTML = '';
+  tabs.forEach(t=>{
+    const el = document.createElement('div');
+    el.className = 'term-tab' + (t.id===activeTabId ? ' active' : '');
+    el.innerHTML = `<span class="prompt">$</span><span class="lbl">${VIEW_LABEL[t.view]}</span><span class="tab-close" title="Zatvori tab">✕</span>`;
+    el.addEventListener('click', (e)=>{
+      if(e.target.classList.contains('tab-close')) return;
+      activeTabId = t.id; renderTabs(); showView(t.view);
+    });
+    el.querySelector('.tab-close').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(tabs.length===1) return;
+      const idx = tabs.findIndex(x=>x.id===t.id);
+      tabs.splice(idx,1);
+      if(activeTabId===t.id){
+        const next = tabs[Math.max(0,idx-1)];
+        activeTabId = next.id; showView(next.view);
+      }
+      renderTabs();
+    });
+    list.appendChild(el);
+  });
+}
+function addTab(view){
+  const t = {id:tabIdSeq++, view};
+  tabs.push(t); activeTabId = t.id;
+  renderTabs(); showView(view);
 }
 
 // ============ Users ============
@@ -683,11 +838,8 @@ document.getElementById('linkForgotPass').addEventListener('click', ()=>alert('R
 document.getElementById('btnDoLogin').addEventListener('click', doLogin);
 document.getElementById('linkBackupCode').addEventListener('click', ()=>alert('Rezervni kod za slučaj izgubljenog uređaja.'));
 document.getElementById('btnLogout').addEventListener('click', doLogout);
-document.querySelectorAll('.term-tab').forEach(t=> t.addEventListener('click', ()=>{ showView(t.dataset.view); if(t.dataset.view==='audit') renderAudit(); }));
 document.getElementById('userSearch').addEventListener('input', renderUsers);
 document.getElementById('userSort').addEventListener('change', (e)=>{ userSortMode = e.target.value; renderUsers(); });
-document.getElementById('btnNavToggle').addEventListener('click', toggleNav);
-document.getElementById('btnThemeToggle').addEventListener('click', toggleTheme);
 document.getElementById('panelOverlay').addEventListener('click', closePanel);
 document.getElementById('btnPanelClose').addEventListener('click', closePanel);
 document.querySelectorAll('.toggle-pair span').forEach(s=> s.addEventListener('click', ()=>pickEffect(s)));
@@ -700,7 +852,98 @@ document.getElementById('cmdkOverlay').addEventListener('click', (e)=>{ if(e.tar
 document.getElementById('cmdkInput').addEventListener('input', (e)=> renderCmdResults(e.target.value));
 document.addEventListener('keydown', (e)=>{
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmdk(); }
-  if(e.key==='Escape'){ closeCmdk(); }
+  if(e.key==='Escape'){ closeCmdk(); closeAllDropdowns(); }
+});
+
+// ============ Dropdowns: novi tab + podešavanja ============
+function closeAllDropdowns(){ document.querySelectorAll('.dropdown').forEach(d=>d.classList.remove('show')); }
+function toggleDropdown(id){
+  const el = document.getElementById(id);
+  const willShow = !el.classList.contains('show');
+  closeAllDropdowns();
+  if(willShow) el.classList.add('show');
+}
+document.getElementById('btnTabAdd').addEventListener('click', (e)=>{ e.stopPropagation(); toggleDropdown('ddNewTab'); });
+document.getElementById('btnSettingsToggle').addEventListener('click', (e)=>{ e.stopPropagation(); toggleDropdown('ddSettings'); });
+document.querySelectorAll('#ddNewTab .dd-item[data-open]').forEach(it=> it.addEventListener('click', ()=>{ addTab(it.dataset.open); closeAllDropdowns(); }));
+document.getElementById('ddNavSide').addEventListener('click', ()=>{ if(appShell.dataset.nav!=='side') toggleNav(); });
+document.getElementById('ddNavTop').addEventListener('click', ()=>{ if(appShell.dataset.nav!=='top') toggleNav(); });
+document.getElementById('ddThemeDark').addEventListener('click', ()=> setTheme('dark'));
+document.getElementById('ddThemeLight').addEventListener('click', ()=> setTheme('light'));
+document.getElementById('ddSettingsLink').addEventListener('click', closeAllDropdowns);
+document.addEventListener('click', (e)=>{ if(!e.target.closest('.dropdown')) closeAllDropdowns(); });
+
+// ============ Donja traka — komande + AI agent ============
+const chatLog = document.getElementById('chatLog');
+const bottomDrawer = document.getElementById('bottomDrawer');
+function openDrawer(){ bottomDrawer.classList.add('open'); chatLog.scrollTop = chatLog.scrollHeight; }
+function toggleDrawer(){ bottomDrawer.classList.toggle('open'); }
+document.getElementById('btnDrawerToggle').addEventListener('click', toggleDrawer);
+
+function pushChat(who, html, fromLabel){
+  const row = document.createElement('div');
+  row.className = 'chat-msg ' + who;
+  row.innerHTML = `<div class="who">${who==='user'?'VI':'AI'}</div><div class="bubble">${fromLabel?('<span class="from">'+fromLabel+'</span>'):''}${html}</div>`;
+  chatLog.appendChild(row);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return row;
+}
+function pushTyping(){
+  const row = document.createElement('div');
+  row.className = 'chat-msg agent'; row.id = '__typing';
+  row.innerHTML = `<div class="who">AI</div><div class="bubble"><div class="agent-typing"><span></span><span></span><span></span></div></div>`;
+  chatLog.appendChild(row); chatLog.scrollTop = chatLog.scrollHeight;
+}
+function popTyping(){ const t=document.getElementById('__typing'); if(t) t.remove(); }
+
+const NAV_COMMANDS = {
+  'korisnici':'users', 'users':'users', 'ls korisnici':'users',
+  'uloge':'roles', 'roles':'roles',
+  'audit':'audit', 'audit-log':'audit', 'audit log':'audit',
+};
+
+function agentAnswer(q){
+  const s = q.toLowerCase();
+  if(s.includes('suspend')){
+    const list = USERS.filter(u=>u.status==='SUSPENDED');
+    return `Pronašao sam <b>${list.length}</b> suspendovan nalog preko M1 agenta: ${list.map(u=>u.name).join(', ')||'—'}.`;
+  }
+  if(s.includes('pozvan') || s.includes('invited')){
+    const list = USERS.filter(u=>u.status==='INVITED');
+    return `M1 agent javlja: <b>${list.length}</b> nalog(a) čeka aktivaciju — ${list.map(u=>u.name).join(', ')||'—'}.`;
+  }
+  if(s.includes('koliko korisnika') || s.includes('broj korisnika')){
+    return `Trenutno <b>${USERS.length}</b> naloga u M1 (${USERS.filter(u=>u.status==='ACTIVE').length} aktivnih).`;
+  }
+  if(s.includes('2fa')){
+    const off = USERS.filter(u=>!u.mfa).length;
+    return `<b>${off}</b> nalog(a) još nema uključenu 2FA — proverio kod M1 domenskog agenta.`;
+  }
+  if(s.includes('uloga') || s.includes('role')){
+    return `Sistemske uloge: ${ROLES.filter(r=>!r.future).map(r=>'<code>'+r.name+'</code>').join(', ')}.`;
+  }
+  return `Nisam siguran — prosleđujem pitanje odgovarajućem modulskom agentu (M1) preko glavnog orkestracionog agenta (M15). Ovo je simulacija u prototipu; u pravoj aplikaciji ovde stiže stvaran odgovor ili ponuda da otvorim tiket podrške (M21).`;
+}
+
+document.getElementById('bottomInput').addEventListener('keydown', (e)=>{
+  if(e.key!=='Enter') return;
+  const val = e.target.value.trim();
+  if(!val) return;
+  e.target.value='';
+  const navTarget = NAV_COMMANDS[val.toLowerCase()];
+  if(navTarget){
+    openDrawer();
+    pushChat('user', '<code>'+val+'</code>');
+    const existing = tabs.find(t=>t.view===navTarget);
+    if(existing){ activeTabId = existing.id; renderTabs(); showView(navTarget); }
+    else addTab(navTarget);
+    pushChat('agent', `→ otvoren tab: <b>${VIEW_LABEL[navTarget]}</b>`);
+    return;
+  }
+  openDrawer();
+  pushChat('user', val);
+  pushTyping();
+  setTimeout(()=>{ popTyping(); pushChat('agent', agentAnswer(val), 'glavni agent · M15'); }, 650);
 });
 
 // Invite modal
@@ -725,5 +968,6 @@ document.getElementById('btnInviteSubmit').addEventListener('click', ()=>{
 });
 
 // ============ Init ============
-renderUsers(); renderRoles(); renderAudit();
+renderUsers(); renderRoles(); renderAudit(); renderTabs();
+pushChat('agent', 'Zdravo! Ja sam glavni orkestracioni agent (M15). Ukucajte komandu (npr. <code>korisnici</code>, <code>uloge</code>, <code>audit</code>) ili mi postavite pitanje — proslediću ga odgovarajućem modulskom agentu.', 'glavni agent · M15');
 </script>
