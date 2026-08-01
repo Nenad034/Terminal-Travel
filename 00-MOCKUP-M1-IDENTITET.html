@@ -1,0 +1,722 @@
+<title>Terminal — M1 Core/Identitet (UI prototip)</title>
+<style>
+:root{
+  --ink:#10151f; --paper:#f4f6f8; --surface:#ffffff; --surface-2:#eef1f4; --border:#dde2e8;
+  --text:#151b26; --text-dim:#5c6673; --text-faint:#8892a0;
+  --brand:#1f5f5b; --brand-strong:#143f3c; --brand-soft:#e2f0ee;
+  --ok:#1f9d67; --ok-bg:#e3f6ec;
+  --warn:#b9790f; --warn-bg:#fbead2;
+  --danger:#c0392b; --danger-bg:#fbe4e1;
+  --shadow:0 1px 2px rgba(16,21,31,.05), 0 8px 24px -12px rgba(16,21,31,.12);
+  --radius:12px;
+  --sidebar-w:236px; --header-h:56px; --tabbar-h:48px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#0c0f14; --surface:#12161d; --surface-2:#171c25; --border:#262e3a;
+    --text:#e7ebf1; --text-dim:#9aa4b2; --text-faint:#697382;
+    --brand:#3fa89f; --brand-strong:#63c2b9; --brand-soft:#123330;
+    --ok:#3ecf8e; --ok-bg:#0f2b21;
+    --warn:#e0a542; --warn-bg:#2e2210;
+    --danger:#e5766a; --danger-bg:#33110e;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -14px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0c0f14; --surface:#12161d; --surface-2:#171c25; --border:#262e3a;
+  --text:#e7ebf1; --text-dim:#9aa4b2; --text-faint:#697382;
+  --brand:#3fa89f; --brand-strong:#63c2b9; --brand-soft:#123330;
+  --ok:#3ecf8e; --ok-bg:#0f2b21;
+  --warn:#e0a542; --warn-bg:#2e2210;
+  --danger:#e5766a; --danger-bg:#33110e;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 12px 32px -14px rgba(0,0,0,.6);
+}
+:root[data-theme="light"]{
+  --paper:#f4f6f8; --surface:#ffffff; --surface-2:#eef1f4; --border:#dde2e8;
+  --text:#151b26; --text-dim:#5c6673; --text-faint:#8892a0;
+  --brand:#1f5f5b; --brand-strong:#143f3c; --brand-soft:#e2f0ee;
+  --ok:#1f9d67; --ok-bg:#e3f6ec;
+  --warn:#b9790f; --warn-bg:#fbead2;
+  --danger:#c0392b; --danger-bg:#fbe4e1;
+  --shadow:0 1px 2px rgba(16,21,31,.05), 0 8px 24px -12px rgba(16,21,31,.12);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font-family:ui-sans-serif,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; font-size:14.5px;
+}
+code, .mono{font-family:ui-monospace,"Cascadia Code","SFMono-Regular",Menlo,Consolas,monospace}
+.tabular{font-variant-numeric:tabular-nums}
+button{font-family:inherit}
+input, select, textarea{font-family:inherit; font-size:inherit}
+
+/* ================= PROTOTYPE BANNER ================= */
+.proto-banner{
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  background:var(--ink); color:#cfd6e0; font-size:11.5px; padding:6px 16px;
+  display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap;
+}
+.proto-banner b{color:#fff}
+.proto-banner a{color:#8fd6cc}
+
+/* ================= LOGIN ================= */
+#loginScreen{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, var(--brand-strong), var(--ink) 65%); padding:20px;
+}
+.login-card{
+  width:100%; max-width:380px; background:var(--surface); border-radius:var(--radius);
+  box-shadow:0 20px 60px -20px rgba(0,0,0,.5); padding:34px 30px; border:1px solid var(--border);
+}
+.login-brand{display:flex; align-items:center; gap:10px; margin-bottom:22px}
+.login-brand .mark{
+  width:34px; height:34px; border-radius:9px; background:var(--brand); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;
+}
+.login-brand b{font-size:16px; letter-spacing:.02em}
+.login-card h1{font-size:1.25rem; margin:0 0 4px}
+.login-card .sub{color:var(--text-dim); font-size:.85rem; margin:0 0 22px}
+.field{margin-bottom:14px}
+.field label{display:block; font-size:.78rem; font-weight:600; color:var(--text-dim); margin-bottom:5px}
+.field input{
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border);
+  background:var(--paper); color:var(--text);
+}
+.field input:focus{outline:2px solid var(--brand); outline-offset:1px}
+.btn-primary{
+  width:100%; padding:11px; border-radius:8px; border:0; background:var(--brand); color:#fff;
+  font-weight:700; font-size:.92rem; cursor:pointer; margin-top:6px;
+}
+.btn-primary:hover{background:var(--brand-strong)}
+.login-links{display:flex; justify-content:space-between; font-size:.8rem; margin-top:14px}
+.login-links a{color:var(--brand); text-decoration:none; cursor:pointer}
+.mfa-boxes{display:flex; gap:8px; margin:4px 0 18px}
+.mfa-boxes input{
+  width:38px; height:46px; text-align:center; font-size:1.1rem; border-radius:8px;
+  border:1px solid var(--border); background:var(--paper); color:var(--text);
+}
+.demo-note{
+  background:var(--brand-soft); border:1px dashed var(--brand); border-radius:8px;
+  padding:8px 10px; font-size:.75rem; color:var(--brand-strong); margin-top:16px; line-height:1.5;
+}
+
+/* ================= APP SHELL ================= */
+#appShell{display:none; min-height:100vh}
+.sidebar{
+  position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); background:var(--ink);
+  color:#cfd6e0; display:flex; flex-direction:column; z-index:30;
+}
+.sidebar .brand{
+  display:flex; align-items:center; gap:10px; padding:16px 16px; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.sidebar .brand .mark{
+  width:30px; height:30px; border-radius:8px; background:var(--brand); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex:0 0 auto;
+}
+.sidebar .brand b{color:#fff; font-size:14.5px; letter-spacing:.01em}
+.sidebar-nav{flex:1; overflow-y:auto; padding:10px 10px 16px}
+.nav-item{
+  display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; margin-bottom:2px;
+  font-size:13px; cursor:pointer; color:#aab2bf;
+}
+.nav-item .ico{width:18px; text-align:center; flex:0 0 auto; font-size:14px}
+.nav-item.active{background:var(--brand); color:#fff; font-weight:700}
+.nav-item.disabled{opacity:.4; cursor:default}
+.nav-item.disabled .soon{
+  margin-left:auto; font-size:9.5px; background:rgba(255,255,255,.1); padding:1px 6px; border-radius:999px;
+}
+.nav-item:not(.disabled):not(.active):hover{background:rgba(255,255,255,.06); color:#fff}
+.sidebar-foot{padding:12px 16px; border-top:1px solid rgba(255,255,255,.08); font-size:11px; color:#6b7280}
+
+.topbar{
+  position:fixed; top:0; left:var(--sidebar-w); right:0; height:var(--header-h); z-index:25;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 22px; gap:14px;
+}
+.crumb{font-size:13px; color:var(--text-dim)}
+.crumb b{color:var(--text)}
+.topbar .who{
+  margin-left:auto; display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim);
+}
+.avatar{
+  width:28px; height:28px; border-radius:50%; background:var(--brand-soft); color:var(--brand-strong);
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11.5px;
+}
+.btn-logout{border:1px solid var(--border); background:var(--surface); border-radius:7px; padding:5px 10px; font-size:11.5px; color:var(--text-dim); cursor:pointer}
+.btn-logout:hover{border-color:var(--danger); color:var(--danger)}
+
+main.content{
+  margin-left:var(--sidebar-w); padding-top:calc(var(--header-h) + var(--tabbar-h));
+  min-height:100vh; padding-bottom:60px;
+}
+.tabbar{
+  position:fixed; top:var(--header-h); left:var(--sidebar-w); right:0; height:var(--tabbar-h); z-index:24;
+  background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center;
+  gap:4px; padding:0 22px;
+}
+.tab{
+  padding:8px 14px; border-radius:8px 8px 0 0; font-size:13px; font-weight:600; color:var(--text-dim);
+  cursor:pointer; border-bottom:2px solid transparent;
+}
+.tab.active{color:var(--brand-strong); border-bottom-color:var(--brand)}
+.tab:hover:not(.active){color:var(--text)}
+
+.view{display:none; padding:24px 28px; max-width:1180px}
+.view.active{display:block}
+.view-head{display:flex; align-items:center; gap:14px; margin-bottom:18px; flex-wrap:wrap}
+.view-head h2{font-size:1.15rem; margin:0}
+.view-head .desc{color:var(--text-dim); font-size:.82rem; flex-basis:100%}
+.view-head .spacer{margin-left:auto}
+
+.btn{
+  border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:8px;
+  padding:8px 14px; font-size:.83rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{border-color:var(--brand); color:var(--brand-strong)}
+.btn-brand{background:var(--brand); border-color:var(--brand); color:#fff}
+.btn-brand:hover{background:var(--brand-strong); color:#fff}
+
+.search-inline{
+  display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; padding:7px 11px; font-size:.83rem; min-width:220px;
+}
+.search-inline input{border:0; background:transparent; outline:0; color:var(--text); width:100%}
+
+/* table */
+.table-card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden}
+table{width:100%; border-collapse:collapse}
+thead th{
+  text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint);
+  padding:11px 16px; border-bottom:1px solid var(--border); background:var(--surface-2); font-weight:700;
+}
+tbody td{padding:12px 16px; border-bottom:1px solid var(--border); font-size:13.2px; vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--surface-2)}
+.cell-name{font-weight:700}
+.cell-sub{color:var(--text-faint); font-size:11.5px}
+.badge{
+  display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px;
+  border-radius:999px; white-space:nowrap;
+}
+.badge.ok{background:var(--ok-bg); color:var(--ok)}
+.badge.warn{background:var(--warn-bg); color:var(--warn)}
+.badge.danger{background:var(--danger-bg); color:var(--danger)}
+.badge.neutral{background:var(--surface-2); color:var(--text-dim)}
+.role-chip{
+  display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px;
+  background:var(--brand-soft); color:var(--brand-strong); margin:1px 3px 1px 0;
+}
+.mfa-dot{width:7px; height:7px; border-radius:50%; display:inline-block}
+.mfa-dot.on{background:var(--ok)} .mfa-dot.off{background:var(--text-faint)}
+.icon-btn{
+  border:1px solid var(--border); background:var(--surface); width:28px; height:28px; border-radius:7px;
+  cursor:pointer; color:var(--text-dim); display:inline-flex; align-items:center; justify-content:center;
+}
+.icon-btn:hover{border-color:var(--brand); color:var(--brand-strong)}
+
+/* role cards */
+.role-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:14px}
+.role-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:16px; display:flex; flex-direction:column; gap:8px;
+}
+.role-card.future{opacity:.55; border-style:dashed}
+.role-card .rh{display:flex; align-items:center; gap:8px}
+.role-card .rh b{font-size:.98rem; flex:1 1 auto}
+.role-card .count{font-size:11px; color:var(--text-faint)}
+.role-card p{margin:0; font-size:.82rem; color:var(--text-dim); line-height:1.5}
+.tag-sys{font-size:10px; font-weight:700; color:var(--brand-strong); background:var(--brand-soft); padding:1px 7px; border-radius:999px}
+.tag-future{font-size:10px; font-weight:700; color:var(--warn); background:var(--warn-bg); padding:1px 7px; border-radius:999px}
+
+/* audit log */
+.audit-row{cursor:pointer}
+.audit-detail{display:none; background:var(--surface-2)}
+.audit-row.open + .audit-detail{display:table-row}
+.audit-detail td{padding:14px 16px 18px 46px}
+.diff-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+.diff-box{background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px}
+.diff-box h4{margin:0 0 6px; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint)}
+.diff-box pre{margin:0; font-size:11.5px; white-space:pre-wrap; line-height:1.5}
+.actor-ico{width:20px; height:20px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; margin-right:6px}
+.actor-ico.human{background:var(--brand-soft); color:var(--brand-strong)}
+.actor-ico.ai{background:#eef0ff; color:#5b57d6}
+.actor-ico.system{background:var(--surface-2); color:var(--text-faint)}
+.filter-bar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px}
+.filter-bar select, .filter-bar input[type=date]{
+  border:1px solid var(--border); background:var(--surface); border-radius:8px; padding:7px 10px; font-size:.8rem; color:var(--text);
+}
+
+/* right slide-in panel */
+.overlay{position:fixed; inset:0; background:rgba(10,14,20,.45); z-index:49; display:none}
+.overlay.show{display:block}
+.panel{
+  position:fixed; top:0; right:0; bottom:0; width:min(460px,92vw); background:var(--surface);
+  border-left:1px solid var(--border); z-index:50; transform:translateX(100%); transition:transform .25s ease;
+  display:flex; flex-direction:column; box-shadow:-20px 0 50px -20px rgba(0,0,0,.35);
+}
+.panel.show{transform:translateX(0)}
+.panel-head{display:flex; align-items:flex-start; gap:12px; padding:20px 22px; border-bottom:1px solid var(--border)}
+.panel-head .pav{
+  width:44px; height:44px; border-radius:50%; background:var(--brand-soft); color:var(--brand-strong);
+  display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex:0 0 auto;
+}
+.panel-head h3{margin:0 0 2px; font-size:1.05rem}
+.panel-head .em{color:var(--text-dim); font-size:.8rem}
+.panel-close{margin-left:auto; border:0; background:none; font-size:18px; cursor:pointer; color:var(--text-faint)}
+.panel-body{flex:1; overflow-y:auto; padding:18px 22px}
+.panel-section{margin-bottom:22px}
+.panel-section h4{
+  font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); margin:0 0 10px;
+  display:flex; align-items:center; gap:8px;
+}
+.kv{display:grid; grid-template-columns:110px 1fr; gap:8px 10px; font-size:12.8px; margin-bottom:4px}
+.kv b{color:var(--text-dim); font-weight:600}
+.override-item{
+  border:1px solid var(--border); border-radius:8px; padding:9px 11px; margin-bottom:8px; font-size:12px;
+}
+.override-item .row1{display:flex; align-items:center; gap:8px; margin-bottom:4px}
+.override-item .reason{color:var(--text-dim); font-style:italic}
+.override-item .meta{color:var(--text-faint); font-size:11px; margin-top:4px}
+.add-override{border:1px dashed var(--border); border-radius:8px; padding:12px; margin-top:8px}
+.add-override .row{display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap}
+.add-override select, .add-override textarea, .add-override input{
+  border:1px solid var(--border); background:var(--paper); border-radius:7px; padding:7px 9px; font-size:12.5px; color:var(--text);
+}
+.add-override textarea{width:100%; resize:vertical; min-height:50px}
+.toggle-pair{display:flex; border:1px solid var(--border); border-radius:7px; overflow:hidden}
+.toggle-pair span{padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; color:var(--text-dim)}
+.toggle-pair span.sel-allow.on{background:var(--ok-bg); color:var(--ok)}
+.toggle-pair span.sel-deny.on{background:var(--danger-bg); color:var(--danger)}
+
+/* invite modal */
+.modal-overlay{position:fixed; inset:0; background:rgba(10,14,20,.45); z-index:59; display:none; align-items:center; justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface); border-radius:var(--radius); width:min(420px,92vw); padding:22px; box-shadow:0 30px 70px -20px rgba(0,0,0,.5)}
+.modal h3{margin:0 0 4px}
+.modal .sub{color:var(--text-dim); font-size:.82rem; margin:0 0 16px}
+.role-pick{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px}
+.role-pick span{
+  border:1px solid var(--border); border-radius:999px; padding:4px 11px; font-size:11.5px; cursor:pointer; color:var(--text-dim);
+}
+.role-pick span.picked{background:var(--brand); border-color:var(--brand); color:#fff}
+.modal-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:18px}
+
+@media (max-width:820px){
+  :root{--sidebar-w:0px}
+  .sidebar{display:none}
+  .topbar, .tabbar, main.content{left:0}
+}
+</style>
+
+<!-- ================= LOGIN ================= -->
+<div id="loginScreen">
+  <div class="login-card" id="loginStep1">
+    <div class="login-brand"><div class="mark">T</div><b>TERMINAL</b></div>
+    <h1>Prijava u interni panel</h1>
+    <p class="sub">Unesite email i lozinku vašeg naloga.</p>
+    <div class="field"><label>Email</label><input id="loginEmail" type="email" value="nenad@terminaltravel.rs"></div>
+    <div class="field"><label>Lozinka</label><input id="loginPass" type="password" value="••••••••••••"></div>
+    <button class="btn-primary" id="btnGoMfa">Prijavi se</button>
+    <div class="login-links"><a id="linkForgotPass">Zaboravljena lozinka?</a></div>
+    <div class="demo-note">🔧 Ovo je klikabilan prototip UI-ja za M1, ne prava aplikacija. Podaci su izmišljeni radi prikaza.</div>
+  </div>
+  <div class="login-card" id="loginStep2" style="display:none">
+    <div class="login-brand"><div class="mark">T</div><b>TERMINAL</b></div>
+    <h1>Dvofaktorska potvrda</h1>
+    <p class="sub">Unesite 6-cifreni kod iz vaše autentifikator aplikacije. Obavezno za sve interne uloge.</p>
+    <div class="mfa-boxes">
+      <input maxlength="1" value="4"><input maxlength="1" value="1"><input maxlength="1" value="9"><input maxlength="1" value="2"><input maxlength="1" value="6"><input maxlength="1" value="0">
+    </div>
+    <button class="btn-primary" id="btnDoLogin">Potvrdi</button>
+    <div class="login-links"><a id="linkBackupCode">Koristi rezervni kod</a></div>
+  </div>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div id="appShell">
+  <nav class="sidebar">
+    <div class="brand"><div class="mark">T</div><b>TERMINAL</b></div>
+    <div class="sidebar-nav">
+      <div class="nav-item active"><span class="ico">👤</span>Korisnici i uloge</div>
+      <div class="nav-item disabled"><span class="ico">🧾</span>Katalog proizvoda<span class="soon">Faza 1</span></div>
+      <div class="nav-item disabled"><span class="ico">📄</span>Ugovori i alotmani<span class="soon">Faza 1</span></div>
+      <div class="nav-item disabled"><span class="ico">🔎</span>Rezervacije<span class="soon">Faza 1</span></div>
+      <div class="nav-item disabled"><span class="ico">💳</span>Finansije<span class="soon">Faza 2</span></div>
+      <div class="nav-item disabled"><span class="ico">🛂</span>Compliance<span class="soon">Faza 2</span></div>
+      <div class="nav-item disabled"><span class="ico">💬</span>Gosti (CRM)<span class="soon">Faza 3</span></div>
+      <div class="nav-item disabled"><span class="ico">🤝</span>B2B partneri<span class="soon">Faza 4</span></div>
+      <div class="nav-item disabled"><span class="ico">📊</span>Izveštaji<span class="soon">Faza 5</span></div>
+      <div class="nav-item disabled"><span class="ico">🎧</span>Podrška<span class="soon">Faza 5</span></div>
+    </div>
+    <div class="sidebar-foot">M1 aktivan · ostali moduli rastu sa fazama (poglavlje 8 Master dokumenta)</div>
+  </nav>
+
+  <div class="topbar">
+    <div class="crumb">Terminal / <b id="crumbTitle">Korisnici i uloge</b></div>
+    <div class="who"><div class="avatar">NT</div> Nenad Tomić · Vlasnik <button class="btn-logout" id="btnLogout">Odjava</button></div>
+  </div>
+  <div class="tabbar">
+    <div class="tab active" data-view="users">Korisnici</div>
+    <div class="tab" data-view="roles">Uloge</div>
+    <div class="tab" data-view="audit">Audit log</div>
+  </div>
+
+  <main class="content">
+
+    <!-- ===== VIEW: USERS ===== -->
+    <section class="view active" id="view-users">
+      <div class="view-head">
+        <h2>Korisnici</h2>
+        <div class="desc">Nalozi za prijavu u interni panel. Poslovni profil gosta (M6) ili subagenta (M7) živi u tim modulima — ovde je samo login identitet.</div>
+        <div class="search-inline"><span>🔍</span><input id="userSearch" placeholder="Pretraži ime ili email…"></div>
+        <button class="btn btn-brand spacer" id="btnOpenInvite">+ Pozovi korisnika</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Korisnik</th><th>Uloge</th><th>Status</th><th>2FA</th><th>Poslednja prijava</th><th></th></tr></thead>
+          <tbody id="usersTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== VIEW: ROLES ===== -->
+    <section class="view" id="view-roles">
+      <div class="view-head">
+        <h2>Uloge</h2>
+        <div class="desc">Sistemske uloge (poglavlje 4 specifikacije) — ne mogu se obrisati, samo dopuniti dozvolama kad novi modul dođe na red.</div>
+      </div>
+      <div class="role-grid" id="rolesGrid"></div>
+    </section>
+
+    <!-- ===== VIEW: AUDIT ===== -->
+    <section class="view" id="view-audit">
+      <div class="view-head">
+        <h2>Audit log</h2>
+        <div class="desc">Append-only zapis svake izmene — fizički zaštićen od brisanja/izmene (princip #5, Master dokument poglavlje 3).</div>
+      </div>
+      <div class="filter-bar">
+        <select id="fModule"><option value="">Svi moduli</option><option>M1</option></select>
+        <select id="fActor"><option value="">Svi izvršioci</option><option value="HUMAN">Čovek</option><option value="AI_AGENT">AI agent</option><option value="SYSTEM">Sistem</option></select>
+        <input type="date" id="fDate">
+        <button class="btn" id="btnAuditFilter">Filtriraj</button>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead><tr><th>Vreme</th><th>Izvršilac</th><th>Akcija</th><th>Resurs</th><th>IP</th></tr></thead>
+          <tbody id="auditTbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= USER DETAIL PANEL ================= -->
+<div class="overlay" id="panelOverlay"></div>
+<aside class="panel" id="userPanel">
+  <div class="panel-head">
+    <div class="pav" id="pAvatar">—</div>
+    <div>
+      <h3 id="pName">—</h3>
+      <div class="em" id="pEmail">—</div>
+    </div>
+    <button class="panel-close" id="btnPanelClose">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-section">
+      <h4>Profil</h4>
+      <div class="kv"><b>Telefon</b><span id="pPhone">—</span></div>
+      <div class="kv"><b>Tip naloga</b><span id="pType">—</span></div>
+      <div class="kv"><b>Status</b><span id="pStatus">—</span></div>
+      <div class="kv"><b>2FA</b><span id="pMfa">—</span></div>
+      <div class="kv"><b>Kreiran</b><span id="pCreated">—</span></div>
+      <div class="kv"><b>Poslednja prijava</b><span id="pLastLogin">—</span></div>
+    </div>
+    <div class="panel-section">
+      <h4>Dodeljene uloge</h4>
+      <div id="pRoles"></div>
+    </div>
+    <div class="panel-section">
+      <h4>Pojedinačni izuzeci (UserPermissionOverride) <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-faint)">— jače od uloge</span></h4>
+      <div id="pOverrides"></div>
+      <div class="add-override">
+        <div class="row">
+          <select id="ovPerm"><option>M5 / booking / VIEW (sve rezervacije, ne samo sopstvene)</option><option>M10 / invoice / VIEW</option><option>M13 / report:sales / EXPORT</option></select>
+        </div>
+        <div class="row">
+          <span style="font-size:11.5px; color:var(--text-dim); align-self:center">Dejstvo:</span>
+          <div class="toggle-pair"><span class="sel-allow on">ALLOW</span><span class="sel-deny">DENY</span></div>
+          <input type="date" id="ovExpires" style="margin-left:auto">
+        </div>
+        <textarea id="ovReason" placeholder="Razlog (obavezno) — npr. „Zamenjuje kolegu na godišnjem odmoru”"></textarea>
+        <button class="btn btn-brand" style="margin-top:8px" id="btnAddOverride">+ Dodaj izuzetak</button>
+      </div>
+    </div>
+    <div class="panel-section">
+      <h4>Radnje</h4>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn" id="btnResetPw">Pošalji reset lozinke</button>
+        <button class="btn" id="btnSuspend" style="border-color:var(--danger); color:var(--danger)">Suspenduj nalog</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ================= INVITE MODAL ================= -->
+<div class="modal-overlay" id="inviteOverlay">
+  <div class="modal">
+    <h3>Pozovi novog korisnika</h3>
+    <p class="sub">Nalog dobija status <code>INVITED</code> — link za postavljanje lozinke (i obavezno 2FA za interne uloge) šalje se na email.</p>
+    <div class="field"><label>Puno ime</label><input id="invName" placeholder="npr. Jelena Marković"></div>
+    <div class="field"><label>Email</label><input id="invEmail" placeholder="jelena.markovic@terminaltravel.rs"></div>
+    <div class="field"><label>Telefon (opciono)</label><input id="invPhone" placeholder="+381 6…"></div>
+    <div class="field">
+      <label>Uloge</label>
+      <div class="role-pick" id="invRolePick"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="btnInviteCancel">Otkaži</button>
+      <button class="btn btn-brand" id="btnInviteSubmit">Pošalji poziv</button>
+    </div>
+  </div>
+</div>
+
+<div class="proto-banner">
+  <b>UI prototip · M1 Core/Identitet</b> — polja i tokovi prate <code>02-SPECIFIKACIJA-M1-CORE-IDENTITET.md</code>, poglavlje 3–6. Nijedan klik ne menja stvarne podatke.
+</div>
+
+<script>
+// ============ Podaci (izmišljeni, radi prikaza) ============
+const ROLES = [
+  {name:'Vlasnik', desc:'Pristup svemu, uključujući upravljanje ulogama i pojedinačnim izuzecima. Jedina uloga koja ne može biti oduzeta poslednjem preostalom nosiocu.', system:true, users:1},
+  {name:'Direktor', desc:'Pristup svemu osim promena vezanih za licencu agencije i vlasničku strukturu.', system:true, users:1},
+  {name:'HR', desc:'Upravljanje korisnicima i njihovim ulogama unutar tima, bez pristupa rezervacijama/finansijama/katalogu.', system:true, users:1},
+  {name:'Sales Manager', desc:'Uvid u rezervacije/CRM celog prodajnog tima, izveštaji o prodaji (read-only), bez finansija/fiskalizacije.', system:true, users:2},
+  {name:'Prodajni agent', desc:'Katalog (read), rezervacije i CRM ograničeni na sopstvene klijente — osim uz poseban izuzetak.', system:true, users:3},
+  {name:'Računovođa', desc:'Finansije/fiskalizacija (M10), Compliance (M11), read-only uvid u rezervacije radi fakturisanja.', system:true, users:1},
+  {name:'Gost', desc:'Isključivo sopstveni profil i rezervacije (M6/M8), bez pristupa internom panelu.', system:true, users:0},
+  {name:'SUBAGENT_ADMIN', desc:'Portal nalog subagenta — sopstveni profil, rezervacije, upravljanje sopstvenim sub-subagentima.', system:true, users:0, future:'Aktivira se u Fazi 4 (M7)'},
+  {name:'VODIC', desc:'Sopstveni dodeljeni itinerar i gosti na tim polascima, preko offline-first mobilne aplikacije.', system:true, users:0, future:'Aktivira se u Fazi 6 (M9)'},
+];
+
+const USERS = [
+  {id:1, name:'Nenad Tomić', email:'nenad@terminaltravel.rs', phone:'+381 63 111 2223', roles:['Vlasnik'], status:'ACTIVE', mfa:true, lastLogin:'01.08.2026. 09:14', created:'12.01.2026.'},
+  {id:2, name:'Ana Jovanović', email:'ana.jovanovic@terminaltravel.rs', phone:'+381 64 220 1190', roles:['Direktor'], status:'ACTIVE', mfa:true, lastLogin:'31.07.2026. 18:02', created:'12.01.2026.'},
+  {id:3, name:'Milica Radović', email:'milica.radovic@terminaltravel.rs', phone:'+381 63 445 8821', roles:['HR'], status:'ACTIVE', mfa:true, lastLogin:'01.08.2026. 08:40', created:'15.01.2026.'},
+  {id:4, name:'Stefan Nikolić', email:'stefan.nikolic@terminaltravel.rs', phone:'+381 62 330 9012', roles:['Sales Manager'], status:'ACTIVE', mfa:true, lastLogin:'31.07.2026. 16:47', created:'20.01.2026.'},
+  {id:5, name:'Jovana Ilić', email:'jovana.ilic@terminaltravel.rs', phone:'+381 65 118 2244', roles:['Prodajni agent'], status:'ACTIVE', mfa:true, lastLogin:'01.08.2026. 09:02', created:'03.02.2026.', hasOverride:true},
+  {id:6, name:'Marko Petrović', email:'marko.petrovic@terminaltravel.rs', phone:'+381 60 771 3305', roles:['Prodajni agent'], status:'ACTIVE', mfa:true, lastLogin:'30.07.2026. 11:15', created:'03.02.2026.'},
+  {id:7, name:'Dragana Simić', email:'dragana.simic@terminaltravel.rs', phone:'+381 63 902 4471', roles:['Računovođa'], status:'ACTIVE', mfa:true, lastLogin:'01.08.2026. 07:55', created:'18.02.2026.'},
+  {id:8, name:'Nikola Đorđević', email:'nikola.djordjevic@terminaltravel.rs', phone:'—', roles:['Prodajni agent'], status:'INVITED', mfa:false, lastLogin:'—', created:'29.07.2026.'},
+  {id:9, name:'Petar Kovačević', email:'petar.kovacevic@terminaltravel.rs', phone:'+381 61 550 6690', roles:['Sales Manager'], status:'SUSPENDED', mfa:true, lastLogin:'12.06.2026. 14:20', created:'05.03.2026.'},
+];
+
+const OVERRIDES = {
+  5: [{perm:'M5 / booking / VIEW (sve rezervacije tima)', effect:'ALLOW', reason:'Zamenjuje Stefana Nikolića na godišnjem odmoru', by:'Stefan Nikolić', granted:'28.07.2026.', expires:'11.08.2026.'}]
+};
+
+const AUDIT = [
+  {t:'01.08.2026. 09:14', actor:'Nenad Tomić', actorType:'HUMAN', action:'auth.login_success', resource:'User#1', ip:'93.87.12.4',
+   before:null, after:{last_login_at:'2026-08-01T09:14:00Z'}},
+  {t:'31.07.2026. 22:03', actor:'Sistem', actorType:'SYSTEM', action:'account.locked', resource:'User#9 (Petar Kovačević)', ip:'—',
+   before:{failed_login_attempts:4}, after:{failed_login_attempts:5, locked_until:'2026-07-31T22:18:00Z'}},
+  {t:'29.07.2026. 15:40', actor:'Milica Radović', actorType:'HUMAN', action:'user.invited', resource:'User#8 (Nikola Đorđević)', ip:'93.87.12.19',
+   before:null, after:{status:'INVITED', roles:['Prodajni agent']}},
+  {t:'28.07.2026. 11:05', actor:'Stefan Nikolić', actorType:'HUMAN', action:'permission_override.grant', resource:'UserPermissionOverride#41 (Jovana Ilić)', ip:'93.87.12.22',
+   before:null, after:{permission:'M5/booking/VIEW', effect:'ALLOW', reason:'Zamenjuje Stefana Nikolića na godišnjem odmoru', expires_at:'2026-08-11'}},
+  {t:'20.07.2026. 09:30', actor:'Agent za praćenje trendova', actorType:'AI_AGENT', action:'trend_research.draft', resource:'TrendSuggestion#7', ip:'—',
+   before:null, after:{status:'DRAFT', module:'M18'}},
+  {t:'12.06.2026. 14:20', actor:'Petar Kovačević', actorType:'HUMAN', action:'auth.login_failed', resource:'User#9', ip:'85.31.44.10',
+   before:{failed_login_attempts:0}, after:{failed_login_attempts:1}},
+];
+
+// ============ Login flow ============
+function goMfa(){
+  document.getElementById('loginStep1').style.display='none';
+  document.getElementById('loginStep2').style.display='block';
+}
+function doLogin(){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('appShell').style.display='block';
+}
+function doLogout(){
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginStep1').style.display='block';
+  document.getElementById('loginStep2').style.display='none';
+}
+
+// ============ Tabs ============
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===name));
+  const titles={users:'Korisnici i uloge', roles:'Korisnici i uloge', audit:'Korisnici i uloge'};
+  document.getElementById('crumbTitle').textContent='Korisnici i uloge';
+}
+
+// ============ Users table ============
+function initials(name){ return name.split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase(); }
+function statusBadge(s){
+  if(s==='ACTIVE') return '<span class="badge ok">AKTIVAN</span>';
+  if(s==='INVITED') return '<span class="badge warn">POZVAN</span>';
+  return '<span class="badge danger">SUSPENDOVAN</span>';
+}
+function renderUsers(filter){
+  const tbody = document.getElementById('usersTbody');
+  tbody.innerHTML='';
+  const q=(filter||'').toLowerCase();
+  USERS.filter(u=> !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)).forEach(u=>{
+    const tr=document.createElement('tr');
+    tr.className='clickable';
+    tr.onclick=()=>openUser(u.id);
+    tr.innerHTML=`
+      <td><div class="cell-name">${u.name}</div><div class="cell-sub mono">${u.email}</div></td>
+      <td>${u.roles.map(r=>`<span class="role-chip">${r}</span>`).join('')}</td>
+      <td>${statusBadge(u.status)}</td>
+      <td><span class="mfa-dot ${u.mfa?'on':'off'}"></span> ${u.mfa?'Uključena':'Isključena'}</td>
+      <td class="mono">${u.lastLogin}</td>
+      <td><button class="icon-btn" title="Detalji">›</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+function filterUsers(){ renderUsers(document.getElementById('userSearch').value); }
+renderUsers();
+
+// ============ User detail panel ============
+let currentEffect='ALLOW';
+function openUser(id){
+  const u = USERS.find(x=>x.id===id);
+  document.getElementById('pAvatar').textContent = initials(u.name);
+  document.getElementById('pName').textContent = u.name;
+  document.getElementById('pEmail').textContent = u.email;
+  document.getElementById('pPhone').textContent = u.phone;
+  document.getElementById('pType').textContent = 'STAFF (interni)';
+  document.getElementById('pStatus').innerHTML = statusBadge(u.status);
+  document.getElementById('pMfa').innerHTML = `<span class="mfa-dot ${u.mfa?'on':'off'}"></span> ${u.mfa? 'Uključena (obavezno za interne uloge)':'Isključena'}`;
+  document.getElementById('pCreated').textContent = u.created;
+  document.getElementById('pLastLogin').textContent = u.lastLogin;
+  document.getElementById('pRoles').innerHTML = u.roles.map(r=>`<span class="role-chip">${r}</span>`).join(' ') + ` <button class="icon-btn" id="btnAddRole" style="width:auto;padding:2px 8px;font-size:11px">+ dodaj ulogu</button>`;
+  document.getElementById('btnAddRole').addEventListener('click', ()=> alert('U pravoj aplikaciji: POST /users/'+u.id+'/roles'));
+  const ov = OVERRIDES[u.id] || [];
+  document.getElementById('pOverrides').innerHTML = ov.length ? ov.map(o=>`
+    <div class="override-item">
+      <div class="row1"><span class="badge ${o.effect==='ALLOW'?'ok':'danger'}">${o.effect}</span><b style="font-size:12px">${o.perm}</b></div>
+      <div class="reason">„${o.reason}”</div>
+      <div class="meta">Odobrio: ${o.by} · ${o.granted} · ističe ${o.expires}</div>
+    </div>
+  `).join('') : '<div style="color:var(--text-faint); font-size:12.5px">Nema aktivnih izuzetaka.</div>';
+  document.getElementById('userPanel').classList.add('show');
+  document.getElementById('panelOverlay').classList.add('show');
+}
+function closePanel(){
+  document.getElementById('userPanel').classList.remove('show');
+  document.getElementById('panelOverlay').classList.remove('show');
+}
+function pickEffect(el){
+  document.querySelectorAll('.toggle-pair span').forEach(s=>s.classList.remove('on'));
+  el.classList.add('on');
+  currentEffect = el.classList.contains('sel-allow')?'ALLOW':'DENY';
+}
+function addOverride(){
+  const reason = document.getElementById('ovReason').value.trim();
+  if(!reason){ alert('Razlog je obavezno polje — bez njega se izuzetak ne može sačuvati (poglavlje 3.6 specifikacije).'); return; }
+  alert('U pravoj aplikaciji: POST /users/:id/permission-overrides\\nEfekat: '+currentEffect+'\\nRazlog: '+reason);
+  document.getElementById('ovReason').value='';
+}
+
+// ============ Roles view ============
+function renderRoles(){
+  const grid = document.getElementById('rolesGrid');
+  grid.innerHTML = ROLES.map(r=>`
+    <div class="role-card ${r.future?'future':''}">
+      <div class="rh"><b>${r.name}</b>${r.system?'<span class="tag-sys">SISTEMSKA</span>':''}</div>
+      <p>${r.desc}</p>
+      ${r.future? `<span class="tag-future">${r.future}</span>` : `<div class="count">${r.users} ${r.users===1?'korisnik':'korisnika'}</div>`}
+    </div>
+  `).join('');
+}
+renderRoles();
+
+// ============ Audit log ============
+function actorIcon(t){
+  if(t==='HUMAN') return '<span class="actor-ico human">Č</span>';
+  if(t==='AI_AGENT') return '<span class="actor-ico ai">AI</span>';
+  return '<span class="actor-ico system">S</span>';
+}
+function renderAudit(){
+  const modF = document.getElementById('fModule').value;
+  const actF = document.getElementById('fActor').value;
+  const tbody = document.getElementById('auditTbody');
+  tbody.innerHTML='';
+  AUDIT.filter(a=> (!actF || a.actorType===actF)).forEach((a,idx)=>{
+    const tr = document.createElement('tr');
+    tr.className='audit-row clickable';
+    tr.onclick=()=>{
+      tr.classList.toggle('open');
+      const det = tr.nextElementSibling;
+      det.style.display = tr.classList.contains('open') ? 'table-row' : 'none';
+    };
+    tr.innerHTML = `
+      <td class="mono">${a.t}</td>
+      <td>${actorIcon(a.actorType)}${a.actor}</td>
+      <td><code>${a.action}</code></td>
+      <td>${a.resource}</td>
+      <td class="mono">${a.ip}</td>
+    `;
+    const det = document.createElement('tr');
+    det.className='audit-detail';
+    det.innerHTML = `<td colspan="5"><div class="diff-grid">
+      <div class="diff-box"><h4>Pre</h4><pre>${a.before? JSON.stringify(a.before,null,2) : '— (nov zapis)'}</pre></div>
+      <div class="diff-box"><h4>Posle</h4><pre>${JSON.stringify(a.after,null,2)}</pre></div>
+    </div></td>`;
+    tbody.appendChild(tr);
+    tbody.appendChild(det);
+  });
+}
+renderAudit();
+
+// ============ Invite modal ============
+let invitePicked = new Set();
+function openInvite(){
+  const wrap = document.getElementById('invRolePick');
+  wrap.innerHTML = ROLES.filter(r=>!r.future).map(r=>`<span data-role="${r.name}">${r.name}</span>`).join('');
+  wrap.querySelectorAll('span').forEach(s=> s.addEventListener('click', ()=>toggleRole(s)));
+  invitePicked = new Set();
+  document.getElementById('inviteOverlay').classList.add('show');
+}
+function toggleRole(el){
+  const r = el.dataset.role;
+  if(invitePicked.has(r)){ invitePicked.delete(r); el.classList.remove('picked'); }
+  else{ invitePicked.add(r); el.classList.add('picked'); }
+}
+function closeInvite(){ document.getElementById('inviteOverlay').classList.remove('show'); }
+function submitInvite(){
+  const name = document.getElementById('invName').value.trim();
+  const email = document.getElementById('invEmail').value.trim();
+  if(!name || !email || invitePicked.size===0){ alert('Ime, email i bar jedna uloga su obavezni.'); return; }
+  alert('U pravoj aplikaciji: POST /users\\nStatus: INVITED\\nUloge: '+[...invitePicked].join(', ')+'\\n→ email sa linkom za aktivaciju (+ obavezno 2FA za interne uloge pre prvog pristupa).');
+  closeInvite();
+}
+
+// ============ Wiring (svi event listeneri — bez inline onclick, CSP-safe) ============
+document.getElementById('btnGoMfa').addEventListener('click', goMfa);
+document.getElementById('linkForgotPass').addEventListener('click', ()=> alert('U pravoj aplikaciji: slanje reset linka na email (rok 1h, jednokratan).'));
+document.getElementById('btnDoLogin').addEventListener('click', doLogin);
+document.getElementById('linkBackupCode').addEventListener('click', ()=> alert('Rezervni kod (jedan od 10 generisanih pri uključivanju 2FA) koristi se ako je uređaj izgubljen.'));
+document.getElementById('btnLogout').addEventListener('click', doLogout);
+document.querySelectorAll('.tab').forEach(t=> t.addEventListener('click', ()=> showView(t.dataset.view)));
+document.getElementById('userSearch').addEventListener('input', filterUsers);
+document.getElementById('btnOpenInvite').addEventListener('click', openInvite);
+document.getElementById('btnAuditFilter').addEventListener('click', renderAudit);
+document.getElementById('panelOverlay').addEventListener('click', closePanel);
+document.getElementById('btnPanelClose').addEventListener('click', closePanel);
+document.querySelectorAll('.toggle-pair span').forEach(s=> s.addEventListener('click', ()=>pickEffect(s)));
+document.getElementById('btnAddOverride').addEventListener('click', addOverride);
+document.getElementById('btnResetPw').addEventListener('click', ()=> alert('U pravoj aplikaciji: slanje novog reset linka na email.'));
+document.getElementById('btnSuspend').addEventListener('click', ()=> alert('U pravoj aplikaciji: PATCH /users/:id status=SUSPENDED — meko gašenje, ne fizičko brisanje.'));
+document.getElementById('btnInviteCancel').addEventListener('click', closeInvite);
+document.getElementById('btnInviteSubmit').addEventListener('click', submitInvite);
+</script>
