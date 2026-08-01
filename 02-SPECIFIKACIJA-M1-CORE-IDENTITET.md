@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
 **Zavisi od:** — (temelj svih ostalih modula)
 
 ---
@@ -177,7 +177,22 @@ Svi endpoint-i dokumentovani OpenAPI šemom pre implementacije — u skladu sa p
 
 ---
 
-## 7. Izlazni kriterijum (kada je M1 gotov — Faza 0)
+## 7. UI ekrani (interni panel — M17)
+
+M17 (Interni panel, poglavlje 4 Master dokumenta) nosi M1 pod jednim redom navigacije ("Korisnici i uloge", Faza 0). Taj red se u praksi deli na tri ekrana, potvrđeno klikabilnim prototipom (`00-MOCKUP-M1-IDENTITET.html`):
+
+| Ekran (tab) | Sadržaj | Izvor podataka |
+| :---- | :---- | :---- |
+| **Korisnici** | Tabela svih `User` zapisa (ime, email, dodeljene uloge, status, 2FA, poslednja prijava) sa pretragom; dugme "+ Pozovi korisnika" otvara formu (ime, email, telefon, uloge) koja kreira nalog u statusu `INVITED` | `GET /users`, `POST /users` |
+| **Korisnik — detalji** (bočni panel, otvara se klikom na red) | Profil, dodeljene uloge (dodavanje/uklanjanje), lista `UserPermissionOverride` zapisa sa formom za dodavanje novog izuzetka (dozvola, ALLOW/DENY, rok isteka, **obavezan razlog** — forma ne dozvoljava slanje bez njega), radnje (pošalji reset lozinke, suspenduj nalog) | `GET/PATCH /users/:id`, `GET/POST/DELETE /users/:id/permission-overrides` |
+| **Uloge** | Kartice svih sistemskih uloga (naziv, opis/opseg iz poglavlja 4, broj nosilaca); uloge dodate kasnijim fazama (`SUBAGENT_ADMIN`, `VODIC`) prikazane kao zaključane sa napomenom u kojoj fazi se aktiviraju | `GET /roles` |
+| **Audit log** | Tabela zapisa (vreme, izvršilac sa ikonom po `actor_type`, akcija, resurs, IP), filter po modulu/izvršiocu/datumu; klik na red širi pre/posle prikaz (`before_state`/`after_state`) | `GET /audit-log` |
+
+Sidebar M17 ljuske prikazuje i sve ostale module (Katalog, Ugovori, Rezervacije...) kao zaključane stavke sa oznakom faze u kojoj se aktiviraju — to je vizuelni podsetnik da M17 raste postepeno (poglavlje 7 M17 specifikacije), ne nešto što M1 posebno implementira.
+
+---
+
+## 8. Izlazni kriterijum (kada je M1 gotov — Faza 0)
 
 Preuzeto i razrađeno iz tabele u poglavlju 8:
 
@@ -190,7 +205,7 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 
 ---
 
-## 8. Otvoreno za dalje
+## 9. Otvoreno za dalje
 
 - Konkretna dodela dozvola po modulu (koja dozvola pripada kojoj podrazumevanoj ulozi) definiše se **kad svaki modul dođe na red** — ovaj dokument daje samo strukturu i sedam osnovnih uloga navedenih u poglavlju 4. Svaka buduća specifikacija modula (M2, M3...) mora u svom dokumentu navesti listu `Permission` zapisa koje registruje i predlog podrazumevane dodele po ulozi.
 - ~~Role za M7 (subagenti/B2B portal) dodaju se kad ta faza dođe na red (Faza 4).~~ **Rešeno**: `SUBAGENT_ADMIN` dodata pri specifikaciji M7 (poglavlje 4 ovog dokumenta). Slično, `VODIC` dodata pri specifikaciji M9 (Faza 6).
