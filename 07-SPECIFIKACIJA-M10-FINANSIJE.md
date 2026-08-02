@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, ograničenje gotovine, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), eksplicitan poziv M11 za boravišnu taksu pri pripremi nacrta (poglavlje 6.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, ograničenje gotovine, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -61,7 +61,7 @@ Turistička agencija se po Zakonu o PDV oporezuje različito zavisno od toga da 
 
 ### 4.1 `Booking.tip_nastupanja` (dopuna M5 specifikacije, poglavlje 4.1)
 
-Dodaje se polje na `Booking` (M5): `tip_nastupanja`, enum `ORGANIZATOR` | `POSREDNIK`, **obavezno pri kreiranju rezervacije i nepromenljivo posle toga** — sistem odbija svaki pokušaj izmene ovog polja nakon što `Booking` bude kreiran, jer direktno određuje poreski tretman, obavezu prijave u CIS/eTurista (M11) i vrstu klijentskog ugovora (M20). Ovo polje bira prodajni tim/agent pri potvrdi rezervacije (M5 poglavlje 4), ne M10 — M10 ga samo čita.
+Dodaje se polje na `Booking` (M5): `tip_nastupanja`, enum `ORGANIZATOR` | `POSREDNIK`, **obavezno pri kreiranju rezervacije i nepromenljivo posle toga** — sistem odbija svaki pokušaj izmene ovog polja nakon što `Booking` bude kreiran, jer direktno određuje poreski tretman, obavezu prijave u CIS/eTurista (M11) i vrstu klijentskog ugovora (M20). Za `INTERNAL_PANEL`/`PHONE` kanale ovo polje bira prodajni tim/agent pri potvrdi rezervacije; za samouslužne kanale (`B2C_SITE`, `B2B_PORTAL`, `MOBILE`) izvodi se automatski iz `M3 Contract.default_tip_nastupanja`/`M4 ProviderConfig.default_tip_nastupanja` (M5 poglavlje 4.0a, dopuna avgust 2026 — zatvara raniju rupu gde ovo polje nije imalo nosioca odluke u samoposlužnom toku). M10 ga u oba slučaja samo čita.
 
 ### 4.2 Obračun kod organizatora — PDV na maržu
 
@@ -90,7 +90,7 @@ Novo polje: `vat_calculation_basis`, enum `MARZA` (poglavlje 4.2) | `PROVIZIJA` 
 | :---- | :---- | :---- |
 | id | UUID (PK), interni | |
 | booking_id | UUID (FK → M5 Booking) | |
-| document_type | enum: `SEF_EFAKTURA`, `ESIR_RACUN` | vidi poglavlje 2 |
+| document_type | enum: `SEF_EFAKTURA`, `ESIR_RACUN`, `KNJIZNO_ODOBRENJE` | vidi poglavlje 2 za prva dva; `KNJIZNO_ODOBRENJE` dodato avgust 2026, vidi poglavlje 5.1a |
 | status | enum: `DRAFT`, `SUBMITTED`, `ISSUED`, `REJECTED`, `STORNIRANO` | vidi poglavlje 6 — `SUBMITTED` je nepovratan korak |
 | vat_calculation_basis | enum: `MARZA`, `PROVIZIJA`, `PUNA_OSNOVICA` | vidi poglavlje 4.4 |
 | external_reference | string, nullable | broj fakture kod SEF-a ili fiskalni broj/QR kod ESIR-a — **ovo je pravno merodavan identifikator, ne interni `id`** |
@@ -105,6 +105,16 @@ Novo polje: `vat_calculation_basis`, enum `MARZA` (poglavlje 4.2) | `PROVIZIJA` 
 | pdf_url / xml_url | string, nullable | lokalna kopija konačnog dokumenta (EU cloud skladište) — SEF/ESIR ostaju pravni izvor istine, ovo je samo naša arhiva |
 | submitted_by | UUID (FK → M1 User) | **obavezno ljudski nalog — nikad AI agent, vidi poglavlje 6** |
 | submitted_at / issued_at | timestamp | |
+| related_subagent_id | UUID, nullable (FK → M7 Subagent) | **samo za `KNJIZNO_ODOBRENJE`** — vidi poglavlje 5.1a; `null` za `SEF_EFAKTURA`/`ESIR_RACUN` |
+| credited_rebate_id | UUID, nullable (FK → M7 CommissionRebate) | **samo za `KNJIZNO_ODOBRENJE`** — koji rabat je ovaj dokument realizovao, radi sledljivosti |
+
+### 5.1a `KNJIZNO_ODOBRENJE` — primena M7 retroaktivnog rabata (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2B.md`)
+
+M7 poglavlje 3.2 opisuje da se odobren `CommissionRebate` "knjiži kao umanjenje sledeće fakture/dugovanja subagenta u M10", ali M10 do sada nije imao dokument koji bi to stvarno predstavljao u SEF sistemu — `SEF_EFAKTURA` je namenjena originalnoj prodaji, a storno (poglavlje 6.1) poništava **konkretnu** fakturu zbog otkazane rezervacije, ne opšti kredit nevezan za jednu rezervaciju.
+
+**Rešenje:** `document_type = KNJIZNO_ODOBRENJE` predstavlja knjižno odobrenje (credit note) ka subagentu, nevezano za pojedinačnu `Booking`/`FiscalDocument` — `booking_id` ostaje `nullable` za ovaj tip (jedini slučaj gde `FiscalDocument.booking_id` sme biti prazno). Umesto toga popunjava se `related_subagent_id` i `credited_rebate_id`. Iznos (`amount_original`/`amount_rsd`) jednak je `CommissionRebate.calculated_amount` (M7 poglavlje 3.2). Isti dvostepeni tok kao svaki drugi fiskalni dokument (poglavlje 6): priprema nacrta sme AI agent, **slanje zahteva ljudsku potvrdu**.
+
+**Ograda — potrebna potvrda knjigovođe pre implementacije, isto obrazloženje kao poglavlje 6.3 (tehnički ugovor SEF/ESIR):** tačan tehnički format kojim SEF prihvata knjižno odobrenje (da li je to zaseban dokument tip u SEF API-ju, ili se realizuje kao redovna e-faktura sa negativnim iznosom, ili na neki treći način) nije ovde definisan — ovaj dokument samo predviđa mesto u modelu podataka (`document_type`, `related_subagent_id`, `credited_rebate_id`) i nivo autonomije, ne tačan SEF tehnički ugovor.
 
 ### 5.2 `Payment`
 | Polje | Tip | Napomena |
@@ -137,6 +147,16 @@ Potvrđeno poređenjem sa PrimeTravel analizom, koja navodi automatsku rekonsili
 
 ---
 
+## 6.0 Automatska priprema nacrta po potvrdi rezervacije (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md`)
+
+M5 poglavlje 9 navodi M10 ("fakturisanje") među modulima koji se pretplaćuju na `booking.confirmed` — ali ovaj dokument do sada nije eksplicitno definisao da se to zaista dešava automatski, samo je izlagao `POST /fiscal-documents/draft` kao endpoint koji nešto/neko poziva. Ovim se to zatvara: **M10 se pretplaćuje na `booking.confirmed`** (Event Bus) i automatski poziva isti tok kao `POST /fiscal-documents/draft` za pogođeni `booking_id`, isti nivo autonomije kao poglavlje 6 dole (priprema nacrta je "Autonomno", slanje ostaje "Nikad autonomno") — isti obrazac kao M6 §3.2 (lojalnost), M11 §4.3 (CIS garancija) i M20 §3.1 (ugovor sa klijentom), koji se svi već pretplaćuju na isti događaj.
+
+**Priprema nacrta dodatno poziva M11 `GET /tourist-tax/rates`** (filtrirano po opštini smeštaja iz `BookingItem`/`Product`) da izračuna i doda stavku boravišne takse na nacrt (M11 poglavlje 3.2) — ovaj poziv nije bio eksplicitno naveden u API ugovoru (poglavlje 10), sada jeste.
+
+**Izuzetak — `KNJIZNO_ODOBRENJE` (poglavlje 5.1a) nije pokriven ovim automatskim okidačem** — taj tip dokumenta nastaje iz `CommissionRebate` odobrenja (M7 poglavlje 3.2), ne iz `booking.confirmed`, i priprema se posebnim pozivom kad Vlasnik/Direktor/Računovođa odobri rabat.
+
+---
+
 ## 6. Fiskalizacija — obavezno ljudsko odobrenje (Nikad autonomno)
 
 U skladu sa poglavljem 7 Master dokumenta ("Nikad autonomno — fiskalizacija"), tok je strogo dvostepen:
@@ -150,6 +170,12 @@ U skladu sa poglavljem 7 Master dokumenta ("Nikad autonomno — fiskalizacija"),
 
 ### 6.1 Storno/otkazivanje fiskalnog dokumenta
 Ako se rezervacija otkaže (M5) posle izdavanja fiskalnog dokumenta, kreira se novi `FiscalDocument` sa `document_type` istim kao original i `status` tokom kroz `DRAFT → SUBMITTED → STORNIRANO`, referencirajući originalni dokument — storno ide kroz isti sistem (SEF/ESIR), nikad se originalni dokument ne briše niti menja lokalno.
+
+### 6.2 Alarm za nacrt koji predugo čeka slanje (dopuna, avgust 2026 — rešava operativni nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`)
+
+Poglavlje 5.3 (rekonsilijacija) već hvata slučaj gde rezervacija ostane **potpuno bez** poslatog dokumenta — ali to je reaktivna provera. Za potpuno samouslužne kanale (M8, M7 — poglavlje 6.0), nacrt se pravi automatski čim rezervacija/uplata to omogući, pa je moguće da se nacrti gomilaju u redu čekanja na ljudsko slanje bez da iko primeti dok se ne pokrene `/reconciliation/mismatches`.
+
+Sistem prati svaki `FiscalDocument` u statusu `DRAFT` čiji je `booking.confirmed`/`payment_status = PAID` trenutak stariji od **24 časa** bez prelaska u `SUBMITTED`, i generiše `HealthSignal` (M18 poglavlje 2.1, nivo **"Autonomno"** — čisto informativno, ne blokira ništa), vidljivo u M17 Agent Inbox (isti obrazac kao M5 poglavlje 6.1). Ovo je proaktivna dopuna, ne zamena za §5.3 rekonsilijaciju — obe provere ostaju, hvataju različite trenutke (24h kašnjenje naspram trajno nedostajućeg dokumenta).
 
 ---
 
@@ -189,6 +215,18 @@ Poglavlje 7 Master dokumenta zabranjuje AI agentu da autonomno prenosi novac. Ov
 
 ---
 
+## 8.0 Šta pokreće kreiranje obaveze prema dobavljaču (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md`)
+
+Poglavlje 8 do sada je definisalo model `SupplierObligation` i tok odobravanja, ali ne i **šta konkretno pokreće njeno kreiranje** — dokument je ostavljao otvorenim da li obaveza nastaje automatski pri potvrdi rezervacije, ili tek kad stigne stvarna ulazna faktura dobavljača. Ovim se to zatvara:
+
+**Pravilo:** M10 se pretplaćuje na `booking.confirmed` (isti mehanizam kao poglavlje 6.0) i za svaku `BookingItem` sa `source_type = CONTRACTED` čiji `item_status = CONFIRMED` **automatski kreira `SupplierObligation`** sa `status = PENDING`, `booking_item_id` odmah popunjenim (direktno iz stavke koja je pokrenula kreiranje — ovo je jača veza od minimuma koji poglavlje 8.3 zahteva), `amount_original` iz `BookingItem.base_cost` (M5 poglavlje 4.2, cena iz `RateLine` u trenutku potvrde), `due_date` iz `Contract`/`ContractPeriod` uslova plaćanja (M3). Nivo **"Autonomno"** — čisto mehaničko beleženje već poznatog duga, ista logika kao automatska eTurista prijava (M11 poglavlje 2.2).
+
+**Kad stigne stvarna ulazna faktura dobavljača** (`invoice_reference` se popunjava naknadno, ručno), Računovođa proverava da li se `amount_original` iz automatski kreirane obaveze slaže sa fakturisanim iznosom — ako se razlikuje, ručno koriguje iznos **pre** odobravanja (prelazak u `APPROVED`, poglavlje 8.3 već zahteva ljudsku potvrdu, sada dodatno i za potencijalnu korekciju iznosa). Ovo znači da `SupplierObligation` može postojati i biti vidljiva u izveštajima **pre** nego što je ulazna faktura fizički stigla — namerna odluka, jer daje agenciji rani uvid u dug prema dobavljaču (korisno za M13 profitabilnost) umesto da čeka administrativni korak fakture.
+
+**API-sourced (M4) stavke ne dobijaju `SupplierObligation` na ovaj način** — plaćanje ka M4 provajderima (npr. Travelgate) po pravilu ide kroz ugovoreni obračunski ciklus samog provajdera (npr. BSP nedeljno poravnanje za avio, poglavlje 8.4), ne pojedinačno po rezervaciji; ostaje otvoreno kad M4 dobije konkretne provajdere van hotela (poglavlje 12).
+
+---
+
 ## 8. Obaveze prema dobavljačima (Payables)
 
 Simetrično potraživanjima od gostiju (poglavlje 5.2 `Payment`), M10 mora da prati i šta agencija duguje dobavljačima za nabavljene turističke usluge — ovo do sada nije postojalo nigde u M10 (modul je pokrivao samo naplatu od gostiju).
@@ -219,6 +257,44 @@ Obaveza mora imati popunjen `booking_item_id` (identifikovan, proverljiv trošak
 ### 8.4 BSP poravnanje (avio karte)
 Za avio dobavljače koji posluju preko IATA BSP sistema, plaćanje ide **nedeljno, kroz direktno zaduženje IATA BSP naloga agencije**, ne pojedinačno po karti. Kad M4 dobije avio/GDS adapter (Master dokument poglavlje 4, otvoreno), `SupplierObligation` zapisi za avio stavke agregiraju se u nedeljni obračun umesto pojedinačnog `due_date` po stavci — tačan mehanizam ostaje otvoren dok avio adapter ne dođe na red (poglavlje 11).
 
+### 8.5 Isplate dobavljačima u stranoj valuti i refundacije gostu (dopuna, avgust 2026 — poređenjem sa Travelsoft Pay portfolio modelom)
+
+Poglavlje 8 do sada je pratilo **koliko** se duguje dobavljaču i po kom kursu (§8.1), ali ne i **kako** se novac stvarno prenosi, niti kako izgleda refundacija gostu van kartičnog toka (§7.2, korak 5 — koji pokriva samo `VOID` pre nego što je rezervacija uopšte potvrđena). Ova rupa postaje stvarna sa M4/Travelgate integracijom, jer ona dovodi inostrane dobavljače koji se ne mogu platiti kroz isti tok kao domaći.
+
+**Ograda — namerno mala odluka za sad:** ovo poglavlje ostaje deo M10, ne postaje zaseban modul, dok ne postoji stvaran drugi/treći platni provajder ili obim koji bi opravdao samostalan presek — isti princip kao odluka da se M10 ne cepa dok stvarna potreba to ne pokaže.
+
+#### 8.5.1 Dopuna `SupplierObligation` (poglavlje 8.1)
+Novo polje: `payment_method`, enum `BANK_TRANSFER` | `VIRTUAL_CARD` — bira se pri prelasku u `APPROVED` (poglavlje 8.3), podrazumevano `BANK_TRANSFER` dok virtuelne kartice ne budu ugovorene sa platnim provajderom.
+
+#### 8.5.2 `SupplierPaymentInstruction`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_obligation_id | UUID (FK → SupplierObligation) | |
+| method | enum (isto kao 8.5.1) | |
+| bank_iban / bank_swift | string, nullable | samo za `BANK_TRANSFER`, iz M3 `Supplier` profila |
+| virtual_card_reference | string, nullable | token/referenca kod platnog provajdera, samo za `VIRTUAL_CARD` — **nikad pun broj kartice u bazi**, isti princip kao poglavlje 7.1 za naplatu od gosta |
+| status | enum: `PENDING`, `EXECUTED`, `FAILED` | |
+| executed_by | UUID (FK → M1 User) | **obavezno ljudski nalog — nikad AI agent**, isti nivo opreza kao poglavlje 8.3 (odobrenje obaveze) |
+| executed_at | timestamp, nullable | |
+| created_at | timestamp | |
+
+#### 8.5.3 `RefundInstruction` — refundacija gosta van kartičnog toka
+Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba delimično ili u celosti vratiti (otkazivanje ili izmena rezervacije sa manjom cenom, M5 poglavlje 6), M10 izlaže eksplicitan zapis umesto slobodnog teksta u napomeni:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| payment_id | UUID (FK → Payment, poglavlje 5.2) | originalna uplata koja se refundira |
+| amount / currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2); može biti manje od originalne uplate (delimičan povraćaj) |
+| method | enum: `BANK_TRANSFER`, `CASH` | kartični povraćaj i dalje ide isključivo kroz `PaymentGatewayAdapter.refundOrVoid` (poglavlje 7.1) — ovaj entitet ga ne zamenjuje |
+| status | enum: `PENDING`, `APPROVED`, `EXECUTED`, `FAILED` | |
+| approved_by | UUID (FK → M1 User) | **nikad AI agent** — nivo "Nikad autonomno" iz poglavlja 7 Master dokumenta, isto obrazloženje kao slanje fiskalnog dokumenta (poglavlje 6) |
+| executed_by | UUID (FK → M1 User), nullable | ko je stvarno pokrenuo transfer, popunjava se pri prelasku u `EXECUTED` |
+| created_at / executed_at | timestamp | |
+
+**Redosled:** `RefundInstruction` mora imati `status = APPROVED` pre nego što pređe u `EXECUTED` — dva odvojena ljudska koraka (odobrenje pa izvršenje), isti obrazac kao dvostepeni tok fiskalizacije (poglavlje 6).
+
 ---
 
 ## 9. Dozvole (registruju se u M1 katalog dozvola)
@@ -233,6 +309,10 @@ Za avio dobavljače koji posluju preko IATA BSP sistema, plaćanje ide **nedeljn
 | `M10/payment-gateway-config/VIEW`, `EDIT` | Vlasnik, Direktor — podešavanje kredencijala platnog provajdera |
 | `M10/supplier-obligation/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/supplier-obligation/APPROVE` | Vlasnik, Direktor, Računovođa — **nikad AI agent** (poglavlje 8.3) |
+| `M10/supplier-payment-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/supplier-payment-instruction/EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2) |
+| `M10/refund-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/refund-instruction/APPROVE`, `EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3) |
 
 ---
 
@@ -242,7 +322,8 @@ Prefiks: `/api/v1/finance`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/fiscal-documents/draft` | POST | priprema nacrt iz `booking_id` (sme AI agent), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) |
+| `/fiscal-documents/draft` | POST | priprema nacrt iz `booking_id` (sme AI agent, i sistem sam po `booking.confirmed`, poglavlje 6.0), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) i dodaje boravišnu taksu pozivom M11 `/tourist-tax/rates` (poglavlje 6.0) |
+| `/fiscal-documents/credit-note/draft` | POST | priprema `KNJIZNO_ODOBRENJE` nacrt iz `credited_rebate_id` (M7 `CommissionRebate`, poglavlje 5.1a) — zaseban endpoint jer nema `booking_id` |
 | `/fiscal-documents/:id/submit` | POST | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog |
 | `/fiscal-documents/:id` | GET | |
 | `/fiscal-documents/:id/storno` | POST | pokreće storno tok |
@@ -254,6 +335,11 @@ Prefiks: `/api/v1/finance`
 | `/supplier-obligations/:id/approve` | POST | zahteva `M10/supplier-obligation/APPROVE`; odbija ako `booking_item_id` nije popunjen |
 | `/supplier-obligations/:id/pay` | POST | beleži plaćanje, izračunava `exchange_rate_difference` |
 | `/reconciliation/mismatches` | GET | lista `Booking` zapisa koji ne prolaze proveru iz poglavlja 5.3 (nedostaje uplata i/ili fiskalni dokument) |
+| `/supplier-payment-instructions` | GET / POST | pregled / kreiranje instrukcije za isplatu (poglavlje 8.5.2) |
+| `/supplier-payment-instructions/:id/execute` | POST | zahteva `M10/supplier-payment-instruction/EXECUTE`, samo ljudski nalog |
+| `/refund-instructions` | GET / POST | pregled / kreiranje zahteva za refundaciju van kartičnog toka (poglavlje 8.5.3) |
+| `/refund-instructions/:id/approve` | POST | zahteva `M10/refund-instruction/APPROVE` |
+| `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
 
 ---
 
@@ -276,6 +362,13 @@ Prefiks: `/api/v1/finance`
 - [ ] `exchange_rate_difference` se ispravno izračunava pri plaćanju obaveze kad se kurs na dan fakture razlikuje od kursa na dan plaćanja.
 - [ ] Nijedno novčano polje (`amount_original`, `amount_rsd`, `vat_amount`, `amount`, `amount_rsd_at_invoice`, `exchange_rate_difference`) nije tipa `decimal`/float — provereno da su sva `integer` u najmanjoj jedinici valute (poglavlje 3.2); kursevi i procenti ostaju `decimal`.
 - [ ] Test-slučaj: potvrđena rezervacija bez izdatog fiskalnog dokumenta se ispravno prepoznaje kroz `/reconciliation/mismatches` i generiše `HealthSignal` (poglavlje 5.3).
+- [ ] `SupplierPaymentInstruction.status` ne može preći u `EXECUTED` bez ljudskog naloga (`executed_by` popunjen, provereno da AI agent nema pristup ovom prelazu).
+- [ ] `RefundInstruction` ne može preći u `EXECUTED` bez prethodnog `APPROVED` — pokušaj preskakanja koraka se odbija.
+- [ ] Broj kartice se nigde ne pojavljuje u `virtual_card_reference` — samo token/referenca provajdera, isto pravilo kao poglavlje 7.1.
+- [ ] `FiscalDocument` nacrt se automatski priprema (bez ručnog poziva) čim `Booking` pređe u `CONFIRMED`, uključujući ispravno dodatu stavku boravišne takse iz M11 (poglavlje 6.0).
+- [ ] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED` (poglavlje 8.0); API-sourced stavke ne generišu ovaj zapis pojedinačno.
+- [ ] `FiscalDocument` u statusu `DRAFT` duže od 24h od trenutka kad je mogao biti poslat generiše `HealthSignal`, vidljiv u M17 Agent Inbox (poglavlje 6.2).
+- [ ] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema iz odobrenog `CommissionRebate` (M7), sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`, i zahteva istu ljudsku potvrdu za slanje kao svaki drugi fiskalni dokument (poglavlje 5.1a).
 
 ---
 
@@ -289,3 +382,6 @@ Prefiks: `/api/v1/finance`
 - **Pravna posledica `buyer_acceptance_status = EXPIRED`/`REJECTED`** kod SEF fakture (da li se automatski pokreće neka dalja radnja, ili samo upozorava tim) — potvrditi sa knjigovođom/pravnikom, ista ograda kao za SEF tehnički ugovor.
 - **BSP poravnanje** (poglavlje 8.4) — tačan mehanizam agregacije i knjiženja definiše se kad M4 dobije avio/GDS adapter, ne pre toga.
 - Da li i kako se obaveze prema dobavljačima koji nisu iz M3 (npr. operativni troškovi agencije van turističke nabavke) uklapaju u `SupplierObligation`, ili ostaju van obima M10 — trenutno `SupplierObligation` pretpostavlja da je svaki dobavljač iz M3 registra; van-M3 troškovi (računovodstveni, kancelarijski) nisu u obimu ove specifikacije.
+- **Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima** (poglavlje 8.5.2) — treba potvrditi da li isti PCI-DSS provajder iz poglavlja 7 pokriva i izdavanje virtuelnih kartica ka dobavljačima, ili je potreban drugi ugovor; do tada `payment_method = BANK_TRANSFER` ostaje podrazumevan i jedini praktično dostupan put.
+- **Tačan tehnički format kojim SEF prihvata `KNJIZNO_ODOBRENJE`** (poglavlje 5.1a) — zaseban dokument tip, redovna e-faktura sa negativnim iznosom, ili treći mehanizam — potvrditi sa knjigovođem pre implementacije, isto obrazloženje kao SEF/ESIR tehnički ugovor (poglavlje 6.3).
+- **FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti** — da li agencija otvara devizni račun ili svaka isplata ide kroz konverziju banke u trenutku transfera; ovo utiče na to da li `exchange_rate_difference` (poglavlje 8.1) ostaje dovoljan mehanizam ili treba dopuna — potvrditi sa knjigovođom pre implementacije poglavlja 8.5, isto obrazloženje kao ograda u poglavlju 6.3.

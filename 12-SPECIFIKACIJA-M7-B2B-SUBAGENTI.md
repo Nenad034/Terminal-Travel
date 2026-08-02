@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
-**Zavisi od:** M1, M2, M5, M6
+**Verzija:** 1.3 — dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Zavisi od:** M1, M2, M5, M6, M15 (poglavlje 2.0.3, omnisearch)
 
 ---
 
@@ -13,6 +13,41 @@
 M7 omogućava mrežu poslovnih partnera (subagenata) sa više nivoa (subagent može imati svoje sub-subagente) da kupuju proizvode iz M2 preko istog M5 toka rezervacije, uz sopstvenu proviziju, kreditni limit i strogo odvojenu vidljivost po nivou — potvrđeno u poglavlju 11 Master dokumenta.
 
 Subagent je poslovno **`ClientAccount`** iz M6 (`account_type = LEGAL_ENTITY`) — M7 samo dodaje B2B-specifične podatke (hijerarhija, provizija, kredit) na taj postojeći profil, ne duplira ga.
+
+---
+
+## 2.0 Struktura portala i tok rezervacije korak po korak (dopuna, avgust 2026 — ekvivalent M8 poglavlja 2/3)
+
+M7 je do sada opisivao model podataka, proviziju i kreditni limit, ali ne i stvaran tok kroz portal — za razliku od M8, koji ima eksplicitnu mapu ruta (M8 poglavlje 2) i korak-po-korak tok (M8 poglavlje 3). Ovo poglavlje zatvara tu rupu (nalaz iz `VALIDACIJA-WORKFLOW-B2B.md`, "M7 nema ekvivalent M8 §2/§3").
+
+### 2.0.1 Rute (isti princip kao M8 — portal nema sopstvenu bazu, samo poziva interne API-je)
+
+| Ruta | Sadržaj | Izvor podataka |
+| :---- | :---- | :---- |
+| `/b2b/prijava` | Prijava `SUBAGENT_ADMIN` naloga | M1 `/auth/*` |
+| `/b2b/pocetna` | Pregled: tekuće stanje duga naspram kreditnog limita, tekuća provizija/obimski status, aktivne rezervacije | M7 `/subagents/:id/outstanding-balance`, `/subagents/:id/volume-status` |
+| `/b2b/pretraga` | Rezultati pretrage (isti katalog kao M8, filtriran na `visible_channels` koji uključuje `B2B_PORTAL`, M2 poglavlje 5) | M5 `/search?channel=B2B_PORTAL` |
+| `/b2b/[tip]/[slug]` | Stranica proizvoda — **bez** identiteta dobavljača (M2 poglavlje 5.1) | M2 `/products/:id` |
+| `/b2b/rezervacija/ponuda` | Pregled ponude sa već primenjenom proviziom (M7 poglavlje 5) pre potvrde | M5 `/quotes/:id` |
+| `/b2b/rezervacija/putnici` | Unos podataka krajnjeg putnika kog subagent prijavljuje (poglavlje 7) | M6 `/guest-profiles` |
+| `/b2b/rezervacija/uslovi` | Prihvatanje uslova ugovora (clickwrap), subagent prihvata u ime sopstvenog naloga | M20 poglavlje 3.2, M5 `Quote.contract_terms_accepted` |
+| `/b2b/rezervacija/potvrda` | Potvrda, broj rezervacije, vaučer (odmah dostupan za subagenta unutar kredita, M5 poglavlje 6.3) | M5 `/bookings/:id` |
+| `/b2b/moje-rezervacije` | Lista rezervacija ovog subagenta, statusi, vaučeri | M5 `/bookings?client_account_id=...` |
+| `/b2b/moja-mreza` | Sopstveni direktni sub-subagenti — pregled, upravljanje provizijom (poglavlje 3) | M7 `/subagents/:id/children` |
+| `/b2b/profil` | Podaci naloga, kreditni limit/provizija (samo pregled — izmenu radi agencija ili roditeljski subagent) | M6 `/client-accounts/:id`, M7 `/subagents/:id` |
+
+### 2.0.2 Tok pretrage i rezervacije (korak po korak, isti obrazac kao M8 poglavlje 3)
+
+1. **Pretraga** — `SUBAGENT_ADMIN` prijavljen (nema anonimnog razgledanja na B2B portalu, za razliku od M8). Poziva `GET /search?channel=B2B_PORTAL` (M5 poglavlje 11) — rezultati već isključuju proizvode koji nisu `visible_channels` uključujući `B2B_PORTAL`, i ne sadrže identitet dobavljača (M2 poglavlje 5.1).
+2. **Izbor i ponuda** — kreira se `Quote` (M5 poglavlje 3.1), `client_account_id` = subagentov `ClientAccount`, `channel = B2B_PORTAL`. Cena: marža (M5 poglavlje 2) → provizija subagenta (M7 poglavlje 5, ne M6 lojalnost).
+3. **Podaci putnika** — subagent unosi podatke krajnjeg putnika (`GuestProfile`, poglavlje 7); putnik nema sopstveni login kod Terminal Travel.
+4. **Prihvatanje uslova ugovora** — isti clickwrap mehanizam kao M8 (`Quote.contract_terms_accepted`, M5 poglavlje 3.1) — subagent prihvata u ime svog naloga (M20 poglavlje 3.2), ne u ime krajnjeg putnika.
+5. **Potvrda** — M5 poglavlje 4: proverava se garancija putovanja (ako `tip_nastupanja = ORGANIZATOR`) pa kreditni limit (poglavlje 4 ovog dokumenta), tim redosledom (M5 poglavlje 4, korak 1). Plaćanje po pravilu ide na kredit/avans (`BANK_TRANSFER`, M10) — kartično plaćanje sa portala nije isključeno, ali nije podrazumevan način za B2B.
+6. **Vaučer** — generiše se automatski čim je `Booking.status = CONFIRMED`, bez čekanja na punu uplatu, pod uslovom da je subagent `ACTIVE` i rezervacija unutar kredita (M5 poglavlje 6.3) — subagent može odmah da servisira svog klijenta.
+
+### 2.0.3 Univerzalna pretraga i AI razgovor — omnisearch (dopuna, avgust 2026, na zahtev vlasnika)
+
+Isto polje kao M17/M8 (M15 poglavlje 6.5), dostupno sa svake `/b2b/*` rute. Prazan upit + Enter prikazuje rute iz poglavlja 2.0.1 filtrirane na `SUBAGENT_ADMIN` ulogu. Upit sa tekstom poziva `POST /ai-orchestration/omnisearch` sa `channel = B2B_PORTAL` — obim: katalog (bez identiteta dobavljača, M2 poglavlje 5.1), sopstvene rezervacije, sopstvena mreža sub-subagenata (poglavlje 6 — subagent ne dobija u rezultatima ništa od svog sub-subagenta van onoga što mu inače sme da vidi), sopstvena provizija/kreditni limit. Primer: "koliko mi je ostalo do sledećeg praga provizije" (poziva M7 poglavlje 3.1 `volume-status`).
 
 ---
 
@@ -120,7 +155,7 @@ Isti obrazac kao popust lojalnosti u M6 (primenjuje se kao poslednji korak posle
 
 `cena_za_subagenta = cena_posle_marže_iz_M5 * (1 - effective_commission_percentage / 100)`
 
-M5 prepoznaje da je `Quote.client_account_id` Subagent (ne obična B2C osoba) i primenjuje ovu formulu umesto poziva ka M6 `/loyalty-status`, koristeći `SubagentVolumeStatus.effective_commission_percentage` (poglavlje 3.1) — ovo automatski uključuje i osnovnu proviziju i eventualni obimski bonus, bez posebne grane logike u M5. Provizija se uvek računa na osnovu **subagenta koji trenutno naručuje**, bez obzira na kom je nivou u lancu — nema potrebe za izračunavanjem kroz ceo lanac u trenutku prodaje, jer je svaki nivo već ograničen pravilom iz poglavlja 3 u trenutku kad mu je provizija postavljena.
+**Kako M5 prepoznaje Subagenta (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2B.md`):** M5 proverava **postojanje `Subagent` zapisa** (poglavlje 2.1) za dati `Quote.client_account_id`, ne `ClientAccount.account_type = LEGAL_ENTITY` — obično pravno lice (npr. korporativni B2C klijent koji nije registrovan kao poslovni partner) ima `LEGAL_ENTITY` tip, ali nema `Subagent` zapis, i mora dobiti standardnu M5/M6 cenu (marža + lojalnost, ako postoji), ne proviziju. Tek ako `Subagent` zapis postoji za taj `client_account_id`, M5 primenjuje ovu formulu umesto poziva ka M6 `/loyalty-status`, koristeći `SubagentVolumeStatus.effective_commission_percentage` (poglavlje 3.1) — ovo automatski uključuje i osnovnu proviziju i eventualni obimski bonus, bez posebne grane logike u M5. Provizija se uvek računa na osnovu **subagenta koji trenutno naručuje**, bez obzira na kom je nivou u lancu — nema potrebe za izračunavanjem kroz ceo lanac u trenutku prodaje, jer je svaki nivo već ograničen pravilom iz poglavlja 3 u trenutku kad mu je provizija postavljena.
 
 ---
 
@@ -197,6 +232,9 @@ Prefiks: `/api/v1/b2b`
 - [ ] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje, ne menja tiho postojeći odnos.
 - [ ] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
 - [ ] Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
+- [ ] Ceo tok iz poglavlja 2.0.2 (pretraga → ponuda → putnici → uslovi → potvrda) radi kraj-do-kraja kroz rute iz poglavlja 2.0.1, bez ijednog koraka koji zaobilazi interne API-je M2/M5/M6.
+- [ ] Rezervacija sa `LEGAL_ENTITY` `ClientAccount` koji **nema** `Subagent` zapis dobija standardnu M5/M6 cenu (marža + eventualna lojalnost), ne proviziju — potvrđuje da se prepoznavanje radi po postojanju zapisa, ne po tipu naloga.
+- [ ] Omnisearch (poglavlje 2.0.3) ne vraća identitet dobavljača niti podatke tuđeg sub-subagenta u rezultatima.
 
 ---
 

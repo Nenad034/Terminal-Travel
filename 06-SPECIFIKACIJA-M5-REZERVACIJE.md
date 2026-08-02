@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4
 
 ---
@@ -50,6 +50,40 @@ Za proizvod iz M4 (API): `M2_PRODUCT` → `M4_PROVIDER` (podrazumevano).
 
 ---
 
+## 3.0 Sastavljanje putovanja — Itinerary (opcioni korak pre Ponude, dopuna avgust 2026 — poređenjem sa Travel Compositor portfolio modelom)
+
+Za jednostavne rezervacije (jedan hotel, jedan transfer) tok direktno kreće od Ponude (poglavlje 3). Za **kompleksna višedestinacijska putovanja** — differentiator eksplicitno naveden u Master dokumentu poglavlje 1.1 kao razlog da gost ostane kod agencije umesto generičkog AI — M5 uvodi opcioni korak sastavljanja pre Ponude, tako da redosled i kombinacija destinacija ne moraju biti unapred poznati da bi se pravila konkretna ponuda.
+
+### 3.0.1 `Itinerary`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| client_account_id | UUID, nullable | isto kao `Quote` (poglavlje 3.1) — nullable dok se gost ne identifikuje |
+| channel | enum (isto kao `Quote`) | |
+| status | enum: `DRAFT`, `CONVERTED`, `ABANDONED` | `CONVERTED` kad postane `Quote` (poglavlje 3.0.3) |
+| title | string, nullable | radni naziv, npr. "Italija + Grčka, 14 dana" — samo interni, ne prevodi se (M2 poglavlje 2.2 se ovde ne primenjuje) |
+| created_by | UUID, nullable | user_id ako agent sastavlja; null ako gost sam sastavlja na sajtu |
+| created_at / updated_at | timestamp | |
+
+### 3.0.2 `ItinerarySegment`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| itinerary_id | UUID (FK) | |
+| sequence_order | integer | redosled segmenta u putovanju — korisnik menja raspored; tačan UI (drag & drop ili sl.) van obima ove specifikacije |
+| product_id | UUID (FK → M2 Product), nullable | popunjeno kad je segment vezan za konkretan proizvod (hotel, transfer, izlet); nullable dok se destinacija samo okvirno bira, pre konkretne pretrage |
+| destination_country / destination_city | string, nullable | kopija radi prikaza dok `product_id` nije popunjen |
+| stay_from / stay_to | date, nullable | |
+| notes | text, nullable | slobodna napomena agenta/gosta o segmentu |
+
+### 3.0.3 Konverzija u Ponudu
+`POST /itineraries/:id/to-quote` prevodi svaki `ItinerarySegment` sa popunjenim `product_id` u `QuoteItem` (poglavlje 3.2), po istim pravilima cene/marže kao svaka druga stavka (poglavlje 2). **Cena se prvi put računa tek u ovom koraku** — `Itinerary` sam po sebi ne rezerviše niti proverava dostupnost, isti princip kao što `Quote` sam po sebi ne zaključava kapacitet (poglavlje 3). Segmenti bez popunjenog `product_id` (samo okvirno izabrana destinacija, još bez konkretnog proizvoda) se preskaču uz jasno upozorenje korisniku pre konverzije, ne tiho. Pri uspešnoj konverziji, `Itinerary.status` prelazi u `CONVERTED`; nastala `Quote` čuva referencu nazad radi sledljivosti (novo polje `Quote.itinerary_id`, nullable, dopuna poglavlja 3.1).
+
+### 3.0.4 Van obima ove dopune
+Vizuelni prikaz sastavljanja (mapa, drag & drop redosled) je dizajnersko pitanje van obima ove specifikacije, isto obrazloženje kao izgled kalendara (poglavlje 13). Automatski predlozi AI agenta za popunu "praznina" u itineraru (npr. transfer između dva segmenta, ili predlog trećeg segmenta na osnovu prva dva) je prirodan kandidat za M15 kad taj sloj bude uveden za M5 — ne uvodi se ovde, u skladu sa principom #4 Master dokumenta (determinizam pre autonomije: `Itinerary` sam ostaje čist podatak dok ne postoji stabilan M15 okvir koji bi ga dopunjavao).
+
+---
+
 ## 3. Model podataka — Ponuda (Quote)
 
 Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacitet kod M3/M4. Kapacitet se proverava i rezerviše tek u koraku Potvrde (poglavlje 4). Ovo je namerna odluka: zaključavanje kapaciteta tokom razgledanja ponude uvodi složenost (isticanje rezervacije, oslobađanje) koja nije neophodna — standardna praksa u turizmu je da se dostupnost garantuje tek pri potvrdi, uz jasnu poruku gostu ako je nešto u međuvremenu prodato.
@@ -62,6 +96,9 @@ Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacit
 | channel | enum: `B2C_SITE`, `B2B_PORTAL`, `MOBILE`, `INTERNAL_PANEL`, `PHONE` | |
 | status | enum: `DRAFT`, `EXPIRED`, `CONVERTED` | |
 | expires_at | timestamp | najkraći `quoteExpiresAt` među stavkama (M4) ili podrazumevanih 30 min za čisto ugovorene stavke |
+| itinerary_id | UUID (FK → Itinerary), nullable | popunjeno samo ako je Ponuda nastala konverzijom iz sastavljenog putovanja (poglavlje 3.0.3) — nullable za direktne ponude jedne/nekoliko stavki |
+| contract_terms_accepted | boolean, default false | dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` — privremeno čuva clickwrap pristanak (M20 poglavlje 3.2) **pre** nego što `Booking`/`ClientContract` postoje; obavezno `true` pre prelaska na plaćanje za `B2C_SITE`/`B2B_PORTAL`/`MOBILE` kanale (M8 poglavlje 3, korak 4) |
+| contract_terms_accepted_at | timestamp, nullable | kad je pristanak zabeležen; prenosi se na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim taj zapis nastane (M20 poglavlje 3.1) — vidi poglavlje 4.1 niže |
 | created_by | UUID, nullable | user_id ako je kreirao agent; null ako gost sam kreira na sajtu |
 | created_at | timestamp | |
 
@@ -82,11 +119,24 @@ Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacit
 
 ---
 
+## 4.0a Određivanje `Booking.tip_nastupanja` (dopuna, avgust 2026 — rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md`)
+
+M10 poglavlje 4.1 kaže da `tip_nastupanja` "bira prodajni tim/agent pri potvrdi rezervacije" — ovo tačno važi za `INTERNAL_PANEL` i `PHONE` kanale (M17, poziv), gde postoji ljudski nalog koji svesno bira. Za samouslužne kanale (`B2C_SITE`, `MOBILE`, `B2B_PORTAL`) **nema ljudskog naloga u toku** — vrednost se mora izvesti automatski, deterministički, bez AI procene (princip #4 Master dokumenta):
+
+1. **Sve stavke iz iste ponude moraju se slagati.** Za svaku `QuoteItem`, izvedi kandidat vrednost: `CONTRACTED` stavka → `M3 Contract.default_tip_nastupanja` (M3 poglavlje 2.2a) preko `Product.source_contract_id`; `API` stavka → `M4 ProviderConfig.default_tip_nastupanja` (M4 poglavlje 3.1) preko `Product.source_provider`.
+2. Ako se svi kandidati slažu, ta vrednost postaje `Booking.tip_nastupanja`.
+3. Ako se kandidati **ne slažu** (npr. ponuda kombinuje proizvod gde je agencija organizator sa proizvodom gde je posrednik), samouslužni kanal **ne sme sam da potvrdi rezervaciju** — sistem vraća jasnu grešku i traži da se ponuda razdvoji na zasebne rezervacije, ili da tim preuzme potvrdu ručno kroz M17 (gde ljudski nalog svesno bira jednu vrednost za celu rezervaciju, svestan da to ne odgovara doslovno sastavu stavki — retka, granična situacija).
+4. Za `INTERNAL_PANEL`/`PHONE` kanale, ponašanje iz koraka 1–3 služi samo kao **podrazumevana, unapred popunjena vrednost** — ljudski nalog je uvek slobodan da je eksplicitno promeni pre potvrde (M3 poglavlje 2.2a), isti princip kao svaki drugi podrazumevani unos u sistemu.
+
+`Booking.tip_nastupanja` ostaje **nepromenljivo posle kreiranja rezervacije**, bez obzira na to da li je vrednost automatski izvedena ili ručno izabrana (nepromenjeno pravilo iz M10 poglavlja 4.1).
+
+---
+
 ## 4. Potvrda rezervacije (Quote → Booking)
 
 Korak po korak:
 
-1. Proveri da `Quote.status = DRAFT` i da nije istekla. Ako je istekla, **ponovo izračunaj cenu/dostupnost** (nova pitanja ka M3/M4) pre nastavka — nikad se ne potvrđuje na osnovu zastarele cene. Ako je `tip_nastupanja = ORGANIZATOR` (poglavlje 4.1), pre bilo kog poziva ka M3/M4 pozovi M11 `GET /travel-guarantee/utilization` (M11 poglavlje 4.2) — prekoračenje limita garancije odbija potvrdu bez rezervisanja kapaciteta, isti obrazac kao provera B2B kreditnog limita (M7 poglavlje 4).
+1. Proveri da `Quote.status = DRAFT` i da nije istekla. Ako je istekla, **ponovo izračunaj cenu/dostupnost** (nova pitanja ka M3/M4) pre nastavka — nikad se ne potvrđuje na osnovu zastarele cene. Odredi `Booking.tip_nastupanja` po pravilu iz poglavlja 4.0a. Redosled provera pre bilo kog poziva ka M3/M4, **uvek u ovom fiksnom redosledu** (dopuna avgust 2026 — rešava nalaz o nedefinisanom redosledu iz `VALIDACIJA-WORKFLOW-B2B.md`): **(a)** ako je `tip_nastupanja = ORGANIZATOR`, pozovi M11 `GET /travel-guarantee/utilization` (M11 poglavlje 4.2) — prekoračenje limita garancije odbija potvrdu; **(b)** ako `Quote.client_account_id` pripada Subagentu (M7 poglavlje 2.1 — provera postojanja `Subagent` zapisa za taj `client_account_id`, ne provera `ClientAccount.account_type`, jer obično pravno lice koje nije registrovan subagent ne prolazi kroz ovu proveru), proveri kreditni limit (M7 poglavlje 4) — prekoračenje odbija potvrdu. Razlog za ovaj redosled: zakonska ograda (garancija) je stroža i nezavisna od toga ko kupuje, pa se proverava prva; poslovna ograda (kredit) proverava se druga, samo ako je prva prošla.
 2. Za svaku `QuoteItem`:
    - Ako `CONTRACTED`: pozovi M3 `/contracts/:id/periods/:periodId/reserve`. Uspeh → `item_status = CONFIRMED`. Ako je period `ON_REQUEST` → `item_status = PENDING_SUPPLIER_CONFIRMATION`. Neuspeh (nema kapaciteta) → stavka pada.
    - Ako `API`: pozovi M4 `/internal/providers/:code/bookings` sa jedinstvenim `idempotency_key`. Mapiraj `BookingConfirmation.status` u `item_status`.
@@ -101,7 +151,7 @@ Korak po korak:
 | booking_number | string, unique | čitljiva oznaka za gosta (npr. `TT-2027-000482`) |
 | client_account_id | UUID (FK → M6) | ko plaća |
 | channel | enum (isto kao Quote) | |
-| tip_nastupanja | enum: `ORGANIZATOR`, `POSREDNIK` | dodato u M10 specifikaciji, poglavlje 4.1 — bira ga prodajni tim pri potvrdi, **nepromenljivo posle kreiranja rezervacije**; određuje PDV tretman (M10) i tip klijentskog ugovora (M20) |
+| tip_nastupanja | enum: `ORGANIZATOR`, `POSREDNIK` | dodato u M10 specifikaciji, poglavlje 4.1 — određuje se po pravilu iz poglavlja 4.0a (automatski za samouslužne kanale, ručno biran uz podrazumevanu vrednost za `INTERNAL_PANEL`/`PHONE`), **nepromenljivo posle kreiranja rezervacije**; određuje PDV tretman (M10) i tip klijentskog ugovora (M20) |
 | status | enum: `PENDING_SUPPLIER_CONFIRMATION`, `CONFIRMED`, `MODIFIED`, `CANCELLED`, `COMPLETED` | |
 | payment_status | enum: `UNPAID`, `PARTIALLY_PAID`, `PAID`, `INVOICE_PENDING` | **potvrđeno: potvrda rezervacije ne zavisi od statusa plaćanja** — B2B kredit i avansno plaćanje su podržani od starta |
 | total_price / currency | integer / string | zbir `final_price` svih stavki, u najmanjoj jedinici valute |
@@ -158,6 +208,24 @@ Van same potvrde i vaučera, M5 periodičnim poslom prati tri situacije i upozor
 - **Vaučer nedostaje uprkos punoj uplati:** ako `payment_status = PAID` a `voucher_url` je i dalje prazno (van override toka iznad, koji bi ga već popunio), to je znak da automatsko generisanje iz poglavlja 6 nije uspelo — sistem odmah generiše upozorenje; ovo je greška u sistemu i ne sme tiho da prođe.
 
 Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću stavku (sistemska greška).
+
+### 6.2 Identitet dobavljača se nikad ne izlaže B2C/B2B kanalima (dopuna, avgust 2026, na zahtev vlasnika)
+
+Isto pravilo kao M2 poglavlje 5.1, primenjeno na M5: vaučer (poglavlje 6), pregled rezervacije koji vidi gost (M8/M9) ili B2B subagent (M7), i svaki M5 API odgovor ka tim kanalima **nikad** ne sadrže `BookingItem.supplier_reference` niti bilo koje polje iz M3 `Supplier`/`Contract` do kog bi se moglo doći preko `BookingItem.product_id` → M2 `Product.source_contract_id`. Vidljivi ostaju proizvod, datumi, cena za gosta/subagenta i status — ono što je već prirodan sadržaj vaučera/pregleda.
+
+**Izuzetak — interni kanal:** M17 (interni radni panel), pregled kalendara (poglavlje 7) i operativne liste ka dobavljaču (poglavlje 8) i dalje pun pristup imaju — poglavlje 8 uostalom *postoji* zato što dobavljač mora da dobije spisak, to ostaje nepromenjeno. Ograničenje važi isključivo za ono što vidi gost (M8/M9) ili B2B subagent (M7).
+
+**Sprovođenje:** isti princip kao M2 poglavlje 5.1 — polje se ne sme naći u payload-u ka gost/B2B kontekstu, ne oslanjati se na to da front-end jednostavno ne prikaže.
+
+### 6.3 Sistemski izuzetak izdavanja vaučera — subagent unutar odobrenog kredita (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2B.md`)
+
+Poglavlje 6 zahteva `payment_status = PAID` pre automatskog izdavanja vaučera, sa ručnim izuzetkom ograničenim na Vlasnika/Direktora (`voucher_override_*`). Ovo pravilo je pisano sa B2C rizikom na umu (spreči izdavanje dokumenta bez ikakve naplate) — ali B2B prodaja na kredit (M7 poglavlje 4) je **redovan, ugovoren način poslovanja** sa subagentom, ne izuzetak, pa bi zahtevanje ručnog odobrenja za svaku takvu rezervaciju opterećivalo Vlasnika/Direktora bez stvarne dodatne bezbednosti — kreditni rizik je već proveren i ograničen pri potvrdi rezervacije (poglavlje 4, korak 1b).
+
+**Pravilo:** Za `Booking` gde `client_account_id` pripada `Subagent`-u sa `status = ACTIVE` (M7 poglavlje 2.1), vaučer se generiše automatski čim `Booking.status = CONFIRMED`, **nezavisno od `payment_status`** — pod uslovom da je rezervacija uopšte uspela da prođe proveru kreditnog limita iz poglavlja 4 (što znači da je `current_outstanding_balance` posle ove rezervacije i dalje unutar `credit_limit`). Ovo je nivo **"Autonomno"** iz poglavlja 7 Master dokumenta — mehanička posledica već izvršene ljudske/sistemske kontrole rizika (odobrenje subagenta u `ACTIVE`, poglavlje 9 M7 specifikacije; kreditni limit koji je postavio Vlasnik/Direktor), ne nova autonomna finansijska odluka.
+
+`voucher_override_*` polja (poglavlje 6) ostaju rezervisana za **izuzetke van ovog pravila** — npr. rezervacija koja bi prekoračila kreditni limit, ili poseban jednokratni dogovor van standardnog B2B odnosa; u tim slučajevima i dalje je obavezno ručno odobrenje Vlasnika/Direktora, nepromenjeno.
+
+**Napomena:** ovo ne menja tok naplate niti fiskalizaciju — `payment_status` i dalje tačno odražava stvarno stanje uplate (M10), samo se izdavanje vaučera više ne uslovljava punom uplatom za ovu specifičnu, već rizično-proverenu kategoriju rezervacija.
 
 ---
 
@@ -240,6 +308,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 
 | Dozvola | Podrazumevana dodela po ulozi |
 | :---- | :---- |
+| `M5/itinerary/CREATE`, `VIEW`, `EDIT` | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samo sopstveni, preko sajta) |
 | `M5/quote/CREATE`, `VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samo sopstvene, preko sajta) |
 | `M5/booking/CREATE` (potvrda) | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samostalna rezervacija na sajtu) |
 | `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager (sve); Prodajni agent (podrazumevano samo sopstveni klijenti — širi se pojedinačnim izuzetkom iz M1 ako treba); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
@@ -258,7 +327,10 @@ Prefiks: `/api/v1/sales`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/search` | GET | objedinjena pretraga (M2 katalog + M3 dostupnost + M4 uživo), vraća normalizovane rezultate sa već primenjenom maržom |
+| `/itineraries` | GET / POST | lista / kreiranje novog sastavljanja putovanja (poglavlje 3.0.1) |
+| `/itineraries/:id` | GET / PATCH | pregled / izmena (dodavanje, brisanje, preslagivanje segmenata, poglavlje 3.0.2) |
+| `/itineraries/:id/to-quote` | POST | konverzija u Ponudu (poglavlje 3.0.3), vraća kreiranu `Quote` |
+| `/search` | GET | objedinjena pretraga (M2 katalog + M3 dostupnost + M4 uživo), vraća normalizovane rezultate sa već primenjenom maržom. Parametri (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOV-B2C.md`): `type` (enum, isti skup kao M2 `Product.type`, opciono — bez njega pretražuju se svi tipovi), `destination_country`/`destination_city` (opciono), `stay_from`/`stay_to` (obavezno za `ACCOMMODATION`/`TRANSFER`/`EXCURSION`/`PACKAGE`, neprimenjivo za samostalnu `INSURANCE`), `occupancy` (JSON, `{adults, children, room_config}`, isti oblik kao `QuoteItem.occupancy`, obavezno kad `type` podrazumeva smeštaj), `channel` (obavezno — filtrira po `Product.visible_channels`, isti enum kao poglavlje 3.1). Kad je `type = PACKAGE`, pretraga vraća gotove pakete iz M2 (`source_type = CONTRACTED` ili `API` sa `Product.type = PACKAGE`) — za custom višedestinacijsko sastavljanje van gotovog paketa koristi se `Itinerary` tok (poglavlje 3.0), ne ovaj endpoint direktno. |
 | `/quotes` | POST | kreira ponudu od izabranih proizvoda/datuma/gostiju |
 | `/quotes/:id` | GET | pregled ponude, uključujući da li je istekla |
 | `/quotes/:id/confirm` | POST | pokreće tok iz poglavlja 4, vraća kreiranu `Booking` ili grešku po stavci |
@@ -297,6 +369,15 @@ Prefiks: `/api/v1/sales`
 - [ ] Rezervacija sa izdatim vaučerom bez pune uplate (izuzetak, poglavlje 6) generiše dnevni podsetnik timu dok se ne naplati do kraja ili ne otkaže (poglavlje 6.1).
 - [ ] Stavka rezervacije u statusu `PENDING_SUPPLIER_CONFIRMATION` duže od praga generiše upozorenje nezavisno po dobavljaču — rezervacija sa stavkama od dva dobavljača ispravno prijavljuje samo onu stavku čiji dobavljač kasni (poglavlje 6.1).
 - [ ] Rezervacija sa `payment_status = PAID` a bez generisanog vaučera odmah generiše vidljivo upozorenje (poglavlje 6.1).
+- [ ] Test: vaučer i odgovor `/bookings/:id` preko M7/M8/M9-gost konteksta ne sadrže `BookingItem.supplier_reference` niti bilo šta iz M3 `Supplier`/`Contract` (poglavlje 6.2); isti poziv preko M17 (interni kontekst) ta polja ispravno vraća.
+- [ ] `Booking.tip_nastupanja` se ispravno automatski izvodi iz `default_tip_nastupanja` (M3/M4) za `B2C_SITE`/`B2B_PORTAL`/`MOBILE` kanale; ponuda sa nesaglasnim kandidatima se odbija sa jasnom porukom umesto da tiho izabere jednu vrednost (poglavlje 4.0a).
+- [ ] Provera garancije putovanja (M11) se uvek izvršava pre provere kreditnog limita (M7), nikad obrnuto (poglavlje 4, korak 1).
+- [ ] `Quote.contract_terms_accepted` mora biti `true` pre nego što se dozvoli prelazak na plaćanje za samouslužne kanale; `Booking` kreiran bez ovog uslova (za te kanale) se ne dozvoljava.
+- [ ] Subagent sa `status = ACTIVE` i rezervacijom unutar kreditnog limita dobija vaučer automatski čim `Booking.status = CONFIRMED`, bez obzira na `payment_status`, bez ručnog override-a (poglavlje 6.3); rezervacija koja prekorači limit i dalje zahteva ručni override.
+- [ ] `GET /search` ispravno filtrira po `type`, `destination_country`/`destination_city`, `stay_from`/`stay_to`, `occupancy`, `channel`; `type = PACKAGE` vraća gotove pakete iz M2.
+- [ ] Moguće je sastaviti `Itinerary` sa više segmenata u više destinacija, promeniti im redosled, i konvertovati ga u `Quote` — svaki segment sa popunjenim `product_id` postaje `QuoteItem` sa ispravno primenjenom cenom/maržom (poglavlje 3.0.3).
+- [ ] Segment bez popunjenog `product_id` se ne konvertuje tiho — korisnik dobija jasno upozorenje pre konverzije koji segmenti su preskočeni.
+- [ ] `Quote.itinerary_id` ispravno referencira izvorni `Itinerary` kad Ponuda nastane konverzijom, i ostaje `null` za direktne ponude.
 
 ---
 
@@ -309,3 +390,6 @@ Prefiks: `/api/v1/sales`
 - Da li slanje operativne liste ide isključivo email prilogom (PDF) ili se razmatra i strukturisan API kanal ka većim hotelskim lancima/prevoznicima — otvoreno dok ne postoji konkretan zahtev dobavljača za tim.
 - Da li `API` (M4) stavke ikad zahtevaju sličan operativni dokument (npr. provajder ne prosleđuje kompletne podatke dalje ka stvarnom dobavljaču) — trenutna pretpostavka (poglavlje 8) je da API konekcija sama nosi te podatke, revidira se ako se u praksi pokaže suprotno.
 - Tačan izgled kalendara (mesečni grid vs. nedeljni vs. lista) i vizuelno razlikovanje kategorija (npr. boje/ikone slično standardnoj PMS praksi — zelena strelica za dolazak, crvena za odlazak) — dizajnersko pitanje van obima ove specifikacije.
+- Vizuelni prikaz/UI za sastavljanje putovanja (poglavlje 3.0.4) — dizajnersko pitanje van obima.
+- AI predlozi za popunu praznina u itineraru (poglavlje 3.0.4) — otvoreno dok M15 ne dođe na red za M5.
+- Da li `Itinerary` treba i sopstveni rok isteka (`ABANDONED` po vremenu neaktivnosti, slično `Quote.expires_at`) ili ostaje bez roka dok ga korisnik ne konvertuje ili ručno ne napusti — otvoreno, nije kritično jer `Itinerary` ne drži kapacitet niti cenu.

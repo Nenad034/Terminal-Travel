@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M20) i poglavlje 8 (Faza 2)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0 — dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
+**Verzija:** 1.1 — ažurirana referenca na konkretna `Quote.contract_terms_accepted`/`contract_terms_accepted_at` polja (poglavlje 3.2), rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.0 dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
 **Zavisi od:** M1, M2, M3, M5, M11. Formalno i od M6 (poglavlje 4 Master dokumenta) kad taj modul postoji — do tada koristi minimalan zapis nalogodavca iz `Booking.client_account_id`, isti obrazac kao M10/M11.
 
 ---
@@ -76,9 +76,9 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 
 ### 3.2 Prihvatanje
 
-- **B2C/sajt (M8) i mobilna aplikacija (M9):** gost elektronski prihvata (clickwrap — potvrdno polje "Prihvatam uslove ugovora") u toku checkout toka, pre finalne potvrde kartičnog plaćanja (M10 poglavlje 7.2) — `accepted_method = ELECTRONIC_CLICKWRAP`. M9 koristi isti API kao M8 (M9 specifikacija, poglavlje 2), pa je tok identičan.
+- **B2C/sajt (M8) i mobilna aplikacija (M9):** gost elektronski prihvata (clickwrap — potvrdno polje "Prihvatam uslove ugovora") u toku checkout toka, pre finalne potvrde kartičnog plaćanja (M10 poglavlje 7.2) — konkretno, ovaj klik postavlja `Quote.contract_terms_accepted = true`/`contract_terms_accepted_at` (M5 poglavlje 3.1, dopuna avgust 2026 — precizira mehanizam koji je ranije bio opisan samo kao "privremeno se beleži uz Quote"). Ova dva polja se prenose na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim `ClientContract` nastane (poglavlje 3.1). M9 koristi isti API kao M8 (M9 specifikacija, poglavlje 2), pa je tok identičan.
 - **Interni panel (M17) / telefon:** ugovor se šalje gostu (email/lično), prihvatanje se evidentira ručno od strane prodajnog agenta kad stigne potpisan/skeniran primerak — `accepted_method = WET_SIGNATURE_SCAN`.
-- **B2B portal (M7):** ugovor je i dalje između agencije i **nalogodavca koji plaća** (`Booking.client_account_id` = subagent, M7 poglavlje 5), ne krajnjeg putnika kog subagent prijavljuje — subagent (`SUBAGENT_ADMIN`) prihvata u ime svog naloga kroz isti clickwrap obrazac kao M8, u trenutku potvrde rezervacije na portalu, `accepted_method = ELECTRONIC_CLICKWRAP`. Odnos subagenta sa svojim krajnjim klijentom (ako subagent dalje preprodaje) ostaje van obima ovog ugovora — to je posao subagentovog sopstvenog poslovanja, ne agencije Terminal Travel.
+- **B2B portal (M7):** ugovor je i dalje između agencije i **nalogodavca koji plaća** (`Booking.client_account_id` = subagent, M7 poglavlje 5), ne krajnjeg putnika kog subagent prijavljuje — subagent (`SUBAGENT_ADMIN`) prihvata u ime svog naloga kroz isti `Quote.contract_terms_accepted` mehanizam kao M8 (M7 poglavlje 2.0.2, korak 4), u trenutku potvrde rezervacije na portalu, `accepted_method = ELECTRONIC_CLICKWRAP`. Odnos subagenta sa svojim krajnjim klijentom (ako subagent dalje preprodaje) ostaje van obima ovog ugovora — to je posao subagentovog sopstvenog poslovanja, ne agencije Terminal Travel.
 
 ### 3.3 Ograda — veza sa vaučerom (dopuna M5 poglavlje 6)
 

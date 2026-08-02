@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
+**Verzija:** 1.4 — dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -91,6 +91,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M21 | `help_escalation.create_ticket` | `AUTONOMOUS` | M21 poglavlje 5.3 — korisnik koji pita sam potvrđuje eskalaciju sopstvenog pitanja, ne treći čovek koji odobrava tuđu akciju |
 | M21 | `help_article_suggestion.draft` | `AUTONOMOUS` | M21 poglavlje 5.4 — čisto pripremni nacrt iz obrasca ponovljenih pitanja |
 | M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
+| (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage |
 
 **Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 eTurista prijava, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
@@ -110,6 +111,50 @@ Pre izvršenja bilo koje akcije čiji je `actor_type = AI_AGENT`, API sloj prove
 ## 6. Agent Inbox — jedno mesto za sve što čeka ljudsko odobrenje
 
 Glavni agent (poglavlje 2) agregira sve `PROPOSE_THEN_APPROVE` stavke čeka (M6/M14 poruke na čekanju slanja, M7 rabati na čekanju, M11 mesečni izveštaj na čekanju, M12 sadržaj na čekanju odobrenja, M3 upozorenja o roku) u jedan prikaz unutar M17 (internog panela) — isti obrazac agregacije kao kontrolna tabla iz M17 specifikacije (poglavlje 5 te specifikacije), samo filtrirano na "čeka me odluka" umesto na rokove.
+
+---
+
+## 6.5 Univerzalna pretraga i AI razgovor kroz kanale — omnisearch (dopuna, avgust 2026, na zahtev vlasnika)
+
+**Napomena o fazi (razrešava naizgled sukob sa poglavljem 8 Master dokumenta):** M15 kao celina je Faza 7 — puna AI orkestracija po svim modulima, uvedena tek kad je svaki modul "stabilan u produkciji". Omnisearch **ne mora da čeka Fazu 7** u celini — to je zaseban `module_code` u `ModuleAgentActivation` gate-u (poglavlje 3), npr. `M15_OMNISEARCH`, sa sopstvenim uslovom aktivacije (M17/M7/M8 kanali su stabilni i imaju dovoljno stabilne interne API-je modula koje pretražuju). Vlasnik/Direktor mogu aktivirati omnisearch čim ti uslovi budu ispunjeni, nezavisno od toga kada se aktiviraju domenski agenti pojedinačnih modula (M3, M10, itd.) — isti princip kao što M18 deo funkcija ne čeka pun M15 okvir (Master dokument poglavlje 4, napomena uz M18). Ovo znači da omnisearch realno može krenuti čim M5/M17 (Faza 1) i M7/M8 (Faze 3/4) budu stabilni, ne tek u Fazi 7.
+
+Sva tri operativna kanala (M17 interni panel, M7 B2B portal, M8 sajt — M9 gostinski deo naknadno kad dođe na red) dobijaju **istu komponentu**: jedno pretraživačko polje koje (a) na fokus/prazan upit + Enter prikazuje sve rute/stavke menija dostupne trenutnom korisniku u tom kanalu, i (b) na uneti tekst ili pitanje aktivira AI agenta koji pretražuje/objašnjava bilo šta u aplikaciji na prirodnom jeziku. Ovo nije zamena za M5 `/search` (pretraga proizvoda ostaje ta) — ovo je širi, aplikacioni sloj: rezervacije, fakture, dobavljači, sopstveni profil, pomoć, sve što korisnik ima pravo da vidi u tom kanalu.
+
+### 6.5.1 `OmnisearchAgent` — novi `agent_role`
+
+Dopuna `AIAgent.agent_role` (poglavlje 2.1): treći mogući enum, `OMNISEARCH_AGENT` — poput `GLAVNI_AGENT`, ima pristup preko granica modula (jer pretraga po definiciji mora da dohvati podatke iz više modula odjednom), ali **strogo samo za čitanje** — nema nijednu dozvolu tipa `CREATE`/`EDIT`/`SUBMIT`/`APPROVE` ni u jednom modulu, sprovedeno na nivou M1 RBAC-a isto kao svaki drugi nalog. Ovo je namerno uže ovlašćenje od glavnog agenta.
+
+### 6.5.2 Sprovođenje vidljivosti — ništa mimo postojećih pravila
+
+`OmnisearchAgent` **nikad** ne čita direktno iz baze — poziva iste interne API-je kao i sam kanal koji ga je pozvao (princip #1/#3, poglavlje 3 Master dokumenta), sa identitetom i pravima **korisnika koji pretražuje**, ne sopstvenim širim pristupom. Posledica: rezultati pretrage automatski poštuju već postojeća ograničenja bez ijedne nove provere —
+
+- identitet dobavljača se ne pojavljuje u rezultatima za M7/M8 kontekst (M2 poglavlje 5.1, M5 poglavlje 6.2);
+- prodajni agent u M17 vidi u rezultatima samo svoje klijente, ne tuđe (M1 RBAC, M5 poglavlje 10);
+- subagent u M7 ne vidi rezervacije/goste svog sub-subagenta (M7 poglavlje 6);
+- gost na M8 vidi samo sopstvene rezervacije.
+
+Ako upit zahteva podatak do kog korisnik nema pravo pristupa, agent to tretira isto kao da je API vratio 403 — ne otkriva postojanje podatka, samo kaže da nema rezultata ili da nema ovlašćenje da odgovori na to.
+
+### 6.5.3 Prikaz svih ruta/menija na prazan upit ("Enter")
+
+Za svaki kanal (M17, M7, M8) postoji **statička, ulogom filtrirana lista** dostupnih ruta/stavki menija (definisana u samom kanalu — M17/M7/M8 specifikaciji, ne dupliran podatak u M15). Kad korisnik pritisne Enter bez teksta (ili fokusira polje), kanal lokalno prikazuje tu listu filtriranu na sopstvenu ulogu — ovo **ne** ide kroz `OmnisearchAgent` niti poziva AI, jer je čisto statična navigacija bez potrebe za pretragom ili jezičkim modelom (ista logika kao M18 poglavlje 6 — dobar deo funkcionalnosti uopšte ne treba model).
+
+### 6.5.4 AI razgovor — kad korisnik nešto upiše ili pita
+
+Tek kad korisnik unese tekst, poziva se `POST /ai-orchestration/omnisearch` (poglavlje 9). Agent:
+1. Pokušava prvo **direktno poklapanje** sa poznatim entitetima (broj rezervacije, ime gosta/subagenta, naziv proizvoda) preko internih API-ja modula relevantnih za taj kanal — brzo, bez jezičkog modela, ako je upit dovoljno konkretan.
+2. Ako upit liči na pitanje na prirodnom jeziku ("koje rezervacije čekaju fiskalni dokument", "koliko mi je ostalo do sledećeg praga provizije", "porodični hotel u Grčkoj u avgustu"), prosleđuje se jezičkom modelu (`model_tier`, isto podešavanje kao ostali agenti, M18 poglavlje 6) koji prevodi pitanje u pozive ka relevantnim internim API-jima (M5 pretraga/rezervacije, M7 provizija/kredit, M10 fakture — u granicama prava korisnika) i vraća sažet odgovor sa linkovima ka konkretnim zapisima/stranicama.
+3. Odgovor **nikad ne izvršava radnju sam** (poglavlje 4, `omnisearch.query = AUTONOMOUS`, ali ograničeno na pronalaženje) — ako korisnik pita "otkaži mi rezervaciju TT-2027-000482", agent vraća link do te rezervacije sa dugmetom za otkazivanje na toj stranici, gde korisnik ručno potvrđuje kroz postojeći M5 tok — isto obrazloženje kao "Nikad autonomno"/"Predloži pa čovek odobri" primeri kroz ceo ovaj dokument, primenjeno ovde kao jednostavno pravilo bez izuzetka: omnisearch nikad ne piše, samo čita i navigira.
+
+### 6.5.5 Razlika po kanalu (kontekst upisan u sam kanal, ne ovde)
+
+- **M17** — najširi obim: rezervacije, katalog, ugovori, finansije, dobavljači (M17 poglavlje 5.5).
+- **M8** — najuži obim: destinacije/proizvodi, sopstvene rezervacije, pomoć (M21) — AI razgovor ovde se preklapa sa M21 §5.2 (help pitanja); `OmnisearchAgent` na M8 poziva i M21 kad pitanje liči na "kako se koristi sajt/uslovi", ne samo na pretragu proizvoda (M8 poglavlje 3a).
+- **M7** — obim subagenta: katalog (bez dobavljača), sopstvene rezervacije, sopstvena mreža sub-subagenata, provizija/kredit (M7 poglavlje 2.0.3).
+
+### 6.5.6 Praćenje zloupotrebe
+
+Isti obrazac kao M21 poglavlje 5.5 (`HELP_AGENT_ABUSE_PATTERN`) — neuobičajen obrazac upita (pokušaj sistematskog "izvlačenja" podataka van uobičajene upotrebe) generiše `HealthSignal` ka M18, čisto informativno.
 
 ---
 
@@ -140,6 +185,7 @@ Prefiks: `/api/v1/ai-orchestration`
 | `/agents` | GET | lista svih `AIAgent` zapisa, sa statusom |
 | `/action-types` | GET / POST / PATCH | registar iz poglavlja 4 |
 | `/inbox` | GET | agregovane stavke na čekanju odobrenja (poglavlje 6) |
+| `/omnisearch` | POST | `{query, channel, context}` → `{matched_routes[], entity_results[], ai_answer?}` (poglavlje 6.5); poziva se sa identitetom/pravima korisnika koji pretražuje, nikad sa širim pristupom agenta |
 
 ---
 
@@ -150,6 +196,10 @@ Prefiks: `/api/v1/ai-orchestration`
 - [ ] Agent Inbox ispravno prikazuje sve stavke na čekanju iz svih modula koji ih trenutno proizvode.
 - [ ] Svaka akcija bilo kog agenta (glavnog ili domenskog) vidljiva je u M1 audit logu sa `actor_type = AI_AGENT`.
 - [ ] Registar akcija (`AgentActionType`) sadrži sve akcije nabrojane u poglavlju 4 ovog dokumenta, sa tačnim nivoom.
+- [ ] `POST /omnisearch` iz M17 konteksta ne vraća rezultate van prava trenutnog korisnika (test: Prodajni agent ograničen na sopstvene klijente ne dobija tuđe rezervacije u rezultatima).
+- [ ] `POST /omnisearch` iz M7/M8 konteksta nikad ne vraća identitet dobavljača (isti test kao M2 poglavlje 8, M5 poglavlje 12, primenjen ovde).
+- [ ] Upit koji liči na zahtev za radnju ("otkaži...", "pošalji...") vraća link/navigaciju, nikad ne izvršava radnju — provereno da `OmnisearchAgent` nema nijednu `CREATE`/`EDIT`/`SUBMIT`/`APPROVE` dozvolu ni u jednom modulu.
+- [ ] Prazan upit + Enter prikazuje listu ruta filtriranu na ulogu korisnika, bez poziva ka `OmnisearchAgent`-u (poglavlje 6.5.3).
 
 ---
 
