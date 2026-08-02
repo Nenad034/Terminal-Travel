@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M11), poglavlje 8 (Faza 2) i poglavlje 9 (rokovi)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
+**Verzija:** 1.1 — dodata CIS registracija garancije po pojedinačnoj rezervaciji, broj garancije i skidanje opterećenja pri stornu (poglavlje 4.3)
 **Zavisi od:** M1, M5. Formalno i od M6 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -102,6 +102,32 @@ Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Bookin
 - Otkazivanje rezervacije (M5 poglavlje 6) smanjuje kumulativnu iskorišćenost nazad — provera je uvek nad trenutnim, ne istorijskim stanjem.
 - Ova provera se odnosi isključivo na `ORGANIZATOR` promet — `POSREDNIK` rezervacije (M10 poglavlje 4.3) ne troše kapacitet sopstvene garancije agencije, jer odgovornost za izvršenje snosi stvarni organizator čiji aranžman se preprodaje.
 
+### 4.3 CIS registracija garancije po rezervaciji
+
+Za razliku od poglavlja 4.2 (koje prati **zbirnu** iskorišćenost garancije naspram limita), svaka pojedinačna `ORGANIZATOR` rezervacija mora biti evidentirana u CIS/YUTA registru pod sopstvenim brojem garancije, i ta evidencija mora biti **skinuta** (oslobođena) kad se rezervacija storno. Ovo su dve odvojene, po-rezervaciji obaveze prema registru, ne interno računovodstvo — otvorena rezervacija bez broja garancije, ili storno bez skinutog opterećenja, su konkretni propusti koje agencija mora da vidi i reši, ne samo interni brojevi u poglavlju 4.2.
+
+#### `TravelGuaranteeRegistration`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking) | samo za `tip_nastupanja = ORGANIZATOR` |
+| travel_guarantee_id | UUID (FK → `TravelGuarantee`, poglavlje 4.1) | koja godišnja garancija pokriva ovu rezervaciju |
+| cis_registration_number | string, nullable | broj garancije dobijen iz CIS/YUTA sistema pri registraciji — prazno dok registracija ne uspe |
+| status | enum: `PENDING`, `REGISTERED`, `RELEASE_PENDING`, `RELEASED`, `FAILED` | `RELEASE_PENDING` — rezervacija je storno, opterećenje u CIS-u još nije skinuto |
+| registered_at | timestamp, nullable | |
+| release_requested_at / released_at | timestamp, nullable | popunjava se pri, odnosno posle, stornirania |
+| failure_reason | text, nullable | |
+
+**Tok:** kad `Booking.status` (M5 poglavlje 4) pređe u `CONFIRMED` za `ORGANIZATOR` rezervaciju, kreira se zapis sa `status = PENDING` i sistem pokušava registraciju u CIS-u — isti deterministički obrazac kao eTurista prijava (poglavlje 2.2), pošto podaci već postoje i nema prostora za AI procenu. Kad `Booking.status` pređe u `CANCELLED` (M5 poglavlje 6), zapis prelazi u `RELEASE_PENDING` dok se opterećenje ne skine u CIS-u.
+
+**Alarmi (nivo "Autonomno" iz poglavlja 7 Master dokumenta — informativno, ne blokira):**
+- `CONFIRMED` rezervacija bez `status = REGISTERED` duže od 48h od potvrde (nema broj garancije).
+- `CANCELLED` rezervacija čiji zapis ostaje `RELEASE_PENDING` duže od 48h od otkazivanja (opterećenje nije skinuto).
+
+Oba alarma idu Vlasniku/Direktoru (interni panel + email), isti obrazac kao poglavlje 2.2.
+
+**Tačan tehnički ugovor sa CIS/YUTA sistemom za registraciju i skidanje opterećenja (format poziva, autentikacija) nije ovde definisan — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao eTurista/SEF (poglavlje 9).**
+
 ---
 
 ## 5. Evidencije za inspekciju
@@ -119,6 +145,7 @@ Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agr
 | `M11/tourist-tax-remittance/SUBMIT` | Vlasnik, Direktor, Računovođa — ljudska potvrda, isto obrazloženje kao M10 |
 | `M11/travel-guarantee/VIEW` | Vlasnik, Direktor |
 | `M11/travel-guarantee/EDIT` | Vlasnik, Direktor — nikad AI agent |
+| `M11/travel-guarantee-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 4.3) |
 | `M11/inspection-export/CREATE` | Vlasnik, Direktor, Računovođa |
 
 ---
@@ -136,6 +163,8 @@ Prefiks: `/api/v1/compliance`
 | `/tourist-tax/remittances/:id/submit` | POST | ljudska potvrda slanja nadležnom organu |
 | `/travel-guarantee` | GET / PATCH | trenutna garancija, ručna izmena (uvek ljudska akcija) |
 | `/travel-guarantee/utilization` | GET | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 4.2) i interni panel za prikaz |
+| `/travel-guarantee-registrations` | GET | lista `TravelGuaranteeRegistration` zapisa, filtrirano po statusu/rezervaciji (poglavlje 4.3) |
+| `/travel-guarantee-registrations/:id/retry` | POST | ručno ponovi registraciju ili skidanje opterećenja koje je `FAILED` |
 | `/inspection-export` | POST | generiše izvoz za zadati period |
 
 ---
@@ -148,6 +177,8 @@ Prefiks: `/api/v1/compliance`
 - [ ] Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.
 - [ ] Alarm za rok putne isprave (<6 meseci do polaska) se ispravno generiše, bez blokiranja rezervacije.
 - [ ] Provera iskorišćenosti garancije upozorava na 80% i ispravno blokira potvrdu nove `ORGANIZATOR` rezervacije koja bi prevazišla `coverage_amount`; `POSREDNIK` rezervacije nisu pogođene ovom proverom.
+- [ ] Svaka `CONFIRMED` `ORGANIZATOR` rezervacija dobija `TravelGuaranteeRegistration` zapis; nedostatak broja garancije (`status != REGISTERED`) duže od 48h generiše vidljivo upozorenje Vlasniku/Direktoru (poglavlje 4.3).
+- [ ] Storno `ORGANIZATOR` rezervacije prevodi zapis u `RELEASE_PENDING`; ako opterećenje nije skinuto u CIS-u duže od 48h, generiše se upozorenje (poglavlje 4.3).
 - [ ] Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.
 - [ ] Svaka radnja koja zahteva ljudsku potvrdu (slanje boravišne takse, izmena garancije) upisana je u M1 audit log sa identitetom osobe.
 
@@ -156,5 +187,6 @@ Prefiks: `/api/v1/compliance`
 ## 9. Otvoreno za dalje
 
 - Tačan tehnički ugovor sa eTurista/CIS API-jem (format prijave, autentikacija, da li odjava zahteva poseban poziv) — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom pre implementacije, isto kao kod SEF/ESIR u M10.
+- Tačan tehnički ugovor za CIS registraciju garancije po rezervaciji i skidanje opterećenja pri stornu (poglavlje 4.3) — isto obrazloženje kao red iznad, potvrditi pre implementacije.
 - Tačne stope boravišne takse po opštinama u kojima agencija posluje — unose se kao stvarni podaci kad se zna konkretna lista destinacija (vezano za otvoreno pitanje #4 iz poglavlja 11 Master dokumenta — pilot destinacije).
 - Da li M11 treba da prati i druge licence/dozvole agencije (van YUTA garancije) — trenutno van obima, dodaje se ako se pokaže potreba.

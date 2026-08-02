@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodat izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.3 — dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4
 
 ---
@@ -149,6 +149,16 @@ Korak po korak:
 
   **Dodatni uslov za `tip_nastupanja = ORGANIZATOR`** (dopuna M20 specifikacije, poglavlje 3.3): vaučer se ne generiše — ni automatski ni preko izuzetka iznad — dok `ClientContract` (M20) ne postoji bar u statusu `GENERATED`. Ugovor sa klijentom mora postojati pre nego što gost dobije vaučer.
 
+### 6.1 Praćenje posle potvrde — podsetnici i alarmi
+
+Van same potvrde i vaučera, M5 periodičnim poslom prati tri situacije i upozorava tim (interni panel + email, isti obrazac kao M11 poglavlje 2.2) — sve na nivou **"Autonomno"** iz poglavlja 7 Master dokumenta: čisto informativno, ne menja niti blokira stanje rezervacije.
+
+- **Neplaćena rezervacija sa izdatim vaučerom (izuzetak iznad):** dok god `voucher_override_approved_by` nije prazno i `payment_status != PAID` i `Booking.status != CANCELLED`, sistem svakodnevno podseća tim da uplata nije završena. Podsetnik prestaje čim `payment_status` pređe u `PAID` (redovan generiše se vaučer bez izuzetka od tog trenutka) ili se rezervacija otkaže.
+- **Otvorena potvrda dobavljača, po stavci:** `BookingItem.item_status = PENDING_SUPPLIER_CONFIRMATION` (poglavlje 4) prati se **po stavci, ne po celoj rezervaciji** — kod rezervacije sa više proizvoda od različitih dobavljača (npr. hotel + transfer), svaka stavka se nezavisno prati prema sopstvenom dobavljaču, razrešenom preko `BookingItem.product_id` → M3 `Supplier` (isto razrešavanje kao poglavlje 8.1). Stavka koja ostane u ovom statusu duže od praga (podrazumevano 48h, konfigurabilno po tipu proizvoda) generiše upozorenje za tu stavku — potvrda ostalih stavki iste rezervacije kod drugih dobavljača ne utiče na ovaj alarm i obrnuto.
+- **Vaučer nedostaje uprkos punoj uplati:** ako `payment_status = PAID` a `voucher_url` je i dalje prazno (van override toka iznad, koji bi ga već popunio), to je znak da automatsko generisanje iz poglavlja 6 nije uspelo — sistem odmah generiše upozorenje; ovo je greška u sistemu i ne sme tiho da prođe.
+
+Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću stavku (sistemska greška).
+
 ---
 
 ## 7. Kalendar rezervacija (pregled po datumu)
@@ -222,7 +232,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 
 ## 9. Događaji (Event Bus) koje M5 emituje
 
-`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
+`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava i CIS registracija garancije poglavlje 4.3, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
 
 ---
 
@@ -284,6 +294,9 @@ Prefiks: `/api/v1/sales`
 - [ ] Izmena ili otkazivanje stavke koja je već na poslatoj listi automatski priprema revidiran nacrt (`SUPERSEDED` + novi `DRAFT`), nikad tiho ne menja već poslat dokument.
 - [ ] Cena (nabavna, prodajna, marža) se nikad ne pojavljuje u dokumentu poslatom dobavljaču.
 - [ ] Operativna lista se može generisati na srpskom ili engleskom, i izabrani jezik ostaje nepromenjen na već poslatoj listi i njenim revizijama.
+- [ ] Rezervacija sa izdatim vaučerom bez pune uplate (izuzetak, poglavlje 6) generiše dnevni podsetnik timu dok se ne naplati do kraja ili ne otkaže (poglavlje 6.1).
+- [ ] Stavka rezervacije u statusu `PENDING_SUPPLIER_CONFIRMATION` duže od praga generiše upozorenje nezavisno po dobavljaču — rezervacija sa stavkama od dva dobavljača ispravno prijavljuje samo onu stavku čiji dobavljač kasni (poglavlje 6.1).
+- [ ] Rezervacija sa `payment_status = PAID` a bez generisanog vaučera odmah generiše vidljivo upozorenje (poglavlje 6.1).
 
 ---
 
