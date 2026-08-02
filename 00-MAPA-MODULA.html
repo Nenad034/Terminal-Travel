@@ -139,6 +139,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 .node:hover{ transform:translateY(-2px); border-color:var(--accent); }
 .node .top{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
 .node .code{ font-family:var(--mono); font-weight:800; font-size:clamp(12.5px,1.05vw,16px); color:var(--accent); }
+.node .cel-dot{ width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
 .node .chan, .detail-panel .chan{
   font-family:var(--mono); font-size:clamp(8.5px,.68vw,10.5px); font-weight:700; letter-spacing:.04em;
   background:var(--info-bg); color:var(--info); padding:1px 5px; border-radius:3px;
@@ -225,7 +226,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 <main>
   <div class="wrap">
     <div class="intro">
-      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno) — taj redosled ostaje netaknut da strelice zavisnosti čitaju levo→desno. Bojena tačka i leva ivica kartice pokazuju kojoj od 7 kontekstualnih celina modul pripada (isto grupisanje kao u pregledu dokumentacije i kontrolnoj tabli izgradnje — vidi legendu ispod). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu. Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
       <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
@@ -237,6 +238,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
       <div class="item"><span class="dot" style="background:var(--gray)"></span> Read-only nad svim modulima</div>
       <div class="item"><span class="dot" style="background:var(--info)"></span> Status: Specificirano <span style="opacity:.6">(ažurira se ručno kad implementacija počne — Nije započeto / U izradi / Završeno)</span></div>
     </div>
+    <div class="legend" id="celLegend"></div>
     <div class="graph-outer">
       <div class="graph" id="graph"></div>
     </div>
@@ -282,68 +284,82 @@ var PHASES = [
   {id:"F6", label:"Faza 6"}, {id:"F7", label:"Faza 7"}, {id:"FX", label:"Dodatno"}
 ];
 
+// Kontekstualne celine (isto grupisanje kao 00-PREGLED-DOKUMENTACIJE.html i
+// 00-KONTROLNA-TABLA-IZGRADNJE.html) — ovde SAMO kao vizuelna oznaka po modulu
+// (bojena tačka + leva ivica kartice), kolone i dalje idu po fazi izgradnje
+// da bi strelice zavisnosti ostale čitljive levo → desno.
+var CELINE = {
+  g1: {label:"Temelj",                     color:"#64748b"},
+  g2: {label:"Prodajni lanac",             color:"#2f6fed"},
+  g3: {label:"Gost, partneri i podrška",   color:"#14b8a6"},
+  g4: {label:"Zakon i finansije",          color:"#dc4c3f"},
+  g5: {label:"Kanali",                     color:"#8b5cf6"},
+  g6: {label:"Rast i merenje",             color:"#d4a017"},
+  g7: {label:"AI upravljanje i nadzor",    color:"#d6449e"}
+};
+
 var NODES = [
-  {id:"m1",  code:"M1",  title:"Core / Identitet",           phase:"F0", chan:false,
+  {id:"m1",  code:"M1",  title:"Core / Identitet",           phase:"F0", chan:false, cel:"g1",
     desc:"Korisnici, uloge, dozvole (RBAC), autentikacija i audit log — temelj svih ostalih modula.",
     entities:["User","Role","Permission","UserPermissionOverride","AuditLogEntry"]},
-  {id:"m17", code:"M17", title:"Interni radni panel",         phase:"F0", chan:true,
+  {id:"m17", code:"M17", title:"Interni radni panel",         phase:"F0", chan:true, cel:"g5",
     desc:"Next.js prikaz nad svim ostalim modulima za tim agencije — nema sopstvenu bazu ni poslovnu logiku, čist kanal.",
     entities:["(bez sopstvenih entiteta — kompozicija prikaza)"]},
-  {id:"m2",  code:"M2",  title:"Katalog proizvoda",           phase:"F1", chan:false,
+  {id:"m2",  code:"M2",  title:"Katalog proizvoda",           phase:"F1", chan:false, cel:"g2",
     desc:"Centralni registar svih prodajnih proizvoda, bez obzira na izvor (ugovor ili API), na 8 jezika.",
     entities:["Product","ProductTranslation"]},
-  {id:"m3",  code:"M3",  title:"Ugovaranje i alotmani",       phase:"F1", chan:false,
+  {id:"m3",  code:"M3",  title:"Ugovaranje i alotmani",       phase:"F1", chan:false, cel:"g2",
     desc:"Direktni ugovori sa dobavljačima — kapaciteti, cenovnici, rokovi povrata, AI-potpomognut uvoz cenovnika.",
     entities:["Supplier","Contract","ContractPeriod","RateLine","CancellationRule","PricelistImport"]},
-  {id:"m4",  code:"M4",  title:"Integracije API",             phase:"F1", chan:false,
+  {id:"m4",  code:"M4",  title:"Integracije API",             phase:"F1", chan:false, cel:"g2",
     desc:"Adapteri ka spoljnim provajderima (Travelgate, budući GDS/avio) — jedan unificiran interni oblik za sve.",
     entities:["ProviderConfig","ProviderCallLog"]},
-  {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false,
+  {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false, cel:"g2",
     desc:"Search → Ponuda → Potvrda → Upravljanje rezervacijom; jedino mesto koje pravi konačnu prodajnu cenu.",
     entities:["Quote","Booking","BookingItem","MarkupRule","SupplierManifest"]},
-  {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false,
+  {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false, cel:"g4",
     desc:"Fakturisanje, fiskalizacija (SEF/ESIR), PDV po sistemu marže (organizator/posrednik), obaveze prema dobavljačima.",
     entities:["FiscalDocument","Payment","SupplierObligation"]},
-  {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false,
+  {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false, cel:"g4",
     desc:"eTurista prijava, boravišna taksa, garancija putovanja, evidencije za inspekciju.",
     entities:["GuestRegistration","TouristTaxRemittance","TravelGuarantee"]},
-  {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false,
+  {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false, cel:"g4",
     desc:"Zakonski obavezan ugovor o putovanju sa gostom, sastavljen automatski iz podataka koji već postoje.",
     entities:["ClientContract"]},
-  {id:"m6",  code:"M6",  title:"CRM",                         phase:"F3", chan:false,
+  {id:"m6",  code:"M6",  title:"CRM",                         phase:"F3", chan:false, cel:"g3",
     desc:"Profili gostiju i nalogodavaca, istorija putovanja (uživo iz M5), program lojalnosti, komunikacija.",
     entities:["ClientAccount","GuestProfile","LoyaltyTier","CommunicationLog"]},
-  {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true,
+  {id:"m8",  code:"M8",  title:"Sajt B2C",                    phase:"F3", chan:true, cel:"g5",
     desc:"Javni sajt agencije — nema sopstvenu bazu, čisto čita/piše kroz M1/M2/M5/M6/M10/M20.",
     entities:["(bez sopstvenih entiteta — čist kanal)"]},
-  {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true,
+  {id:"m7",  code:"M7",  title:"B2B / Subagenti",             phase:"F4", chan:true, cel:"g3",
     desc:"Portal za subagente — provizija (i po obimu prodaje), kreditni limit, mreža partnera sa više nivoa.",
     entities:["Subagent","CommissionVolumeTier","CommissionRebate"]},
-  {id:"m13", code:"M13", title:"BI / Izveštavanje",           phase:"F5", chan:false, umb:true,
+  {id:"m13", code:"M13", title:"BI / Izveštavanje",           phase:"F5", chan:false, umb:true, cel:"g6",
     desc:"Upravljački izveštaji nad svim modulima — profitabilnost, prodaja, operativna statistika smeštaja.",
     entities:["FactBooking","FactPayment"]},
-  {id:"m14", code:"M14", title:"Helpdesk",                    phase:"F5", chan:false,
+  {id:"m14", code:"M14", title:"Helpdesk",                    phase:"F5", chan:false, cel:"g3",
     desc:"Tiketing za goste i subagente, uključujući zakonski rok za reklamacije (8 dana, ZZP).",
     entities:["Ticket","TicketMessage"]},
-  {id:"m12", code:"M12", title:"Marketing",                   phase:"F6", chan:false,
+  {id:"m12", code:"M12", title:"Marketing",                   phase:"F6", chan:false, cel:"g6",
     desc:"Proizvod → generisanje sadržaja (AI nacrt) → kalendar/odobrenje → distribucija na kanale.",
     entities:["ContentPiece","ContentTranslation"]},
-  {id:"m9",  code:"M9",  title:"Mobilna aplikacija",          phase:"F6", chan:true,
+  {id:"m9",  code:"M9",  title:"Mobilna aplikacija",          phase:"F6", chan:true, cel:"g5",
     desc:"Aplikacija za goste (isti tok kao M8) i za vodiče na terenu (offline-first, sinhronizacija).",
     entities:["FieldCheckIn","FieldIncidentNote"]},
-  {id:"m16", code:"M16", title:"MCP distribucija",            phase:"F6", chan:true,
+  {id:"m16", code:"M16", title:"MCP distribucija",            phase:"F6", chan:true, cel:"g6",
     desc:"Izlaže deo API-ja eksternim AI agentima (MCP standard) — isti kanal, iste provere kao svaki drugi.",
     entities:["MCPClientRegistration"]},
-  {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true,
+  {id:"m15", code:"M15", title:"AI orkestracija",             phase:"F7", chan:false, umb:true, cel:"g7",
     desc:"Glavni agent i domenski agenti; centralni registar akcija i nivoa autonomije za ceo sistem.",
     entities:["AIAgent","ModuleAgentActivation","AgentActionType"]},
-  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false, umb:true,
+  {id:"m18", code:"M18", title:"Operativni nadzor",           phase:"FX", chan:false, umb:true, cel:"g7",
     desc:"Kvalitetni nadzor nad svim modulima (Telegram/email upozorenja), nedeljni pregled, model-tiering za troškove.",
     entities:["HealthSignal","NotificationChannel","WeeklyHealthReview","TrendSuggestion","ProviderHealthSnapshot","AIProviderQuota"]},
-  {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true,
+  {id:"m19", code:"M19", title:"Komunikaciona platforma",     phase:"FX", chan:true, cel:"g3",
     desc:"Interni real-time tim-chat; komunikacija sa gostima/subagentima ostaje u M14, samo lepši prikaz.",
     entities:["Conversation","Message","PresenceStatus"]},
-  {id:"m21", code:"M21", title:"Centar za pomoć",             phase:"FX", chan:false,
+  {id:"m21", code:"M21", title:"Centar za pomoć",             phase:"FX", chan:false, cel:"g3",
     desc:"Baza znanja za korišćenje platforme (tim + subagenti) + AI asistent koji odgovara iz objavljenog sadržaja i eskalira ka M14 kad ne zna.",
     entities:["HelpArticle","HelpArticleTranslation","HelpQuestion","HelpArticleSuggestion"]}
 ];
@@ -377,6 +393,15 @@ var WORKFLOW = ["m2","m3","m4","m5","m6","m10","m11","m12","m20","m13","m7","m8"
 // ---- build DOM ----
 var graph = document.getElementById("graph");
 
+var celLegend = document.getElementById("celLegend");
+Object.keys(CELINE).forEach(function(k){
+  var c = CELINE[k];
+  var item = document.createElement("div");
+  item.className = "item";
+  item.innerHTML = '<span class="dot" style="background:'+c.color+'"></span> '+c.label;
+  celLegend.appendChild(item);
+});
+
 PHASES.forEach(function(p, i){
   var h = document.createElement("div");
   h.className = "col-head";
@@ -393,11 +418,14 @@ PHASES.forEach(function(p, i){
     var card = document.createElement("div");
     card.className = "node";
     card.dataset.id = n.id;
+    var cel = CELINE[n.cel];
+    card.style.borderLeft = "4px solid " + cel.color;
     var chanBadge = n.chan ? '<span class="chan">KANAL</span>' : "";
     var umbBadge = n.umb ? '<span class="umb">SVI</span>' : "";
+    var celDot = '<span class="cel-dot" style="background:'+cel.color+'" title="Celina: '+cel.label+'"></span>';
     card.innerHTML =
       '<a class="open-link" href="'+DOC_BASE+'#doc-'+n.id+'" target="_blank" rel="noopener" title="Otvori specifikaciju">↗</a>'+
-      '<div class="top"><span class="code">'+n.code+'</span>'+chanBadge+umbBadge+'</div>'+
+      '<div class="top">'+celDot+'<span class="code">'+n.code+'</span>'+chanBadge+umbBadge+'</div>'+
       '<div class="title">'+n.title+'</div>'+
       '<div class="status"><span class="dot" style="background:var(--info)"></span>Specificirano</div>';
     card.querySelector(".open-link").addEventListener("click", function(ev){ ev.stopPropagation(); });
@@ -507,7 +535,9 @@ function showDetail(id){
   var n = NODE_BY_ID[id];
   document.getElementById("dpCode").textContent = n.code;
   document.getElementById("dpTitle").textContent = n.title;
-  var badges = (n.chan ? '<span class="chan">KANAL</span>' : "") + (n.umb ? '<span class="umb">SVI</span>' : "");
+  var cel = CELINE[n.cel];
+  var celBadge = '<span class="chan" style="background:'+cel.color+'22; color:'+cel.color+'">'+cel.label+'</span>';
+  var badges = celBadge + (n.chan ? '<span class="chan">KANAL</span>' : "") + (n.umb ? '<span class="umb">SVI</span>' : "");
   document.getElementById("dpBadges").innerHTML = badges;
   document.getElementById("dpDesc").textContent = n.desc || "";
   document.getElementById("dpEntities").innerHTML = (n.entities||[]).map(function(e){ return "<li>"+e+"</li>"; }).join("");
