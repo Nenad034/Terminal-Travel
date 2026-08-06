@@ -158,18 +158,21 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 }
 .node .open-link:hover{ opacity:1; color:var(--accent); }
 .node .skill-tag{ margin-top:6px; }
-.node .skill-tag a{
+.node .skill-tag span{
   font-family:var(--mono); font-size:clamp(9px,.7vw,10.5px); font-weight:600; letter-spacing:.01em;
-  color:var(--text-dim); text-decoration:none; border:1px dashed var(--rule); border-radius:4px;
+  color:var(--text-dim); border:1px dashed var(--rule); border-radius:4px; cursor:pointer;
   padding:2px 6px; display:inline-flex; align-items:center; gap:4px; max-width:100%;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.node .skill-tag a:hover{ color:var(--accent); border-color:var(--accent); }
-.detail-panel .dp-skill a{
-  font-family:var(--mono); font-size:12.5px; color:var(--text); text-decoration:none;
-  border:1px dashed var(--rule); border-radius:5px; padding:3px 9px; display:inline-block;
+.node .skill-tag span:hover{ color:var(--accent); border-color:var(--accent); }
+.detail-panel .dp-skill-item{
+  border:1px dashed var(--rule); border-radius:6px; padding:6px 9px; margin-bottom:6px;
 }
-.detail-panel .dp-skill a:hover{ color:var(--accent); border-color:var(--accent); }
+.detail-panel .dp-skill-item.primary{ border-style:solid; border-color:var(--accent); }
+.detail-panel .dp-skill-item .name{
+  font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--text); display:block;
+}
+.detail-panel .dp-skill-item .hint{ font-size:11.5px; color:var(--text-dim); margin-top:2px; display:block; }
 
 .graph.dim-mode .node{ opacity:.2; }
 .graph.dim-mode .node.hi{ opacity:1; }
@@ -239,7 +242,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 <main>
   <div class="wrap">
     <div class="intro">
-      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno) — taj redosled ostaje netaknut da strelice zavisnosti čitaju levo→desno. Bojena tačka i leva ivica kartice pokazuju kojoj od 7 kontekstualnih celina modul pripada (isto grupisanje kao u pregledu dokumentacije i kontrolnoj tabli izgradnje — vidi legendu ispod). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu; oznaka <b>⚙</b> ispod naslova otvara Claude Skill fajl tog modula na GitHub-u (skill koji AI agent učitava umesto čitanja celog master dokumenta — vidi CLAUDE.md). Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
+      Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno) — taj redosled ostaje netaknut da strelice zavisnosti čitaju levo→desno. Bojena tačka i leva ivica kartice pokazuju kojoj od 7 kontekstualnih celina modul pripada (isto grupisanje kao u pregledu dokumentacije i kontrolnoj tabli izgradnje — vidi legendu ispod). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu; oznaka <b>⚙</b> ispod naslova otvara desni panel sa spiskom Claude Skill-ova koji važe za taj modul (skillovi koje AI agent učitava umesto čitanja celog master dokumenta — vidi CLAUDE.md). Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
       <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
@@ -282,8 +285,8 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
       <div class="dp-chips" id="dpUsedBy"></div>
     </div>
     <div class="dp-section dp-skill">
-      <h4>Claude Skill</h4>
-      <a href="#" id="dpSkillOpen" target="_blank" rel="noopener">⚙ <span id="dpSkillName"></span></a>
+      <h4>Skillovi za ovaj modul</h4>
+      <div id="dpSkills"></div>
     </div>
     <a class="dp-open" id="dpOpen" href="#" target="_blank" rel="noopener">Otvori punu specifikaciju ↗</a>
   </div>
@@ -294,7 +297,6 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
 "use strict";
 
 var DOC_BASE = "https://claude.ai/code/artifact/5a986131-4564-4683-8c6d-119556fceebb";
-var SKILL_BASE = "https://github.com/Nenad034/Terminal-Travel/blob/main/.claude/skills/";
 var SKILL_SLUG = {
   m1:"tt-m1-core-identitet", m2:"tt-m2-katalog-proizvoda", m3:"tt-m3-ugovaranje-alotmani",
   m4:"tt-m4-integracije-api", m5:"tt-m5-rezervacije", m6:"tt-m6-crm", m7:"tt-m7-b2b-subagenti",
@@ -303,7 +305,23 @@ var SKILL_SLUG = {
   m16:"tt-m16-mcp-distribucija", m17:"tt-m17-interni-panel", m18:"tt-m18-operativni-nadzor",
   m19:"tt-m19-komunikaciona-platforma", m20:"tt-m20-ugovori-klijenti", m21:"tt-m21-centar-za-pomoc"
 };
-function skillUrl(id){ return SKILL_BASE + SKILL_SLUG[id] + "/SKILL.md"; }
+var SPEC_FILE = {
+  m1:"02-SPECIFIKACIJA-M1-CORE-IDENTITET.md", m2:"03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md",
+  m3:"04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md", m4:"05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md",
+  m5:"06-SPECIFIKACIJA-M5-REZERVACIJE.md", m6:"09-SPECIFIKACIJA-M6-CRM.md",
+  m7:"12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md", m8:"10-SPECIFIKACIJA-M8-SAJT-B2C.md",
+  m9:"16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md", m10:"07-SPECIFIKACIJA-M10-FINANSIJE.md",
+  m11:"08-SPECIFIKACIJA-M11-COMPLIANCE.md", m12:"15-SPECIFIKACIJA-M12-MARKETING.md",
+  m13:"13-SPECIFIKACIJA-M13-BI.md", m14:"14-SPECIFIKACIJA-M14-HELPDESK.md",
+  m15:"18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md", m16:"17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md",
+  m17:"11-SPECIFIKACIJA-M17-INTERNI-PANEL.md", m18:"19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md",
+  m19:"20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md", m20:"21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md",
+  m21:"23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md"
+};
+var GENERAL_SKILLS = [
+  {slug:"tt-architecture-core", hint:"Kad zadatak dotiče više modula odjednom, predlaže nov modul ili menja arhitekturu"},
+  {slug:"tt-tech-stack", hint:"Pre uvođenja nove tehnologije, biblioteke ili patterna"}
+];
 
 var PHASES = [
   {id:"F0", label:"Faza 0"}, {id:"F1", label:"Faza 1"}, {id:"F2", label:"Faza 2"},
@@ -456,9 +474,8 @@ PHASES.forEach(function(p, i){
       '<div class="top">'+celDot+'<span class="code">'+n.code+'</span>'+chanBadge+umbBadge+'</div>'+
       '<div class="title">'+n.title+'</div>'+
       '<div class="status"><span class="dot" style="background:var(--info)"></span>Specificirano</div>'+
-      '<div class="skill-tag"><a href="'+skillUrl(n.id)+'" target="_blank" rel="noopener" title="Otvori Claude Skill fajl za ovaj modul">⚙ '+skillSlug+'</a></div>';
+      '<div class="skill-tag"><span title="Prikaži skillove ovog modula u desnom panelu">⚙ '+skillSlug+'</span></div>';
     card.querySelector(".open-link").addEventListener("click", function(ev){ ev.stopPropagation(); });
-    card.querySelector(".skill-tag a").addEventListener("click", function(ev){ ev.stopPropagation(); });
     card.addEventListener("click", function(){ toggleFocus(n.id); });
     col.appendChild(card);
   });
@@ -575,8 +592,12 @@ function showDetail(id){
   document.getElementById("dpDeps").innerHTML = deps.length ? deps.map(function(d){ return chip(d, true); }).join("") : '<span class="chip">— (temelj)</span>';
   document.getElementById("dpUsedBy").innerHTML = used.length ? used.map(function(d){ return chip(d, true); }).join("") : '<span class="chip">—</span>';
   document.getElementById("dpOpen").href = DOC_BASE + "#doc-" + id;
-  document.getElementById("dpSkillName").textContent = SKILL_SLUG[id] || "";
-  document.getElementById("dpSkillOpen").href = skillUrl(id);
+  var skillsHtml = '<div class="dp-skill-item primary"><span class="name">⚙ '+(SKILL_SLUG[id]||"")+'</span>'+
+    '<span class="hint">Glavni skill ovog modula — spec: '+(SPEC_FILE[id]||"")+'</span></div>';
+  GENERAL_SKILLS.forEach(function(s){
+    skillsHtml += '<div class="dp-skill-item"><span class="name">⚙ '+s.slug+'</span><span class="hint">'+s.hint+'</span></div>';
+  });
+  document.getElementById("dpSkills").innerHTML = skillsHtml;
   detailPanel.classList.add("open");
 }
 
