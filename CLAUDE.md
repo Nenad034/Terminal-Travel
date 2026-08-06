@@ -16,9 +16,13 @@ Vlasnik projekta (Nenad) je pre ovog projekta radio na drugoj, srodnoj aplikacij
 
 ## Obavezan redosled čitanja pre pisanja koda
 
-1. **`00-MASTER-ARHITEKTURA.md`** — u celini. Ovo je "ustav" — pet arhitektonskih principa (poglavlje 3), mapa modula (poglavlje 4), model upravljanja AI agentima (poglavlje 7), fazni plan (poglavlje 8).
-2. **`0X-SPECIFIKACIJA-MY-*.md`** za tačno onaj modul koji se dotiče. Fajlovi su numerisani redosledom kojim su pisani, ne redosledom modula — koristi `00-PREGLED-DOKUMENTACIJE.html` (navigabilan pregled sa linkovima) ili `00-MASTER-ARHITEKTURA.md` poglavlje 4 da nađeš pravi fajl za modul.
-3. Ako zadatak dotiče **više modula**, pročitaj specifikaciju svakog — cross-reference između dokumenata (npr. "M5 poglavlje 4.1") mora ostati tačan; ako menjaš strukturu/numeraciju poglavlja u jednom dokumentu, proveri i ispravi svaku drugu specifikaciju koja na njega upućuje (`grep` po "M<broj> poglavlje" kroz sve `.md` fajlove pre nego što smatraš zadatak gotovim).
+Od avgusta 2026. ovo ide kroz Skill strukturu u `.claude/skills/` umesto obaveznog čitanja celog master dokumenta u svakoj sesiji (progressive disclosure — sadržaj ostaje samo u spec fajlovima, skillovi su pokazivači na njih, ne kopije):
+
+1. **Učitaj `tt-m<broj>-*` skill** za modul koji zadatak dotiče (npr. `tt-m5-rezervacije` za rad na M5). Skill upućuje na tačan spec fajl (`0X-SPECIFIKACIJA-MY-*.md`) i na zavisnosti tog modula — nije potrebno ručno tražiti fajl preko `00-PREGLED-DOKUMENTACIJE.html`.
+2. **Učitaj `tt-architecture-core`** samo kad zadatak dotiče više modula odjednom, predlaže nov modul, menja arhitekturu/tok podataka, ili uključuje AI agenta sa izvršnim (ne samo asistivnim) ovlašćenjem — pun spisak slučajeva je u opisu tog skilla. Za rad unutar granica jednog već specifikovanog modula ovo nije potrebno.
+3. **Učitaj `tt-tech-stack`** pre uvođenja nove tehnologije, biblioteke ili patterna koji nije već u steku.
+4. Ako zadatak dotiče **više modula**, učitaj skill svakog i pročitaj svaku odgovarajuću specifikaciju — cross-reference između dokumenata (npr. "M5 poglavlje 4.1") mora ostati tačan; ako menjaš strukturu/numeraciju poglavlja u jednom dokumentu, proveri i ispravi svaku drugu specifikaciju koja na njega upućuje (`grep` po "M<broj> poglavlje" kroz sve `.md` fajlove pre nego što smatraš zadatak gotovim).
+5. Ceo `00-MASTER-ARHITEKTURA.md` u celini se čita samo retko — kad se menja sam dokument (npr. dodaje nov modul u poglavlje 4) ili kad nijedan skill ne pokriva ono što treba.
 
 ## Tvrdo pravilo — nema koda bez oslonca u specifikaciji
 
@@ -42,6 +46,7 @@ Nenad Tomić je vlasnik i **arhitekta projekta, ne programer**. Njegova uloga je
 
 - Kad izmena u jednom dokumentu utiče na drugi (novo polje, novi događaj, promenjena numeracija poglavlja), izmeni **oba** u istom prolazu — ne ostavljaj "TODO uskladiti kasnije".
 - `00-PREGLED-DOKUMENTACIJE.html` je generisan iz svih `.md` fajlova. Posle izmene bilo kog `.md` fajla, pokreni `python tools/sync-html-overview.py` iz korena repozitorijuma da se pregled osveži (mehanizam i uputstvo za nov modul su u docstring-u same skripte).
+- Kad se doda nov modul (Mxx) ili promeni naziv/zavisnosti/fajl postojećeg modula (poglavlje 4 master dokumenta), dodaj ili ažuriraj odgovarajući `.claude/skills/tt-mXX-*/SKILL.md` u istom prolazu — skillovi su pokazivači na module iz poglavlja 4 i moraju ostati usklađeni s njim, isto pravilo kao za bilo koji drugi cross-reference.
 - Ovaj repozitorijum se automatski commit-uje i push-uje na `https://github.com/Nenad034/Terminal-Travel` posle svake izmene — bez čekanja na potvrdu (dogovoreno sa vlasnikom).
 
 ## Šta ne raditi
