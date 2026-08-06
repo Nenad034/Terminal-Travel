@@ -602,6 +602,12 @@ function showDetail(id){
 }
 
 detailPanel.addEventListener("click", function(ev){
+  // Zaustavi bubbling ka document-click-outside listeneru ispod: klik na chip
+  // pokreće showDetail(), koji odmah iznova generiše sadržaj panela (pa i sam
+  // kliknuti chip), pa taj element ispadne iz DOM-a usred bubble faze istog
+  // klika — bez stopPropagation, document listener onda pogrešno tumači to
+  // kao klik van panela i odmah zatvori ono što je toggleFocus upravo otvorio.
+  ev.stopPropagation();
   var c = ev.target.closest(".chip.linkable");
   if (c) toggleFocus(c.dataset.goto);
 });
