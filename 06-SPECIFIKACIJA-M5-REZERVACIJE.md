@@ -443,7 +443,7 @@ Prefiks: `/api/v1/sales`
 
 ## 13. Otvoreno za dalje
 
-- Tačan prag/format za avans (deo unapred, ostatak kasnije) — pravilo se definiše detaljnije kad M10 (Finansije) bude specificiran, pošto je to suštinski pitanje naplate, ne toka rezervacije.
+- ~~Tačan prag/format za avans (deo unapred, ostatak kasnije).~~ **Rešeno u M10 specifikaciji** (poglavlje 5.4, avgust 2026): globalna agencijska politika (`PaymentTermsConfig`) određuje procenat akontacije i rokove; M10 `ClientPaymentSchedule` prati ispunjenje po rezervaciji.
 - ~~Da li B2B kreditni limit (M7) treba da blokira potvrdu rezervacije kad se pređe limit.~~ **Rešeno u M7 specifikaciji**: da — kad `Quote.client_account_id` pripada Subagentu, M5 proverava kreditni limit **pre** pokretanja toka potvrde (pre bilo kog poziva ka M3/M4); prekoračenje odbija potvrdu bez rezervisanja kapaciteta. Isto tako, cena za subagenta koristi proviziju (M7) umesto popusta lojalnosti (M6) kao poslednji korak u tok cene.
 - Format vaučera (sadržaj, izgled) — definiše se kad se dođe do stvarne izrade, van obima ove specifikacije.
 - Tačan izgled/template operativne liste po tipu dobavljača (poglavlje 8.3) — isto obrazloženje kao za vaučer, van obima ove specifikacije.

@@ -42,11 +42,9 @@
 
 ## 4. Praćenje roka za akontaciju i punu uplatu
 
-**Status: delimično pokriveno, nedostaje deo koji se odnosi na gosta.**
+**Status: pokriveno (dopunjeno avgust 2026).**
 
-`07-SPECIFIKACIJA-M10-FINANSIJE.md` prati `SupplierObligation.due_date` (poglavlje 8.1–8.2) — rok plaćanja **dobavljaču**, sa alarmom Računovođi 5 dana pre roka. M5 poglavlje 6.1 prati da li je vaučer izdat bez pune uplate (dnevni podsetnik), ali to je opšti nadzor nad `payment_status`, ne praćenje konkretnog *ugovorenog roka* za akontaciju.
-
-**Gap:** ne postoji `Payment.due_date` ili ekvivalentno polje koje čuva rok za akontaciju/punu uplatu *gosta/nalogodavca*, niti podsetnik koji eksplicitno upozorava "akontacija je trebalo da stigne do datuma X, a nije". Ovo je različito od M5 alarma (koji prati samo da li je vaučer izdat bez uplate, ne da li je *rok* probijen).
+`07-SPECIFIKACIJA-M10-FINANSIJE.md` poglavlje 5.4 dodaje `PaymentTermsConfig` (globalna agencijska politika — procenat akontacije, rok akontacije od potvrde, rok balansa pre polaska, na eksplicitan zahtev vlasnika — nije po ugovoru/dobavljaču niti ručno po rezervaciji) i `ClientPaymentSchedule` (po rezervaciji, snimljene vrednosti u trenutku kreiranja). Probijen rok generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` (`WARNING`, pa eskalira na `CRITICAL` posle konfigurabilnog broja dana, M18 poglavlje 2.1/2.2) — sistem nikad sam ne menja/otkazuje rezervaciju, isključivo traži ljudsku odluku. M20 (ugovor sa klijentom, poglavlje 2.3) sad iz ovoga popunjava dinamiku plaćanja umesto slobodnog teksta. Ovo je odvojeno od M5 poglavlja 6.1 (koji prati samo da li je vaučer izdat bez pune uplate) — obe provere ostaju, hvataju različite situacije.
 
 ---
 
@@ -131,7 +129,7 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 1 | Praćenje statusa + obaveštavanje (novo/storno/promena) | Pokriveno, manji gap (dnevni zbirni pregled) |
 | 2 | Da li je najavljeno dobavljaču + potvrda dobavljača | Dopunjeno u specifikaciji (M5 poglavlje 8.6) |
 | 3 | Konfigurabilno automatsko slanje najave po statusu uplate | Dopunjeno u specifikaciji (M5 poglavlje 8.7) — priprema konfigurabilna, slanje ostaje ljudska radnja |
-| 4 | Rok akontacije/pune uplate (gost) | Delimično — postoji samo za obaveze prema dobavljaču |
+| 4 | Rok akontacije/pune uplate (gost) | Pokriveno (M10 poglavlje 5.4) |
 | 5 | CIS/eTurista notifikacija | Pokriveno |
 | 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Nepokriveno |
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Nepokriveno |

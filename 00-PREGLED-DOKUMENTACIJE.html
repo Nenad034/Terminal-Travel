@@ -2046,7 +2046,7 @@ Prefiks: `/api/v1/sales`
 
 ## 13. Otvoreno za dalje
 
-- Tačan prag/format za avans (deo unapred, ostatak kasnije) — pravilo se definiše detaljnije kad M10 (Finansije) bude specificiran, pošto je to suštinski pitanje naplate, ne toka rezervacije.
+- ~~Tačan prag/format za avans (deo unapred, ostatak kasnije).~~ **Rešeno u M10 specifikaciji** (poglavlje 5.4, avgust 2026): globalna agencijska politika (`PaymentTermsConfig`) određuje procenat akontacije i rokove; M10 `ClientPaymentSchedule` prati ispunjenje po rezervaciji.
 - ~~Da li B2B kreditni limit (M7) treba da blokira potvrdu rezervacije kad se pređe limit.~~ **Rešeno u M7 specifikaciji**: da — kad `Quote.client_account_id` pripada Subagentu, M5 proverava kreditni limit **pre** pokretanja toka potvrde (pre bilo kog poziva ka M3/M4); prekoračenje odbija potvrdu bez rezervisanja kapaciteta. Isto tako, cena za subagenta koristi proviziju (M7) umesto popusta lojalnosti (M6) kao poslednji korak u tok cene.
 - Format vaučera (sadržaj, izgled) — definiše se kad se dođe do stvarne izrade, van obima ove specifikacije.
 - Tačan izgled/template operativne liste po tipu dobavljača (poglavlje 8.3) — isto obrazloženje kao za vaučer, van obima ove specifikacije.
@@ -2070,7 +2070,7 @@ Prefiks: `/api/v1/sales`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.7 — na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.8 — dodat `ClientPaymentSchedule`/`PaymentTermsConfig`, rok akontacije i pune uplate prema gostu/nalogodavcu kao globalna agencijska politika, sa upozorenjem pa eskalacijom kad rok probijen (poglavlje 5.4), zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.7 na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -2219,6 +2219,46 @@ Simetrično rekonsilijaciji ka dobavljaču (`SupplierObligation`, poglavlje 8), 
 - Neusklađenost (npr. rezervacija potvrđena i uplaćena, ali fiskalni dokument nikad poslat; ili uplata ostaje delimična dok je `Booking.status = CONFIRMED` duže od N dana) generiše `HealthSignal` tipa `RECONCILIATION_MISMATCH` (M18 poglavlje 2.1) — čisto informativno, nivo "Autonomno", ne menja nijedan zapis automatski.
 
 Potvrđeno poređenjem sa PrimeTravel analizom, koja navodi automatsku rekonsilijaciju rezervacija→uplata→faktura kao eksplicitno nedostajuću funkcionalnost i kod njih (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 7) — vredna dopuna, ne kopiranje gotovog rešenja.
+
+### 5.4 `ClientPaymentSchedule` — rok akontacije i pune uplate prema gostu/nalogodavcu (dopuna, avgust 2026 — zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, gap #4 iz `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md`)
+
+Simetrično `SupplierObligation.due_date` (poglavlje 8.1) ka dobavljaču, M10 do sada nije pratio konkretan ugovoreni rok naplate od gosta/nalogodavca — postojao je samo opšti nadzor da li je vaučer izdat bez pune uplate (M5 poglavlje 6.1, dnevni podsetnik dok je `payment_status != PAID`), što je različito od praćenja da li je probijen *rok*. Ova dopuna zatvara tu razliku, bez zamene M5 poglavlja 6.1 (obe provere ostaju, hvataju različite situacije — isti obrazac kao razlika između M10 poglavlja 5.3 i 6.2).
+
+**Izvor pravila — globalna politika agencije, potvrđeno na zahtev vlasnika (avgust 2026):** rok i procenat akontacije **nisu** po ugovoru sa dobavljačem niti ručno po rezervaciji — jedna, agencijska politika važi za sve rezervacije, dok se ne pokaže stvarna potreba za izuzecima po dobavljaču/proizvodu (isti princip opreza kao "ne graditi unapred" iz Master dokumenta).
+
+#### 5.4.1 `PaymentTermsConfig`
+Jedan aktivan zapis (singleton — sistem uvek čita najnoviji `updated_at`), uređuje Vlasnik/Direktor:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| deposit_percentage | decimal | % od `Booking.total_price` koji čini akontaciju — izuzetak iz poglavlja 3.2 (procenat, ne iznos) |
+| deposit_due_days_after_confirmation | integer | rok za akontaciju, broj dana od `booking.confirmed` |
+| balance_due_days_before_stay | integer | rok za balans (punu uplatu), broj dana pre najranijeg datuma početka putovanja u rezervaciji |
+| escalation_days_after_due | integer | koliko dana posle probijenog roka signal eskalira sa `WARNING` na `CRITICAL` (poglavlje 5.4.3) |
+| updated_by | UUID (FK → M1 User) | |
+| updated_at | timestamp | |
+
+#### 5.4.2 `ClientPaymentSchedule`
+Kreira se automatski po `booking.confirmed` (isti trigger obrazac kao poglavlje 6.0/8.0), nivo **"Autonomno"** — čisto deterministično računanje iz već postojećih podataka, bez novog rizika. Vrednosti iz `PaymentTermsConfig` se **snimaju u trenutku kreiranja** (ne žive vezano na konfiguraciju) — kasnija izmena politike ne menja retroaktivno već kreirane rasporede, isti princip kao `buyer_name_snapshot` na `FiscalDocument` (poglavlje 5.1).
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking), unique | |
+| deposit_amount | integer | `round(Booking.total_price × deposit_percentage / 100)`, u najmanjoj jedinici valute (poglavlje 3.2) |
+| deposit_due_date | date | `booking.confirmed_at + deposit_due_days_after_confirmation` (snapshot vrednost) |
+| deposit_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
+| balance_due_date | date | `MIN(BookingItem.stay_from svih stavki rezervacije) − balance_due_days_before_stay` (snapshot vrednost) |
+| balance_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
+| created_at | timestamp | |
+
+#### 5.4.3 Praćenje statusa i eskalacija — upozorenje pa eskalacija, nikad automatska radnja nad rezervacijom
+
+- `deposit_status` prelazi u `MET` čim zbir `RECEIVED` `Payment` zapisa za `booking_id` dostigne bar `deposit_amount` (uključujući slučaj da je gost odmah platio u celosti). `balance_status` prelazi u `MET` čim `Booking.payment_status = PAID` (isti okidač kao poglavlje 5.2). Ako je `balance_status = MET`, `deposit_status` se takođe smatra ispunjenim bez obzira na redosled uplata.
+- Ako odgovarajući rok (`deposit_due_date`/`balance_due_date`) prođe a status još nije `MET`, status prelazi u `OVERDUE` i generiše se `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` (M18 poglavlje 2.1, nov tip — dodato u tu specifikaciju u istom prolazu), `severity = WARNING`, vidljivo u M17 Agent Inbox — nivo **"Autonomno"**, obična provera datuma, ne zahteva poziv jezičkom modelu (isti princip kao M18 poglavlje 6.2, "Najvažniji nalaz").
+- Ako `OVERDUE` ostane nerešeno još `escalation_days_after_due` dana (iz snimljene konfiguracije), isti signal se ažurira na `severity = CRITICAL` — po M18 poglavlju 2.2 ovo odmah šalje Telegram/email obaveštenje, za razliku od početnog `WARNING` koji čeka nedeljni pregled. I ovaj korak ostaje nivo **"Autonomno"** — samo jače obaveštenje, ne menja ništa na rezervaciji.
+- **Sistem nikad sam ne otkazuje niti menja rezervaciju zbog probijenog roka.** Eskalacija isključivo traži eksplicitnu ljudsku odluku (kontaktirati gosta, produžiti rok, ili pokrenuti otkazivanje kroz redovan M5 tok — uključujući proveru duplikata pre otkazivanja, M5 poglavlje 6.4) — isti nivo opreza kao svaka druga radnja koja menja novac/rezervaciju u ovom dokumentu.
 
 ---
 
@@ -2386,6 +2426,9 @@ Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba deli
 | `M10/supplier-payment-instruction/EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2) |
 | `M10/refund-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/refund-instruction/APPROVE`, `EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3) |
+| `M10/payment-terms-config/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/payment-terms-config/EDIT` | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1) |
+| `M10/client-payment-schedule/VIEW` | Vlasnik, Direktor, Računovođa, Prodajni agent (sopstvene rezervacije) |
 
 ---
 
@@ -2400,7 +2443,7 @@ Prefiks: `/api/v1/finance`
 | `/fiscal-documents/:id/submit` | POST | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog |
 | `/fiscal-documents/:id` | GET | |
 | `/fiscal-documents/:id/storno` | POST | pokreće storno tok |
-| `/payments` | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, uz proveru limita gotovine iz poglavlja 5.2) |
+| `/payments` | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, bez sistemskog limita gotovine — poglavlje 5.2) |
 | `/payments/card/initiate` | POST | pokreće `PaymentGatewayAdapter.initiatePayment` za dati `quote_id` |
 | `/payments/card/webhook` | POST | povratni poziv provajdera — jedini način na koji se `CARD` uplata beleži kao `RECEIVED` |
 | `/exchange-rates` | GET / POST | pregled / unos dnevnog kursa |
@@ -2413,6 +2456,8 @@ Prefiks: `/api/v1/finance`
 | `/refund-instructions` | GET / POST | pregled / kreiranje zahteva za refundaciju van kartičnog toka (poglavlje 8.5.3) |
 | `/refund-instructions/:id/approve` | POST | zahteva `M10/refund-instruction/APPROVE` |
 | `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
+| `/payment-terms-config` | GET / PUT | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT` |
+| `/client-payment-schedules` | GET | lista, filtrirano po `booking_id`/`deposit_status`/`balance_status` (poglavlje 5.4.2) |
 
 ---
 
@@ -2441,6 +2486,8 @@ Prefiks: `/api/v1/finance`
 - [ ] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED` (poglavlje 8.0); API-sourced stavke ne generišu ovaj zapis pojedinačno.
 - [ ] `FiscalDocument` u statusu `DRAFT` duže od 24h od trenutka kad je mogao biti poslat generiše `HealthSignal`, vidljiv u M17 Agent Inbox (poglavlje 6.2).
 - [ ] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema iz odobrenog `CommissionRebate` (M7), sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`, i zahteva istu ljudsku potvrdu za slanje kao svaki drugi fiskalni dokument (poglavlje 5.1a).
+- [ ] `ClientPaymentSchedule` se automatski kreira po `booking.confirmed`, sa `deposit_due_date`/`balance_due_date` i snimljenim vrednostima iz `PaymentTermsConfig` u tom trenutku (poglavlje 5.4.2); kasnija izmena `PaymentTermsConfig` ne menja retroaktivno već kreirane rasporede.
+- [ ] Probijen `deposit_due_date`/`balance_due_date` bez ispunjene uplate ispravno generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` sa `severity = WARNING`, i eskalira na `severity = CRITICAL` posle `escalation_days_after_due` dana (poglavlje 5.4.3), bez ijedne automatske izmene same rezervacije.
 
 ---
 
@@ -2596,7 +2643,7 @@ Prefiks: `/api/v1/compliance`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M20) i poglavlje 8 (Faza 2)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — ažurirana referenca na konkretna `Quote.contract_terms_accepted`/`contract_terms_accepted_at` polja (poglavlje 3.2), rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.0 dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
+**Verzija:** 1.2 — dinamika plaćanja (poglavlje 2.3) sad se popunjava iz M10 `ClientPaymentSchedule` (poglavlje 5.4) umesto slobodnog teksta, zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.1 ažurirana referenca na konkretna `Quote.contract_terms_accepted`/`contract_terms_accepted_at` polja (poglavlje 3.2), rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.0 dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
 **Zavisi od:** M1, M2, M3, M5, M11. Formalno i od M6 (poglavlje 4 Master dokumenta) kad taj modul postoji — do tada koristi minimalan zapis nalogodavca iz `Booking.client_account_id`, isti obrazac kao M10/M11.
 
 ---
@@ -2657,7 +2704,7 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 | Rok za reklamacije na promenu cene | Statička pravna konfiguracija (konfigurabilno, ne hardkodovano) |
 | Kontakt za hitne slučajeve | Statička konfiguracija agencije |
 
-**Ograda:** dinamika plaćanja (avans + rok balansa) trenutno se prikazuje kao slobodan tekst izveden iz uslova prodaje — M10 `Payment` ne drži strukturiran plan rata (vidi poglavlje 8, otvoreno pitanje).
+Dinamika plaćanja (iznos akontacije, rok akontacije, rok balansa) popunjava se iz M10 `ClientPaymentSchedule.deposit_amount`/`deposit_due_date`/`balance_due_date` (M10 poglavlje 5.4.2, dopuna avgust 2026) — više nije slobodan tekst, isti princip "bez dupliranja unosa" kao ostali elementi ove tabele.
 
 ---
 
@@ -2735,7 +2782,6 @@ Prefiks: `/api/v1/client-contracts`
 
 - Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje, van obima ove specifikacije, isto obrazloženje kao za format vaučera (M5).
 - **Tačan trenutak kad prihvatanje/potpis (`ACCEPTED`) mora biti završen u odnosu na izdavanje vaučera** (poglavlje 3.3) — potvrditi sa pravnikom pre implementacije.
-- Da li dinamika plaćanja treba strukturirano polje (plan rata) u M10 `Payment`, ili je dovoljan slobodan tekst iz uslova prodaje na ugovoru — otvoreno dok se ne pokaže stvarna potreba.
 - `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` (samostalna prodaja van paketa) — uskladiti sa istim otvorenim pitanjem graničnih slučajeva u M10 poglavlje 4.4/12 (PDV tretman van sistema posebnog oporezivanja).
 - `KORPORATIVNI_OKVIRNI` tip — puna specifikacija čeka razradu B2B okvirnih ugovora, van obima ove verzije.
 - Samostalna prodaja `INSURANCE` proizvoda (M2) bez ikakvog drugog proizvoda u rezervaciji ne odgovara nijednom postojećem `contract_type` — posredovanje u osiguranju je zasebno regulisano van Zakona o turizmu; potvrditi sa pravnikom da li takva rezervacija uopšte treba `ClientContract` ili se rešava potpuno drugim dokumentom, pre implementacije ovog graničnog slučaja.
@@ -4270,7 +4316,7 @@ Prefiks: `/api/v1/ai-orchestration`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.5 — dodat `PAYMENT_DEADLINE_MISSED` signal (M10 poglavlje 5.4.3, probijen rok akontacije/balansa prema gostu/nalogodavcu, avgust 2026); v1.4 dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -4294,7 +4340,7 @@ Dodatno, M18 uvodi **okvir za izbor jezičkog modela po složenosti zadatka** �
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | source_module | string | npr. `M4`, `M10`, `M11`, `M9`, `M1` |
-| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL`, `HELP_AGENT_ABUSE_PATTERN` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice); `HELP_AGENT_ABUSE_PATTERN` dodat u M21 poglavlje 5.5 (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć — moguć pokušaj zaobilaženja ograde) |
+| signal_type | enum: `PROVIDER_ERROR_SPIKE`, `PAYMENT_FAILURE_SPIKE`, `GUEST_REGISTRATION_FAILED`, `FIELD_INCIDENT_URGENT`, `AUTH_ANOMALY`, `TOKEN_USAGE_ANOMALY`, `RECONCILIATION_MISMATCH`, `PROVIDER_DEGRADED`, `LOW_CAPACITY_CRITICAL`, `HELP_AGENT_ABUSE_PATTERN`, `PAYMENT_DEADLINE_MISSED` | proširivo — novi tipovi se dodaju kad se pokaže potreba. `RECONCILIATION_MISMATCH` dodat u M10 poglavlje 5.3 (Booking/Payment/FiscalDocument neusklađenost); `PROVIDER_DEGRADED` dodat u poglavlje 2.3 (per-provajder infra metrike); `LOW_CAPACITY_CRITICAL` dodat u M3 poglavlje 4.3 (preostali kapacitet perioda na 1–2 jedinice); `HELP_AGENT_ABUSE_PATTERN` dodat u M21 poglavlje 5.5 (neuobičajen obrazac pitanja ka AI asistentu centra za pomoć — moguć pokušaj zaobilaženja ograde); `PAYMENT_DEADLINE_MISSED` dodat u M10 poglavlje 5.4.3 (probijen rok akontacije/balansa prema gostu/nalogodavcu — počinje kao `WARNING`, eskalira na `CRITICAL` ako ostane nerešen) |
 | severity | enum: `INFO`, `WARNING`, `CRITICAL` | |
 | security_category | enum: `AUTH`, `PII`, `GDPR`, `API_ABUSE`, `ENCRYPTION`, nullable | popunjava se samo za bezbednosno relevantne signale — vidi poglavlje 2.4 |
 | details | JSONB | |

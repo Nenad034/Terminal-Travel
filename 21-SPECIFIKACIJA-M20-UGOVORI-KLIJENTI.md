@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M20) i poglavlje 8 (Faza 2)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — ažurirana referenca na konkretna `Quote.contract_terms_accepted`/`contract_terms_accepted_at` polja (poglavlje 3.2), rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.0 dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
+**Verzija:** 1.2 — dinamika plaćanja (poglavlje 2.3) sad se popunjava iz M10 `ClientPaymentSchedule` (poglavlje 5.4) umesto slobodnog teksta, zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.1 ažurirana referenca na konkretna `Quote.contract_terms_accepted`/`contract_terms_accepted_at` polja (poglavlje 3.2), rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.0 dodat poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`, modul M-04)
 **Zavisi od:** M1, M2, M3, M5, M11. Formalno i od M6 (poglavlje 4 Master dokumenta) kad taj modul postoji — do tada koristi minimalan zapis nalogodavca iz `Booking.client_account_id`, isti obrazac kao M10/M11.
 
 ---
@@ -64,7 +64,7 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 | Rok za reklamacije na promenu cene | Statička pravna konfiguracija (konfigurabilno, ne hardkodovano) |
 | Kontakt za hitne slučajeve | Statička konfiguracija agencije |
 
-**Ograda:** dinamika plaćanja (avans + rok balansa) trenutno se prikazuje kao slobodan tekst izveden iz uslova prodaje — M10 `Payment` ne drži strukturiran plan rata (vidi poglavlje 8, otvoreno pitanje).
+Dinamika plaćanja (iznos akontacije, rok akontacije, rok balansa) popunjava se iz M10 `ClientPaymentSchedule.deposit_amount`/`deposit_due_date`/`balance_due_date` (M10 poglavlje 5.4.2, dopuna avgust 2026) — više nije slobodan tekst, isti princip "bez dupliranja unosa" kao ostali elementi ove tabele.
 
 ---
 
@@ -142,7 +142,6 @@ Prefiks: `/api/v1/client-contracts`
 
 - Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje, van obima ove specifikacije, isto obrazloženje kao za format vaučera (M5).
 - **Tačan trenutak kad prihvatanje/potpis (`ACCEPTED`) mora biti završen u odnosu na izdavanje vaučera** (poglavlje 3.3) — potvrditi sa pravnikom pre implementacije.
-- Da li dinamika plaćanja treba strukturirano polje (plan rata) u M10 `Payment`, ili je dovoljan slobodan tekst iz uslova prodaje na ugovoru — otvoreno dok se ne pokaže stvarna potreba.
 - `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` (samostalna prodaja van paketa) — uskladiti sa istim otvorenim pitanjem graničnih slučajeva u M10 poglavlje 4.4/12 (PDV tretman van sistema posebnog oporezivanja).
 - `KORPORATIVNI_OKVIRNI` tip — puna specifikacija čeka razradu B2B okvirnih ugovora, van obima ove verzije.
 - Samostalna prodaja `INSURANCE` proizvoda (M2) bez ikakvog drugog proizvoda u rezervaciji ne odgovara nijednom postojećem `contract_type` — posredovanje u osiguranju je zasebno regulisano van Zakona o turizmu; potvrditi sa pravnikom da li takva rezervacija uopšte treba `ClientContract` ili se rešava potpuno drugim dokumentom, pre implementacije ovog graničnog slučaja.

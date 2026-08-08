@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.7 — na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.8 — dodat `ClientPaymentSchedule`/`PaymentTermsConfig`, rok akontacije i pune uplate prema gostu/nalogodavcu kao globalna agencijska politika, sa upozorenjem pa eskalacijom kad rok probijen (poglavlje 5.4), zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.7 na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -152,6 +152,46 @@ Simetrično rekonsilijaciji ka dobavljaču (`SupplierObligation`, poglavlje 8), 
 - Neusklađenost (npr. rezervacija potvrđena i uplaćena, ali fiskalni dokument nikad poslat; ili uplata ostaje delimična dok je `Booking.status = CONFIRMED` duže od N dana) generiše `HealthSignal` tipa `RECONCILIATION_MISMATCH` (M18 poglavlje 2.1) — čisto informativno, nivo "Autonomno", ne menja nijedan zapis automatski.
 
 Potvrđeno poređenjem sa PrimeTravel analizom, koja navodi automatsku rekonsilijaciju rezervacija→uplata→faktura kao eksplicitno nedostajuću funkcionalnost i kod njih (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 7) — vredna dopuna, ne kopiranje gotovog rešenja.
+
+### 5.4 `ClientPaymentSchedule` — rok akontacije i pune uplate prema gostu/nalogodavcu (dopuna, avgust 2026 — zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, gap #4 iz `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md`)
+
+Simetrično `SupplierObligation.due_date` (poglavlje 8.1) ka dobavljaču, M10 do sada nije pratio konkretan ugovoreni rok naplate od gosta/nalogodavca — postojao je samo opšti nadzor da li je vaučer izdat bez pune uplate (M5 poglavlje 6.1, dnevni podsetnik dok je `payment_status != PAID`), što je različito od praćenja da li je probijen *rok*. Ova dopuna zatvara tu razliku, bez zamene M5 poglavlja 6.1 (obe provere ostaju, hvataju različite situacije — isti obrazac kao razlika između M10 poglavlja 5.3 i 6.2).
+
+**Izvor pravila — globalna politika agencije, potvrđeno na zahtev vlasnika (avgust 2026):** rok i procenat akontacije **nisu** po ugovoru sa dobavljačem niti ručno po rezervaciji — jedna, agencijska politika važi za sve rezervacije, dok se ne pokaže stvarna potreba za izuzecima po dobavljaču/proizvodu (isti princip opreza kao "ne graditi unapred" iz Master dokumenta).
+
+#### 5.4.1 `PaymentTermsConfig`
+Jedan aktivan zapis (singleton — sistem uvek čita najnoviji `updated_at`), uređuje Vlasnik/Direktor:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| deposit_percentage | decimal | % od `Booking.total_price` koji čini akontaciju — izuzetak iz poglavlja 3.2 (procenat, ne iznos) |
+| deposit_due_days_after_confirmation | integer | rok za akontaciju, broj dana od `booking.confirmed` |
+| balance_due_days_before_stay | integer | rok za balans (punu uplatu), broj dana pre najranijeg datuma početka putovanja u rezervaciji |
+| escalation_days_after_due | integer | koliko dana posle probijenog roka signal eskalira sa `WARNING` na `CRITICAL` (poglavlje 5.4.3) |
+| updated_by | UUID (FK → M1 User) | |
+| updated_at | timestamp | |
+
+#### 5.4.2 `ClientPaymentSchedule`
+Kreira se automatski po `booking.confirmed` (isti trigger obrazac kao poglavlje 6.0/8.0), nivo **"Autonomno"** — čisto deterministično računanje iz već postojećih podataka, bez novog rizika. Vrednosti iz `PaymentTermsConfig` se **snimaju u trenutku kreiranja** (ne žive vezano na konfiguraciju) — kasnija izmena politike ne menja retroaktivno već kreirane rasporede, isti princip kao `buyer_name_snapshot` na `FiscalDocument` (poglavlje 5.1).
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking), unique | |
+| deposit_amount | integer | `round(Booking.total_price × deposit_percentage / 100)`, u najmanjoj jedinici valute (poglavlje 3.2) |
+| deposit_due_date | date | `booking.confirmed_at + deposit_due_days_after_confirmation` (snapshot vrednost) |
+| deposit_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
+| balance_due_date | date | `MIN(BookingItem.stay_from svih stavki rezervacije) − balance_due_days_before_stay` (snapshot vrednost) |
+| balance_status | enum: `PENDING`, `MET`, `OVERDUE` | vidi poglavlje 5.4.3 |
+| created_at | timestamp | |
+
+#### 5.4.3 Praćenje statusa i eskalacija — upozorenje pa eskalacija, nikad automatska radnja nad rezervacijom
+
+- `deposit_status` prelazi u `MET` čim zbir `RECEIVED` `Payment` zapisa za `booking_id` dostigne bar `deposit_amount` (uključujući slučaj da je gost odmah platio u celosti). `balance_status` prelazi u `MET` čim `Booking.payment_status = PAID` (isti okidač kao poglavlje 5.2). Ako je `balance_status = MET`, `deposit_status` se takođe smatra ispunjenim bez obzira na redosled uplata.
+- Ako odgovarajući rok (`deposit_due_date`/`balance_due_date`) prođe a status još nije `MET`, status prelazi u `OVERDUE` i generiše se `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` (M18 poglavlje 2.1, nov tip — dodato u tu specifikaciju u istom prolazu), `severity = WARNING`, vidljivo u M17 Agent Inbox — nivo **"Autonomno"**, obična provera datuma, ne zahteva poziv jezičkom modelu (isti princip kao M18 poglavlje 6.2, "Najvažniji nalaz").
+- Ako `OVERDUE` ostane nerešeno još `escalation_days_after_due` dana (iz snimljene konfiguracije), isti signal se ažurira na `severity = CRITICAL` — po M18 poglavlju 2.2 ovo odmah šalje Telegram/email obaveštenje, za razliku od početnog `WARNING` koji čeka nedeljni pregled. I ovaj korak ostaje nivo **"Autonomno"** — samo jače obaveštenje, ne menja ništa na rezervaciji.
+- **Sistem nikad sam ne otkazuje niti menja rezervaciju zbog probijenog roka.** Eskalacija isključivo traži eksplicitnu ljudsku odluku (kontaktirati gosta, produžiti rok, ili pokrenuti otkazivanje kroz redovan M5 tok — uključujući proveru duplikata pre otkazivanja, M5 poglavlje 6.4) — isti nivo opreza kao svaka druga radnja koja menja novac/rezervaciju u ovom dokumentu.
 
 ---
 
@@ -319,6 +359,9 @@ Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba deli
 | `M10/supplier-payment-instruction/EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2) |
 | `M10/refund-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/refund-instruction/APPROVE`, `EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3) |
+| `M10/payment-terms-config/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/payment-terms-config/EDIT` | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1) |
+| `M10/client-payment-schedule/VIEW` | Vlasnik, Direktor, Računovođa, Prodajni agent (sopstvene rezervacije) |
 
 ---
 
@@ -333,7 +376,7 @@ Prefiks: `/api/v1/finance`
 | `/fiscal-documents/:id/submit` | POST | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog |
 | `/fiscal-documents/:id` | GET | |
 | `/fiscal-documents/:id/storno` | POST | pokreće storno tok |
-| `/payments` | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, uz proveru limita gotovine iz poglavlja 5.2) |
+| `/payments` | GET / POST | pregled / ručan unos prijema uplate (`BANK_TRANSFER`/`CASH`, bez sistemskog limita gotovine — poglavlje 5.2) |
 | `/payments/card/initiate` | POST | pokreće `PaymentGatewayAdapter.initiatePayment` za dati `quote_id` |
 | `/payments/card/webhook` | POST | povratni poziv provajdera — jedini način na koji se `CARD` uplata beleži kao `RECEIVED` |
 | `/exchange-rates` | GET / POST | pregled / unos dnevnog kursa |
@@ -346,6 +389,8 @@ Prefiks: `/api/v1/finance`
 | `/refund-instructions` | GET / POST | pregled / kreiranje zahteva za refundaciju van kartičnog toka (poglavlje 8.5.3) |
 | `/refund-instructions/:id/approve` | POST | zahteva `M10/refund-instruction/APPROVE` |
 | `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
+| `/payment-terms-config` | GET / PUT | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT` |
+| `/client-payment-schedules` | GET | lista, filtrirano po `booking_id`/`deposit_status`/`balance_status` (poglavlje 5.4.2) |
 
 ---
 
@@ -374,6 +419,8 @@ Prefiks: `/api/v1/finance`
 - [ ] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED` (poglavlje 8.0); API-sourced stavke ne generišu ovaj zapis pojedinačno.
 - [ ] `FiscalDocument` u statusu `DRAFT` duže od 24h od trenutka kad je mogao biti poslat generiše `HealthSignal`, vidljiv u M17 Agent Inbox (poglavlje 6.2).
 - [ ] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema iz odobrenog `CommissionRebate` (M7), sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`, i zahteva istu ljudsku potvrdu za slanje kao svaki drugi fiskalni dokument (poglavlje 5.1a).
+- [ ] `ClientPaymentSchedule` se automatski kreira po `booking.confirmed`, sa `deposit_due_date`/`balance_due_date` i snimljenim vrednostima iz `PaymentTermsConfig` u tom trenutku (poglavlje 5.4.2); kasnija izmena `PaymentTermsConfig` ne menja retroaktivno već kreirane rasporede.
+- [ ] Probijen `deposit_due_date`/`balance_due_date` bez ispunjene uplate ispravno generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` sa `severity = WARNING`, i eskalira na `severity = CRITICAL` posle `escalation_days_after_due` dana (poglavlje 5.4.3), bez ijedne automatske izmene same rezervacije.
 
 ---
 

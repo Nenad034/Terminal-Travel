@@ -12,7 +12,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Automatsko pracenje da li je u roku uplacena akontacija kao i da li je u roku isplacena rezetvacija u celosti *(Delimično — M10 prati rok prema dobavljaču, nedostaje rok prema gostu/nalogodavcu — vidi GAP-analiza #4)*
+* [x] Automatsko pracenje da li je u roku uplacena akontacija kao i da li je u roku isplacena rezetvacija u celosti *(Dopunjeno u specifikaciji — M10 poglavlje 5.4 (`PaymentTermsConfig`/`ClientPaymentSchedule`, globalna agencijska politika); probijen rok generiše upozorenje pa eskalira, nikad ne otkazuje sam — vidi GAP-analiza #4)*
 
 
 
