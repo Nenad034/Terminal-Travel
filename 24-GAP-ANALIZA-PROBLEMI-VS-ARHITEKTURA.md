@@ -104,6 +104,20 @@ Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je eksplicitno ostavljen o
 
 ---
 
+## 10. Sprečavanje pogrešnog storna kod dupliranih rezervacija istog gosta preko različitih kanala
+
+**Status: nepokriveno.**
+
+Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termin, istu uslugu na dva načina — jednom direktno, jednom preko subagenta (M7) koji je istu rezervaciju napravio kroz našu agenciju. U sistemu su postojale dve odvojene `Booking` stavke za istu osobu. Zaposleni nije primetio da se imena poklapaju i stornirao je rezervaciju koja kod nas nije bila uplaćena, misleći da je duplikat/greška. Pošto hotel svoje rezervacije ne prati po internom ID-ju našeg sistema nego po imenu i prezimenu gosta, hotel je (matchujući po imenu) stornirao i onu drugu, ispravnu i uplaćenu rezervaciju.
+
+`06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlje 6 ("Upravljanje rezervacijom nakon potvrde") definiše mehaniku otkazivanja (`cancellation_refund_percentage`, oslobađanje kapaciteta), ali nema nikakav korak provere *pre* nego što se storno potvrdi. `BookingItemGuest` (poglavlje 4.3) povezuje stavku sa `M6.GuestProfile`, ali ništa u M5 ili M6 ne upoređuje goste/termine/proizvode **preko različitih `Booking` zapisa** da bi otkrilo da dve naizgled nezavisne rezervacije (različit `channel`, različit `client_account_id` — npr. B2C gost i B2B subagent) u stvari pripadaju istom fizičkom gostu, istom objektu i istom terminu.
+
+**Gap: potpuno odsutno.** Nedostaje: (a) provera pri otkazivanju — kad se otkazuje `BookingItem`, sistem treba da proveri da li postoji druga aktivna (`CONFIRMED`/`PENDING_SUPPLIER_CONFIRMATION`) stavka za isti `product_id` (isti dobavljač/objekat) sa preklapajućim `stay_from`/`stay_to` i isto ili slično ime gosta (fuzzy match nad `BookingItemGuest` → `GuestProfile.first_name`/`last_name`, tolerantno na razlike u zapisu imena), nezavisno od kanala ili `client_account_id`; (b) ako se pronađe podudaranje, operateru se pre potvrde storna prikazuje eksplicitno upozorenje (npr. "Postoji druga aktivna rezervacija za [Ime Prezime] u [Hotel] za [datumi] — booking #X, kanal: [B2C/B2B subagent/…]. Da li ste sigurni da otkazujete ispravnu rezervaciju?"); (c) u M6 ne postoji mehanizam za prepoznavanje da isti fizički gost stoji iza dva različita `ClientAccount`-a (direktan gost i klijent subagenta) — nema predloga za spajanje/povezivanje profila kad se otkrije podudaranje po imenu (i po datumu rođenja/dokumentu, gde je dostupno).
+
+**Preporuka:** dopuna `06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlja 6 sa korakom provere duplikata pre storna, na nivou **"Predloži pa čovek odobri"** (poglavlje 7 Master dokumenta) — sistem ne blokira storno automatski (mogu postojati legitimni razlozi za dve odvojene rezervacije iste osobe), samo traži eksplicitnu potvrdu uz prikaz konflikta. Pošto je jedan od dva izvora duplikata upravo subagentski kanal, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` treba dopuniti referencom na ovu proveru. Sekundarno, razmotriti u M6 (CRM) mehanizam predloga za spajanje/povezivanje gostiju kroz različite `ClientAccount`-e kad se otkrije podudaranje identiteta — ovo bi rešilo problem i na duže staze, ne samo u trenutku storna.
+
+---
+
 ## Rezime
 
 | # | Problem | Status |
@@ -117,8 +131,9 @@ Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je eksplicitno ostavljen o
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Nepokriveno |
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Nepokriveno |
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Nepokriveno |
+| 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Nepokriveno |
 
-Pet od devet problema (3, 6, 7, 8, 9) zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Preporuka je da se ovi gap-ovi svesno unesu kao dopune postojećih modula (M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ta dva modula smatraju "gotovim" za svoju fazu.
+Šest od deset problema (3, 6, 7, 8, 9, 10) zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Preporuka je da se ovi gap-ovi svesno unesu kao dopune postojećih modula (M5, M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ta dva modula smatraju "gotovim" za svoju fazu.
 
 ---
 
@@ -155,5 +170,6 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | :---- | :---- | :---- | :---- | :---- |
 | 2026-08-05 | (razno, prvobitna lista) | 9 problema iz `Problemi koje zelimo da resimo ovom aplikacijom.md` | Analizirano u ovom dokumentu (poglavlja 1-9) | Vidi Rezime iznad |
 | 2026-08-07 | Gost/klijent (B2C) | Gost ne dobija automatski podsetnik kad dobavljač drži rezervaciju "na opciju" sa rokom posle kog sam otkazuje ako agencija ne potvrdi/plati — vlasnik dao konkretan primer iz prakse (email dobavljača "Reservations pending confirmation": hotel, datumi, referenca, ime, rok, web-referenca) kao format za analognu poruku ka gostu. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | M5 poglavlje 13 (novo polje za rok opcije na `BookingItem`; kanal za transakciona obaveštenja gostu verovatno zahteva i dopunu M6 poglavlje 4.1) |
+| 2026-08-08 | Dobavljač / Subagent (unakrsno) | Gost je rezervisao isti hotel/termin/uslugu i direktno i preko subagenta (M7) — dve odvojene rezervacije u sistemu za istu osobu. Zaposleni nije primetio poklapanje imena i stornirao neuplaćenu rezervaciju misleći da je duplikat; hotel prati rezervacije po imenu gosta (ne po našem internom ID-ju), pa je posledično stornirao i ispravnu, uplaćenu rezervaciju. Vlasnik traži da sistem predvidi ovakve scenarije i upozori korisnika pre nego što napravi istu grešku. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | Vidi poglavlje 10 iznad — M5 poglavlje 6 (provera duplikata pre potvrde storna), M7 (referenca na proveru za subagentski kanal), sekundarno M6 (spajanje/povezivanje gostiju preko različitih `ClientAccount`-a) |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*

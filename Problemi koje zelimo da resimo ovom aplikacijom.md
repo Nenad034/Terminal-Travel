@@ -34,3 +34,6 @@ Rad u agenciji na svakodnevnim poslovima
 
 * Osmisliti Chat za komunikaciju sa dobavljacima kako bi ubrzali i imali kvalitetniju komunikaciju. Desctop i mobilnu aplikaciju.
 
+Opisacu vam danasnju situaciju koju obavezno u buducnosti aplikacija ne treba da dozvoli. Naime stranka je uradila rezervaciju za isti hotel isti termin istu uslugu... sve isto kao i putem subagenta koji je isti hotel rezervisao preko nase agencije. Nsam primetio da su imena ista pa sam stornirao rezervaciju koja nama nije uplacena. Posto hotel ne prati rezervacije putem ID brojeva naseg sistema vec po imenu i prezimenu, hotel je stornirao i onu ispravnu reztervaciju. Predvidite sve ovakve scenarije i napravite obavestenja i upozoroenja koja ce korisnika sistema spreciti da napravi ovakvu gresku
+
+
