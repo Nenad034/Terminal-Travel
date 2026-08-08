@@ -20,7 +20,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Skeniraje konacnih racuna i povezivanje sa rezervacijom, kako bi na ovaj nacin ubrzali uz pomoc ai agenta unos konacnih racuna. Uz pomoc Ai agenta nauciti aplikaciju da prepozna za svakog dobavljača kako izgleda konacni racun i da nauci da cita taj konacni racun i da potrebne informacije ubaci u odgovarajucu rezervaciju. Ovde osmisliti nacine provere da li sve radi kako treba. *(Nepokriveno — vidi GAP-analiza #6, preporuka: dopuna M10 poglavlje 8, isti obrazac kao M3 `PricelistImport`)*
+* [x] Skeniraje konacnih racuna i povezivanje sa rezervacijom, kako bi na ovaj nacin ubrzali uz pomoc ai agenta unos konacnih racuna. Uz pomoc Ai agenta nauciti aplikaciju da prepozna za svakog dobavljača kako izgleda konacni racun i da nauci da cita taj konacni racun i da potrebne informacije ubaci u odgovarajucu rezervaciju. Ovde osmisliti nacine provere da li sve radi kako treba. *(Dopunjeno u specifikaciji — M10 poglavlje 8.6 (`SupplierInvoiceImport`), isti obrazac kao M3 `PricelistImport`; provera = deterministički match na ime gosta/datume/iznos + prag pouzdanosti 85%, upis u obavezu tek posle ljudske potvrde — vidi GAP-analiza #6)*
 
 
 

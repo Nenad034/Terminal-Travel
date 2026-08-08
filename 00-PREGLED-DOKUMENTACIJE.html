@@ -2070,7 +2070,7 @@ Prefiks: `/api/v1/sales`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.8 — dodat `ClientPaymentSchedule`/`PaymentTermsConfig`, rok akontacije i pune uplate prema gostu/nalogodavcu kao globalna agencijska politika, sa upozorenjem pa eskalacijom kad rok probijen (poglavlje 5.4), zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.7 na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.9 — dodat AI uvoz ulaznih/konačnih faktura dobavljača (`SupplierInvoiceImport`, poglavlje 8.6), isti obrazac kao M3 `PricelistImport`, zatvara problem #6 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026); v1.8 dodat `ClientPaymentSchedule`/`PaymentTermsConfig`, rok akontacije i pune uplate prema gostu/nalogodavcu kao globalna agencijska politika, sa upozorenjem pa eskalacijom kad rok probijen (poglavlje 5.4), zatvara problem #4 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); v1.7 na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
@@ -2408,6 +2408,47 @@ Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba deli
 
 **Redosled:** `RefundInstruction` mora imati `status = APPROVED` pre nego što pređe u `EXECUTED` — dva odvojena ljudska koraka (odobrenje pa izvršenje), isti obrazac kao dvostepeni tok fiskalizacije (poglavlje 6).
 
+### 8.6 AI uvoz konačnih (ulaznih) faktura dobavljača (dopuna, avgust 2026 — zatvara problem #6 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, gap #6 iz `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md`)
+
+Poglavlje 8.0 opisuje da `invoice_reference` na `SupplierObligation` "se popunjava naknadno, ručno" kad stigne stvarna ulazna faktura — to ostaje tačan krajnji ishod, ali sam unos više ne mora biti ručno prekucavanje. Isti obrazac kao M3 poglavlje 4.2 (`PricelistImport` — AI OCR/parsiranje cenovnika), primenjen ovde na ulazne/konačne fakture dobavljača umesto na cenovnike; jedina suštinska razlika je meta mapiranja (`SupplierObligation` preko `BookingItem`, umesto `M2 Product`).
+
+#### 8.6.1 `SupplierInvoiceImport`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID (FK → M3 Supplier) | |
+| source_file_url | string | originalni fajl, EU cloud skladište |
+| source_format | enum: `PDF`, `EXCEL`, `WORD`, `HTML`, `EMAIL`, `SCANNED_PDF` | isti skup kao M3 poglavlje 4.2.1; `SCANNED_PDF` ide kroz OCR pre parsiranja |
+| status | enum: `PROCESSING`, `READY_FOR_REVIEW`, `COMPLETED`, `REJECTED` | |
+| created_by / created_at | UUID / timestamp | |
+
+#### 8.6.2 `SupplierInvoiceImportRow` — jedan red = jedna fakturisana stavka (gost/termin/iznos)
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_invoice_import_id | UUID (FK) | |
+| extracted_guest_name | string | tekst tačno kako piše u izvornom dokumentu, pre mapiranja |
+| extracted_stay_from / extracted_stay_to | date | |
+| extracted_amount / extracted_currency | integer / string | u najmanjoj jedinici valute (poglavlje 3.2) — konvertuje se pri ekstrakciji, isto kao M3 `PricelistImportRow` |
+| extracted_invoice_reference | string | broj fakture/stavke kako piše u dokumentu |
+| matched_supplier_obligation_id | UUID, nullable (FK → `SupplierObligation`, poglavlje 8.1) | kandidat pronađen matching-om (poglavlje 8.6.3) |
+| match_confidence | decimal (0–100), nullable | |
+| review_status | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` | |
+| reviewed_by | UUID (FK → M1 User), nullable | |
+
+#### 8.6.3 Matching — determinizam, ne slobodan AI izbor
+
+Kandidati za `matched_supplier_obligation_id` su `SupplierObligation` zapisi istog `supplier_id` čiji `invoice_reference` je i dalje prazan, filtrirano po preklapanju `BookingItem.stay_from`/`stay_to` (preko `booking_item_id`) sa ekstrahovanim periodom. Unutar tog skupa, `extracted_guest_name` se poredi sa imenima iz `BookingItemGuest` → M6 `GuestProfile` **istim determinističkim fuzzy-match mehanizmom kao M5 poglavlje 6.4** (normalizacija dijakritika/velikih-malih slova + Levenštajnova distanca, ne poziv jezičkom modelu po redu — princip #4 Master dokumenta, "determinizam pre autonomije"); `extracted_amount` se dodatno poredi kao potvrda (veliko odstupanje snižava `match_confidence`, ne odbacuje kandidata automatski, jer se stvarna faktura ponekad razlikuje od ugovorene cene — isto obrazloženje kao poglavlje 8.0).
+
+Redovi sa `match_confidence ≥ 85%` (isti prag kao M3 poglavlje 4.2.3, radi doslednosti kroz sistem) se predlažu kao automatsko mapiranje; ispod praga, red ide na ručno mapiranje (`review_status = PENDING`, bez predloženog `matched_supplier_obligation_id`).
+
+#### 8.6.4 Nivo autonomije — ekstrakcija sama, upis u obavezu tek posle potvrde
+
+Isti dvostepeni obrazac kao M3 poglavlje 4.2.4:
+- **Ekstrakcija podataka i predlog mapiranja** (`PROCESSING → READY_FOR_REVIEW`) je nivo **"Autonomno"** — čisto informativna priprema, ništa se još ne piše u stvarni `SupplierObligation`.
+- **Upis potvrđenog reda** (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) u `SupplierObligation.invoice_reference`, uz eventualnu korekciju `amount_original` ako se razlikuje od automatski kreirane vrednosti (poglavlje 8.0) i ponovni izračun `exchange_rate_snapshot_id_at_invoice`/`amount_rsd_at_invoice` po kursu na dan prijema fakture (poglavlje 3), je nivo **"Predloži pa čovek odobri"** — zahteva Računovođu (isti nosilac dozvole kao ručna korekcija iz poglavlja 8.0), pre nego što obaveza uopšte može preći u `APPROVED` (poglavlje 8.3 ostaje sledeći, nepromenjen korak).
+- Red bez pouzdanog kandidata koji se ne razreši ni ručnim mapiranjem (npr. faktura za trošak van sistema `SupplierObligation`) prelazi u `REJECTED` bez efekta na bilo koji finansijski zapis.
+
 ---
 
 ## 9. Dozvole (registruju se u M1 katalog dozvola)
@@ -2429,6 +2470,8 @@ Za uplate primljene preko `BANK_TRANSFER`/`CASH` (poglavlje 5.2) koje treba deli
 | `M10/payment-terms-config/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/payment-terms-config/EDIT` | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1) |
 | `M10/client-payment-schedule/VIEW` | Vlasnik, Direktor, Računovođa, Prodajni agent (sopstvene rezervacije) |
+| `M10/supplier-invoice-import/VIEW`, `CREATE` | Vlasnik, Direktor, Računovođa — `CREATE` pokreće upload/ekstrakciju (i AI agent, nivo "Autonomno" — samo ekstrakcija, poglavlje 8.6.4) |
+| `M10/supplier-invoice-import/REVIEW` | Vlasnik, Direktor, Računovođa — potvrda/ručno mapiranje reda i upis u `SupplierObligation` — **nikad AI agent** (poglavlje 8.6.4) |
 
 ---
 
@@ -2458,6 +2501,10 @@ Prefiks: `/api/v1/finance`
 | `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
 | `/payment-terms-config` | GET / PUT | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT` |
 | `/client-payment-schedules` | GET | lista, filtrirano po `booking_id`/`deposit_status`/`balance_status` (poglavlje 5.4.2) |
+| `/supplier-invoice-imports` | GET / POST | pregled / upload fajla, pokreće AI ekstrakciju (poglavlje 8.6.1), zahteva `M10/supplier-invoice-import/CREATE` |
+| `/supplier-invoice-imports/:id` | GET | detalji uvoza sa svim `SupplierInvoiceImportRow` redovima |
+| `/supplier-invoice-imports/:id/rows/:rowId/confirm` | POST | potvrđuje predloženo (ili ručno zadato) mapiranje, upisuje u `SupplierObligation` — zahteva `M10/supplier-invoice-import/REVIEW` |
+| `/supplier-invoice-imports/:id/rows/:rowId/reject` | POST | odbacuje red bez efekta na finansijske zapise |
 
 ---
 
@@ -2488,6 +2535,8 @@ Prefiks: `/api/v1/finance`
 - [ ] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema iz odobrenog `CommissionRebate` (M7), sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`, i zahteva istu ljudsku potvrdu za slanje kao svaki drugi fiskalni dokument (poglavlje 5.1a).
 - [ ] `ClientPaymentSchedule` se automatski kreira po `booking.confirmed`, sa `deposit_due_date`/`balance_due_date` i snimljenim vrednostima iz `PaymentTermsConfig` u tom trenutku (poglavlje 5.4.2); kasnija izmena `PaymentTermsConfig` ne menja retroaktivno već kreirane rasporede.
 - [ ] Probijen `deposit_due_date`/`balance_due_date` bez ispunjene uplate ispravno generiše `HealthSignal` tipa `PAYMENT_DEADLINE_MISSED` sa `severity = WARNING`, i eskalira na `severity = CRITICAL` posle `escalation_days_after_due` dana (poglavlje 5.4.3), bez ijedne automatske izmene same rezervacije.
+- [ ] Uvoz ulazne fakture dobavljača (`SupplierInvoiceImport`) ispravno ekstrahuje redove i predlaže mapiranje ka `SupplierObligation` sa `match_confidence ≥ 85%` bez ljudske intervencije; ispod praga red ostaje `PENDING` za ručno mapiranje (poglavlje 8.6.3).
+- [ ] Potvrda reda (`CONFIRMED`/`MANUALLY_MATCHED`) ispravno upisuje `invoice_reference` i po potrebi koriguje `amount_original`/`amount_rsd_at_invoice` na ciljanom `SupplierObligation`, samo uz ljudsku potvrdu (`M10/supplier-invoice-import/REVIEW`) — nijedan `SupplierObligation` se ne menja automatski iz `READY_FOR_REVIEW` statusa (poglavlje 8.6.4).
 
 ---
 

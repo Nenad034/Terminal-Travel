@@ -62,13 +62,11 @@ Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je i dalje eksplicitno ost
 
 ## 6. AI skeniranje konačnih računa dobavljača i automatsko povezivanje sa rezervacijom
 
-**Status: nepokriveno — ovo je eksplicitno naveden problem koji nije razrađen ni u jednoj specifikaciji.**
+**Status: pokriveno (dopunjeno avgust 2026).**
 
-`07-SPECIFIKACIJA-M10-FINANSIJE.md` poglavlje 8.1/8.3 definiše `SupplierObligation.invoice_reference` kao polje koje se "popunjava naknadno, ručno" — bez OCR/AI uvoza ili automatskog uparivanja sa `booking_item_id`. AI-potpomognuti OCR uvoz postoji samo u `04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md` poglavlje 4.2 (`PricelistImport`), ali to je za **cenovnike/ugovore pri nabavci**, ne za **ulazne/konačne fakture** koje stižu posle realizacije usluge. M15 (AI orkestracija) ne pominje ni skeniranje ni fakture.
+`07-SPECIFIKACIJA-M10-FINANSIJE.md` poglavlje 8.6 dodaje `SupplierInvoiceImport`/`SupplierInvoiceImportRow` — isti obrazac kao M3 `PricelistImport` (poglavlje 4.2), primenjen na ulazne/konačne fakture umesto cenovnika. Matching ka `SupplierObligation` koristi isti deterministički fuzzy-match na ime gosta kao M5 poglavlje 6.4 (preko `BookingItemGuest`), filtrirano po preklapanju datuma i dodatno potvrđeno iznosom; prag `match_confidence ≥ 85%` isti kao M3. Nivo autonomije isti kao M3 4.2.4: ekstrakcija/predlog sama ("Autonomno"), upis `invoice_reference`/korekcije iznosa u stvarni `SupplierObligation` tek posle ljudske potvrde Računovođe ("Predloži pa čovek odobri").
 
-**Gap: potpuno neadresirano.** Nedostaje: (a) entitet analogan `PricelistImport` ali za konačne fakture (npr. `SupplierInvoiceImport`), (b) mehanizam učenja formata po dobavljaču (koji AI "pamti" kako izgleda račun svakog dobavljača), (c) fuzzy-matching ka konkretnoj rezervaciji/stavci (slično `PricelistImportRow.matched_product_id`, ali ka `Booking`/`BookingItem`), (d) tok verifikacije/odobravanja pre nego što se podatak upiše kao stvarna finansijska obaveza (isti princip "determinizam pre autonomije" koji već važi za M3 uvoz cenovnika).
-
-**Preporuka:** ovo se prirodno nadovezuje na M3 poglavlje 4.2 (isti OCR/fuzzy-matching obrazac) i M10 poglavlje 8 (`SupplierObligation`) — trebalo bi dodati kao dopunu M10 specifikacije, po istom modelu nivoa autonomije (ekstrakcija automatski, upis u finansijsku obavezu tek posle ljudske potvrde).
+Mehanizam učenja formata po dobavljaču (stavka (b) iz ranije verzije ove analize) nije poseban entitet — isti generički OCR/parsing pipeline kao M3 `PricelistImport` radi po formatu dokumenta (`source_format`), ne po pamćenju specifičnog dobavljača; ako se pokaže potreba za dodatnim per-dobavljač podešavanjem, to je dopuna za kasnije, ne blokira osnovni tok.
 
 ---
 
@@ -131,7 +129,7 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 3 | Konfigurabilno automatsko slanje najave po statusu uplate | Dopunjeno u specifikaciji (M5 poglavlje 8.7) — priprema konfigurabilna, slanje ostaje ljudska radnja |
 | 4 | Rok akontacije/pune uplate (gost) | Pokriveno (M10 poglavlje 5.4) |
 | 5 | CIS/eTurista notifikacija | Pokriveno |
-| 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Nepokriveno |
+| 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Pokriveno (M10 poglavlje 8.6) |
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Nepokriveno |
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Nepokriveno |
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Nepokriveno |
