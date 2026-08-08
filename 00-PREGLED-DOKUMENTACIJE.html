@@ -223,7 +223,7 @@ main{
   <div class="flip">
     <a href="https://claude.ai/code/artifact/85f819c6-f599-4a8b-aade-2418ff4f65a7" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">✅ Kontrolna tabla</a>
     <a href="https://claude.ai/code/artifact/8f7a5ec5-951c-4647-8d6f-734a2d757732" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">🗺️ Mapa modula</a>
-    <span><b>24</b> dokumenta</span><span><b>21</b> modul</span><span>Faza 0–7</span>
+    <span><b>25</b> dokumenata</span><span><b>22</b> modula</span><span>Faza 0–7</span>
   </div>
 </div>
 
@@ -255,6 +255,7 @@ main{
         <a class="nav-link" data-text="m14 helpdesk podrska tiketi" href="#doc-m14"><span class="code">M14</span><span class="label">Podrška / Helpdesk</span></a>
         <a class="nav-link" data-text="m19 komunikaciona platforma chat" href="#doc-m19"><span class="code">M19</span><span class="label">Komunikaciona platforma</span></a>
         <a class="nav-link" data-text="m21 centar za pomoc baza znanja ai asistent" href="#doc-m21"><span class="code">M21</span><span class="label">Centar za pomoć</span></a>
+        <a class="nav-link" data-text="m22 email inbox platforma sanduce" href="#doc-m22"><span class="code">M22</span><span class="label">Email/Inbox platforma</span></a>
       </div>
       <div class="nav-group">
         <div class="nav-group-title"><span class="gate">4</span> Zakon i finansije</div>
@@ -293,7 +294,7 @@ main{
 
 ## Terminal — jedinstvena poslovna platforma agencije Terminal Travel (TT), turoperatora sa licencom
 
-**Verzija:** 1.5 — dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
+**Verzija:** 1.6 — dodat M22 (Email/Inbox platforma) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19/M21, na zahtev vlasnika (avgust 2026), zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.5 dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
 
 ---
 
@@ -376,6 +377,7 @@ Da bi svi moduli i svi AI agenti koristili iste termine (izbegava se situacija d
 | M19 | **Komunikaciona platforma** | Interni real-time tim-chat (zaposleni ↔ zaposleni) — jedina zaista nova komunikaciona celina; komunikacija sa gostima/subagentima ostaje u M14/M6, samo dobija chat-stil prikaz. Desktop iskustvo kroz M17 (PWA), mobilno kroz novi tab u M9 — ne grade se nove samostalne aplikacije. Dodat naknadno (jul 2026). | M1, M14, M17, M9, M18 |
 | M20 | **Ugovori sa klijentima** | Generiše zakonski obavezan Ugovor o organizovanju putovanja (ili posredovanju) sa gostom/nalogodavcem, po Zakonu o turizmu — treći pravni dokument u lancu rezervacije, uz ugovor sa dobavljačem (M3) i fiskalni dokument (M10). Sastavlja se isključivo iz podataka koji već postoje u M2/M3/M5/M11, bez dupliranja unosa. Dodat naknadno (jul 2026), poređenjem sa ranijim paralelnim dokumentom projekta. | M1, M2, M3, M5, M11 |
 | M21 | **Centar za pomoć (baza znanja + AI asistent)** | Uputstvo za korišćenje same platforme (ne za putovanje) — za interni tim (kanal M17) i B2B subagente (kanal M7), sa AI asistentom koji odgovara isključivo iz objavljenog sadržaja, eskalira ka M14 kad ne zna, i predlaže nove članke na osnovu stvarnih pitanja koja ostanu bez odgovora. Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M14, M15, M7, M17 |
+| M22 | **Email/Inbox platforma** | Centralizovan email klijent — sva poslovna sandučad (deljena i lična zaposlenih), prepiska sa gostima/subagentima/dobavljačima, sa eksplicitnom, pojedinačnom dodelom pristupa po sandučetu (ne po opštoj ulozi) i AI agentom koji sažima/predlaže nacrt odgovora. Odvojen od M19 (interni real-time chat, zaposleni↔zaposleni) i od M14 (formalno praćenje tiketa — mejl nit se opciono konvertuje u tiket). Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M14, M6, M7, M3, M15 |
 
 Napomena: M15, M16, M17, M18, M19, M20 i M21 nisu greška u numeraciji — namerno su izdvojeni jer njihovo uvođenje prati sazrevanje ostalih modula, ne ide paralelno sa njihovom izgradnjom. M16 dodatno zavisi od toga da M2/M5 imaju čist, dokumentovan API (princip \#2 i \#3 iz poglavlja 3\) — ako taj API nije čist, M16 postaje mnogo skuplji projekat nego što bi trebalo da bude. M17, za razliku od M15/M16, mora postojati već od Faze 0/1 (poglavlje 8) — kasni broj je posledica toga kad je formalno imenovan, ne toga kad se gradi. M18 i M19 su naknadno dodati (jul 2026) na zahtev vlasnika — deo M18 funkcija (praćenje signala, obaveštenja) je nezavisan od M15 i može se graditi čim postoji dovoljno modula da se prati (praktično od Faze 2/3), dok trend-agent i model-tiering deo M18-a, kao i M19 u celosti, zahtevaju da M15 i M14/M9 već postoje. M20 je, kao i M17, primer kasnog broja sa ranom fazom (Faza 2) — naknadno formalizovan (jul 2026, poređenjem sa ranijim paralelnim dokumentom projekta) modul koji je zakonski neophodan od početka produkcijskog rada, ne od početka razvoja. M21 je poprečan kao M17/M18/M19 — sadržaj za tim može početi od Faze 0 (raste sa svakim modulom, isti obrazac kao M17), dok sadržaj za subagente prirodno čeka M7 (Faza 4); AI asistent deo zahteva da M15 okvir postoji.
 
@@ -3652,8 +3654,8 @@ Prefiks: `/api/v1/bi`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M14) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
-**Zavisi od:** M1, M5, M6, M7
+**Verzija:** 1.2 — dodato `Ticket.source_email_thread_id` (M22 poglavlje 5, konverzija mejl niti u tiket), avgust 2026; v1.1 dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
+**Zavisi od:** M1, M5, M6, M7. Formalno i od M22 (izvor tiketa kad nastaje konverzijom mejla) kad taj modul postoji.
 
 ---
 
@@ -3682,6 +3684,7 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 | priority | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT` | |
 | status | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` | |
 | channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE`, `HELP_CENTER` *(dodato pri specifikaciji M21)* | `HELP_CENTER` — tiket kreiran eskalacijom iz AI asistenta (M21 poglavlje 5.3), prva poruka već sadrži tekst pitanja |
+| source_email_thread_id | UUID, nullable (FK → M22 `EmailThread`) *(dodato pri specifikaciji M22, avgust 2026)* | popunjeno kad je tiket nastao konverzijom mejl niti (M22 poglavlje 5) — `null` za tikete kreirane bilo kojim drugim kanalom |
 | assigned_to | UUID, nullable (FK → M1 User) | |
 | zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
 | zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |
@@ -4878,193 +4881,181 @@ Prefiks: `/api/v1/help`
 </script>
 <div class="rendered"></div>
 </section>
-    </div>
-  </main>
+<section class="doc" id="doc-m22">
+<div class="doc-meta"><span class="phase-pill">Dodatno</span><span class="code-pill">M22</span>
+<span class="status-pill nacrt">NACRT</span>
 </div>
+<script type="text/plain" class="src">
+# Specifikacija modula M22 — Email/Inbox platforma
 
-<button class="top-btn" id="topBtn" aria-label="Nazad na vrh">↑</button>
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M22) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21)
+**Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna IT/pravna potvrda pre implementacije (poglavlje 10)
+**Status:** Nacrt za usvajanje
+**Verzija:** 1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora)
 
-<script>
-(function(){
-  "use strict";
+---
 
-  function escapeHtml(s){
-    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  }
+## 1. Svrha i obim modula
 
-  function inline(s){
-    s = escapeHtml(s);
-    s = s.replace(/`([^`]+)`/g, function(m,p1){ return "<code>"+p1+"</code>"; });
-    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
-    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-    s = s.replace(/\\([.#\-])/g, "$1");
-    return s;
-  }
+M22 je centralizovan email klijent unutar platforme — jedno mesto gde tim vidi i odgovara na svu poslovnu prepisku (agencijska deljena sandučad kao `rezervacije@`/`info@`, lična sandučad zaposlenih, prepiska sa gostima, subagentima i dobavljačima), sa eksplicitnom kontrolom ko sme da vidi/odgovara na koje sanduče, i AI agentom koji sažima i predlaže nacrt odgovora. Rešava problem koji je vlasnik direktno opisao: "tokom noći stigne 20 upita putem mejla" — tim treba da zatekne već sažete, delom već pripremljene odgovore ujutru, ne sirov, neorganizovan inbox.
 
-  function slug(s, docId){
-    var base = s.toLowerCase()
-      .replace(/\\([.#\-])/g,"$1")
-      .replace(/[^a-z0-9čćžšđ]+/g,"-")
-      .replace(/(^-|-$)/g,"");
-    return docId + "-" + base;
-  }
+Van obima: real-time chat sa dobavljačima (odvojen, budući problem #9 — vidi poglavlje 6 dole); formalno praćenje statusa zahteva za podršku ostaje M14 (`Ticket`) — M22 samo omogućava da se mejl **konvertuje** u tiket kad tim proceni da treba formalno praćenje (poglavlje 5).
 
-  function splitRow(line){
-    var t = line.trim();
-    if (t.charAt(0) === "|") t = t.slice(1);
-    if (t.charAt(t.length-1) === "|") t = t.slice(0,-1);
-    return t.split("|").map(function(c){ return c.trim(); });
-  }
+### 1.1 Razlika u odnosu na M14 `Ticket`/`TicketMessage`
 
-  function mdToHtml(src, docId){
-    var lines = src.replace(/\r\n/g,"\n").split("\n");
-    var html = "";
-    var i = 0;
-    var inCode = false, codeBuf = [];
-    var listType = null;
-    var paraBuf = [];
+M14 postoji za zahteve koji zahtevaju praćenje statusa do rešenja (uključujući zakonski rok za reklamacije). M22 je širi i plići sloj ispod toga — sirov transport svake poslovne poruke, bez obzira da li ikad postane formalni tiket. Isti odnos kao M6 `CommunicationLog` naspram M14 `Ticket` (M14 poglavlje 1.1), samo jedan nivo niže: **`EmailMessage` (M22) → opciono `Ticket` (M14) → opciono sažetak u `CommunicationLog` (M6)** — tri različita nivoa detalja, ne tri kopije istog podatka.
 
-    function flushPara(){
-      if (paraBuf.length){
-        html += "<p>" + inline(paraBuf.join(" ")) + "</p>";
-        paraBuf = [];
-      }
-    }
-    function closeList(){
-      if (listType === "ul" || listType === "ul-check") html += "</ul>";
-      else if (listType === "ol") html += "</ol>";
-      listType = null;
-    }
+### 1.2 Razlika u odnosu na M19 (interni tim-chat)
 
-    while (i < lines.length){
-      var line = lines[i];
+M19 je real-time chat isključivo zaposleni↔zaposleni. M22 pokriva email — drugačiji medijum (asinhron, spoljni korespondenti: gosti, subagenti, dobavljači), i eksplicitno uključuje spoljnu prepisku koju M19 namerno isključuje (M19 poglavlje 1: "komunikacija sa gostima/subagentima ostaje u M14/M6"). Ne zamenjuju jedan drugog.
 
-      if (/^\s*```/.test(line)){
-        flushPara(); closeList();
-        if (!inCode){ inCode = true; codeBuf = []; }
-        else { html += "<pre><code>" + escapeHtml(codeBuf.join("\n")) + "</code></pre>"; inCode = false; }
-        i++; continue;
-      }
-      if (inCode){ codeBuf.push(line); i++; continue; }
+---
 
-      if (/^\s*\|.*\|\s*$/.test(line) && i+1 < lines.length && /^\s*\|[\s:\-|]+\|\s*$/.test(lines[i+1])){
-        flushPara(); closeList();
-        var headerCells = splitRow(line);
-        i += 2;
-        var rows = [];
-        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){
-          rows.push(splitRow(lines[i]));
-          i++;
-        }
-        html += '<div class="table-wrap"><table><thead><tr>' +
-          headerCells.map(function(c){ return "<th>"+inline(c)+"</th>"; }).join("") +
-          "</tr></thead><tbody>" +
-          rows.map(function(r){ return "<tr>"+r.map(function(c){ return "<td>"+inline(c)+"</td>"; }).join("")+"</tr>"; }).join("") +
-          "</tbody></table></div>";
-        continue;
-      }
+## 2. Model podataka
 
-      var hm = /^(#{1,6})\s+(.*)$/.exec(line);
-      if (hm){
-        flushPara(); closeList();
-        var level = hm[1].length;
-        var text = inline(hm[2].trim());
-        var id = slug(hm[2], docId);
-        html += "<h"+level+' id="'+id+'">'+text+"</h"+level+">";
-        i++; continue;
-      }
+### 2.1 `Mailbox`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| address | string, unique | mejl adresa (npr. `rezervacije@terminaltravel.rs`, ili lična adresa zaposlenog) |
+| display_name | string | |
+| mailbox_type | enum: `SHARED`, `PERSONAL` | `SHARED` — sandučad odeljenja/funkcije (`rezervacije@`, `dobavljaci@`); `PERSONAL` — sandučad pojedinačnog zaposlenog |
+| owner_user_id | UUID, nullable (FK → M1 User) | samo za `PERSONAL` — podrazumevani vlasnik |
+| provider_connection_ref | string | referenca ka kredencijalima konekcije (enkriptovano skladište, isti princip kao M4 `ProviderConfig`) |
+| status | enum: `ACTIVE`, `INACTIVE` | |
+| created_at | timestamp | |
 
-      if (/^-{3,}\s*$/.test(line)){
-        flushPara(); closeList();
-        html += "<hr>";
-        i++; continue;
-      }
+### 2.2 `MailboxAccess` — pojedinačna dodela pristupa (potvrđeno na zahtev vlasnika, avgust 2026)
 
-      var cbm = /^[-*]\s+\[( |x|X)\]\s+(.*)$/.exec(line);
-      if (cbm){
-        flushPara();
-        if (listType !== "ul-check"){ closeList(); html += '<ul class="checklist">'; listType = "ul-check"; }
-        html += '<li><span class="box"></span>' + inline(cbm[2]) + "</li>";
-        i++; continue;
-      }
+Pristup se **ne** izvodi iz opšte uloge (M1 RBAC) — svaki zaposleni mora biti eksplicitno dodat na svako sanduče do kog treba pristup, čak i ako nije vlasnik `PERSONAL` sandučeta.
 
-      var ulm = /^[-*]\s+(.*)$/.exec(line);
-      if (ulm){
-        flushPara();
-        if (listType !== "ul"){ closeList(); html += "<ul>"; listType = "ul"; }
-        html += "<li>" + inline(ulm[1]) + "</li>";
-        i++; continue;
-      }
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| mailbox_id | UUID (FK) | |
+| user_id | UUID (FK → M1 User) | |
+| access_level | enum: `VIEW`, `REPLY` | `REPLY` implicitno uključuje `VIEW` |
+| granted_by | UUID (FK → M1 User) | |
+| granted_at | timestamp | |
 
-      var olm = /^\d+\.\s+(.*)$/.exec(line);
-      if (olm){
-        flushPara();
-        if (listType !== "ol"){ closeList(); html += "<ol>"; listType = "ol"; }
-        html += "<li>" + inline(olm[1]) + "</li>";
-        i++; continue;
-      }
+Vlasnik `PERSONAL` sandučeta (`Mailbox.owner_user_id`) dobija `REPLY` automatski pri kreiranju sandučeta — ne mora se ručno dodeliti sam sebi.
 
-      if (/^\s*$/.test(line)){
-        flushPara(); closeList();
-        i++; continue;
-      }
+### 2.3 `EmailThread`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| mailbox_id | UUID (FK) | |
+| subject | string | |
+| correspondent_type | enum: `GUEST`, `SUBAGENT`, `SUPPLIER`, `OTHER` | određuje se automatski po tačnom poklapanju mejl adrese (poglavlje 3.1) |
+| correspondent_client_account_id | UUID, nullable (FK → M6 `ClientAccount`) | popunjeno kad `correspondent_type = GUEST`/`SUBAGENT` i mejl adresa tačno poklopi postojeći profil |
+| correspondent_supplier_id | UUID, nullable (FK → M3 `Supplier`) | popunjeno kad `correspondent_type = SUPPLIER` |
+| related_booking_id | UUID, nullable (FK → M5 `Booking`) | opciono, ručno ili AI-predloženo povezivanje (poglavlje 3.2) |
+| status | enum: `OPEN`, `AWAITING_REPLY`, `CLOSED` | |
+| converted_to_ticket_id | UUID, nullable (FK → M14 `Ticket`) | popunjeno kad tim konvertuje nit u formalni tiket (poglavlje 5) |
+| last_message_at | timestamp | |
+| created_at | timestamp | |
 
-      paraBuf.push(line.trim());
-      i++;
-    }
-    flushPara(); closeList();
-    return html;
-  }
+### 2.4 `EmailMessage`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| thread_id | UUID (FK) | |
+| direction | enum: `INBOUND`, `OUTBOUND` | |
+| sender_type | enum: `CORRESPONDENT`, `STAFF`, `AI_DRAFT` | isti obrazac kao M14 `TicketMessage.sender_type` |
+| from_address / to_addresses | string / string[] | |
+| body | text | |
+| ai_summary | text, nullable | popunjeno za `INBOUND` poruke kad AI sažme sadržaj (poglavlje 4) |
+| sent_by | UUID, nullable (FK → M1 User) | popunjeno kad je `STAFF`/`AI_DRAFT` poruka stvarno poslata — isti mehanizam kao M14 `TicketMessage.sent_by` |
+| provider_message_id | string, nullable | Message-ID header, za threading i idempotentnost pri ponovnom uvozu |
+| received_at / created_at | timestamp | |
 
-  document.querySelectorAll(".doc").forEach(function(sec){
-    var srcEl = sec.querySelector(".src");
-    var raw = srcEl ? srcEl.textContent : "";
-    var docId = sec.id.replace("doc-","");
-    var out = sec.querySelector(".rendered");
-    out.innerHTML = mdToHtml(raw, docId);
-  });
+---
 
-  var links = Array.prototype.slice.call(document.querySelectorAll(".nav-link"));
-  var sections = Array.prototype.slice.call(document.querySelectorAll(".doc"));
+## 3. Prepoznavanje korespondenta i povezivanje sa rezervacijom
 
-  var search = document.getElementById("navSearch");
-  search.addEventListener("input", function(){
-    var q = search.value.trim().toLowerCase();
-    links.forEach(function(a){
-      var hay = (a.dataset.text || "") + " " + a.textContent.toLowerCase();
-      a.classList.toggle("hidden", q.length > 0 && hay.toLowerCase().indexOf(q) === -1);
-    });
-  });
+### 3.1 Tačno poklapanje adrese, ne fuzzy-match
 
-  var menuBtn = document.getElementById("menuBtn");
-  var overlay = document.getElementById("overlay");
-  var sidebar = document.getElementById("sidebar");
-  function closeNav(){ sidebar.classList.remove("open"); overlay.classList.remove("show"); }
-  menuBtn.addEventListener("click", function(){
-    sidebar.classList.toggle("open"); overlay.classList.toggle("show");
-  });
-  overlay.addEventListener("click", closeNav);
-  links.forEach(function(a){ a.addEventListener("click", closeNav); });
+Za razliku od M5 poglavlja 6.4 (fuzzy-match imena gosta pri otkazivanju) i M10 poglavlja 8.6.3 (fuzzy-match imena pri uvozu faktura), ovde je dostupan pouzdaniji identifikator — sama mejl adresa. `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se određuju **tačnim poklapanjem** `from_address` prve `INBOUND` poruke naspram M6 `GuestProfile.email`/`ClientAccount` kontakt mejla (subagent) i M3 `Supplier` kontakt mejla — nivo **"Autonomno"**, čista deterministička provera, bez poziva jezičkom modelu (isti princip kao M18 poglavlje 6.2, "Najvažniji nalaz"). Bez poklapanja, ostaje `correspondent_type = OTHER` dok se ručno ne poveže.
 
-  var topBtn = document.getElementById("topBtn");
-  window.addEventListener("scroll", function(){
-    topBtn.classList.toggle("show", window.scrollY > 500);
-  }, { passive:true });
-  topBtn.addEventListener("click", function(){ window.scrollTo({top:0, behavior:"smooth"}); });
+### 3.2 Povezivanje sa rezervacijom — predlog, ne automatski upis
 
-  if ("IntersectionObserver" in window){
-    var byId = {};
-    links.forEach(function(a){ byId[a.getAttribute("href").slice(1)] = a; });
-    var obs = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        var a = byId[entry.target.id];
-        if (!a) return;
-        if (entry.isIntersecting) links.forEach(function(x){ x.classList.remove("active"); });
-        if (entry.isIntersecting) a.classList.add("active");
-      });
-    }, { rootMargin: "-20% 0px -70% 0px" });
-    sections.forEach(function(s){ obs.observe(s); });
-  }
-})();
+AI agent sme da **predloži** `related_booking_id` (npr. na osnovu broja rezervacije pomenutog u tekstu poruke ili prepoznatih datuma/destinacije u kombinaciji sa već poznatim `correspondent_client_account_id`) — nivo **"Predloži pa čovek odobri"**, jer pogrešno povezivanje pokazuje timu pogrešan kontekst rezervacije pri odgovaranju. Ručna potvrda popunjava polje.
+
+---
+
+## 4. Uloga AI agenta — sažimanje, nacrt, nikad tiho slanje van dozvoljenih kategorija
+
+Isti dvostepeni obrazac kao M14 poglavlje 4, primenjen na email:
+
+- AI agent sme samostalno (nivo **"Autonomno"**) da sažme svaku novopristiglu `INBOUND` poruku (`ai_summary`) i pripremi nacrt odgovora (`EmailMessage` sa `sender_type = AI_DRAFT`, `sent_by = null`) — ovo pokriva tačno scenario koji je vlasnik opisao (20 upita preko noći, tim ujutru zatiče sažetke i nacrte, ne sirov inbox).
+- Nacrt koji pominje cenu, obavezu, promenu rezervacije, ili bilo koju odluku van čisto informativnog odgovora **ne sme biti poslat** dok ga čovek ne pregleda i pošalje (`sent_by` popunjeno) — nivo **"Predloži pa čovek odobri"**, identično M14 poglavlju 4.
+- Čisto informativni odgovori (npr. "kako se preuzima vaučer", pitanja već pokrivena M21 bazom znanja) mogu biti poslati direktno **samo ako je to eksplicitno podešeno** za dato sanduče — podrazumevano, svaki AI nacrt čeka ljudski pregled dok se sistem ne pokaže pouzdan, isto opreznо ponašanje kao M14.
+- AI agent nikad sam ne menja `MailboxAccess`, ne konvertuje nit u `Ticket` (poglavlje 5 — to ostaje ljudska radnja, ili eksplicitan predlog koji čovek potvrđuje), i nema pristup sandučetu za koje nema `MailboxAccess` zapis (isto ograničenje kao ljudski nalog — princip najmanjih ovlašćenja iz M15 poglavlja 7).
+
+---
+
+## 5. Konverzija u M14 `Ticket`
+
+Kad zaposleni proceni da mejl zahteva formalno praćenje statusa (npr. reklamacija sa zakonskim rokom, M14 poglavlje 3.1), konvertuje `EmailThread` u `Ticket` — isti obrazac kao M21 eskalacija ka M14 (`Ticket.channel = HELP_CENTER`, M21 poglavlje 5.3). Ovde: `Ticket.channel = EMAIL`, `Ticket.source_email_thread_id` (novo, nullable polje — dopuna `14-SPECIFIKACIJA-M14-HELPDESK.md` poglavlje 2.1, u istom prolazu) referencira nit, `requester_client_account_id` se preuzima iz `EmailThread.correspondent_client_account_id` ako je popunjeno. `EmailThread.converted_to_ticket_id` se popunjava recipročno. Ovo je ljudska radnja (dugme "Pretvori u tiket") — AI agent sme da **predloži** konverziju (nivo "Predloži pa čovek odobri", npr. kad prepozna obrazac reklamacije), nikad je sam ne izvršava.
+
+---
+
+## 6. Dobavljači u obimu (potvrđeno na zahtev vlasnika, avgust 2026)
+
+Prepiska sa dobavljačima (npr. slanje `SupplierManifest`-a i odgovori dobavljača, M5 poglavlje 8.4) ide kroz isti `Mailbox`/`EmailThread` model — `correspondent_type = SUPPLIER`. Ovo **ne zamenjuje** M5 `SupplierManifest` kao entitet (i dalje živi u M5, sa sopstvenim tokom slanja/potvrde) — M22 je samo transportni sloj u kom ta i svaka druga mejl prepiska sa dobavljačem fizički postoji, sa istom kontrolom pristupa i AI sažimanjem kao svako drugo sanduče.
+
+**Razgraničenje od problema #9 (chat sa dobavljačima):** #9 traži poseban **real-time chat** kanal (desktop + mobilni) sa dobavljačima — to ostaje odvojen, budući gap (M22 ne uvodi real-time komunikaciju, samo email). Uključivanjem dobavljača ovde u obim email-a, deo operativne potrebe iz #9 je već pokriven (asinhrona prepiska); #9 ostaje otvoren isključivo za real-time deo.
+
+---
+
+## 7. Dozvole (registruju se u M1 katalog dozvola)
+
+| Dozvola | Podrazumevana dodela po ulozi |
+| :---- | :---- |
+| `M22/mailbox/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor — upravljanje konekcijama sandučadi |
+| `M22/mailbox-access/GRANT` | Vlasnik, Direktor — dodela `MailboxAccess` (poglavlje 2.2) |
+| `M22/email-thread/VIEW` | Svaki zaposleni sa `MailboxAccess.access_level ∈ {VIEW, REPLY}` za dato sanduče — **ovo se proverava po pojedinačnom sandučetu, ne po opštoj ulozi** |
+| `M22/email-thread/REPLY` | Svaki zaposleni sa `MailboxAccess.access_level = REPLY` za dato sanduče |
+| `M22/email-thread/CONVERT_TO_TICKET` | Isto kao `REPLY` na dotičnom sandučetu |
+
+---
+
+## 8. API ugovor (REST, OpenAPI) — ključni endpoint-i
+
+Prefiks: `/api/v1/email`
+
+| Endpoint | Metod | Opis |
+| :---- | :---- | :---- |
+| `/mailboxes` | GET / POST | pregled / kreiranje sandučeta, zahteva `M22/mailbox/CREATE` |
+| `/mailboxes/:id/access` | GET / POST | pregled / dodela `MailboxAccess`, zahteva `M22/mailbox-access/GRANT` |
+| `/threads` | GET | lista niti, filtrirano po `mailbox_id`/`status`/`correspondent_type` — samo sandučad na koja korisnik ima pristup |
+| `/threads/:id` | GET | detalji sa svim `EmailMessage` porukama |
+| `/threads/:id/messages` | POST | dodavanje poruke (nacrt ili direktno slanje), zahteva `REPLY` |
+| `/threads/:id/messages/:messageId/send` | POST | ljudska potvrda slanja AI nacrta |
+| `/threads/:id/convert-to-ticket` | POST | konverzija u M14 `Ticket` (poglavlje 5), zahteva `CONVERT_TO_TICKET` |
+| `/threads/:id/link-booking` | POST | ručna potvrda `related_booking_id` (poglavlje 3.2) |
+
+---
+
+## 9. Izlazni kriterijum (M22)
+
+- [ ] Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu, čak i ako ima široku ulogu (Direktor/Vlasnik izuzetak samo ako je eksplicitno tako dodeljen).
+- [ ] Vlasnik `PERSONAL` sandučeta automatski ima `REPLY` pristup sopstvenom sandučetu bez ručne dodele.
+- [ ] `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se ispravno određuju tačnim poklapanjem mejl adrese, bez fuzzy-match rizika pogrešnog poklapanja.
+- [ ] AI sažetak i nacrt odgovora se automatski generišu za svaku novu `INBOUND` poruku, bez ljudske intervencije.
+- [ ] Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom.
+- [ ] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat.
+- [ ] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno.
+- [ ] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit.
+
+---
+
+## 10. Otvoreno za dalje
+
+- **Izbor konkretnog email provajdera/API-ja** (Gmail API, Microsoft Graph/Outlook, generički IMAP/SMTP) — ovaj dokument definiše samo generički `EmailProviderAdapter` (isti obrazac kao `ProviderAdapter` M4 / `PaymentGatewayAdapter` M10), tako da izbor provajdera ne zahteva izmenu ostatka modula. Bira se pri implementaciji.
+- **Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih**, ako neko koristi ličan Gmail/Outlook nalog umesto agencijskog domena — zahteva IT/pravnu potvrdu pre implementacije (OAuth pristanak, GDPR/Zakon o zaštiti podataka o ličnosti obim), isto obrazloženje kao ostale stavke koje čekaju potvrdu pravnika/IT-ja u ostatku specifikacije (npr. M10 poglavlje 6.3).
+- **Real-time chat sa dobavljačima** (problem #9) ostaje potpuno odvojen otvoren gap — ovaj modul pokriva samo email deo te potrebe (poglavlje 6).
+- Tačan mehanizam podešavanja "auto-send" praga za čisto informativne kategorije (poglavlje 4) — globalno vs. po sandučetu vs. po kategoriji — definiše se kad se dođe do stvarne izrade.
+- Pretraga/arhiva starih niti, i period čuvanja mejlova (retencija, u skladu sa Zakonom o zaštiti podataka o ličnosti) — van obima ove verzije.
 </script>

@@ -303,7 +303,8 @@ var SKILL_SLUG = {
   m8:"tt-m8-sajt-b2c", m9:"tt-m9-mobilna-aplikacija", m10:"tt-m10-finansije", m11:"tt-m11-compliance",
   m12:"tt-m12-marketing", m13:"tt-m13-bi", m14:"tt-m14-helpdesk", m15:"tt-m15-ai-orkestracija",
   m16:"tt-m16-mcp-distribucija", m17:"tt-m17-interni-panel", m18:"tt-m18-operativni-nadzor",
-  m19:"tt-m19-komunikaciona-platforma", m20:"tt-m20-ugovori-klijenti", m21:"tt-m21-centar-za-pomoc"
+  m19:"tt-m19-komunikaciona-platforma", m20:"tt-m20-ugovori-klijenti", m21:"tt-m21-centar-za-pomoc",
+  m22:"tt-m22-email-inbox"
 };
 var SPEC_FILE = {
   m1:"02-SPECIFIKACIJA-M1-CORE-IDENTITET.md", m2:"03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md",
@@ -316,7 +317,7 @@ var SPEC_FILE = {
   m15:"18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md", m16:"17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md",
   m17:"11-SPECIFIKACIJA-M17-INTERNI-PANEL.md", m18:"19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md",
   m19:"20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md", m20:"21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md",
-  m21:"23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md"
+  m21:"23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md", m22:"25-SPECIFIKACIJA-M22-EMAIL-INBOX.md"
 };
 var GENERAL_SKILLS = [
   {slug:"tt-architecture-core", hint:"Kad zadatak dotiče više modula odjednom, predlaže nov modul ili menja arhitekturu"},
@@ -406,7 +407,10 @@ var NODES = [
     entities:["Conversation","Message","PresenceStatus"]},
   {id:"m21", code:"M21", title:"Centar za pomoć",             phase:"FX", chan:false, cel:"g3",
     desc:"Baza znanja za korišćenje platforme (tim + subagenti) + AI asistent koji odgovara iz objavljenog sadržaja i eskalira ka M14 kad ne zna.",
-    entities:["HelpArticle","HelpArticleTranslation","HelpQuestion","HelpArticleSuggestion"]}
+    entities:["HelpArticle","HelpArticleTranslation","HelpQuestion","HelpArticleSuggestion"]},
+  {id:"m22", code:"M22", title:"Email/Inbox platforma",       phase:"FX", chan:false, cel:"g3",
+    desc:"Centralizovan email klijent — deljena i lična sandučad, prepiska sa gostima/subagentima/dobavljačima, pojedinačna dodela pristupa po sandučetu, AI sažimanje i nacrt odgovora.",
+    entities:["Mailbox","MailboxAccess","EmailThread","EmailMessage"]}
 ];
 
 var DEPS = [
@@ -425,7 +429,8 @@ var DEPS = [
   ["m18","m1"],["m18","m15"],
   ["m19","m1"],["m19","m14"],["m19","m17"],["m19","m9"],["m19","m18"],
   ["m20","m1"],["m20","m2"],["m20","m3"],["m20","m5"],["m20","m11"],
-  ["m21","m1"],["m21","m14"],["m21","m15"],["m21","m7"],["m21","m17"]
+  ["m21","m1"],["m21","m14"],["m21","m15"],["m21","m7"],["m21","m17"],
+  ["m22","m1"],["m22","m14"],["m22","m6"],["m22","m7"],["m22","m3"],["m22","m15"]
 ];
 
 var EVENTS = [

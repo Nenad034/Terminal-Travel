@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M14) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
-**Zavisi od:** M1, M5, M6, M7
+**Verzija:** 1.2 — dodato `Ticket.source_email_thread_id` (M22 poglavlje 5, konverzija mejl niti u tiket), avgust 2026; v1.1 dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
+**Zavisi od:** M1, M5, M6, M7. Formalno i od M22 (izvor tiketa kad nastaje konverzijom mejla) kad taj modul postoji.
 
 ---
 
@@ -33,6 +33,7 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 | priority | enum: `LOW`, `NORMAL`, `HIGH`, `URGENT` | |
 | status | enum: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED` | |
 | channel | enum: `SITE_FORM`, `B2B_PORTAL`, `EMAIL`, `PHONE`, `HELP_CENTER` *(dodato pri specifikaciji M21)* | `HELP_CENTER` — tiket kreiran eskalacijom iz AI asistenta (M21 poglavlje 5.3), prva poruka već sadrži tekst pitanja |
+| source_email_thread_id | UUID, nullable (FK → M22 `EmailThread`) *(dodato pri specifikaciji M22, avgust 2026)* | popunjeno kad je tiket nastao konverzijom mejl niti (M22 poglavlje 5) — `null` za tikete kreirane bilo kojim drugim kanalom |
 | assigned_to | UUID, nullable (FK → M1 User) | |
 | zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
 | zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |

@@ -446,6 +446,16 @@ const DATA = [
     'Kritični primeri (korak-po-korak scenariji) prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.',
     'Centar za pomoć ostaje potpuno upotrebljiv na telefonu i tabletu unutar M17/M7, bez sopstvenog dodatnog UI sloja.',
   ]},
+  {code:'M22', title:'Email/Inbox platforma', purpose:'Centralizovan email klijent — deljena i lična sandučad, prepiska sa gostima/subagentima/dobavljačima, pojedinačna dodela pristupa po sandučetu.', deps:'M1, M14, M6, M7, M3, M15', items:[
+    'Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu.',
+    'Vlasnik ličnog sandučeta automatski ima REPLY pristup sopstvenom sandučetu bez ručne dodele.',
+    '`EmailThread.correspondent_type` se ispravno određuje tačnim poklapanjem mejl adrese, bez fuzzy-match rizika.',
+    'AI sažetak i nacrt odgovora se automatski generišu za svaku novu poruku, bez ljudske intervencije.',
+    'Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom.',
+    'Konverzija u M14 tiket ispravno povezuje `source_email_thread_id`/`converted_to_ticket_id` recipročno.',
+    'AI agent nikad ne konvertuje nit u tiket niti menja pristup sandučetu samostalno — samo predlaže.',
+    'Prepiska sa dobavljačem koristi isti model pristupa/AI sažimanja kao gost/subagent nit.',
+  ]},
 ]},
 {id:'g4', code:'4', title:'Zakon i finansije', exit:'Sve što je zakonski obavezno da bi agencija poslovala produkcijski — fakturisanje/fiskalizacija (SEF/ESIR), garancija putovanja, i zakonski obavezan ugovor sa gostom.', modules:[
   {code:'M10', title:'Finansije', purpose:'Fakturisanje (SEF/ESIR), PDV po sistemu marže, kartično plaćanje, obaveze prema dobavljačima.', deps:'M1, M3, M5', items:[

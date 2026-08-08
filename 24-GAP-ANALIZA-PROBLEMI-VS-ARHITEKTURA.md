@@ -72,13 +72,11 @@ Mehanizam učenja formata po dobavljaču (stavka (b) iz ranije verzije ove anali
 
 ## 7. Praćenje svih mejlova zaposlenih, dodela pristupa, poseban email klijent sa AI agentom
 
-**Status: nepokriveno.**
+**Status: pokriveno (dopunjeno avgust 2026) — nov modul M22.**
 
-`20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md` poglavlje 1–2 eksplicitno definiše samo **interni tim-chat** (zaposleni ↔ zaposleni, `ConversationParticipant` ograničen na `account_type = STAFF`); email se pominje isključivo kao dodatni kanal isporuke sistemskih upozorenja (poglavlje 5, uz Telegram), ne kao klijent za čitanje/odgovaranje na poštu. `14-SPECIFIKACIJA-M14-HELPDESK.md` ima `Ticket.channel = EMAIL` samo kao poreklo tiketa, sa AI agentom koji sažima i predlaže nacrt odgovora (poglavlje 4) — ali to je tiketing sistem, ne email inbox sa pravima pristupa po sandučetu.
+Dodat `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md` i upisan u `00-MASTER-ARHITEKTURA.md` poglavlje 4 (potvrđeno na zahtev vlasnika: nov, odvojen modul, ne proširenje M19 niti M14 — obim je širi od oba, jer pokriva sva sandučad, ne samo gost/subagent prepisku niti isključivo interni tim-chat). Model: `Mailbox`/`MailboxAccess` (pojedinačna dodela pristupa po sandučetu, potvrđeno na zahtev vlasnika — ne po opštoj ulozi), `EmailThread`/`EmailMessage`. Korespondent (gost/subagent/dobavljač) se prepoznaje tačnim poklapanjem mejl adrese (ne fuzzy-match). AI agent sažima i priprema nacrt za svaku poruku (nivo "Autonomno"); nacrt koji pominje cenu/obavezu/promenu rezervacije čeka ljudsku potvrdu (nivo "Predloži pa čovek odobri") — isti obrazac kao M14 poglavlje 4. Mejl nit se opciono konvertuje u M14 `Ticket` (novo polje `Ticket.source_email_thread_id`, dopunjeno u M14 u istom prolazu) kad zahteva formalno praćenje statusa.
 
-**Gap: potpuno odsutno.** Nedostaje: (a) koncept objedinjenog email klijenta unutar aplikacije (IMAP/SMTP ili API integracija sa poslovnim mejl provajderom), (b) model dodele pristupa — ko od zaposlenih vidi/odgovara na koje sanduče, (c) AI agent koji radi direktno nad mejlovima (ne samo nad tiketima) — sumira, predlaže odgovor, a kad ne zna, ostavlja da zaposleni napiše odgovor. M14 ima sličnu logiku (predlog odgovora + eskalacija), ali samo za tikete koji dolaze kroz definisan tiketing tok, ne za sirovi mejl.
-
-**Preporuka:** razmotriti da li ovo postane novi modul (npr. M22 — Email/Inbox platforma) ili prošireni M19, s obzirom da M19 već ima infrastrukturu za real-time komunikaciju i M15 već ima AI agent obrazac (nivoi autonomije) koji bi se direktno primenio ovde.
+**Dobavljači su uključeni u obim od starta** (potvrđeno na zahtev vlasnika) — deo operativne potrebe iz problema #9 (asinhrona prepiska) je time već pokriven; #9 ostaje otvoren isključivo za real-time chat deo (vidi poglavlje 9 dole).
 
 ---
 
@@ -96,11 +94,13 @@ Mehanizam učenja formata po dobavljaču (stavka (b) iz ranije verzije ove anali
 
 ## 9. Chat za komunikaciju sa dobavljačima (desktop i mobilna aplikacija)
 
-**Status: nepokriveno.**
+**Status: delimično pokriveno (asinhroni email deo), real-time chat deo i dalje nepokriven.**
+
+M22 (poglavlje 6 te specifikacije, avgust 2026) uključuje dobavljače u obim email prepiske — `correspondent_type = SUPPLIER` koristi isti `Mailbox`/`EmailThread` model, pristup i AI sažimanje kao gost/subagent nit. Ovo pokriva asinhroni deo operativne potrebe (npr. slanje/odgovor na `SupplierManifest`, M5 poglavlje 8.4). **Real-time chat** (traženo eksplicitno u originalnoj formulaciji problema, desktop + mobilni) ostaje potpuno odsutno — ispod ostaje prvobitna analiza za taj preostali deo.
 
 `20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md` poglavlje 1 i 2.2 eksplicitno ograničava `Conversation`/`ConversationParticipant` na `account_type = STAFF` — dokument doslovno kaže da je ovo "interni tim-chat, ne kanal ka gostima/subagentima" (dobavljači se ne pominju uopšte, što je još uža granica). Pretraga termina "dobavljač" u M19 i M9 (`16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`) ne daje nijedan pogodak.
 
-**Gap: potpuno odsutno.** Dobavljači danas komuniciraju samo posredno preko email-a (slanje `SupplierManifest`-a, M5 poglavlje 8.4). Nema chat kanala ni na desktopu (M17) ni na mobilnom (M9).
+**Gap: real-time deo i dalje odsutan.** Dobavljači sad komuniciraju kroz M22 email inbox (poglavlje 6 te specifikacije), ali nema chat kanala ni na desktopu (M17) ni na mobilnom (M9).
 
 **Napomena:** M9 je namerno uzak po obimu (samo gost i vodič na terenu, Master dokument poglavlje 5.1) — dobavljač kao korisnik chata na "mobilnoj aplikaciji" bi verovatno tražio ili proširenje M9 obima, ili (verovatnije, u duhu principa "ne graditi nove samostalne aplikacije") poseban B2B-Supplier portal/pristup analogan M7, sa PWA pristupom kao M17/M7, ne novi mobilni kod.
 
@@ -130,9 +130,9 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 4 | Rok akontacije/pune uplate (gost) | Pokriveno (M10 poglavlje 5.4) |
 | 5 | CIS/eTurista notifikacija | Pokriveno |
 | 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Pokriveno (M10 poglavlje 8.6) |
-| 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Nepokriveno |
+| 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Pokriveno (nov modul M22) |
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Nepokriveno |
-| 9 | Chat sa dobavljačima (desktop + mobilni) | Nepokriveno |
+| 9 | Chat sa dobavljačima (desktop + mobilni) | Delimično — email deo pokriven kroz M22, real-time chat i dalje nepokriven |
 | 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
 
 Pet problema (4, 6, 7, 8, 9) i dalje zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Problemi 2, 3 i 10 su već dopunjeni (M5 poglavlja 6.4, 8.6, 8.7) kao prvi rešeni ovim redosledom. Preporuka je da se preostali gap-ovi (4, 6, 7, 8, 9) svesno unesu kao dopune postojećih modula (M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ti moduli smatraju "gotovim" za svoju fazu.

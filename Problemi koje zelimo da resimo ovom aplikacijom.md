@@ -24,7 +24,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Pracenje svih mejlova svoh zaposlenih i dodeljivanje pristupa ko na koje mejlove odgovara. Potreban nam je poseban e mail klijent u aplikaciji kako bi imali potunu kontrolu i pregled svih mejlova na jednom mestu. Ovde je potreban ai agent koji ce am pomoci da odgivori na mejlove, da ih analizira, sumira...Zamislite tokom noci stigme 20 upita putem mejla - tada nam treba ai agent koji ce odgovara na te mejlove, ali ako ne zna odgovor da ostavi da odgovor napise zaposleni i slično. *(Nepokriveno — vidi GAP-analiza #7, predlog: novi modul M22 ili prošireni M19)*
+* [x] Pracenje svih mejlova svoh zaposlenih i dodeljivanje pristupa ko na koje mejlove odgovara. Potreban nam je poseban e mail klijent u aplikaciji kako bi imali potunu kontrolu i pregled svih mejlova na jednom mestu. Ovde je potreban ai agent koji ce am pomoci da odgivori na mejlove, da ih analizira, sumira...Zamislite tokom noci stigme 20 upita putem mejla - tada nam treba ai agent koji ce odgovara na te mejlove, ali ako ne zna odgovor da ostavi da odgovor napise zaposleni i slično. *(Dopunjeno u specifikaciji — nov modul M22 `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`, pojedinačna dodela pristupa po sandučetu, AI sažima/predlaže nacrt, dobavljači uključeni od starta — vidi GAP-analiza #7)*
 
 
 
@@ -32,7 +32,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Osmisliti Chat za komunikaciju sa dobavljacima kako bi ubrzali i imali kvalitetniju komunikaciju. Desctop i mobilnu aplikaciju. *(Nepokriveno — vidi GAP-analiza #9)*
+* [ ] Osmisliti Chat za komunikaciju sa dobavljacima kako bi ubrzali i imali kvalitetniju komunikaciju. Desctop i mobilnu aplikaciju. *(Delimično — asinhrona email prepiska sa dobavljačima sad pokrivena kroz M22 (problem #7); real-time chat deo i dalje nepokriven — vidi GAP-analiza #9)*
 
 * [x] Opisacu vam danasnju situaciju koju obavezno u buducnosti aplikacija ne treba da dozvoli. Naime stranka je uradila rezervaciju za isti hotel isti termin istu uslugu... sve isto kao i putem subagenta koji je isti hotel rezervisao preko nase agencije. Nsam primetio da su imena ista pa sam stornirao rezervaciju koja nama nije uplacena. Posto hotel ne prati rezervacije putem ID brojeva naseg sistema vec po imenu i prezimenu, hotel je stornirao i onu ispravnu reztervaciju. Predvidite sve ovakve scenarije i napravite obavestenja i upozoroenja koja ce korisnika sistema spreciti da napravi ovakvu gresku *(Dopunjeno u specifikaciji — M5 poglavlje 6.4 (provera duplikata pre otkazivanja) i M7 poglavlje 2.0.2; sekundarno pitanje (M6, spajanje profila gosta) i dalje otvoreno — vidi GAP-analiza #10)*
 
