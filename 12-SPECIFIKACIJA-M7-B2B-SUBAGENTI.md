@@ -44,6 +44,7 @@ M7 je do sada opisivao model podataka, proviziju i kreditni limit, ali ne i stva
 4. **Prihvatanje uslova ugovora** — isti clickwrap mehanizam kao M8 (`Quote.contract_terms_accepted`, M5 poglavlje 3.1) — subagent prihvata u ime svog naloga (M20 poglavlje 3.2), ne u ime krajnjeg putnika.
 5. **Potvrda** — M5 poglavlje 4: proverava se garancija putovanja (ako `tip_nastupanja = ORGANIZATOR`) pa kreditni limit (poglavlje 4 ovog dokumenta), tim redosledom (M5 poglavlje 4, korak 1). Plaćanje po pravilu ide na kredit/avans (`BANK_TRANSFER`, M10) — kartično plaćanje sa portala nije isključeno, ali nije podrazumevan način za B2B.
 6. **Vaučer** — generiše se automatski čim je `Booking.status = CONFIRMED`, bez čekanja na punu uplatu, pod uslovom da je subagent `ACTIVE` i rezervacija unutar kredita (M5 poglavlje 6.3) — subagent može odmah da servisira svog klijenta.
+7. **Otkazivanje** — ide kroz isti `POST /bookings/:id/cancel` kao svaki drugi kanal (M5 poglavlje 6), bez posebnog B2B toka. Ovo znači da provera duplikata pri otkazivanju (M5 poglavlje 6.4, dodato avgust 2026 — sprečava da se pogrešno otkaže rezervacija koja se poklapa sa drugom aktivnom rezervacijom istog gosta preko drugog kanala, npr. direktna B2C rezervacija istog hotela/termina) automatski važi i za storno koji izvrši subagent ili operater u njegovo ime — bez ikakve dodatne implementacije u ovom modulu.
 
 ### 2.0.3 Univerzalna pretraga i AI razgovor — omnisearch (dopuna, avgust 2026, na zahtev vlasnika)
 

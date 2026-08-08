@@ -175,6 +175,8 @@ Korak po korak:
 | item_status | enum: `CONFIRMED`, `PENDING_SUPPLIER_CONFIRMATION`, `CANCELLED` | |
 | cancellation_refund_percentage | integer, nullable | popunjava se pri otkazivanju, iz M3 `CancellationRule` ili M4 `cancellationPolicy` |
 | assigned_guide_id | UUID, nullable (FK → M1 User, uloga `VODIC`) | dodato pri specifikaciji M9 — dodeljuje interni panel (M17), koristi ga M9 za filtriranje itinerara vodiča na terenu |
+| duplicate_conflict_item_id | UUID, nullable (FK → `BookingItem`) | dodato u poglavlju 6.4 — popunjava se proverom duplikata pri otkazivanju, referenca na konfliktnu stavku koja je pronađena |
+| duplicate_check_overridden_by / duplicate_check_overridden_at | UUID (FK → M1 User) / timestamp, oba nullable | dodato u poglavlju 6.4 — popunjava se samo ako je operater eksplicitno potvrdio otkazivanje uprkos pronađenom duplikatu |
 
 ### 4.3 `BookingItemGuest` (spojna tabela)
 `booking_item_id`, `guest_profile_id` (FK → buduće M6 Gost) — više gostiju po stavci (npr. porodica u jednoj sobi).
@@ -226,6 +228,24 @@ Poglavlje 6 zahteva `payment_status = PAID` pre automatskog izdavanja vaučera, 
 `voucher_override_*` polja (poglavlje 6) ostaju rezervisana za **izuzetke van ovog pravila** — npr. rezervacija koja bi prekoračila kreditni limit, ili poseban jednokratni dogovor van standardnog B2B odnosa; u tim slučajevima i dalje je obavezno ručno odobrenje Vlasnika/Direktora, nepromenjeno.
 
 **Napomena:** ovo ne menja tok naplate niti fiskalizaciju — `payment_status` i dalje tačno odražava stvarno stanje uplate (M10), samo se izdavanje vaučera više ne uslovljava punom uplatom za ovu specifičnu, već rizično-proverenu kategoriju rezervacija.
+
+### 6.4 Provera duplikata pre otkazivanja (dopuna, avgust 2026 — rešava problem #10 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, vidi `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md` poglavlje 10)
+
+**Poznat slučaj iz prakse:** isti gost je imao dve odvojene rezervacije za isti hotel/termin/uslugu — jednu direktnu, jednu preko B2B subagenta (M7) — svaku kao poseban `Booking`. Operater nije primetio da imena gostiju upućuju na istu osobu i otkazao je onu koja kod nas nije bila uplaćena, misleći da je duplikat. Pošto dobavljač (hotel) rezervacije prati po imenu i prezimenu gosta, a ne po internom ID-ju našeg sistema, dobavljač je posledično otkazao i onu drugu, ispravnu i uplaćenu rezervaciju.
+
+**Pravilo:** pre nego što se otkazivanje stavke iz poglavlja 6 ("Otkazivanje") izvrši, sistem proverava da li postoji **druga aktivna** `BookingItem` (`item_status = CONFIRMED` ili `PENDING_SUPPLIER_CONFIRMATION`, u bilo kom `Booking`-u, **nezavisno od kanala ili `client_account_id`**) koja upućuje na mogući duplikat:
+
+- isti `product_id` (isti objekat kod istog dobavljača),
+- preklapajući `stay_from`/`stay_to`,
+- podudarno ime gosta preko `BookingItemGuest` → M6 `GuestProfile.first_name`/`last_name` — **deterministički fuzzy-match** (normalizacija dijakritika/velikih-malih slova + prag sličnosti niske cene računanja, npr. Levenshtein), ne AI/LLM poziv po stavci, u skladu sa principom #4 Master dokumenta ("determinizam pre autonomije").
+
+Ako provera pronađe podudaranje, otkazivanje se **ne izvršava tiho** — operater dobija eksplicitno upozorenje pre potvrde storna, sa prikazom konfliktne stavke (broj rezervacije, kanal, ime gosta, `payment_status`). Otkazivanje se nastavlja tek posle eksplicitne dodatne potvrde operatera; ta potvrda popunjava `duplicate_conflict_item_id`, `duplicate_check_overridden_by` i `duplicate_check_overridden_at` (poglavlje 4.2) i ostaje vidljiva u `AuditLogEntry` (isti mehanizam kao poglavlje 4.3).
+
+Nivo autonomije: **"Predloži pa čovek odobri"** (Master dokument poglavlje 7) — sistem ne blokira otkazivanje automatski (mogu postojati legitimni razlozi za dve odvojene rezervacije iste osobe — npr. dve različite grupe putnika koje slučajno dele ime i prezime), samo traži svesnu potvrdu umesto da propusti storno bez upozorenja. Provera se ne ograničava na posebnu dozvolu — važi za svakog ko ima pravo da otkaže stavku (`M5/booking/CANCEL`, poglavlje 10).
+
+**Primena na subagentski kanal (M7):** pošto B2B subagenti otkazuju rezervacije kroz isti `POST /bookings/:id/cancel` tok (bilo direktno kroz portal, bilo preko internog panela u njihovo ime), provera duplikata iz ovog poglavlja se automatski primenjuje i tamo — nije potreban poseban mehanizam u M7 specifikaciji, samo referenca (vidi `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`).
+
+**Otvoreno za dalje:** ova provera rešava trenutak storna, ali ne i uzrok — da isti fizički gost stoji iza dva različita `ClientAccount`-a (direktan gost i klijent subagenta) bez povezanog profila u M6. Dugoročno rešenje (predlog spajanja/povezivanja gostiju u M6 kad se otkrije podudaranje identiteta) ostaje otvoreno pitanje za M6 specifikaciju.
 
 ---
 
@@ -337,7 +357,7 @@ Prefiks: `/api/v1/sales`
 | `/bookings` | GET | lista, filtrirano po statusu/kanalu/klijentu (prava pristupa iz poglavlja 10) |
 | `/bookings/:id` | GET | detalji rezervacije |
 | `/bookings/:id/modify` | POST | izmena datuma/gostiju |
-| `/bookings/:id/cancel` | POST | otkazivanje (celo ili po stavci) |
+| `/bookings/:id/cancel` | POST | otkazivanje (celo ili po stavci); ako provera duplikata (poglavlje 6.4) pronađe konflikt, vraća upozorenje sa detaljima konfliktne stavke umesto da izvrši storno — poziv se ponavlja sa `confirm_duplicate_override: true` da bi se otkazivanje ipak izvršilo |
 | `/bookings/:id/payment-status` | PATCH | poziva isključivo M10; ako novi status prelazi u `PAID`, automatski proverava i pokreće generisanje vaučera (poglavlje 6) |
 | `/bookings/:id/voucher/override` | POST | zahteva `M5/voucher/OVERRIDE_ISSUE`; generiše vaučer bez obzira na `payment_status`, popunjava `voucher_override_*` polja (poglavlje 4.1/6) |
 | `/markup-rules` | GET / POST / PATCH | upravljanje pravilima marže |

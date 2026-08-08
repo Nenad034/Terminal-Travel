@@ -106,7 +106,7 @@ Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je eksplicitno ostavljen o
 
 ## 10. Sprečavanje pogrešnog storna kod dupliranih rezervacija istog gosta preko različitih kanala
 
-**Status: nepokriveno.**
+**Status: dopunjeno u specifikaciji (avgust 2026).** Vidi `06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlje 6.4 (provera duplikata pre otkazivanja) i `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` poglavlje 2.0.2 korak 7 (referenca za subagentski kanal). Ispod je izvorna analiza koja je dovela do te dopune; sekundarna preporuka (M6 — prepoznavanje istog fizičkog gosta preko različitih `ClientAccount`-a) ostaje otvorena, vidi "Otvoreno za dalje" u M5 poglavlju 6.4.
 
 Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termin, istu uslugu na dva načina — jednom direktno, jednom preko subagenta (M7) koji je istu rezervaciju napravio kroz našu agenciju. U sistemu su postojale dve odvojene `Booking` stavke za istu osobu. Zaposleni nije primetio da se imena poklapaju i stornirao je rezervaciju koja kod nas nije bila uplaćena, misleći da je duplikat/greška. Pošto hotel svoje rezervacije ne prati po internom ID-ju našeg sistema nego po imenu i prezimenu gosta, hotel je (matchujući po imenu) stornirao i onu drugu, ispravnu i uplaćenu rezervaciju.
 
@@ -131,9 +131,9 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Nepokriveno |
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Nepokriveno |
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Nepokriveno |
-| 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Nepokriveno |
+| 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
 
-Šest od deset problema (3, 6, 7, 8, 9, 10) zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Preporuka je da se ovi gap-ovi svesno unesu kao dopune postojećih modula (M5, M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ta dva modula smatraju "gotovim" za svoju fazu.
+Pet od preostalih devet problema (3, 6, 7, 8, 9) i dalje zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Problem 10 je već dopunjen (M5 poglavlje 6.4) kao prvi od ovih gap-ova rešen ovim redosledom. Preporuka je da se preostali gap-ovi svesno unesu kao dopune postojećih modula (M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ta dva modula smatraju "gotovim" za svoju fazu.
 
 ---
 
@@ -170,6 +170,6 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | :---- | :---- | :---- | :---- | :---- |
 | 2026-08-05 | (razno, prvobitna lista) | 9 problema iz `Problemi koje zelimo da resimo ovom aplikacijom.md` | Analizirano u ovom dokumentu (poglavlja 1-9) | Vidi Rezime iznad |
 | 2026-08-07 | Gost/klijent (B2C) | Gost ne dobija automatski podsetnik kad dobavljač drži rezervaciju "na opciju" sa rokom posle kog sam otkazuje ako agencija ne potvrdi/plati — vlasnik dao konkretan primer iz prakse (email dobavljača "Reservations pending confirmation": hotel, datumi, referenca, ime, rok, web-referenca) kao format za analognu poruku ka gostu. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | M5 poglavlje 13 (novo polje za rok opcije na `BookingItem`; kanal za transakciona obaveštenja gostu verovatno zahteva i dopunu M6 poglavlje 4.1) |
-| 2026-08-08 | Dobavljač / Subagent (unakrsno) | Gost je rezervisao isti hotel/termin/uslugu i direktno i preko subagenta (M7) — dve odvojene rezervacije u sistemu za istu osobu. Zaposleni nije primetio poklapanje imena i stornirao neuplaćenu rezervaciju misleći da je duplikat; hotel prati rezervacije po imenu gosta (ne po našem internom ID-ju), pa je posledično stornirao i ispravnu, uplaćenu rezervaciju. Vlasnik traži da sistem predvidi ovakve scenarije i upozori korisnika pre nego što napravi istu grešku. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | Vidi poglavlje 10 iznad — M5 poglavlje 6 (provera duplikata pre potvrde storna), M7 (referenca na proveru za subagentski kanal), sekundarno M6 (spajanje/povezivanje gostiju preko različitih `ClientAccount`-a) |
+| 2026-08-08 | Dobavljač / Subagent (unakrsno) | Gost je rezervisao isti hotel/termin/uslugu i direktno i preko subagenta (M7) — dve odvojene rezervacije u sistemu za istu osobu. Zaposleni nije primetio poklapanje imena i stornirao neuplaćenu rezervaciju misleći da je duplikat; hotel prati rezervacije po imenu gosta (ne po našem internom ID-ju), pa je posledično stornirao i ispravnu, uplaćenu rezervaciju. Vlasnik traži da sistem predvidi ovakve scenarije i upozori korisnika pre nego što napravi istu grešku. | Dopunjena specifikacija — upisano u M5 poglavlje 6.4 i M7 poglavlje 2.0.2 (avgust 2026) | Vidi poglavlje 10 iznad — M5 poglavlje 6.4 (provera duplikata pre potvrde storna, "Predloži pa čovek odobri"), M7 poglavlje 2.0.2 korak 7 (referenca za subagentski kanal); sekundarno i dalje otvoreno: M6 (spajanje/povezivanje gostiju preko različitih `ClientAccount`-a) |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*
