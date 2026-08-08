@@ -997,7 +997,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
+**Verzija:** 1.2 — na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
 **Zavisi od:** M1 (Core / Identitet i pristup)
 
 ---
@@ -1016,7 +1016,7 @@ Van obima ove specifikacije: uslovi ugovora, alotmani i cenovnici (to je M3), lo
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
-| type | enum: `ACCOMMODATION`, `PACKAGE`, `TRANSFER`, `EXCURSION`, `FLIGHT`, `INSURANCE` | proširivo kasnije bez izmene strukture |
+| type | enum: `ACCOMMODATION`, `PACKAGE`, `TRANSFER`, `EXCURSION`, `FLIGHT`, `INSURANCE`, `TRANSPORT`, `TICKET`, `EVENT` *(poslednja tri dodata avgust 2026, na zahtev vlasnika — poglavlje 2.3)* | proširivo kasnije bez izmene strukture |
 | source_type | enum: `CONTRACTED`, `API` | odgovara pojmu "Izvor proizvoda" iz poglavlja 2 Master dokumenta |
 | source_contract_id | UUID, nullable | FK ka M3 (Ugovor) — popunjeno samo kad `source_type = CONTRACTED` |
 | source_provider | string, nullable | npr. `travelgate` — popunjeno samo kad `source_type = API` |
@@ -1055,10 +1055,15 @@ Nije prinudno na nivou baze (JSONB je fleksibilan), ali svaki modul koji čita/p
 | :---- | :---- |
 | `ACCOMMODATION` | `accommodation_type` (enum: `HOTEL`, `VILA`, `APARTMAN`, `HOSTEL`, `KAMP`, `KABINA_NA_BRODU`, `DRUGO` — proširivo bez izmene strukture), `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]`, `amenities[]` |
 | `PACKAGE` | `duration_days`, `included_products[]` (reference na druge Product id-jeve), `itinerary` |
-| `TRANSFER` | `vehicle_type`, `max_passengers`, `route` |
-| `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level` |
-| `FLIGHT` | `airline`, `route`, `cabin_class` |
+| `TRANSFER` | `vehicle_type`, `max_passengers`, `route` — tačka-do-tačke prevoz vezan za dolazak/odlazak gosta (npr. aerodrom→hotel), **ne** meša se sa `TRANSPORT` niže |
+| `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level`, `departure_point`, `min_participants`/`max_participants` |
+| `FLIGHT` | `airline`, `route`, `cabin_class` — ostaje poseban tip (ne pod `TRANSPORT`) jer ima drugačiju logiku i vremenom dobija GDS/NDC integraciju preko M4 (Master dokument, Dodatak A, nalaz 2.8.2026) |
 | `INSURANCE` | `coverage_type`, `provider`, `terms_document_url` |
+| `TRANSPORT` *(dodato avgust 2026)* | `transport_mode` (enum: `BUS`, `MINIBUS`, `TRAIN`, `BOAT`, `RENT_A_CAR`, `PRIVATE_CAR_WITH_DRIVER` — proširivo bez izmene strukture), `route` (strukturirano polazište/odredište, ne slobodan tekst — radi filtriranja u pretrazi), `departure_datetime`/`arrival_datetime`, `class` (nivo udobnosti/kategorija vozila). Za `RENT_A_CAR` dodatno: `vehicle_category`, `min_driver_age`, `pickup_location`/`dropoff_location`. Za `PRIVATE_CAR_WITH_DRIVER` dodatno: `max_passengers` (isti oblik kao `TRANSFER`, ali vozilo/vozač su proizvod sam po sebi, ne vezano za konkretan dolazak/odlazak gosta) |
+| `TICKET` *(dodato avgust 2026)* | `venue` (objekat/lokacija), `category` (npr. muzej, park, atrakcija), `valid_from`/`valid_to` (period važenja, ne konkretan termin), `skip_the_line` (boolean) — bez vodiča/itinerara, razlika u odnosu na `EXCURSION` |
+| `EVENT` *(dodato avgust 2026)* | `event_datetime` (fiksan termin, ne opseg kao smeštaj), `venue`, `performer`/`organizer`, `category` (npr. koncert, sport, festival), `seating_type` (numerisano sedište vs. slobodan ulaz) — razlika u odnosu na `TICKET`: ovde je termin fiksan i određen spolja (izvođač/organizator), ne bira ga gost |
+
+**Napomena o "Prevoz" kao jedinstvenom tipu, ne šest odvojenih:** `TRANSPORT` sa strukturiranim `transport_mode` pod-atributom je isti obrazac koji već koristi `ACCOMMODATION.accommodation_type` (HOTEL/VILA/APARTMAN...) — jedan `Product.type` za pretragu/filtriranje na najvišem nivou, sa pod-tipom koji nosi finiju granulaciju. `RENT_A_CAR` i `PRIVATE_CAR_WITH_DRIVER` su namerno odvojene vrednosti unutar `transport_mode` (ne spojene u jedan "automobil" mod) jer imaju različit poslovni model — potvrđeno sa vlasnikom (avgust 2026).
 
 Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — nije potrebno unapred predvideti sva polja.
 
@@ -1152,6 +1157,7 @@ Prefiks: `/api/v1/catalog`
 - [ ] Fallback jezika radi ispravno (traženi jezik → engleski → srpski).
 - [ ] Nijedan proizvod nema cenu upisanu kao trajno polje — cena se uvek dobija iz M3/M4 u trenutku upita.
 - [ ] Test: poziv ka `/products` (i svakom drugom M2 endpoint-u) preko M7/M8/M9-gost konteksta ne vraća `source_type`, `source_contract_id`, `source_provider`, `source_external_id` niti bilo šta iz M3 `Supplier`/`Contract` — provereno na nivou payload-a, ne samo prikaza; isti poziv preko M17 (interni kontekst) ta polja ispravno vraća.
+- [ ] Moguće je kreirati proizvod tipa `TRANSPORT` (za svaki `transport_mode`), `TICKET` i `EVENT`, sa atributima iz poglavlja 2.3, i naći ga kroz `/products` filtriran po tipu.
 
 ---
 
@@ -1159,6 +1165,7 @@ Prefiks: `/api/v1/catalog`
 
 - Tačna pravila za `PACKAGE` proizvode (paket aranžmani koji uključuju više drugih proizvoda) — odnos prema cenovniku kad se cena paketa razlikuje od zbira pojedinačnih komponenti — definiše se detaljnije kad M3 (Ugovaranje) bude specificiran, pošto to pitanje suštinski pripada cenovnoj logici, ne katalogu.
 - Da li treba poseban proces odobrenja (workflow) pre nego što proizvod pređe iz `DRAFT` u `ACTIVE` (npr. da neko drugi pregleda pre objave) — trenutno ide direktno preko dozvole `M2/product/PUBLISH`, bez dodatnog koraka odobrenja.
+- **Ograničen kapacitet za `TICKET`/`EVENT`** (npr. koncert sa ograničenim brojem mesta) — isti princip alotmana kao `ACCOMMODATION` već postoji generički u M3 (`ContractPeriod`/`RateLine`), M2 ne treba da menja svoj model zbog toga; potvrditi pri implementaciji M3 dela za ova dva tipa da postojeći model zaista pokriva slučaj bez izmene.
 </script>
 <div class="rendered"></div>
 </section>
@@ -1630,7 +1637,7 @@ Prefiks: `/api/v1/integrations`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.8 — na zahtev vlasnika (avgust 2026): `GET /search` `type` parametar postao niz (multi-select), podržava tri nova M2 tipa (`TRANSPORT`/`TICKET`/`EVENT`, poglavlje 11) — dopunjuje M2 poglavlje 2.3; v1.7 (retroaktivno zabeleženo, nije imalo sopstveni changelog unos u trenutku kad je dodato) — poglavlja 8.6 (najava dobavljaču kao formalni koncept) i 8.7 (`SupplierAnnouncementRule`), zatvaraju probleme #2/#3 sa liste; v1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4
 
 ---
@@ -2015,7 +2022,7 @@ Prefiks: `/api/v1/sales`
 | `/itineraries` | GET / POST | lista / kreiranje novog sastavljanja putovanja (poglavlje 3.0.1) |
 | `/itineraries/:id` | GET / PATCH | pregled / izmena (dodavanje, brisanje, preslagivanje segmenata, poglavlje 3.0.2) |
 | `/itineraries/:id/to-quote` | POST | konverzija u Ponudu (poglavlje 3.0.3), vraća kreiranu `Quote` |
-| `/search` | GET | objedinjena pretraga (M2 katalog + M3 dostupnost + M4 uživo), vraća normalizovane rezultate sa već primenjenom maržom. Parametri (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOV-B2C.md`): `type` (enum, isti skup kao M2 `Product.type`, opciono — bez njega pretražuju se svi tipovi), `destination_country`/`destination_city` (opciono), `stay_from`/`stay_to` (obavezno za `ACCOMMODATION`/`TRANSFER`/`EXCURSION`/`PACKAGE`, neprimenjivo za samostalnu `INSURANCE`), `occupancy` (JSON, `{adults, children, room_config}`, isti oblik kao `QuoteItem.occupancy`, obavezno kad `type` podrazumeva smeštaj), `channel` (obavezno — filtrira po `Product.visible_channels`, isti enum kao poglavlje 3.1). Kad je `type = PACKAGE`, pretraga vraća gotove pakete iz M2 (`source_type = CONTRACTED` ili `API` sa `Product.type = PACKAGE`) — za custom višedestinacijsko sastavljanje van gotovog paketa koristi se `Itinerary` tok (poglavlje 3.0), ne ovaj endpoint direktno. |
+| `/search` | GET | objedinjena pretraga (M2 katalog + M3 dostupnost + M4 uživo), vraća normalizovane rezultate sa već primenjenom maržom. Parametri (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOV-B2C.md`, dopunjeno avgust 2026 za multi-select i nova tri M2 tipa): `type` (**niz** enum vrednosti, isti skup kao M2 `Product.type` — dopunjeno `TRANSPORT`/`TICKET`/`EVENT`, M2 poglavlje 2.1 — opciono, bez njega pretražuju se svi tipovi; sa više vrednosti rezultat je unija svih traženih tipova, isti princip kao filter po više vrednosti bilo gde drugde u sistemu), `destination_country`/`destination_city` (opciono), `stay_from`/`stay_to` (obavezno za `ACCOMMODATION`/`TRANSFER`/`EXCURSION`/`PACKAGE`/`TRANSPORT`; za `TICKET`/`EVENT` opciono i menja značenje — filtrira da li proizvod pada u traženi period, ne proverava dostupnost kao kod smeštaja; neprimenjivo za samostalnu `INSURANCE`), `occupancy` (JSON, `{adults, children, room_config}`, isti oblik kao `QuoteItem.occupancy` — `room_config` primenjivo samo na `ACCOMMODATION`/`PACKAGE` sa smeštajem, `adults`/`children` čita se kao broj putnika/mesta i za `TRANSPORT`/`TICKET`/`EVENT` gde je primenjivo, obavezno kad `type` podrazumeva smeštaj), `channel` (obavezno — filtrira po `Product.visible_channels`, isti enum kao poglavlje 3.1). Kad `type` sadrži `PACKAGE`, pretraga za tu stavku vraća gotove pakete iz M2 (`source_type = CONTRACTED` ili `API` sa `Product.type = PACKAGE`) — za custom višedestinacijsko sastavljanje van gotovog paketa koristi se `Itinerary` tok (poglavlje 3.0), ne ovaj endpoint direktno. |
 | `/quotes` | POST | kreira ponudu od izabranih proizvoda/datuma/gostiju |
 | `/quotes/:id` | GET | pregled ponude, uključujući da li je istekla |
 | `/quotes/:id/confirm` | POST | pokreće tok iz poglavlja 4, vraća kreiranu `Booking` ili grešku po stavci |
@@ -2061,7 +2068,8 @@ Prefiks: `/api/v1/sales`
 - [ ] Provera garancije putovanja (M11) se uvek izvršava pre provere kreditnog limita (M7), nikad obrnuto (poglavlje 4, korak 1).
 - [ ] `Quote.contract_terms_accepted` mora biti `true` pre nego što se dozvoli prelazak na plaćanje za samouslužne kanale; `Booking` kreiran bez ovog uslova (za te kanale) se ne dozvoljava.
 - [ ] Subagent sa `status = ACTIVE` i rezervacijom unutar kreditnog limita dobija vaučer automatski čim `Booking.status = CONFIRMED`, bez obzira na `payment_status`, bez ručnog override-a (poglavlje 6.3); rezervacija koja prekorači limit i dalje zahteva ručni override.
-- [ ] `GET /search` ispravno filtrira po `type`, `destination_country`/`destination_city`, `stay_from`/`stay_to`, `occupancy`, `channel`; `type = PACKAGE` vraća gotove pakete iz M2.
+- [ ] `GET /search` ispravno filtrira po `type` (nizu vrednosti — test: dva tipa istovremeno vraćaju uniju rezultata, ne presek), `destination_country`/`destination_city`, `stay_from`/`stay_to`, `occupancy`, `channel`; `type` koji sadrži `PACKAGE` vraća gotove pakete iz M2 za tu stavku.
+- [ ] `GET /search` ispravno vraća `TRANSPORT`/`TICKET`/`EVENT` proizvode kad su traženi, sa atributima iz M2 poglavlja 2.3.
 - [ ] Moguće je sastaviti `Itinerary` sa više segmenata u više destinacija, promeniti im redosled, i konvertovati ga u `Quote` — svaki segment sa popunjenim `product_id` postaje `QuoteItem` sa ispravno primenjenom cenom/maržom (poglavlje 3.0.3).
 - [ ] Segment bez popunjenog `product_id` se ne konvertuje tiho — korisnik dobija jasno upozorenje pre konverzije koji segmenti su preskočeni.
 - [ ] `Quote.itinerary_id` ispravno referencira izvorni `Itinerary` kad Ponuda nastane konverzijom, i ostaje `null` za direktne ponude.
@@ -2080,6 +2088,7 @@ Prefiks: `/api/v1/sales`
 - Vizuelni prikaz/UI za sastavljanje putovanja (poglavlje 3.0.4) — dizajnersko pitanje van obima.
 - AI predlozi za popunu praznina u itineraru (poglavlje 3.0.4) — otvoreno dok M15 ne dođe na red za M5.
 - Da li `Itinerary` treba i sopstveni rok isteka (`ABANDONED` po vremenu neaktivnosti, slično `Quote.expires_at`) ili ostaje bez roka dok ga korisnik ne konvertuje ili ručno ne napusti — otvoreno, nije kritično jer `Itinerary` ne drži kapacitet niti cenu.
+- **Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT`** (poglavlje 11, dopuna avgust 2026) — ovaj dokument definiše opšte pravilo (period/broj putnika, ne provera dostupnosti kao kod smeštaja za `TICKET`/`EVENT`), ali tačno ponašanje po pod-tipu (npr. da li `TRANSPORT` sa `transport_mode = RENT_A_CAR` treba dodatni parametar za lokaciju preuzimanja vozila) razrađuje se kad M4/M5 stvarno počnu da rade sa tim tipovima, ne unapred.
 - **Novo (avgust 2026, na zahtev vlasnika) — automatski podsetnik gostu o roku za potvrdu/uplatu opcije kod dobavljača.** Kad dobavljač drži stavku rezervacije "na opciju" (`item_status = PENDING_SUPPLIER_CONFIRMATION`, poglavlje 4) sa konkretnim rokom posle kog dobavljač sam automatski otkazuje ako agencija do tada ne izda vaučer/ne potvrdi, sistem treba automatski da pošalje **gostu** (ne samo internom timu kao u poglavlju 6.1) podsetnik pre tog roka — analogno automatskim email obaveštenjima koje sami dobavljači šalju agenciji (primer iz prakse: "Reservations pending confirmation" — hotel, check-in/check-out datum, referenca dobavljača, ime nosioca rezervacije, tačan rok otkazivanja, veb-referenca). Ovo je nov zahtev, van postojećeg obima 6.1, i pre implementacije zahteva dalju razradu i potvrdu vlasnika oko: (a) novog polja za rok opcije na `BookingItem` — ovaj rok je rok **koji je dao dobavljač**, različit je od praga 48h iz poglavlja 6.1 (koji je interni prag za upozorenje tima, ne stvarni rok posle kog dobavljač otkazuje); (b) kanala/mehanizma slanja transakcionih (ne-marketinških) email obaveštenja gostu — ni ova specifikacija ni M6 (poglavlje 4.1, koji pokriva samo marketinške/informativne poruke uz `marketing_consent`) trenutno ne definišu takav kanal, pa ovo verovatno zahteva dopunu i M5 i M6; (c) tačnog praga koliko pre roka se podsetnik šalje i da li se ponavlja. Vidi i `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md` Dodatak B.
 </script>
 <div class="rendered"></div>
