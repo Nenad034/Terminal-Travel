@@ -32,7 +32,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Osmisliti Chat za komunikaciju sa dobavljacima kako bi ubrzali i imali kvalitetniju komunikaciju. Desctop i mobilnu aplikaciju. *(Delimično — asinhrona email prepiska sa dobavljačima sad pokrivena kroz M22 (problem #7); real-time chat deo i dalje nepokriven — vidi GAP-analiza #9)*
+* [x] Osmisliti Chat za komunikaciju sa dobavljacima kako bi ubrzali i imali kvalitetniju komunikaciju. Desctop i mobilnu aplikaciju. *(Dopunjeno u specifikaciji — M19 poglavlje 9: real-time chat preko laganog portal naloga za kontakt-osobu kod dobavljača (`SUPPLIER_CONTACT`, M1/M3 dopune), desktop kroz M17, mobilno kroz M9 tab, isti obrazac kao ostatak M19; asinhrona email prepiska već pokrivena kroz M22 (problem #7) — vidi GAP-analiza #9)*
 
 * [x] Opisacu vam danasnju situaciju koju obavezno u buducnosti aplikacija ne treba da dozvoli. Naime stranka je uradila rezervaciju za isti hotel isti termin istu uslugu... sve isto kao i putem subagenta koji je isti hotel rezervisao preko nase agencije. Nsam primetio da su imena ista pa sam stornirao rezervaciju koja nama nije uplacena. Posto hotel ne prati rezervacije putem ID brojeva naseg sistema vec po imenu i prezimenu, hotel je stornirao i onu ispravnu reztervaciju. Predvidite sve ovakve scenarije i napravite obavestenja i upozoroenja koja ce korisnika sistema spreciti da napravi ovakvu gresku *(Dopunjeno u specifikaciji — M5 poglavlje 6.4 (provera duplikata pre otkazivanja) i M7 poglavlje 2.0.2; sekundarno pitanje (M6, spajanje profila gosta) i dalje otvoreno — vidi GAP-analiza #10)*
 

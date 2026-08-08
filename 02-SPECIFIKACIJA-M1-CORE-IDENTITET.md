@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
+**Verzija:** 1.2 — dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
 **Zavisi od:** — (temelj svih ostalih modula)
 
 ---
@@ -34,7 +34,7 @@ Poglavlje 6 Master dokumenta ostavlja otvorenim izbor između Keycloak-a i Auth.
 | password_hash | string | Argon2id heš, nikad plain-text |
 | full_name | string | |
 | phone | string, nullable | |
-| account_type | enum: `STAFF`, `GUEST`, `SUBAGENT_CONTACT`, `AI_AGENT` *(dodato pri specifikaciji M15, Faza 7)* | određuje koji modul "poseduje" poslovni profil vezan za ovaj login; `AI_AGENT` nema poslovni profil — vidi M15 specifikaciju, poglavlje 2 |
+| account_type | enum: `STAFF`, `GUEST`, `SUBAGENT_CONTACT`, `AI_AGENT` *(dodato pri specifikaciji M15, Faza 7)*, `SUPPLIER_CONTACT` *(dodato pri dopuni M19, problem #9, avgust 2026)* | određuje koji modul "poseduje" poslovni profil vezan za ovaj login; `AI_AGENT` nema poslovni profil — vidi M15 specifikaciju, poglavlje 2 |
 | linked_profile_id | UUID, nullable | referenca ka M6 (Nalogodavac/Gost) ili M7 (Subagent) profilu — bez dupliranja podataka |
 | status | enum: `INVITED`, `ACTIVE`, `SUSPENDED` | `INVITED` dok korisnik ne aktivira nalog preko linka poslatog na email |
 | mfa_enabled | boolean | |
@@ -137,6 +137,7 @@ Tabela je **append-only** — na nivou baze se onemogućava UPDATE/DELETE nad nj
 | **Gost** | Isključivo sopstveni profil i sopstvene rezervacije (M6/M8), bez pristupa internom panelu. |
 | **SUBAGENT_ADMIN** *(dodato pri specifikaciji M7, Faza 4)* | Portal nalog subagenta (bilo kog nivoa u B2B hijerarhiji), nosi `User.account_type = SUBAGENT_CONTACT`. Pristup: sopstveni profil, sopstvene rezervacije, upravljanje sopstvenim direktnim sub-subagentima. Bez pristupa internom panelu (M17) ili podacima drugih subagenata. Detalji u M7 specifikaciji, poglavlje 8. |
 | **VODIC** *(dodato pri specifikaciji M9, Faza 6)* | Interni tim na terenu, nosi `User.account_type = STAFF`. Pristup isključivo sopstvenom dodeljenom itineraru (M5 `BookingItem.assigned_guide_id`) i gostima na tim polascima, preko offline-first mobilne aplikacije. Bez pristupa internom panelu (M17) ili tuđim rezervacijama. Detalji u M9 specifikaciji, poglavlje 4 i 6. |
+| **DOBAVLJAC_KONTAKT** *(dodato pri dopuni M19, problem #9, avgust 2026)* | Lagan portal nalog kontakt-osobe kod dobavljača, nosi `User.account_type = SUPPLIER_CONTACT`. Pristup: isključivo sopstveni real-time razgovor(i) sa timom agencije (M19 poglavlje 11) — bez uvida u katalog, cene, druge dobavljače ili bilo šta van te konverzacije. Bez pristupa internom panelu (M17) ili bilo kom drugom modulu. Detalji u M19 specifikaciji, poglavlje 9, i M3 specifikaciji (`SupplierContact`, poglavlje 2.1a). |
 
 Napomena: uloge za B2B portal (M7) i vodiče na terenu (M9) dodate su tek kad su ti moduli specificirani — model iz ovog dokumenta (uloga + override) ih je primio bez izmene strukture, kako je i predviđeno.
 

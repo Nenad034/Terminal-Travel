@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.4 — dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -33,6 +33,22 @@ Van obima: sama rezervacija i naplata (M5, M10), i proizvodi koji dolaze preko A
 | bank_account | string, nullable | za potrebe M10 kad dođe plaćanje dobavljaču |
 | status | enum: `ACTIVE`, `INACTIVE` | |
 | created_at / updated_at | timestamp | |
+
+### 2.1a `SupplierContact` — kontakt-osoba kod dobavljača (dopuna, avgust 2026 — rešava problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, dopunjuje `20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md` poglavlje 9)
+
+Odvojeno od `Supplier.contact_name/contact_email/contact_phone` (poglavlje 2.1, koji ostaje opšti operativni kontakt bez logina — koristi se za `SupplierManifest`, poglavlje 8 M5 specifikacije), `SupplierContact` predstavlja **konkretnu osobu** kojoj se po želji može dodeliti lagan portal nalog za real-time chat sa timom agencije.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID (FK → Supplier) | |
+| full_name | string | |
+| email / phone | string | |
+| linked_user_id | UUID, nullable (FK → M1 User, `account_type = SUPPLIER_CONTACT`) | popunjeno tek kad agencija svesno dodeli portal pristup (M19 poglavlje 9.2) — nullable dok kontakt postoji samo kao podatak, bez logina |
+| status | enum: `ACTIVE`, `INACTIVE` | `INACTIVE` odmah oduzima pristup razgovoru (M19 poglavlje 11), bez brisanja istorije |
+| created_at / updated_at | timestamp | |
+
+Jedan `Supplier` može imati više `SupplierContact` zapisa (npr. recepcija i menadžer prodaje istog hotela), ali svaki dobija sopstveni, odvojen portal nalog i razgovor — isti princip kao višenivovska vidljivost u M7 (svaki nalog vidi samo svoje).
 
 ### 2.2 `Contract` — ugovor
 | Polje | Tip | Napomena |
@@ -193,6 +209,7 @@ Nivo **"Autonomno"** iz poglavlja 7 Master dokumenta — čisto informativno oba
 | `M3/contract-period/EDIT` (cene, alotman, rokovi) | Vlasnik, Direktor |
 | `M3/pricelist-import/CREATE`, `VIEW` | Vlasnik, Direktor; i AI agent zadužen za M3 (poglavlje 4.2.4 — samo ekstrakcija/predlog) |
 | `M3/pricelist-import/APPROVE_ROW` | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M3/contract-period/EDIT` (poglavlje 4.2.4) |
+| `M3/supplier-contact/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor, Sales Manager — dodela `linked_user_id` (portal pristup za chat) dodatno zahteva `M19/supplier-conversation/GRANT_ACCESS` (poglavlje 9.2 te specifikacije) |
 
 ---
 
@@ -204,6 +221,8 @@ Prefiks: `/api/v1/contracting`
 | :---- | :---- | :---- |
 | `/suppliers` | GET / POST | lista / kreiranje dobavljača |
 | `/suppliers/:id` | GET / PATCH | |
+| `/suppliers/:id/contacts` | GET / POST | `SupplierContact` (poglavlje 2.1a) — lista / dodavanje kontakt-osobe |
+| `/suppliers/:id/contacts/:contactId` | GET / PATCH | uključuje `status`; `linked_user_id` se popunjava isključivo preko M19 toka (poglavlje 9.2 te specifikacije), ne direktno ovde |
 | `/contracts` | GET / POST | lista / kreiranje ugovora |
 | `/contracts/:id` | GET / PATCH | |
 | `/contracts/:id/periods` | GET / POST | sezone unutar ugovora — `POST`/`PATCH` odbija period koji se datumski preklapa sa postojećim za isti `room_type` (poglavlje 2.3b) |

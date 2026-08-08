@@ -90,7 +90,9 @@ Dodat `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md` i upisan u `00-MASTER-ARHITEKTURA.md
 
 ## 9. Chat za komunikaciju sa dobavljačima (desktop i mobilna aplikacija)
 
-**Status: delimično pokriveno (asinhroni email deo), real-time chat deo i dalje nepokriven.**
+**Status: pokriveno (dopunjeno u specifikaciji, avgust 2026).** Vidi `20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md` poglavlje 9 — novi `Conversation.type = EXTERNAL_SUPPLIER`, kontakt-osoba kod dobavljača dobija lagan portal nalog (`SupplierContact` u M3 poglavlje 2.1a, `User.account_type = SUPPLIER_CONTACT` u M1 poglavlje 4), pristup po zaposlenom dodeljuje se eksplicitno (`SupplierConversationAccess`, isti obrazac kao `MailboxAccess` u M22). AI agent sme samo da sažima/predlaže nacrt (nikad izvršava radnju u drugom modulu) — svesno uže ovlašćenje od M7 chata za subagente, jer problem #9 traži brzinu/kvalitet komunikacije, ne davanje dobavljaču mogućnosti da sam nešto rezerviše. Izvorna analiza ispod je i dalje tačna kao opis stanja pre ove dopune.
+
+**Prethodni status: delimično pokriveno (asinhroni email deo), real-time chat deo i dalje nepokriven.**
 
 M22 (poglavlje 6 te specifikacije, avgust 2026) uključuje dobavljače u obim email prepiske — `correspondent_type = SUPPLIER` koristi isti `Mailbox`/`EmailThread` model, pristup i AI sažimanje kao gost/subagent nit. Ovo pokriva asinhroni deo operativne potrebe (npr. slanje/odgovor na `SupplierManifest`, M5 poglavlje 8.4). **Real-time chat** (traženo eksplicitno u originalnoj formulaciji problema, desktop + mobilni) ostaje potpuno odsutno — ispod ostaje prvobitna analiza za taj preostali deo.
 
@@ -128,10 +130,10 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Pokriveno (M10 poglavlje 8.6) |
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Pokriveno (nov modul M22) |
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Pokriveno (M7 poglavlje 2.0.4) |
-| 9 | Chat sa dobavljačima (desktop + mobilni) | Delimično — email deo pokriven kroz M22, real-time chat i dalje nepokriven |
+| 9 | Chat sa dobavljačima (desktop + mobilni) | Dopunjeno u specifikaciji (M19 poglavlje 9, uz dopune M1/M3) |
 | 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
 
-Pet problema (4, 6, 7, 8, 9) i dalje zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Problemi 2, 3 i 10 su već dopunjeni (M5 poglavlja 6.4, 8.6, 8.7) kao prvi rešeni ovim redosledom. Preporuka je da se preostali gap-ovi (4, 6, 7, 8, 9) svesno unesu kao dopune postojećih modula (M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ti moduli smatraju "gotovim" za svoju fazu.
+Svih deset problema sa originalne liste je sada dopunjeno u specifikaciji — poslednji, problem #9, zatvoren je u istom prolazu kao ova revizija (avgust 2026, M19 poglavlje 9). Ovo nije bio previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dugo nisu bili vođeni ovim konkretnim zahtevima. Preostaje sporedno, sekundarno pitanje otvoreno unutar problema #10 (spajanje profila gosta u M6 kad ista osoba stoji iza dva `ClientAccount`-a) — svesno odloženo dok M6 CRM ne dođe na dalju razradu, nije prioritet.
 
 ---
 
@@ -171,5 +173,7 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | 2026-08-08 | Dobavljač / Subagent (unakrsno) | Gost je rezervisao isti hotel/termin/uslugu i direktno i preko subagenta (M7) — dve odvojene rezervacije u sistemu za istu osobu. Zaposleni nije primetio poklapanje imena i stornirao neuplaćenu rezervaciju misleći da je duplikat; hotel prati rezervacije po imenu gosta (ne po našem internom ID-ju), pa je posledično stornirao i ispravnu, uplaćenu rezervaciju. Vlasnik traži da sistem predvidi ovakve scenarije i upozori korisnika pre nego što napravi istu grešku. | Dopunjena specifikacija — upisano u M5 poglavlje 6.4 i M7 poglavlje 2.0.2 (avgust 2026) | Vidi poglavlje 10 iznad — M5 poglavlje 6.4 (provera duplikata pre potvrde storna, "Predloži pa čovek odobri"), M7 poglavlje 2.0.2 korak 7 (referenca za subagentski kanal); sekundarno i dalje otvoreno: M6 (spajanje/povezivanje gostiju preko različitih `ClientAccount`-a) |
 
 | 2026-08-08 | Dobavljač | Problemi 2 i 3 (najava dobavljaču kao formalni koncept + konfigurabilno automatsko slanje po statusu uplate) dopunjeni u istom prolazu jer su usko povezani. Vlasnik je eksplicitno potvrdio (pri specifikaciji) da slanje dobavljaču ostaje ljudska radnja i posle ove dopune — konfigurabilan je samo trenutak *pripreme* nacrta, ne i njegovo slanje. | Dopunjena specifikacija — upisano u M5 poglavlje 8.6 (najava/potvrda) i 8.7 (`SupplierAnnouncementRule`) | M5 poglavlje 8.6, 8.7; M15 poglavlje 5 (registar nivoa autonomije) ažuriran u istom prolazu |
+
+| 2026-08-08 | Dobavljač | Problem #9 (real-time chat sa dobavljačima, poslednja stavka sa originalne liste) rešen. Vlasnik je eksplicitno odabrao lagan portal nalog za dobavljača (ne WhatsApp/SMS most, ne proširenje M22 email toka) kad je predočeno da M19 interni chat po dizajnu isključuje spoljne učesnike. | Dopunjena specifikacija — upisano u M19 poglavlje 9, uz dopune M1 (poglavlje 4, `SUPPLIER_CONTACT`) i M3 (poglavlje 2.1a, `SupplierContact`) | M19 poglavlje 9 (novi `Conversation.type = EXTERNAL_SUPPLIER`, `SupplierConversationAccess`); AI agent svesno ograničen na sažimanje/nacrt, bez izvršnog ovlašćenja kao M7 poglavlje 2.0.4 |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*

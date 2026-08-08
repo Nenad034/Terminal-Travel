@@ -430,12 +430,15 @@ const DATA = [
     '`zzp_response_deadline` se automatski postavlja na 8 dana za REKLAMACIJA tikete; menadžment se obaveštava tačno posle 5 dana bez odgovora.',
     'Rešavanje reklamacije uz povraćaj novca automatski priprema nacrt storno dokumenta u M10, slanje i dalje zahteva ljudsku potvrdu.',
   ]},
-  {code:'M19', title:'Komunikaciona platforma', purpose:'Interni real-time tim-chat, plus kanal isporuke za postojeće poruke gostiju/subagenata i M18 upozorenja.', deps:'M1, M14, M17, M9, M18', items:[
+  {code:'M19', title:'Komunikaciona platforma', purpose:'Interni real-time tim-chat, plus kanal isporuke za postojeće poruke gostiju/subagenata i M18 upozorenja; real-time chat sa dobavljačima preko laganog portal naloga (problem #9).', deps:'M1, M3, M14, M17, M9, M18', items:[
     'Dva zaposlena mogu razmeniti poruke u realnom vremenu, sa vidljivim online statusom i indikatorom kucanja.',
     'Poruka poslata dok primalac nije povezan stiže odmah pri sledećem povezivanju, uz mobilnu push notifikaciju.',
     'Ekran razgovora sa gostom/subagentom prikazuje M14 podatke kroz istu komponentu, bez ijednog dupliranog zapisa poruke.',
     'M18 CRITICAL upozorenje stiže i kao IN_APP poruka, pored Telegram/email.',
     'M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna aplikacija nije napravljena od nule.',
+    'Dobavljač sa dodeljenim portal nalogom vidi isključivo sopstveni razgovor, bez pristupa katalogu/cenama/drugim dobavljačima ili internom panelu.',
+    'Zaposleni bez dodeljenog SupplierConversationAccess ne vidi razgovor sa dobavljačem, uprkos opštoj dozvoli.',
+    'AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne šalje se bez ljudskog naloga; nijedna radnja u M5/M10 se ne pokreće automatski iz ovog chata.',
   ]},
   {code:'M21', title:'Centar za pomoć', purpose:'Baza znanja za korišćenje platforme (tim + subagenti) + AI asistent koji odgovara iz objavljenog sadržaja.', deps:'M1, M14, M15, M7, M17', items:[
     'Interni tim vidi članke sa audience ∈ {STAFF, BOTH}; subagent vidi isključivo audience ∈ {SUBAGENT, BOTH} — nijedna strana ne vidi članke namenjene isključivo drugoj.',

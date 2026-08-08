@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`, `08-SPECIFIKACIJA-M11-COMPLIANCE.md` *(nije relevantno)*, `09-SPECIFIKACIJA-M6-CRM.md`, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`, `14-SPECIFIKACIJA-M14-HELPDESK.md`, `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`, `19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0
-**Zavisi od:** M1, M14 (prikaz, ne novi podaci), M17 (kanal), M9 (kanal), M18 (isporuka upozorenja)
+**Verzija:** 1.1 — dodato poglavlje 9 (real-time chat sa dobavljačima), zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); dopunjuje M1 (`account_type = SUPPLIER_CONTACT`) i M3 (`SupplierContact`)
+**Zavisi od:** M1, M3 (`SupplierContact`, poglavlje 9), M14 (prikaz, ne novi podaci), M17 (kanal), M9 (kanal), M18 (isporuka upozorenja)
 
 ---
 
@@ -87,17 +87,94 @@ WebSocket: `/ws/chat` — događaji `message.new`, `presence.updated`, `typing.s
 
 ---
 
-## 9. Izlazni kriterijum
+## 9. Real-time chat sa dobavljačima (dopuna, avgust 2026 — zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, GAP-analiza #9)
+
+### 9.1 Zašto ovo nije prosto proširenje poglavlja 2
+
+Poglavlje 2 (`Conversation`/`ConversationParticipant`) je namerno ograničeno na `account_type = STAFF` — interni tim-chat, eksplicitno "ne kanal ka gostima/subagentima" (poglavlje 1). Dobavljač nije interni tim, pa ne postaje prosto učesnik istog razgovora bez menjanja te ograde. Umesto slabljenja ograde za sve razgovore, uvodi se **novi tip razgovora** (`Conversation.type = EXTERNAL_SUPPLIER`) sa sopstvenom, užom ogradom — ostatak infrastrukture (WebSocket isporuka, model poruke, prisustvo) se ponovo koristi neizmenjen.
+
+### 9.2 Pristup dobavljača — lagan portal nalog (potvrđeno sa vlasnikom)
+
+Kontakt-osoba kod dobavljača (`SupplierContact`, M3 poglavlje 2.1a) dobija sopstveni, minimalan portal nalog (`User.account_type = SUPPLIER_CONTACT`, M1 poglavlje 4) — **ne** postoji uključivanje po difoltu za svakog dobavljača, isti oprez kao `MailboxAccess` dodela u M22 i `Subagent.ai_chat_enabled` u M7:
+
+1. Zaposleni sa `M3/supplier-contact/EDIT` kreira/pronalazi `SupplierContact` zapis (M3 poglavlje 2.1a).
+2. Zaposleni sa `M19/supplier-conversation/GRANT_ACCESS` (poglavlje 9.6) svesno dodeljuje portal pristup — ovaj korak kreira `User` nalog (`account_type = SUPPLIER_CONTACT`), šalje pozivnicu na `SupplierContact.email`, i popunjava `SupplierContact.linked_user_id`.
+3. Dobavljač otvara pozivnicu, postavlja lozinku, i vidi **isključivo** sopstveni razgovor sa agencijom — bez kataloga, cena, drugih dobavljača, ili bilo čega van te konverzacije (isti princip kao `SUBAGENT_ADMIN`, M1 poglavlje 4).
+
+**UI:** lagana, responsive web stranica (isti princip "fluidan raspored, ne fiksne prelomne tačke" kao Master dokument poglavlje 5.1) — bez nove mobilne aplikacije. Bez PWA instalacije u ovoj prvoj verziji (dobavljač otvara link, ne instalira ništa) — dodaje se ako se pokaže potreba.
+
+### 9.3 Model podataka — proširenje, ne novi paralelni sistem
+
+Dopune `Conversation`/`ConversationParticipant` (poglavlje 2):
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| `Conversation.type` | dopunjeno: `DIRECT`, `GROUP`, `EXTERNAL_SUPPLIER` | novi tip, poglavlje 2.1 |
+| `Conversation.supplier_id` | UUID, nullable (FK → M3 Supplier) | popunjeno isključivo za `EXTERNAL_SUPPLIER`; jedan `Supplier` može imati više razgovora (npr. po `SupplierContact`), ali svaki razgovor ima tačno jednog dobavljača |
+
+`ConversationParticipant.user_id` (poglavlje 2.2) više nije striktno `account_type = STAFF` — ograda se pomera na nivo tipa razgovora: `DIRECT`/`GROUP` i dalje prihvataju isključivo `STAFF`; `EXTERNAL_SUPPLIER` prihvata `STAFF` (sa dodeljenim pristupom, poglavlje 9.4) **i** tačno jedan `SUPPLIER_CONTACT` nalog vezan za `Conversation.supplier_id`. `Message` (poglavlje 2.3) i `PresenceStatus` (poglavlje 2.4) se koriste bez izmene.
+
+### 9.4 `SupplierConversationAccess` — ko od tima vidi koji razgovor
+
+Isti princip kao `MailboxAccess` u M22 — pristup se dodeljuje pojedinačno, ne po opštoj ulozi:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| conversation_id | UUID (FK → Conversation, `type = EXTERNAL_SUPPLIER`) | |
+| user_id | UUID (FK → M1 User, `account_type = STAFF`) | |
+| granted_by / granted_at | UUID (FK → M1 User) / timestamp | |
+
+Zaposleni bez dodeljenog pristupa ne vidi razgovor u svojoj listi, čak i ako ima opštu `M19/supplier-conversation/VIEW` dozvolu (poglavlje 9.6) — dozvola određuje *da li tip pristupa uopšte postoji za tu ulogu*, `SupplierConversationAccess` određuje *koji konkretan razgovor*, isti dvoslojni obrazac kao M22 poglavlje 3.
+
+### 9.5 AI agent — sažimanje/nacrt, nikad izvršenje (svesno uže ovlašćenje od M7 poglavlje 2.0.4)
+
+Za razliku od M7 poglavlja 2.0.4 (AI agent sa **izvršnim** ovlašćenjem za subagente — pretraga, ponuda, rezervacija, sve unutar kreditnog limita), ovaj chat **nema** izvršni sloj — problem #9 je izričito o brzini/kvalitetu komunikacije, ne o davanju dobavljaču mogućnosti da sam nešto rezerviše ili menja u sistemu:
+
+- AI agent sme (nivo "Autonomno", princip #4 Master dokumenta) da sažima dugu prepisku i priprema nacrt odgovora zaposlenom — isti nivo kao M6 `CommunicationLog`/M22 `EmailMessage`.
+- Ako nacrt pominje cenu ili obavezu, poruka **ne** ide dobavljaču dok je zaposleni sa dodeljenim pristupom (poglavlje 9.4) ne pregleda i pošalje — nivo "Predloži pa čovek odobri", identično pravilo kao M6 poglavlje 4.1.
+- Nijedna radnja u drugom modulu (potvrda dobavljača na `SupplierManifest`, M5 poglavlje 8.6; kreiranje `SupplierObligation`, M10 poglavlje 8) se **nikad** ne pokreće automatski na osnovu sadržaja poruke iz ovog chata — zaposleni i dalje ručno potvrđuje kroz postojeće tokove tih modula, chat je čisto komunikacioni sloj, ne transakcioni. Ovo je namerna, uža granica u odnosu na M7 chat.
+
+### 9.6 Dozvole (dopuna poglavlja 7)
+
+| Dozvola | Podrazumevana dodela po ulozi |
+| :---- | :---- |
+| `M19/supplier-conversation/VIEW`, `SEND_MESSAGE` | Vlasnik, Direktor, Sales Manager, Prodajni agent — **samo** za razgovore gde postoji `SupplierConversationAccess` (poglavlje 9.4) |
+| `M19/supplier-conversation/GRANT_ACCESS` | Vlasnik, Direktor, Sales Manager — isti krug kao `MailboxAccess` dodela u M22 |
+
+Nalog `SUPPLIER_CONTACT` ima pristup isključivo sopstvenom `Conversation` preko `linked_user_id` — bez posebne dozvole u M1 katalogu, isti obrazac kao `SUBAGENT_ADMIN`.
+
+### 9.7 API (dopuna poglavlja 8)
+
+REST `/conversations` (poglavlje 8) prima `type = EXTERNAL_SUPPLIER` i `supplier_id` pri kreiranju, zahteva `SupplierConversationAccess` za pristup. Novi endpoint-i:
+
+| Endpoint | Metod | Opis |
+| :---- | :---- | :---- |
+| `/supplier-conversations/:id/access` | GET / POST / DELETE | pregled / dodela / oduzimanje pristupa zaposlenom (poglavlje 9.4), zahteva `M19/supplier-conversation/GRANT_ACCESS` |
+| `/supplier-conversations/:id/invite-contact` | POST | pokreće tok iz poglavlja 9.2, korak 2 — kreira `User`, šalje pozivnicu, popunjava `SupplierContact.linked_user_id` |
+
+WebSocket: isti `/ws/chat` kanal (poglavlje 8) — `SUPPLIER_CONTACT` nalog se povezuje istim protokolom, ograničen serverski na sopstveni `conversation_id`.
+
+---
+
+## 10. Izlazni kriterijum
 
 - [ ] Dva zaposlena mogu razmeniti poruke u realnom vremenu, sa vidljivim online statusom i indikatorom kucanja.
 - [ ] Poruka poslata dok primalac nije povezan stiže odmah pri sledećem povezivanju, uz mobilnu push notifikaciju.
 - [ ] Ekran razgovora sa gostom/subagentom prikazuje M14 podatke kroz istu komponentu, bez ijednog dupliranog zapisa poruke u M19 bazi.
 - [ ] M18 `CRITICAL` upozorenje stiže i kao `IN_APP` poruka, pored Telegram/email.
 - [ ] M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna desktop/mobilna aplikacija nije napravljena od nule.
+- [ ] Dobavljač sa dodeljenim portal nalogom (`SUPPLIER_CONTACT`) vidi isključivo sopstveni `EXTERNAL_SUPPLIER` razgovor — bez pristupa katalogu, cenama, drugim dobavljačima ili internom panelu (poglavlje 9.2).
+- [ ] Zaposleni bez `SupplierConversationAccess` za dati razgovor ne vidi taj razgovor, uprkos opštoj `M19/supplier-conversation/VIEW` dozvoli (poglavlje 9.4).
+- [ ] AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga sa dodeljenim pristupom (poglavlje 9.5).
+- [ ] Nijedna radnja u M5 (potvrda dobavljača) ili M10 (obaveza prema dobavljaču) se ne pokreće automatski na osnovu poruke iz ovog chata — provereno da sistem to ne radi ni u jednom toku.
 
 ---
 
-## 10. Otvoreno za dalje
+## 11. Otvoreno za dalje
 
 - Da li interni chat treba grupne kanale po timovima/odeljenjima (npr. "Prodaja", "Finansije") od starta, ili počinje samo sa direktnim i ad-hok grupnim razgovorima — počinje se jednostavnije, širi se po potrebi.
 - Pretraga istorije poruka — dodaje se ako obim komunikacije to zahteva, van obima ove verzije.
+- **Obaveštavanje dobavljača o novoj poruci van portala** (email/SMS ping kad tim odgovori, s obzirom da dobavljač verovatno ne drži portal otvoren ceo dan) — nije definisano u ovoj verziji, dodaje se ako se pokaže potreba (poglavlje 9).
+- **Da li portal dobija PWA instalaciju** kao M17/M7 (poglavlje 9.2) — namerno odloženo dok se ne pokaže da dobavljači stvarno žele instalaciju umesto pukog linka.
+- **Zaštita od zloupotrebe/spama** na javno dostupnom portalu za spoljne naloge (rate limiting, prijava sumnjivog naloga) — nije razrađeno u ovoj verziji, isti nivo opreza kao svaki drugi javno dostupan login (M7, M8).
