@@ -12,7 +12,7 @@
 
 M4 je sloj adaptera koji prevodi formate spoljnih dobavljača proizvoda (Travelgate za hotele; kasnije GDS/avio, transferi, aktivnosti) u jedan interni, provajder-nezavisan oblik koji koriste M2 (katalog) i M5 (rezervacije). Ni M2 ni M5 nikad ne znaju da li podatak dolazi sa Travelgate-a ili nekog budućeg provajdera — vide samo interni oblik koji M4 garantuje. Ovo je direktna primena principa #3 iz poglavlja 3 Master dokumenta.
 
-Van obima: SEF, ESIR, eTurista, YUTA — iako su i to "spoljne integracije" u širem arhitektonskom smislu (poglavlje 5), te konkretne integracije se specificiraju unutar M10 i M11 kad ti moduli dođu na red, ne ovde. M4 (kao modul iz poglavlja 4, ne kao opšti sloj iz dijagrama u poglavlju 5) obuhvata isključivo dobavljače **turističkog proizvoda/inventara**.
+Van obima: SEF, ESIR, YUTA — iako su i to "spoljne integracije" u širem arhitektonskom smislu (poglavlje 5), te konkretne integracije se specificiraju unutar M10 i M11 kad ti moduli dođu na red, ne ovde. M4 (kao modul iz poglavlja 4, ne kao opšti sloj iz dijagrama u poglavlju 5) obuhvata isključivo dobavljače **turističkog proizvoda/inventara**.
 
 ---
 

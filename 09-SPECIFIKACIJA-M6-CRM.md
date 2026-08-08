@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M6) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.2 — dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M5
 
 ---
@@ -108,10 +108,36 @@ Pored ručno pokrenutih poruka (4.1), M6 periodičnim poslom prepoznaje tri tipa
 - **Rođendan gosta** — `GuestProfile.date_of_birth`, godišnje na taj datum.
 - **Godišnjica prve rezervacije** — datum prve `Booking.confirmed_at` (M5) za dati `client_account_id`, godišnje.
 - **Pred put (pre-departure)** — T-7, T-3, T-1 dana pre `BookingItem.stay_from` (M5) za aktivne, potvrđene stavke.
+- **Posle povratka (post-trip)** — T+2 dana posle povratka; pokreće anketu, vidi poglavlje 4.3 za pun mehanizam (poseban tok, ne samo `CommunicationLog` zapis kao ostala tri).
 
-Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo **"Autonomno"** — sadržaj je informativan/čestitka, ne pominje cenu ni obavezu, pa **sme da se pošalje bez ljudskog pregleda** ako je `ClientAccount.marketing_consent = true` (poglavlje 2.1), isti izuzetak koji već postoji za "čisto informativne odgovore" u 4.1. Bez saglasnosti, poruka se priprema kao nacrt i čeka ljudsko slanje.
+Svaka od prva tri generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo **"Autonomno"** — sadržaj je informativan/čestitka, ne pominje cenu ni obavezu, pa **sme da se pošalje bez ljudskog pregleda** ako je `ClientAccount.marketing_consent = true` (poglavlje 2.1), isti izuzetak koji već postoji za "čisto informativne odgovore" u 4.1. Bez saglasnosti, poruka se priprema kao nacrt i čeka ljudsko slanje.
 
 **Napomena o vlasništvu sadržaja:** kad M12 (Marketing/Content Engine) bude specificiran, stvarni tekst/šablon ovih poruka postaje njegov `ContentPiece`, a M6 samo emituje okidač (događaj) — ovaj dokument definiše *kada* se šalje, ne finalni izgled poruke. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5).
+
+### 4.3 Anketa posle putovanja i ponuda za Google recenziju (dopuna, avgust 2026, na zahtev vlasnika)
+
+Kad `Booking.status` (M5) pređe u `COMPLETED` (poslednja stavka rezervacije završena — poslednji `stay_to` prošao), M6 posle **2 dana (T+2)** automatski kreira `PostTripSurvey` zapis i šalje gostu email sa linkom ka kratkoj anketi koju sistem sam renderuje kao javnu formu (link u email-u, ne prilog) — standardan minimalni set: ocena celokupnog iskustva (1-5), da li bi gost preporučio agenciju, slobodan komentar. Tačan izgled/dodatna pitanja i mehanizam javnog renderovanja forme (verovatno tokenizovana stranica bez logina, slično konceptu vaučera) su dizajnersko/tehničko pitanje van obima ove specifikacije, isto obrazloženje kao za vaučer (M5 poglavlje 6) — ovaj dokument definiše samo *kada* se anketa šalje i *šta* čuva.
+
+Ako gost popuni anketu i ostavi visoku ocenu (prag konfigurabilan, podrazumevano ≥ 4/5), forma dodatno nudi link ka Google Business profilu agencije da gost po želji ostavi javnu recenziju — link je statička konfiguracija agencije (isti obrazac kao "Kontakt za hitne slučajeve" u M20 poglavlje 2.3), ne po proizvodu/destinaciji. Klik na taj link se beleži (`google_review_clicked_at`) radi praćenja konverzije — sadržaj same recenzije ostaje na Google-u, van sistema.
+
+**Pravilo o pristanku:** isti mehanizam kao ostala tri okidača u poglavlju 4.2 — automatsko slanje email-a (bez ljudskog pregleda) dozvoljeno je samo ako `ClientAccount.marketing_consent = true`. Bez saglasnosti, `PostTripSurvey` se i dalje kreira (zapis postoji za tu rezervaciju), ali email čeka ljudsko slanje kroz `CommunicationLog` (poglavlje 4.1) umesto da izađe automatski.
+
+#### `PostTripSurvey`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking), unique | jedna anketa po rezervaciji |
+| client_account_id | UUID (FK → ClientAccount) | kome je poslato |
+| access_token | string, unique | deo javnog linka u email-u — gost nema login nalog, pristupa formi preko tokena |
+| status | enum: `PENDING`, `SENT`, `COMPLETED` | `PENDING` — zapis kreiran, čeka slanje (bez `marketing_consent`); `SENT` — email poslat; `COMPLETED` — gost popunio |
+| scheduled_send_at | timestamp | T+2 dana posle povratka, izračunato pri kreiranju |
+| sent_at | timestamp, nullable | |
+| responses | JSONB, nullable | fleksibilna struktura pitanje→odgovor, isti obrazac kao `GuestProfile.preferences` (poglavlje 2.2) |
+| overall_rating | integer, nullable | glavna ocena (1-5), izdvojena iz `responses` radi lakog izveštavanja |
+| wants_google_review | boolean, nullable | da li je gostu ponuđen i da li je pristao na Google recenziju (prag iz teksta iznad) |
+| google_review_clicked_at | timestamp, nullable | |
+| completed_at | timestamp, nullable | |
+| created_at | timestamp | |
 
 ---
 
@@ -125,7 +151,7 @@ Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo
 
 - **M5** `Booking.client_account_id` i `BookingItemGuest.guest_profile_id` sada formalno referenciraju `M6.ClientAccount` i `M6.GuestProfile`.
 - **M10** `FiscalDocument` treba da **snimi (snapshot)** ime/PIB nalogodavca u trenutku slanja (`SUBMIT`), ne samo da referencira `booking_id` — jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni (npr. subagent promeni naziv firme). *Ovo je dopuna M10 specifikacije, primenjena direktno u tom dokumentu (poglavlje 8 ovog dokumenta).*
-- **M11** `GuestRegistration` zadržava sopstvena polja gosta (dokument, državljanstvo...) kao snimak stanja u trenutku prijave (eTurista zahteva podatak kakav je bio na dan boravka), ali dobija i `guest_profile_id` (FK → M6, nullable za stare zapise) radi povezivanja sa punim profilom kad on postoji.
+- ~~**M11** `GuestRegistration`...~~ Uklonjeno (avgust 2026) — M11 više ne prati eTurista prijavu gostiju, to je nadležnost smeštajnog objekta, ne agencije. Vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md` v2.0.
 
 ---
 
@@ -139,6 +165,7 @@ Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo
 | `M6/loyalty-tier/EDIT` (definicije nivoa) | Vlasnik, Direktor |
 | `M6/loyalty-status/OVERRIDE` | Vlasnik, Direktor — obavezan razlog, upisuje se u audit log |
 | `M6/communication-log/VIEW`, `CREATE` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
+| `M6/post-trip-survey/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti) — gost pristupa sopstvenoj anketi preko `access_token` iz email-a, ne preko ove dozvole |
 
 Uloga **Gost** ima pristup isključivo sopstvenom `ClientAccount`/`GuestProfile` (preko `linked_user_id`), bez pristupa internom panelu.
 
@@ -173,6 +200,10 @@ Prefiks: `/api/v1/crm`
 | `/loyalty-status/:clientAccountId` | GET | trenutni nivo i popust — koristi ga M5 pri kreiranju ponude |
 | `/loyalty-status/:clientAccountId/override` | POST | ručna dodela nivoa, zahteva razlog |
 | `/communication-log` | GET / POST | |
+| `/post-trip-surveys` | GET | lista, filtrirano po `booking_id`/statusu (prava pristupa iz poglavlja 7) |
+| `/post-trip-surveys/:token` | GET | javni pristup (bez autentikacije) — gost otvara formu preko linka iz email-a |
+| `/post-trip-surveys/:token/submit` | POST | javni pristup — gost šalje `responses`/`overall_rating`, popunjava `completed_at` |
+| `/post-trip-surveys/:token/google-review-click` | POST | javni pristup — beleži `google_review_clicked_at` pre redirekta na Google link |
 
 ---
 
@@ -186,6 +217,8 @@ Prefiks: `/api/v1/crm`
 - [ ] AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
 - [ ] Rođendan/godišnjica/pred-put okidači ispravno generišu `CommunicationLog` zapis na tačan datum, i šalju se automatski samo uz `marketing_consent = true`.
 - [ ] `ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na izračun cene ili lojalnosti.
+- [ ] `PostTripSurvey` se automatski kreira tačno 2 dana posle prelaska `Booking` u `COMPLETED`; email se automatski šalje samo ako je `marketing_consent = true`, inače čeka ljudsko slanje.
+- [ ] Popunjena anketa sa ocenom ≥ praga ispravno prikazuje ponudu za Google recenziju; klik na link se beleži u `google_review_clicked_at`, nezavisno od toga da li je recenzija stvarno ostavljena na Google-u.
 
 ---
 

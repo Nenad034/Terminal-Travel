@@ -131,7 +131,7 @@ preko svih rezervacija tog subagenta potvrđenih u tekućem periodu **pre** prel
 | period_start / period_end | date | |
 | calculated_amount / currency | decimal / string | rezultat formule iznad |
 | status | enum: `DRAFT`, `APPROVED`, `APPLIED`, `REJECTED` | |
-| approved_by | UUID, nullable (FK → M1 User) | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M11 mesečni izveštaj boravišne takse (poglavlje 3, "Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
+| approved_by | UUID, nullable (FK → M1 User) | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M10 slanje fiskalnog dokumenta ("Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
 | approved_at | timestamp, nullable | |
 | applied_at | timestamp, nullable | |
 | created_at | timestamp | |

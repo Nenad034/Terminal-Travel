@@ -51,7 +51,7 @@ Novi MCP klijent počinje kao `PENDING`/`READ_ONLY` — prelazak na `READ_WRITE`
 
 ## 4. Identitet gosta i zakonske obaveze — bez olakšica
 
-Rezervacija napravljena preko MCP kanala prolazi **kroz isti M5 tok** kao i svaka druga (poglavlje 4 M5 specifikacije) — isti zahtevi za podacima gosta (ime, dokument, državljanstvo za eTurista prijavu u M11), ista fiskalizacija (M10), isto pravilo "sve ili ništa" za više stavki. Eksterni AI agent mora dostaviti potpune podatke gosta u `confirm_booking` pozivu — ako ih nema, poziv se odbija sa jasnom greškom, isto kao nepotpun zahtev sa bilo kog drugog kanala. M16 ne uvodi olakšane zakonske zahteve samo zato što zahtev dolazi od AI agenta.
+Rezervacija napravljena preko MCP kanala prolazi **kroz isti M5 tok** kao i svaka druga (poglavlje 4 M5 specifikacije) — isti zahtevi za podacima gosta (ime, dokument, državljanstvo — M6 `GuestProfile`), ista fiskalizacija (M10), isto pravilo "sve ili ništa" za više stavki. Eksterni AI agent mora dostaviti potpune podatke gosta u `confirm_booking` pozivu — ako ih nema, poziv se odbija sa jasnom greškom, isto kao nepotpun zahtev sa bilo kog drugog kanala. M16 ne uvodi olakšane zakonske zahteve samo zato što zahtev dolazi od AI agenta.
 
 ---
 

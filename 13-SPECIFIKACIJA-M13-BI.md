@@ -55,7 +55,7 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | status | enum (isto kao BookingItem) | |
 | last_synced_at | timestamp | |
 
-**Napomena o `nights`/`guest_count`:** proizvod `guest_count × nights` daje **gost-noćenja**, isti obračunski koncept koji M11 (poglavlje 3.2) već koristi za boravišnu taksu ("iznos se obračunava po gostu-noćenju") — ovde se namerno ne redefiniše, samo ponovo koristi na nivou izveštavanja, u skladu sa principom jednog izvora istine za poslovne pojmove.
+**Napomena o `nights`/`guest_count`:** proizvod `guest_count × nights` daje **gost-noćenja** — standardan izveštajni koncept (broj gostiju pomnožen brojem noći boravka), koji M13 ovde definiše za potrebe izveštavanja o zauzetosti/prodaji smeštaja.
 
 ### 3.2 `FactPayment` (za finansijske izveštaje, iz M10)
 | Polje | Tip | Napomena |
@@ -82,7 +82,7 @@ Svi filtrirani na period (`stay_from`/`stay_to` unutar opsega) i na aktivne stav
 | Izveštaj | Izračun nad `FactBooking` | Napomena |
 | :---- | :---- | :---- |
 | Broj osoba | `SUM(guest_count)` | za sve tipove proizvoda (ne samo smeštaj), grupivo po periodu/destinaciji/kanalu |
-| Noćenja | `SUM(guest_count * nights)` | gost-noćenja, isti koncept kao boravišna taksa u M11 (vidi napomenu u poglavlju 3.1) |
+| Noćenja | `SUM(guest_count * nights)` | gost-noćenja (vidi napomenu u poglavlju 3.1) |
 | Prodate sobe — ukupno | `COUNT(*)` gde `product_type = ACCOMMODATION` | jedan `BookingItem` = jedna prodata jedinica |
 | Prodate sobe — po tipu | isto, grupisano po `room_type` | samo `CONTRACTED` stavke imaju `room_type` popunjen (poglavlje 3.1) |
 | Po korišćenoj usluzi | `COUNT(*)` grupisano po `board_type` | npr. polupansion vs. all-inclusive; samo `CONTRACTED` |

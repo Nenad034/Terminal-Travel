@@ -125,7 +125,7 @@ Dodaju se polja: `model_tier` (enum: `LIGHT`, `STANDARD`, `HEAVY`), `model_ident
 ### 6.2 Preporučeno mapiranje (smernica, ne kruto pravilo)
 | Nivo | Kad se koristi | Primeri iz postojećih specifikacija |
 | :---- | :---- | :---- |
-| **Bez modela (čist kod)** | Prag/datum/broj provera bez potrebe za jezičkim razumevanjem | M3 upozorenje o roku, M11 podsetnik o garanciji, M7 provera kreditnog limita, M11 rok boravišne takse |
+| **Bez modela (čist kod)** | Prag/datum/broj provera bez potrebe za jezičkim razumevanjem | M3 upozorenje o roku, M11 podsetnik o garanciji, M7 provera kreditnog limita |
 | **LIGHT** | Kratka klasifikacija/sažimanje jednostavnog teksta | M13 uočavanje trenda (jednostavna agregacija + kratak opis) |
 | **STANDARD** | Priprema nacrta teksta srednje složenosti | M6/M14 nacrt odgovora gostu, M10 popunjavanje nacrta fiskalnog dokumenta, M18 nedeljni sažetak |
 | **HEAVY** | Kreativan/nijansiran sadržaj, sinteza velike količine spoljnih podataka | M12 generisanje marketinškog sadržaja, M18 istraživanje trendova, Glavni agent (orkestracija) |

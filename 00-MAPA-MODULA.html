@@ -245,7 +245,7 @@ svg.edges path.hi{ opacity:1 !important; stroke-width:2.6; }
       Svaka kartica je jedan modul iz <b>00-MASTER-ARHITEKTURA.md</b>, raspoređen po fazi izgradnje (levo → desno) — taj redosled ostaje netaknut da strelice zavisnosti čitaju levo→desno. Bojena tačka i leva ivica kartice pokazuju kojoj od 7 kontekstualnih celina modul pripada (isto grupisanje kao u pregledu dokumentacije i kontrolnoj tabli izgradnje — vidi legendu ispod). <b>Klik na modul</b> ga uveća i jasno istakne sve module sa kojima je direktno povezan (sve ostalo potamni); klik ponovo ili na prazan prostor vraća prikaz. Mala strelica (↗) u uglu kartice otvara njegovu punu specifikaciju u novom tabu; oznaka <b>⚙</b> ispod naslova otvara desni panel sa spiskom Claude Skill-ova koji važe za taj modul (skillovi koje AI agent učitava umesto čitanja celog master dokumenta — vidi CLAUDE.md). Puna linija = API zavisnost (modul poziva drugi modul); isprekidana linija = Event Bus (asinhroni događaj, bez direktnog poziva). Moduli sa oznakom <span class="umb">SVI</span> (M13, M15, M18) čitaju/nadgledaju sve ostale module read-only — pojedinačne linije ka svih 20 nisu iscrtane radi preglednosti.
     </div>
     <div id="wfCaption">
-      <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta), M10 (fiskalni dokument), M11 (eTurista/garancija), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
+      <b>Tok jedne rezervacije kroz sistem:</b> gost/agent ulazi kroz kanal (M7/M8/M9/M16/M17) → pretraga i cena dolaze iz M2 kataloga uz M3 (ugovoreno) ili M4 (uživo) → M5 potvrđuje rezervaciju → M5 emituje događaje koje pokupe M6 (istorija gosta, post-trip anketa), M10 (fiskalni dokument), M11 (garancija putovanja), M20 (ugovor sa klijentom) i M12 (marketing) → M13 sve ovo agregira u izveštaje. Ovako izgleda životni ciklus svake rezervacije u Terminal aplikaciji, bez obzira kroz koji kanal je ušla.
     </div>
     <div class="legend">
       <div class="item"><svg width="30" height="10"><line x1="0" y1="5" x2="30" y2="5" stroke="currentColor" stroke-width="2"/></svg> API zavisnost</div>
@@ -366,8 +366,8 @@ var NODES = [
     desc:"Fakturisanje, fiskalizacija (SEF/ESIR), PDV po sistemu marže (organizator/posrednik), obaveze prema dobavljačima.",
     entities:["FiscalDocument","Payment","SupplierObligation"]},
   {id:"m11", code:"M11", title:"Compliance",                  phase:"F2", chan:false, cel:"g4",
-    desc:"eTurista prijava, boravišna taksa, garancija putovanja, evidencije za inspekciju.",
-    entities:["GuestRegistration","TouristTaxRemittance","TravelGuarantee"]},
+    desc:"Garancija putovanja (YUTA), evidencije za inspekciju.",
+    entities:["TravelGuarantee","TravelGuaranteeRegistration"]},
   {id:"m20", code:"M20", title:"Ugovori sa klijentima",       phase:"F2", chan:false, cel:"g4",
     desc:"Zakonski obavezan ugovor o putovanju sa gostom, sastavljen automatski iz podataka koji već postoje.",
     entities:["ClientContract"]},

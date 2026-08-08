@@ -447,17 +447,16 @@ const DATA = [
     'Centar za pomoć ostaje potpuno upotrebljiv na telefonu i tabletu unutar M17/M7, bez sopstvenog dodatnog UI sloja.',
   ]},
 ]},
-{id:'g4', code:'4', title:'Zakon i finansije', exit:'Sve što je zakonski obavezno da bi agencija poslovala produkcijski — fakturisanje/fiskalizacija (SEF/ESIR), eTurista/CIS prijava i garancija putovanja, i zakonski obavezan ugovor sa gostom.', modules:[
+{id:'g4', code:'4', title:'Zakon i finansije', exit:'Sve što je zakonski obavezno da bi agencija poslovala produkcijski — fakturisanje/fiskalizacija (SEF/ESIR), garancija putovanja, i zakonski obavezan ugovor sa gostom.', modules:[
   {code:'M10', title:'Finansije', purpose:'Fakturisanje (SEF/ESIR), PDV po sistemu marže, kartično plaćanje, obaveze prema dobavljačima.', deps:'M1, M3, M5', items:[
     'Za pravno lice kao nalogodavca sistem automatski bira `SEF_EFAKTURA`; za fizičko lice, `ESIR_RACUN`.',
-    'Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan izdavanja.',
+    'Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan uplate.',
     '`vat_calculation_basis` se ispravno određuje iz `tip_nastupanja` (MARŽA za organizatora, PROVIZIJA za posrednika), PDV bez posebnog iskazivanja gostu kod organizatorskog aranžmana.',
     'Pokušaj izmene `tip_nastupanja` posle kreiranja rezervacije se odbija.',
     'Slanje (`SUBMIT`) je fizički nemoguće bez ljudskog naloga.',
     'Svaki `SUBMIT` i `STORNO` upisan je u M1 audit log sa identitetom osobe koja je potvrdila.',
     '`buyer_acceptance_deadline` se ispravno postavlja na 15 dana od slanja SEF fakture i prelazi u `EXPIRED` bez odgovora.',
     'Prijem uplate ispravno ažurira `payment_status`; prelazak u `PAID` pokreće generisanje vaučera u M5.',
-    'Unos `CASH` uplate preko 3.000 EUR (ili RSD protivvrednosti) se odbija.',
     'Nijedan broj kartice se nigde ne čuva — samo `gateway_transaction_id`/token.',
     'Test: kartično plaćanje uspe, ali potvrda rezervacije ne uspe → `Payment` prelazi u `VOIDED`, novac se automatski vraća, nijedna rezervacija nije kreirana.',
     'Ponovljen klik/mrežni prekid pri kartičnom plaćanju ne rezultuje duplom naplatom (idempotency key).',
@@ -467,12 +466,8 @@ const DATA = [
     'Nijedno novčano polje nije tipa `decimal`/float; kursevi i procenti ostaju `decimal`.',
     'Potvrđena rezervacija bez izdatog fiskalnog dokumenta se prepoznaje kroz `/reconciliation/mismatches` i generiše `HealthSignal`.',
   ]},
-  {code:'M11', title:'Compliance', purpose:'eTurista/CIS prijava, boravišna taksa, garancija putovanja (YUTA), rokovi putnih isprava.', deps:'M1, M5', items:[
-    'eTurista prijava se automatski šalje na datum prijave gosta, bez ljudske intervencije; neuspeh odmah generiše vidljivo upozorenje.',
-    'Boravišna taksa se ispravno obračunava po opštini/kategoriji i pojavljuje kao stavka na fiskalnom dokumentu iz M10.',
-    'Mesečni izveštaj boravišne takse se pravilno generiše kao nacrt, rok do 5. u mesecu, zahteva ljudsku potvrdu pre slanja.',
+  {code:'M11', title:'Compliance', purpose:'Garancija putovanja (YUTA), evidencije za inspekciju.', deps:'M1, M5', items:[
     'Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.',
-    'Alarm za rok putne isprave (< 6 meseci do polaska) se ispravno generiše, bez blokiranja rezervacije.',
     'Provera iskorišćenosti garancije upozorava na 80% i blokira potvrdu nove ORGANIZATOR rezervacije koja bi prevazišla `coverage_amount`; POSREDNIK rezervacije nisu pogođene.',
     'Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.',
     'Svaka radnja koja zahteva ljudsku potvrdu upisana je u M1 audit log sa identitetom osobe.',
@@ -510,7 +505,7 @@ const DATA = [
   {code:'M17', title:'Interni panel', purpose:'Radni alat tima — jedina površina za rad zaposlenih, raste sa svakom fazom.', deps:'M1 (+ API svakog prikazanog modula)', items:[
     'Faza 0: tim se prijavljuje, vidi svoju ulogu, Vlasnik/Direktor vidi audit log.',
     'Faza 1: tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5).',
-    'Faza 2: Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).',
+    'Faza 2: Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status garancije putovanja (M11).',
     'Svaka naredna faza (M6, M7, M13, M14, M12…) dodaje svoju sekciju bez izmene već postojećih.',
     'Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija).',
   ]},
@@ -565,7 +560,7 @@ const DATA = [
     'Fizička lokacija podataka u EU potvrđena; ugovori o obradi podataka potpisani sa svakim spoljnim provajderom koji dolazi u dodir sa ličnim podacima.',
     'Sproveden stvaran test oporavka iz backupa (DR vežba), ne samo konfigurisan backup.',
     'Nezavisan bezbednosni audit i penetraciono testiranje sprovedeni, nalazi otklonjeni.',
-    'Revizija usklađenosti sa svim zakonskim rokovima (SEF, ESIR, eTurista, boravišna taksa, YUTA garancija) potvrđena pre proglašenja sistema stabilnim za skaliranje.',
+    'Revizija usklađenosti sa svim zakonskim rokovima (SEF, ESIR, YUTA garancija) potvrđena pre proglašenja sistema stabilnim za skaliranje.',
   ]},
 ]},
 ];

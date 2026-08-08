@@ -58,7 +58,7 @@ Aplikacija drži lokalnu bazu (SQLite ugrađena u uređaj) sa podskupom podataka
 | booking_id | UUID (FK → M5) | |
 | guide_id | UUID (FK → M1 User) | |
 | note | text | |
-| severity | enum: `INFO`, `WARNING`, `URGENT` | `URGENT` generiše odmah vidljivo upozorenje timu čim se sinhronizuje (isti princip kao M11 neuspela eTurista prijava) |
+| severity | enum: `INFO`, `WARNING`, `URGENT` | `URGENT` generiše odmah vidljivo upozorenje timu čim se sinhronizuje (isti princip kao M10 neuspešno slanje fiskalnog dokumenta ka SEF/ESIR) |
 | created_at | timestamp | vreme na uređaju |
 | synced_at | timestamp, nullable | |
 

@@ -72,7 +72,7 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 
 ### 3.1 Automatsko generisanje — nivo "Autonomno"
 
-Čim `Booking.status` pređe u `CONFIRMED` (M5 poglavlje 4, događaj `booking.confirmed`), M20 automatski generiše `ClientContract` (`DRAFT → GENERATED`) — mehaničko sastavljanje PDF-a iz već proverenih podataka (poglavlje 2.3), bez novog rizika, isti nivo autonomije kao automatska eTurista prijava (M11 poglavlje 2.2). Sistem ne šalje ništa spolja niti stvara novu obavezu — samo formalizuje uslove koji već postoje.
+Čim `Booking.status` pređe u `CONFIRMED` (M5 poglavlje 4, događaj `booking.confirmed`), M20 automatski generiše `ClientContract` (`DRAFT → GENERATED`) — mehaničko sastavljanje PDF-a iz već proverenih podataka (poglavlje 2.3), bez novog rizika, isti nivo autonomije kao automatska CIS registracija garancije putovanja (M11 poglavlje 2.3). Sistem ne šalje ništa spolja niti stvara novu obavezu — samo formalizuje uslove koji već postoje.
 
 ### 3.2 Prihvatanje
 

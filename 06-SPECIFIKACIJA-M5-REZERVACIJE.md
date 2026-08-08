@@ -14,7 +14,7 @@ M5 vodi gosta/agenta kroz tok **Search → Ponuda → Potvrda → Upravljanje re
 
 M5 takođe izlaže **kalendarski pregled rezervacija po datumu** — dolasci, odlasci i stavke u toku za izabrani dan (poglavlje 7) — i generiše/šalje **operativne liste ka dobavljačima** (rooming liste, spiskovi putnika i sl., za `CONTRACTED` stavke), suprotan smer komunikacije od vaučera koji ide gostu (poglavlje 6), detaljno u poglavlju 8.
 
-Van obima: naplata i fiskalizacija (M10, Faza 2), eTurista prijava (M11, Faza 2), CRM istorija gosta (M6, Faza 3) — M5 samo emituje događaje koje ti moduli kasnije koriste (poglavlje 9).
+Van obima: naplata i fiskalizacija (M10, Faza 2), garancija putovanja (M11, Faza 2), CRM istorija gosta (M6, Faza 3) — M5 samo emituje događaje koje ti moduli kasnije koriste (poglavlje 9).
 
 ---
 
@@ -177,6 +177,8 @@ Korak po korak:
 | assigned_guide_id | UUID, nullable (FK → M1 User, uloga `VODIC`) | dodato pri specifikaciji M9 — dodeljuje interni panel (M17), koristi ga M9 za filtriranje itinerara vodiča na terenu |
 | duplicate_conflict_item_id | UUID, nullable (FK → `BookingItem`) | dodato u poglavlju 6.4 — popunjava se proverom duplikata pri otkazivanju, referenca na konfliktnu stavku koja je pronađena |
 | duplicate_check_overridden_by / duplicate_check_overridden_at | UUID (FK → M1 User) / timestamp, oba nullable | dodato u poglavlju 6.4 — popunjava se samo ako je operater eksplicitno potvrdio otkazivanje uprkos pronađenom duplikatu |
+| announced_at | timestamp, nullable | dodato u poglavlju 8.6 — trenutak kad je stavka formalno najavljena dobavljaču; za `CONTRACTED` kopira se iz `SupplierManifest.sent_at` liste koja je sadrži, za `API` popunjava se automatski u trenutku potvrde (poglavlje 8.6) |
+| supplier_confirmed_at / supplier_confirmed_by | timestamp / UUID (FK → M1 User), oba nullable | dodato u poglavlju 8.6 — potvrda da je dobavljač primio/prihvatio najavu; za `CONTRACTED` ručni unos (dobavljači nemaju API), za `API` popunjava se automatski |
 
 ### 4.3 `BookingItemGuest` (spojna tabela)
 `booking_item_id`, `guest_profile_id` (FK → buduće M6 Gost) — više gostiju po stavci (npr. porodica u jednoj sobi).
@@ -208,8 +210,10 @@ Van same potvrde i vaučera, M5 periodičnim poslom prati tri situacije i upozor
 - **Neplaćena rezervacija sa izdatim vaučerom (izuzetak iznad):** dok god `voucher_override_approved_by` nije prazno i `payment_status != PAID` i `Booking.status != CANCELLED`, sistem svakodnevno podseća tim da uplata nije završena. Podsetnik prestaje čim `payment_status` pređe u `PAID` (redovan generiše se vaučer bez izuzetka od tog trenutka) ili se rezervacija otkaže.
 - **Otvorena potvrda dobavljača, po stavci:** `BookingItem.item_status = PENDING_SUPPLIER_CONFIRMATION` (poglavlje 4) prati se **po stavci, ne po celoj rezervaciji** — kod rezervacije sa više proizvoda od različitih dobavljača (npr. hotel + transfer), svaka stavka se nezavisno prati prema sopstvenom dobavljaču, razrešenom preko `BookingItem.product_id` → M3 `Supplier` (isto razrešavanje kao poglavlje 8.1). Stavka koja ostane u ovom statusu duže od praga (podrazumevano 48h, konfigurabilno po tipu proizvoda) generiše upozorenje za tu stavku — potvrda ostalih stavki iste rezervacije kod drugih dobavljača ne utiče na ovaj alarm i obrnuto.
 - **Vaučer nedostaje uprkos punoj uplati:** ako `payment_status = PAID` a `voucher_url` je i dalje prazno (van override toka iznad, koji bi ga već popunio), to je znak da automatsko generisanje iz poglavlja 6 nije uspelo — sistem odmah generiše upozorenje; ovo je greška u sistemu i ne sme tiho da prođe.
+- **Nenajavljena stavka pred boravak (dopuna, avgust 2026 — problem #2):** `CONTRACTED` stavka sa `item_status = CONFIRMED` čiji `stay_from` pada u narednih 7 dana (podrazumevano, konfigurabilno), a `announced_at` je i dalje prazno — znači da dobavljač još ne zna ko dolazi. Ovo je hitniji alarm od ostalih u ovoj listi jer direktno preti check-inu.
+- **Najava bez potvrde dobavljača (dopuna, avgust 2026 — problem #2):** `announced_at` popunjeno duže od 5 dana (podrazumevano, konfigurabilno), a `supplier_confirmed_at` i dalje prazno — informativni podsetnik timu da proveri kod dobavljača, niži prioritet od prethodnog.
 
-Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću stavku (sistemska greška).
+Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću i četvrtu stavku (sistemska greška, odnosno rizik od propuštenog check-ina).
 
 ### 6.2 Identitet dobavljača se nikad ne izlaže B2C/B2B kanalima (dopuna, avgust 2026, na zahtev vlasnika)
 
@@ -316,11 +320,44 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 2. Priprema se nova `DRAFT` sa `supersedes_manifest_id` ka prethodnoj, sa trenutno važećim stavkama.
 3. Nova lista se ne šalje automatski — isti princip kao 8.4: čovek pregleda i šalje reviziju.
 
+### 8.6 "Najava" kao formalni koncept (dopuna, avgust 2026 — rešava problem #2 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, vidi `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md` poglavlje 2)
+
+Do sada je "da li je dobavljač najavljen/potvrdio" postojalo samo posredno — preko `item_status = PENDING_SUPPLIER_CONFIRMATION` (koje prati potvrdu dostupnosti pri rezervaciji, poglavlje 4) i posredno preko `SupplierManifest.status = SENT` (koje prati da li je operativna lista poslata, poglavlje 8.1). Ovo su dva različita koraka istog toka koja se dosad nisu eksplicitno pratila na nivou pojedinačne stavke: **(a)** dostupnost potvrđena od dobavljača pri samoj rezervaciji, **(b)** dobavljač formalno obavešten *ko* dolazi (najava/rooming lista).
+
+**Pravilo:** `BookingItem.announced_at` (poglavlje 4.2) formalizuje korak (b):
+- Za `CONTRACTED` stavke: popunjava se automatski čim stavka uđe u `SupplierManifest` koji pređe u `status = SENT` (kopira se `SupplierManifest.sent_at`). Ako lista kasnije postane `SUPERSEDED` i stavka se pojavi na novoj poslatoj listi (poglavlje 8.5), `announced_at` se ažurira na vreme slanja te nove liste.
+- Za `API` stavke: popunjava se automatski u trenutku kad `item_status` pređe u `CONFIRMED` (poglavlje 4, korak 2) — najava je već sadržana u samom API pozivu ka dobavljaču (isto obrazloženje kao uvod poglavlja 8, "poseban operativni dokument nije potreban").
+
+`BookingItem.supplier_confirmed_at`/`supplier_confirmed_by` prati korak potvrde od strane dobavljača da je najava primljena:
+- Za `CONTRACTED` stavke: ručni unos — dobavljači tipično nemaju API, potvrda stiže mejlom/telefonom, zaposleni je unosi u M17 panelu (dugme "Označi kao potvrđeno od dobavljača" na stavci ili na celoj poslatoj listi odjednom, popunjava sve stavke te liste).
+- Za `API` stavke: popunjava se automatski, isti trenutak kao `announced_at` (M4 `BookingConfirmation` već predstavlja i najavu i potvrdu dobavljača u jednom koraku).
+
+Alarmi za oba koraka (nenajavljena stavka pred boravak, najava bez potvrde) definisani su u poglavlju 6.1.
+
+### 8.7 Konfigurabilno automatsko pripremanje najave po dobavljaču (dopuna, avgust 2026 — rešava problem #3, vidi GAP-analiza poglavlje 3)
+
+Poglavlje 8.4 danas priprema `DRAFT` nacrt po fiksnom pravilu (N dana pre `stay_from`, isto za sve dobavljače) i uvek zahteva ljudski klik za slanje. Vlasnik traži da trenutak *pripreme* nacrta bude podesiv po dobavljaču (npr. tek posle naplaćene akontacije za jednog dobavljača, odmah po potvrdi za drugog) — **slanje i dalje ostaje isključivo ljudska radnja, ovo se ne menja** (potvrđeno sa vlasnikom — vidi diskusiju pri specifikaciji ovog poglavlja); menja se samo kada je nacrt spreman i istaknut za odobrenje, ne ko ga šalje.
+
+#### `SupplierAnnouncementRule`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID, nullable (FK → M3 Supplier) | `NULL` = podrazumevano pravilo, važi za dobavljače bez sopstvenog pravila |
+| trigger_condition | enum: `DAYS_BEFORE_STAY`, `ON_CONFIRMATION`, `AFTER_DEPOSIT_PAID`, `AFTER_FULL_PAYMENT` | `DAYS_BEFORE_STAY` — postojeće ponašanje iz 8.4 (koristi `days_before_stay`); `ON_CONFIRMATION` — čim `item_status = CONFIRMED`, nezavisno od uplate; `AFTER_DEPOSIT_PAID` — čim `Booking.payment_status` pređe u `PARTIALLY_PAID` ili `PAID`; `AFTER_FULL_PAYMENT` — tek kad `payment_status = PAID` |
+| days_before_stay | integer, nullable | koristi se samo kad `trigger_condition = DAYS_BEFORE_STAY` |
+| created_by / created_at / updated_by / updated_at | UUID / timestamp | isti obrazac kao `MarkupRule` (poglavlje 2.1) |
+
+**Razrešavanje pravila:** najspecifičnije pobeđuje — isti princip kao `MarkupRule` (poglavlje 2.2). Ako za `Supplier` postoji sopstveni `SupplierAnnouncementRule`, koristi se on; inače se koristi podrazumevano pravilo (`supplier_id IS NULL`). Ako podrazumevano pravilo ne postoji, važi `trigger_condition = DAYS_BEFORE_STAY` sa vrednošću iz poglavlja 6.1 (7 dana) kao ugrađeni fallback — nema regresije za dobavljače koji danas nemaju posebno pravilo.
+
+**Tok:** periodičan posao (poglavlje 8.4) za svaku `CONTRACTED` stavku sa `item_status = CONFIRMED` i praznim `announced_at` proverava da li je uslov iz važećeg `SupplierAnnouncementRule` ispunjen. Kad jeste, nacrt (`SupplierManifest.status = DRAFT`) se priprema odmah (ako već ne postoji za taj period/dobavljača) i **ističe se kao prioritetan** u M17 Agent Inbox — vidljivo odvojeno od običnih nacrta pripremljenih rutinski. Ovo ostaje nivo **"Autonomno"** za pripremu (čisto informativno, isto obrazloženje kao postojeći 8.4), a slanje ostaje **"Predloži pa čovek odobri"** — nepromenjeno.
+
+**Dozvole:** `M5/supplier-announcement-rule/VIEW`, `EDIT` — Vlasnik, Direktor (isti krug kao `markup-rule`, poglavlje 10 — pravila koja utiču na odnos sa dobavljačem su osetljiva).
+
 ---
 
 ## 9. Događaji (Event Bus) koje M5 emituje
 
-`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava i CIS registracija garancije poglavlje 4.3, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
+`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta i post-trip anketa, M10 fakturisanje, M11 CIS registracija garancije putovanja poglavlje 2.3, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
 
 ---
 
@@ -334,6 +371,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 | `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager (sve); Prodajni agent (podrazumevano samo sopstveni klijenti — širi se pojedinačnim izuzetkom iz M1 ako treba); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
 | `M5/booking/MODIFY`, `CANCEL` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Gost (sopstvena rezervacija, u skladu sa pravilima otkazivanja) |
 | `M5/markup-rule/VIEW`, `EDIT` | Vlasnik, Direktor — cenovna politika je osetljiva, ne deli se šire podrazumevano |
+| `M5/supplier-announcement-rule/VIEW`, `EDIT` | Vlasnik, Direktor — vidi poglavlje 8.7 |
 | `M5/voucher/OVERRIDE_ISSUE` (izdavanje bez pune uplate) | Vlasnik, Direktor — **nikad AI agent, nikad Sales Manager/Prodajni agent**, u skladu sa poglavljem 6 (finansijski rizik) |
 | `M5/supplier-manifest/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
 | `M5/supplier-manifest/CREATE` (nacrt) | Vlasnik, Direktor, Sales Manager, Prodajni agent; i AI agent zadužen za M5 (poglavlje 8.4) |
@@ -365,7 +403,9 @@ Prefiks: `/api/v1/sales`
 | `/bookings/calendar/:date` | GET | pun spisak `BookingItem` razvrstan u dolazi/odlazi/u toku/jednodnevno za taj dan (poglavlje 7.1), sa istim pravima pristupa kao `/bookings` |
 | `/supplier-manifests` | GET / POST | lista postojećih / generisanje nacrta (agregacija potvrđenih stavki po dobavljaču + periodu, poglavlje 8.4; `POST` prima i `language`, poglavlje 8.3) |
 | `/supplier-manifests/:id` | GET | detalji, uključujući stavke i lanac revizija (`supersedes_manifest_id`) |
-| `/supplier-manifests/:id/send` | POST | zahteva `M5/supplier-manifest/SEND`; menja status u `SENT`, šalje dokument na `sent_to_email`, popunjava `sent_at`/`sent_by` |
+| `/supplier-manifests/:id/send` | POST | zahteva `M5/supplier-manifest/SEND`; menja status u `SENT`, šalje dokument na `sent_to_email`, popunjava `sent_at`/`sent_by`, i (poglavlje 8.6) popunjava `announced_at` na svakoj obuhvaćenoj `BookingItem` |
+| `/supplier-manifests/:id/confirm-supplier` | POST | zahteva `M5/supplier-manifest/SEND`; ručni unos potvrde dobavljača (poglavlje 8.6) — popunjava `supplier_confirmed_at`/`supplier_confirmed_by` na svim `BookingItem` sa te liste |
+| `/supplier-announcement-rules` | GET / POST / PATCH | upravljanje pravilima iz poglavlja 8.7, zahteva `M5/supplier-announcement-rule/VIEW` ili `EDIT` |
 
 ---
 

@@ -61,8 +61,9 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M3 | `pricelist_import.extract` | `AUTONOMOUS` | M3 poglavlje 4.2.4 |
 | M3 | `pricelist_import.approve_row` | `PROPOSE_THEN_APPROVE` | M3 poglavlje 4.2.4 |
 | M3 | `contract_period.low_capacity_alert` | `AUTONOMOUS` | M3 poglavlje 4.3 — čisto informativan signal na 1–2 preostale jedinice, ne blokira prodaju |
-| M5 | `supplier_manifest.draft` | `AUTONOMOUS` | M5 poglavlje 8.4 |
+| M5 | `supplier_manifest.draft` | `AUTONOMOUS` | M5 poglavlje 8.4, 8.7 — priprema nacrta i njeno prioritetno isticanje po konfigurabilnom pravilu (8.7) ostaju čisto informativni |
 | M5 | `supplier_manifest.send` | `PROPOSE_THEN_APPROVE` | M5 poglavlje 8.4 |
+| M5 | `booking_item.cancel_duplicate_check` | `PROPOSE_THEN_APPROVE` | M5 poglavlje 6.4 — deterministički fuzzy-match (ne AI/LLM poziv), upozorenje pre storna zahteva svesnu potvrdu operatera |
 | M6 | `communication.draft` | `AUTONOMOUS` | M6 poglavlje 4 |
 | M6 | `communication.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M6 poglavlje 4 |
 | M7 | `commission_rebate.calculate_draft` | `AUTONOMOUS` | M7 poglavlje 3.2 |
@@ -93,7 +94,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
 | (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage |
 
-**Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 eTurista prijava, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
+**Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 CIS registracija garancije putovanja, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
 Registar se **dopunjuje** kad svaki budući modul (ili izmena postojećeg) uvede novu akciju koju AI agent dodiruje — ne postoji podrazumevani nivo; svaka nova `action_code` mora eksplicitno dobiti `tier` pre nego što se agent pusti na nju.
 

@@ -4,11 +4,11 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Automatsko pracenje da li je rezercacija najavkjena dobavljaču, da li je dobavljač potvrdio rezervaciju *(Delimično — M5 `item_status`/`PENDING_SUPPLIER_CONFIRMATION` postoji, ali formalni koncept "najave" ne — vidi GAP-analiza #2)*
+* [x] Automatsko pracenje da li je rezercacija najavkjena dobavljaču, da li je dobavljač potvrdio rezervaciju *(Dopunjeno u specifikaciji — M5 poglavlje 8.6 (`announced_at`/`supplier_confirmed_at`) i alarmi u poglavlju 6.1 — vidi GAP-analiza #2)*
 
 
 
-* [ ] Automstako slanje najava rezervacija dobavljaču uz mogucnost podesavanja da najava ide samo u odredjenom statusu rezertvacije ( na primer kada je naplacena akontacija, ili cemo za nekog dobavljača omoguciti slanje najave i bez uplate... i druge kombinacije. *(Nepokriveno — potreban nov koncept, konfigurabilno pravilo po dobavljaču — vidi GAP-analiza #3)*
+* [x] Automstako slanje najava rezervacija dobavljaču uz mogucnost podesavanja da najava ide samo u odredjenom statusu rezertvacije ( na primer kada je naplacena akontacija, ili cemo za nekog dobavljača omoguciti slanje najave i bez uplate... i druge kombinacije. *(Dopunjeno u specifikaciji — M5 poglavlje 8.7 (`SupplierAnnouncementRule`, konfigurabilno po dobavljaču); napomena: priprema nacrta je konfigurabilna/automatska, ali samo slanje dobavljaču ostaje ljudska radnja (dogovoreno s vama) — vidi GAP-analiza #3)*
 
 
 

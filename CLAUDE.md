@@ -53,4 +53,4 @@ Nenad Tomić je vlasnik i **arhitekta projekta, ne programer**. Njegova uloga je
 
 - Ne uvoditi novu tehnologiju/biblioteku/pattern koji nije u `00-MASTER-ARHITEKTURA.md` poglavlje 6 (tehnički stek) bez izričite potvrde vlasnika — promena steka nosi realnu cenu.
 - Ne graditi "brzo rešenje" mimo modularnih granica iz poglavlja 3 (princip #2) — moduli pristupaju jedni drugima isključivo preko API-ja, nikad direktno u tuđu bazu.
-- Ne izmišljati tehničke detalje eksternih sistema (SEF, ESIR, eTurista, MCP protokol) tamo gde specifikacija eksplicitno kaže da to zahteva potvrdu knjigovođe/pravnika/zvanične dokumentacije pre implementacije — te napomene su namerne, ne propust.
+- Ne izmišljati tehničke detalje eksternih sistema (SEF, ESIR, CIS/YUTA garancija putovanja, MCP protokol) tamo gde specifikacija eksplicitno kaže da to zahteva potvrdu knjigovođe/pravnika/zvanične dokumentacije pre implementacije — te napomene su namerne, ne propust.

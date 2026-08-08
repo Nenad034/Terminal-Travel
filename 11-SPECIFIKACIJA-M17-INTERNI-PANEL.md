@@ -18,7 +18,7 @@ M17 nije "gotov" u jednom trenutku — raste postepeno, u istom tempu u kom se m
 
 ## 2. Arhitektura — kompozicija nad više modula, ne nova poslovna logika
 
-Next.js server komponente pozivaju API-je više modula i sastavljaju jedan prikaz — npr. stranica detalja rezervacije prikazuje podatke iz M5 (status, stavke), M6 (ko je gost/nalogodavac), M10 (status fiskalnog dokumenta i plaćanja) i M11 (status eTurista prijave) na jednom ekranu. Ovo je **kompozicija na nivou prikaza**, ne nova poslovna logika — M17 ne piše direktno u bazu nijednog modula, ne zaobilazi njihova pravila, samo poziva njihove već postojeće API-je i slaže odgovore u jedan ekran (princip #2 iz poglavlja 3 Master dokumenta).
+Next.js server komponente pozivaju API-je više modula i sastavljaju jedan prikaz — npr. stranica detalja rezervacije prikazuje podatke iz M5 (status, stavke), M6 (ko je gost/nalogodavac), M10 (status fiskalnog dokumenta i plaćanja) i M11 (status garancije putovanja) na jednom ekranu. Ovo je **kompozicija na nivou prikaza**, ne nova poslovna logika — M17 ne piše direktno u bazu nijednog modula, ne zaobilazi njihova pravila, samo poziva njihove već postojeće API-je i slaže odgovore u jedan ekran (princip #2 iz poglavlja 3 Master dokumenta).
 
 Ako kompozicija postane složena (npr. mnogo poziva po jednom ekranu), dozvoljeno je da M17 ima sopstveni tanak "backend for frontend" sloj (agregacione rute unutar iste Next.js aplikacije) — ali taj sloj i dalje **samo poziva zvanične API-je** drugih modula, nikad njihovu bazu direktno.
 
@@ -40,7 +40,7 @@ Isključivo preko M1: `account_type = STAFF`, obavezna 2FA za sve interne uloge 
 | Pretraga i rezervacije | M5 (+ M4 uživo) | Faza 1 |
 | Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5 | Faza 1 |
 | Finansije (fakture, plaćanja) | M10 | Faza 2 |
-| Compliance (eTurista, boravišna taksa, garancija) | M11 | Faza 2 |
+| Compliance (garancija putovanja) | M11 | Faza 2 |
 | Ugovori sa klijentima | M20 | Faza 2 |
 | Gosti i nalogodavci (CRM) | M6 | Faza 3 |
 | B2B partneri | M7 | Faza 4 |
@@ -56,7 +56,7 @@ Svaka sekcija se dodaje u M17 **kad odgovarajući modul dođe na red i dobije sv
 
 Nekoliko modula već proizvodi sopstvena upozorenja o rokovima:
 - M3: `/contracts/expiring-releases` (alotman kom se bliži rok povrata)
-- M11: rok boravišne takse (do 5. u mesecu), istek garancije putovanja (YUTA)
+- M11: istek garancije putovanja (YUTA)
 - M1: neuspeli pokušaji prijave, zaključani nalozi
 
 M17 početna stranica (dashboard) agregira ova upozorenja u jedan prikaz, filtriran prema ulozi (Računovođa vidi finansijske rokove, Vlasnik/Direktor vidi sve). Ovo je **čitanje iz postojećih endpoint-a više modula**, ne novi entitet ni nova baza. Ako broj ovakvih upozorenja poraste do te mere da agregacija na nivou prikaza postane nezgodna, razmotriti zaseban "Notification" modul kasnije (poglavlje 7).
@@ -84,7 +84,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 
 - [ ] **Faza 0:** tim se prijavljuje, vidi svoju ulogu, Vlasnik/Direktor vidi audit log.
 - [ ] **Faza 1:** tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5) — ovo je doslovan izlazni kriterijum Faze 1 iz poglavlja 8 Master dokumenta.
-- [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).
+- [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status garancije putovanja (M11).
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
 - [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 - [ ] Omnisearch polje je dostupno sa svakog ekrana; prazan upit + Enter prikazuje navigaciju filtriranu na ulogu; upit sa tekstom vraća rezultate/AI odgovor koji nikad prekoračuju prava trenutnog korisnika (poglavlje 5.5).

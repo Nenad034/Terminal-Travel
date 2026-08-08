@@ -18,7 +18,9 @@
 
 ## 2. Praćenje da li je rezervacija najavljena dobavljaču i da li je dobavljač potvrdio
 
-**Status: delimično pokriveno, terminologija i tok nisu formalizovani kao poseban koncept.**
+**Status: dopunjeno u specifikaciji (avgust 2026).** Vidi `06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlje 8.6 — `BookingItem.announced_at`/`supplier_confirmed_at` formalizuju oba koraka, sa alarmima u poglavlju 6.1 (nenajavljena stavka pred boravak, najava bez potvrde). Izvorna analiza ispod je i dalje tačna kao opis stanja pre ove dopune.
+
+**Prethodni status: delimično pokriveno, terminologija i tok nisu formalizovani kao poseban koncept.**
 
 `BookingItem.item_status = PENDING_SUPPLIER_CONFIRMATION` (M5 poglavlje 4, 6.1) prati da li je stavka potvrđena od dobavljača, sa alarmom posle praga (podrazumevano 48h, konfigurabilno po tipu proizvoda). `SupplierManifest` (M5 poglavlje 8) je odvojen koncept — operativna rooming-lista/spisak putnika pred boravak, ne pojedinačna "najava" rezervacije.
 
@@ -28,7 +30,9 @@
 
 ## 3. Automatsko slanje najave dobavljaču, konfigurabilno po statusu (npr. tek posle naplaćene akontacije)
 
-**Status: nepokriveno.**
+**Status: dopunjeno u specifikaciji (avgust 2026), uz jedno svesno ograničenje.** Vidi `06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlje 8.7 — novi entitet `SupplierAnnouncementRule` (isti obrazac kao `MarkupRule`) čini *pripremu* nacrta konfigurabilnom po dobavljaču i po statusu uplate. Vlasnik je pri specifikaciji ove dopune eksplicitno odabrao da **slanje** dobavljaču i dalje ostaje isključivo ljudska radnja (nivo "Predloži pa čovek odobri", ne potpuno automatsko) — kad uslov bude ispunjen, nacrt se odmah priprema i ističe kao prioritetan u M17 Agent Inbox, ali čovek i dalje klikne "pošalji". Ovo je namerno zadržavanje postojećeg bezbednosnog principa iz M5 poglavlja 8.4 ("slanje nikad nije autonomno"), ne previd. Izvorna analiza ispod opisuje stanje pre ove dopune.
+
+**Prethodni status: nepokriveno.**
 
 `SupplierManifest` slanje (M5 poglavlje 8.4) je uvek ljudska radnja ("Predloži pa čovek odobri"), okidano isključivo agregacijom potvrđenih (`CONFIRMED`) stavki po periodu — nema uslova vezanog za `payment_status`/akontaciju, niti konfigurabilnog pravila po dobavljaču (npr. "za dobavljača X šalji najavu i bez uplate, za dobavljača Y tek posle akontacije").
 
@@ -123,8 +127,8 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | # | Problem | Status |
 | :---- | :---- | :---- |
 | 1 | Praćenje statusa + obaveštavanje (novo/storno/promena) | Pokriveno, manji gap (dnevni zbirni pregled) |
-| 2 | Da li je najavljeno dobavljaču + potvrda dobavljača | Delimično — nedostaje formalni koncept "najave" |
-| 3 | Konfigurabilno automatsko slanje najave po statusu uplate | Nepokriveno |
+| 2 | Da li je najavljeno dobavljaču + potvrda dobavljača | Dopunjeno u specifikaciji (M5 poglavlje 8.6) |
+| 3 | Konfigurabilno automatsko slanje najave po statusu uplate | Dopunjeno u specifikaciji (M5 poglavlje 8.7) — priprema konfigurabilna, slanje ostaje ljudska radnja |
 | 4 | Rok akontacije/pune uplate (gost) | Delimično — postoji samo za obaveze prema dobavljaču |
 | 5 | CIS/eTurista notifikacija | Pokriveno |
 | 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Nepokriveno |
@@ -133,7 +137,7 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Nepokriveno |
 | 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
 
-Pet od preostalih devet problema (3, 6, 7, 8, 9) i dalje zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Problem 10 je već dopunjen (M5 poglavlje 6.4) kao prvi od ovih gap-ova rešen ovim redosledom. Preporuka je da se preostali gap-ovi svesno unesu kao dopune postojećih modula (M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ta dva modula smatraju "gotovim" za svoju fazu.
+Pet problema (4, 6, 7, 8, 9) i dalje zahtevaju nove koncepte/dopune koji trenutno ne postoje ni u jednoj specifikaciji — ovo nije previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dosad nisu bili vođeni ovim konkretnim zahtevima. Problemi 2, 3 i 10 su već dopunjeni (M5 poglavlja 6.4, 8.6, 8.7) kao prvi rešeni ovim redosledom. Preporuka je da se preostali gap-ovi (4, 6, 7, 8, 9) svesno unesu kao dopune postojećih modula (M6, M7, M10, M19) ili kao novi modul (email platforma) pre nego što se ti moduli smatraju "gotovim" za svoju fazu.
 
 ---
 
@@ -171,5 +175,7 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | 2026-08-05 | (razno, prvobitna lista) | 9 problema iz `Problemi koje zelimo da resimo ovom aplikacijom.md` | Analizirano u ovom dokumentu (poglavlja 1-9) | Vidi Rezime iznad |
 | 2026-08-07 | Gost/klijent (B2C) | Gost ne dobija automatski podsetnik kad dobavljač drži rezervaciju "na opciju" sa rokom posle kog sam otkazuje ako agencija ne potvrdi/plati — vlasnik dao konkretan primer iz prakse (email dobavljača "Reservations pending confirmation": hotel, datumi, referenca, ime, rok, web-referenca) kao format za analognu poruku ka gostu. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | M5 poglavlje 13 (novo polje za rok opcije na `BookingItem`; kanal za transakciona obaveštenja gostu verovatno zahteva i dopunu M6 poglavlje 4.1) |
 | 2026-08-08 | Dobavljač / Subagent (unakrsno) | Gost je rezervisao isti hotel/termin/uslugu i direktno i preko subagenta (M7) — dve odvojene rezervacije u sistemu za istu osobu. Zaposleni nije primetio poklapanje imena i stornirao neuplaćenu rezervaciju misleći da je duplikat; hotel prati rezervacije po imenu gosta (ne po našem internom ID-ju), pa je posledično stornirao i ispravnu, uplaćenu rezervaciju. Vlasnik traži da sistem predvidi ovakve scenarije i upozori korisnika pre nego što napravi istu grešku. | Dopunjena specifikacija — upisano u M5 poglavlje 6.4 i M7 poglavlje 2.0.2 (avgust 2026) | Vidi poglavlje 10 iznad — M5 poglavlje 6.4 (provera duplikata pre potvrde storna, "Predloži pa čovek odobri"), M7 poglavlje 2.0.2 korak 7 (referenca za subagentski kanal); sekundarno i dalje otvoreno: M6 (spajanje/povezivanje gostiju preko različitih `ClientAccount`-a) |
+
+| 2026-08-08 | Dobavljač | Problemi 2 i 3 (najava dobavljaču kao formalni koncept + konfigurabilno automatsko slanje po statusu uplate) dopunjeni u istom prolazu jer su usko povezani. Vlasnik je eksplicitno potvrdio (pri specifikaciji) da slanje dobavljaču ostaje ljudska radnja i posle ove dopune — konfigurabilan je samo trenutak *pripreme* nacrta, ne i njegovo slanje. | Dopunjena specifikacija — upisano u M5 poglavlje 8.6 (najava/potvrda) i 8.7 (`SupplierAnnouncementRule`) | M5 poglavlje 8.6, 8.7; M15 poglavlje 5 (registar nivoa autonomije) ažuriran u istom prolazu |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*

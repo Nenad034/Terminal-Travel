@@ -259,7 +259,7 @@ main{
       <div class="nav-group">
         <div class="nav-group-title"><span class="gate">4</span> Zakon i finansije</div>
         <a class="nav-link" data-text="m10 finansije sef esir" href="#doc-m10"><span class="code">M10</span><span class="label">Finansije</span></a>
-        <a class="nav-link" data-text="m11 compliance eturista" href="#doc-m11"><span class="code">M11</span><span class="label">Compliance</span></a>
+        <a class="nav-link" data-text="m11 compliance garancija yuta" href="#doc-m11"><span class="code">M11</span><span class="label">Compliance</span></a>
         <a class="nav-link" data-text="m20 ugovori klijenti organizator posrednik" href="#doc-m20"><span class="code">M20</span><span class="label">Ugovori sa klijentima</span></a>
       </div>
       <div class="nav-group">
@@ -345,7 +345,7 @@ Da bi svi moduli i svi AI agenti koristili iste termine (izbegava se situacija d
 
 1. **Jedan izvor istine.** Svaki entitet (proizvod, rezervacija, gost, faktura) postoji na tačno jednom mestu u sistemu. Sajt, mobilna aplikacija i B2B portal su *prikazi* nad istim podacima iz centralne platforme — nijedan od njih ne sme imati sopstvenu, odvojenu bazu rezervacija ili proizvoda. Ovo je direktan odgovor na zahtev da sajt "vuče podatke" iz aplikacije, a ne obrnuto.  
 2. **Moduli su granice, ne slojevi.** Sistem se deli po poslovnim domenima (Rezervacije, Finansije, CRM, Marketing...), ne po tehničkim slojevima. Svaki modul ima svoju bazu tabela i svoj API; drugi moduli mu pristupaju isključivo preko tog API-ja, nikad direktno u bazu. Ovo omogućava da se moduli grade, testiraju i menjaju nezavisno — što je preduslov da AI agent može bezbedno da radi na jednom modulu bez rizika da pokvari drugi.  
-3. **Spoljni provajderi su adapteri, ne temelj.** Travelgate, SEF, ESIR, eTurista, budući avio/GDS API — svaki od njih je adapter iza internog, provajder-nezavisnog modela podataka. Menjanje ili dodavanje provajdera nikad ne sme zahtevati izmenu poslovne logike ili korisničkog interfejsa (razrađeno u poglavlju 5 i u ranije pripremljenom Travelgate predlogu).  
+3. **Spoljni provajderi su adapteri, ne temelj.** Travelgate, SEF, ESIR, budući avio/GDS API — svaki od njih je adapter iza internog, provajder-nezavisnog modela podataka. Menjanje ili dodavanje provajdera nikad ne sme zahtevati izmenu poslovne logike ili korisničkog interfejsa (razrađeno u poglavlju 5 i u ranije pripremljenom Travelgate predlogu).  
 4. **Determinizam pre autonomije.** Svaki proces koji uključuje novac, fiskalne obaveze ili pravno obavezujuću komunikaciju mora prvo raditi kao pouzdan, testiran, deterministički kod. AI agent sme da asistira, predlaže i ubrzava taj proces, ali ne sme da bude jedina karika koja izvršava fiskalno/finansijsko dejstvo bez mogućnosti provere. Autonomija se uvodi postepeno i samo tamo gde greška ne ugrožava zakonsku usklađenost ili novac (razrađeno u poglavlju 7).  
 5. **Sve se može revidovati, ništa se ne pamti samo u nečijoj glavi.** Svaka odluka, svaka izmena podataka, svaka akcija AI agenta ostavlja trag (audit log). Ovo nije opcija za kasnije — ugrađuje se od Faze 0, jer se naknadno domodelovanje audit sistema u postojeće module gotovo nikad ne radi kako treba.
 
@@ -365,7 +365,7 @@ Da bi svi moduli i svi AI agenti koristili iste termine (izbegava se situacija d
 | M8 | **Sajt agencije (B2C prikaz)** | Javni web prikaz kataloga i tok rezervacije za krajnje goste; back office isključivo u M2/M5. | M1, M2, M5, M6, M10, M20, M15 *(M6/M10 dodati pri specifikaciji M8 — nalog gosta i kartično plaćanje; M20 dodat naknadno — prihvatanje ugovora pre plaćanja; M15 dodat avgust 2026 — omnisearch, poglavlje 6.5 te specifikacije, sa sopstvenom, ranijom aktivacionom kapijom nezavisnom od pune Faze 7)* |
 | M9 | **Mobilna aplikacija** | Aplikacija za goste (pregled/rezervacija/vaučeri) **i** za interni tim/vodiče na terenu. Deo za vodiče se projektuje kao **offline-first** (lokalni podaci — itinerar, lista gostiju, vaučeri — sa sinhronizacijom kad se veza vrati), jer tim često radi bez signala. Detaljno u specifikaciji M9 (Faza 6). | M1, M2, M5, M6, M10, M20 *(M10/M20 dodati naknadno — deo za goste koristi isti tok kao M8)* |
 | M10 | **Finansije i računovodstvo** | Fakturisanje, fiskalizacija (SEF/ESIR), praćenje naplate, izveštaji, usklađenost sa zakonima RS. | M1, M3, M5, M6, M7 *(M3 dodat naknadno — obaveze prema dobavljačima, `SupplierObligation`)* |
-| M11 | **Regulatorni modul (Compliance)** | eTurista/CIS prijava gostiju, boravišna taksa, garancija putovanja (YUTA), evidencije za inspekciju. Namerno odvojen od M10 jer ima svoje rokove i API-je. | M1, M5, M6 |
+| M11 | **Regulatorni modul (Compliance)** | Garancija putovanja (YUTA), evidencije za inspekciju. Namerno odvojen od M10 jer ima svoje rokove i API-je. *(eTurista/CIS prijava gostiju i boravišna taksa uklonjene iz obima, avgust 2026, na zahtev vlasnika — nadležnost smeštajnog objekta/hotela koji gosta direktno prima, ne agencije-touroperatora.)* | M1, M5 |
 | M12 | **Marketing i sadržajni engine** | Content Engine opisan u prethodnom razgovoru: proizvod → generisanje sadržaja → kalendar/odobrenje → distribucija na kanale. | M1, M2, M6 |
 | M13 | **Izveštavanje i BI** | Upravljački izveštaji nad podacima svih modula (profitabilnost, prodaja, marketing performanse). | Svi moduli (read-only) |
 | M14 | **Podrška / Helpdesk** | Tiketing za goste i subagente. | M1, M5, M6, M7 |
@@ -413,7 +413,7 @@ Napomena: M15, M16, M17, M18, M19, M20 i M21 nisu greška u numeraciji — namer
 
                     │        M4 — SLOJ INTEGRACIJA (Adapteri)      │
 
-                    │  Travelgate | SEF | ESIR | eTurista | YUTA   │
+                    │  Travelgate | SEF | ESIR | YUTA   │
 
                     │  budući: GDS/avio, rent-a-car, aktivnosti     │
 
@@ -504,7 +504,7 @@ Redosled je namerno konzervativan: prvo se gradi ono bez čega se zakonski i ope
 | :---- | :---- | :---- |
 | **Faza 0 — Temelj** | M1 (Identitet/RBAC/Audit), infrastruktura, CI/CD, monorepo skelet, IaC, osnovni model podataka za M2. | Prazna ali funkcionalna platforma: prijava, uloge, audit log rade; infrastruktura se diže iz koda. |
 | **Faza 1 — Jezgro prodaje** | M2 (Katalog), M3 (Ugovaranje/alotmani), M4 (Travelgate integracija — po ranije pripremljenom predlogu), M5 (Rezervacije: Search → Ponuda → Potvrda → Upravljanje). | Tim može ručno, kroz interni panel, da pretraži, rezerviše i upravlja rezervacijom hotela — i iz sopstvenih ugovora i preko Travelgate-a. |
-| **Faza 2 — Zakonska usklađenost** | M10 (Finansije: SEF/ESIR integracija, PDV po sistemu marže, obaveze prema dobavljačima), M11 (Compliance: eTurista/CIS, boravišna taksa, garancija putovanja), M20 (Ugovori sa klijentima). | Svaka rezervacija iz Faze 1 može zakonito da se fakturiše, fiskalizuje, prijavi nadležnim sistemima i prati kroz zakonski obavezan ugovor sa gostom — bez ovoga agencija ne sme da posluje produkcijski, bez obzira koliko su drugi moduli razvijeni. |
+| **Faza 2 — Zakonska usklađenost** | M10 (Finansije: SEF/ESIR integracija, PDV po sistemu marže, obaveze prema dobavljačima), M11 (Compliance: garancija putovanja), M20 (Ugovori sa klijentima). | Svaka rezervacija iz Faze 1 može zakonito da se fakturiše, fiskalizuje, prati kroz garanciju putovanja i zakonski obavezan ugovor sa gostom — bez ovoga agencija ne sme da posluje produkcijski, bez obzira koliko su drugi moduli razvijeni. |
 | **Faza 3 — Gost i kanal** | M6 (CRM), M8 (Sajt agencije, B2C). | Gost može samostalno da pretraži i rezerviše na sajtu; podaci se pune iz istog kataloga/rezervacionog sistema, ne ručno. |
 | **Faza 4 — B2B** | M7 (Subagenti/portal), prilagođavanja M10 za provizije i kreditne limite. | Poslovni partneri imaju sopstveni pristup sa svojim cenovnicima i mogu da prodaju bez ručne intervencije agencije. |
 | **Faza 5 — Merenje i podrška** | M13 (BI/izveštaji), M14 (Helpdesk). | Menadžment vidi profitabilnost po destinaciji/dobavljaču/kanalu; gosti i subagenti imaju gde da prijave problem. |
@@ -522,7 +522,7 @@ Napomena: faze se ne moraju raditi strogo sekvencijalno bez preklapanja (npr. ra
 - RBAC po modulu i po ulozi (definisano u M1), sa audit logom svake izmene osetljivih podataka.  
 - Fizička lokacija podataka u EU/skladu sa Zakonom o zaštiti podataka o ličnosti; ugovori o obradi podataka sa svakim spoljnim provajderom koji dolazi u dodir sa ličnim podacima.  
 - Redovan, testiran backup (ne samo konfigurisan — periodično se proverava da li se iz njega zaista može oporaviti sistem).  
-- Usklađenost sa rokovima: SEF/e-fakture, ESIR fiskalizacija, eTurista prijava/odjava i boravišna taksa (do 5\. u mesecu za prethodni mesec), godišnje obnavljanje garancije putovanja kod YUTA.  
+- Usklađenost sa rokovima: SEF/e-fakture, ESIR fiskalizacija, godišnje obnavljanje garancije putovanja kod YUTA.  
 - Ako se u budućnosti uvede online plaćanje karticama — obrada kartice ide isključivo kroz sertifikovanog platnog provajdera (PCI-DSS), platforma nikad ne čuva puni broj kartice.
 
 ---
@@ -532,7 +532,7 @@ Napomena: faze se ne moraju raditi strogo sekvencijalno bez preklapanja (npr. ra
 Oblast agentske AI u turizmu se, sudeći po datumima izvora korišćenih u ovom dokumentu (decembar 2025, februar 2026, jul 2026), menja iz meseca u mesec, ne iz godine u godinu. Zato je uveden stalan proces, ne jednokratno istraživanje:
 
 - **Učestalost:** jednom mesečno.  
-- **Obim provere:** vesti i istraživanja o (1) agentskoj AI u rezervacijama i distribuciji turizma (Phocuswright, Skift, PhocusWire, IDC i slično), (2) razvoju MCP i sličnih standarda za "agent-ready" API-je u turizmu, (3) potezima velikih igrača relevantnih za nas (Google, OTA platforme, GDS-ovi poput Sabre/Amadeus, Travelgate/Travelsoft), (4) izmenama srpskih propisa relevantnih za module M10/M11 (SEF, ESIR, eTurista, YUTA/garancija putovanja), (5) *(prošireno pri specifikaciji M18)* opštijih proizvodnih/UX/tehnoloških trendova relevantnih za izgled i funkcionalnost same aplikacije, ne samo agentski turizam. Od M18 nadalje, ovaj proces asistira AI agent (M18 `TrendSuggestion`), uz isto pravilo da se ništa ne menja bez odobrenja vlasnika.  
+- **Obim provere:** vesti i istraživanja o (1) agentskoj AI u rezervacijama i distribuciji turizma (Phocuswright, Skift, PhocusWire, IDC i slično), (2) razvoju MCP i sličnih standarda za "agent-ready" API-je u turizmu, (3) potezima velikih igrača relevantnih za nas (Google, OTA platforme, GDS-ovi poput Sabre/Amadeus, Travelgate/Travelsoft), (4) izmenama srpskih propisa relevantnih za module M10/M11 (SEF, ESIR, YUTA/garancija putovanja), (5) *(prošireno pri specifikaciji M18)* opštijih proizvodnih/UX/tehnoloških trendova relevantnih za izgled i funkcionalnost same aplikacije, ne samo agentski turizam. Od M18 nadalje, ovaj proces asistira AI agent (M18 `TrendSuggestion`), uz isto pravilo da se ništa ne menja bez odobrenja vlasnika.  
 - **Izlaz provere:** kratak rezime (do jedne strane) sa jasnom preporukom — da li nešto od pronađenog zahteva izmenu ovog Master dokumenta (novi modul, promena redosleda faza, promena tehničkog izbora) ili je samo informativno i ne zahteva akciju. Ako zahteva izmenu, predlog se iznosi na potvrdu pre nego što se unese u dokument — ništa se ne menja automatski bez odobrenja.  
 - **Vlasništvo:** vlasnik projekta prima rezime i odlučuje da li se predložene izmene usvajaju.  
 - **Dnevnik nalaza:** čak i kada nalaz ne menja arhitekturu, beleži se u Dodatku A (na kraju dokumenta) sa datumom i naznakom kog modula se tiče. Razlog: svaki mesečni pregled kreće "iz čista" bez sećanja na prethodne, pa se detalji relevantni za buduće specifikacije modula (npr. tačna verzija standarda na koju se oslanjamo) moraju negde trajno zapisati, ne samo usmeno preneti.
@@ -902,7 +902,7 @@ M17 nije "gotov" u jednom trenutku — raste postepeno, u istom tempu u kom se m
 
 ## 2. Arhitektura — kompozicija nad više modula, ne nova poslovna logika
 
-Next.js server komponente pozivaju API-je više modula i sastavljaju jedan prikaz — npr. stranica detalja rezervacije prikazuje podatke iz M5 (status, stavke), M6 (ko je gost/nalogodavac), M10 (status fiskalnog dokumenta i plaćanja) i M11 (status eTurista prijave) na jednom ekranu. Ovo je **kompozicija na nivou prikaza**, ne nova poslovna logika — M17 ne piše direktno u bazu nijednog modula, ne zaobilazi njihova pravila, samo poziva njihove već postojeće API-je i slaže odgovore u jedan ekran (princip #2 iz poglavlja 3 Master dokumenta).
+Next.js server komponente pozivaju API-je više modula i sastavljaju jedan prikaz — npr. stranica detalja rezervacije prikazuje podatke iz M5 (status, stavke), M6 (ko je gost/nalogodavac), M10 (status fiskalnog dokumenta i plaćanja) i M11 (status garancije putovanja) na jednom ekranu. Ovo je **kompozicija na nivou prikaza**, ne nova poslovna logika — M17 ne piše direktno u bazu nijednog modula, ne zaobilazi njihova pravila, samo poziva njihove već postojeće API-je i slaže odgovore u jedan ekran (princip #2 iz poglavlja 3 Master dokumenta).
 
 Ako kompozicija postane složena (npr. mnogo poziva po jednom ekranu), dozvoljeno je da M17 ima sopstveni tanak "backend for frontend" sloj (agregacione rute unutar iste Next.js aplikacije) — ali taj sloj i dalje **samo poziva zvanične API-je** drugih modula, nikad njihovu bazu direktno.
 
@@ -924,7 +924,7 @@ Isključivo preko M1: `account_type = STAFF`, obavezna 2FA za sve interne uloge 
 | Pretraga i rezervacije | M5 (+ M4 uživo) | Faza 1 |
 | Kalendar rezervacija (dolasci/odlasci/u toku po datumu) | M5 | Faza 1 |
 | Finansije (fakture, plaćanja) | M10 | Faza 2 |
-| Compliance (eTurista, boravišna taksa, garancija) | M11 | Faza 2 |
+| Compliance (garancija putovanja) | M11 | Faza 2 |
 | Ugovori sa klijentima | M20 | Faza 2 |
 | Gosti i nalogodavci (CRM) | M6 | Faza 3 |
 | B2B partneri | M7 | Faza 4 |
@@ -940,7 +940,7 @@ Svaka sekcija se dodaje u M17 **kad odgovarajući modul dođe na red i dobije sv
 
 Nekoliko modula već proizvodi sopstvena upozorenja o rokovima:
 - M3: `/contracts/expiring-releases` (alotman kom se bliži rok povrata)
-- M11: rok boravišne takse (do 5. u mesecu), istek garancije putovanja (YUTA)
+- M11: istek garancije putovanja (YUTA)
 - M1: neuspeli pokušaji prijave, zaključani nalozi
 
 M17 početna stranica (dashboard) agregira ova upozorenja u jedan prikaz, filtriran prema ulozi (Računovođa vidi finansijske rokove, Vlasnik/Direktor vidi sve). Ovo je **čitanje iz postojećih endpoint-a više modula**, ne novi entitet ni nova baza. Ako broj ovakvih upozorenja poraste do te mere da agregacija na nivou prikaza postane nezgodna, razmotriti zaseban "Notification" modul kasnije (poglavlje 7).
@@ -968,7 +968,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 
 - [ ] **Faza 0:** tim se prijavljuje, vidi svoju ulogu, Vlasnik/Direktor vidi audit log.
 - [ ] **Faza 1:** tim može ručno da unese proizvod (M2), ugovor (M3), i da pretraži/rezerviše (M5) — ovo je doslovan izlazni kriterijum Faze 1 iz poglavlja 8 Master dokumenta.
-- [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status eTurista prijava i rokove boravišne takse (M11).
+- [ ] **Faza 2:** Računovođa može da pripremi i pošalje fiskalni dokument (M10), tim vidi status garancije putovanja (M11).
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
 - [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 - [ ] Omnisearch polje je dostupno sa svakog ekrana; prazan upit + Enter prikazuje navigaciju filtriranu na ulogu; upit sa tekstom vraća rezultate/AI odgovor koji nikad prekoračuju prava trenutnog korisnika (poglavlje 5.5).
@@ -1431,7 +1431,7 @@ Prefiks: `/api/v1/contracting`
 
 M4 je sloj adaptera koji prevodi formate spoljnih dobavljača proizvoda (Travelgate za hotele; kasnije GDS/avio, transferi, aktivnosti) u jedan interni, provajder-nezavisan oblik koji koriste M2 (katalog) i M5 (rezervacije). Ni M2 ni M5 nikad ne znaju da li podatak dolazi sa Travelgate-a ili nekog budućeg provajdera — vide samo interni oblik koji M4 garantuje. Ovo je direktna primena principa #3 iz poglavlja 3 Master dokumenta.
 
-Van obima: SEF, ESIR, eTurista, YUTA — iako su i to "spoljne integracije" u širem arhitektonskom smislu (poglavlje 5), te konkretne integracije se specificiraju unutar M10 i M11 kad ti moduli dođu na red, ne ovde. M4 (kao modul iz poglavlja 4, ne kao opšti sloj iz dijagrama u poglavlju 5) obuhvata isključivo dobavljače **turističkog proizvoda/inventara**.
+Van obima: SEF, ESIR, YUTA — iako su i to "spoljne integracije" u širem arhitektonskom smislu (poglavlje 5), te konkretne integracije se specificiraju unutar M10 i M11 kad ti moduli dođu na red, ne ovde. M4 (kao modul iz poglavlja 4, ne kao opšti sloj iz dijagrama u poglavlju 5) obuhvata isključivo dobavljače **turističkog proizvoda/inventara**.
 
 ---
 
@@ -1617,7 +1617,7 @@ M5 vodi gosta/agenta kroz tok **Search → Ponuda → Potvrda → Upravljanje re
 
 M5 takođe izlaže **kalendarski pregled rezervacija po datumu** — dolasci, odlasci i stavke u toku za izabrani dan (poglavlje 7) — i generiše/šalje **operativne liste ka dobavljačima** (rooming liste, spiskovi putnika i sl., za `CONTRACTED` stavke), suprotan smer komunikacije od vaučera koji ide gostu (poglavlje 6), detaljno u poglavlju 8.
 
-Van obima: naplata i fiskalizacija (M10, Faza 2), eTurista prijava (M11, Faza 2), CRM istorija gosta (M6, Faza 3) — M5 samo emituje događaje koje ti moduli kasnije koriste (poglavlje 9).
+Van obima: naplata i fiskalizacija (M10, Faza 2), garancija putovanja (M11, Faza 2), CRM istorija gosta (M6, Faza 3) — M5 samo emituje događaje koje ti moduli kasnije koriste (poglavlje 9).
 
 ---
 
@@ -1780,6 +1780,8 @@ Korak po korak:
 | assigned_guide_id | UUID, nullable (FK → M1 User, uloga `VODIC`) | dodato pri specifikaciji M9 — dodeljuje interni panel (M17), koristi ga M9 za filtriranje itinerara vodiča na terenu |
 | duplicate_conflict_item_id | UUID, nullable (FK → `BookingItem`) | dodato u poglavlju 6.4 — popunjava se proverom duplikata pri otkazivanju, referenca na konfliktnu stavku koja je pronađena |
 | duplicate_check_overridden_by / duplicate_check_overridden_at | UUID (FK → M1 User) / timestamp, oba nullable | dodato u poglavlju 6.4 — popunjava se samo ako je operater eksplicitno potvrdio otkazivanje uprkos pronađenom duplikatu |
+| announced_at | timestamp, nullable | dodato u poglavlju 8.6 — trenutak kad je stavka formalno najavljena dobavljaču; za `CONTRACTED` kopira se iz `SupplierManifest.sent_at` liste koja je sadrži, za `API` popunjava se automatski u trenutku potvrde (poglavlje 8.6) |
+| supplier_confirmed_at / supplier_confirmed_by | timestamp / UUID (FK → M1 User), oba nullable | dodato u poglavlju 8.6 — potvrda da je dobavljač primio/prihvatio najavu; za `CONTRACTED` ručni unos (dobavljači nemaju API), za `API` popunjava se automatski |
 
 ### 4.3 `BookingItemGuest` (spojna tabela)
 `booking_item_id`, `guest_profile_id` (FK → buduće M6 Gost) — više gostiju po stavci (npr. porodica u jednoj sobi).
@@ -1811,8 +1813,10 @@ Van same potvrde i vaučera, M5 periodičnim poslom prati tri situacije i upozor
 - **Neplaćena rezervacija sa izdatim vaučerom (izuzetak iznad):** dok god `voucher_override_approved_by` nije prazno i `payment_status != PAID` i `Booking.status != CANCELLED`, sistem svakodnevno podseća tim da uplata nije završena. Podsetnik prestaje čim `payment_status` pređe u `PAID` (redovan generiše se vaučer bez izuzetka od tog trenutka) ili se rezervacija otkaže.
 - **Otvorena potvrda dobavljača, po stavci:** `BookingItem.item_status = PENDING_SUPPLIER_CONFIRMATION` (poglavlje 4) prati se **po stavci, ne po celoj rezervaciji** — kod rezervacije sa više proizvoda od različitih dobavljača (npr. hotel + transfer), svaka stavka se nezavisno prati prema sopstvenom dobavljaču, razrešenom preko `BookingItem.product_id` → M3 `Supplier` (isto razrešavanje kao poglavlje 8.1). Stavka koja ostane u ovom statusu duže od praga (podrazumevano 48h, konfigurabilno po tipu proizvoda) generiše upozorenje za tu stavku — potvrda ostalih stavki iste rezervacije kod drugih dobavljača ne utiče na ovaj alarm i obrnuto.
 - **Vaučer nedostaje uprkos punoj uplati:** ako `payment_status = PAID` a `voucher_url` je i dalje prazno (van override toka iznad, koji bi ga već popunio), to je znak da automatsko generisanje iz poglavlja 6 nije uspelo — sistem odmah generiše upozorenje; ovo je greška u sistemu i ne sme tiho da prođe.
+- **Nenajavljena stavka pred boravak (dopuna, avgust 2026 — problem #2):** `CONTRACTED` stavka sa `item_status = CONFIRMED` čiji `stay_from` pada u narednih 7 dana (podrazumevano, konfigurabilno), a `announced_at` je i dalje prazno — znači da dobavljač još ne zna ko dolazi. Ovo je hitniji alarm od ostalih u ovoj listi jer direktno preti check-inu.
+- **Najava bez potvrde dobavljača (dopuna, avgust 2026 — problem #2):** `announced_at` popunjeno duže od 5 dana (podrazumevano, konfigurabilno), a `supplier_confirmed_at` i dalje prazno — informativni podsetnik timu da proveri kod dobavljača, niži prioritet od prethodnog.
 
-Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću stavku (sistemska greška).
+Ovi alarmi se prikazuju u internom panelu (M17 Agent Inbox) i ne uvode novu dozvolu — vidljivi su svima sa `M5/booking/VIEW` nad tom rezervacijom, uz kopiju na email Vlasniku/Direktoru za treću i četvrtu stavku (sistemska greška, odnosno rizik od propuštenog check-ina).
 
 ### 6.2 Identitet dobavljača se nikad ne izlaže B2C/B2B kanalima (dopuna, avgust 2026, na zahtev vlasnika)
 
@@ -1919,11 +1923,44 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 2. Priprema se nova `DRAFT` sa `supersedes_manifest_id` ka prethodnoj, sa trenutno važećim stavkama.
 3. Nova lista se ne šalje automatski — isti princip kao 8.4: čovek pregleda i šalje reviziju.
 
+### 8.6 "Najava" kao formalni koncept (dopuna, avgust 2026 — rešava problem #2 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, vidi `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md` poglavlje 2)
+
+Do sada je "da li je dobavljač najavljen/potvrdio" postojalo samo posredno — preko `item_status = PENDING_SUPPLIER_CONFIRMATION` (koje prati potvrdu dostupnosti pri rezervaciji, poglavlje 4) i posredno preko `SupplierManifest.status = SENT` (koje prati da li je operativna lista poslata, poglavlje 8.1). Ovo su dva različita koraka istog toka koja se dosad nisu eksplicitno pratila na nivou pojedinačne stavke: **(a)** dostupnost potvrđena od dobavljača pri samoj rezervaciji, **(b)** dobavljač formalno obavešten *ko* dolazi (najava/rooming lista).
+
+**Pravilo:** `BookingItem.announced_at` (poglavlje 4.2) formalizuje korak (b):
+- Za `CONTRACTED` stavke: popunjava se automatski čim stavka uđe u `SupplierManifest` koji pređe u `status = SENT` (kopira se `SupplierManifest.sent_at`). Ako lista kasnije postane `SUPERSEDED` i stavka se pojavi na novoj poslatoj listi (poglavlje 8.5), `announced_at` se ažurira na vreme slanja te nove liste.
+- Za `API` stavke: popunjava se automatski u trenutku kad `item_status` pređe u `CONFIRMED` (poglavlje 4, korak 2) — najava je već sadržana u samom API pozivu ka dobavljaču (isto obrazloženje kao uvod poglavlja 8, "poseban operativni dokument nije potreban").
+
+`BookingItem.supplier_confirmed_at`/`supplier_confirmed_by` prati korak potvrde od strane dobavljača da je najava primljena:
+- Za `CONTRACTED` stavke: ručni unos — dobavljači tipično nemaju API, potvrda stiže mejlom/telefonom, zaposleni je unosi u M17 panelu (dugme "Označi kao potvrđeno od dobavljača" na stavci ili na celoj poslatoj listi odjednom, popunjava sve stavke te liste).
+- Za `API` stavke: popunjava se automatski, isti trenutak kao `announced_at` (M4 `BookingConfirmation` već predstavlja i najavu i potvrdu dobavljača u jednom koraku).
+
+Alarmi za oba koraka (nenajavljena stavka pred boravak, najava bez potvrde) definisani su u poglavlju 6.1.
+
+### 8.7 Konfigurabilno automatsko pripremanje najave po dobavljaču (dopuna, avgust 2026 — rešava problem #3, vidi GAP-analiza poglavlje 3)
+
+Poglavlje 8.4 danas priprema `DRAFT` nacrt po fiksnom pravilu (N dana pre `stay_from`, isto za sve dobavljače) i uvek zahteva ljudski klik za slanje. Vlasnik traži da trenutak *pripreme* nacrta bude podesiv po dobavljaču (npr. tek posle naplaćene akontacije za jednog dobavljača, odmah po potvrdi za drugog) — **slanje i dalje ostaje isključivo ljudska radnja, ovo se ne menja** (potvrđeno sa vlasnikom — vidi diskusiju pri specifikaciji ovog poglavlja); menja se samo kada je nacrt spreman i istaknut za odobrenje, ne ko ga šalje.
+
+#### `SupplierAnnouncementRule`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID, nullable (FK → M3 Supplier) | `NULL` = podrazumevano pravilo, važi za dobavljače bez sopstvenog pravila |
+| trigger_condition | enum: `DAYS_BEFORE_STAY`, `ON_CONFIRMATION`, `AFTER_DEPOSIT_PAID`, `AFTER_FULL_PAYMENT` | `DAYS_BEFORE_STAY` — postojeće ponašanje iz 8.4 (koristi `days_before_stay`); `ON_CONFIRMATION` — čim `item_status = CONFIRMED`, nezavisno od uplate; `AFTER_DEPOSIT_PAID` — čim `Booking.payment_status` pređe u `PARTIALLY_PAID` ili `PAID`; `AFTER_FULL_PAYMENT` — tek kad `payment_status = PAID` |
+| days_before_stay | integer, nullable | koristi se samo kad `trigger_condition = DAYS_BEFORE_STAY` |
+| created_by / created_at / updated_by / updated_at | UUID / timestamp | isti obrazac kao `MarkupRule` (poglavlje 2.1) |
+
+**Razrešavanje pravila:** najspecifičnije pobeđuje — isti princip kao `MarkupRule` (poglavlje 2.2). Ako za `Supplier` postoji sopstveni `SupplierAnnouncementRule`, koristi se on; inače se koristi podrazumevano pravilo (`supplier_id IS NULL`). Ako podrazumevano pravilo ne postoji, važi `trigger_condition = DAYS_BEFORE_STAY` sa vrednošću iz poglavlja 6.1 (7 dana) kao ugrađeni fallback — nema regresije za dobavljače koji danas nemaju posebno pravilo.
+
+**Tok:** periodičan posao (poglavlje 8.4) za svaku `CONTRACTED` stavku sa `item_status = CONFIRMED` i praznim `announced_at` proverava da li je uslov iz važećeg `SupplierAnnouncementRule` ispunjen. Kad jeste, nacrt (`SupplierManifest.status = DRAFT`) se priprema odmah (ako već ne postoji za taj period/dobavljača) i **ističe se kao prioritetan** u M17 Agent Inbox — vidljivo odvojeno od običnih nacrta pripremljenih rutinski. Ovo ostaje nivo **"Autonomno"** za pripremu (čisto informativno, isto obrazloženje kao postojeći 8.4), a slanje ostaje **"Predloži pa čovek odobri"** — nepromenjeno.
+
+**Dozvole:** `M5/supplier-announcement-rule/VIEW`, `EDIT` — Vlasnik, Direktor (isti krug kao `markup-rule`, poglavlje 10 — pravila koja utiču na odnos sa dobavljačem su osetljiva).
+
 ---
 
 ## 9. Događaji (Event Bus) koje M5 emituje
 
-`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta, M10 fakturisanje, M11 eTurista prijava i CIS registracija garancije poglavlje 4.3, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
+`booking.confirmed`, `booking.pending_supplier_confirmation`, `booking.modified`, `booking.cancelled` — buduci moduli (M6 istorija gosta i post-trip anketa, M10 fakturisanje, M11 CIS registracija garancije putovanja poglavlje 2.3, M12 marketing, M20 generisanje/revizija ugovora sa klijentom) se pretplaćuju na ove događaje kad dođu na red; M5 ih ne poziva direktno (princip #2, poglavlje 3).
 
 ---
 
@@ -1937,6 +1974,7 @@ Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaž
 | `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager (sve); Prodajni agent (podrazumevano samo sopstveni klijenti — širi se pojedinačnim izuzetkom iz M1 ako treba); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
 | `M5/booking/MODIFY`, `CANCEL` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Gost (sopstvena rezervacija, u skladu sa pravilima otkazivanja) |
 | `M5/markup-rule/VIEW`, `EDIT` | Vlasnik, Direktor — cenovna politika je osetljiva, ne deli se šire podrazumevano |
+| `M5/supplier-announcement-rule/VIEW`, `EDIT` | Vlasnik, Direktor — vidi poglavlje 8.7 |
 | `M5/voucher/OVERRIDE_ISSUE` (izdavanje bez pune uplate) | Vlasnik, Direktor — **nikad AI agent, nikad Sales Manager/Prodajni agent**, u skladu sa poglavljem 6 (finansijski rizik) |
 | `M5/supplier-manifest/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
 | `M5/supplier-manifest/CREATE` (nacrt) | Vlasnik, Direktor, Sales Manager, Prodajni agent; i AI agent zadužen za M5 (poglavlje 8.4) |
@@ -1968,7 +2006,9 @@ Prefiks: `/api/v1/sales`
 | `/bookings/calendar/:date` | GET | pun spisak `BookingItem` razvrstan u dolazi/odlazi/u toku/jednodnevno za taj dan (poglavlje 7.1), sa istim pravima pristupa kao `/bookings` |
 | `/supplier-manifests` | GET / POST | lista postojećih / generisanje nacrta (agregacija potvrđenih stavki po dobavljaču + periodu, poglavlje 8.4; `POST` prima i `language`, poglavlje 8.3) |
 | `/supplier-manifests/:id` | GET | detalji, uključujući stavke i lanac revizija (`supersedes_manifest_id`) |
-| `/supplier-manifests/:id/send` | POST | zahteva `M5/supplier-manifest/SEND`; menja status u `SENT`, šalje dokument na `sent_to_email`, popunjava `sent_at`/`sent_by` |
+| `/supplier-manifests/:id/send` | POST | zahteva `M5/supplier-manifest/SEND`; menja status u `SENT`, šalje dokument na `sent_to_email`, popunjava `sent_at`/`sent_by`, i (poglavlje 8.6) popunjava `announced_at` na svakoj obuhvaćenoj `BookingItem` |
+| `/supplier-manifests/:id/confirm-supplier` | POST | zahteva `M5/supplier-manifest/SEND`; ručni unos potvrde dobavljača (poglavlje 8.6) — popunjava `supplier_confirmed_at`/`supplier_confirmed_by` na svim `BookingItem` sa te liste |
+| `/supplier-announcement-rules` | GET / POST / PATCH | upravljanje pravilima iz poglavlja 8.7, zahteva `M5/supplier-announcement-rule/VIEW` ili `EDIT` |
 
 ---
 
@@ -2030,14 +2070,16 @@ Prefiks: `/api/v1/sales`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M10), poglavlje 8 (Faza 2) i Dodatak A (nalaz od 28.7.2026. o SEF-u)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda knjigovođe/pravnika pre implementacije (poglavlje 9 ovog dokumenta)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), eksplicitan poziv M11 za boravišnu taksu pri pripremi nacrta (poglavlje 6.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, ograničenje gotovine, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
+**Verzija:** 1.7 — na direktan zahtev vlasnika (avgust 2026): kurs konverzije u RSD sad je na dan uplate umesto na dan izdavanja dokumenta (poglavlje 3), uklonjena sistemska tvrda blokada gotovinske uplate preko 3.000 EUR (poglavlje 5.2, uz zadržan pravni rizik kao otvorenu stavku), uklonjena veza ka M11 boravišnoj taksi jer je ta obaveza smeštajnog objekta a ne agencije (poglavlje 1, 6.0, 10) — M11 je istovremeno u sopstvenoj specifikaciji izgubio i eTurista i boravišnu taksu nadležnost, vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md`; v1.6 rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): automatski okidač za `FiscalDocument` nacrt po `booking.confirmed` (poglavlje 6.0), automatski okidač za `SupplierObligation` (poglavlje 8.0), novi `document_type = KNJIZNO_ODOBRENJE` za primenu M7 retroaktivnog rabata (poglavlje 5.1a), alarm za DRAFT fiskalni dokument koji predugo čeka slanje (poglavlje 6.2), ažurirana referenca za `tip_nastupanja` (poglavlje 4.1 → M5 poglavlje 4.0a); v1.5 dodate isplate dobavljačima u stranoj valuti i refundacije gostu van kartičnog toka (poglavlje 8.5), poređenjem sa Travelsoft Pay portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.4 dodata rekonsilijacija ka gostu (poglavlje 5.3); v1.3 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 3.2) — obe poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); v1.2 dodala PDV po sistemu marže (Čl. 35), obaveze prema dobavljačima, SEF rok prihvatanja — poređenjem sa ranijim paralelnim dokumentom projekta (`Terminal_Travel_Agency_workflow.html`)
 **Zavisi od:** M1, M3, M5. Formalno i od M6/M7 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
 
 ---
 
 ## 1. Svrha i obim modula
 
-M10 pretvara potvrđenu rezervaciju (M5) u zakonski važeći fiskalni dokument (SEF e-faktura za B2B, ESIR fiskalni račun za B2C), prati naplatu od gostiju **i obaveze prema dobavljačima**, i drži osnovne finansijske izveštaje. Van obima: dublja poslovna analitika (to je M13, read-only nad svim modulima), i eTurista/boravišna taksa prijava nadležnima (to je M11 — iako se taksa *naplaćuje* kroz M10 kao stavka na dokumentu, njeno *prijavljivanje* državi je M11 posao, poglavlje 10 ovog dokumenta).
+M10 pretvara potvrđenu rezervaciju (M5) u zakonski važeći fiskalni dokument (SEF e-faktura za B2B, ESIR fiskalni račun za B2C), prati naplatu od gostiju **i obaveze prema dobavljačima**, i drži osnovne finansijske izveštaje. Van obima: dublja poslovna analitika (to je M13, read-only nad svim modulima).
+
+**Boravišna taksa i eTurista/CIS prijava gostiju nisu u obimu M10 niti M11** (dopuna avgust 2026, na zahtev vlasnika) — obe su zakonska obaveza smeštajnog objekta (hotela/dobavljača) koji direktno prima gosta, ne agencije-touroperatora koja aranžman prodaje; ranije verzije ove specifikacije i M11 specifikacije su to greškom tretirale kao nadležnost agencije. Terminal ne prati, ne obračunava niti prijavljuje nijedno od ovo dvoje.
 
 ### 1.1 Napomena o redosledu zavisnosti
 
@@ -2068,7 +2110,11 @@ Ugovori (M3) mogu biti u EUR ili drugoj valuti, ali **fiskalni dokument prema sr
 | source | enum: `NBS_API`, `MANUAL` | dok se ne poveže automatski izvor, unosi se ručno |
 | created_at | timestamp | |
 
-Svaki `FiscalDocument` čuva i originalni iznos (iz `Booking.total_price`, u izvornoj valuti) i RSD iznos, izračunat po `nbs_middle_rate` **na dan prometa** (dan izdavanja dokumenta, standardna računovodstvena praksa u Srbiji) — ne na dan rezervacije ako se ta dva datuma razlikuju. Isti mehanizam (kurs na dan X) koristi se i za obaveze prema dobavljačima (poglavlje 8), samo sa druge strane transakcije.
+Svaki `FiscalDocument` čuva i originalni iznos (iz `Booking.total_price`, u izvornoj valuti) i RSD iznos, izračunat po `nbs_middle_rate` **na dan uplate** (dan kad je odgovarajući `Payment` primljen, poglavlje 5.2 — dopuna avgust 2026, na zahtev vlasnika, zamenjuje raniju verziju koja je kurs vezivala za dan izdavanja dokumenta) — ne na dan rezervacije ako se ta dva datuma razlikuju.
+
+Pošto se nacrt (`DRAFT`, poglavlje 6.0) priprema automatski čim rezervacija pređe u `CONFIRMED`, često pre nego što je uplata stigla, `amount_rsd` na nacrtu je **privremen** (izračunat po kursu na dan pripreme nacrta) i **ponovo se izračunava** po kursu na dan uplate čim `Payment` bude primljen, pre nego što dokument sme preći u `SUBMITTED`. Ako se uplata prima u više navrata (avans + balans), merodavan je kurs na dan uplate koja `Booking.total_price` dovodi do pune naplate (`payment_status → PAID`) — granični slučaj različitih kurseva po ratama zahteva potvrdu knjigovođe pre implementacije, isto obrazloženje kao poglavlje 6.3.
+
+Isti mehanizam (kurs na dan X) koristi se i za obaveze prema dobavljačima (poglavlje 8), samo sa druge strane transakcije — tamo je već kurs vezan za dan fakture/plaćanja, nepromenjeno ovom dopunom.
 
 ### 3.2 Konvencija skladištenja novčanih iznosa — integer, ne decimal
 
@@ -2159,7 +2205,9 @@ M7 poglavlje 3.2 opisuje da se odobren `CommissionRebate` "knjiži kao umanjenje
 | received_at | timestamp, nullable | |
 | recorded_by | UUID (FK → M1 User), nullable | ko je ručno uneo prijem uplate — **null za `CARD`**, jer se ta uplata beleži automatski preko povratnog poziva (webhook) provajdera, ne ručno |
 
-**Ograničenje gotovine:** `method = CASH` je ograničen na **3.000 EUR (ili odgovarajuću RSD protivvrednost po kursu iz poglavlja 3) po transakciji, za rezidente** — u skladu sa Zakonom o sprečavanju pranja novca. Sistem odbija unos `CASH` uplate preko ovog limita; iznos preko limita mora ići kroz `BANK_TRANSFER` ili `CARD`, ili se deli na više nalogodavaca/transakcija samo ako je to stvarno opravdano (ne radi zaobilaženja limita — ova vrsta deljenja je upravo ono što zakon sprečava).
+**Gotovina — bez sistemske blokade (dopuna avgust 2026, na zahtev vlasnika):** ranija verzija ove specifikacije je uvodila tvrdu blokadu `CASH` uplate preko 3.000 EUR po transakciji, po analogiji sa Zakonom o sprečavanju pranja novca. Na eksplicitan zahtev vlasnika, sistem **ne sprovodi** ovo ograničenje programski — `method = CASH` se prima bez gornjeg limita u aplikaciji.
+
+**Napomena o pravnom riziku:** Zakon o sprečavanju pranja novca i finansiranja terorizma i dalje postoji nezavisno od toga da li ga aplikacija tehnički sprovodi; uklanjanje sistemske kontrole prebacuje odgovornost za usklađenost na ručnu proceduru tima. Potvrditi sa pravnikom/knjigovođom pre puštanja u produkciju da li je ručna procedura dovoljna, ili sistem ipak treba bar meko upozorenje (ne blokada) u interfejsu kod velikih gotovinskih iznosa — isto obrazloženje kao ostale stavke koje čekaju potvrdu pravnika (poglavlje 12).
 
 Kad zbir `RECEIVED` uplata za `booking_id` dostigne `Booking.total_price`, M10 poziva M5 `PATCH /bookings/:id/payment-status` sa `PAID`; delimičan iznos → `PARTIALLY_PAID`. **Ovaj prelazak u `PAID` je i okidač za generisanje vaučera u M5 (poglavlje 6 M5 specifikacije)** — M10 ne generiše vaučer sam, samo obaveštava M5 kroz ovaj isti poziv.
 
@@ -2177,8 +2225,6 @@ Potvrđeno poređenjem sa PrimeTravel analizom, koja navodi automatsku rekonsili
 ## 6.0 Automatska priprema nacrta po potvrdi rezervacije (dopuna, avgust 2026 — rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md`)
 
 M5 poglavlje 9 navodi M10 ("fakturisanje") među modulima koji se pretplaćuju na `booking.confirmed` — ali ovaj dokument do sada nije eksplicitno definisao da se to zaista dešava automatski, samo je izlagao `POST /fiscal-documents/draft` kao endpoint koji nešto/neko poziva. Ovim se to zatvara: **M10 se pretplaćuje na `booking.confirmed`** (Event Bus) i automatski poziva isti tok kao `POST /fiscal-documents/draft` za pogođeni `booking_id`, isti nivo autonomije kao poglavlje 6 dole (priprema nacrta je "Autonomno", slanje ostaje "Nikad autonomno") — isti obrazac kao M6 §3.2 (lojalnost), M11 §4.3 (CIS garancija) i M20 §3.1 (ugovor sa klijentom), koji se svi već pretplaćuju na isti događaj.
-
-**Priprema nacrta dodatno poziva M11 `GET /tourist-tax/rates`** (filtrirano po opštini smeštaja iz `BookingItem`/`Product`) da izračuna i doda stavku boravišne takse na nacrt (M11 poglavlje 3.2) — ovaj poziv nije bio eksplicitno naveden u API ugovoru (poglavlje 10), sada jeste.
 
 **Izuzetak — `KNJIZNO_ODOBRENJE` (poglavlje 5.1a) nije pokriven ovim automatskim okidačem** — taj tip dokumenta nastaje iz `CommissionRebate` odobrenja (M7 poglavlje 3.2), ne iz `booking.confirmed`, i priprema se posebnim pozivom kad Vlasnik/Direktor/Računovođa odobri rabat.
 
@@ -2238,7 +2284,7 @@ Ovo je namerno obrnut redosled u odnosu na `BANK_TRANSFER` (gde rezervacija ne �
 
 ### 7.3 Zašto ovo nije "Nikad autonomno" transfer novca
 
-Poglavlje 7 Master dokumenta zabranjuje AI agentu da autonomno prenosi novac. Ovo se ne odnosi na tok iz 7.2 — tu gost svojom voljom unosi karticu i plaća sopstvenu rezervaciju kroz sertifikovan provajder; sistem samo mehanički prosleđuje taj zahtev i beleži ishod (isti princip kao automatski poziv ka M4 ili automatska eTurista prijava u M11) — nijedan AI agent ne odlučuje da li i kome se novac prenosi.
+Poglavlje 7 Master dokumenta zabranjuje AI agentu da autonomno prenosi novac. Ovo se ne odnosi na tok iz 7.2 — tu gost svojom voljom unosi karticu i plaća sopstvenu rezervaciju kroz sertifikovan provajder; sistem samo mehanički prosleđuje taj zahtev i beleži ishod (isti princip kao automatski poziv ka M4 ili automatska CIS registracija garancije putovanja u M11) — nijedan AI agent ne odlučuje da li i kome se novac prenosi.
 
 ---
 
@@ -2349,7 +2395,7 @@ Prefiks: `/api/v1/finance`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/fiscal-documents/draft` | POST | priprema nacrt iz `booking_id` (sme AI agent, i sistem sam po `booking.confirmed`, poglavlje 6.0), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) i dodaje boravišnu taksu pozivom M11 `/tourist-tax/rates` (poglavlje 6.0) |
+| `/fiscal-documents/draft` | POST | priprema nacrt iz `booking_id` (sme AI agent, i sistem sam po `booking.confirmed`, poglavlje 6.0), automatski određuje `vat_calculation_basis` iz `Booking.tip_nastupanja` (poglavlje 4.4) |
 | `/fiscal-documents/credit-note/draft` | POST | priprema `KNJIZNO_ODOBRENJE` nacrt iz `credited_rebate_id` (M7 `CommissionRebate`, poglavlje 5.1a) — zaseban endpoint jer nema `booking_id` |
 | `/fiscal-documents/:id/submit` | POST | šalje ka SEF/ESIR — zahteva `M10/fiscal-document/SUBMIT`, samo ljudski nalog |
 | `/fiscal-documents/:id` | GET | |
@@ -2373,14 +2419,13 @@ Prefiks: `/api/v1/finance`
 ## 11. Izlazni kriterijum (M10 deo Faze 2)
 
 - [ ] Za rezervaciju sa pravnim licem kao nalogodavcem, sistem automatski bira `SEF_EFAKTURA`; za fizičko lice, `ESIR_RACUN`.
-- [ ] Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan izdavanja.
+- [ ] Nacrt fiskalnog dokumenta ispravno konvertuje iznos u RSD po NBS srednjem kursu na dan uplate; ako uplata stigne posle pripreme nacrta, `amount_rsd` se ispravno preračunava pre `SUBMIT`-a (poglavlje 3).
 - [ ] `vat_calculation_basis` se ispravno određuje iz `Booking.tip_nastupanja` (`MARZA` za organizatora, `PROVIZIJA` za posrednika), i PDV se obračunava po formuli iz poglavlja 4, bez posebnog iskazivanja PDV-a gostu kod organizatorskog aranžmana.
 - [ ] Pokušaj izmene `Booking.tip_nastupanja` posle kreiranja rezervacije se odbija.
 - [ ] Slanje (`SUBMIT`) je fizički nemoguće bez ljudskog naloga — pokušaj preko API-ja bez odgovarajuće dozvole/uloge se odbija.
 - [ ] Svaki `SUBMIT` i `STORNO` upisan je u M1 audit log sa identitetom osobe koja je potvrdila.
 - [ ] `buyer_acceptance_deadline` se ispravno postavlja na 15 dana od slanja SEF fakture i status prelazi u `EXPIRED` ako kupac ne odgovori.
 - [ ] Prijem uplate (delimičan i pun iznos) ispravno ažurira `payment_status` na Booking-u u M5, i prelazak u `PAID` ispravno pokreće generisanje vaučera u M5.
-- [ ] Unos `CASH` uplate preko 3.000 EUR (ili RSD protivvrednosti) se odbija.
 - [ ] Nijedan broj kartice se nigde ne čuva — sistem drži samo `gateway_transaction_id`/token, provereno testom da se sirovi podaci kartice nikad ne pojavljuju u našim logovima ni bazi.
 - [ ] Test: kartično plaćanje uspe, ali M5 potvrda rezervacije zatim ne uspe (simuliran nestanak kapaciteta) → `Payment` prelazi u `VOIDED`, novac se automatski vraća, gost dobija jasnu poruku, nijedna rezervacija nije kreirana.
 - [ ] Ponovljen klik/mrežni prekid pri kartičnom plaćanju (isti `gateway_idempotency_key`) ne rezultuje duplom naplatom.
@@ -2392,7 +2437,7 @@ Prefiks: `/api/v1/finance`
 - [ ] `SupplierPaymentInstruction.status` ne može preći u `EXECUTED` bez ljudskog naloga (`executed_by` popunjen, provereno da AI agent nema pristup ovom prelazu).
 - [ ] `RefundInstruction` ne može preći u `EXECUTED` bez prethodnog `APPROVED` — pokušaj preskakanja koraka se odbija.
 - [ ] Broj kartice se nigde ne pojavljuje u `virtual_card_reference` — samo token/referenca provajdera, isto pravilo kao poglavlje 7.1.
-- [ ] `FiscalDocument` nacrt se automatski priprema (bez ručnog poziva) čim `Booking` pređe u `CONFIRMED`, uključujući ispravno dodatu stavku boravišne takse iz M11 (poglavlje 6.0).
+- [ ] `FiscalDocument` nacrt se automatski priprema (bez ručnog poziva) čim `Booking` pređe u `CONFIRMED` (poglavlje 6.0).
 - [ ] `SupplierObligation` se automatski kreira sa popunjenim `booking_item_id` čim `BookingItem` (CONTRACTED) pređe u `item_status = CONFIRMED` (poglavlje 8.0); API-sourced stavke ne generišu ovaj zapis pojedinačno.
 - [ ] `FiscalDocument` u statusu `DRAFT` duže od 24h od trenutka kad je mogao biti poslat generiše `HealthSignal`, vidljiv u M17 Agent Inbox (poglavlje 6.2).
 - [ ] `KNJIZNO_ODOBRENJE` dokument se ispravno priprema iz odobrenog `CommissionRebate` (M7), sa `booking_id = null` i popunjenim `related_subagent_id`/`credited_rebate_id`, i zahteva istu ljudsku potvrdu za slanje kao svaki drugi fiskalni dokument (poglavlje 5.1a).
@@ -2403,7 +2448,8 @@ Prefiks: `/api/v1/finance`
 
 - Tačan tehnički ugovor sa SEF v4.0.0 i sa izabranim sertifikovanim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom pre implementacije ovog dela (poglavlje 6).
 - Automatski dnevni uvoz NBS kursa (`ExchangeRateSnapshot.source = NBS_API`) — za sada je predviđeno i ručno unošenje kao alternativa dok se ne poveže automatski izvor.
-- Boravišna taksa kao stavka na fiskalnom dokumentu — iznos se naplaćuje kroz M10, ali obaveza prijavljivanja nadležnima ide kroz M11; tačan način razmene podataka između ta dva modula definiše se kad M11 bude specificiran.
+- **Ograničenje gotovine (AML)** — sistemska tvrda blokada uklonjena na zahtev vlasnika (poglavlje 5.2); potvrditi sa pravnikom da li je ručna procedura tima dovoljna za usklađenost sa Zakonom o sprečavanju pranja novca, ili treba vratiti bar meko upozorenje u interfejsu.
+- **Kurs pri više uplata u različitim danima** (avans + balans, poglavlje 3) — tačno pravilo za koji kurs se koristi kad se ista faktura naplati u više navrata sa različitim kursom zahteva potvrdu knjigovođe pre implementacije.
 - Izbor konkretnog PCI-DSS platnog provajdera (poglavlje 7) — treba potvrditi koji provajder podržava RSD i lokalne kartice/banke pre implementacije `PaymentGatewayAdapter`.
 - **Granični slučajevi PDV po sistemu marže** (poglavlje 4.4) — mešoviti aranžmani, samostalna prodaja usluge van paketa — zahtevaju potvrdu knjigovođe pre implementacije.
 - **Pravna posledica `buyer_acceptance_status = EXPIRED`/`REJECTED`** kod SEF fakture (da li se automatski pokreće neka dalja radnja, ili samo upozorava tim) — potvrditi sa knjigovođom/pravnikom, ista ograda kao za SEF tehnički ugovor.
@@ -2425,84 +2471,22 @@ Prefiks: `/api/v1/finance`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M11), poglavlje 8 (Faza 2) i poglavlje 9 (rokovi)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata CIS registracija garancije po pojedinačnoj rezervaciji, broj garancije i skidanje opterećenja pri stornu (poglavlje 4.3)
-**Zavisi od:** M1, M5. Formalno i od M6 (poglavlje 4 Master dokumenta) — vidi napomenu o redosledu niže.
+**Verzija:** 2.0 — na direktan zahtev vlasnika (avgust 2026): uklonjena eTurista/CIS prijava gostiju i boravišna taksa (ranija poglavlja 2 i 3) — obe su zakonska obaveza smeštajnog objekta (hotela/dobavljača) koji gosta direktno prima, ne agencije-touroperatora koja aranžman prodaje; modul sada pokriva isključivo garanciju putovanja (YUTA) i evidencije za inspekciju; preostala poglavlja prenumerisana (bivše 4→2, 5→3, 6→4, 7→5, 8→6, 9→7). Funkcionalnost CIS registracije garancije po rezervaciji (uvedena u v1.1) ostaje nepromenjena, sada kao poglavlje 2.3.
+**Zavisi od:** M1, M5.
 
 ---
 
 ## 1. Svrha i obim modula
 
-M11 pokriva tri zakonske obaveze koje su namerno odvojene od M10 jer imaju sopstvene rokove i API-je (poglavlje 4 Master dokumenta): **eTurista prijava gostiju**, **boravišna taksa**, i **garancija putovanja (YUTA)**. Dodatno drži **evidencije spremne za inspekciju**.
+M11 pokriva zakonsku obavezu **garancije putovanja (YUTA)** — zakonski uslov da agencija uopšte sme da prodaje organizovana putovanja — i drži **evidencije spremne za inspekciju**.
 
-### 1.1 Napomena o redosledu zavisnosti
-
-Isti problem kao u M10: M6 (CRM) formalno je zavisnost, ali još ne postoji kad M11 dolazi na red (Faza 2 pre Faze 3). M11 zato drži sopstveni minimalni zapis podataka o gostu potrebnih **isključivo za zakonsku prijavu** (ime, tip i broj dokumenta, državljanstvo, datum rođenja) direktno na `GuestRegistration`, nezavisno od punog M6 profila. Kad M6 bude specificiran, ovi podaci se povezuju/preuzimaju odatle bez izmene strukture ovog modula.
+**Napomena (avgust 2026, na zahtev vlasnika):** eTurista/CIS prijava gostiju i boravišna taksa su ranije bile deo ovog modula. Uklonjene su jer su zakonska obaveza smeštajnog objekta (hotela/dobavljača) koji gosta direktno prima, ne agencije-touroperatora koja aranžman prodaje. Terminal ne prati, ne obračunava niti prijavljuje nijedno od ovo dvoje — ni ovde ni u M10 (vidi `07-SPECIFIKACIJA-M10-FINANSIJE.md` poglavlje 1).
 
 ---
 
-## 2. eTurista/CIS prijava gostiju
+## 2. Garancija putovanja (YUTA)
 
-### 2.1 `GuestRegistration`
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| booking_item_id | UUID (FK → M5 BookingItem) | mora biti `ACCOMMODATION` tip proizvoda |
-| guest_full_name | string | |
-| document_type | enum: `PASSPORT`, `LICNA_KARTA` | |
-| document_number | string | |
-| nationality | string | |
-| date_of_birth | date | |
-| document_expiry_date | date, nullable | datum isteka putne isprave — nullable dok podatak nije dostupan (npr. lična karta za domaće putovanje bez tog polja), obavezan za sve slučajeve gde se prelazi granica |
-| check_in_date / check_out_date | date | |
-| status | enum: `NOT_SUBMITTED`, `SUBMITTED`, `CONFIRMED`, `FAILED` | |
-| eturista_reference | string, nullable | potvrda sistema |
-| submitted_at | timestamp, nullable | |
-| failure_reason | text, nullable | |
-
-### 2.2 Automatski tok (potvrđeno)
-Kad `check_in_date` nastupi (ili odmah po potvrdi rezervacije, ako je poznato unapred), sistem **automatski** šalje prijavu ka eTurista/CIS API-ju — bez čekanja na ljudski klik. Ovo je deterministički backend proces (isti princip kao poziv ka M4 spoljnom provajderu), ne AI odluka — u skladu sa principom #4 (determinizam pre autonomije): podaci već postoje i ne postoji prostor za procenu, samo mehaničko izveštavanje pod rokom.
-
-- Neuspeh (`FAILED`) odmah generiše upozorenje timu (interni panel + email Vlasniku/Direktoru) — ovo **ne** sme tiho da propadne s obzirom na zakonski rok.
-- Odjava (checkout) prijava se šalje na sličan način kad `check_out_date` nastupi, ako to eTurista/CIS proces zahteva (potvrditi tačan tehnički zahtev pri implementaciji — vidi poglavlje 7).
-
-### 2.3 Alarm za rok važenja putne isprave
-
-Sistem upozorava tim kad je `document_expiry_date` gosta ili pratećeg putnika **manje od 6 meseci od datuma polaska** (`check_in_date` odgovarajuće `BookingItem` stavke iz M5) — standardan uslov ulaska u većinu destinacija. Provera se pokreće u dva trenutka: (1) pri kreiranju `GuestRegistration` (ako je podatak već poznat), i (2) ponovnom proverom u periodičnom poslu koji prati nadolazeće polaske (isti mehanizam kao provera roka boravišne takse i garancije, poglavlje 4.2). Ovo je nivo **"Autonomno"** iz poglavlja 7 Master dokumenta — čisto informativno upozorenje, sistem ne blokira rezervaciju niti prijavu, samo obaveštava tim da kontaktira gosta na vreme.
-
----
-
-## 3. Boravišna taksa
-
-### 3.1 `TouristTaxRate` — stopa po opštini/kategoriji
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| municipality | string | opština u kojoj se smeštaj nalazi |
-| accommodation_category | string, nullable | ako se stopa razlikuje po kategoriji smeštaja |
-| amount_per_night | decimal | u RSD |
-| valid_from / valid_to | date, nullable | opštine povremeno menjaju iznos |
-
-### 3.2 Naplata (veza sa M10)
-Iznos boravišne takse se obračunava po gostu-noćenju i unosi kao stavka na `FiscalDocument` u M10 (već predviđeno u M10 specifikaciji, poglavlje 12, kao otvorena stavka — ovim dokumentom se to zatvara). M11 ne naplaćuje ništa direktno — samo čita naplaćene iznose iz M10 radi izveštavanja.
-
-### 3.3 `TouristTaxRemittance` — mesečno izveštavanje
-| Polje | Tip | Napomena |
-| :---- | :---- | :---- |
-| id | UUID (PK) | |
-| municipality | string | |
-| period_month / period_year | integer | mesec za koji se izveštava |
-| total_amount | decimal | zbir iz M10 fiskalnih dokumenata za taj period/opštinu |
-| status | enum: `DRAFT`, `SUBMITTED`, `CONFIRMED` | |
-| deadline | date | **do 5. u mesecu za prethodni mesec** (poglavlje 9 Master dokumenta) |
-| submitted_by | UUID (FK → M1 User), nullable | |
-
-**Napomena o autonomiji:** priprema `DRAFT` izveštaja (agregacija iz M10) sme biti automatska; **slanje nadležnom organu (`SUBMITTED`) zahteva ljudsku potvrdu** — ovo je (za razliku od eTurista prijave pojedinačnog gosta) zbirni finansijski izveštaj nadležnom organu sa direktnim novčanim značenjem, pa se tretira kao "Predloži pa čovek odobri" iz poglavlja 7, ne kao čisto mehaničko izveštavanje. AI agent (nivo "Autonomno") može unapred da upozori tim kad se rok od 5. u mesecu približava, a `DRAFT` nije spreman.
-
----
-
-## 4. Garancija putovanja (YUTA)
-
-### 4.1 `TravelGuarantee`
+### 2.1 `TravelGuarantee`
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
@@ -2515,7 +2499,7 @@ Iznos boravišne takse se obračunava po gostu-noćenju i unosi kao stavka na `F
 
 **Nikad autonomno:** izmena ili obnavljanje garancije je eksplicitno na listi "Nikad autonomno" iz poglavlja 7 Master dokumenta — AI agent **nikad** sam ne menja ovaj zapis niti komunicira sa YUTA u ime agencije. Agent sme (nivo "Autonomno") samo da **prati datum isteka i šalje podsetnik** timu unapred (npr. 60/30/7 dana pre `valid_to`) — čisto informativna radnja, ne izvršenje.
 
-### 4.2 Iskorišćenost garancije — tvrda blokada prodaje preko limita
+### 2.2 Iskorišćenost garancije — tvrda blokada prodaje preko limita
 
 Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Booking.tip_nastupanja = ORGANIZATOR`, dopuna M10 specifikacije poglavlje 4.1; `Booking.status` nije `CANCELLED`) **nikad ne sme preći** `TravelGuarantee.coverage_amount` tekuće aktivne garancije — ovo je zakonski uslov za pravo agencije da uopšte prodaje organizovana putovanja, ne interna politika upravljanja rizikom.
 
@@ -2524,94 +2508,81 @@ Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Bookin
 - Otkazivanje rezervacije (M5 poglavlje 6) smanjuje kumulativnu iskorišćenost nazad — provera je uvek nad trenutnim, ne istorijskim stanjem.
 - Ova provera se odnosi isključivo na `ORGANIZATOR` promet — `POSREDNIK` rezervacije (M10 poglavlje 4.3) ne troše kapacitet sopstvene garancije agencije, jer odgovornost za izvršenje snosi stvarni organizator čiji aranžman se preprodaje.
 
-### 4.3 CIS registracija garancije po rezervaciji
+### 2.3 CIS registracija garancije po rezervaciji
 
-Za razliku od poglavlja 4.2 (koje prati **zbirnu** iskorišćenost garancije naspram limita), svaka pojedinačna `ORGANIZATOR` rezervacija mora biti evidentirana u CIS/YUTA registru pod sopstvenim brojem garancije, i ta evidencija mora biti **skinuta** (oslobođena) kad se rezervacija storno. Ovo su dve odvojene, po-rezervaciji obaveze prema registru, ne interno računovodstvo — otvorena rezervacija bez broja garancije, ili storno bez skinutog opterećenja, su konkretni propusti koje agencija mora da vidi i reši, ne samo interni brojevi u poglavlju 4.2.
+Za razliku od poglavlja 2.2 (koje prati **zbirnu** iskorišćenost garancije naspram limita), svaka pojedinačna `ORGANIZATOR` rezervacija mora biti evidentirana u CIS/YUTA registru pod sopstvenim brojem garancije, i ta evidencija mora biti **skinuta** (oslobođena) kad se rezervacija storno. Ovo su dve odvojene, po-rezervaciji obaveze prema registru, ne interno računovodstvo — otvorena rezervacija bez broja garancije, ili storno bez skinutog opterećenja, su konkretni propusti koje agencija mora da vidi i reši, ne samo interni brojevi u poglavlju 2.2.
 
 #### `TravelGuaranteeRegistration`
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | booking_id | UUID (FK → M5 Booking) | samo za `tip_nastupanja = ORGANIZATOR` |
-| travel_guarantee_id | UUID (FK → `TravelGuarantee`, poglavlje 4.1) | koja godišnja garancija pokriva ovu rezervaciju |
+| travel_guarantee_id | UUID (FK → `TravelGuarantee`, poglavlje 2.1) | koja godišnja garancija pokriva ovu rezervaciju |
 | cis_registration_number | string, nullable | broj garancije dobijen iz CIS/YUTA sistema pri registraciji — prazno dok registracija ne uspe |
 | status | enum: `PENDING`, `REGISTERED`, `RELEASE_PENDING`, `RELEASED`, `FAILED` | `RELEASE_PENDING` — rezervacija je storno, opterećenje u CIS-u još nije skinuto |
 | registered_at | timestamp, nullable | |
 | release_requested_at / released_at | timestamp, nullable | popunjava se pri, odnosno posle, stornirania |
 | failure_reason | text, nullable | |
 
-**Tok:** kad `Booking.status` (M5 poglavlje 4) pređe u `CONFIRMED` za `ORGANIZATOR` rezervaciju, kreira se zapis sa `status = PENDING` i sistem pokušava registraciju u CIS-u — isti deterministički obrazac kao eTurista prijava (poglavlje 2.2), pošto podaci već postoje i nema prostora za AI procenu. Kad `Booking.status` pređe u `CANCELLED` (M5 poglavlje 6), zapis prelazi u `RELEASE_PENDING` dok se opterećenje ne skine u CIS-u.
+**Tok:** kad `Booking.status` (M5 poglavlje 4) pređe u `CONFIRMED` za `ORGANIZATOR` rezervaciju, kreira se zapis sa `status = PENDING` i sistem pokušava registraciju u CIS-u — deterministički obrazac, isti princip kao ostali automatski, ne-AI procesi u sistemu (npr. M10 automatsko kreiranje `SupplierObligation`, poglavlje 8.0 tog dokumenta) — princip #4 Master dokumenta (determinizam pre autonomije), pošto podaci već postoje i nema prostora za AI procenu. Kad `Booking.status` pređe u `CANCELLED` (M5 poglavlje 6), zapis prelazi u `RELEASE_PENDING` dok se opterećenje ne skine u CIS-u.
 
 **Alarmi (nivo "Autonomno" iz poglavlja 7 Master dokumenta — informativno, ne blokira):**
 - `CONFIRMED` rezervacija bez `status = REGISTERED` duže od 48h od potvrde (nema broj garancije).
 - `CANCELLED` rezervacija čiji zapis ostaje `RELEASE_PENDING` duže od 48h od otkazivanja (opterećenje nije skinuto).
 
-Oba alarma idu Vlasniku/Direktoru (interni panel + email), isti obrazac kao poglavlje 2.2.
+Oba alarma idu Vlasniku/Direktoru (interni panel + email).
 
-**Tačan tehnički ugovor sa CIS/YUTA sistemom za registraciju i skidanje opterećenja (format poziva, autentikacija) nije ovde definisan — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao eTurista/SEF (poglavlje 9).**
-
----
-
-## 5. Evidencije za inspekciju
-
-Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agregira već postojeće podatke iz M1 (audit log), M5 (rezervacije), M10 (fiskalni dokumenti), M11 (eTurista prijave, boravišna taksa, garancija) za zadati period, u formatu čitljivom za turističkog inspektora (PDF/Excel export). Definiše se kao endpoint (poglavlje 7), ne kao novi entitet.
+**Tačan tehnički ugovor sa CIS/YUTA sistemom za registraciju i skidanje opterećenja (format poziva, autentikacija) nije ovde definisan — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao SEF u M10 (poglavlje 6).**
 
 ---
 
-## 6. Dozvole (registruju se u M1 katalog dozvola)
+## 3. Evidencije za inspekciju
+
+Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agregira već postojeće podatke iz M1 (audit log), M5 (rezervacije), M10 (fiskalni dokumenti), M11 (garancija putovanja) za zadati period, u formatu čitljivom za turističkog inspektora (PDF/Excel export). Definiše se kao endpoint (poglavlje 5), ne kao novi entitet.
+
+---
+
+## 4. Dozvole (registruju se u M1 katalog dozvola)
 
 | Dozvola | Podrazumevana dodela po ulozi |
 | :---- | :---- |
-| `M11/guest-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
-| `M11/tourist-tax/VIEW` | Vlasnik, Direktor, Računovođa |
-| `M11/tourist-tax-remittance/SUBMIT` | Vlasnik, Direktor, Računovođa — ljudska potvrda, isto obrazloženje kao M10 |
 | `M11/travel-guarantee/VIEW` | Vlasnik, Direktor |
 | `M11/travel-guarantee/EDIT` | Vlasnik, Direktor — nikad AI agent |
-| `M11/travel-guarantee-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 4.3) |
+| `M11/travel-guarantee-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 2.3) |
 | `M11/inspection-export/CREATE` | Vlasnik, Direktor, Računovođa |
 
 ---
 
-## 7. API ugovor (REST, OpenAPI) — ključni endpoint-i
+## 5. API ugovor (REST, OpenAPI) — ključni endpoint-i
 
 Prefiks: `/api/v1/compliance`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/guest-registrations` | GET | pregled statusa prijava, filtrirano po datumu/statusu |
-| `/guest-registrations/:id/retry` | POST | ručno ponovi neuspelu prijavu (`FAILED` → pokušaj ponovo) |
-| `/tourist-tax/rates` | GET / POST / PATCH | stope po opštini |
-| `/tourist-tax/remittances` | GET | lista mesečnih izveštaja |
-| `/tourist-tax/remittances/:id/submit` | POST | ljudska potvrda slanja nadležnom organu |
 | `/travel-guarantee` | GET / PATCH | trenutna garancija, ručna izmena (uvek ljudska akcija) |
-| `/travel-guarantee/utilization` | GET | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 4.2) i interni panel za prikaz |
-| `/travel-guarantee-registrations` | GET | lista `TravelGuaranteeRegistration` zapisa, filtrirano po statusu/rezervaciji (poglavlje 4.3) |
+| `/travel-guarantee/utilization` | GET | kumulativna prodata vrednost `ORGANIZATOR` prometa naspram `coverage_amount` — poziva ga M5 pri potvrdi rezervacije (poglavlje 2.2) i interni panel za prikaz |
+| `/travel-guarantee-registrations` | GET | lista `TravelGuaranteeRegistration` zapisa, filtrirano po statusu/rezervaciji (poglavlje 2.3) |
 | `/travel-guarantee-registrations/:id/retry` | POST | ručno ponovi registraciju ili skidanje opterećenja koje je `FAILED` |
 | `/inspection-export` | POST | generiše izvoz za zadati period |
 
 ---
 
-## 8. Izlazni kriterijum (M11 deo Faze 2 — poglavlje 8 Master dokumenta)
+## 6. Izlazni kriterijum (M11 deo Faze 2 — poglavlje 8 Master dokumenta)
 
-- [ ] eTurista prijava se automatski šalje na datum prijave gosta, bez ljudske intervencije; neuspeh odmah generiše vidljivo upozorenje.
-- [ ] Boravišna taksa se ispravno obračunava po opštini/kategoriji i pojavljuje kao stavka na fiskalnom dokumentu iz M10.
-- [ ] Mesečni izveštaj boravišne takse (`TouristTaxRemittance`) se pravilno generiše kao nacrt, sa rokom do 5. u mesecu, i zahteva ljudsku potvrdu pre slanja.
 - [ ] Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.
-- [ ] Alarm za rok putne isprave (<6 meseci do polaska) se ispravno generiše, bez blokiranja rezervacije.
 - [ ] Provera iskorišćenosti garancije upozorava na 80% i ispravno blokira potvrdu nove `ORGANIZATOR` rezervacije koja bi prevazišla `coverage_amount`; `POSREDNIK` rezervacije nisu pogođene ovom proverom.
-- [ ] Svaka `CONFIRMED` `ORGANIZATOR` rezervacija dobija `TravelGuaranteeRegistration` zapis; nedostatak broja garancije (`status != REGISTERED`) duže od 48h generiše vidljivo upozorenje Vlasniku/Direktoru (poglavlje 4.3).
-- [ ] Storno `ORGANIZATOR` rezervacije prevodi zapis u `RELEASE_PENDING`; ako opterećenje nije skinuto u CIS-u duže od 48h, generiše se upozorenje (poglavlje 4.3).
+- [ ] Svaka `CONFIRMED` `ORGANIZATOR` rezervacija dobija `TravelGuaranteeRegistration` zapis; nedostatak broja garancije (`status != REGISTERED`) duže od 48h generiše vidljivo upozorenje Vlasniku/Direktoru (poglavlje 2.3).
+- [ ] Storno `ORGANIZATOR` rezervacije prevodi zapis u `RELEASE_PENDING`; ako opterećenje nije skinuto u CIS-u duže od 48h, generiše se upozorenje (poglavlje 2.3).
 - [ ] Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.
-- [ ] Svaka radnja koja zahteva ljudsku potvrdu (slanje boravišne takse, izmena garancije) upisana je u M1 audit log sa identitetom osobe.
+- [ ] Svaka radnja koja zahteva ljudsku potvrdu (izmena garancije) upisana je u M1 audit log sa identitetom osobe.
 
 ---
 
-## 9. Otvoreno za dalje
+## 7. Otvoreno za dalje
 
-- Tačan tehnički ugovor sa eTurista/CIS API-jem (format prijave, autentikacija, da li odjava zahteva poseban poziv) — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom pre implementacije, isto kao kod SEF/ESIR u M10.
-- Tačan tehnički ugovor za CIS registraciju garancije po rezervaciji i skidanje opterećenja pri stornu (poglavlje 4.3) — isto obrazloženje kao red iznad, potvrditi pre implementacije.
-- Tačne stope boravišne takse po opštinama u kojima agencija posluje — unose se kao stvarni podaci kad se zna konkretna lista destinacija (vezano za otvoreno pitanje #4 iz poglavlja 11 Master dokumenta — pilot destinacije).
+- Tačan tehnički ugovor za CIS registraciju garancije po rezervaciji i skidanje opterećenja pri stornu (poglavlje 2.3) — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao SEF u M10 (poglavlje 6).
 - Da li M11 treba da prati i druge licence/dozvole agencije (van YUTA garancije) — trenutno van obima, dodaje se ako se pokaže potreba.
+- **Alarm za rok važenja putne isprave gosta** (<6 meseci do polaska) je ranije živeo na `GuestRegistration` entitetu (uklonjenom ovom verzijom, avgust 2026) — funkcionalno koristan podsetnik, nezavisan od eTurista. Da li ga treba ponovo dodati negde drugde (verovatno M6 `GuestProfile`, koji bi tada trebalo da dobije `document_expiry_date` polje) ostaje otvoreno, čeka odluku vlasnika.
 </script>
 <div class="rendered"></div>
 </section>
@@ -2694,7 +2665,7 @@ Zakon o turizmu propisuje obavezne elemente organizovanog putovanja. Svaki se po
 
 ### 3.1 Automatsko generisanje — nivo "Autonomno"
 
-Čim `Booking.status` pređe u `CONFIRMED` (M5 poglavlje 4, događaj `booking.confirmed`), M20 automatski generiše `ClientContract` (`DRAFT → GENERATED`) — mehaničko sastavljanje PDF-a iz već proverenih podataka (poglavlje 2.3), bez novog rizika, isti nivo autonomije kao automatska eTurista prijava (M11 poglavlje 2.2). Sistem ne šalje ništa spolja niti stvara novu obavezu — samo formalizuje uslove koji već postoje.
+Čim `Booking.status` pređe u `CONFIRMED` (M5 poglavlje 4, događaj `booking.confirmed`), M20 automatski generiše `ClientContract` (`DRAFT → GENERATED`) — mehaničko sastavljanje PDF-a iz već proverenih podataka (poglavlje 2.3), bez novog rizika, isti nivo autonomije kao automatska CIS registracija garancije putovanja (M11 poglavlje 2.3). Sistem ne šalje ništa spolja niti stvara novu obavezu — samo formalizuje uslove koji već postoje.
 
 ### 3.2 Prihvatanje
 
@@ -2781,7 +2752,7 @@ Prefiks: `/api/v1/client-contracts`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M6) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.2 — dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M5
 
 ---
@@ -2886,10 +2857,36 @@ Pored ručno pokrenutih poruka (4.1), M6 periodičnim poslom prepoznaje tri tipa
 - **Rođendan gosta** — `GuestProfile.date_of_birth`, godišnje na taj datum.
 - **Godišnjica prve rezervacije** — datum prve `Booking.confirmed_at` (M5) za dati `client_account_id`, godišnje.
 - **Pred put (pre-departure)** — T-7, T-3, T-1 dana pre `BookingItem.stay_from` (M5) za aktivne, potvrđene stavke.
+- **Posle povratka (post-trip)** — T+2 dana posle povratka; pokreće anketu, vidi poglavlje 4.3 za pun mehanizam (poseban tok, ne samo `CommunicationLog` zapis kao ostala tri).
 
-Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo **"Autonomno"** — sadržaj je informativan/čestitka, ne pominje cenu ni obavezu, pa **sme da se pošalje bez ljudskog pregleda** ako je `ClientAccount.marketing_consent = true` (poglavlje 2.1), isti izuzetak koji već postoji za "čisto informativne odgovore" u 4.1. Bez saglasnosti, poruka se priprema kao nacrt i čeka ljudsko slanje.
+Svaka od prva tri generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo **"Autonomno"** — sadržaj je informativan/čestitka, ne pominje cenu ni obavezu, pa **sme da se pošalje bez ljudskog pregleda** ako je `ClientAccount.marketing_consent = true` (poglavlje 2.1), isti izuzetak koji već postoji za "čisto informativne odgovore" u 4.1. Bez saglasnosti, poruka se priprema kao nacrt i čeka ljudsko slanje.
 
 **Napomena o vlasništvu sadržaja:** kad M12 (Marketing/Content Engine) bude specificiran, stvarni tekst/šablon ovih poruka postaje njegov `ContentPiece`, a M6 samo emituje okidač (događaj) — ovaj dokument definiše *kada* se šalje, ne finalni izgled poruke. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5).
+
+### 4.3 Anketa posle putovanja i ponuda za Google recenziju (dopuna, avgust 2026, na zahtev vlasnika)
+
+Kad `Booking.status` (M5) pređe u `COMPLETED` (poslednja stavka rezervacije završena — poslednji `stay_to` prošao), M6 posle **2 dana (T+2)** automatski kreira `PostTripSurvey` zapis i šalje gostu email sa linkom ka kratkoj anketi koju sistem sam renderuje kao javnu formu (link u email-u, ne prilog) — standardan minimalni set: ocena celokupnog iskustva (1-5), da li bi gost preporučio agenciju, slobodan komentar. Tačan izgled/dodatna pitanja i mehanizam javnog renderovanja forme (verovatno tokenizovana stranica bez logina, slično konceptu vaučera) su dizajnersko/tehničko pitanje van obima ove specifikacije, isto obrazloženje kao za vaučer (M5 poglavlje 6) — ovaj dokument definiše samo *kada* se anketa šalje i *šta* čuva.
+
+Ako gost popuni anketu i ostavi visoku ocenu (prag konfigurabilan, podrazumevano ≥ 4/5), forma dodatno nudi link ka Google Business profilu agencije da gost po želji ostavi javnu recenziju — link je statička konfiguracija agencije (isti obrazac kao "Kontakt za hitne slučajeve" u M20 poglavlje 2.3), ne po proizvodu/destinaciji. Klik na taj link se beleži (`google_review_clicked_at`) radi praćenja konverzije — sadržaj same recenzije ostaje na Google-u, van sistema.
+
+**Pravilo o pristanku:** isti mehanizam kao ostala tri okidača u poglavlju 4.2 — automatsko slanje email-a (bez ljudskog pregleda) dozvoljeno je samo ako `ClientAccount.marketing_consent = true`. Bez saglasnosti, `PostTripSurvey` se i dalje kreira (zapis postoji za tu rezervaciju), ali email čeka ljudsko slanje kroz `CommunicationLog` (poglavlje 4.1) umesto da izađe automatski.
+
+#### `PostTripSurvey`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_id | UUID (FK → M5 Booking), unique | jedna anketa po rezervaciji |
+| client_account_id | UUID (FK → ClientAccount) | kome je poslato |
+| access_token | string, unique | deo javnog linka u email-u — gost nema login nalog, pristupa formi preko tokena |
+| status | enum: `PENDING`, `SENT`, `COMPLETED` | `PENDING` — zapis kreiran, čeka slanje (bez `marketing_consent`); `SENT` — email poslat; `COMPLETED` — gost popunio |
+| scheduled_send_at | timestamp | T+2 dana posle povratka, izračunato pri kreiranju |
+| sent_at | timestamp, nullable | |
+| responses | JSONB, nullable | fleksibilna struktura pitanje→odgovor, isti obrazac kao `GuestProfile.preferences` (poglavlje 2.2) |
+| overall_rating | integer, nullable | glavna ocena (1-5), izdvojena iz `responses` radi lakog izveštavanja |
+| wants_google_review | boolean, nullable | da li je gostu ponuđen i da li je pristao na Google recenziju (prag iz teksta iznad) |
+| google_review_clicked_at | timestamp, nullable | |
+| completed_at | timestamp, nullable | |
+| created_at | timestamp | |
 
 ---
 
@@ -2903,7 +2900,7 @@ Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo
 
 - **M5** `Booking.client_account_id` i `BookingItemGuest.guest_profile_id` sada formalno referenciraju `M6.ClientAccount` i `M6.GuestProfile`.
 - **M10** `FiscalDocument` treba da **snimi (snapshot)** ime/PIB nalogodavca u trenutku slanja (`SUBMIT`), ne samo da referencira `booking_id` — jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni (npr. subagent promeni naziv firme). *Ovo je dopuna M10 specifikacije, primenjena direktno u tom dokumentu (poglavlje 8 ovog dokumenta).*
-- **M11** `GuestRegistration` zadržava sopstvena polja gosta (dokument, državljanstvo...) kao snimak stanja u trenutku prijave (eTurista zahteva podatak kakav je bio na dan boravka), ali dobija i `guest_profile_id` (FK → M6, nullable za stare zapise) radi povezivanja sa punim profilom kad on postoji.
+- ~~**M11** `GuestRegistration`...~~ Uklonjeno (avgust 2026) — M11 više ne prati eTurista prijavu gostiju, to je nadležnost smeštajnog objekta, ne agencije. Vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md` v2.0.
 
 ---
 
@@ -2917,6 +2914,7 @@ Svaka od ovih generiše `CommunicationLog` zapis sa `drafted_by_ai = true`, nivo
 | `M6/loyalty-tier/EDIT` (definicije nivoa) | Vlasnik, Direktor |
 | `M6/loyalty-status/OVERRIDE` | Vlasnik, Direktor — obavezan razlog, upisuje se u audit log |
 | `M6/communication-log/VIEW`, `CREATE` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
+| `M6/post-trip-survey/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti) — gost pristupa sopstvenoj anketi preko `access_token` iz email-a, ne preko ove dozvole |
 
 Uloga **Gost** ima pristup isključivo sopstvenom `ClientAccount`/`GuestProfile` (preko `linked_user_id`), bez pristupa internom panelu.
 
@@ -2951,6 +2949,10 @@ Prefiks: `/api/v1/crm`
 | `/loyalty-status/:clientAccountId` | GET | trenutni nivo i popust — koristi ga M5 pri kreiranju ponude |
 | `/loyalty-status/:clientAccountId/override` | POST | ručna dodela nivoa, zahteva razlog |
 | `/communication-log` | GET / POST | |
+| `/post-trip-surveys` | GET | lista, filtrirano po `booking_id`/statusu (prava pristupa iz poglavlja 7) |
+| `/post-trip-surveys/:token` | GET | javni pristup (bez autentikacije) — gost otvara formu preko linka iz email-a |
+| `/post-trip-surveys/:token/submit` | POST | javni pristup — gost šalje `responses`/`overall_rating`, popunjava `completed_at` |
+| `/post-trip-surveys/:token/google-review-click` | POST | javni pristup — beleži `google_review_clicked_at` pre redirekta na Google link |
 
 ---
 
@@ -2964,6 +2966,8 @@ Prefiks: `/api/v1/crm`
 - [ ] AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
 - [ ] Rođendan/godišnjica/pred-put okidači ispravno generišu `CommunicationLog` zapis na tačan datum, i šalju se automatski samo uz `marketing_consent = true`.
 - [ ] `ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na izračun cene ili lojalnosti.
+- [ ] `PostTripSurvey` se automatski kreira tačno 2 dana posle prelaska `Booking` u `COMPLETED`; email se automatski šalje samo ako je `marketing_consent = true`, inače čeka ljudsko slanje.
+- [ ] Popunjena anketa sa ocenom ≥ praga ispravno prikazuje ponudu za Google recenziju; klik na link se beleži u `google_review_clicked_at`, nezavisno od toga da li je recenzija stvarno ostavljena na Google-u.
 
 ---
 
@@ -3020,7 +3024,7 @@ Sve rute su prefiksovane jezikom (`/sr/...`, `/en/...`, `/hr/...`, `/sl/...`, `/
 
 1. **Pretraga** — anonimna, bez potrebe za nalogom. Poziva M5 `/search`, koje već vraća cenu sa primenjenom maržom (M5) i, ako je gost prijavljen, popustom lojalnosti (M6). Rezultati objedinjuju M2/M3 (ugovoreno) i M4 (uživo preko M5).
 2. **Izbor i ponuda** — kreira se `Quote` (M5 `/quotes`), `client_account_id` je `null` dok se gost ne identifikuje (dozvoljeno po M5 specifikaciji).
-3. **Podaci gostiju** — ako gost nije prijavljen, sajt nudi izbor: prijaviti se, registrovati se, ili nastaviti kao gost bez naloga (u tom slučaju se ipak kreira minimalan `GuestProfile`/`ClientAccount` u M6 radi fiskalnog dokumenta i eTurista prijave, bez `linked_user_id`). **`ClientAccount.account_type = INDIVIDUAL`** u ovom slučaju — eksplicitno, ne pretpostavljeno (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`); B2C sajt nikad sam ne kreira `LEGAL_ENTITY` nalog — takav nalog uvek dolazi ili preko M7 (B2B) ili ručnim unosom tima kroz M17.
+3. **Podaci gostiju** — ako gost nije prijavljen, sajt nudi izbor: prijaviti se, registrovati se, ili nastaviti kao gost bez naloga (u tom slučaju se ipak kreira minimalan `GuestProfile`/`ClientAccount` u M6 radi fiskalnog dokumenta, bez `linked_user_id`). **`ClientAccount.account_type = INDIVIDUAL`** u ovom slučaju — eksplicitno, ne pretpostavljeno (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`); B2C sajt nikad sam ne kreira `LEGAL_ENTITY` nalog — takav nalog uvek dolazi ili preko M7 (B2B) ili ručnim unosom tima kroz M17.
 4. **Prihvatanje uslova ugovora (clickwrap)** — pre prelaska na plaćanje, gost potvrđuje polje "Prihvatam uslove ugovora o putovanju" (M20 poglavlje 3.2), postavlja `Quote.contract_terms_accepted = true` i `contract_terms_accepted_at` (M5 poglavlje 3.1, dopuna avgust 2026 — konkretna polja koja zatvaraju raniju rupu u ovom toku). Pošto se stvaran `ClientContract` (M20) generiše tek posle potvrde rezervacije (M20 poglavlje 3.1, okidač je `booking.confirmed`), ova dva polja se prenose na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim on nastane — sajt ne dozvoljava nastavak na korak 5 (Plaćanje) dok `contract_terms_accepted != true`. Tačan trenutak u odnosu na izdavanje vaučera i dalje potvrđuje pravnik (M20 poglavlje 3.3/8 — otvoreno pitanje, ne rešava se nagađanjem ovde) — ovom dopunom je zatvoren samo tehnički model podataka, ne pravno pitanje redosleda.
 5. **Plaćanje:**
    - **Kartica:** hostovana forma platnog provajdera (M10 poglavlje 7.2) — plaćanje se obrađuje **pre** potvrde rezervacije; ako potvrda posle uspešnog plaćanja ne uspe (kapacitet nestao), sajt prikazuje jasnu poruku i automatski vraćen iznos (M10 već pokriva ovo).
@@ -3252,7 +3256,7 @@ preko svih rezervacija tog subagenta potvrđenih u tekućem periodu **pre** prel
 | period_start / period_end | date | |
 | calculated_amount / currency | decimal / string | rezultat formule iznad |
 | status | enum: `DRAFT`, `APPROVED`, `APPLIED`, `REJECTED` | |
-| approved_by | UUID, nullable (FK → M1 User) | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M11 mesečni izveštaj boravišne takse (poglavlje 3, "Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
+| approved_by | UUID, nullable (FK → M1 User) | **obavezno ljudski nalog** — direktan uticaj na novac, isti obrazac kao M10 slanje fiskalnog dokumenta ("Predloži pa čovek odobri" iz poglavlja 7 Master dokumenta) |
 | approved_at | timestamp, nullable | |
 | applied_at | timestamp, nullable | |
 | created_at | timestamp | |
@@ -3429,7 +3433,7 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | status | enum (isto kao BookingItem) | |
 | last_synced_at | timestamp | |
 
-**Napomena o `nights`/`guest_count`:** proizvod `guest_count × nights` daje **gost-noćenja**, isti obračunski koncept koji M11 (poglavlje 3.2) već koristi za boravišnu taksu ("iznos se obračunava po gostu-noćenju") — ovde se namerno ne redefiniše, samo ponovo koristi na nivou izveštavanja, u skladu sa principom jednog izvora istine za poslovne pojmove.
+**Napomena o `nights`/`guest_count`:** proizvod `guest_count × nights` daje **gost-noćenja** — standardan izveštajni koncept (broj gostiju pomnožen brojem noći boravka), koji M13 ovde definiše za potrebe izveštavanja o zauzetosti/prodaji smeštaja.
 
 ### 3.2 `FactPayment` (za finansijske izveštaje, iz M10)
 | Polje | Tip | Napomena |
@@ -3456,7 +3460,7 @@ Svi filtrirani na period (`stay_from`/`stay_to` unutar opsega) i na aktivne stav
 | Izveštaj | Izračun nad `FactBooking` | Napomena |
 | :---- | :---- | :---- |
 | Broj osoba | `SUM(guest_count)` | za sve tipove proizvoda (ne samo smeštaj), grupivo po periodu/destinaciji/kanalu |
-| Noćenja | `SUM(guest_count * nights)` | gost-noćenja, isti koncept kao boravišna taksa u M11 (vidi napomenu u poglavlju 3.1) |
+| Noćenja | `SUM(guest_count * nights)` | gost-noćenja (vidi napomenu u poglavlju 3.1) |
 | Prodate sobe — ukupno | `COUNT(*)` gde `product_type = ACCOMMODATION` | jedan `BookingItem` = jedna prodata jedinica |
 | Prodate sobe — po tipu | isto, grupisano po `room_type` | samo `CONTRACTED` stavke imaju `room_type` popunjen (poglavlje 3.1) |
 | Po korišćenoj usluzi | `COUNT(*)` grupisano po `board_type` | npr. polupansion vs. all-inclusive; samo `CONTRACTED` |
@@ -3860,7 +3864,7 @@ Aplikacija drži lokalnu bazu (SQLite ugrađena u uređaj) sa podskupom podataka
 | booking_id | UUID (FK → M5) | |
 | guide_id | UUID (FK → M1 User) | |
 | note | text | |
-| severity | enum: `INFO`, `WARNING`, `URGENT` | `URGENT` generiše odmah vidljivo upozorenje timu čim se sinhronizuje (isti princip kao M11 neuspela eTurista prijava) |
+| severity | enum: `INFO`, `WARNING`, `URGENT` | `URGENT` generiše odmah vidljivo upozorenje timu čim se sinhronizuje (isti princip kao M10 neuspešno slanje fiskalnog dokumenta ka SEF/ESIR) |
 | created_at | timestamp | vreme na uređaju |
 | synced_at | timestamp, nullable | |
 
@@ -3985,7 +3989,7 @@ Novi MCP klijent počinje kao `PENDING`/`READ_ONLY` — prelazak na `READ_WRITE`
 
 ## 4. Identitet gosta i zakonske obaveze — bez olakšica
 
-Rezervacija napravljena preko MCP kanala prolazi **kroz isti M5 tok** kao i svaka druga (poglavlje 4 M5 specifikacije) — isti zahtevi za podacima gosta (ime, dokument, državljanstvo za eTurista prijavu u M11), ista fiskalizacija (M10), isto pravilo "sve ili ništa" za više stavki. Eksterni AI agent mora dostaviti potpune podatke gosta u `confirm_booking` pozivu — ako ih nema, poziv se odbija sa jasnom greškom, isto kao nepotpun zahtev sa bilo kog drugog kanala. M16 ne uvodi olakšane zakonske zahteve samo zato što zahtev dolazi od AI agenta.
+Rezervacija napravljena preko MCP kanala prolazi **kroz isti M5 tok** kao i svaka druga (poglavlje 4 M5 specifikacije) — isti zahtevi za podacima gosta (ime, dokument, državljanstvo — M6 `GuestProfile`), ista fiskalizacija (M10), isto pravilo "sve ili ništa" za više stavki. Eksterni AI agent mora dostaviti potpune podatke gosta u `confirm_booking` pozivu — ako ih nema, poziv se odbija sa jasnom greškom, isto kao nepotpun zahtev sa bilo kog drugog kanala. M16 ne uvodi olakšane zakonske zahteve samo zato što zahtev dolazi od AI agenta.
 
 ---
 
@@ -4106,8 +4110,9 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M3 | `pricelist_import.extract` | `AUTONOMOUS` | M3 poglavlje 4.2.4 |
 | M3 | `pricelist_import.approve_row` | `PROPOSE_THEN_APPROVE` | M3 poglavlje 4.2.4 |
 | M3 | `contract_period.low_capacity_alert` | `AUTONOMOUS` | M3 poglavlje 4.3 — čisto informativan signal na 1–2 preostale jedinice, ne blokira prodaju |
-| M5 | `supplier_manifest.draft` | `AUTONOMOUS` | M5 poglavlje 8.4 |
+| M5 | `supplier_manifest.draft` | `AUTONOMOUS` | M5 poglavlje 8.4, 8.7 — priprema nacrta i njeno prioritetno isticanje po konfigurabilnom pravilu (8.7) ostaju čisto informativni |
 | M5 | `supplier_manifest.send` | `PROPOSE_THEN_APPROVE` | M5 poglavlje 8.4 |
+| M5 | `booking_item.cancel_duplicate_check` | `PROPOSE_THEN_APPROVE` | M5 poglavlje 6.4 — deterministički fuzzy-match (ne AI/LLM poziv), upozorenje pre storna zahteva svesnu potvrdu operatera |
 | M6 | `communication.draft` | `AUTONOMOUS` | M6 poglavlje 4 |
 | M6 | `communication.send_with_price_or_obligation` | `PROPOSE_THEN_APPROVE` | M6 poglavlje 4 |
 | M7 | `commission_rebate.calculate_draft` | `AUTONOMOUS` | M7 poglavlje 3.2 |
@@ -4138,7 +4143,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
 | (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage |
 
-**Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 eTurista prijava, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
+**Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 CIS registracija garancije putovanja, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
 Registar se **dopunjuje** kad svaki budući modul (ili izmena postojećeg) uvede novu akciju koju AI agent dodiruje — ne postoji podrazumevani nivo; svaka nova `action_code` mora eksplicitno dobiti `tier` pre nego što se agent pusti na nju.
 
@@ -4387,7 +4392,7 @@ Dodaju se polja: `model_tier` (enum: `LIGHT`, `STANDARD`, `HEAVY`), `model_ident
 ### 6.2 Preporučeno mapiranje (smernica, ne kruto pravilo)
 | Nivo | Kad se koristi | Primeri iz postojećih specifikacija |
 | :---- | :---- | :---- |
-| **Bez modela (čist kod)** | Prag/datum/broj provera bez potrebe za jezičkim razumevanjem | M3 upozorenje o roku, M11 podsetnik o garanciji, M7 provera kreditnog limita, M11 rok boravišne takse |
+| **Bez modela (čist kod)** | Prag/datum/broj provera bez potrebe za jezičkim razumevanjem | M3 upozorenje o roku, M11 podsetnik o garanciji, M7 provera kreditnog limita |
 | **LIGHT** | Kratka klasifikacija/sažimanje jednostavnog teksta | M13 uočavanje trenda (jednostavna agregacija + kratak opis) |
 | **STANDARD** | Priprema nacrta teksta srednje složenosti | M6/M14 nacrt odgovora gostu, M10 popunjavanje nacrta fiskalnog dokumenta, M18 nedeljni sažetak |
 | **HEAVY** | Kreativan/nijansiran sadržaj, sinteza velike količine spoljnih podataka | M12 generisanje marketinškog sadržaja, M18 istraživanje trendova, Glavni agent (orkestracija) |
