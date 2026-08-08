@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M22) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna IT/pravna potvrda pre implementacije (poglavlje 10)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
-**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora)
+**Verzija:** 1.1 — dodat eksplicitan kanal prikaza (poglavlje 1, M17) — ranija verzija je opisivala modul kao "poprečan kao M17/M18/M19/M21" u zaglavlju, ali nikad nije rekla kroz koji UI tim stvarno vidi svoj inbox, za razliku od M19/M21 koji to eksplicitno navode; nalaz iz revizije Master dokumenta (avgust 2026). v1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora), M17 (kanal — vidi poglavlje 1)
 
 ---
 
@@ -13,6 +13,8 @@
 M22 je centralizovan email klijent unutar platforme — jedno mesto gde tim vidi i odgovara na svu poslovnu prepisku (agencijska deljena sandučad kao `rezervacije@`/`info@`, lična sandučad zaposlenih, prepiska sa gostima, subagentima i dobavljačima), sa eksplicitnom kontrolom ko sme da vidi/odgovara na koje sanduče, i AI agentom koji sažima i predlaže nacrt odgovora. Rešava problem koji je vlasnik direktno opisao: "tokom noći stigne 20 upita putem mejla" — tim treba da zatekne već sažete, delom već pripremljene odgovore ujutru, ne sirov, neorganizovan inbox.
 
 Van obima: real-time chat sa dobavljačima (odvojen, budući problem #9 — vidi poglavlje 6 dole); formalno praćenje statusa zahteva za podršku ostaje M14 (`Ticket`) — M22 samo omogućava da se mejl **konvertuje** u tiket kad tim proceni da treba formalno praćenje (poglavlje 5).
+
+**Kanal:** M22 nema sopstveni samostalan UI — prikazuje se kao nova sekcija unutar M17 (Interni radni panel), isti obrazac kao M19 (real-time chat, desktop kroz M17 PWA) i M21 (Centar za pomoć, kanal za tim). Nema posebne aplikacije za email; mobilni pristup (ako zatreba) ide istim putem kao M19 — novi tab u M9, ne nova aplikacija, dosledno principu #1 Master dokumenta (jedan izvor istine, prikazi se ne dupliraju).
 
 ### 1.1 Razlika u odnosu na M14 `Ticket`/`TicketMessage`
 

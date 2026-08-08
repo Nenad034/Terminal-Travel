@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
-**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20 do sad specificirani).
+**Verzija:** 1.3 — ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
 
 ---
 
