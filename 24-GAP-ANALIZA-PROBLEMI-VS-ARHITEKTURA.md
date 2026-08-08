@@ -82,13 +82,9 @@ Dodat `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md` i upisan u `00-MASTER-ARHITEKTURA.md
 
 ## 8. B2B subagenti autonomno pretražuju/rezervišu/plaćaju/kreiraju vaučer preko chata
 
-**Status: nepokriveno.**
+**Status: pokriveno (dopunjeno avgust 2026).**
 
-`12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` definiše isključivo **portal** (`SUBAGENT_ADMIN` nalog, forma-bazirana pretraga/rezervacija/vaučer), bez chat interfejsa i bez AI agenta koji sam izvršava radnje. `23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md` ima AI Q&A asistenta za subagente (poglavlje 5), ali strogo informativnog — dokument eksplicitno navodi da pristup živim podacima (npr. sopstveni kreditni limit) "zahteva sopstvenu bezbednosnu analizu, ne pretpostavlja se ovde". Nema nivoa autonomije/ovlašćenja za samostalno izvršavanje rezervacije/plaćanja preko chata.
-
-**Gap: potpuno odsutno.** Subagenti danas rade isključivo kroz formu portala, ne kroz agentski chat. Ovo je suštinski novi zahtev koji spaja M7 (B2B) i M15 (AI orkestracija) — treba definisati: (a) chat kanal specifično za subagente (odvojen od internog tim-chata M19 i od gost/helpdesk chata M14), (b) nivoe ovlašćenja za taj chat (koji je već okvir M15 poglavlje 7 predviđa generalno — Autonomno / Predloži pa čovek odobri / Nikad autonomno — ali nije primenjen konkretno na B2B kontekst), (c) da li AI agent subagenta sme sam da potvrdi rezervaciju/plaćanje (verovatno "Predloži pa čovek odobri" za plaćanje, po analogiji sa ostatkom sistema) ili čak "Autonomno" u granicama već odobrenog kreditnog limita.
-
-**Napomena:** Master dokument princip #4 (determinizam pre autonomije) i M15 pravila (poglavlje 7) daju okvir za ovo, ali specifikacija M7 mora biti eksplicitno dopunjena da ga primeni na B2B kontekst.
+`12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md` poglavlje 2.0.4 dodaje AI agent chat (`/b2b/chat`) — isti M7 domenski agent (M15 poglavlje 2), ne nov tip agenta. Uključuje se **eksplicitno po subagentu** (`Subagent.ai_chat_enabled`, potvrđeno na zahtev vlasnika — nije podrazumevano za sve `ACTIVE`). Tok ima **dva nezavisna gejta** pre nego što se rezervacija stvarno izvrši: Gejt A — subagent uvek mora eksplicitno da potvrdi sopstvenu porudžbinu u chat-u (nivo "Predloži pa čovek odobri", `subagent_chat.booking_confirm` u M15 registru, poglavlje 4); Gejt B — rezervacija iznad konfigurabilnog praga (`ai_chat_review_threshold_amount`, po subagentu) dodatno čeka pregled osoblja agencije (Vlasnik/Direktor/Sales Manager) u M15 Agent Inbox, nezavisno od potvrde subagenta. Pretraga i priprema ponude ostaju "Autonomno" (deterministički, ništa obavezujuće). Plaćanje karticom nikad ne ide kroz sam chat — uvek redirect na isti hostovani checkout kao portal (M10 poglavlje 7.1). Vaučer se izdaje kroz isti postojeći mehanizam kao svaki drugi B2B kanal (M5 poglavlje 6.3, nepromenjeno). Otkazivanje kroz chat prolazi kroz istu proveru duplikata kao svaki drugi kanal (M5 poglavlje 6.4).
 
 ---
 
@@ -131,7 +127,7 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 5 | CIS/eTurista notifikacija | Pokriveno |
 | 6 | AI skeniranje konačnih računa i povezivanje sa rezervacijom | Pokriveno (M10 poglavlje 8.6) |
 | 7 | Objedinjeni email klijent + AI agent + dodela pristupa | Pokriveno (nov modul M22) |
-| 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Nepokriveno |
+| 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Pokriveno (M7 poglavlje 2.0.4) |
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Delimično — email deo pokriven kroz M22, real-time chat i dalje nepokriven |
 | 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
 

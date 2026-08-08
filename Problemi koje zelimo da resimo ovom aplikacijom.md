@@ -28,7 +28,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Subagentima u b2B portali omoguciti ( uz nadgledanje i nivoe sta mogu da rade) da bez poziva nasoj agenciji mogu da pretrazuju ponide, rezervisu, plaćaju, kreiraju voucher....potreban je poseban chat sa subagentima. *(Nepokriveno — vidi GAP-analiza #8, spaja M7 i M15)*
+* [x] Subagentima u b2B portali omoguciti ( uz nadgledanje i nivoe sta mogu da rade) da bez poziva nasoj agenciji mogu da pretrazuju ponide, rezervisu, plaćaju, kreiraju voucher....potreban je poseban chat sa subagentima. *(Dopunjeno u specifikaciji — M7 poglavlje 2.0.4, `/b2b/chat`, uključuje se eksplicitno po subagentu; dva gejta pre izvršenja: potvrda subagenta uvek, pregled osoblja iznad konfigurabilnog praga — vidi GAP-analiza #8)*
 
 
 

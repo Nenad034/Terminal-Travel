@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
-**Zavisi od:** M1, M2, M5, M6, M15 (poglavlje 2.0.3, omnisearch)
+**Verzija:** 1.4 — dodato poglavlje 2.0.4 (AI agent chat za subagente sa izvršnim ovlašćenjem — pretraga/rezervacija/plaćanje/vaučer unutar kreditnog limita, dva gejta: potvrda subagenta uvek, pregled osoblja iznad praga), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, na zahtev vlasnika (avgust 2026); v1.3 dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Zavisi od:** M1, M2, M5, M6, M15 (poglavlje 2.0.3, omnisearch; poglavlje 2.0.4, AI agent chat sa izvršnim ovlašćenjem)
 
 ---
 
@@ -35,6 +35,7 @@ M7 je do sada opisivao model podataka, proviziju i kreditni limit, ali ne i stva
 | `/b2b/moje-rezervacije` | Lista rezervacija ovog subagenta, statusi, vaučeri | M5 `/bookings?client_account_id=...` |
 | `/b2b/moja-mreza` | Sopstveni direktni sub-subagenti — pregled, upravljanje provizijom (poglavlje 3) | M7 `/subagents/:id/children` |
 | `/b2b/profil` | Podaci naloga, kreditni limit/provizija (samo pregled — izmenu radi agencija ili roditeljski subagent) | M6 `/client-accounts/:id`, M7 `/subagents/:id` |
+| `/b2b/chat` | AI agent chat sa izvršnim ovlašćenjem (poglavlje 2.0.4) — vidljivo samo ako je `Subagent.ai_chat_enabled = true` | M7 `/subagents/:id/chat-messages`, `/subagents/:id/booking-requests` |
 
 ### 2.0.2 Tok pretrage i rezervacije (korak po korak, isti obrazac kao M8 poglavlje 3)
 
@@ -49,6 +50,64 @@ M7 je do sada opisivao model podataka, proviziju i kreditni limit, ali ne i stva
 ### 2.0.3 Univerzalna pretraga i AI razgovor — omnisearch (dopuna, avgust 2026, na zahtev vlasnika)
 
 Isto polje kao M17/M8 (M15 poglavlje 6.5), dostupno sa svake `/b2b/*` rute. Prazan upit + Enter prikazuje rute iz poglavlja 2.0.1 filtrirane na `SUBAGENT_ADMIN` ulogu. Upit sa tekstom poziva `POST /ai-orchestration/omnisearch` sa `channel = B2B_PORTAL` — obim: katalog (bez identiteta dobavljača, M2 poglavlje 5.1), sopstvene rezervacije, sopstvena mreža sub-subagenata (poglavlje 6 — subagent ne dobija u rezultatima ništa od svog sub-subagenta van onoga što mu inače sme da vidi), sopstvena provizija/kreditni limit. Primer: "koliko mi je ostalo do sledećeg praga provizije" (poziva M7 poglavlje 3.1 `volume-status`).
+
+**Razlika u odnosu na poglavlje 2.0.4 dole:** `OmnisearchAgent` (M15 poglavlje 6.5.1) je striktno read-only — nikad ne izvršava radnju, samo vraća link ka stranici gde subagent ručno potvrđuje kroz portal formu. Poglavlje 2.0.4 opisuje **drugi, dodatni agent** koji sme da **izvrši** pretragu→ponudu→rezervaciju u ime subagenta, unutar eksplicitno definisanih granica — različit nivo ovlašćenja, različita dozvola, svesno odvojen od omnisearch-a.
+
+### 2.0.4 AI agent chat za subagente — izvršno ovlašćenje unutar kreditnog limita (dopuna, avgust 2026 — zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, gap #8 iz `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md`)
+
+Cilj (vlasnikova formulacija): subagent može, kroz razgovor, da pretraži ponude, rezerviše, plati i dobije vaučer **bez pozivanja agencije** — brže od popunjavanja forme korak-po-korak (poglavlje 2.0.2), uz nadzor i jasne granice. Ovo je M7 domenski agent (M15 poglavlje 2, `agent_role = DOMENSKI_AGENT`, `module_code = M7`) — ne novi tip agenta, isti model kao svaki drugi domenski agent, sa dozvolama ograničenim na M7/M5/M2 API-je istog obima koji portal već ima (poglavlje 2.0.1), aktivan tek kad `ModuleAgentActivation` za M7 pređe u `ACTIVATED` (M15 poglavlje 3) — ista pretpostavka kao svaki drugi domenski agent.
+
+#### 2.0.4a Dopuna `Subagent` (poglavlje 2.1) — eksplicitno uključivanje po partneru (potvrđeno na zahtev vlasnika)
+
+Mogućnost **nije** uključena po difoltu za svaki `ACTIVE` subagent — agencija svesno uključuje za konkretnog partnera, isti oprez kao `MailboxAccess` dodela u M22:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| ai_chat_enabled | boolean, default `false` | uključuje Vlasnik/Direktor, ista dozvola kao `M7/subagent/EDIT` (poglavlje 10) |
+| ai_chat_review_threshold_amount / currency | decimal / string, nullable | **obavezno popunjeno ako je `ai_chat_enabled = true`** — prag iznad kog rezervacija iz chat-a, i posle potvrde subagenta, ipak čeka pregled osoblja agencije pre izvršenja (poglavlje 2.0.4c). Postavlja se u istom koraku kao uključivanje, isti autoritet (Vlasnik/Direktor) |
+
+#### 2.0.4b Model podataka
+
+##### `SubagentBookingRequest`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| subagent_id | UUID (FK → Subagent) | |
+| quote_id | UUID (FK → M5 Quote) | agent priprema kroz isti M5 tok kao portal forma (poglavlje 2.0.2, koraci 1–4), sa istom cenom (poglavlje 5) |
+| requires_staff_review | boolean | izračunato pri kreiranju: `Quote.total_price > Subagent.ai_chat_review_threshold_amount` (poglavlje 2.0.4a) |
+| status | enum: `AWAITING_SUBAGENT_CONFIRMATION`, `AWAITING_STAFF_REVIEW`, `EXECUTING`, `CONFIRMED`, `REJECTED`, `FAILED` | vidi tok u poglavlju 2.0.4c |
+| subagent_confirmed_at / subagent_confirmed_by | timestamp / UUID (FK → M1 User) | **isključivo nalog `SUBAGENT_ADMIN` istog `subagent_id`** — sistem odbija potvrdu sa bilo kog drugog naloga, uključujući drugog subagenta u istom lancu |
+| staff_reviewed_at / staff_reviewed_by | timestamp / UUID (FK → M1 User), nullable | popunjeno samo kad `requires_staff_review = true` (poglavlje 2.0.4c) — **nikad AI agent** |
+| staff_review_decision | enum: `APPROVED`, `REJECTED`, nullable | |
+| rejection_reason | string, nullable | popunjeno i za odbijanje subagenta i za odbijanje osoblja |
+| booking_id | UUID, nullable (FK → M5 Booking) | popunjeno posle uspešne M5 potvrde (poglavlje 2.0.4c, korak 5) |
+| created_at / updated_at | timestamp | |
+
+##### `SubagentChatMessage` — transkript razgovora (radi revizije spora oko rezervacije nastale ovim putem)
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| subagent_id | UUID (FK → Subagent) | |
+| booking_request_id | UUID, nullable (FK → `SubagentBookingRequest`) | popunjeno čim razgovor dovede do konkretnog zahteva |
+| sender_type | enum: `SUBAGENT`, `AI_AGENT` | |
+| body | text | |
+| created_at | timestamp | |
+
+#### 2.0.4c Tok — dva nezavisna gejta pre izvršenja
+
+1. **Pretraga i priprema ponude** — agent pretražuje (isti `GET /search?channel=B2B_PORTAL` kao poglavlje 2.0.2, korak 1) i priprema `Quote` sa već primenjenom provizijom (poglavlje 5) — nivo **"Autonomno"**, ništa još nije obavezujuće.
+2. **Podaci putnika i uslovi ugovora** — agent prikuplja kroz razgovor podatke krajnjeg putnika (poglavlje 7) i traži eksplicitno prihvatanje uslova ugovora (`Quote.contract_terms_accepted`, isti mehanizam kao poglavlje 2.0.2 korak 4 — ovo se **ne** preskače u chat toku).
+3. **Potvrda subagenta (Gejt A — uvek, bez izuzetka)** — agent prikazuje kompletan sažetak (proizvod, cena, putnik, uslovi) i traži eksplicitnu potvrdu. `SubagentBookingRequest.status = AWAITING_SUBAGENT_CONFIRMATION` dok se ne dobije — nivo **"Predloži pa čovek odobri"** (`subagent_chat.booking_confirm`, M15 poglavlje 4), gde je "čovek" sam subagent koji potvrđuje sopstvenu porudžbinu, ne osoblje agencije. Bez ove potvrde, agent ne sme pozvati M5 potvrdu rezervacije ni pod kojim uslovom.
+4. **Pregled osoblja (Gejt B — samo iznad praga)** — ako `requires_staff_review = true` (poglavlje 2.0.4a), status prelazi u `AWAITING_STAFF_REVIEW` i zahtev se pojavljuje u M15 Agent Inbox (poglavlje 6 te specifikacije) — Vlasnik, Direktor ili Sales Manager odobrava ili odbija, **nikad AI agent**, nezavisno od toga što je subagent već potvrdio u koraku 3. Ako `requires_staff_review = false`, ovaj korak se preskače.
+5. **Izvršenje** — tek posle oba primenjiva gejta, sistem poziva **isti** M5 tok potvrde kao portal forma (poglavlje 2.0.2, korak 5 — garancija pa kreditni limit, M5 poglavlje 4 korak 1, M7 poglavlje 4) — deterministički poziv, ne nova AI odluka. Uspeh: `status = CONFIRMED`, `booking_id` popunjeno, vaučer se automatski izdaje pod istim uslovom kao svaki drugi B2B kanal (M5 poglavlje 6.3, nepromenjeno). Neuspeh (npr. kapacitet u međuvremenu prodat, kreditni limit ipak prekoračen jer je stanje duga promenjeno između koraka 3 i 5): `status = FAILED`, agent objašnjava razlog subagentu u chat-u.
+
+#### 2.0.4d Plaćanje — nikad kroz chat direktno
+
+Chat ne prikuplja niti obrađuje podatke kartice ni u kom trenutku — isti princip kao M10 poglavlje 7.1 (hostovana forma sertifikovanog provajdera). Podrazumevan način ostaje kredit/avans (M10, isto kao poglavlje 2.0.2 korak 5); ako subagent želi kartično plaćanje, agent vraća link ka istom sertifikovanom checkout-u koji koristi portal (M10 poglavlje 7.2), nikad ne pokušava da to izvede unutar razgovora.
+
+#### 2.0.4e Granice ovlašćenja agenta
+
+Agent nema pristup ničemu van sopstvenog `subagent_id` konteksta (isto ograničenje kao portal nalog tog subagenta, poglavlje 6) — ne vidi niti rezerviše u ime drugog subagenta, uključujući sopstvenu decu u hijerarhiji. Agent nikad sam ne menja `Subagent.ai_chat_enabled`/`ai_chat_review_threshold_amount`, ne odobrava sopstveni `SubagentBookingRequest` u ime osoblja (korak 4), i ne otkazuje rezervaciju kroz chat bez istog toka provere duplikata kao svaki drugi kanal (M5 poglavlje 6.4, poglavlje 2.0.2 korak 7 ovog dokumenta) — otkazivanje kroz chat i dalje ide kroz `POST /bookings/:id/cancel`, sa istim upozorenjem i istom potrebnom svesnom potvrdom kao bilo koji drugi operater.
 
 ---
 
@@ -199,6 +258,9 @@ Novi subagent se registruje sa statusom `PENDING_APPROVAL` — ne može da naru�
 | `M7/subagent/MANAGE_OWN_NETWORK` (sopstveni sub-subagenti) | `SUBAGENT_ADMIN` — samo za sopstvenu decu u hijerarhiji |
 | `M7/commission-rebate/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M7/commission-rebate/APPROVE` | Vlasnik, Direktor, Računovođa — **nikad AI agent** |
+| `M7/subagent-chat/VIEW` | Vlasnik, Direktor, Sales Manager (svi); `SUBAGENT_ADMIN` — samo sopstveni `subagent_id` |
+| `M7/subagent-chat/CONFIRM` | `SUBAGENT_ADMIN` — isključivo sopstveni `subagent_id` (poglavlje 2.0.4b/c) |
+| `M7/subagent-chat/STAFF_REVIEW` | Vlasnik, Direktor, Sales Manager — odobrenje/odbijanje zahteva iznad praga (poglavlje 2.0.4c, korak 4) — **nikad AI agent** |
 
 ---
 
@@ -219,6 +281,10 @@ Prefiks: `/api/v1/b2b`
 | `/subagents/:id/commission-rebates` | GET | lista rabata, svih statusa |
 | `/subagents/:id/commission-rebates/:rebateId/approve` | POST | ljudska potvrda, zahteva `M7/commission-rebate/APPROVE` |
 | `/subagents/:id/commission-rebates/:rebateId/reject` | POST | odbijanje, sa razlogom |
+| `/subagents/:id/chat-messages` | GET / POST | transkript razgovora (poglavlje 2.0.4b), zahteva `M7/subagent-chat/VIEW` |
+| `/subagents/:id/booking-requests` | GET / POST | pregled / kreiranje `SubagentBookingRequest` (agent priprema, poglavlje 2.0.4c koraci 1–2) |
+| `/subagents/:id/booking-requests/:requestId/confirm` | POST | potvrda subagenta (Gejt A), zahteva `M7/subagent-chat/CONFIRM`, samo sopstveni nalog |
+| `/subagents/:id/booking-requests/:requestId/staff-review` | POST | odobrenje/odbijanje osoblja (Gejt B), zahteva `M7/subagent-chat/STAFF_REVIEW`, samo kad `requires_staff_review = true` |
 
 ---
 
@@ -236,6 +302,12 @@ Prefiks: `/api/v1/b2b`
 - [ ] Ceo tok iz poglavlja 2.0.2 (pretraga → ponuda → putnici → uslovi → potvrda) radi kraj-do-kraja kroz rute iz poglavlja 2.0.1, bez ijednog koraka koji zaobilazi interne API-je M2/M5/M6.
 - [ ] Rezervacija sa `LEGAL_ENTITY` `ClientAccount` koji **nema** `Subagent` zapis dobija standardnu M5/M6 cenu (marža + eventualna lojalnost), ne proviziju — potvrđuje da se prepoznavanje radi po postojanju zapisa, ne po tipu naloga.
 - [ ] Omnisearch (poglavlje 2.0.3) ne vraća identitet dobavljača niti podatke tuđeg sub-subagenta u rezultatima.
+- [ ] `/b2b/chat` (poglavlje 2.0.4) nije dostupan subagentu čiji `ai_chat_enabled = false`.
+- [ ] `SubagentBookingRequest` ne može preći u `EXECUTING`/`CONFIRMED` bez `subagent_confirmed_at`/`subagent_confirmed_by` popunjenog — i to isključivo nalogom istog `subagent_id`, potvrđeno testom da tuđi `SUBAGENT_ADMIN` (uključujući sopstvenog roditelja/dete u hijerarhiji) ne može potvrditi.
+- [ ] Zahtev sa `requires_staff_review = true` ne izvršava M5 potvrdu dok `staff_reviewed_by` nije popunjeno ljudskim nalogom sa `M7/subagent-chat/STAFF_REVIEW` — provereno da AI agent nema pristup ovom prelazu.
+- [ ] Izvršenje (korak 5, poglavlje 2.0.4c) ponovo proverava garanciju i kreditni limit u trenutku izvršenja, ne samo u trenutku pripreme ponude — test: kreditni limit se popuni drugom rezervacijom između potvrde subagenta i izvršenja, zahtev prelazi u `FAILED`, ne u `CONFIRMED`.
+- [ ] Chat ni u jednom trenutku ne prikuplja/čuva podatke kartice — plaćanje karticom ide isključivo kroz isti hostovani checkout kao portal (M10 poglavlje 7.1).
+- [ ] Otkazivanje pokrenuto kroz chat prolazi kroz istu proveru duplikata kao svaki drugi kanal (M5 poglavlje 6.4).
 
 ---
 
@@ -243,3 +315,5 @@ Prefiks: `/api/v1/b2b`
 
 - Da li agencija treba mogućnost da direktno vidi/interveniše u proviziji sub-subagenta u izuzetnim slučajevima (spor između subagenata) — trenutno agencija ima samo uvid (`VIEW`), ne i izmenu tuđe kaskadne provizije; dodaje se kao pojedinačni izuzetak (M1 `UserPermissionOverride`) ako se pokaže potreba.
 - Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima (ako agencija treba da im isplaćuje/knjiži proviziju kao trošak, ne samo da im daje popust) — otvoreno, zavisi od toga da li se provizija realizuje kao popust na cenu (kako je ovde modelovano) ili kao zasebna isplata; trenutni model (popust na cenu) ne zahteva dodatno fakturisanje unazad.
+- **Konkretan LLM/tehnički mehanizam razgovora** (poglavlje 2.0.4) — ovaj dokument definiše granice ovlašćenja i tok potvrde, ne tačan UI/prompt dizajn razgovora; definiše se pri implementaciji, isti princip kao ostatak M15 (konkretan model bira se bliže trenutku implementacije).
+- **Tačan format/podrazumevana vrednost `ai_chat_review_threshold_amount`** (poglavlje 2.0.4a) — svaki subagent dobija sopstvenu vrednost pri uključivanju, nema globalnog podrazumevanog praga u ovoj verziji; da li treba i globalni podrazumevani prag (koji se onda može override-ovati po subagentu) ostaje otvoreno dok se ne pokaže potreba.

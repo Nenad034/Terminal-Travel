@@ -409,7 +409,7 @@ const DATA = [
     'Rođendan/godišnjica/pred-put okidači ispravno generišu zapis na tačan datum, šalju se samo uz `marketing_consent = true`.',
     '`ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na cenu ili lojalnost.',
   ]},
-  {code:'M7', title:'B2B / Subagenti', purpose:'Portal za poslovne partnere sa hijerarhijskim proviziama i kreditnim limitima.', deps:'M1, M2, M5, M6', items:[
+  {code:'M7', title:'B2B / Subagenti', purpose:'Portal za poslovne partnere sa hijerarhijskim proviziama i kreditnim limitima, plus AI chat sa izvršnim ovlašćenjem.', deps:'M1, M2, M5, M6, M15', items:[
     'Novi subagent se registruje, ostaje `PENDING_APPROVAL`, i ne može da naruči dok se ne odobri.',
     'Tier 1 proviziju postavlja isključivo agencija; sub-subagent proviziju postavlja isključivo roditeljski subagent, ne sme preći roditeljsku.',
     'Rezervacija koja bi prekoračila kreditni limit se odbija pre bilo kakve rezervacije kapaciteta.',
@@ -419,6 +419,8 @@ const DATA = [
     'Ako roditeljev obimski bonus istekne i padne ispod već postavljene provizije deteta, sistem prijavljuje upozorenje, ne menja tiho odnos.',
     'Prelazak retroaktivnog praga usred perioda kreira `CommissionRebate` u statusu DRAFT; rabat se ne primeni bez ljudskog odobrenja; nijedan poslat fiskalni dokument se ne dira.',
     'Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez desktop računara.',
+    'AI chat (`/b2b/chat`) nije dostupan subagentu čiji `ai_chat_enabled = false`; rezervacija se ne izvršava bez eksplicitne potvrde subagenta sopstvenim nalogom.',
+    'Zahtev iznad konfigurabilnog praga čeka pregled osoblja agencije (M15 Agent Inbox) pre izvršenja, bez obzira na potvrdu subagenta; AI agent nikad sam ne odobrava taj pregled.',
   ]},
   {code:'M14', title:'Helpdesk', purpose:'Tiketing za goste i subagente, uključujući zakonski rok za reklamacije.', deps:'M1, M5, M6, M7', items:[
     'Gost sa sajta (M8) i subagent sa B2B portala (M7) mogu da otvore tiket i vide status/odgovore.',
