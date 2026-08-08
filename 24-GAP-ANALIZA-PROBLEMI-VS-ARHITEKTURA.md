@@ -154,5 +154,6 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | Datum | Kategorija | Problem (opis vlasnika) | Odluka | Modul/napomena |
 | :---- | :---- | :---- | :---- | :---- |
 | 2026-08-05 | (razno, prvobitna lista) | 9 problema iz `Problemi koje zelimo da resimo ovom aplikacijom.md` | Analizirano u ovom dokumentu (poglavlja 1-9) | Vidi Rezime iznad |
+| 2026-08-07 | Gost/klijent (B2C) | Gost ne dobija automatski podsetnik kad dobavljač drži rezervaciju "na opciju" sa rokom posle kog sam otkazuje ako agencija ne potvrdi/plati — vlasnik dao konkretan primer iz prakse (email dobavljača "Reservations pending confirmation": hotel, datumi, referenca, ime, rok, web-referenca) kao format za analognu poruku ka gostu. | Dopuna postojeće specifikacije — upisano kao otvoreno pitanje | M5 poglavlje 13 (novo polje za rok opcije na `BookingItem`; kanal za transakciona obaveštenja gostu verovatno zahteva i dopunu M6 poglavlje 4.1) |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*
