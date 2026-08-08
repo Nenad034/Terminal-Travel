@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.5 — ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -78,7 +78,7 @@ Jedan ugovor može pokrivati više sezona sa različitim cenama i alotmanom (npr
 | id | UUID (PK) | |
 | contract_id | UUID (FK → Contract) | |
 | stay_from / stay_to | date | period boravka gosta na koji ova sezona/cena važi |
-| room_type | string | odgovara `room_type` u `attributes` odgovarajućeg M2 Product-a (konvencija, ne strogi FK — vidi princip granica modula) |
+| room_type | string | odgovara `code` polju unutar `attributes.room_types[]` odgovarajućeg M2 Product-a (M2 poglavlje 2.3a, dopuna avgust 2026 — konvencija, ne strogi FK, vidi princip granica modula) |
 | allotment_mode | enum: `FIXED`, `ON_REQUEST`, `CHARTER`, `FIXED_LEASE` | vidi poglavlje 2.3a za `CHARTER`/`FIXED_LEASE` |
 | total_capacity | integer, nullable | za `FIXED`, `CHARTER`, `FIXED_LEASE` — ukupan broj jedinica (soba/mesta) u ovom periodu |
 | units_sold | integer, default 0 | za `FIXED`, `CHARTER`, `FIXED_LEASE` — atomski se uvećava pri svakoj potvrđenoj rezervaciji (M5); vidi napomenu o konkurentnosti niže |

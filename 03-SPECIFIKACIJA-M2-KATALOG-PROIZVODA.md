@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
+**Verzija:** 1.3 — na zahtev vlasnika (avgust 2026): `room_types[]` postaje strukturiran niz objekata umesto golih naziva, `media[]` dobija kategorizaciju/galeriju po sobi (poglavlje 2.3a); nov AI agent za uvoz sadržaja hotela sa sajta dobavljača (`ProductContentImport`, poglavlje 3.3), isti obrazac kao M3 `PricelistImport`/M10 `SupplierInvoiceImport`; v1.2 na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
 **Zavisi od:** M1 (Core / Identitet i pristup)
 
 ---
@@ -29,7 +29,7 @@ Van obima ove specifikacije: uslovi ugovora, alotmani i cenovnici (to je M3), lo
 | source_external_id | string, nullable | id proizvoda kod spoljnog provajdera |
 | destination_country / destination_city | string | strukturirana lokacija radi pretrage i filtriranja |
 | geo_lat / geo_lng | decimal, nullable | za prikaz na mapi |
-| media | JSONB | niz `{url, type: image\|video, order}` — jezički nezavisno (iste slike za sve jezike) |
+| media | JSONB | niz strukturiranih stavki galerije (poglavlje 2.3a) — jezički nezavisno (iste slike za sve jezike) |
 | attributes | JSONB | polja specifična za `type` (vidi 2.3) — jezički nezavisna (npr. broj zvezdica, trajanje) |
 | status | enum: `DRAFT`, `ACTIVE`, `INACTIVE`, `ARCHIVED` | samo `ACTIVE` proizvodi su vidljivi kanalima prodaje |
 | visible_channels | niz enum: `B2C_SITE`, `B2B_PORTAL`, `MOBILE` | kontroliše gde se proizvod prikazuje (M7/M8/M9) |
@@ -59,7 +59,7 @@ Nije prinudno na nivou baze (JSONB je fleksibilan), ali svaki modul koji čita/p
 
 | Tip | Očekivana polja u `attributes` |
 | :---- | :---- |
-| `ACCOMMODATION` | `accommodation_type` (enum: `HOTEL`, `VILA`, `APARTMAN`, `HOSTEL`, `KAMP`, `KABINA_NA_BRODU`, `DRUGO` — proširivo bez izmene strukture), `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]`, `amenities[]` |
+| `ACCOMMODATION` | `accommodation_type` (enum: `HOTEL`, `VILA`, `APARTMAN`, `HOSTEL`, `KAMP`, `KABINA_NA_BRODU`, `DRUGO` — proširivo bez izmene strukture), `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]` (strukturirano, poglavlje 2.3a), `amenities[]` |
 | `PACKAGE` | `duration_days`, `included_products[]` (reference na druge Product id-jeve), `itinerary` |
 | `TRANSFER` | `vehicle_type`, `max_passengers`, `route` — tačka-do-tačke prevoz vezan za dolazak/odlazak gosta (npr. aerodrom→hotel), **ne** meša se sa `TRANSPORT` niže |
 | `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level`, `departure_point`, `min_participants`/`max_participants` |
@@ -72,6 +72,30 @@ Nije prinudno na nivou baze (JSONB je fleksibilan), ali svaki modul koji čita/p
 **Napomena o "Prevoz" kao jedinstvenom tipu, ne šest odvojenih:** `TRANSPORT` sa strukturiranim `transport_mode` pod-atributom je isti obrazac koji već koristi `ACCOMMODATION.accommodation_type` (HOTEL/VILA/APARTMAN...) — jedan `Product.type` za pretragu/filtriranje na najvišem nivou, sa pod-tipom koji nosi finiju granulaciju. `RENT_A_CAR` i `PRIVATE_CAR_WITH_DRIVER` su namerno odvojene vrednosti unutar `transport_mode` (ne spojene u jedan "automobil" mod) jer imaju različit poslovni model — potvrđeno sa vlasnikom (avgust 2026).
 
 Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — nije potrebno unapred predvideti sva polja.
+
+### 2.3a `room_types[]` i galerija slika — struktura (dopuna, avgust 2026, na zahtev vlasnika)
+
+**`room_types[]`** (deo `ACCOMMODATION.attributes`, poglavlje 2.3) više nije spisak golih naziva — svaka stavka je objekat:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| code | string | interni identifikator (npr. `DELUXE_SEA_VIEW`) — ovo je vrednost na koju se referencira `M3 ContractPeriod.room_type` (konvencija, ne strogi FK — M3 poglavlje 2.3) |
+| name | string | prikazan naziv (npr. "Deluxe soba sa pogledom na more") — jezički nezavisno, isti obrazac kao `board_type` (nazivi tipova soba se u praksi retko prevode) |
+| capacity_adults / capacity_children | integer | maksimalan broj gostiju te vrste sobe — koristi ga M5 pri proveri da li `room_config` (M5 poglavlje 4.2) odgovara ponuđenim sobama |
+| size_sqm | decimal, nullable | |
+| features[] | niz stringova, nullable | npr. "balkon", "pogled na more", "kada" — slobodna lista, ne zatvoren enum |
+
+**`Product.media`** (poglavlje 2.1) dobija strukturu po stavci umesto pukog `{url, type, order}`:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| url | string | nepromenjeno |
+| type | enum: `image`, `video` | nepromenjeno |
+| order | integer | nepromenjeno |
+| category | enum: `EXTERIOR`, `ROOM`, `AMENITY`, `RESTAURANT`, `POOL`, `BEACH`, `LOBBY`, `VIEW`, `DRUGO` | proširivo bez izmene strukture |
+| room_type_code | string, nullable | popunjeno samo kad `category = ROOM` — referencira `room_types[].code` iznad, vezuje sliku uz tačnu sobu umesto generičke galerije |
+| caption | string, nullable | kratak opis slike, jezički nezavisno (isti princip kao `board_type`) |
+| source | enum: `MANUAL_UPLOAD`, `AI_IMPORTED` | odakle je slika stigla — isti princip praćenja porekla kao `ProductTranslation.translation_source` (poglavlje 2.2); `AI_IMPORTED` slike prolaze kroz odobrenje pre nego što uđu u `media[]` (poglavlje 3.3) |
 
 ---
 
@@ -87,6 +111,48 @@ S obzirom na to da spoljni katalozi (npr. Travelgate) mogu imati desetine hiljad
 2. Proizvodi koji nikad nisu pretraženi nikad se ne čuvaju — katalog raste organski, ne unapred.
 3. **Mesečna provera** (AI agent, nivo autonomije "Autonomno" iz poglavlja 7 Master dokumenta — ovo je čisto informativno, ne dira novac ni pravne obaveze): agent ponovo povuče statični sadržaj za svaki `CACHED` proizvod čiji je `last_synced_at` stariji od 30 dana, uporedi sa sačuvanom verzijom, i ako ima razlike — ažurira zapis i upisuje promenu u audit log (M1). Ako provera ne uspe (proizvod više ne postoji kod provajdera), status prelazi u `STALE` i proizvod se automatski uklanja iz `visible_channels` dok se ručno ne potvrdi.
 4. **Cena i dostupnost se NIKAD ne čuvaju u ovom kešu** — vidi poglavlje 4.
+
+### 3.3 AI-potpomognut uvoz sadržaja sa sajta hotela (CONTRACTED proizvodi, dopuna avgust 2026 — na zahtev vlasnika)
+
+Za `CONTRACTED` proizvode (poglavlje 3.1), ručno prekucavanje opisa/galerije/tipova soba sa sajta hotela je sporo i podložno grešci — isti problem koji je već rešen za cenovnike (M3 `PricelistImport`, poglavlje 4 te specifikacije) i za ulazne račune dobavljača (M10 `SupplierInvoiceImport`, poglavlje 8.6 te specifikacije). Ovo je treća primena istog obrasca: **AI izvlači, čovek odobri pre nego što bilo šta postane vidljiv podatak.**
+
+**Obim (v1):** samo `Product.type = ACCOMMODATION` — najveća i najhitnija potreba (sobe, galerija, sadržaji). Isti obrazac se proširuje na druge tipove (izleti, događaji...) kad se pokaže potreba, bez izmene strukture.
+
+**Pokretanje:** zaposleni unosi **URL sajta hotela** uz postojeći ili novi `Product` — sistem ne pretražuje internet sam da pronađe sajt (rizik od pogrešnog poklapanja, npr. isti naziv hotela u drugom gradu) — potvrđeno na zahtev vlasnika.
+
+#### `ProductContentImport`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| product_id | UUID, nullable (FK → Product) | prazno ako se uvoz koristi da **kreira** novi proizvod, ne samo da dopuni postojeći |
+| source_url | string | URL sajta hotela koji zaposleni unosi |
+| status | enum: `PENDING`, `EXTRACTED`, `REVIEW_IN_PROGRESS`, `COMPLETED`, `FAILED` | |
+| extracted_at | timestamp, nullable | |
+| failure_reason | text, nullable | |
+| created_by / created_at | UUID / timestamp | |
+
+#### `ProductContentImportField` — jedna stavka po izvučenom podatku
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| import_id | UUID (FK → ProductContentImport) | |
+| field_type | enum: `NAME`, `DESCRIPTION`, `AMENITY`, `ROOM_TYPE`, `PHOTO`, `LOCATION`, `SERVICE` | pokriva tačno ono što je vlasnik naveo: opis, sadržaji, tipovi smeštaja, slike, lokacija, usluge |
+| extracted_value | JSONB | sirov izvučen sadržaj — tekst, URL slike, ili strukturiran objekat (npr. kandidat za `room_types[]` stavku, poglavlje 2.3a) u zavisnosti od `field_type` |
+| match_confidence | decimal (0–100), nullable | isti princip kao `PricelistImportRow.match_confidence` (M3 poglavlje 4.2) |
+| review_status | enum: `PENDING`, `APPROVED`, `EDITED_AND_APPROVED`, `REJECTED` | |
+| reviewed_by / reviewed_at | UUID (FK → M1 User), nullable / timestamp, nullable | **nikad AI agent** |
+| applied_at | timestamp, nullable | kad je odobrena vrednost stvarno upisana u `Product`/`ProductTranslation`/`media` |
+
+**Tok:**
+1. Zaposleni kreira `ProductContentImport` sa `source_url` (i `product_id` ako dopunjuje postojeći proizvod) — `status = PENDING`.
+2. AI agent učitava stranicu i izvlači kandidate po `field_type` u `ProductContentImportField` redove, sa `match_confidence` — nivo **"Autonomno"** iz poglavlja 7 Master dokumenta (čista priprema, ništa još nije objavljeno). `status → EXTRACTED`.
+3. Zaposleni pregleda svaki red — odobri, odbije, ili izmeni pa odobri (`EDITED_AND_APPROVED`) — nivo **"Predloži pa čovek odobri"**, isti gejt kao M3 `PricelistImportRow.approve` (poglavlje 4.2.4) i M10 `SupplierInvoiceImport` (poglavlje 8.6). Nijedan red se ne upisuje u `Product` automatski, bez obzira na `match_confidence` — isto pravilo kao M3.
+4. Pri odobrenju, sistem upisuje vrednost na odgovarajuće mesto: `NAME`/`DESCRIPTION` → `ProductTranslation` (sa `translation_source = AI_GENERATED`, `is_reviewed = true` pošto je upravo pregledano — poglavlje 2.2), `AMENITY`/`SERVICE` → `attributes.amenities[]`, `ROOM_TYPE` → nova stavka u `attributes.room_types[]` (poglavlje 2.3a), `PHOTO` → nova stavka u `media[]` sa `source = AI_IMPORTED` (poglavlje 2.3a), `LOCATION` → `destination_country`/`destination_city`/`geo_lat`/`geo_lng`.
+5. Kad su svi redovi obrađeni (odobreni ili odbijeni), `ProductContentImport.status → COMPLETED`.
+
+**Ograda — jezik:** izvučen tekst (opis, nazivi) se tretira kao **jedan jezik** (obično engleski, jer većina hotelskih sajtova ima bar englesku verziju) — prevod na ostalih 7 jezika i dalje ide kroz postojeći M2 tok (poglavlje 2.2, ručno ili AI prevod), ovaj uvoz ga ne zaobilazi.
+
+**Napomena o autorskim pravima:** slike i tekst preuzeti sa sajta hotela mogu biti zaštićeni autorskim pravom vlasnika sajta — pre javne objave na B2C/B2B kanalima, potvrditi sa dobavljačem (u okviru ugovora, M3) da agencija sme da koristi taj materijal u marketinške svrhe; ovo nije automatski pretpostavljeno pravo. Isto obrazloženje kao ostale stavke koje čekaju pravnu potvrdu (poglavlje 9).
 
 ---
 
@@ -135,6 +201,8 @@ Kad `Product.status` pređe u `ACTIVE` preko `/products/:id/publish`, M2 emituje
 | `M2/product/PUBLISH` (promena statusa/vidljivosti) | Vlasnik, Direktor |
 | `M2/product/DELETE` (arhiviranje, ne fizičko brisanje) | Vlasnik, Direktor |
 | `M2/product-translation/EDIT` | Vlasnik, Direktor |
+| `M2/product-content-import/CREATE`, `VIEW` | Vlasnik, Direktor; i AI agent zadužen za M2 (poglavlje 3.3 — samo priprema/ekstrakcija) |
+| `M2/product-content-import/REVIEW_FIELD` (odobri/odbij/izmeni izvučenu stavku) | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M2/product/EDIT` |
 
 **Napomena:** među sedam osnovnih uloga iz M1 ne postoji posebna "Katalog menadžer" uloga. Za sada se uređivanje kataloga drži na Vlasniku/Direktoru; ako se pokaže da neko drugi (npr. Sales Manager) treba da uređuje katalog, to se rešava pojedinačnim izuzetkom (`UserPermissionOverride` iz M1), ne čekajući novu ulogu.
 
@@ -152,6 +220,9 @@ Prefiks: `/api/v1/catalog`
 | `/products/:id/translations` | GET / PUT | pregled/izmena prevoda po jeziku |
 | `/products/:id/publish` | POST | menja status u `ACTIVE` i/ili `visible_channels` — zahteva `M2/product/PUBLISH` |
 | `/products/cache/sync` | POST | ručno pokretanje sinhronizacije za jedan proizvod (van mesečnog ciklusa) — korisno kad agent na terenu primeti da je opis pogrešan |
+| `/product-content-imports` | GET / POST | lista / kreiranje uvoza (poglavlje 3.3), `POST` prima `source_url` i opciono `product_id` |
+| `/product-content-imports/:id` | GET | detalji, uključujući sve `ProductContentImportField` redove |
+| `/product-content-imports/:id/fields/:fieldId/review` | POST | zahteva `M2/product-content-import/REVIEW_FIELD`; prima odluku (`APPROVED`/`EDITED_AND_APPROVED`/`REJECTED`) i po potrebi izmenjenu vrednost |
 
 ---
 
@@ -164,6 +235,10 @@ Prefiks: `/api/v1/catalog`
 - [ ] Nijedan proizvod nema cenu upisanu kao trajno polje — cena se uvek dobija iz M3/M4 u trenutku upita.
 - [ ] Test: poziv ka `/products` (i svakom drugom M2 endpoint-u) preko M7/M8/M9-gost konteksta ne vraća `source_type`, `source_contract_id`, `source_provider`, `source_external_id` niti bilo šta iz M3 `Supplier`/`Contract` — provereno na nivou payload-a, ne samo prikaza; isti poziv preko M17 (interni kontekst) ta polja ispravno vraća.
 - [ ] Moguće je kreirati proizvod tipa `TRANSPORT` (za svaki `transport_mode`), `TICKET` i `EVENT`, sa atributima iz poglavlja 2.3, i naći ga kroz `/products` filtriran po tipu.
+- [ ] `room_types[]` se čuva i vraća kao niz strukturiranih objekata (poglavlje 2.3a), ne golih naziva; `media[]` stavka sa `category = ROOM` i `room_type_code` ispravno referencira postojeći `room_types[].code`.
+- [ ] `ProductContentImport` uspešno izvlači kandidate sa test sajta hotela u sve kategorije (`NAME`/`DESCRIPTION`/`AMENITY`/`ROOM_TYPE`/`PHOTO`/`LOCATION`/`SERVICE`), sa `match_confidence` po redu.
+- [ ] Nijedna izvučena stavka se ne upisuje u `Product`/`ProductTranslation`/`media` bez `reviewed_by` popunjenog ljudskim nalogom — provereno da AI agent nema pristup `REVIEW_FIELD` prelazu.
+- [ ] Odobrena `PHOTO` stavka se upisuje u `media[]` sa `source = AI_IMPORTED`; odobrena `ROOM_TYPE` stavka se upisuje u `attributes.room_types[]` sa ispravnim `code`.
 
 ---
 
@@ -172,3 +247,6 @@ Prefiks: `/api/v1/catalog`
 - Tačna pravila za `PACKAGE` proizvode (paket aranžmani koji uključuju više drugih proizvoda) — odnos prema cenovniku kad se cena paketa razlikuje od zbira pojedinačnih komponenti — definiše se detaljnije kad M3 (Ugovaranje) bude specificiran, pošto to pitanje suštinski pripada cenovnoj logici, ne katalogu.
 - Da li treba poseban proces odobrenja (workflow) pre nego što proizvod pređe iz `DRAFT` u `ACTIVE` (npr. da neko drugi pregleda pre objave) — trenutno ide direktno preko dozvole `M2/product/PUBLISH`, bez dodatnog koraka odobrenja.
 - **Ograničen kapacitet za `TICKET`/`EVENT`** (npr. koncert sa ograničenim brojem mesta) — isti princip alotmana kao `ACCOMMODATION` već postoji generički u M3 (`ContractPeriod`/`RateLine`), M2 ne treba da menja svoj model zbog toga; potvrditi pri implementaciji M3 dela za ova dva tipa da postojeći model zaista pokriva slučaj bez izmene.
+- **Autorska prava nad AI-uvezenim sadržajem** (poglavlje 3.3) — potvrditi sa dobavljačem/pravnikom pre javne objave slika/teksta preuzetih sa sajta hotela; van obima ove specifikacije da definiše tačan pravni mehanizam (napomena u ugovoru, pismena saglasnost...).
+- **Automatsko pronalaženje sajta hotela** (bez unosa URL-a) — namerno odloženo iz v1 (poglavlje 3.3) zbog rizika pogrešnog poklapanja; razmotriti kad se pokaže da ručni unos URL-a stvarno usporava tim.
+- **Da li "usluge" (`SERVICE`) treba da budu odvojeno polje od `amenities[]`** u `attributes` — trenutno se oba upisuju na isto mesto (poglavlje 3.3, korak 4); razdvojiti ako se pokaže da im treba različit prikaz na sajtu (M8).
