@@ -16,7 +16,7 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [x] Automastko obavestavanje da li je rezervacija ubacena u CIS odnosno da li je kreiran evidencioni broj u Cisu *(Pokriveno — M11 poglavlje 2 i 4.3 — vidi GAP-analiza #5)*
+* [x] Automastko obavestavanje da li je rezervacija ubacena u CIS odnosno da li je kreiran evidencioni broj u Cisu *(Pokriveno za CIS/YUTA garanciju putovanja — M11 poglavlje 2.3; napomena: eTurista prijava pojedinačnog gosta je avgusta 2026. svesno izbačena iz obima kao obaveza hotela, ne agencije — proverite da li se ovaj problem odnosio baš na to, vidi GAP-analiza #5)*
 
 
 

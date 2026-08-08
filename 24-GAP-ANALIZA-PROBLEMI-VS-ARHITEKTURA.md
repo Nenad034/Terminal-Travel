@@ -52,11 +52,13 @@
 
 ## 5. Automatsko obaveštavanje o CIS/eTurista registraciji
 
-**Status: dobro pokriveno.**
+**Status: pokriveno za CIS/YUTA garanciju putovanja; eTurista prijava gostiju svesno izbačena iz obima (avgust 2026, M11 v2.0).**
 
-`08-SPECIFIKACIJA-M11-COMPLIANCE.md` poglavlje 2 (`GuestRegistration`, `eturista_reference`, automatski poziv pri `check_in_date`, alarm na `FAILED`) i poglavlje 4.3 (`TravelGuaranteeRegistration.cis_registration_number`, tok `PENDING → REGISTERED`, alarmi ako `CONFIRMED` rezervacija ostane bez broja garancije >48h ili storno bez oslobađanja >48h) pokrivaju tačno ovaj problem. Alarmi idu Vlasniku/Direktoru (panel + email).
+`08-SPECIFIKACIJA-M11-COMPLIANCE.md` poglavlje 2.3 (`TravelGuaranteeRegistration.cis_registration_number`, tok `PENDING → REGISTERED`, alarmi ako `CONFIRMED` rezervacija ostane bez broja garancije >48h ili storno bez oslobađanja >48h) pokriva praćenje CIS/YUTA registracije garancije putovanja po rezervaciji — ovo je nepromenjeno u odnosu na raniju verziju, samo je poglavlje prenumerisano (bivše 4.3 → 2.3).
 
-Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je eksplicitno ostavljen otvorenim za potvrdu pre implementacije — koncept i model podataka su, ipak, kompletni. Nema materijalnog gap-a.
+**Izmena u obimu (M11 v2.0, na zahtev vlasnika):** eTurista prijava *gostiju* (bivši `GuestRegistration` entitet, bivše poglavlje 2) je u potpunosti uklonjena iz M11 (i iz M10) — to je zakonska obaveza smeštajnog objekta/hotela koji gosta direktno prima, ne agencije-touroperatora koja aranžman prodaje. Terminal to više ne prati niti prijavljuje. Ako je izvorni problem #5 mislio na *ovo* (individualnu registraciju gosta), to sada nije pokriveno — svesno, poslovnom odlukom, ne previdom. Ako je mislio na CIS registracioni broj *garancije putovanja* po rezervaciji, to ostaje pokriveno (poglavlje 2.3 iznad).
+
+Napomena: tačan tehnički ugovor sa CIS/YUTA API-jem je i dalje eksplicitno ostavljen otvorenim za potvrdu pre implementacije — koncept i model podataka za garanciju su, ipak, kompletni.
 
 ---
 
