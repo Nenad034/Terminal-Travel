@@ -55,6 +55,14 @@ Prati fazni plan iz `docs/00-MASTER-ARHITEKTURA.md` poglavlje 8 (Faza 0 → Faza
 
 Svaka Nivo 2 specifikacija ima sekciju "Izlazni kriterijum" sa čeklistom. Modul nije završen dok svaka stavka na toj listi ne prođe — ne "uglavnom radi", ne "UI postoji, logika ne". Ovo je direktna pouka iz PrimeTravel iskustva (mnogo funkcija u stanju "delimično"/"nije live" jer ovo pravilo nije striktno sprovođeno).
 
+## Otvorena pitanja — jedan indeks za sve module
+
+Svaka Nivo 2 specifikacija ima sopstvenu sekciju "Otvoreno za dalje" — to ostaje jedini izvor istine za detalje. Ali sa 22 modula, lako je izgubiti pregled šta sve čeka. `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md` je **indeks, ne kopija** — jedan red po stavci sa pokazivačem na tačan modul/poglavlje.
+
+- Kad dodaš novu stavku pod "Otvoreno za dalje" bilo kog modula, u istom prolazu dodaj i jedan red u ovaj indeks (i obrnuto — kad se stavka reši, ukloni je odavde).
+- Ako se u razgovoru pojavi ideja koja još nema jasno mesto ni u jednom postojećem modulu, upiši je u sekciju "Ideje van formalne specifikacije" na vrhu tog fajla, umesto da se izgubi kad se sesija završi.
+- Ovaj fajl se čita na početku rada na bilo kojoj temi koja deluje kao da je već negde dotaknuta — brže je proveriti indeks nego ponovo "otkriti" isto pitanje.
+
 ## Ko je vlasnik i kako komunicirati
 
 Nenad Tomić je vlasnik i **arhitekta projekta, ne programer**. Njegova uloga je vizija i nadzor sistema; posao AI agenta je da bude tim sintetičkih inženjera. Kad god je odluka tehnička (izbor biblioteke, obrazac implementacije), daj **jasnu preporuku sa obrazloženjem**, ne samo listu opcija — on ne može sam da proceni tehničke kompromise. Kad je odluka poslovna (jezici, valute, uloge, marža, poslovna pravila), pitaj — to su činjenice koje samo on zna.

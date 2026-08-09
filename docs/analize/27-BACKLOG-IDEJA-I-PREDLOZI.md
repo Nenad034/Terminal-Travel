@@ -1,0 +1,186 @@
+# Backlog — konsolidovan indeks otvorenih pitanja i ideja
+
+**Status:** Živ dokument, ažurira se u istom prolazu kad god se u bilo kom modulu doda nova stavka pod "Otvoreno za dalje" (vidi CLAUDE.md).
+
+---
+
+## Šta je ovo i šta NIJE
+
+Terminal ima 22 specificirana modula, svaki sa sopstvenom sekcijom **"Otvoreno za dalje"** — pitanja koja su svesno ostavljena nerešena dok se ne pokaže stvarna potreba ili ne dobije potvrda vlasnika/pravnika/knjigovođe. Kad je posao ograničen na jednu sesiju i jedan modul, lako je izgubiti pregled nad tim šta sve čeka na nekom drugom mestu — 22 odvojene liste se ne čitaju same od sebe.
+
+Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa pokazivačem na tačan modul i poglavlje gde stvarno piše puno objašnjenje. Kad se stavka reši, briše se odavde i (ako je vredno traga) ostaje samo u changelog-u (`**Verzija:**` liniji) tog modula — ne duplira se detaljan tekst na dva mesta, isti princip "jedan izvor istine" kao svuda u projektu (Master dokument, poglavlje 3).
+
+**Kako se koristi:** kad počinjemo novu sesiju/temu, prvi pogled ovde da vidimo šta je već identifikovano kao čekanje, umesto da se nešto ponovo "otkriva" ili — gore — tiho zaboravi.
+
+---
+
+## Ideje van formalne specifikacije (još nemaju mesto ni u jednom modulu)
+
+Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili implementirano, ili već upisano u "Otvoreno za dalje" nekog modula ispod. Ova sekcija postoji za slučaj kad se u razgovoru pojavi ideja koja još ne pripada jasno nijednom postojećem modulu (npr. predlog za nov modul pre nego što prođe kroz `tt-architecture-core` potvrdu).
+
+---
+
+## M1 — Core / Identitet i pristup
+*(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
+- Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
+
+## M2 — Katalog proizvoda
+*(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`)*
+- Pravila za `PACKAGE` proizvode i odnos cene paketa prema zbiru komponenti — čeka M3.
+- Da li treba odobrenje pre prelaska proizvoda iz `DRAFT` u `ACTIVE`.
+- Ograničen kapacitet za `TICKET`/`EVENT` — potvrditi da model M3 pokriva bez izmene.
+- Autorska prava nad AI-uvezenim sadržajem — potvrditi sa dobavljačem/pravnikom pre objave.
+- Automatsko pronalaženje sajta hotela (bez URL-a) — odloženo iz v1.
+- Da li `SERVICE` treba odvojeno polje od `amenities[]` u `attributes`.
+
+## M3 — Ugovaranje i alotmani
+*(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
+- Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano).
+- Obračun konverzije valute za fakturisanje u RSD — definiše se u M10.
+- Da li `PACKAGE` proizvodi mogu imati sopstveni ugovor nezavisan od komponenti.
+- Break-even/P&L pregled za `CHARTER`/`FIXED_LEASE` — definiše se u M13.
+- Izbor OCR provajdera za `SCANNED_PDF`.
+- Da li prag od 85% (fuzzy-match pouzdanost) treba biti podesiv po dobavljaču/formatu.
+- **Ograničenje tržišta porekla gosta** nema mesta u modelu ugovora (nalaz iz analize stvarnih cenovnika, avgust 2026).
+- **Ograničenje po segmentu gosta** (FIT vs. grupa vs. MICE) nije pokriveno (ista analiza).
+- **Obavezan minimalni markup koji nameće dobavljač** nije proveravan protiv `MarkupRule` (ista analiza).
+- **Kazna za otkazivanje sa različitom osnovicom po sezoni** — proveriti granularnost `CancellationRule` (ista analiza).
+- **Ponavljajući pomoćni troškovi** (kućni ljubimac, parking, rani check-in/kasni check-out, room service, povratni depozit) bez mesta u modelu (ista analiza).
+- **Boravišna taksa sa sopstvenim uzrasnim pragom**, nezavisnim od `age_policy[]` — van obima (M10/M11 je isključuju), ali vredi ponovo razmotriti (ista analiza).
+
+## M4 — Integracije spoljnih API konekcija
+*(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
+- Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) — implementiraju se kasnije.
+- Tačni rate-limit po provajderu — definišu se kad se zna stvarni Travelgate ugovor.
+
+## M5 — Rezervacije i tok prodaje
+*(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
+- Format vaučera (sadržaj, izgled) — definiše se kasnije.
+- Tačan izgled/template operativne liste po tipu dobavljača.
+- Da li slanje operativne liste ide samo email prilogom ili i strukturisanim API kanalom.
+- Da li API (M4) stavke ikad zahtevaju sličan operativni dokument.
+- Tačan izgled kalendara i vizuelno razlikovanje kategorija — dizajnersko pitanje.
+- Vizuelni prikaz/UI za sastavljanje putovanja (itinerar) — dizajnersko pitanje.
+- AI predlozi za popunu praznina u itineraru — čekaju M15.
+- Da li `Itinerary` treba sopstveni rok isteka (ABANDONED).
+- Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT` po pod-tipu.
+- Automatski podsetnik gostu o roku za potvrdu/uplatu opcije kod dobavljača — zahteva dalju razradu roka, kanala i praga slanja.
+
+## M6 — CRM (Gosti i Nalogodavci)
+*(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
+- Tačan period čuvanja/anonimizacije ličnih podataka gosta (pravo na zaborav) — utvrditi sa pravnikom.
+
+## M7 — B2B modul (Subagenti)
+*(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)*
+- Da li agencija treba mogućnost direktne intervencije u proviziji sub-subagenta u sporovima.
+- Prilagođavanja M10 za automatsko fakturisanje provizije nazad ka subagentima.
+- Konkretan LLM/tehnički mehanizam AI razgovora sa subagentom (UI/prompt dizajn).
+- Tačan format/podrazumevana vrednost `ai_chat_review_threshold_amount`.
+
+## M8 — Sajt agencije (B2C prikaz)
+*(§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
+- Tačan izbor CMS-lite rešenja za statične stranice — odlaže se do M12.
+- Detalji cookie/consent banera — potvrditi sa pravnikom pri implementaciji.
+
+## M9 — Mobilna aplikacija
+*(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
+- Tačna dubina unapred preuzetih podataka (14 dana je predlog) — podesivo.
+- Konkretan provajder push notifikacija — bira se pri implementaciji.
+
+## M10 — Finansije i računovodstvo
+*(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
+- Tačan tehnički ugovor sa SEF v4.0.0 i izabranim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom.
+- Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
+- Ograničenje gotovine (AML) — potvrditi sa pravnikom da li je ručna procedura dovoljna.
+- Kurs pri više uplata u različitim danima (avans + balans) — zahteva potvrdu knjigovođe.
+- Izbor konkretnog PCI-DSS platnog provajdera koji podržava RSD/lokalne kartice.
+- Granični slučajevi PDV po sistemu marže (mešoviti aranžmani) — zahtevaju potvrdu knjigovođe.
+- Pravna posledica `buyer_acceptance_status = EXPIRED`/`REJECTED` kod SEF fakture.
+- BSP poravnanje — mehanizam definiše se kad M4 dobije avio/GDS adapter.
+- Da li obaveze prema van-M3 dobavljačima ulaze u `SupplierObligation`.
+- Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima.
+- Tačan tehnički format kojim SEF prihvata `KNJIZNO_ODOBRENJE` — potvrditi sa knjigovođom.
+- FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
+
+## M11 — Regulatorni modul (Compliance)
+*(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)*
+- Tačan tehnički ugovor za CIS registraciju garancije i skidanje opterećenja pri stornu.
+- Da li M11 treba da prati i druge licence/dozvole agencije van YUTA garancije.
+- Alarm za rok važenja putne isprave gosta — gde ga vratiti (verovatno M6 `GuestProfile`).
+
+## M12 — Marketing i sadržajni engine
+*(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
+- Tačan izbor društvenih mreža/kanala za lansiranje — potvrditi pre implementacije adaptera.
+
+## M13 — Izveštavanje i BI
+*(§9, `docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md`)*
+- Marketing performanse dodaju se kad M12 bude specificiran.
+- Tačan skup KPI-jeva koje AI agent proaktivno ističe — širi se po potrebi.
+- Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode — dodaje se kad se pokaže potreba.
+- Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj — UX pogodnost za M17.
+
+## M14 — Podrška / Helpdesk
+*(§8, `docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md`)*
+- SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema).
+- Integracija sa M9 mobilnom aplikacijom za goste (Faza 6).
+- Mehanizam formalnog beleženja odluke o povraćaju novca na tiketu.
+
+## M15 — AI agentska orkestracija
+*(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)*
+- Tačan raspored uvođenja agenata po modulu — zavisi od redosleda stabilizacije u produkciji.
+- Konkretan izbor LLM provajdera/modela po domenskom agentu.
+
+## M16 — Agentski distribucioni interfejs (MCP)
+*(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
+- Tačan MCP wire-protokol (transport, autentikacija) — potvrditi pre implementacije.
+- Mehanizam agentskog plaćanja — proveriti stanje standarda pre implementacije.
+- Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom.
+- Oblik odgovora MCP alata — razmotriti pljosnatiji serializer i jasnije poruke o greškama.
+
+## M17 — Interni radni panel
+*(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
+- Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
+- Tačan izgled/UX (raspored menija, boje) — dizajnersko pitanje.
+
+## M18 — Operativni nadzor i AI optimizacija
+*(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
+- Dodavanje `VIBER`/`WHATSAPP` kanala obaveštenja.
+- Tačan prag za "neuobičajen skok" po tipu signala — podešava se empirijski u produkciji.
+- Veza sa M19 (`IN_APP` kanal) dodaje se kad taj modul bude izgrađen.
+
+## M19 — Komunikaciona platforma
+*(§11, `docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md`)*
+- Da li interni chat treba grupne kanale po timovima od starta.
+- Pretraga istorije poruka — dodaje se ako obim komunikacije to zahteva.
+- Obaveštavanje dobavljača o novoj poruci van portala (email/SMS ping).
+- Da li portal dobavljača dobija PWA instalaciju.
+- Zaštita od zloupotrebe/spama na javno dostupnom portalu za spoljne naloge.
+
+## M20 — Ugovori sa klijentima
+*(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)*
+- Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje.
+- Tačan trenutak kad prihvatanje/potpis mora biti završen u odnosu na izdavanje vaučera.
+- `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` — uskladiti sa PDV pitanjem iz M10.
+- `KORPORATIVNI_OKVIRNI` tip čeka punu razradu B2B okvirnih ugovora.
+- Samostalna prodaja `INSURANCE` proizvoda ne odgovara nijednom postojećem `contract_type`.
+
+## M21 — Centar za pomoć (baza znanja + AI asistent)
+*(§8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
+- Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj.
+- Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion`.
+- Proširenje na treću publiku (krajnji gosti, M8/M9) — namerno van obima v1.
+- Da li agent dobija ograničen pristup živim podacima (npr. kreditni limit subagenta) u budućoj verziji.
+
+## M22 — Email/Inbox platforma
+*(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)*
+- Izbor konkretnog email provajdera/API-ja (Gmail, Microsoft Graph, IMAP/SMTP).
+- Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih — zahteva IT/pravnu potvrdu.
+- Real-time chat sa dobavljačima ostaje potpuno odvojen otvoren gap.
+- Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
+- Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
+
+---
+
+## Napomena o prioritetu
+
+Ovaj fajl namerno **ne rangira** stavke po prioritetu — to je odluka vlasnika u trenutku kad se na njih vraćamo, ne nešto što treba unapred pretpostaviti u dokumentu. Grupe koje se prirodno nameću kao "prvo pitati pravnika/knjigovođu" (većina M10/M11 stavki, cookie baner u M8, retencija podataka u M6/M22) su označene u originalnom tekstu tog modula rečju "pravnik"/"knjigovođa" — pretraga po toj reči kroz `docs/moduli/` daje brz filter kad dođe vreme za tu rundu pitanja.

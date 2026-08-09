@@ -1288,7 +1288,7 @@ Prefiks: `/api/v1/catalog`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: `RateLine` dobija `price_basis` (po sobi vs. po osobi) i strukturiranu cenu po uzrasnoj kategoriji gosta `age_pricing[]` (poglavlje 2.4a), rešava otvoreno pitanje iz v1.5 o ceni po detetu/bebi; v1.5 ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.7 — na zahtev vlasnika (avgust 2026): `PricelistImportRow` dobija polja za kandidate uzrasne cene (`extracted_price_basis`/`extracted_age_pricing`/`extracted_crib_fee_per_night`, poglavlje 4.2.2); nov `SupplierExtractionProfile` (poglavlje 4.2.5) — AI uvoz uči potvrđen obrazac po dobavljaču i ponovo ga koristi za sledeći uvoz istog dobavljača, sa ogradom da se ne primenjuje tiho ako se struktura dokumenta promeni; v1.6 na osnovu analize stvarnih cenovnika više dobavljača: `RateLine` dobija `price_basis` (po sobi vs. po osobi) i strukturiranu cenu po uzrasnoj kategoriji gosta `age_pricing[]` (poglavlje 2.4a), rešava otvoreno pitanje iz v1.5 o ceni po detetu/bebi; v1.5 ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -1482,6 +1482,9 @@ Dobavljači šalju cenovnike u proizvoljnom formatu (PDF, Excel, Word, HTML, ema
 | extracted_room_type / extracted_board_type | string | |
 | extracted_stay_from / extracted_stay_to | date | |
 | extracted_price / extracted_currency | integer / string | u najmanjoj jedinici valute (poglavlje 2) — konvertuje se pri ekstrakciji, čak i ako je izvorni dokument prikazivao cenu sa decimalama |
+| extracted_price_basis | enum, nullable: `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT` | kandidat za `RateLine.price_basis` (poglavlje 2.4) — `null` dok AI ne prepozna dovoljno pouzdano, ide na ručnu potvrdu kao i svako drugo nepopunjeno polje |
+| extracted_age_pricing | JSONB, nullable | niz kandidata za `RateLine.age_pricing[]` (poglavlje 2.4a) — isti oblik polja (`age_category`, `occupant_index`, `min_adults_present`, `pricing_mode`, `percentage`/`flat_price`), samo označeno kao izvučeno, ne potvrđeno; `null` ako dokument ne sadrži uzrasnu cenu za tu stavku |
+| extracted_crib_fee_per_night | integer, nullable | kandidat za `RateLine.crib_fee_per_night` (poglavlje 2.4) |
 | review_status | enum: `PENDING`, `CONFIRMED`, `MANUALLY_MATCHED`, `REJECTED` | |
 | reviewed_by | UUID (FK → M1 User), nullable | |
 
@@ -1491,7 +1494,27 @@ Ime hotela iz dokumenta se upoređuje sa postojećim M2 katalogom preko Levenšt
 
 #### 4.2.4 Nivo autonomije — ekstrakcija sme sama, upis cene nikad sam
 
-Ekstrakcija podataka iz dokumenta i predlog mapiranja (`PROCESSING → READY_FOR_REVIEW`) je nivo **"Autonomno"** — čisto informativna priprema, ništa se još ne piše u stvarni `ContractPeriod`/`RateLine`, pa ni pogrešno mapiranje ne utiče na prodajnu cenu. **Kreiranje ili izmena stvarnog `ContractPeriod`/`RateLine` zapisa iz potvrđenog reda** (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) je nivo **"Predloži pa čovek odobri"** — zahteva ljudsku potvrdu (isti nosilac dozvole kao `M3/contract-period/EDIT`, poglavlje 5) pre nego što red postane aktivna cena, u skladu sa principom #4 (determinizam pre autonomije) iz poglavlja 3 Master dokumenta — greška ovde je direktno pogrešna prodajna cena, ne kozmetika.
+Ekstrakcija podataka iz dokumenta i predlog mapiranja (`PROCESSING → READY_FOR_REVIEW`) je nivo **"Autonomno"** — čisto informativna priprema, ništa se još ne piše u stvarni `ContractPeriod`/`RateLine`, pa ni pogrešno mapiranje ne utiče na prodajnu cenu. **Kreiranje ili izmena stvarnog `ContractPeriod`/`RateLine` zapisa iz potvrđenog reda** (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) je nivo **"Predloži pa čovek odobri"** — zahteva ljudsku potvrdu (isti nosilac dozvole kao `M3/contract-period/EDIT`, poglavlje 5) pre nego što red postane aktivna cena, u skladu sa principom #4 (determinizam pre autonomije) iz poglavlja 3 Master dokumenta — greška ovde je direktno pogrešna prodajna cena, ne kozmetika. Ovo pravilo važi identično za osnovna polja (`extracted_room_type`/`extracted_price`) i za nova uzrasna polja (`extracted_price_basis`/`extracted_age_pricing`/`extracted_crib_fee_per_night`, poglavlje 4.2.2) — nijedno se ne upisuje u `RateLine` bez `reviewed_by`.
+
+#### 4.2.5 `SupplierExtractionProfile` — nauči jednom po dobavljaču, koristi ponovo (dopuna, avgust 2026, na zahtev vlasnika)
+
+Isti dobavljač obično šalje cenovnik u istom formatu iz godine u godinu (isti raspored kolona, isti `price_basis`, isti tipičan prag za dete/tinejdžera) — nema razloga da svaki novi `PricelistImport` od istog dobavljača kreće od nule. `SupplierExtractionProfile` čuva **poslednji uspešno potvrđen obrazac** po dobavljaču i AI ga koristi kao polaznu tačku za sledeći uvoz istog dobavljača, isto kao što bi i čovek koji je prošle godine već obradio taj cenovnik znao gde da gleda.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| supplier_id | UUID (FK → Supplier), jedinstveno | jedan profil po dobavljaču |
+| typical_price_basis | enum, nullable: `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT` | iz poslednjeg potvrđenog uvoza |
+| typical_age_thresholds | JSONB, nullable | poslednje potvrđene uzrasne granice po kategoriji (ne obavezujuće — svaki novi red i dalje prolazi kroz isti `review_status` gejt, ovo je samo predlog koji podiže `match_confidence` kad se poklapa) |
+| structure_signature | JSONB, nullable | otisak strukture izvornog dokumenta (npr. raspored kolona/zaglavlja) korišćen da se proveri da li novi dokument "izgleda isto" pre nego što se profil primeni — tačan mehanizam (hash, lista zaglavlja, embedding) bira se pri implementaciji |
+| last_confirmed_import_id | UUID, nullable (FK → PricelistImport) | |
+| updated_at | timestamp | |
+
+**Kako se uči:** profil se **ne** ažurira posebnim koračkom "treniranja" — svaki put kad zaposleni odobri (`review_status → CONFIRMED`/`MANUALLY_MATCHED`) red iz `PricelistImport` za tog dobavljača, sistem tiho ažurira `SupplierExtractionProfile` tog dobavljača potvrđenim vrednostima. Ista akcija koja već postoji (poglavlje 4.2.4), bez novog procesa za zaposlenog.
+
+**Kako se koristi — i ograda protiv tihog pogrešnog mapiranja:** pri novom `PricelistImport` za dobavljača koji već ima profil, AI prvo poredi `structure_signature` novog dokumenta sa sačuvanim. Ako se poklapa — profil se koristi kao polazna vrednost, `match_confidence` izvučenih redova je viši. **Ako se ne poklapa** (dobavljač promenio format), profil se **ne primenjuje** — ekstrakcija ide bez pomoći profila, sa uobičajenom (nižom) pouzdanošću, i `PricelistImport` nosi vidljivu napomenu da sačuvan profil nije iskorišćen jer se struktura promenila. Ovo je namerno konzervativno: stari profil tiho primenjen na promenjen dokument bi pogrešno mapirao kolone, što je gore nego da profila nema.
+
+**Nivo autonomije:** čitanje/upoređivanje profila i predlaganje viših `match_confidence` vrednosti je **"Autonomno"** (ista priprema kao poglavlje 4.2.4) — profil nikad ne menja gejt za upis u `RateLine`, samo poboljšava predlog koji čovek i dalje mora da odobri.
 
 ### 4.3 Alarm za nizak preostali kapacitet
 
@@ -1564,6 +1587,9 @@ Prefiks: `/api/v1/contracting`
 - [ ] Moguće je kreirati `RateLine` sa `price_basis = PER_ROOM_PER_NIGHT` i sa `price_basis = PER_PERSON_PER_NIGHT`, svaki sa `age_pricing[]` nizom (poglavlje 2.4a).
 - [ ] Test: `age_pricing[]` red sa `occupant_index = 1` i red bez `occupant_index` za istu kategoriju — gost čiji je redni broj u sobi tačno 1 dobija cenu iz prvog reda, ne iz podrazumevanog (poglavlje 2.4a, razrešavanje).
 - [ ] Test: gost čija kategorija nema odgovarajući `age_pricing[]` red (ni uslovljen ni podrazumevani) odbija kreiranje `Quote` sa jasnom porukom — ne pretpostavlja cenu.
+- [ ] Upload testnog cenovnika sa uzrasnim tabelama rezultuje `PricelistImportRow` sa popunjenim `extracted_price_basis`/`extracted_age_pricing` kandidatima, ne samo osnovnim poljima (poglavlje 4.2.2).
+- [ ] Prvi `PricelistImport` za novog dobavljača kreira `SupplierExtractionProfile` tek posle prvog `CONFIRMED` reda; drugi uvoz od istog dobavljača, sa istom strukturom dokumenta, ima viši prosečan `match_confidence` od prvog (poglavlje 4.2.5).
+- [ ] Test: uvoz od dobavljača sa postojećim profilom, ali sa dokumentom čija se `structure_signature` ne poklapa — profil se ne primenjuje, uvoz ide sa uobičajenom pouzdanošću i vidljivom napomenom da profil nije iskorišćen.
 
 ---
 
