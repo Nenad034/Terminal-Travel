@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M23), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21/M22)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.0 — prvobitna specifikacija, na direktan zahtev vlasnika (avgust 2026)
-**Zavisi od:** M1 (identitet, RBAC, audit log), M2 (proizvod kao predmet članka, `product.published` okidač), M7 (kanal za subagente), M8 (javna stranica deljenog članka), M15 (AI agent okvir, glasovni modalitet), M17 (kanal za interni tim)
+**Verzija:** 1.1 — dodato poglavlje 4d: istraživanje za proizvode direktno predlaže dopunu M2 kataloga kroz postojeći `ProductContentImport` mehanizam, na zahtev vlasnika (avgust 2026); v1.0 prvobitna specifikacija, na direktan zahtev vlasnika (avgust 2026)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M2 (proizvod kao predmet članka; poglavlje 4d, predlog dopune kataloga), M7 (kanal za subagente), M8 (javna stranica deljenog članka), M15 (AI agent okvir, glasovni modalitet), M17 (kanal za interni tim)
 
 ---
 
@@ -143,6 +143,14 @@ Periodičan posao proverava `Article.next_refresh_due_at ≤ now()` za svaki `PU
 3. **Postojeći objavljen sadržaj ostaje nepromenjen** dok čovek ne pregleda i odobri predlog (`ArticleRevision.status → APPROVED`, poglavlje 2.4) — nivo **"Predloži pa čovek odobri"**. Ako revizija ostane neodobrena, `next_refresh_due_at` se **ne** pomera unapred — sistem nastavlja da prikazuje da je članak "za pregled" dok se odluka ne donese, ne dozvoljava da tiho probije rok bez traga.
 4. Odbijena revizija (`REJECTED`) ne menja `next_refresh_due_at` — sledeći ciklus posla je ponovo pokreće prema istom pravilu, ne čeka novih 30 dana.
 
+### 4d. Predlaganje dopuna M2 kataloga (dopuna, avgust 2026, na zahtev vlasnika)
+
+Za članke sa `subject_type = PRODUCT`, isto istraživanje koje puni ovaj članak (poglavlje 4a–4c) **direktno predlaže** dopunu M2 kataloga za taj proizvod — ne odvojen, novi tok, nego prosleđivanje u **već postojeći** M2 mehanizam (`ProductContentImport`/`ProductContentImportField`, M2 poglavlje 3.3/3.3a). Iz nađenog sadržaja, agent izdvaja samo ono što odgovara M2 `field_type` taksonomiji (`DESCRIPTION`, `AMENITY`, `ROOM_TYPE`, `PHOTO`, `LOCATION`, `SERVICE`) — širi, narativni deo ostaje isključivo u M23 `ArticleTranslation`, ne prelazi u katalog.
+
+Poziva `POST /product-content-imports` (M2 poglavlje 7) sa `product_id`, `origin = M23_RESEARCH`, `fields[]` (već ekstrahovano, M2 ga ne ekstrahuje ponovo), i `source_article_revision_id` po polju za sledljivost. Odatle je **potpuno M2 nadležnost** — pregled/odobrenje ide isključivo kroz M2 `M2/product-content-import/REVIEW_FIELD` (M2 poglavlje 6), nikad kroz M23, i nikad AI. Nivo autonomije za ovaj korak (ekstrakcija + slanje predloga) je **"Autonomno"** — isto obrazloženje kao poglavlje 4c, ništa još nije upisano u katalog.
+
+Okida se pri svakom istraživanju (`INITIAL_CREATION`, `SCHEDULED_REFRESH`, `QUESTION_GAP`) koje ima `subject_type = PRODUCT` i pronađe bar jedno polje koje odgovara taksonomiji — ne zahteva poseban korak od zaposlenog da ga zatraži.
+
 ---
 
 ## 5. Deljenje — generisan javni link (potvrđeno sa vlasnikom, avgust 2026)
@@ -203,6 +211,7 @@ Prefiks: `/api/v1/knowledge`
 - [ ] Kad istraživanje pronađe više od jednog kandidata izvora, `ArticleRevision` se ne može odobriti dok bar jedan referencirani `ArticleSource` nije `APPROVED` ljudskim nalogom.
 - [ ] `Article.next_refresh_due_at` se ispravno postavlja na `last_refreshed_at + 30 dana`, i ne pomera unapred dok odgovarajuća `ArticleRevision` ne bude `APPROVED`.
 - [ ] Test: dospeo rok osvežavanja generiše `ArticleRevision` (`PENDING_REVIEW`) bez ijedne izmene na živom, objavljenom sadržaju dok revizija čeka.
+- [ ] Istraživanje za `subject_type = PRODUCT` sa poklapajućim poljima ispravno kreira M2 `ProductContentImport` (`origin = M23_RESEARCH`, `status = EXTRACTED`) sa `source_article_revision_id` popunjenim na svakom polju; nijedno polje se ne upisuje u M2 `Product` bez ljudskog pregleda kroz M2 tok (M23 nema sopstvenu prečicu za odobrenje kataloga).
 - [ ] AI agent (`POST /ask`) odgovara isključivo iz `PUBLISHED` sadržaja; `confidence = NONE` nudi pokretanje istraživanja, ne tiho ćutanje.
 - [ ] `POST /articles/:id/publish` i odobrenje revizije/izvora se ne mogu izvršiti nalogom `actor_type = AI_AGENT` — provereno na nivou koda (M15 poglavlje 5).
 - [ ] Javna stranica `/znanje/:share_token` (M8) prikazuje tačno jedan članak, bez navigacije ka ostatku baze znanja ili sajta van tog članka.

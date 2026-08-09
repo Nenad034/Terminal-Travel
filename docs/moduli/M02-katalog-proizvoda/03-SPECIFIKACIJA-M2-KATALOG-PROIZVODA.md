@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — ispravka na zahtev vlasnika (avgust 2026): `age_policy[].age_to` menja tip iz `integer` u `decimal` i uvodi `X,99` konvenciju zapisa (poglavlje 2.3b) — ceo broj kao gornja granica je dvosmislen (već označava sledeću godinu života); v1.5 na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: `age_policy[].category` dobija `TEEN` kao četvrtu vrednost (poglavlje 2.3b); cena po kategoriji rešena u M3 v1.6, ne ovde; v1.4 na zahtev vlasnika (avgust 2026): `room_types[]` dobija raspodelu kreveta (osnovni/dodatni) i podesivu uzrasnu politiku po sobi (`age_policy[]`) — deca, bebe, krevetac (poglavlje 2.3b); v1.3 na zahtev vlasnika (avgust 2026): `room_types[]` postaje strukturiran niz objekata umesto golih naziva, `media[]` dobija kategorizaciju/galeriju po sobi (poglavlje 2.3a); nov AI agent za uvoz sadržaja hotela sa sajta dobavljača (`ProductContentImport`, poglavlje 3.3), isti obrazac kao M3 `PricelistImport`/M10 `SupplierInvoiceImport`; v1.2 na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
-**Zavisi od:** M1 (Core / Identitet i pristup)
+**Verzija:** 1.7 — dodato poglavlje 3.3a: M23 (Znanje) istraživanje direktno predlaže dopune kataloga kroz postojeći `ProductContentImport` mehanizam (`origin = M23_RESEARCH`, `source_article_revision_id`), bez novog toka odobrenja — na zahtev vlasnika (avgust 2026); v1.6 ispravka na zahtev vlasnika (avgust 2026): `age_policy[].age_to` menja tip iz `integer` u `decimal` i uvodi `X,99` konvenciju zapisa (poglavlje 2.3b) — ceo broj kao gornja granica je dvosmislen (već označava sledeću godinu života); v1.5 na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: `age_policy[].category` dobija `TEEN` kao četvrtu vrednost (poglavlje 2.3b); cena po kategoriji rešena u M3 v1.6, ne ovde; v1.4 na zahtev vlasnika (avgust 2026): `room_types[]` dobija raspodelu kreveta (osnovni/dodatni) i podesivu uzrasnu politiku po sobi (`age_policy[]`) — deca, bebe, krevetac (poglavlje 2.3b); v1.3 na zahtev vlasnika (avgust 2026): `room_types[]` postaje strukturiran niz objekata umesto golih naziva, `media[]` dobija kategorizaciju/galeriju po sobi (poglavlje 2.3a); nov AI agent za uvoz sadržaja hotela sa sajta dobavljača (`ProductContentImport`, poglavlje 3.3), isti obrazac kao M3 `PricelistImport`/M10 `SupplierInvoiceImport`; v1.2 na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
+**Zavisi od:** M1 (Core / Identitet i pristup); formalno i od M23 (poglavlje 3.3a, predlozi dopuna kataloga iz istraživanja) kad taj modul postoji
 
 ---
 
@@ -154,10 +154,11 @@ Za `CONTRACTED` proizvode (poglavlje 3.1), ručno prekucavanje opisa/galerije/ti
 | id | UUID (PK) | |
 | product_id | UUID, nullable (FK → Product) | prazno ako se uvoz koristi da **kreira** novi proizvod, ne samo da dopuni postojeći |
 | source_url | string | URL sajta hotela koji zaposleni unosi |
-| status | enum: `PENDING`, `EXTRACTED`, `REVIEW_IN_PROGRESS`, `COMPLETED`, `FAILED` | |
+| origin | enum: `MANUAL_URL`, `M23_RESEARCH` *(dodato avgust 2026, poglavlje 3.3a)* | `MANUAL_URL` — zaposleni pokrenuo uvoz direktno (tok ispod, nepromenjeno); `M23_RESEARCH` — nastalo iz istraživanja M23 (Znanje), ekstrakcija je već urađena tamo |
+| status | enum: `PENDING`, `EXTRACTED`, `REVIEW_IN_PROGRESS`, `COMPLETED`, `FAILED` | `M23_RESEARCH` uvoz ulazi direktno u `EXTRACTED` (ekstrakcija već urađena), preskače `PENDING` |
 | extracted_at | timestamp, nullable | |
 | failure_reason | text, nullable | |
-| created_by / created_at | UUID / timestamp | |
+| created_by / created_at | UUID / timestamp | `created_by` je M23 agent (`account_type = AI_AGENT`) za `origin = M23_RESEARCH` |
 
 #### `ProductContentImportField` — jedna stavka po izvučenom podatku
 | Polje | Tip | Napomena |
@@ -170,6 +171,7 @@ Za `CONTRACTED` proizvode (poglavlje 3.1), ručno prekucavanje opisa/galerije/ti
 | review_status | enum: `PENDING`, `APPROVED`, `EDITED_AND_APPROVED`, `REJECTED` | |
 | reviewed_by / reviewed_at | UUID (FK → M1 User), nullable / timestamp, nullable | **nikad AI agent** |
 | applied_at | timestamp, nullable | kad je odobrena vrednost stvarno upisana u `Product`/`ProductTranslation`/`media` |
+| source_article_revision_id | UUID, nullable (FK → M23 `ArticleRevision`) *(dodato avgust 2026, poglavlje 3.3a)* | popunjeno samo kad `ProductContentImport.origin = M23_RESEARCH` — sledljivost do istraživanja koje je predložilo ovu vrednost |
 
 **Tok:**
 1. Zaposleni kreira `ProductContentImport` sa `source_url` (i `product_id` ako dopunjuje postojeći proizvod) — `status = PENDING`.
@@ -181,6 +183,18 @@ Za `CONTRACTED` proizvode (poglavlje 3.1), ručno prekucavanje opisa/galerije/ti
 **Ograda — jezik:** izvučen tekst (opis, nazivi) se tretira kao **jedan jezik** (obično engleski, jer većina hotelskih sajtova ima bar englesku verziju) — prevod na ostalih 7 jezika i dalje ide kroz postojeći M2 tok (poglavlje 2.2, ručno ili AI prevod), ovaj uvoz ga ne zaobilazi.
 
 **Napomena o autorskim pravima:** slike i tekst preuzeti sa sajta hotela mogu biti zaštićeni autorskim pravom vlasnika sajta — pre javne objave na B2C/B2B kanalima, potvrditi sa dobavljačem (u okviru ugovora, M3) da agencija sme da koristi taj materijal u marketinške svrhe; ovo nije automatski pretpostavljeno pravo. Isto obrazloženje kao ostale stavke koje čekaju pravnu potvrdu (poglavlje 9).
+
+### 3.3a AI iz M23 (Znanje) direktno predlaže dopune kataloga (dopuna, avgust 2026, na zahtev vlasnika)
+
+M23 istražuje predmete tipa `PRODUCT` iz istih vrsta odobrenih izvora kao ovo poglavlje (zvaničan sajt/društvene mreže objekta, M23 poglavlje 4a) — umesto da to bude odvojen, paralelan tok, isti nalaz se **direktno prosleđuje** u ovaj već postojeći uvoz/odobrenje mehanizam, bez dupliranja ekstrakcije niti novog koraka odobrenja:
+
+1. Kad M23 završi istraživanje (`ArticleRevision`, M23 poglavlje 2.4) za članak sa `subject_type = PRODUCT`, agent iz nađenog sadržaja izdvaja kandidate koji odgovaraju **već postojećoj** `field_type` taksonomiji ovog poglavlja (`DESCRIPTION`, `AMENITY`, `ROOM_TYPE`, `PHOTO`, `LOCATION`, `SERVICE`) — ne prenosi se ceo M23 članak (koji je širi, narativni sadržaj), samo strukturirani deo koji ovaj model već prepoznaje.
+2. Poziva `POST /product-content-imports` (poglavlje 7) sa `product_id`, `origin = M23_RESEARCH`, i unapred popunjenim `fields[]` — M2 kreira `ProductContentImport` direktno u `status = EXTRACTED` (ekstrakcija je već urađena u M23, M2 je ne ponavlja) i odgovarajuće `ProductContentImportField` redove sa `source_article_revision_id`.
+3. Odatle nadalje **identičan tok kao poglavlje 3.3, korak 3–5** — zaposleni pregleda svaki red (odobri/odbije/izmeni), ništa se ne upisuje u `Product`/`ProductTranslation`/`media` bez ljudskog `reviewed_by`. M23 istraživanje ne dobija nikakvo brže/lakše odobrenje samo zato što dolazi iz drugog modula.
+
+**Nivo autonomije:** korak 1–2 (ekstrakcija i slanje predloga) je **"Autonomno"**, isto obrazloženje kao poglavlje 3.3 — ništa još nije vidljivo niti upisano u katalog. Korak 3 ostaje **"Predloži pa čovek odobri"**, nepromenjeno.
+
+**Dozvola:** M23 agent (`account_type = AI_AGENT`) dobija `M2/product-content-import/CREATE` (poglavlje 6) — isti princip kao M7 poglavlje 2.0.4 (domenski agent jednog modula sme da pozove API drugog modula kad zadatak legitimno prelazi granicu), ne novo, šire ovlašćenje.
 
 ---
 
@@ -229,7 +243,7 @@ Kad `Product.status` pređe u `ACTIVE` preko `/products/:id/publish`, M2 emituje
 | `M2/product/PUBLISH` (promena statusa/vidljivosti) | Vlasnik, Direktor |
 | `M2/product/DELETE` (arhiviranje, ne fizičko brisanje) | Vlasnik, Direktor |
 | `M2/product-translation/EDIT` | Vlasnik, Direktor |
-| `M2/product-content-import/CREATE`, `VIEW` | Vlasnik, Direktor; i AI agent zadužen za M2 (poglavlje 3.3 — samo priprema/ekstrakcija) |
+| `M2/product-content-import/CREATE`, `VIEW` | Vlasnik, Direktor; i AI agent zadužen za M2 (poglavlje 3.3 — samo priprema/ekstrakcija); i M23 agent (poglavlje 3.3a — samo `origin = M23_RESEARCH`, isti nivo autonomije) |
 | `M2/product-content-import/REVIEW_FIELD` (odobri/odbij/izmeni izvučenu stavku) | Vlasnik, Direktor — **nikad AI agent**, isti nosilac kao `M2/product/EDIT` |
 
 **Napomena:** među sedam osnovnih uloga iz M1 ne postoji posebna "Katalog menadžer" uloga. Za sada se uređivanje kataloga drži na Vlasniku/Direktoru; ako se pokaže da neko drugi (npr. Sales Manager) treba da uređuje katalog, to se rešava pojedinačnim izuzetkom (`UserPermissionOverride` iz M1), ne čekajući novu ulogu.
@@ -248,7 +262,7 @@ Prefiks: `/api/v1/catalog`
 | `/products/:id/translations` | GET / PUT | pregled/izmena prevoda po jeziku |
 | `/products/:id/publish` | POST | menja status u `ACTIVE` i/ili `visible_channels` — zahteva `M2/product/PUBLISH` |
 | `/products/cache/sync` | POST | ručno pokretanje sinhronizacije za jedan proizvod (van mesečnog ciklusa) — korisno kad agent na terenu primeti da je opis pogrešan |
-| `/product-content-imports` | GET / POST | lista / kreiranje uvoza (poglavlje 3.3), `POST` prima `source_url` i opciono `product_id` |
+| `/product-content-imports` | GET / POST | lista / kreiranje uvoza (poglavlje 3.3), `POST` prima `source_url` i opciono `product_id`; ili, za `origin = M23_RESEARCH` (poglavlje 3.3a), `product_id` i unapred popunjen `fields[]` umesto `source_url` ekstrakcije |
 | `/product-content-imports/:id` | GET | detalji, uključujući sve `ProductContentImportField` redove |
 | `/product-content-imports/:id/fields/:fieldId/review` | POST | zahteva `M2/product-content-import/REVIEW_FIELD`; prima odluku (`APPROVED`/`EDITED_AND_APPROVED`/`REJECTED`) i po potrebi izmenjenu vrednost |
 
@@ -269,6 +283,7 @@ Prefiks: `/api/v1/catalog`
 - [ ] `ProductContentImport` uspešno izvlači kandidate sa test sajta hotela u sve kategorije (`NAME`/`DESCRIPTION`/`AMENITY`/`ROOM_TYPE`/`PHOTO`/`LOCATION`/`SERVICE`), sa `match_confidence` po redu.
 - [ ] Nijedna izvučena stavka se ne upisuje u `Product`/`ProductTranslation`/`media` bez `reviewed_by` popunjenog ljudskim nalogom — provereno da AI agent nema pristup `REVIEW_FIELD` prelazu.
 - [ ] Odobrena `PHOTO` stavka se upisuje u `media[]` sa `source = AI_IMPORTED`; odobrena `ROOM_TYPE` stavka se upisuje u `attributes.room_types[]` sa ispravnim `code`.
+- [ ] `ProductContentImport` sa `origin = M23_RESEARCH` ulazi direktno u `EXTRACTED` (bez `PENDING`), sa `source_article_revision_id` popunjenim na svakom polju; prolazi kroz **potpuno isti** ljudski pregled kao `origin = MANUAL_URL` — nijedno polje se ne upisuje bez `reviewed_by`, bez obzira na poreklo.
 
 ---
 
