@@ -18,7 +18,16 @@
       "Bash(git commit -m ' *)",
       "Bash(git show *)",
       "Bash(python3 -)",
-      "Bash(PYTHONIOENCODING=utf-8 python3 -)"
+      "Bash(PYTHONIOENCODING=utf-8 python3 -)",
+      "Bash(mkdir -p \"d:\\\\Terminal Travel\\\\.claude\\\\skills\\\\tt-m23-znanje\")",
+      "Edit(/.claude/skills/tt-m23-znanje/**)",
+      "Bash(awk '/^## 9\\\\. Otvoreno za dalje/,0' \"docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md\")",
+      "Bash(grep -n '^    </div>$\\\\|^  </main>$\\\\|^<button class=\"top-btn\"' \"d:\\\\Terminal Travel\\\\_old_good_snapshot.html\")",
+      "Bash(grep -n 'id=\"doc-m21\"\\\\|^    </div>$' \"d:\\\\Terminal Travel\\\\_clean_base.html\")",
+      "Bash(awk '/id=\"doc-m22\"/{print NR}' \"docs/00-PREGLED-DOKUMENTACIJE.html\")"
+    ],
+    "additionalDirectories": [
+      "d:\\Terminal Travel\\.claude\\skills"
     ]
   }
 }

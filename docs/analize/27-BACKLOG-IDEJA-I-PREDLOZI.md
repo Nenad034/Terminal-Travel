@@ -80,8 +80,6 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 
 ## M8 — Sajt agencije (B2C prikaz)
 *(§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
-- Tačan izbor CMS-lite rešenja za statične stranice.
-- M12 sad postoji, ali `M8_SITE` kanal ne pokriva opšte stranice (samo proizvod-vezan sadržaj) — veza ostaje otvorena.
 - Detalji cookie/consent banera — potvrditi sa pravnikom pri implementaciji.
 
 ## M9 — Mobilna aplikacija
@@ -113,10 +111,11 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 ## M12 — Marketing i sadržajni engine
 *(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
 - Tačan izbor društvenih mreža/kanala za lansiranje — potvrditi pre implementacije adaptera.
+- Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti.
+- Puna analitika angažovanosti sa platformi (impressions/klikovi, otvaranje mejla) — namerno van obima, samo atribucija ka rezervaciji je pokrivena (poglavlje 3a).
 
 ## M13 — Izveštavanje i BI
 *(§9, `docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md`)*
-- M12 sad postoji, ali ne definiše šta M13 čita iz njega (npr. doseg/engagement po kanalu naspram M5 konverzije) — integracija ostaje otvorena.
 - Tačan skup KPI-jeva koje AI agent proaktivno ističe — širi se po potrebi.
 - Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode — dodaje se kad se pokaže potreba.
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj — UX pogodnost za M17.
@@ -181,6 +180,15 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Real-time chat sa dobavljačima ostaje potpuno odvojen otvoren gap.
 - Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
 - Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
+
+## M23 — Znanje
+*(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md`)*
+- Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka.
+- AI Q&A/glas za subagente (M7) — v1 daje im samo čitanje već objavljenih članaka.
+- Prava integracija sa Viber/WhatsApp/Telegram/email API-jima za deljenje, umesto ručnog kopiranja linka.
+- Tačan prag/algoritam za grupisanje ponovljenih `QUESTION_GAP` pitanja na istu temu.
+- Da li `Article` za destinaciju/zemlju treba hijerarhiju (država sadrži destinacije) ili ravna lista sa filterom je dovoljna.
+- Tačan mehanizam kojim AI "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API) — može zahtevati proveru uslova korišćenja platforme.
 
 ---
 

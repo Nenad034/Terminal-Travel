@@ -16,6 +16,28 @@ cross-modularne analize u docs/analize/) - vidi CLAUDE.md.
 Kad se doda nov modul, prvo dodati njegov nav-link i doc-<id> sekciju
 rucno u HTML (CLAUDE.md), pa dodati odgovarajuci red u DOC_MAP ispod,
 pa pokrenuti skriptu.
+
+KRITIČNO — prazna <script type="text/plain" class="src"> sekcija MORA imati
+praznu liniju izmedju otvarajuceg i zatvarajuceg taga:
+
+    <script type="text/plain" class="src">
+
+    </script>
+
+NE ovako (samo jedan newline, bez prazne linije):
+
+    <script type="text/plain" class="src">
+    </script>
+
+Regex u ovoj skripti trazi "\n</script>" da zatvori sekciju; ako je razmak
+izmedju tagova samo jedan newline, taj newline biva potrosen kao deo
+otvarajuceg literala i regex "preskoci" do SLEDECEG "\n</script>" u
+dokumentu - u praksi to je zatvarajuci tag SLEDECE (prazne) sekcije, sto
+u potpunosti izbrise njenu <section> oznaku iz fajla bez ikakve greske pri
+pokretanju (osim upozorenja "nema doc-<id> sekcije" za modul ciji je tag
+progutan). Ovo se dogodilo uzivo avgust 2026 pri dodavanju M22/M23 i
+obrisalo je citav zavrsni JS renderer (mdToHtml/IntersectionObserver) iz
+fajla - vidi git istoriju commit-a koji dodaje M23 za sanaciju/detalje.
 """
 
 import re
@@ -50,6 +72,7 @@ DOC_MAP = {
     "m20": DOCS / "moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md",
     "m21": DOCS / "moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md",
     "m22": DOCS / "moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md",
+    "m23": DOCS / "moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md",
 }
 
 

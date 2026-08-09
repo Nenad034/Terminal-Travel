@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M8), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
-**Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja), M15 (poglavlje 3a, omnisearch)
+**Verzija:** 1.6 — dodate rute `/stranica/[slug]`/`/blog/[slug]` (M12 poglavlje 6, dopuna avgust 2026) i `/znanje/[share_token]` (M23 poglavlje 5, avgust 2026, nov modul); v1.5 dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja), M15 (poglavlje 3a, omnisearch), M12 (poglavlje 6, opšte stranice), M23 (poglavlje 5, deljen članak baze znanja)
 
 ---
 
@@ -31,14 +31,18 @@ Sve rute su prefiksovane jezikom (`/sr/...`, `/en/...`, `/hr/...`, `/sl/...`, `/
 | `/nalog/prijava`, `/nalog/registracija` | Prijava/registracija gosta | M1 `/auth/*` |
 | `/nalog/moje-rezervacije` | Lista sopstvenih rezervacija, status, vaučeri | M5 `/bookings?client_account_id=...`, prava iz M1 (Gost vidi samo svoje) |
 | `/nalog/profil` | Izmena profila, preference, saglasnost za marketing | M6 `/client-accounts/:id` |
-| `/o-nama`, `/kontakt`, `/uslovi` | Statični/uređivani sadržaj | Van obima ove specifikacije — vidi poglavlje 6 |
+| `/stranica/[slug]` | Opšte stranice (npr. "O nama", "Kontakt") | M12 `/content?type=STATIC_PAGE&slug=...` (poglavlje 6, dopuna avgust 2026) |
+| `/blog/[slug]` | Blog članak | M12 `/content?type=BLOG_POST&slug=...` (poglavlje 6, dopuna avgust 2026) |
+| `/uslovi` | Statični sadržaj (pravni tekst, ne uređuje se kroz M12) | Van obima ove specifikacije |
+| `/znanje/[share_token]` | Jedan javno dostupan članak baze znanja, bez naloga i bez navigacije ka ostatku sajta/baze — dostupan isključivo direktnim linkom koji je neko podelio (M23 poglavlje 5, dopuna avgust 2026) | M23 `/public/:share_token` |
 
 ---
 
 ## 3. Tok pretrage i rezervacije (korak po korak)
 
+0. **Hvatanje porekla (dopuna avgust 2026, M12 poglavlje 3a)** — ako posetilac stigne sa `?ref=<kod>` u URL-u (link iz marketinškog sadržaja, M12), sajt taj kod čuva na strani klijenta (sesija) do trenutka kreiranja `Quote` — čist prolazan podatak, sajt ga ne validira niti tumači.
 1. **Pretraga** — anonimna, bez potrebe za nalogom. Poziva M5 `/search`, koje već vraća cenu sa primenjenom maržom (M5) i, ako je gost prijavljen, popustom lojalnosti (M6). Rezultati objedinjuju M2/M3 (ugovoreno) i M4 (uživo preko M5).
-2. **Izbor i ponuda** — kreira se `Quote` (M5 `/quotes`), `client_account_id` je `null` dok se gost ne identifikuje (dozvoljeno po M5 specifikaciji).
+2. **Izbor i ponuda** — kreira se `Quote` (M5 `/quotes`), `client_account_id` je `null` dok se gost ne identifikuje (dozvoljeno po M5 specifikaciji); ako je korak 0 zabeležio kod porekla, prosleđuje se kao `Quote.referral_tracking_code` (M5 poglavlje 3.1) u istom pozivu.
 3. **Podaci gostiju** — ako gost nije prijavljen, sajt nudi izbor: prijaviti se, registrovati se, ili nastaviti kao gost bez naloga (u tom slučaju se ipak kreira minimalan `GuestProfile`/`ClientAccount` u M6 radi fiskalnog dokumenta, bez `linked_user_id`). **`ClientAccount.account_type = INDIVIDUAL`** u ovom slučaju — eksplicitno, ne pretpostavljeno (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`); B2C sajt nikad sam ne kreira `LEGAL_ENTITY` nalog — takav nalog uvek dolazi ili preko M7 (B2B) ili ručnim unosom tima kroz M17.
 4. **Prihvatanje uslova ugovora (clickwrap)** — pre prelaska na plaćanje, gost potvrđuje polje "Prihvatam uslove ugovora o putovanju" (M20 poglavlje 3.2), postavlja `Quote.contract_terms_accepted = true` i `contract_terms_accepted_at` (M5 poglavlje 3.1, dopuna avgust 2026 — konkretna polja koja zatvaraju raniju rupu u ovom toku). Pošto se stvaran `ClientContract` (M20) generiše tek posle potvrde rezervacije (M20 poglavlje 3.1, okidač je `booking.confirmed`), ova dva polja se prenose na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim on nastane — sajt ne dozvoljava nastavak na korak 5 (Plaćanje) dok `contract_terms_accepted != true`. Tačan trenutak u odnosu na izdavanje vaučera i dalje potvrđuje pravnik (M20 poglavlje 3.3/8 — otvoreno pitanje, ne rešava se nagađanjem ovde) — ovom dopunom je zatvoren samo tehnički model podataka, ne pravno pitanje redosleda.
 5. **Plaćanje:**
@@ -91,9 +95,9 @@ Jeftino za implementaciju (samo generisanje JSON-LD bloka iz postojećih polja),
 
 ---
 
-## 6. Sadržaj van kataloga — namerno van obima
+## 6. Sadržaj van kataloga — M12 Content Engine
 
-Stranice poput "O nama", blog, marketinški sadržaj — to je posao M12 (Content Engine, Faza 6). Za sada M8 prikazuje jednostavne statične stranice (uređivane direktno u kodu/CMS-lite rešenju), bez posebnog modela podataka. M12 sad ima Nivo 2 specifikaciju, ali ne definiše `M8_SITE` kanal kao izvor za ove opšte stranice (samo za `ContentPiece` vezan za konkretan proizvod) — tačan mehanizam povezivanja ostaje otvoren, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
+Stranice poput "O nama", blog, marketinški sadržaj su posao M12 (Content Engine). Dopunjeno avgust 2026 (M12 poglavlje 3b): `/stranica/[slug]` i `/blog/[slug]` (poglavlje 2 iznad) čitaju direktno iz M12 `ContentPiece`/`ContentTranslation` (`type = STATIC_PAGE`/`BLOG_POST`, `status = PUBLISHED`), isti obrazac kao stranica proizvoda čita iz M2 — M8 nema sopstveni model podataka ni za ovaj sadržaj, samo prikaz. `/uslovi` ostaje van ovog mehanizma (pravni tekst, ne uređuje se kroz redovan sadržajni tok sa odobrenjem — vidi poglavlje 2).
 
 ---
 
@@ -121,6 +125,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 - [ ] Gost koji nastavi bez naloga dobija `ClientAccount.account_type = INDIVIDUAL` (poglavlje 3, korak 3).
 - [ ] Omnisearch (poglavlje 3a) ispravno razdvaja upite o proizvodima (ka M5 `/search`) od pitanja o platformi (ka M21), i nikad ne otkriva identitet dobavljača ni tuđe rezervacije.
 - [ ] Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina (Master dokument poglavlje 5.1).
+- [ ] `/znanje/[share_token]` prikazuje tačno jedan M23 članak, radi bez prijave, i ne izlaže nikakvu navigaciju ka ostatku baze znanja ili sajta.
 
 ---
 
@@ -128,5 +133,5 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 
 **Rešeno (jul 2026.):** interni radni panel je formalizovan kao **M17** u Master dokumentu (poglavlje 4) — dobiće sopstvenu Nivo 2 specifikaciju kad dođe na red.
 
-- Tačan izbor CMS-lite rešenja za statične stranice (poglavlje 6) — odlaže se do M12.
+- ~~Tačan izbor CMS-lite rešenja za statične stranice.~~ **Rešeno** (avgust 2026, poglavlje 6): opšte stranice/blog idu kroz M12, bez posebnog CMS-a; `/uslovi` ostaje jedini čist statičan tekst van tog toka.
 - Detalji cookie/consent banera (tačan tekst, pravni zahtevi) — potvrditi sa pravnikom pri implementaciji, u skladu sa Zakonom o zaštiti podataka o ličnosti.

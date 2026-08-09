@@ -304,7 +304,7 @@ var SKILL_SLUG = {
   m12:"tt-m12-marketing", m13:"tt-m13-bi", m14:"tt-m14-helpdesk", m15:"tt-m15-ai-orkestracija",
   m16:"tt-m16-mcp-distribucija", m17:"tt-m17-interni-panel", m18:"tt-m18-operativni-nadzor",
   m19:"tt-m19-komunikaciona-platforma", m20:"tt-m20-ugovori-klijenti", m21:"tt-m21-centar-za-pomoc",
-  m22:"tt-m22-email-inbox"
+  m22:"tt-m22-email-inbox", m23:"tt-m23-znanje"
 };
 var SPEC_FILE = {
   m1:"docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md", m2:"docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md",
@@ -317,7 +317,8 @@ var SPEC_FILE = {
   m15:"docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md", m16:"docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md",
   m17:"docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md", m18:"docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md",
   m19:"docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md", m20:"docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md",
-  m21:"docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md", m22:"docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md"
+  m21:"docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md", m22:"docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md",
+  m23:"docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md"
 };
 var GENERAL_SKILLS = [
   {slug:"tt-architecture-core", hint:"Kad zadatak dotiče više modula odjednom, predlaže nov modul ili menja arhitekturu"},
@@ -410,7 +411,10 @@ var NODES = [
     entities:["HelpArticle","HelpArticleTranslation","HelpQuestion","HelpArticleSuggestion"]},
   {id:"m22", code:"M22", title:"Email/Inbox platforma",       phase:"FX", chan:false, cel:"g3",
     desc:"Centralizovan email klijent — deljena i lična sandučad, prepiska sa gostima/subagentima/dobavljačima, pojedinačna dodela pristupa po sandučetu, AI sažimanje i nacrt odgovora.",
-    entities:["Mailbox","MailboxAccess","EmailThread","EmailMessage"]}
+    entities:["Mailbox","MailboxAccess","EmailThread","EmailMessage"]},
+  {id:"m23", code:"M23", title:"Znanje",                       phase:"FX", chan:false, cel:"g3",
+    desc:"Baza sadržaja o destinacijama/proizvodima koju AI gradi iz odobrenih izvora (isključivo zvaničan sajt/društvene mreže, ili zvanični turistički portali) i osvežava na 30 dana uz ljudsko odobrenje; interni tim i subagenti čitaju direktno, gost samo preko deljenog linka.",
+    entities:["Article","ArticleTranslation","ArticleSource","ArticleRevision","Question"]}
 ];
 
 var DEPS = [
@@ -418,7 +422,7 @@ var DEPS = [
   ["m5","m1"],["m5","m2"],["m5","m3"],["m5","m4"],["m5","m22"],
   ["m6","m1"],["m6","m5"],
   ["m7","m1"],["m7","m2"],["m7","m5"],["m7","m6"],["m7","m15"],
-  ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],["m8","m20"],
+  ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],["m8","m20"],["m8","m12"],["m8","m23"],
   ["m9","m1"],["m9","m2"],["m9","m5"],["m9","m6"],["m9","m10"],["m9","m20"],
   ["m10","m1"],["m10","m3"],["m10","m5"],
   ["m11","m1"],["m11","m5"],
@@ -430,7 +434,8 @@ var DEPS = [
   ["m19","m1"],["m19","m3"],["m19","m14"],["m19","m17"],["m19","m9"],["m19","m18"],
   ["m20","m1"],["m20","m2"],["m20","m3"],["m20","m5"],["m20","m11"],
   ["m21","m1"],["m21","m14"],["m21","m15"],["m21","m7"],["m21","m17"],
-  ["m22","m1"],["m22","m14"],["m22","m6"],["m22","m7"],["m22","m3"],["m22","m15"],["m22","m17"]
+  ["m22","m1"],["m22","m14"],["m22","m6"],["m22","m7"],["m22","m3"],["m22","m15"],["m22","m17"],
+  ["m23","m1"],["m23","m2"],["m23","m7"],["m23","m8"],["m23","m15"],["m23","m17"]
 ];
 
 var EVENTS = [

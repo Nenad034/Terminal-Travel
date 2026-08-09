@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
-**Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta)
+**Verzija:** 1.2 — dodat izveštaj "Marketing performanse" (poglavlje 4.3, `FactBooking.referral_content_id`/`referral_content_name`), atribucija rezervacije ka M12 sadržaju preko M5 `referral_tracking_code` — zatvara M12↔M13 integracionu prazninu iz backlog-a (avgust 2026, na zahtev vlasnika); v1.1 dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta); formalno i od M5 (`referral_tracking_code`) i M12 (`ContentPiece.tracking_code`) za poglavlje 4.3
 
 ---
 
@@ -52,6 +52,8 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | product_name | string | snapshot naziva proizvoda (M2), radi brzog grupisanja bez join-a (poglavlje 4.2) |
 | supplier_name | string, nullable | snapshot naziva dobavljača (M3), popunjeno za `CONTRACTED` (poglavlje 4.2) |
 | subagent_name | string, nullable | snapshot naziva subagenta (M7), popunjeno kad `client_account_id` pripada B2B nalogodavcu; `null` = direktna prodaja (poglavlje 4.2) |
+| referral_content_id | UUID, nullable | dopuna avgust 2026 (poglavlje 4.3) — razrešeno poklapanjem `Booking.referral_tracking_code` (M5 poglavlje 3.1) protiv M12 `ContentPiece.tracking_code` pri sinhronizaciji; `null` ako kod nedostaje ili ne poklapa nijedan sadržaj |
+| referral_content_name | string, nullable | snapshot naslova `ContentPiece` (M12), radi brzog grupisanja bez join-a — isti princip kao `product_name`/`supplier_name` |
 | status | enum (isto kao BookingItem) | |
 | last_synced_at | timestamp | |
 
@@ -73,7 +75,7 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 - **Profitabilnost po destinaciji/dobavljaču/kanalu** (Faza 5 izlazni kriterijum) — agregacija `margin` iz `FactBooking`, grupisano po `destination_*`, `supplier_id`/`provider_code`, `channel`, sa filterom po periodu.
 - **Prodaja** — broj rezervacija, ukupna vrednost, prosečna vrednost rezervacije, po periodu/kanalu/tipu proizvoda.
 - **Operativna statistika smeštaja** (poglavlje 4.1) — broj osoba, noćenja, prodate sobe.
-- **Marketing performanse** — namerno van obima ove verzije, jer M12 (izvor tih podataka) dolazi tek u Fazi 6; dodaje se kad M12 postoji.
+- **Marketing performanse** (poglavlje 4.3, dopuna avgust 2026) — atribucija rezervacije ka sadržaju koji ju je doveo (M12).
 
 ### 4.1 Operativna statistika smeštaja — detalji
 
@@ -112,6 +114,20 @@ Svaki čvor grupisanja vraća: `count` (broj rezervacija), `pax` (`SUM(guest_cou
 #### 4.2.2 Nivo autonomije
 Sastavljanje i prikaz izveštaja je čist read-only upit nad projekcijom — nivo **"Autonomno"**, isto obrazloženje kao poglavlje 5. Agent sme da predloži koristan redosled grupisanja (npr. "profitabilnost po dobavljaču unutar tri najprodavanije destinacije") na osnovu upita korisnika, ali ne menja nijedan podatak.
 
+### 4.3 Marketing performanse — atribucija ka sadržaju (dopuna, avgust 2026 — zatvara M12↔M13 integracionu prazninu iz `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`)
+
+Za razliku od ostalih izveštaja, ovo **nije** metrika angažovanosti sa platformi (impressions/klikovi sa Facebook/Instagram, otvaranje mejla) — namerno van obima (M12 poglavlje 9, otvoreno pitanje). Ovo je **atribucija rezervacije ka sadržaju**: da li konkretna `Booking` potiče od klika na link iz M12 `ContentPiece` (M12 poglavlje 3a, `tracking_code`).
+
+| Izveštaj | Izračun nad `FactBooking` | Napomena |
+| :---- | :---- | :---- |
+| Rezervacije po sadržaju | `COUNT(*)` grupisano po `referral_content_id`/`referral_content_name` | isključuje rezervacije bez poklapanja (`referral_content_id IS NULL`) — prikazano odvojeno kao "bez poznatog porekla", ne izostavljeno tiho |
+| Prihod po sadržaju | `SUM(final_price)` grupisano po `referral_content_id`/`referral_content_name` | isti princip kao profitabilnost (poglavlje 4) — prikazuje `revenue`, ne `margin`, jer M12 ne nosi trošak sadržaja |
+| Udeo atribuisanih rezervacija | `COUNT(referral_content_id IS NOT NULL) / COUNT(*)` za period | koliko se prodaje uopšte može pratiti do marketinškog sadržaja — informativna mera obima praćenja, ne performansa pojedinačnog sadržaja |
+
+**Nivo autonomije:** isti kao poglavlje 4.2.2 — čist read-only upit, nivo **"Autonomno"**.
+
+**Ograda:** rezervacija bez `referral_tracking_code` (gost nije stigao preko označenog linka — npr. direktan dolazak na sajt, ili preko subagenta) ostaje `NULL`, ne "nepoznato = 0" — izveštaj eksplicitno prikazuje i taj broj, da se ne stvori utisak da je marketing "doneo" manje nego što zaista jeste zbog rezervacija koje nikad nisu ni trebale biti atribuisane.
+
 ---
 
 ## 5. Uloga AI agenta
@@ -129,6 +145,7 @@ Priprema internih izveštaja i uočavanje trendova (npr. "profitabilnost destina
 | `M13/report:financial/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M13/report:occupancy/VIEW` | Vlasnik, Direktor, Sales Manager — operativna statistika smeštaja nije cenovno osetljiva (ne sadrži maržu), pa se deli šire od profitabilnosti |
 | `M13/report:dynamic/VIEW` | Vlasnik, Direktor — kao i profitabilnost, prikazuje `revenue`/`paid`/`balance` po čvoru (poglavlje 4.2) |
+| `M13/report:marketing/VIEW` | Vlasnik, Direktor — marketing performanse (poglavlje 4.3), prihod po sadržaju je cenovno osetljiv kao profitabilnost |
 
 Napomena: `resource` polje koristi format `report:podtip`, isti obrazac koji M1 specifikacija (poglavlje 3.3) daje kao primer (`report:sales`) — ne uvodi se četvrti segment u ključ dozvole.
 
@@ -144,6 +161,7 @@ Prefiks: `/api/v1/bi`
 | `/reports/sales` | GET | filtri: period, kanal, tip proizvoda |
 | `/reports/occupancy` | GET | filtri: period, destinacija, dobavljač; `?group_by=` jedno od `room_type`, `board_type`, `stars`, `accommodation_type` — vraća broj osoba, noćenja i broj prodatih soba (poglavlje 4.1) |
 | `/reports/dynamic` | GET | `?group_by=` uređena, zarezom razdvojena lista dimenzija iz poglavlja 4.2 (npr. `destination_country,destination_city,supplier`); vraća stablo čvorova (poglavlje 4.2.1) |
+| `/reports/marketing` | GET | filtri: period; grupisano po `referral_content_id`/`referral_content_name` (poglavlje 4.3) |
 | `/reconciliation/run` | POST | ručno pokretanje rekonsilijacije (van noćnog rasporeda) — Vlasnik/Direktor |
 
 ---
@@ -157,12 +175,12 @@ Prefiks: `/api/v1/bi`
 - [ ] Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba (ukupno i po `room_type`) za zadati period.
 - [ ] Isti izveštaj se ispravno razvrstava po `board_type`, `stars` i `accommodation_type`, uz jasnu naznaku broja stavki koje nisu razvrstane (npr. `API`-sourced stavke bez `room_type`/`board_type`).
 - [ ] Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim `revenue`/`paid`/`balance` po čvoru na svakom nivou.
+- [ ] Marketing izveštaj (poglavlje 4.3) ispravno grupiše rezervacije po sadržaju koji ih je doveo, i posebno prikazuje broj/vrednost rezervacija bez poznatog porekla (`referral_content_id IS NULL`), bez mešanja u agregat po sadržaju.
 
 ---
 
 ## 9. Otvoreno za dalje
 
-- **Marketing performanse** — M12 sad ima Nivo 2 specifikaciju (`15-SPECIFIKACIJA-M12-MARKETING.md`), ali ne definiše šta M13 čita iz njega (npr. `ContentPiece` doseg/engagement po kanalu naspram M5 konverzije) — ovo ostaje otvoreno dok se ne uradi stvarna integracija, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
 - Tačan skup KPI-jeva koje AI agent (poglavlje 5) treba proaktivno da ističe — počinje se sa osnovnim (pad profitabilnosti, neuobičajen pad prodaje) i širi po potrebi.
 - **Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode** (M3 poglavlje 2.3a) — poredi `ContractPeriod.ukupna_fiksna_obaveza` naspram stvarno naplaćene vrednosti prodatih stavki iz tog perioda; dodaje se kad se za ovim pokaže stvarna potreba (prvi charter/fiksni zakup ugovor).
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj (poglavlje 4.2, npr. brzi prečac "sve po državi pa dobavljaču") — UX pogodnost za M17, ne menja API iz poglavlja 4.2; dodaje se ako se pokaže potreba.

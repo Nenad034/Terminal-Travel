@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — "Content Engine opisan u prethodnom razgovoru", pomenut u Master dokumentu, nije pronađen u ovom folderu, isti slučaj kao M4)
-**Verzija:** 1.0
+**Verzija:** 1.1 — dopuna avgust 2026 (zatvara M6/M8/M13 integracione praznine iz `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`): `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4)
 **Zavisi od:** M1, M2, M6
 
 ---
@@ -20,10 +20,12 @@ M12 pokriva tok: **proizvod (M2) → generisanje sadržaja → kalendar/odobrenj
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
-| product_id | UUID, nullable (FK → M2) | ako je sadržaj vezan za konkretan proizvod |
-| type | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER` | |
-| status | enum: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `PUBLISHED`, `REJECTED` | `APPROVED → PUBLISHED` je automatsko u zakazano vreme, tek nakon ljudskog odobrenja |
+| product_id | UUID, nullable (FK → M2) | ako je sadržaj vezan za konkretan proizvod; `null` za `STATIC_PAGE` i opšte `BLOG_POST` sadržaje (poglavlje 3b) |
+| type | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER`, `STATIC_PAGE` *(dodato avgust 2026, poglavlje 3b)* | `STATIC_PAGE` — opšte stranice sajta (npr. "O nama", "Kontakt") van kataloga proizvoda |
+| slug | string, nullable, unique kad popunjeno | **obavezno za `STATIC_PAGE`/`BLOG_POST`** (poglavlje 3b) — sopstvena URL putanja, isti princip kao `ProductTranslation.slug` (M2); nepotrebno za `SOCIAL_POST`/`EMAIL_NEWSLETTER`/`BANNER`, koji nemaju sopstvenu M8 stranicu |
+| tracking_code | string, unique | generiše se automatski pri kreiranju (kratak, npr. 8 karaktera, bez specijalnih znakova) — koristi se za atribuciju rezervacije ka sadržaju (poglavlje 3a), ne za identifikaciju same objave |
 | target_channels | niz enum: `M8_SITE`, `FACEBOOK`, `INSTAGRAM`, `EMAIL`, `MOBILE_PUSH` *(dodato pri specifikaciji M19)* | `MOBILE_PUSH` koristi već postojeći mehanizam push notifikacija iz M9 (M9 specifikacija, poglavlje 5), ne novu infrastrukturu |
+| target_tags | string[] (JSONB niz), nullable *(dodato avgust 2026, poglavlje 4)* | **samo za `EMAIL`** — filtrira primaoce po M6 `ClientAccount.tags`; prazno/`null` = svi sa `marketing_consent = true` (nepromenjeno ponašanje) |
 | scheduled_publish_at | timestamp, nullable | kalendar — sortiranje po ovom polju daje prikaz kalendara, bez posebnog entiteta |
 | generated_by | enum: `AI`, `HUMAN` | |
 | approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** |
@@ -52,6 +54,20 @@ Isti obrazac kao M2 `ProductTranslation` (poglavlje 2.2 te specifikacije) — re
 4. **Čovek pregleda, po potrebi menja, i odobrava** (`APPROVED`, `approved_by` popunjeno) — ovo je nepovratna granica ka javnoj objavi, isti obrazac kao fiskalizacija u M10 i komunikacija u M6/M14.
 5. U zakazano vreme (`scheduled_publish_at`), sistem **automatski** objavljuje odobreni sadržaj na `target_channels` — ovo nije nova AI odluka (odluka je već doneta u koraku 4), već mehaničko izvršenje već odobrene radnje, isti princip kao automatski pozivi ka M4/M11.
 
+### 3a. Atribucija rezervacije ka sadržaju (dopuna, avgust 2026 — zatvara M13 deo otvorenog pitanja "marketing performanse")
+
+`tracking_code` (poglavlje 2.1) se dodaje kao `?ref=<tracking_code>` na svaki odlazni link ka M8 sajtu unutar objavljenog sadržaja (social post, email newsletter, banner). Sam M12 **ne prati** šta se posle klika dešava — to bi zahtevalo da M12 čita podatke rezervacije, kršeći granicu modula (princip #2). Umesto toga:
+
+1. M8 hvata `?ref=` parametar pri dolasku posetioca i prosleđuje ga kroz sopstveni tok do trenutka kreiranja `Quote` (M8 poglavlje 3, dopuna; M5 `Quote.referral_tracking_code`, poglavlje 3.1 M5 specifikacije) — **sirov kod, bez validacije protiv M12** u tom trenutku; M5 ne zna niti mu je bitno da li kod uopšte postoji.
+2. Kod se prenosi na `Booking.referral_tracking_code` pri potvrdi, isti obrazac prenošenja kao `channel`/`client_account_id` (M5 poglavlje 4).
+3. **M13**, ne M5, razrešava kod ka stvarnom `ContentPiece` pri izgradnji sopstvene projekcije (M13 poglavlje 3.1, `FactBooking.referral_content_id`/`referral_content_name`) — poklapanje protiv `ContentPiece.tracking_code` u trenutku sinhronizacije, ne pri kreiranju rezervacije. Nepostojeći/pogrešno prekucan kod ostaje `null` u projekciji — sistem nikad ne izmišlja atribuciju.
+
+Ovo drži M5 potpuno neosetljivim na M12 (samo prenosi string) i poštuje M13 poglavlje 1.1 (M13 gradi izvedenu projekciju, ne menja izvorne module) — isti princip "lenjo razrešavanje" kao ostatak M13 arhitekture.
+
+### 3b. Opšte stranice sajta van kataloga (dopuna, avgust 2026 — zatvara M8 deo otvorenog pitanja)
+
+`ContentPiece.type = STATIC_PAGE`/`BLOG_POST` sa popunjenim `slug` i `product_id = null` pokriva sadržaj koji ne pripada nijednom proizvodu (M8 poglavlje 6, dopuna) — "O nama", "Kontakt", blog članci. Isti tok odobrenja kao svaki drugi `ContentPiece` (poglavlje 3 iznad); jedina razlika je da `M8_SITE` kanal za ovaj tip servira stranicu na `/stranica/:slug` (`STATIC_PAGE`) ili `/blog/:slug` (`BLOG_POST`) umesto na ruti proizvoda.
+
 ---
 
 ## 4. Distribucioni adapteri
@@ -66,9 +82,9 @@ interface DistributionChannelAdapter {
 }
 ```
 
-`M8_SITE` kanal ne treba pravi adapter — sadržaj se jednostavno čita direktno iz `ContentPiece`/`ContentTranslation` preko M2-stil API-ja, isto kao proizvodi. `MOBILE_PUSH` takođe ne treba sopstveni adapter — poziva direktno M9 push mehanizam.
+`M8_SITE` kanal ne treba pravi adapter — sadržaj se jednostavno čita direktno iz `ContentPiece`/`ContentTranslation` preko M2-stil API-ja, isto kao proizvodi (za `STATIC_PAGE`/`BLOG_POST`, preko `slug`, poglavlje 3b). `MOBILE_PUSH` takođe ne treba sopstveni adapter — poziva direktno M9 push mehanizam.
 
-`EMAIL` kanal šalje samo `ClientAccount` zapisima (M6) sa `marketing_consent = true` — obavezna provera pre svakog slanja, u skladu sa poglavljem 9 Master dokumenta (Zakon o zaštiti podataka o ličnosti).
+`EMAIL` kanal šalje samo `ClientAccount` zapisima (M6) sa `marketing_consent = true` — obavezna provera pre svakog slanja, u skladu sa poglavljem 9 Master dokumenta (Zakon o zaštiti podataka o ličnosti). Ako je `target_tags` popunjeno (dopuna avgust 2026, poglavlje 2.1), skup primalaca se dodatno filtrira na `ClientAccount`-e čiji `tags` (M6 poglavlje 2.1) preseca `target_tags` — čisto sužavanje, nikad proširenje van `marketing_consent = true` skupa.
 
 Kredencijali svakog kanala (Facebook/Instagram API tokeni i sl.) čuvaju se enkriptovano, isti obrazac kao `ProviderConfig.auth_config_encrypted` u M4.
 
@@ -90,6 +106,18 @@ Napomena: kao i kod M2/M3, među sedam osnovnih uloga ne postoji posebna "Market
 
 U `03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md` dodaje se: kad `Product.status` pređe u `ACTIVE` preko `/products/:id/publish`, M2 emituje Event Bus događaj `product.published` — ovo se dodaje direktno u taj dokument.
 
+## 6a. Dopuna M5 specifikacije (avgust 2026, poglavlje 3a)
+
+U `06-SPECIFIKACIJA-M5-REZERVACIJE.md` dodaje se: `Quote.referral_tracking_code` (string, nullable) — sirov kod prosleđen iz M8, bez validacije protiv M12; prenosi se na `Booking.referral_tracking_code` pri potvrdi, isti obrazac kao `channel`.
+
+## 6b. Dopuna M8 specifikacije (avgust 2026, poglavlje 3b/3a)
+
+U `10-SPECIFIKACIJA-M8-SAJT-B2C.md` dodaje se: rute `/stranica/:slug` i `/blog/:slug` (izvor: M12 `/content?type=STATIC_PAGE|BLOG_POST&slug=...`), i hvatanje `?ref=` parametra pri dolasku, proslediv do koraka kreiranja `Quote`.
+
+## 6c. Dopuna M13 specifikacije (avgust 2026, poglavlje 3a)
+
+U `13-SPECIFIKACIJA-M13-BI.md` dodaje se: `FactBooking.referral_content_id`/`referral_content_name`, razrešeno pri sinhronizaciji projekcije poklapanjem `Booking.referral_tracking_code` protiv `ContentPiece.tracking_code`; novi izveštaj "Marketing performanse" (M13 poglavlje 4.3).
+
 ---
 
 ## 7. API ugovor (REST, OpenAPI) — ključni endpoint-i
@@ -110,8 +138,11 @@ Prefiks: `/api/v1/marketing`
 
 - [ ] Objava proizvoda u M2 automatski generiše nacrt sadržaja u M12, bez ljudske intervencije do koraka odobrenja.
 - [ ] Sadržaj se ne može objaviti (`PUBLISHED`) bez `approved_by` popunjenog ljudskim nalogom.
-- [ ] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`.
+- [ ] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`; kad je `target_tags` popunjeno, skup se dodatno suzi na poklapajuće `tags`, nikad ne proširi.
 - [ ] Zakazana objava odobrenog sadržaja radi automatski u planirano vreme.
+- [ ] `STATIC_PAGE`/`BLOG_POST` sa istim `slug` se ne može kreirati dvaput (unique).
+- [ ] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise.
+- [ ] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost.
 
 ---
 
@@ -119,3 +150,4 @@ Prefiks: `/api/v1/marketing`
 
 - Tačan izbor društvenih mreža/kanala za lansiranje (Facebook/Instagram/drugo) — potvrditi pre implementacije konkretnih adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti sa ovim dokumentom, isto upozorenje kao u M4 specifikaciji.
+- **Puna analitika angažovanosti sa platformi** (impressions/klikovi/lajkovi sa Facebook/Instagram, stopa otvaranja mejla) — namerno van obima ove dopune (poglavlje 3a pokriva samo atribuciju ka rezervaciji, ne engagement metrike); zahtevalo bi da svaki `DistributionChannelAdapter` povlači metrike nazad sa platforme, poseban posao, dodaje se ako se pokaže stvarna potreba.

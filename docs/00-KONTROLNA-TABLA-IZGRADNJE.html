@@ -461,6 +461,16 @@ const DATA = [
     'AI agent nikad ne konvertuje nit u tiket niti menja pristup sandučetu samostalno — samo predlaže.',
     'Prepiska sa dobavljačem koristi isti model pristupa/AI sažimanja kao gost/subagent nit.',
   ]},
+  {code:'M23', title:'Znanje', purpose:'Baza sadržaja o destinacijama/proizvodima koju AI gradi iz odobrenih izvora i osvežava na 30 dana uz ljudsko odobrenje.', deps:'M1, M2, M7, M8, M15, M17', items:[
+    'Interni tim i subagenti vide istu, punu listu objavljenih članaka — bez razdvajanja publike.',
+    'Gost van internog naloga ne može da pretraži/izlista članke — jedini pristup je direktan share_token link.',
+    'Izvor sadržaja je ograničen na zvaničan sajt/društvene mreže objekta (proizvod) ili zvaničan turistički portal (destinacija/zemlja) — nema opcije za OTA/recenzije.',
+    'Kad istraživanje nađe više kandidata izvora, ništa se ne koristi dok čovek eksplicitno ne odobri bar jedan.',
+    'Rok osvežavanja (30 dana) generiše nacrt izmene bez ijedne promene na živom, objavljenom članku dok čovek ne odobri.',
+    'AI agent odgovara isključivo iz objavljenog sadržaja; kad ne zna, nudi pokretanje istraživanja, ne tiho ćutanje.',
+    'Objava članka i odobrenje izvora/revizije se ne mogu izvršiti AI nalogom — provereno na nivou koda.',
+    'Javna stranica deljenog članka (M8) prikazuje tačno jedan članak, bez navigacije ka ostatku baze ili sajta.',
+  ]},
 ]},
 {id:'g4', code:'4', title:'Zakon i finansije', exit:'Sve što je zakonski obavezno da bi agencija poslovala produkcijski — fakturisanje/fiskalizacija (SEF/ESIR), garancija putovanja, i zakonski obavezan ugovor sa gostom.', modules:[
   {code:'M10', title:'Finansije', purpose:'Fakturisanje (SEF/ESIR), PDV po sistemu marže, kartično plaćanje, obaveze prema dobavljačima.', deps:'M1, M3, M5', items:[
@@ -508,6 +518,7 @@ const DATA = [
     'Stranice proizvoda i sajta emituju odgovarajući schema.org JSON-LD blok, proverljivo Google Rich Results alatom.',
     'Gost ne može preći na korak Plaćanje bez potvrđenog polja "Prihvatam uslove ugovora"; pristanak je vidljivo povezan na `ClientContract.accepted_method`.',
     'Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina.',
+    'Deljen link ka M23 članku (/znanje/[share_token]) radi bez prijave i ne izlaže navigaciju ka ostatku sajta/baze znanja.',
   ]},
   {code:'M9', title:'Mobilna aplikacija', purpose:'Aplikacija za goste i teren (vodiči), offline-first za rad bez signala.', deps:'M1, M2, M5, M6, M10, M20', items:[
     'Vodič bez signala može da vidi itinerar, listu gostiju i vaučere preuzete pre gubitka signala.',
@@ -539,6 +550,7 @@ const DATA = [
     'Brisanje cele M13 projekcije i njena rekonstrukcija iz izvornih modula daje identičan rezultat kao pre brisanja.',
     'Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba za zadati period.',
     'Isti izveštaj se ispravno razvrstava po tipu usluge, kategoriji i tipu smeštaja, uz jasnu naznaku nerazvrstanih stavki.',
+    'Marketing izveštaj grupiše rezervacije po sadržaju koji ih je doveo, uz posebno prikazan broj/vrednost bez poznatog porekla.',
     'Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim iznosima na svakom nivou.',
   ]},
   {code:'M16', title:'MCP distribucija', purpose:'Vidljivost i rezervabilnost agencije za eksterne AI agente (Google, ChatGPT i sl.).', deps:'M1, M2, M5', items:[

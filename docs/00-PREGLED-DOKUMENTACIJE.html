@@ -223,7 +223,7 @@ main{
   <div class="flip">
     <a href="https://claude.ai/code/artifact/85f819c6-f599-4a8b-aade-2418ff4f65a7" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">✅ Kontrolna tabla</a>
     <a href="https://claude.ai/code/artifact/8f7a5ec5-951c-4647-8d6f-734a2d757732" target="_blank" rel="noopener" style="color:#e7a339; text-decoration:none">🗺️ Mapa modula</a>
-    <span><b>25</b> dokumenata</span><span><b>22</b> modula</span><span>Faza 0–7</span>
+    <span><b>26</b> dokumenata</span><span><b>23</b> modula</span><span>Faza 0–7</span>
   </div>
 </div>
 
@@ -256,6 +256,7 @@ main{
         <a class="nav-link" data-text="m19 komunikaciona platforma chat" href="#doc-m19"><span class="code">M19</span><span class="label">Komunikaciona platforma</span></a>
         <a class="nav-link" data-text="m21 centar za pomoc baza znanja ai asistent" href="#doc-m21"><span class="code">M21</span><span class="label">Centar za pomoć</span></a>
         <a class="nav-link" data-text="m22 email inbox platforma sanduce" href="#doc-m22"><span class="code">M22</span><span class="label">Email/Inbox platforma</span></a>
+        <a class="nav-link" data-text="m23 znanje baza sadrzaja destinacije hoteli" href="#doc-m23"><span class="code">M23</span><span class="label">Znanje</span></a>
       </div>
       <div class="nav-group">
         <div class="nav-group-title"><span class="gate">4</span> Zakon i finansije</div>
@@ -294,7 +295,7 @@ main{
 
 ## Terminal — jedinstvena poslovna platforma agencije Terminal Travel (TT), turoperatora sa licencom
 
-**Verzija:** 1.9 — M5 red u tabeli modula (poglavlje 4) dopunjen sa poprečnom zavisnošću unazad od M22 (jedinstveno sanduče za potvrde dobavljača, rešava problem #11, poglavlje 8.8 M5 specifikacije, avgust 2026); v1.8 — M19 red u tabeli modula (poglavlje 4) dopunjen sa zavisnošću od M3 i real-time chatom sa dobavljačima (poglavlje 9 M19 specifikacije, zatvara problem #9 — poslednju stavku sa originalne liste problema); v1.7 revizija celog dokumenta (avgust 2026): (a) na direktan zahtev vlasnika, M11 sveden na garanciju putovanja (YUTA) i evidencije za inspekciju — eTurista/CIS prijava gostiju i boravišna taksa uklonjene iz obima jer su nadležnost smeštajnog objekta koji gosta direktno prima, ne agencije-touroperatora (poglavlje 4, poglavlje 5 dijagram, poglavlje 8 Faza 2, poglavlje 9, poglavlje 10); M10 kurs konverzije sad na dan uplate umesto dana izdavanja dokumenta, uklonjen sistemski limit gotovinske uplate (detalji u `07-SPECIFIKACIJA-M10-FINANSIJE.md`); (b) zatvorena rupa iz v1.6 — M22 je dodat u tabelu modula (poglavlje 4) ali objašnjenje "poprečnih" modula bez fiksne faze (poglavlje 4, napomena posle tabele) i fazna napomena (poglavlje 8) nikad nisu ažurirane da ga pomenu; sad su; (c) M17 specifikacija ažurirana da prikazuje i M21/M22 (bila je zaostala); M22 specifikacija dobila eksplicitan kanal prikaza (M17) koji je ranije nedostajao. v1.6 — dodat M22 (Email/Inbox platforma) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19/M21, na zahtev vlasnika (avgust 2026), zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.5 dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
+**Verzija:** 1.10 — dodat M23 (Znanje) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19/M21/M22, na direktan zahtev vlasnika (avgust 2026); v1.9 — M5 red u tabeli modula (poglavlje 4) dopunjen sa poprečnom zavisnošću unazad od M22 (jedinstveno sanduče za potvrde dobavljača, rešava problem #11, poglavlje 8.8 M5 specifikacije, avgust 2026); v1.8 — M19 red u tabeli modula (poglavlje 4) dopunjen sa zavisnošću od M3 i real-time chatom sa dobavljačima (poglavlje 9 M19 specifikacije, zatvara problem #9 — poslednju stavku sa originalne liste problema); v1.7 revizija celog dokumenta (avgust 2026): (a) na direktan zahtev vlasnika, M11 sveden na garanciju putovanja (YUTA) i evidencije za inspekciju — eTurista/CIS prijava gostiju i boravišna taksa uklonjene iz obima jer su nadležnost smeštajnog objekta koji gosta direktno prima, ne agencije-touroperatora (poglavlje 4, poglavlje 5 dijagram, poglavlje 8 Faza 2, poglavlje 9, poglavlje 10); M10 kurs konverzije sad na dan uplate umesto dana izdavanja dokumenta, uklonjen sistemski limit gotovinske uplate (detalji u `07-SPECIFIKACIJA-M10-FINANSIJE.md`); (b) zatvorena rupa iz v1.6 — M22 je dodat u tabelu modula (poglavlje 4) ali objašnjenje "poprečnih" modula bez fiksne faze (poglavlje 4, napomena posle tabele) i fazna napomena (poglavlje 8) nikad nisu ažurirane da ga pomenu; sad su; (c) M17 specifikacija ažurirana da prikazuje i M21/M22 (bila je zaostala); M22 specifikacija dobila eksplicitan kanal prikaza (M17) koji je ranije nedostajao. v1.6 — dodat M22 (Email/Inbox platforma) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19/M21, na zahtev vlasnika (avgust 2026), zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.5 dodato poglavlje 5.1 (Responsive dizajn — PWA za M17/M7/M8, M9 namerno uzak po obimu na gosta i vodiča); v1.4 dodat M21 (Centar za pomoć — baza znanja + AI asistent) u tabelu modula (poglavlje 4), poprečan modul kao M17/M18/M19 **Status:** Usvojen — osnova za sve buduće modularne specifikacije **Vlasnik projekta:** Nenad Tomić **Naziv aplikacije/platforme:** Terminal **Naziv agencije / brend:** Terminal Travel (skraćeno TT) **Namena dokumenta:** Ovo je referentni dokument ("ustav" projekta) na koji se pozivaju sve buduće detaljne specifikacije modula. Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument. Kada detaljna specifikacija modula bude u suprotnosti sa ovim dokumentom, ovaj dokument je merodavan dok se svesno i pismeno ne izmeni. Svuda gde se u ovom i budućim dokumentima pominje "platforma", "sistem" ili "aplikacija" bez dodatnog objašnjenja, misli se na **Terminal**; svuda gde se pominje "agencija", misli se na **Terminal Travel (TT)**.
 
 ---
 
@@ -378,6 +379,7 @@ Da bi svi moduli i svi AI agenti koristili iste termine (izbegava se situacija d
 | M20 | **Ugovori sa klijentima** | Generiše zakonski obavezan Ugovor o organizovanju putovanja (ili posredovanju) sa gostom/nalogodavcem, po Zakonu o turizmu — treći pravni dokument u lancu rezervacije, uz ugovor sa dobavljačem (M3) i fiskalni dokument (M10). Sastavlja se isključivo iz podataka koji već postoje u M2/M3/M5/M11, bez dupliranja unosa. Dodat naknadno (jul 2026), poređenjem sa ranijim paralelnim dokumentom projekta. | M1, M2, M3, M5, M11 |
 | M21 | **Centar za pomoć (baza znanja + AI asistent)** | Uputstvo za korišćenje same platforme (ne za putovanje) — za interni tim (kanal M17) i B2B subagente (kanal M7), sa AI asistentom koji odgovara isključivo iz objavljenog sadržaja, eskalira ka M14 kad ne zna, i predlaže nove članke na osnovu stvarnih pitanja koja ostanu bez odgovora. Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M14, M15, M7, M17 |
 | M22 | **Email/Inbox platforma** | Centralizovan email klijent — sva poslovna sandučad (deljena i lična zaposlenih), prepiska sa gostima/subagentima/dobavljačima, sa eksplicitnom, pojedinačnom dodelom pristupa po sandučetu (ne po opštoj ulozi) i AI agentom koji sažima/predlaže nacrt odgovora. Odvojen od M19 (interni real-time chat, zaposleni↔zaposleni) i od M14 (formalno praćenje tiketa — mejl nit se opciono konvertuje u tiket). Prikazuje se kao sekcija unutar M17, nema sopstveni UI. Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M14, M6, M7, M3, M15, M17 *(M17 dodat avgust 2026 — kanal prikaza, propust iz prvobitnog unosa, vidi napomenu ispod tabele)* |
+| M23 | **Znanje** | Baza sadržaja o destinacijama/proizvodima (zemlje, hoteli, izleti) koju AI agent aktivno gradi iz odobrenih izvora (isključivo zvaničan sajt/društvene mreže dobavljača za proizvode, zvanični izvori za zemlje/destinacije) i osvežava na 30 dana, uvek uz ljudsko odobrenje pre objave/zamene sadržaja. Interni tim i subagenti pretražuju direktno; gost prima sadržaj isključivo preko deljenog javnog linka (M8), nikad sam ne pretražuje. Različito od M21 (uputstvo za platformu, ne za putovanje) i od M12 (javna promocija, ne interni radni alat). Dodat naknadno (avgust 2026), na zahtev vlasnika. | M1, M2, M7, M8, M15, M17 |
 
 Napomena: M15, M16, M17, M18, M19, M20, M21 i M22 nisu greška u numeraciji — namerno su izdvojeni jer njihovo uvođenje prati sazrevanje ostalih modula, ne ide paralelno sa njihovom izgradnjom. M16 dodatno zavisi od toga da M2/M5 imaju čist, dokumentovan API (princip \#2 i \#3 iz poglavlja 3\) — ako taj API nije čist, M16 postaje mnogo skuplji projekat nego što bi trebalo da bude. M17, za razliku od M15/M16, mora postojati već od Faze 0/1 (poglavlje 8) — kasni broj je posledica toga kad je formalno imenovan, ne toga kad se gradi. M18 i M19 su naknadno dodati (jul 2026) na zahtev vlasnika — deo M18 funkcija (praćenje signala, obaveštenja) je nezavisan od M15 i može se graditi čim postoji dovoljno modula da se prati (praktično od Faze 2/3), dok trend-agent i model-tiering deo M18-a, kao i M19 u celosti, zahtevaju da M15 i M14/M9 već postoje. M20 je, kao i M17, primer kasnog broja sa ranom fazom (Faza 2) — naknadno formalizovan (jul 2026, poređenjem sa ranijim paralelnim dokumentom projekta) modul koji je zakonski neophodan od početka produkcijskog rada, ne od početka razvoja. M21 je poprečan kao M17/M18/M19 — sadržaj za tim može početi od Faze 0 (raste sa svakim modulom, isti obrazac kao M17), dok sadržaj za subagente prirodno čeka M7 (Faza 4); AI asistent deo zahteva da M15 okvir postoji. M22 je takođe poprečan (isti obrazac kao M17/M18/M19/M21, tako je i sam opisan u sopstvenom zaglavlju) — deljena sandučad (npr. `rezervacije@`) mogu postojati čim M1 (identitet/RBAC) postoji, dok prepoznavanje pošiljaoca kao gosta/subagenta/dobavljača prirodno sazreva kad M6/M7/M3 budu specificirani (do tada radi i bez tog prepoznavanja, samo plići), konverzija u tiket zahteva M14, a AI sažimanje/nacrt odgovora zahteva M15 okvir; prikazuje se kroz M17 (dodato avgust 2026 — ova rečenica je nedostajala od uvođenja M22, vidi napomenu uz tabelu iznad). M5 (Faza 1, dakle izgrađen pre M22) od avgusta 2026 ima meku zavisnost unazad od M22 — jedinstveno sanduče za potvrde dobavljača (rešava problem #11, M5 poglavlje 8.8): dok M22 ne postoji, `SupplierManifest`/`SupplierChangeNotice` i dalje rade (nacrt, ručno slanje, ručna potvrda), samo bez automatskog poklapanja pristigle potvrde po referentnom kodu — ista logika odloženog sazrevanja kao kod ostalih poprečnih modula gore.
 
@@ -1807,7 +1809,7 @@ Prefiks: `/api/v1/integrations`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.12 — na zahtev vlasnika (avgust 2026), definisan oblik odgovora `GET /search` (poglavlje 3.0b, `SearchResultProduct`/`SearchResultOffer`) i eksplicitan prelaz izabranog rezultata u `Quote`/`ItinerarySegment`, uključujući proveru isteka `quote_expires_at` pre kreiranja stavke ponude — do sada su bili definisani samo ulazni parametri pretrage; v1.11 na zahtev vlasnika, rešava problem #11: `SupplierManifest` i novi `SupplierChangeNotice` (izmena/storno) dobijaju `reference_code` i idu isključivo kroz jedinstveno M22 sanduče za dobavljače; automatsko poklapanje pristigle potvrde po referentnom kodu (poglavlje 8.8) — potvrda i dalje uvek zahteva ljudski klik, ni pri visokoj pouzdanosti; v1.10 na osnovu analize stvarnih cenovnika više dobavljača: dodata formula za `base_cost` sobe sa mešovitim uzrastom gostiju, koristeći M3 `RateLine.price_basis`/`age_pricing[]` (poglavlje 3.2b); v1.9 — `occupancy.room_config` (poglavlje 3.2a) postao strukturiran niz po sobi (`room_type_code`, `adults`, `children`, `children_ages`) umesto nedefinisanog bloba, uz pravilo slaganja sa zbirnim `adults`/`children`; v1.8 — `GET /search` `type` parametar postao niz (multi-select), podržava tri nova M2 tipa (`TRANSPORT`/`TICKET`/`EVENT`, poglavlje 11) — dopunjuje M2 poglavlje 2.3; v1.7 (retroaktivno zabeleženo, nije imalo sopstveni changelog unos u trenutku kad je dodato) — poglavlja 8.6 (najava dobavljaču kao formalni koncept) i 8.7 (`SupplierAnnouncementRule`), zatvaraju probleme #2/#3 sa liste; v1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.13 — dodato `Quote`/`Booking.referral_tracking_code` (M12 poglavlje 3a, avgust 2026) — M5 samo prenosi sirov kod iz M8, bez validacije, zatvara deo M12↔M13 integracione praznine iz backlog-a; v1.12 na zahtev vlasnika (avgust 2026), definisan oblik odgovora `GET /search` (poglavlje 3.0b, `SearchResultProduct`/`SearchResultOffer`) i eksplicitan prelaz izabranog rezultata u `Quote`/`ItinerarySegment`, uključujući proveru isteka `quote_expires_at` pre kreiranja stavke ponude — do sada su bili definisani samo ulazni parametri pretrage; v1.11 na zahtev vlasnika, rešava problem #11: `SupplierManifest` i novi `SupplierChangeNotice` (izmena/storno) dobijaju `reference_code` i idu isključivo kroz jedinstveno M22 sanduče za dobavljače; automatsko poklapanje pristigle potvrde po referentnom kodu (poglavlje 8.8) — potvrda i dalje uvek zahteva ljudski klik, ni pri visokoj pouzdanosti; v1.10 na osnovu analize stvarnih cenovnika više dobavljača: dodata formula za `base_cost` sobe sa mešovitim uzrastom gostiju, koristeći M3 `RateLine.price_basis`/`age_pricing[]` (poglavlje 3.2b); v1.9 — `occupancy.room_config` (poglavlje 3.2a) postao strukturiran niz po sobi (`room_type_code`, `adults`, `children`, `children_ages`) umesto nedefinisanog bloba, uz pravilo slaganja sa zbirnim `adults`/`children`; v1.8 — `GET /search` `type` parametar postao niz (multi-select), podržava tri nova M2 tipa (`TRANSPORT`/`TICKET`/`EVENT`, poglavlje 11) — dopunjuje M2 poglavlje 2.3; v1.7 (retroaktivno zabeleženo, nije imalo sopstveni changelog unos u trenutku kad je dodato) — poglavlja 8.6 (najava dobavljaču kao formalni koncept) i 8.7 (`SupplierAnnouncementRule`), zatvaraju probleme #2/#3 sa liste; v1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M3, M4; od avgusta 2026 i M22 (poglavlje 8.8, jedinstveno sanduče za potvrde dobavljača)
 
 ---
@@ -1942,6 +1944,7 @@ Ponuda je **neobavezujuća** kalkulacija — ne drži (ne "zaključava") kapacit
 | contract_terms_accepted | boolean, default false | dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md` — privremeno čuva clickwrap pristanak (M20 poglavlje 3.2) **pre** nego što `Booking`/`ClientContract` postoje; obavezno `true` pre prelaska na plaćanje za `B2C_SITE`/`B2B_PORTAL`/`MOBILE` kanale (M8 poglavlje 3, korak 4) |
 | contract_terms_accepted_at | timestamp, nullable | kad je pristanak zabeležen; prenosi se na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim taj zapis nastane (M20 poglavlje 3.1) — vidi poglavlje 4.1 niže |
 | created_by | UUID, nullable | user_id ako je kreirao agent; null ako gost sam kreira na sajtu |
+| referral_tracking_code | string, nullable | dopuna avgust 2026 (M12 poglavlje 3a) — sirov kod prosleđen iz M8 (`?ref=` parametar), **bez validacije protiv M12** u ovom trenutku; M5 samo prenosi string dalje na `Booking` pri potvrdi. Razrešavanje ka stvarnom sadržaju radi M13, ne M5 |
 | created_at | timestamp | |
 
 ### 3.2 `QuoteItem`
@@ -2035,6 +2038,7 @@ Korak po korak:
 | voucher_override_at | timestamp, nullable | |
 | created_at / confirmed_at / cancelled_at | timestamp | |
 | created_by | UUID | user ili "GOST_SELF" |
+| referral_tracking_code | string, nullable | dopuna avgust 2026 (M12 poglavlje 3a) — kopirano iz `Quote.referral_tracking_code` pri potvrdi, isti obrazac kao `channel`/`client_account_id`; M13 ga razrešava ka `ContentPiece` pri izgradnji projekcije |
 
 ### 4.2 `BookingItem`
 | Polje | Tip | Napomena |
@@ -2357,6 +2361,7 @@ Prefiks: `/api/v1/sales`
 - [ ] Test: `API`-sourced ponuda sa `availableUnits = 0` (M4) se ne pojavljuje u rezultatima; ponuda sa `availableUnits > 0` nosi ispravan `quote_expires_at` iz `M4 AvailabilityQuote`.
 - [ ] Test: `POST /quotes` za `API`-sourced stavku sa već isteklim `quote_expires_at` (iz izabranog `SearchResultOffer`) se odbija sa jasnom porukom, bez kreiranja `QuoteItem`; ista stavka sa `quote_expires_at` koji još nije prošao se prihvata i cena se ponovo pribavlja od M4 pre upisa (poglavlje 3.0b.3, korak 5).
 - [ ] Test: izbor `SearchResultOffer` (i za `CONTRACTED` i za `API`) ispravno popunjava `product_id`/`rate_line_id` ili `provider_quote_reference`/`stay_from`/`stay_to`/`occupancy` u `POST /quotes` bez ručnog ponovnog unosa; isto važi za popunu `ItinerarySegment.product_id` kroz tok sastavljanja putovanja (poglavlje 3.0).
+- [ ] `Quote.referral_tracking_code` (kad popunjeno) se ispravno kopira na `Booking.referral_tracking_code` pri potvrdi; M5 ga ni u jednom trenutku ne validira niti odbija rezervaciju zbog nepostojećeg/pogrešnog koda (M12 poglavlje 3a).
 
 ---
 
@@ -3401,8 +3406,8 @@ Prefiks: `/api/v1/crm`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M8), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
-**Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja), M15 (poglavlje 3a, omnisearch)
+**Verzija:** 1.6 — dodate rute `/stranica/[slug]`/`/blog/[slug]` (M12 poglavlje 6, dopuna avgust 2026) i `/znanje/[share_token]` (M23 poglavlje 5, avgust 2026, nov modul); v1.5 dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja), M15 (poglavlje 3a, omnisearch), M12 (poglavlje 6, opšte stranice), M23 (poglavlje 5, deljen članak baze znanja)
 
 ---
 
@@ -3429,14 +3434,18 @@ Sve rute su prefiksovane jezikom (`/sr/...`, `/en/...`, `/hr/...`, `/sl/...`, `/
 | `/nalog/prijava`, `/nalog/registracija` | Prijava/registracija gosta | M1 `/auth/*` |
 | `/nalog/moje-rezervacije` | Lista sopstvenih rezervacija, status, vaučeri | M5 `/bookings?client_account_id=...`, prava iz M1 (Gost vidi samo svoje) |
 | `/nalog/profil` | Izmena profila, preference, saglasnost za marketing | M6 `/client-accounts/:id` |
-| `/o-nama`, `/kontakt`, `/uslovi` | Statični/uređivani sadržaj | Van obima ove specifikacije — vidi poglavlje 6 |
+| `/stranica/[slug]` | Opšte stranice (npr. "O nama", "Kontakt") | M12 `/content?type=STATIC_PAGE&slug=...` (poglavlje 6, dopuna avgust 2026) |
+| `/blog/[slug]` | Blog članak | M12 `/content?type=BLOG_POST&slug=...` (poglavlje 6, dopuna avgust 2026) |
+| `/uslovi` | Statični sadržaj (pravni tekst, ne uređuje se kroz M12) | Van obima ove specifikacije |
+| `/znanje/[share_token]` | Jedan javno dostupan članak baze znanja, bez naloga i bez navigacije ka ostatku sajta/baze — dostupan isključivo direktnim linkom koji je neko podelio (M23 poglavlje 5, dopuna avgust 2026) | M23 `/public/:share_token` |
 
 ---
 
 ## 3. Tok pretrage i rezervacije (korak po korak)
 
+0. **Hvatanje porekla (dopuna avgust 2026, M12 poglavlje 3a)** — ako posetilac stigne sa `?ref=<kod>` u URL-u (link iz marketinškog sadržaja, M12), sajt taj kod čuva na strani klijenta (sesija) do trenutka kreiranja `Quote` — čist prolazan podatak, sajt ga ne validira niti tumači.
 1. **Pretraga** — anonimna, bez potrebe za nalogom. Poziva M5 `/search`, koje već vraća cenu sa primenjenom maržom (M5) i, ako je gost prijavljen, popustom lojalnosti (M6). Rezultati objedinjuju M2/M3 (ugovoreno) i M4 (uživo preko M5).
-2. **Izbor i ponuda** — kreira se `Quote` (M5 `/quotes`), `client_account_id` je `null` dok se gost ne identifikuje (dozvoljeno po M5 specifikaciji).
+2. **Izbor i ponuda** — kreira se `Quote` (M5 `/quotes`), `client_account_id` je `null` dok se gost ne identifikuje (dozvoljeno po M5 specifikaciji); ako je korak 0 zabeležio kod porekla, prosleđuje se kao `Quote.referral_tracking_code` (M5 poglavlje 3.1) u istom pozivu.
 3. **Podaci gostiju** — ako gost nije prijavljen, sajt nudi izbor: prijaviti se, registrovati se, ili nastaviti kao gost bez naloga (u tom slučaju se ipak kreira minimalan `GuestProfile`/`ClientAccount` u M6 radi fiskalnog dokumenta, bez `linked_user_id`). **`ClientAccount.account_type = INDIVIDUAL`** u ovom slučaju — eksplicitno, ne pretpostavljeno (dopuna avgust 2026, rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`); B2C sajt nikad sam ne kreira `LEGAL_ENTITY` nalog — takav nalog uvek dolazi ili preko M7 (B2B) ili ručnim unosom tima kroz M17.
 4. **Prihvatanje uslova ugovora (clickwrap)** — pre prelaska na plaćanje, gost potvrđuje polje "Prihvatam uslove ugovora o putovanju" (M20 poglavlje 3.2), postavlja `Quote.contract_terms_accepted = true` i `contract_terms_accepted_at` (M5 poglavlje 3.1, dopuna avgust 2026 — konkretna polja koja zatvaraju raniju rupu u ovom toku). Pošto se stvaran `ClientContract` (M20) generiše tek posle potvrde rezervacije (M20 poglavlje 3.1, okidač je `booking.confirmed`), ova dva polja se prenose na `ClientContract.accepted_at`/`accepted_method = ELECTRONIC_CLICKWRAP` čim on nastane — sajt ne dozvoljava nastavak na korak 5 (Plaćanje) dok `contract_terms_accepted != true`. Tačan trenutak u odnosu na izdavanje vaučera i dalje potvrđuje pravnik (M20 poglavlje 3.3/8 — otvoreno pitanje, ne rešava se nagađanjem ovde) — ovom dopunom je zatvoren samo tehnički model podataka, ne pravno pitanje redosleda.
 5. **Plaćanje:**
@@ -3489,9 +3498,9 @@ Jeftino za implementaciju (samo generisanje JSON-LD bloka iz postojećih polja),
 
 ---
 
-## 6. Sadržaj van kataloga — namerno van obima
+## 6. Sadržaj van kataloga — M12 Content Engine
 
-Stranice poput "O nama", blog, marketinški sadržaj — to je posao M12 (Content Engine, Faza 6). Za sada M8 prikazuje jednostavne statične stranice (uređivane direktno u kodu/CMS-lite rešenju), bez posebnog modela podataka. M12 sad ima Nivo 2 specifikaciju, ali ne definiše `M8_SITE` kanal kao izvor za ove opšte stranice (samo za `ContentPiece` vezan za konkretan proizvod) — tačan mehanizam povezivanja ostaje otvoren, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
+Stranice poput "O nama", blog, marketinški sadržaj su posao M12 (Content Engine). Dopunjeno avgust 2026 (M12 poglavlje 3b): `/stranica/[slug]` i `/blog/[slug]` (poglavlje 2 iznad) čitaju direktno iz M12 `ContentPiece`/`ContentTranslation` (`type = STATIC_PAGE`/`BLOG_POST`, `status = PUBLISHED`), isti obrazac kao stranica proizvoda čita iz M2 — M8 nema sopstveni model podataka ni za ovaj sadržaj, samo prikaz. `/uslovi` ostaje van ovog mehanizma (pravni tekst, ne uređuje se kroz redovan sadržajni tok sa odobrenjem — vidi poglavlje 2).
 
 ---
 
@@ -3519,6 +3528,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 - [ ] Gost koji nastavi bez naloga dobija `ClientAccount.account_type = INDIVIDUAL` (poglavlje 3, korak 3).
 - [ ] Omnisearch (poglavlje 3a) ispravno razdvaja upite o proizvodima (ka M5 `/search`) od pitanja o platformi (ka M21), i nikad ne otkriva identitet dobavljača ni tuđe rezervacije.
 - [ ] Ceo tok pretrage/rezervacije radi ispravno na telefonu, preklopnom telefonu i tabletu, fluidnim rasporedom bez fiksnih desktop širina (Master dokument poglavlje 5.1).
+- [ ] `/znanje/[share_token]` prikazuje tačno jedan M23 članak, radi bez prijave, i ne izlaže nikakvu navigaciju ka ostatku baze znanja ili sajta.
 
 ---
 
@@ -3526,7 +3536,7 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 
 **Rešeno (jul 2026.):** interni radni panel je formalizovan kao **M17** u Master dokumentu (poglavlje 4) — dobiće sopstvenu Nivo 2 specifikaciju kad dođe na red.
 
-- Tačan izbor CMS-lite rešenja za statične stranice (poglavlje 6) — odlaže se do M12.
+- ~~Tačan izbor CMS-lite rešenja za statične stranice.~~ **Rešeno** (avgust 2026, poglavlje 6): opšte stranice/blog idu kroz M12, bez posebnog CMS-a; `/uslovi` ostaje jedini čist statičan tekst van tog toka.
 - Detalji cookie/consent banera (tačan tekst, pravni zahtevi) — potvrditi sa pravnikom pri implementaciji, u skladu sa Zakonom o zaštiti podataka o ličnosti.
 </script>
 <div class="rendered"></div>
@@ -3868,8 +3878,8 @@ Prefiks: `/api/v1/b2b`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
-**Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta)
+**Verzija:** 1.2 — dodat izveštaj "Marketing performanse" (poglavlje 4.3, `FactBooking.referral_content_id`/`referral_content_name`), atribucija rezervacije ka M12 sadržaju preko M5 `referral_tracking_code` — zatvara M12↔M13 integracionu prazninu iz backlog-a (avgust 2026, na zahtev vlasnika); v1.1 dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta); formalno i od M5 (`referral_tracking_code`) i M12 (`ContentPiece.tracking_code`) za poglavlje 4.3
 
 ---
 
@@ -3917,6 +3927,8 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | product_name | string | snapshot naziva proizvoda (M2), radi brzog grupisanja bez join-a (poglavlje 4.2) |
 | supplier_name | string, nullable | snapshot naziva dobavljača (M3), popunjeno za `CONTRACTED` (poglavlje 4.2) |
 | subagent_name | string, nullable | snapshot naziva subagenta (M7), popunjeno kad `client_account_id` pripada B2B nalogodavcu; `null` = direktna prodaja (poglavlje 4.2) |
+| referral_content_id | UUID, nullable | dopuna avgust 2026 (poglavlje 4.3) — razrešeno poklapanjem `Booking.referral_tracking_code` (M5 poglavlje 3.1) protiv M12 `ContentPiece.tracking_code` pri sinhronizaciji; `null` ako kod nedostaje ili ne poklapa nijedan sadržaj |
+| referral_content_name | string, nullable | snapshot naslova `ContentPiece` (M12), radi brzog grupisanja bez join-a — isti princip kao `product_name`/`supplier_name` |
 | status | enum (isto kao BookingItem) | |
 | last_synced_at | timestamp | |
 
@@ -3938,7 +3950,7 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 - **Profitabilnost po destinaciji/dobavljaču/kanalu** (Faza 5 izlazni kriterijum) — agregacija `margin` iz `FactBooking`, grupisano po `destination_*`, `supplier_id`/`provider_code`, `channel`, sa filterom po periodu.
 - **Prodaja** — broj rezervacija, ukupna vrednost, prosečna vrednost rezervacije, po periodu/kanalu/tipu proizvoda.
 - **Operativna statistika smeštaja** (poglavlje 4.1) — broj osoba, noćenja, prodate sobe.
-- **Marketing performanse** — namerno van obima ove verzije, jer M12 (izvor tih podataka) dolazi tek u Fazi 6; dodaje se kad M12 postoji.
+- **Marketing performanse** (poglavlje 4.3, dopuna avgust 2026) — atribucija rezervacije ka sadržaju koji ju je doveo (M12).
 
 ### 4.1 Operativna statistika smeštaja — detalji
 
@@ -3977,6 +3989,20 @@ Svaki čvor grupisanja vraća: `count` (broj rezervacija), `pax` (`SUM(guest_cou
 #### 4.2.2 Nivo autonomije
 Sastavljanje i prikaz izveštaja je čist read-only upit nad projekcijom — nivo **"Autonomno"**, isto obrazloženje kao poglavlje 5. Agent sme da predloži koristan redosled grupisanja (npr. "profitabilnost po dobavljaču unutar tri najprodavanije destinacije") na osnovu upita korisnika, ali ne menja nijedan podatak.
 
+### 4.3 Marketing performanse — atribucija ka sadržaju (dopuna, avgust 2026 — zatvara M12↔M13 integracionu prazninu iz `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`)
+
+Za razliku od ostalih izveštaja, ovo **nije** metrika angažovanosti sa platformi (impressions/klikovi sa Facebook/Instagram, otvaranje mejla) — namerno van obima (M12 poglavlje 9, otvoreno pitanje). Ovo je **atribucija rezervacije ka sadržaju**: da li konkretna `Booking` potiče od klika na link iz M12 `ContentPiece` (M12 poglavlje 3a, `tracking_code`).
+
+| Izveštaj | Izračun nad `FactBooking` | Napomena |
+| :---- | :---- | :---- |
+| Rezervacije po sadržaju | `COUNT(*)` grupisano po `referral_content_id`/`referral_content_name` | isključuje rezervacije bez poklapanja (`referral_content_id IS NULL`) — prikazano odvojeno kao "bez poznatog porekla", ne izostavljeno tiho |
+| Prihod po sadržaju | `SUM(final_price)` grupisano po `referral_content_id`/`referral_content_name` | isti princip kao profitabilnost (poglavlje 4) — prikazuje `revenue`, ne `margin`, jer M12 ne nosi trošak sadržaja |
+| Udeo atribuisanih rezervacija | `COUNT(referral_content_id IS NOT NULL) / COUNT(*)` za period | koliko se prodaje uopšte može pratiti do marketinškog sadržaja — informativna mera obima praćenja, ne performansa pojedinačnog sadržaja |
+
+**Nivo autonomije:** isti kao poglavlje 4.2.2 — čist read-only upit, nivo **"Autonomno"**.
+
+**Ograda:** rezervacija bez `referral_tracking_code` (gost nije stigao preko označenog linka — npr. direktan dolazak na sajt, ili preko subagenta) ostaje `NULL`, ne "nepoznato = 0" — izveštaj eksplicitno prikazuje i taj broj, da se ne stvori utisak da je marketing "doneo" manje nego što zaista jeste zbog rezervacija koje nikad nisu ni trebale biti atribuisane.
+
 ---
 
 ## 5. Uloga AI agenta
@@ -3994,6 +4020,7 @@ Priprema internih izveštaja i uočavanje trendova (npr. "profitabilnost destina
 | `M13/report:financial/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M13/report:occupancy/VIEW` | Vlasnik, Direktor, Sales Manager — operativna statistika smeštaja nije cenovno osetljiva (ne sadrži maržu), pa se deli šire od profitabilnosti |
 | `M13/report:dynamic/VIEW` | Vlasnik, Direktor — kao i profitabilnost, prikazuje `revenue`/`paid`/`balance` po čvoru (poglavlje 4.2) |
+| `M13/report:marketing/VIEW` | Vlasnik, Direktor — marketing performanse (poglavlje 4.3), prihod po sadržaju je cenovno osetljiv kao profitabilnost |
 
 Napomena: `resource` polje koristi format `report:podtip`, isti obrazac koji M1 specifikacija (poglavlje 3.3) daje kao primer (`report:sales`) — ne uvodi se četvrti segment u ključ dozvole.
 
@@ -4009,6 +4036,7 @@ Prefiks: `/api/v1/bi`
 | `/reports/sales` | GET | filtri: period, kanal, tip proizvoda |
 | `/reports/occupancy` | GET | filtri: period, destinacija, dobavljač; `?group_by=` jedno od `room_type`, `board_type`, `stars`, `accommodation_type` — vraća broj osoba, noćenja i broj prodatih soba (poglavlje 4.1) |
 | `/reports/dynamic` | GET | `?group_by=` uređena, zarezom razdvojena lista dimenzija iz poglavlja 4.2 (npr. `destination_country,destination_city,supplier`); vraća stablo čvorova (poglavlje 4.2.1) |
+| `/reports/marketing` | GET | filtri: period; grupisano po `referral_content_id`/`referral_content_name` (poglavlje 4.3) |
 | `/reconciliation/run` | POST | ručno pokretanje rekonsilijacije (van noćnog rasporeda) — Vlasnik/Direktor |
 
 ---
@@ -4022,12 +4050,12 @@ Prefiks: `/api/v1/bi`
 - [ ] Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba (ukupno i po `room_type`) za zadati period.
 - [ ] Isti izveštaj se ispravno razvrstava po `board_type`, `stars` i `accommodation_type`, uz jasnu naznaku broja stavki koje nisu razvrstane (npr. `API`-sourced stavke bez `room_type`/`board_type`).
 - [ ] Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim `revenue`/`paid`/`balance` po čvoru na svakom nivou.
+- [ ] Marketing izveštaj (poglavlje 4.3) ispravno grupiše rezervacije po sadržaju koji ih je doveo, i posebno prikazuje broj/vrednost rezervacija bez poznatog porekla (`referral_content_id IS NULL`), bez mešanja u agregat po sadržaju.
 
 ---
 
 ## 9. Otvoreno za dalje
 
-- **Marketing performanse** — M12 sad ima Nivo 2 specifikaciju (`15-SPECIFIKACIJA-M12-MARKETING.md`), ali ne definiše šta M13 čita iz njega (npr. `ContentPiece` doseg/engagement po kanalu naspram M5 konverzije) — ovo ostaje otvoreno dok se ne uradi stvarna integracija, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
 - Tačan skup KPI-jeva koje AI agent (poglavlje 5) treba proaktivno da ističe — počinje se sa osnovnim (pad profitabilnosti, neuobičajen pad prodaje) i širi po potrebi.
 - **Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode** (M3 poglavlje 2.3a) — poredi `ContractPeriod.ukupna_fiksna_obaveza` naspram stvarno naplaćene vrednosti prodatih stavki iz tog perioda; dodaje se kad se za ovim pokaže stvarna potreba (prvi charter/fiksni zakup ugovor).
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj (poglavlje 4.2, npr. brzi prečac "sve po državi pa dobavljaču") — UX pogodnost za M17, ne menja API iz poglavlja 4.2; dodaje se ako se pokaže potreba.
@@ -4167,7 +4195,7 @@ Prefiks: `/api/v1/helpdesk`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — "Content Engine opisan u prethodnom razgovoru", pomenut u Master dokumentu, nije pronađen u ovom folderu, isti slučaj kao M4)
-**Verzija:** 1.0
+**Verzija:** 1.1 — dopuna avgust 2026 (zatvara M6/M8/M13 integracione praznine iz `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`): `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4)
 **Zavisi od:** M1, M2, M6
 
 ---
@@ -4184,10 +4212,12 @@ M12 pokriva tok: **proizvod (M2) → generisanje sadržaja → kalendar/odobrenj
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
-| product_id | UUID, nullable (FK → M2) | ako je sadržaj vezan za konkretan proizvod |
-| type | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER` | |
-| status | enum: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `PUBLISHED`, `REJECTED` | `APPROVED → PUBLISHED` je automatsko u zakazano vreme, tek nakon ljudskog odobrenja |
+| product_id | UUID, nullable (FK → M2) | ako je sadržaj vezan za konkretan proizvod; `null` za `STATIC_PAGE` i opšte `BLOG_POST` sadržaje (poglavlje 3b) |
+| type | enum: `BLOG_POST`, `SOCIAL_POST`, `EMAIL_NEWSLETTER`, `BANNER`, `STATIC_PAGE` *(dodato avgust 2026, poglavlje 3b)* | `STATIC_PAGE` — opšte stranice sajta (npr. "O nama", "Kontakt") van kataloga proizvoda |
+| slug | string, nullable, unique kad popunjeno | **obavezno za `STATIC_PAGE`/`BLOG_POST`** (poglavlje 3b) — sopstvena URL putanja, isti princip kao `ProductTranslation.slug` (M2); nepotrebno za `SOCIAL_POST`/`EMAIL_NEWSLETTER`/`BANNER`, koji nemaju sopstvenu M8 stranicu |
+| tracking_code | string, unique | generiše se automatski pri kreiranju (kratak, npr. 8 karaktera, bez specijalnih znakova) — koristi se za atribuciju rezervacije ka sadržaju (poglavlje 3a), ne za identifikaciju same objave |
 | target_channels | niz enum: `M8_SITE`, `FACEBOOK`, `INSTAGRAM`, `EMAIL`, `MOBILE_PUSH` *(dodato pri specifikaciji M19)* | `MOBILE_PUSH` koristi već postojeći mehanizam push notifikacija iz M9 (M9 specifikacija, poglavlje 5), ne novu infrastrukturu |
+| target_tags | string[] (JSONB niz), nullable *(dodato avgust 2026, poglavlje 4)* | **samo za `EMAIL`** — filtrira primaoce po M6 `ClientAccount.tags`; prazno/`null` = svi sa `marketing_consent = true` (nepromenjeno ponašanje) |
 | scheduled_publish_at | timestamp, nullable | kalendar — sortiranje po ovom polju daje prikaz kalendara, bez posebnog entiteta |
 | generated_by | enum: `AI`, `HUMAN` | |
 | approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** |
@@ -4216,6 +4246,20 @@ Isti obrazac kao M2 `ProductTranslation` (poglavlje 2.2 te specifikacije) — re
 4. **Čovek pregleda, po potrebi menja, i odobrava** (`APPROVED`, `approved_by` popunjeno) — ovo je nepovratna granica ka javnoj objavi, isti obrazac kao fiskalizacija u M10 i komunikacija u M6/M14.
 5. U zakazano vreme (`scheduled_publish_at`), sistem **automatski** objavljuje odobreni sadržaj na `target_channels` — ovo nije nova AI odluka (odluka je već doneta u koraku 4), već mehaničko izvršenje već odobrene radnje, isti princip kao automatski pozivi ka M4/M11.
 
+### 3a. Atribucija rezervacije ka sadržaju (dopuna, avgust 2026 — zatvara M13 deo otvorenog pitanja "marketing performanse")
+
+`tracking_code` (poglavlje 2.1) se dodaje kao `?ref=<tracking_code>` na svaki odlazni link ka M8 sajtu unutar objavljenog sadržaja (social post, email newsletter, banner). Sam M12 **ne prati** šta se posle klika dešava — to bi zahtevalo da M12 čita podatke rezervacije, kršeći granicu modula (princip #2). Umesto toga:
+
+1. M8 hvata `?ref=` parametar pri dolasku posetioca i prosleđuje ga kroz sopstveni tok do trenutka kreiranja `Quote` (M8 poglavlje 3, dopuna; M5 `Quote.referral_tracking_code`, poglavlje 3.1 M5 specifikacije) — **sirov kod, bez validacije protiv M12** u tom trenutku; M5 ne zna niti mu je bitno da li kod uopšte postoji.
+2. Kod se prenosi na `Booking.referral_tracking_code` pri potvrdi, isti obrazac prenošenja kao `channel`/`client_account_id` (M5 poglavlje 4).
+3. **M13**, ne M5, razrešava kod ka stvarnom `ContentPiece` pri izgradnji sopstvene projekcije (M13 poglavlje 3.1, `FactBooking.referral_content_id`/`referral_content_name`) — poklapanje protiv `ContentPiece.tracking_code` u trenutku sinhronizacije, ne pri kreiranju rezervacije. Nepostojeći/pogrešno prekucan kod ostaje `null` u projekciji — sistem nikad ne izmišlja atribuciju.
+
+Ovo drži M5 potpuno neosetljivim na M12 (samo prenosi string) i poštuje M13 poglavlje 1.1 (M13 gradi izvedenu projekciju, ne menja izvorne module) — isti princip "lenjo razrešavanje" kao ostatak M13 arhitekture.
+
+### 3b. Opšte stranice sajta van kataloga (dopuna, avgust 2026 — zatvara M8 deo otvorenog pitanja)
+
+`ContentPiece.type = STATIC_PAGE`/`BLOG_POST` sa popunjenim `slug` i `product_id = null` pokriva sadržaj koji ne pripada nijednom proizvodu (M8 poglavlje 6, dopuna) — "O nama", "Kontakt", blog članci. Isti tok odobrenja kao svaki drugi `ContentPiece` (poglavlje 3 iznad); jedina razlika je da `M8_SITE` kanal za ovaj tip servira stranicu na `/stranica/:slug` (`STATIC_PAGE`) ili `/blog/:slug` (`BLOG_POST`) umesto na ruti proizvoda.
+
 ---
 
 ## 4. Distribucioni adapteri
@@ -4230,9 +4274,9 @@ interface DistributionChannelAdapter {
 }
 ```
 
-`M8_SITE` kanal ne treba pravi adapter — sadržaj se jednostavno čita direktno iz `ContentPiece`/`ContentTranslation` preko M2-stil API-ja, isto kao proizvodi. `MOBILE_PUSH` takođe ne treba sopstveni adapter — poziva direktno M9 push mehanizam.
+`M8_SITE` kanal ne treba pravi adapter — sadržaj se jednostavno čita direktno iz `ContentPiece`/`ContentTranslation` preko M2-stil API-ja, isto kao proizvodi (za `STATIC_PAGE`/`BLOG_POST`, preko `slug`, poglavlje 3b). `MOBILE_PUSH` takođe ne treba sopstveni adapter — poziva direktno M9 push mehanizam.
 
-`EMAIL` kanal šalje samo `ClientAccount` zapisima (M6) sa `marketing_consent = true` — obavezna provera pre svakog slanja, u skladu sa poglavljem 9 Master dokumenta (Zakon o zaštiti podataka o ličnosti).
+`EMAIL` kanal šalje samo `ClientAccount` zapisima (M6) sa `marketing_consent = true` — obavezna provera pre svakog slanja, u skladu sa poglavljem 9 Master dokumenta (Zakon o zaštiti podataka o ličnosti). Ako je `target_tags` popunjeno (dopuna avgust 2026, poglavlje 2.1), skup primalaca se dodatno filtrira na `ClientAccount`-e čiji `tags` (M6 poglavlje 2.1) preseca `target_tags` — čisto sužavanje, nikad proširenje van `marketing_consent = true` skupa.
 
 Kredencijali svakog kanala (Facebook/Instagram API tokeni i sl.) čuvaju se enkriptovano, isti obrazac kao `ProviderConfig.auth_config_encrypted` u M4.
 
@@ -4254,6 +4298,18 @@ Napomena: kao i kod M2/M3, među sedam osnovnih uloga ne postoji posebna "Market
 
 U `03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md` dodaje se: kad `Product.status` pređe u `ACTIVE` preko `/products/:id/publish`, M2 emituje Event Bus događaj `product.published` — ovo se dodaje direktno u taj dokument.
 
+## 6a. Dopuna M5 specifikacije (avgust 2026, poglavlje 3a)
+
+U `06-SPECIFIKACIJA-M5-REZERVACIJE.md` dodaje se: `Quote.referral_tracking_code` (string, nullable) — sirov kod prosleđen iz M8, bez validacije protiv M12; prenosi se na `Booking.referral_tracking_code` pri potvrdi, isti obrazac kao `channel`.
+
+## 6b. Dopuna M8 specifikacije (avgust 2026, poglavlje 3b/3a)
+
+U `10-SPECIFIKACIJA-M8-SAJT-B2C.md` dodaje se: rute `/stranica/:slug` i `/blog/:slug` (izvor: M12 `/content?type=STATIC_PAGE|BLOG_POST&slug=...`), i hvatanje `?ref=` parametra pri dolasku, proslediv do koraka kreiranja `Quote`.
+
+## 6c. Dopuna M13 specifikacije (avgust 2026, poglavlje 3a)
+
+U `13-SPECIFIKACIJA-M13-BI.md` dodaje se: `FactBooking.referral_content_id`/`referral_content_name`, razrešeno pri sinhronizaciji projekcije poklapanjem `Booking.referral_tracking_code` protiv `ContentPiece.tracking_code`; novi izveštaj "Marketing performanse" (M13 poglavlje 4.3).
+
 ---
 
 ## 7. API ugovor (REST, OpenAPI) — ključni endpoint-i
@@ -4274,8 +4330,11 @@ Prefiks: `/api/v1/marketing`
 
 - [ ] Objava proizvoda u M2 automatski generiše nacrt sadržaja u M12, bez ljudske intervencije do koraka odobrenja.
 - [ ] Sadržaj se ne može objaviti (`PUBLISHED`) bez `approved_by` popunjenog ljudskim nalogom.
-- [ ] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`.
+- [ ] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`; kad je `target_tags` popunjeno, skup se dodatno suzi na poklapajuće `tags`, nikad ne proširi.
 - [ ] Zakazana objava odobrenog sadržaja radi automatski u planirano vreme.
+- [ ] `STATIC_PAGE`/`BLOG_POST` sa istim `slug` se ne može kreirati dvaput (unique).
+- [ ] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise.
+- [ ] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost.
 
 ---
 
@@ -4283,7 +4342,7 @@ Prefiks: `/api/v1/marketing`
 
 - Tačan izbor društvenih mreža/kanala za lansiranje (Facebook/Instagram/drugo) — potvrditi pre implementacije konkretnih adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti sa ovim dokumentom, isto upozorenje kao u M4 specifikaciji.
-
+- **Puna analitika angažovanosti sa platformi** (impressions/klikovi/lajkovi sa Facebook/Instagram, stopa otvaranja mejla) — namerno van obima ove dopune (poglavlje 3a pokriva samo atribuciju ka rezervaciji, ne engagement metrike); zahtevalo bi da svaki `DistributionChannelAdapter` povlači metrike nazad sa platforme, poseban posao, dodaje se ako se pokaže stvarna potreba.
 </script>
 <div class="rendered"></div>
 </section>
@@ -4540,7 +4599,7 @@ Sam MCP server (alati iz poglavlja 2) implementira se prema zvaničnoj MCP speci
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — dodato poglavlje 6.6 (glasovni modalitet za omnisearch — Speech-to-Text/Text-to-Speech kao omotač oko postojećeg `POST /omnisearch` toka, bez novog agenta ili akcije), na zahtev vlasnika (avgust 2026): prvi kanal je M17 (interni tim) preko mikrofona u pregledaču, glasom se nikad ne izvršava radnja, audio se ne čuva posle transkripcije; v1.5 dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
+**Verzija:** 1.7 — dodate tri stavke registra za M23 `knowledge_*` (poglavlje 4) i prošireno poglavlje 6.6 da pokriva i `POST /knowledge/ask` (nov modul M23, avgust 2026, na zahtev vlasnika); v1.6 dodato poglavlje 6.6 (glasovni modalitet za omnisearch — Speech-to-Text/Text-to-Speech kao omotač oko postojećeg `POST /omnisearch` toka, bez novog agenta ili akcije), na zahtev vlasnika (avgust 2026): prvi kanal je M17 (interni tim) preko mikrofona u pregledaču, glasom se nikad ne izvršava radnja, audio se ne čuva posle transkripcije; v1.5 dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -4632,6 +4691,9 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M21 | `help_escalation.create_ticket` | `AUTONOMOUS` | M21 poglavlje 5.3 — korisnik koji pita sam potvrđuje eskalaciju sopstvenog pitanja, ne treći čovek koji odobrava tuđu akciju |
 | M21 | `help_article_suggestion.draft` | `AUTONOMOUS` | M21 poglavlje 5.4 — čisto pripremni nacrt iz obrasca ponovljenih pitanja |
 | M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
+| M23 | `knowledge_question.answer` | `AUTONOMOUS` | M23 poglavlje 3.2 — isključivo pretraga objavljenog sadržaja, isti obrazac kao M21 `help_question.answer` |
+| M23 | `knowledge_article.research_draft` | `AUTONOMOUS` | M23 poglavlje 4c — AI priprema `ArticleRevision` nacrt iz odobrenih izvora, ništa se ne piše u objavljen članak |
+| M23 | `knowledge_article.publish` | `NEVER_AUTONOMOUS` | M23 poglavlje 6 — isto tako `article-source.approve`/`article-revision.approve`, nikad AI (poglavlje 4b/4c) |
 | (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage — **isti kod pokriva i glasovni unos** (poglavlje 6.6), nema posebnog `action_code` za glas |
 
 **Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 CIS registracija garancije putovanja, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
@@ -4703,10 +4765,12 @@ Isti obrazac kao M21 poglavlje 5.5 (`HELP_AGENT_ABUSE_PATTERN`) — neuobičajen
 
 **Nije nov agent, nije nova akcija — samo nov ulaz/izlaz oko postojećeg toka iz poglavlja 6.5.** Odluka vlasnika (avgust 2026): glasovni kanal prvo dobija interni tim (M17), preko mikrofona u pregledaču (ne prava telefonija/IVR u ovoj fazi), i glasom se **nikad** ne izvršava radnja — isti "nikad izvršenje" princip kao 6.5.4, bez izuzetka za glas.
 
-### 6.6.1 Tok — glas je omotač oko `POST /omnisearch`, ne paralelan sistem
+**Proširenje (dopuna avgust 2026, M23 specifikacija):** isti omotač pokriva i `POST /api/v1/knowledge/ask` (M23 poglavlje 3.2/8) — mikrofon pored polja za pitanje u M23 delu M17 panela koristi identičan STT/TTS tok kao omnisearch (poglavlje 6.6.1–6.6.4 važe bez izmene, samo se u koraku 2 poziva `/knowledge/ask` umesto `/omnisearch` kad je korisnik u tom kontekstu).
 
-1. Korisnik pritisne/drži ikonicu mikrofona pored omnisearch polja (poglavlje 6.5, M17 poglavlje 5.5) i govori.
-2. Audio se transkribuje u tekst (Speech-to-Text) — čim je tekst spreman, on **ulazi u potpuno isti** `POST /ai-orchestration/omnisearch` poziv (poglavlje 6.5.4, poglavlje 9) kao da je otkucan. `OmnisearchAgent` ne zna niti mu je bitno da li je upit stigao glasom ili tastaturom — isti `agent_role`, ista ograničenja vidljivosti (6.5.2), isti `omnisearch.query = AUTONOMOUS` iz registra (poglavlje 4), ista tvrda ograda "nikad ne izvršava radnju sam" (6.5.4).
+### 6.6.1 Tok — glas je omotač oko `POST /omnisearch` (ili `POST /knowledge/ask`), ne paralelan sistem
+
+1. Korisnik pritisne/drži ikonicu mikrofona pored omnisearch polja (poglavlje 6.5, M17 poglavlje 5.5) ili pored M23 pitanja i govori.
+2. Audio se transkribuje u tekst (Speech-to-Text) — čim je tekst spreman, on **ulazi u potpuno isti** `POST /ai-orchestration/omnisearch` poziv (poglavlje 6.5.4, poglavlje 9), ili `POST /api/v1/knowledge/ask` kad je kontekst M23, kao da je otkucan. `OmnisearchAgent`/M23 agent ne zna niti mu je bitno da li je upit stigao glasom ili tastaturom — isti `agent_role`, ista ograničenja vidljivosti (6.5.2), isti `omnisearch.query`/`knowledge_question.answer = AUTONOMOUS` iz registra (poglavlje 4), ista tvrda ograda "nikad ne izvršava radnju sam" (6.5.4).
 3. Tekstualni odgovor (`ai_answer`, `matched_routes[]`, `entity_results[]`) se prikazuje vizuelno kao i inače, i **dodatno** se pročita naglas (Text-to-Speech) — glas dopunjuje ekran, ne zamenjuje ga (linkovi/dugmad i dalje zahtevaju klik, isto kao 6.5.4).
 4. Ako upit liči na zahtev za radnju ("otkaži...", "pošalji...", "rezerviši..."), agent glasom pročita isti odgovor kao i tekstualno — navigaciju/link ka pravom ekranu, nikad izvršenje — i eksplicitno kaže da radnju treba potvrditi na ekranu, ne samo glasom.
 
@@ -5570,4 +5634,425 @@ Prefiks: `/api/v1/email`
 - **Real-time chat sa dobavljačima** (problem #9) ostaje potpuno odvojen otvoren gap — ovaj modul pokriva samo email deo te potrebe (poglavlje 6).
 - Tačan mehanizam podešavanja "auto-send" praga za čisto informativne kategorije (poglavlje 4) — globalno vs. po sandučetu vs. po kategoriji — definiše se kad se dođe do stvarne izrade.
 - Pretraga/arhiva starih niti, i period čuvanja mejlova (retencija, u skladu sa Zakonom o zaštiti podataka o ličnosti) — van obima ove verzije.
+</script>
+<div class="rendered"></div>
+</section>
+<section class="doc" id="doc-m23">
+<div class="doc-meta"><span class="phase-pill">Dodatno</span><span class="code-pill">M23</span>
+<span class="status-pill nacrt">NACRT</span>
+</div>
+<script type="text/plain" class="src">
+# Specifikacija modula M23 — Znanje (baza sadržaja o destinacijama i proizvodima)
+
+**Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M23), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21/M22)
+**Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
+**Status:** Nacrt za usvajanje
+**Verzija:** 1.0 — prvobitna specifikacija, na direktan zahtev vlasnika (avgust 2026)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M2 (proizvod kao predmet članka, `product.published` okidač), M7 (kanal za subagente), M8 (javna stranica deljenog članka), M15 (AI agent okvir, glasovni modalitet), M17 (kanal za interni tim)
+
+---
+
+## 1. Svrha i obim modula
+
+M23 je baza sadržaja o **stvarnim putničkim temama** (zemlje, destinacije, hoteli, izleti — svaki proizvod koji agencija uvede u M2, plus destinacije/zemlje koje nisu same po sebi prodajni proizvod) — različito od M21, koji je uputstvo za korišćenje same Terminal platforme. AI agent aktivno **gradi** sadržaj (ne čeka da ga neko ručno napiše) iz odobrenih izvora, i pomaže timu/subagentima da brzo nađu odgovor na pitanje gosta, tekstom ili glasom.
+
+### 1.1 Razlika u odnosu na M21 (Centar za pomoć)
+
+| | M21 | M23 |
+| :---- | :---- | :---- |
+| Tema | Kako se koristi Terminal platforma | Stvarne putničke činjenice (destinacija, hotel, izlet) |
+| Izvor sadržaja | Ručno piše tim (uz AI pomoć u formulaciji) | AI aktivno prikuplja sa spoljnih izvora (poglavlje 4) |
+| Ko čita direktno | Interni tim + subagenti | Isto — interni tim + subagenti (poglavlje 3) |
+| Ko prima sadržaj indirektno | — | Gost/klijent, isključivo preko deljenog linka (poglavlje 5) — **nikad sam ne pretražuje bazu** |
+
+Model podataka (`Article`/`ArticleTranslation`/`Question`) namerno prati isti obrazac kao M21 radi doslednosti — razlike su u izvoru sadržaja (poglavlje 4), osvežavanju (poglavlje 4c) i deljenju (poglavlje 5), ne u osnovnoj strukturi.
+
+### 1.2 Razlika u odnosu na M2 (Katalog proizvoda) i M12 (Marketing)
+
+M2 drži podatke **neophodne za prodaju** (cena, dostupnost, osnovni opis za rezervaciju) — kratko, prodajno orijentisano. M23 drži **znatno bogatiji, pozadinski sadržaj** (istorija, okolina, društvene mreže hotela, praktični saveti) koji pomaže timu da odgovori na pitanje koje prevazilazi ono što stoji na stranici proizvoda. M12 proizvodi sadržaj **za javnu promociju** (blog, društvene mreže) — M23 sadržaj je interni radni alat čiji pojedinačni članci mogu biti podeljeni gostu, ali se ne objavljuju kao katalog na sajtu (poglavlje 1.3). Ako se pokaže da isti tekst treba i kao M12 `ContentPiece` i kao M23 `Article`, to je ručno prekopiran/prilagođen sadržaj u oba mesta — M23 nije izvor istine za M12, obrnuto ni M12 za M23.
+
+### 1.3 Namerno van obima v1
+
+- Gost/subagent ne pretražuje bazu direktno — samo prima deljen link (poglavlje 5). Ako se kasnije pokaže potreba da gost sam pretražuje (npr. javni "vodič kroz destinaciju" na M8), to je prošireno izdanje ovog modula, ne novi modul — ne pretpostavlja se ovde.
+- AI agent (tekst/glas) dostupan je u v1 samo internom timu (M17) — subagenti (M7) dobijaju čitanje članaka od starta (poglavlje 3), ali AI Q&A/glas dobijaju u sledećem koraku, kad se v1 pokaže pouzdanim (isti postepeni princip kao M15 poglavlje 6.6).
+- Prava integracija sa Viber/WhatsApp/Telegram/email API-jima — deljenje ide preko generisanog javnog linka koji osoblje ručno lepi u kanal po izboru (poglavlje 5), ne preko API poziva ka tim servisima.
+
+---
+
+## 2. Model podataka
+
+### 2.1 `Article` — jedan članak baze znanja
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| subject_type | enum: `PRODUCT`, `DESTINATION`, `COUNTRY` | šta je predmet članka |
+| product_id | UUID, nullable (FK → M2 `Product`) | popunjeno samo za `subject_type = PRODUCT` |
+| destination_country / destination_city | string, nullable | isti oblik kao M2 `Product.destination_country`/`destination_city` — `destination_city` prazno za `subject_type = COUNTRY` |
+| status | enum: `DRAFT`, `PENDING_APPROVAL`, `PUBLISHED`, `ARCHIVED` | isti obrazac kao M21 `HelpArticle.status`/M12 `ContentPiece.status` |
+| generated_by | enum: `AI`, `HUMAN` | |
+| approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** — isto pravilo kao M21/M12 |
+| share_token | string, unique | generiše se automatski pri prvom prelasku u `PUBLISHED` — nosi javni deljeni link (poglavlje 5) |
+| last_refreshed_at | timestamp, nullable | |
+| next_refresh_due_at | timestamp, nullable | `last_refreshed_at + 30 dana` — izračunato automatski (poglavlje 4c) |
+| created_at / updated_at / published_at | timestamp | |
+
+### 2.2 `ArticleTranslation`
+Isti obrazac kao M21 `HelpArticleTranslation` (8 jezika, isti fallback traženi jezik → engleski → srpski).
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| article_id | UUID (FK) | |
+| language_code | enum (isti skup kao M2) | |
+| title / body | string / text (markdown) | |
+| translation_source | enum: `MANUAL`, `AI_GENERATED` | |
+
+### 2.3 `ArticleSource` — odobren izvor korišćen za sadržaj
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| article_id | UUID (FK) | |
+| url | string | |
+| source_type | enum: `HOTEL_OFFICIAL_WEBSITE`, `HOTEL_SOCIAL_MEDIA`, `GOVERNMENT_OR_TOURISM_BOARD` | **jedini dozvoljeni tipovi izvora** (poglavlje 4) — nema `OTHER`/`OTA`/`REVIEW_SITE` opcije |
+| status | enum: `CANDIDATE`, `APPROVED`, `REJECTED` | `CANDIDATE` — AI pronašao, čeka ljudsku potvrdu (poglavlje 4b); `APPROVED` — potvrđen i stvarno korišćen |
+| approved_by | UUID, nullable (FK → M1 User) | **nikad AI** |
+| approved_at | timestamp, nullable | |
+| created_at | timestamp | |
+
+### 2.4 `ArticleRevision` — predložena izmena (početna izrada ili 30-dnevno osvežavanje)
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| article_id | UUID (FK) | |
+| trigger | enum: `INITIAL_CREATION`, `SCHEDULED_REFRESH`, `QUESTION_GAP` | `QUESTION_GAP` — pokrenuto iz neodgovorenog pitanja (poglavlje 3c), isti princip kao M21 `HelpArticleSuggestion` |
+| proposed_translations | JSONB | nacrt sadržaja po jeziku, isti oblik kao `ArticleTranslation`, ali još ne upisan kao stvaran red dok se ne odobri |
+| source_ids | niz UUID (FK → `ArticleSource`) | koji izvori (svi `APPROVED`) su korišćeni za ovaj nacrt |
+| status | enum: `PENDING_REVIEW`, `APPROVED`, `REJECTED` | |
+| reviewed_by / reviewed_at | UUID, nullable / timestamp, nullable | **nikad AI** |
+| created_at | timestamp | |
+
+Odobrenje (`APPROVED`) upisuje `proposed_translations` kao stvarne `ArticleTranslation` redove (zamenjuje postojeće po jeziku), postavlja `Article.last_refreshed_at = now()` i ponovo izračunava `next_refresh_due_at`. Odbijanje ne menja ništa na `Article` — nacrt ostaje samo istorijski trag.
+
+### 2.5 `Question` — svako pitanje postavljeno AI agentu (log)
+Isti obrazac kao M21 `HelpQuestion`.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| asked_by | UUID (FK → M1 User) | u v1 uvek `account_type = STAFF` (poglavlje 1.3) |
+| question_text | text | |
+| answer_text | text, nullable | `null` ako agent nije našao pouzdan odgovor |
+| matched_article_ids | niz UUID | radi sledljivosti, isti princip kao M21/M13 |
+| confidence | enum: `HIGH`, `LOW`, `NONE` | `NONE` nudi pokretanje istraživanja (poglavlje 3c) |
+| was_helpful | boolean, nullable | povratna informacija (👍/👎) |
+| triggered_revision_id | UUID, nullable (FK → `ArticleRevision`, `trigger = QUESTION_GAP`) | popunjeno ako je korisnik potvrdio istraživanje |
+| created_at | timestamp | |
+
+---
+
+## 3. Ko pristupa i kako (potvrđeno sa vlasnikom, avgust 2026)
+
+### 3.1 Direktna pretraga — interni tim i subagenti, isti model kao M21
+
+Interni tim (M17) i subagenti (`SUBAGENT_ADMIN`, M7 portal) pretražuju/čitaju `Article` direktno — nema treće, javno pretražive publike u v1 (poglavlje 1.3). Za razliku od M21 (koji ima `audience` po članku jer STAFF i SUBAGENT sadržaj treba da ostane odvojen), M23 sadržaj je **isti za obe publike** — putnička činjenica o hotelu ne zavisi od toga ko pita — pa `Article` nema polje ekvivalentno `audience`.
+
+### 3.2 AI agent — tekst i glas, samo interni tim u v1
+
+Isti dvostepeni obrazac kao M21 poglavlje 5:
+- Agent (registrovan u M15, `model_tier = LIGHT` za odgovaranje na pitanje — čisto pretraživanje već objavljenog teksta) odgovara isključivo iz `ArticleTranslation` gde `Article.status = PUBLISHED`.
+- **Glasovni modalitet** (dopuna M15 poglavlje 6.6, u istom prolazu) — isti STT/TTS omotač koji već postoji za `POST /omnisearch`, proširen da pokriva i `POST /api/v1/knowledge/ask` (poglavlje 8 ovog dokumenta). Isto ograničenje: samo M17 kanal u v1, audio se ne čuva posle transkripcije, glasom se nikad ne izvršava radnja (ovde: nikad se ne pokreće istraživanje/objava bez eksplicitne potvrde na ekranu).
+
+### 3.3 Kad agent ne zna — predlog istraživanja, ne tiketing
+
+Za razliku od M21 (eskalira ka M14 tiketu), ovde nedostatak odgovora znači da **sam sadržaj** nedostaje, ne da je nešto pokvareno. Ako `confidence = NONE`, agent nudi: *"Nemam pouzdan odgovor iz objavljenih članaka — da pokrenem istraživanje iz odobrenih izvora?"* Potvrda korisnika kreira `ArticleRevision` (`trigger = QUESTION_GAP`, `status = PENDING_REVIEW` posle koraka 4a–4b) — isti nivo autonomije kao M21 eskalacija (`AUTONOMOUS`, jer korisnik potvrđuje sopstveni zahtev, ne tuđu akciju), ali cilj je novi/dopunjen `Article`, ne `Ticket`.
+
+---
+
+## 4. Izvori sadržaja — AI istraživanje, striktna ograda porekla (potvrđeno sa vlasnikom, avgust 2026)
+
+### 4a. Dozvoljeni izvori — bez izuzetka
+
+- **`subject_type = PRODUCT`** (hotel i sl.): **isključivo** zvaničan sajt objekta i njegove zvanične društvene mreže (`source_type = HOTEL_OFFICIAL_WEBSITE`/`HOTEL_SOCIAL_MEDIA`, poglavlje 2.3). Agregatori (OTA), sajtovi sa recenzijama, i treći nezvanični izvori **nikad** se ne koriste kao izvor teksta — sprovedeno na nivou `ArticleSource.source_type` enuma (nema `OTHER`/`OTA`/`REVIEW_SITE` vrednosti da se izabere).
+- **`subject_type = COUNTRY`/`DESTINATION`**: isključivo zvanični izvori (turistička organizacija zemlje/destinacije, državni portal — `source_type = GOVERNMENT_OR_TOURISM_BOARD`).
+
+### 4b. Više kandidata — uvek ljudska potvrda pre upotrebe
+
+Kad AI istraživanje (početna izrada ili osvežavanje) pronađe **više od jednog** validnog kandidata izvora za isti predmet (npr. i zvaničan sajt hotela i njegov Instagram nalog, ili dva različita državna portala), svaki kandidat se upisuje kao `ArticleSource` sa `status = CANDIDATE` — **nijedan se ne koristi za sadržaj dok čovek eksplicitno ne odobri** koji/koje (`status → APPROVED`, poglavlje 2.3). Ovo je nivo **"Predloži pa čovek odobri"** — sprovedeno na nivou koda: `ArticleRevision` ne može preći u `PENDING_REVIEW` sa referencom na `ArticleSource` koji nije `APPROVED`.
+
+### 4c. Automatsko osvežavanje na 30 dana — nacrt, nikad tiha zamena (potvrđeno sa vlasnikom, avgust 2026)
+
+Periodičan posao proverava `Article.next_refresh_due_at ≤ now()` za svaki `PUBLISHED` članak. Kad dospe:
+1. AI ponovo poseti već `APPROVED` izvore (poglavlje 2.3) za taj članak; ako se pojavi nov kandidat izvor (npr. hotel pokrenuo nov zvaničan nalog), ide kroz isto odobrenje kao poglavlje 4b pre upotrebe.
+2. Priprema `ArticleRevision` (`trigger = SCHEDULED_REFRESH`, `status = PENDING_REVIEW`) — nivo **"Autonomno"** za samu pripremu (ništa još nije promenjeno na živom članku), isti princip kao M3 `pricelist_import.extract`/M12 nacrt sadržaja.
+3. **Postojeći objavljen sadržaj ostaje nepromenjen** dok čovek ne pregleda i odobri predlog (`ArticleRevision.status → APPROVED`, poglavlje 2.4) — nivo **"Predloži pa čovek odobri"**. Ako revizija ostane neodobrena, `next_refresh_due_at` se **ne** pomera unapred — sistem nastavlja da prikazuje da je članak "za pregled" dok se odluka ne donese, ne dozvoljava da tiho probije rok bez traga.
+4. Odbijena revizija (`REJECTED`) ne menja `next_refresh_due_at` — sledeći ciklus posla je ponovo pokreće prema istom pravilu, ne čeka novih 30 dana.
+
+---
+
+## 5. Deljenje — generisan javni link (potvrđeno sa vlasnikom, avgust 2026)
+
+Svaki `PUBLISHED` članak dobija `share_token` (poglavlje 2.1) koji otvara **javnu, neautentifikovanu** stranicu kroz M8 (`/znanje/:share_token`, dopuna M8 specifikacije, poglavlje 2) — prikazuje samo taj jedan članak, ne pretraživu listu/katalog (poglavlje 1.3, gost nikad sam ne pretražuje). Osoblje/subagent kopira link i ručno ga šalje kanalom po izboru (email, Viber, WhatsApp, Telegram, SMS) — **nema API integracije** sa tim servisima u v1 (poglavlje 1.3). Isti princip kao M10 poglavlje 7.1 (nikad ne prikupljati/obrađivati podatke koji zahtevaju spoljni ugovor bez potrebe) — deljenje linka ne zahteva odobrenje poslovnog naloga ni kod jedne platforme za razliku od prave API integracije (isto obrazloženje kao M18 poglavlje 3 napomena o Viber/WhatsApp).
+
+`share_token` ostaje važeći i posle sledećeg `ArticleRevision` odobrenja (ista URL, osvežen sadržaj) — gost koji je sačuvao link uvek vidi tekuću, ne zastarelu verziju.
+
+---
+
+## 6. Dozvole (registruju se u M1 katalog dozvola)
+
+| Dozvola | Podrazumevana dodela po ulozi |
+| :---- | :---- |
+| `M23/article/VIEW` | Interne uloge (Vlasnik, Direktor, Sales Manager, Prodajni agent) i `SUBAGENT_ADMIN` (poglavlje 3.1) |
+| `M23/article/EDIT`, `PUBLISH` | Vlasnik, Direktor, Sales Manager — **nikad AI agent** |
+| `M23/article-source/APPROVE` | Vlasnik, Direktor, Sales Manager — **nikad AI agent** (poglavlje 4b) |
+| `M23/article-revision/APPROVE` | Isti krug kao `PUBLISH` — **nikad AI agent** (poglavlje 2.4/4c) |
+| `M23/question-log/VIEW` | Vlasnik, Direktor — uvid radi kvaliteta sadržaja |
+
+Napomena: kao i M21, nema posebne uloge — koristi postojećih sedam osnovnih (M1 poglavlje 8), izuzeci po potrebi kroz `UserPermissionOverride`.
+
+---
+
+## 7. Dopuna drugih specifikacija (u istom prolazu)
+
+- **M8** (`10-SPECIFIKACIJA-M8-SAJT-B2C.md`, poglavlje 2): nova javna ruta `/znanje/:share_token` — prikazuje jedan `Article` preko M23 API-ja, van standardne M8 navigacije (nema linka ka njoj sa sajta, dostupna samo direktnim linkom, poglavlje 5 ovog dokumenta).
+- **M15** (`18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`, poglavlje 4 i 6.6): dva nova registra: `knowledge_question.answer` (`AUTONOMOUS`) i `knowledge_article.research_draft` (`AUTONOMOUS`, `model_tier` predlog `STANDARD` — sinteza više izvora je složeniji zadatak od čistog pretraživanja); glasovni omotač iz poglavlja 6.6 proširen da pokriva i `POST /api/v1/knowledge/ask`, ne samo `POST /omnisearch`.
+
+---
+
+## 8. API ugovor (REST, OpenAPI) — ključni endpoint-i
+
+Prefiks: `/api/v1/knowledge`
+
+| Endpoint | Metod | Opis |
+| :---- | :---- | :---- |
+| `/articles` | GET | lista/pretraga, dostupno internom timu i subagentima (poglavlje 3.1) |
+| `/articles` | POST | pokreće AI istraživanje (`ArticleRevision`, `trigger = INITIAL_CREATION`) za novi predmet, ili ručan unos |
+| `/articles/:id` | GET / PATCH | |
+| `/articles/:id/publish` | POST | zahteva `M23/article/PUBLISH` |
+| `/articles/:id/sources` | GET / POST | pregled kandidata / ručno predlaganje izvora |
+| `/articles/:id/sources/:sourceId/approve` | POST | zahteva `M23/article-source/APPROVE` (poglavlje 4b) |
+| `/articles/:id/revisions/:revisionId/approve` | POST | zahteva `M23/article-revision/APPROVE` (poglavlje 2.4) |
+| `/articles/:id/revisions/:revisionId/reject` | POST | |
+| `/ask` | POST | `{question}` → `{answer, matched_article_ids, confidence}` (poglavlje 3.2) |
+| `/questions/:id/feedback` | POST | 👍/👎 |
+| `/questions/:id/request-research` | POST | korisnikova potvrda istraživanja posle `confidence = NONE` (poglavlje 3.3) |
+| `/public/:share_token` | GET | javno, neautentifikovano — jedan objavljen članak (poglavlje 5); poziva ga M8 ruta iz poglavlja 7 |
+
+---
+
+## 9. Izlazni kriterijum (M23)
+
+- [ ] Interni tim i subagenti vide istu, punu listu `PUBLISHED` članaka — bez razdvajanja publike (za razliku od M21).
+- [ ] Gost/subagent van internog naloga ne može da pretraži/izlista članke — jedini pristup je direktan `share_token` link.
+- [ ] `ArticleSource.source_type` ne dozvoljava vrednost van `HOTEL_OFFICIAL_WEBSITE`/`HOTEL_SOCIAL_MEDIA`/`GOVERNMENT_OR_TOURISM_BOARD` — pokušaj upisa drugog tipa se odbija na nivou modela.
+- [ ] Kad istraživanje pronađe više od jednog kandidata izvora, `ArticleRevision` se ne može odobriti dok bar jedan referencirani `ArticleSource` nije `APPROVED` ljudskim nalogom.
+- [ ] `Article.next_refresh_due_at` se ispravno postavlja na `last_refreshed_at + 30 dana`, i ne pomera unapred dok odgovarajuća `ArticleRevision` ne bude `APPROVED`.
+- [ ] Test: dospeo rok osvežavanja generiše `ArticleRevision` (`PENDING_REVIEW`) bez ijedne izmene na živom, objavljenom sadržaju dok revizija čeka.
+- [ ] AI agent (`POST /ask`) odgovara isključivo iz `PUBLISHED` sadržaja; `confidence = NONE` nudi pokretanje istraživanja, ne tiho ćutanje.
+- [ ] `POST /articles/:id/publish` i odobrenje revizije/izvora se ne mogu izvršiti nalogom `actor_type = AI_AGENT` — provereno na nivou koda (M15 poglavlje 5).
+- [ ] Javna stranica `/znanje/:share_token` (M8) prikazuje tačno jedan članak, bez navigacije ka ostatku baze znanja ili sajta van tog članka.
+- [ ] Glasovni upit kroz M17 (dopuna M15 poglavlje 6.6) ispravno poziva `POST /ask` i pročita odgovor naglas, bez čuvanja audio zapisa.
+- [ ] Svako pitanje/odgovor i svaka `ArticleRevision`/`ArticleSource` odluka upisani su u M1 `AuditLogEntry`.
+
+---
+
+## 10. Otvoreno za dalje
+
+- Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka — namerno van obima v1 (poglavlje 1.3), dodaje se ako se pokaže potreba.
+- AI Q&A/glas za subagente (M7) — v1 daje subagentima samo čitanje već objavljenih članaka (poglavlje 3.1), AI agent dobija taj kanal u sledećem koraku kad se pokaže pouzdanim kod internog tima.
+- Prava integracija sa Viber/WhatsApp/Telegram/email API-jima za slanje umesto ručnog kopiranja linka (poglavlje 5) — isto obrazloženje kao M18 poglavlje 3 (odobrenje poslovnog naloga, mogući trošak po poruci); dodaje se ako se pokaže stvarna potreba.
+- Tačan prag/algoritam za prepoznavanje kad ponovljena `QUESTION_GAP` pitanja na istu temu treba grupisati u jedno istraživanje (isto pitanje kao M21 poglavlje 8, `HelpArticleSuggestion` grupisanje) — dorađuje se pri implementaciji.
+- Da li `Article` za `subject_type = DESTINATION`/`COUNTRY` treba hijerarhiju (država sadrži destinacije) radi lakše navigacije, ili ravna lista sa filterom je dovoljna — dizajnersko pitanje, van obima ove verzije.
+- Tačan mehanizam kojim AI "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API gde postoji, npr. Instagram Graph API) — tehnička odluka pri implementaciji, van obima ove specifikacije; scraping društvenih mreža može zahtevati proveru uslova korišćenja platforme pre implementacije.
+</script>
+<div class="rendered"></div>
+</section>
+    </div>
+  </main>
+</div>
+
+<button class="top-btn" id="topBtn" aria-label="Nazad na vrh">↑</button>
+
+<script>
+(function(){
+  "use strict";
+
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function inline(s){
+    s = escapeHtml(s);
+    s = s.replace(/`([^`]+)`/g, function(m,p1){ return "<code>"+p1+"</code>"; });
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    s = s.replace(/~~([^~]+)~~/g, "<del>$1</del>");
+    s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s = s.replace(/\\([.#\-])/g, "$1");
+    return s;
+  }
+
+  function slug(s, docId){
+    var base = s.toLowerCase()
+      .replace(/\\([.#\-])/g,"$1")
+      .replace(/[^a-z0-9čćžšđ]+/g,"-")
+      .replace(/(^-|-$)/g,"");
+    return docId + "-" + base;
+  }
+
+  function splitRow(line){
+    var t = line.trim();
+    if (t.charAt(0) === "|") t = t.slice(1);
+    if (t.charAt(t.length-1) === "|") t = t.slice(0,-1);
+    return t.split("|").map(function(c){ return c.trim(); });
+  }
+
+  function mdToHtml(src, docId){
+    var lines = src.replace(/\r\n/g,"\n").split("\n");
+    var html = "";
+    var i = 0;
+    var inCode = false, codeBuf = [];
+    var listType = null;
+    var paraBuf = [];
+
+    function flushPara(){
+      if (paraBuf.length){
+        html += "<p>" + inline(paraBuf.join(" ")) + "</p>";
+        paraBuf = [];
+      }
+    }
+    function closeList(){
+      if (listType === "ul" || listType === "ul-check") html += "</ul>";
+      else if (listType === "ol") html += "</ol>";
+      listType = null;
+    }
+
+    while (i < lines.length){
+      var line = lines[i];
+
+      if (/^\s*```/.test(line)){
+        flushPara(); closeList();
+        if (!inCode){ inCode = true; codeBuf = []; }
+        else { html += "<pre><code>" + escapeHtml(codeBuf.join("\n")) + "</code></pre>"; inCode = false; }
+        i++; continue;
+      }
+      if (inCode){ codeBuf.push(line); i++; continue; }
+
+      if (/^\s*\|.*\|\s*$/.test(line) && i+1 < lines.length && /^\s*\|[\s:\-|]+\|\s*$/.test(lines[i+1])){
+        flushPara(); closeList();
+        var headerCells = splitRow(line);
+        i += 2;
+        var rows = [];
+        while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])){
+          rows.push(splitRow(lines[i]));
+          i++;
+        }
+        html += '<div class="table-wrap"><table><thead><tr>' +
+          headerCells.map(function(c){ return "<th>"+inline(c)+"</th>"; }).join("") +
+          "</tr></thead><tbody>" +
+          rows.map(function(r){ return "<tr>"+r.map(function(c){ return "<td>"+inline(c)+"</td>"; }).join("")+"</tr>"; }).join("") +
+          "</tbody></table></div>";
+        continue;
+      }
+
+      var hm = /^(#{1,6})\s+(.*)$/.exec(line);
+      if (hm){
+        flushPara(); closeList();
+        var level = hm[1].length;
+        var text = inline(hm[2].trim());
+        var id = slug(hm[2], docId);
+        html += "<h"+level+' id="'+id+'">'+text+"</h"+level+">";
+        i++; continue;
+      }
+
+      if (/^-{3,}\s*$/.test(line)){
+        flushPara(); closeList();
+        html += "<hr>";
+        i++; continue;
+      }
+
+      var cbm = /^[-*]\s+\[( |x|X)\]\s+(.*)$/.exec(line);
+      if (cbm){
+        flushPara();
+        if (listType !== "ul-check"){ closeList(); html += '<ul class="checklist">'; listType = "ul-check"; }
+        html += '<li><span class="box"></span>' + inline(cbm[2]) + "</li>";
+        i++; continue;
+      }
+
+      var ulm = /^[-*]\s+(.*)$/.exec(line);
+      if (ulm){
+        flushPara();
+        if (listType !== "ul"){ closeList(); html += "<ul>"; listType = "ul"; }
+        html += "<li>" + inline(ulm[1]) + "</li>";
+        i++; continue;
+      }
+
+      var olm = /^\d+\.\s+(.*)$/.exec(line);
+      if (olm){
+        flushPara();
+        if (listType !== "ol"){ closeList(); html += "<ol>"; listType = "ol"; }
+        html += "<li>" + inline(olm[1]) + "</li>";
+        i++; continue;
+      }
+
+      if (/^\s*$/.test(line)){
+        flushPara(); closeList();
+        i++; continue;
+      }
+
+      paraBuf.push(line.trim());
+      i++;
+    }
+    flushPara(); closeList();
+    return html;
+  }
+
+  document.querySelectorAll(".doc").forEach(function(sec){
+    var srcEl = sec.querySelector(".src");
+    var raw = srcEl ? srcEl.textContent : "";
+    var docId = sec.id.replace("doc-","");
+    var out = sec.querySelector(".rendered");
+    out.innerHTML = mdToHtml(raw, docId);
+  });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll(".nav-link"));
+  var sections = Array.prototype.slice.call(document.querySelectorAll(".doc"));
+
+  var search = document.getElementById("navSearch");
+  search.addEventListener("input", function(){
+    var q = search.value.trim().toLowerCase();
+    links.forEach(function(a){
+      var hay = (a.dataset.text || "") + " " + a.textContent.toLowerCase();
+      a.classList.toggle("hidden", q.length > 0 && hay.toLowerCase().indexOf(q) === -1);
+    });
+  });
+
+  var menuBtn = document.getElementById("menuBtn");
+  var overlay = document.getElementById("overlay");
+  var sidebar = document.getElementById("sidebar");
+  function closeNav(){ sidebar.classList.remove("open"); overlay.classList.remove("show"); }
+  menuBtn.addEventListener("click", function(){
+    sidebar.classList.toggle("open"); overlay.classList.toggle("show");
+  });
+  overlay.addEventListener("click", closeNav);
+  links.forEach(function(a){ a.addEventListener("click", closeNav); });
+
+  var topBtn = document.getElementById("topBtn");
+  window.addEventListener("scroll", function(){
+    topBtn.classList.toggle("show", window.scrollY > 500);
+  }, { passive:true });
+  topBtn.addEventListener("click", function(){ window.scrollTo({top:0, behavior:"smooth"}); });
+
+  if ("IntersectionObserver" in window){
+    var byId = {};
+    links.forEach(function(a){ byId[a.getAttribute("href").slice(1)] = a; });
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        var a = byId[entry.target.id];
+        if (!a) return;
+        if (entry.isIntersecting) links.forEach(function(x){ x.classList.remove("active"); });
+        if (entry.isIntersecting) a.classList.add("active");
+      });
+    }, { rootMargin: "-20% 0px -70% 0px" });
+    sections.forEach(function(s){ obs.observe(s); });
+  }
+})();
 </script>
