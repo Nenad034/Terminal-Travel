@@ -5,7 +5,7 @@ description: Terminal Travel arhitektonski principi, model upravljanja AI agenti
 
 # Terminal Travel — arhitektonsko jezgro
 
-Ovo je pointer-skill, ne zamena za tekst: pravi sadržaj ostaje isključivo u `00-MASTER-ARHITEKTURA.md`, jer se to je izvor istine i ne duplira se ovde (dupliranje bi vodilo do neusklađenosti kad se master dokument izmeni).
+Ovo je pointer-skill, ne zamena za tekst: pravi sadržaj ostaje isključivo u `docs/00-MASTER-ARHITEKTURA.md`, jer se to je izvor istine i ne duplira se ovde (dupliranje bi vodilo do neusklađenosti kad se master dokument izmeni).
 
 ## Kad koristiti ovaj skill
 
@@ -18,7 +18,7 @@ Ovo je pointer-skill, ne zamena za tekst: pravi sadržaj ostaje isključivo u `0
 
 Za rad **unutar** jednog već specifikovanog modula (npr. "dodaj polje u M5 rezervaciju"), ovaj skill nije potreban — dovoljan je `tt-m<broj>-*` skill tog modula.
 
-## Šta pročitati u `00-MASTER-ARHITEKTURA.md`
+## Šta pročitati u `docs/00-MASTER-ARHITEKTURA.md`
 
 | Poglavlje | Sadržaj | Kad je bitno |
 | :---- | :---- | :---- |
@@ -35,4 +35,4 @@ Za rad **unutar** jednog već specifikovanog modula (npr. "dodaj polje u M5 reze
 
 - Ne uvoditi novu tehnologiju/pattern koji nije u poglavlju 6 (za to koristi `tt-tech-stack`) bez potvrde vlasnika.
 - Ne graditi rešenje mimo modularnih granica iz principa #2 — moduli komuniciraju isključivo preko API-ja.
-- Ako predlažeš nov modul ili menjaš mapu modula: predlog → potvrda vlasnika (Nenad) → upis u `00-MASTER-ARHITEKTURA.md` poglavlje 4 — isti obrazac po kom su M15–M21 dodati.
+- Ako predlažeš nov modul ili menjaš mapu modula: predlog → potvrda vlasnika (Nenad) → upis u `docs/00-MASTER-ARHITEKTURA.md` poglavlje 4 — isti obrazac po kom su M15–M21 dodati.

@@ -5,7 +5,7 @@ description: Terminal Travel tehnički stek — TypeScript, NestJS, PostgreSQL, 
 
 # Terminal Travel — tehnički stek
 
-Pointer-skill — pravi sadržaj je u `00-MASTER-ARHITEKTURA.md` poglavlje 6 (tabela izbora + obrazloženje) i u `01-OBJASNJENJE-TEHNICKOG-STEKA.md` (isto objašnjeno bez žargona, za vlasnika koji nije programer).
+Pointer-skill — pravi sadržaj je u `docs/00-MASTER-ARHITEKTURA.md` poglavlje 6 (tabela izbora + obrazloženje) i u `docs/01-OBJASNJENJE-TEHNICKOG-STEKA.md` (isto objašnjeno bez žargona, za vlasnika koji nije programer).
 
 ## Kad koristiti ovaj skill
 
