@@ -118,6 +118,23 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 
 ---
 
+## 11. Jedinstvena mejl adresa za komunikaciju sa dobavljačima + automatsko poklapanje najave i potvrde
+
+**Status: otvoreno, nepokriveno.**
+
+Postojeći model (`06-SPECIFIKACIJA-M5-REZERVACIJE.md` poglavlje 8.6/8.7) formalizuje **da li** je stavka najavljena dobavljaču (`BookingItem.announced_at`) i **da li** je dobavljač potvrdio (`supplier_confirmed_at`/`supplier_confirmed_by`) — ali potvrda dobavljača se danas unosi **ručno** u M17 panelu ("Označi kao potvrđeno od dobavljača"), ne prepoznaje se automatski iz stvarne dolazne mejl poruke. `SupplierManifest.sent_to_email` (poglavlje 8.1) beleži kome je poslato, ali nigde nije definisano **sa koje** agencijske adrese najava ide, niti da li je ta adresa dosledna za svakog zaposlenog i svaki tip najave (rezervacija/izmena/storno).
+
+Vlasnik opisuje stvaran problem: kad svaki zaposleni šalje najavu/izmenu/storno hotelu sa sopstvenog ličnog mejla, odgovor hotela stiže na taj isti lični mejl — nema jednog mesta gde se vidi kompletan tok "najavljeno → potvrđeno" za sve rezervacije, niti se lako uočava da nešto **nije** potvrđeno. Ovo je uzročno vezano za M22 (Email/Inbox) — modul koji već rešava koncept deljenih sandučića (`Mailbox`, pojedinačna dodela pristupa), ali M22 danas ne definiše da baš **ovaj** tip poruke (najave/izmene/storna ka dobavljaču) mora obavezno ići kroz određeno sanduče, niti postoji mehanizam koji automatski poveže dolaznu poruku sa tačnim `BookingItem`/`SupplierManifest` na koji odgovara.
+
+**Gap, tri odvojena dela:**
+1. **Jedna agencijska adresa, ne lične** — `SupplierManifest`/buduće izmene/storno poruke ka dobavljaču treba da obavezno idu sa jednog deljenog M22 `Mailbox`-a (npr. "rezervacije@..." ili "dobavljaci@..."), ne sa `sent_by` korisnikovog ličnog naloga. Ovo je organizaciono pravilo koje danas ništa u M5/M22 ne sprovodi.
+2. **Automatsko poklapanje potvrde** — kad odgovor stigne u taj deljeni sanduče, AI agent treba da prepozna na koju najavu/izmenu/storno odgovara (poklapanje po imenu hotela, imenima gostiju, datumima, referenci ako je hotel navede — isti obrazac kao M10 `SupplierInvoiceImport` matching, poglavlje 8.6 te specifikacije: deterministički fuzzy-match + prag pouzdanosti + čovek potvrđuje ispod praga) i sam popuni `supplier_confirmed_at`/`by`, umesto ručnog klika.
+3. **Proširenje van same najave rezervacije** — vlasnik eksplicitno traži da isto važi i za **izmenu** rezervacije i za **storno** — danas M5 poglavlje 8.5 ("Izmene posle slanja") priprema revidiranu listu, ali ne postoji formalna "najava storna" niti praćenje da li je dobavljač potvrdio storno (oslobađanje kapaciteta se dešava interno, poglavlje 6, nezavisno od toga da li je dobavljač obavešten/potvrdio).
+
+**Preporuka (nacrt, zahteva vlasnikovu potvrdu pre upisa u spec):** dopuna M5 poglavlja 8 sa formalnim konceptom "najave" koja pokriva sve tri vrste (`ANNOUNCEMENT_TYPE: NEW`, `MODIFICATION`, `CANCELLATION`), obavezno vezana za jedan M22 `Mailbox` po agenciji (ili po timu/destinaciji, ako se pokaže potreba za više od jednog); dopuna M22 sa mehanizmom automatskog povezivanja dolazne poruke sa `BookingItem`/`SupplierManifest` (isti nivo autonomije kao M10 §8.6 — ekstrakcija/predlog "Autonomno", upis potvrde "Predloži pa čovek odobri" ispod praga pouzdanosti, možda "Autonomno" iznad visokog praga pošto je ovo čisto informativno polje, ne novac — razmotriti pri specifikaciji).
+
+---
+
 ## Rezime
 
 | # | Problem | Status |
@@ -132,8 +149,9 @@ Konkretan slučaj iz prakse (vlasnik): gost je rezervisao isti hotel, isti termi
 | 8 | B2B subagenti autonomno rezervišu/plaćaju preko chata | Pokriveno (M7 poglavlje 2.0.4) |
 | 9 | Chat sa dobavljačima (desktop + mobilni) | Dopunjeno u specifikaciji (M19 poglavlje 9, uz dopune M1/M3) |
 | 10 | Sprečavanje pogrešnog storna kod dupliranih rezervacija (isti gost, različiti kanali) | Dopunjeno u specifikaciji (M5 poglavlje 6.4, M7 poglavlje 2.0.2) |
+| 11 | Jedinstvena mejl adresa za komunikaciju sa dobavljačima + automatsko poklapanje najave/potvrde (uključujući izmenu i storno) | **Otvoreno** — vidi analiza iznad, čeka potvrdu vlasnika pre upisa u M5/M22 |
 
-Svih deset problema sa originalne liste je sada dopunjeno u specifikaciji — poslednji, problem #9, zatvoren je u istom prolazu kao ova revizija (avgust 2026, M19 poglavlje 9). Ovo nije bio previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dugo nisu bili vođeni ovim konkretnim zahtevima. Preostaje sporedno, sekundarno pitanje otvoreno unutar problema #10 (spajanje profila gosta u M6 kad ista osoba stoji iza dva `ClientAccount`-a) — svesno odloženo dok M6 CRM ne dođe na dalju razradu, nije prioritet.
+Deset od jedanaest problema sa originalne liste (plus naknadno dodati problem #11) je dopunjeno u specifikaciji — poslednji zatvoren, problem #9, u istom prolazu kao ranija revizija (avgust 2026, M19 poglavlje 9). Ovo nije bio previd u smislu greške u postojećem radu, već prirodna posledica toga što M15 (AI orkestracija), M19 (komunikacija) i M7 (B2B) dugo nisu bili vođeni ovim konkretnim zahtevima. Preostaju dva otvorena pitanja: sporedno, sekundarno pitanje unutar problema #10 (spajanje profila gosta u M6 kad ista osoba stoji iza dva `ClientAccount`-a — svesno odloženo, nije prioritet), i problem #11 (jedinstvena mejl adresa/automatsko poklapanje) — dodat 2026-08-09, čeka dalju razradu i potvrdu vlasnika pre upisa u M5/M22.
 
 ---
 
@@ -175,5 +193,7 @@ Predlog redosleda prolaska (svaka kategorija — 10-15 min razmišljanja "šta m
 | 2026-08-08 | Dobavljač | Problemi 2 i 3 (najava dobavljaču kao formalni koncept + konfigurabilno automatsko slanje po statusu uplate) dopunjeni u istom prolazu jer su usko povezani. Vlasnik je eksplicitno potvrdio (pri specifikaciji) da slanje dobavljaču ostaje ljudska radnja i posle ove dopune — konfigurabilan je samo trenutak *pripreme* nacrta, ne i njegovo slanje. | Dopunjena specifikacija — upisano u M5 poglavlje 8.6 (najava/potvrda) i 8.7 (`SupplierAnnouncementRule`) | M5 poglavlje 8.6, 8.7; M15 poglavlje 5 (registar nivoa autonomije) ažuriran u istom prolazu |
 
 | 2026-08-08 | Dobavljač | Problem #9 (real-time chat sa dobavljačima, poslednja stavka sa originalne liste) rešen. Vlasnik je eksplicitno odabrao lagan portal nalog za dobavljača (ne WhatsApp/SMS most, ne proširenje M22 email toka) kad je predočeno da M19 interni chat po dizajnu isključuje spoljne učesnike. | Dopunjena specifikacija — upisano u M19 poglavlje 9, uz dopune M1 (poglavlje 4, `SUPPLIER_CONTACT`) i M3 (poglavlje 2.1a, `SupplierContact`) | M19 poglavlje 9 (novi `Conversation.type = EXTERNAL_SUPPLIER`, `SupplierConversationAccess`); AI agent svesno ograničen na sažimanje/nacrt, bez izvršnog ovlašćenja kao M7 poglavlje 2.0.4 |
+
+| 2026-08-09 | Dobavljač | Kad svaki zaposleni šalje najavu/izmenu/storno hotelu sa svog ličnog mejla, potvrda hotela stiže na taj isti lični mejl — nema jednog mesta gde se pouzdano vidi tok "najavljeno → potvrđeno" niti se lako uočava šta nije potvrđeno. Vlasnik traži jednu jedinstvenu agencijsku adresu za sve najave (nova rezervacija, izmena, storno) i AI agenta/skriptu koji automatski poveže poslatu najavu sa pristiglom potvrdom hotela. | Otvoreno — analizirano, čeka dalju razradu i potvrdu vlasnika pre upisa u spec | Vidi poglavlje 11 iznad — verovatno dopuna M5 poglavlja 8 (formalna najava za sve tri vrste) i M22 (obavezan deljen `Mailbox` + automatsko poklapanje, isti obrazac kao M10 §8.6 `SupplierInvoiceImport`) |
 
 *(dodavati redove ovde ubuduće — ne brisati stare, čak i kad se reše, radi istorije odlučivanja, isti princip kao audit log iz M1)*

@@ -37,3 +37,7 @@ Rad u agenciji na svakodnevnim poslovima
 * [x] Opisacu vam danasnju situaciju koju obavezno u buducnosti aplikacija ne treba da dozvoli. Naime stranka je uradila rezervaciju za isti hotel isti termin istu uslugu... sve isto kao i putem subagenta koji je isti hotel rezervisao preko nase agencije. Nsam primetio da su imena ista pa sam stornirao rezervaciju koja nama nije uplacena. Posto hotel ne prati rezervacije putem ID brojeva naseg sistema vec po imenu i prezimenu, hotel je stornirao i onu ispravnu reztervaciju. Predvidite sve ovakve scenarije i napravite obavestenja i upozoroenja koja ce korisnika sistema spreciti da napravi ovakvu gresku *(Dopunjeno u specifikaciji — M5 poglavlje 6.4 (provera duplikata pre otkazivanja) i M7 poglavlje 2.0.2; sekundarno pitanje (M6, spajanje profila gosta) i dalje otvoreno — vidi GAP-analiza #10)*
 
 
+
+* [ ] Sve najave prema hotelima (nova rezervacija, promena rezervacije, storno) treba da idu sa jedne jedinstvene mejl adrese agencije, ne sa ličnih mejlova zaposlenih, i sve potvrde hotela treba da stižu na tu istu adresu. Napraviti skriptu ili angažovati AI agenta koji će na osnovu poklapajućih informacija (ime hotela, gost, datumi, referenca) da poveže poslat zahtev za potvrdu sa pristiglom potvrdom hotela. Kad svako šalje sa svoje adrese, ne vidi se pouzdano tok rezervacije u delu "najavljeno → potvrđeno" niti se zna zašto nešto nije potvrđeno. *(Otvoreno — vidi GAP-analiza #11)*
+
+
