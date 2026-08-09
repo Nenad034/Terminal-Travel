@@ -130,6 +130,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)*
 - Tačan raspored uvođenja agenata po modulu — zavisi od redosleda stabilizacije u produkciji.
 - Konkretan izbor LLM provajdera/modela po domenskom agentu.
+- Konkretan izbor Speech-to-Text/Text-to-Speech provajdera za glasovni modalitet (poglavlje 6.6) — PrimeTravel analiza je polazna tačka, ne konačna odluka.
+- Glasovni kanal za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR — namerno van obima prve verzije (samo M17/interni tim preko mikrofona), zahteva zasebnu potvrdu vlasnika.
 
 ## M16 — Agentski distribucioni interfejs (MCP)
 *(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*

@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
-**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
+**Verzija:** 1.4 — dodat glasovni unos za omnisearch (poglavlje 5.5), na zahtev vlasnika (avgust 2026) — dopunjuje M15 poglavlje 6.6, prvi kanal koji dobija ovu opciju; v1.3 ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch; poglavlje 6.6, glasovni modalitet). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
 
 ---
 
@@ -69,6 +69,7 @@ Trajno pretraživačko polje u zaglavlju panela (dostupno sa svakog ekrana), kor
 - **Uneti tekst** — poziva `POST /ai-orchestration/omnisearch` (M15 poglavlje 9) sa `channel = INTERNAL_PANEL`. Obim je najširi od sva tri kanala: rezervacije i kalendar (M5), katalog (M2), dobavljači/ugovori (M3), finansije (M10), compliance (M11), CRM (M6), B2B partneri (M7) — sve u granicama prava trenutnog korisnika (npr. Prodajni agent i dalje vidi u rezultatima samo svoje klijente).
 - Primeri upita: "koje rezervacije čekaju fiskalni dokument" (poziva M10 poglavlje 6.2 alarm), "hotel Sunčani Breg leto 2027" (M2/M3), "Sunny Travel kreditni limit" (M7).
 - Rezultat je uvek link/navigacija ka postojećem ekranu ili zapisu — omnisearch ovde ne uvodi nijedan novi ekran za prikaz podataka, samo brži put do već postojećih (M15 poglavlje 6.5.4, "nikad ne izvršava radnju sam").
+- **Glasovni unos (dopuna, avgust 2026, na zahtev vlasnika)** — ikonica mikrofona pored polja; zaposleni drži/klikne i govori, transkribovan tekst automatski popunjava polje i šalje se identično kao da je otkucan (M15 poglavlje 6.6). Odgovor se, pored uobičajenog vizuelnog prikaza, i pročita naglas (uz mogućnost isključivanja zvuka). M17 je prvi kanal koji dobija ovu opciju — nema je (za sada) M7/M8/M9.
 
 ---
 
@@ -88,6 +89,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
 - [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 - [ ] Omnisearch polje je dostupno sa svakog ekrana; prazan upit + Enter prikazuje navigaciju filtriranu na ulogu; upit sa tekstom vraća rezultate/AI odgovor koji nikad prekoračuju prava trenutnog korisnika (poglavlje 5.5).
+- [ ] Glasovni upit preko mikrofona daje identičan rezultat kao isti tekst otkucan ručno, sa naglas pročitanim odgovorom (poglavlje 5.5, M15 poglavlje 6.6).
 
 ---
 

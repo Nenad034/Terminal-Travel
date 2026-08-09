@@ -892,8 +892,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
-**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
+**Verzija:** 1.4 — dodat glasovni unos za omnisearch (poglavlje 5.5), na zahtev vlasnika (avgust 2026) — dopunjuje M15 poglavlje 6.6, prvi kanal koji dobija ovu opciju; v1.3 ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch; poglavlje 6.6, glasovni modalitet). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
 
 ---
 
@@ -958,6 +958,7 @@ Trajno pretraživačko polje u zaglavlju panela (dostupno sa svakog ekrana), kor
 - **Uneti tekst** — poziva `POST /ai-orchestration/omnisearch` (M15 poglavlje 9) sa `channel = INTERNAL_PANEL`. Obim je najširi od sva tri kanala: rezervacije i kalendar (M5), katalog (M2), dobavljači/ugovori (M3), finansije (M10), compliance (M11), CRM (M6), B2B partneri (M7) — sve u granicama prava trenutnog korisnika (npr. Prodajni agent i dalje vidi u rezultatima samo svoje klijente).
 - Primeri upita: "koje rezervacije čekaju fiskalni dokument" (poziva M10 poglavlje 6.2 alarm), "hotel Sunčani Breg leto 2027" (M2/M3), "Sunny Travel kreditni limit" (M7).
 - Rezultat je uvek link/navigacija ka postojećem ekranu ili zapisu — omnisearch ovde ne uvodi nijedan novi ekran za prikaz podataka, samo brži put do već postojećih (M15 poglavlje 6.5.4, "nikad ne izvršava radnju sam").
+- **Glasovni unos (dopuna, avgust 2026, na zahtev vlasnika)** — ikonica mikrofona pored polja; zaposleni drži/klikne i govori, transkribovan tekst automatski popunjava polje i šalje se identično kao da je otkucan (M15 poglavlje 6.6). Odgovor se, pored uobičajenog vizuelnog prikaza, i pročita naglas (uz mogućnost isključivanja zvuka). M17 je prvi kanal koji dobija ovu opciju — nema je (za sada) M7/M8/M9.
 
 ---
 
@@ -977,6 +978,7 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 - [ ] Svaka naredna faza dodaje svoju sekciju bez izmene already postojećih.
 - [ ] Panel se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu (fluidan raspored, ne samo skalirana desktop verzija) — Master dokument poglavlje 5.1.
 - [ ] Omnisearch polje je dostupno sa svakog ekrana; prazan upit + Enter prikazuje navigaciju filtriranu na ulogu; upit sa tekstom vraća rezultate/AI odgovor koji nikad prekoračuju prava trenutnog korisnika (poglavlje 5.5).
+- [ ] Glasovni upit preko mikrofona daje identičan rezultat kao isti tekst otkucan ručno, sa naglas pročitanim odgovorom (poglavlje 5.5, M15 poglavlje 6.6).
 
 ---
 
@@ -4538,7 +4540,7 @@ Sam MCP server (alati iz poglavlja 2) implementira se prema zvaničnoj MCP speci
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
+**Verzija:** 1.6 — dodato poglavlje 6.6 (glasovni modalitet za omnisearch — Speech-to-Text/Text-to-Speech kao omotač oko postojećeg `POST /omnisearch` toka, bez novog agenta ili akcije), na zahtev vlasnika (avgust 2026): prvi kanal je M17 (interni tim) preko mikrofona u pregledaču, glasom se nikad ne izvršava radnja, audio se ne čuva posle transkripcije; v1.5 dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -4630,7 +4632,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M21 | `help_escalation.create_ticket` | `AUTONOMOUS` | M21 poglavlje 5.3 — korisnik koji pita sam potvrđuje eskalaciju sopstvenog pitanja, ne treći čovek koji odobrava tuđu akciju |
 | M21 | `help_article_suggestion.draft` | `AUTONOMOUS` | M21 poglavlje 5.4 — čisto pripremni nacrt iz obrasca ponovljenih pitanja |
 | M21 | `help_article_suggestion.approve` | `PROPOSE_THEN_APPROVE` | M21 poglavlje 5.4 |
-| (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage |
+| (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage — **isti kod pokriva i glasovni unos** (poglavlje 6.6), nema posebnog `action_code` za glas |
 
 **Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 CIS registracija garancije putovanja, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
@@ -4697,6 +4699,31 @@ Isti obrazac kao M21 poglavlje 5.5 (`HELP_AGENT_ABUSE_PATTERN`) — neuobičajen
 
 ---
 
+## 6.6 Glasovni modalitet za omnisearch/AI razgovor (dopuna, avgust 2026, na zahtev vlasnika)
+
+**Nije nov agent, nije nova akcija — samo nov ulaz/izlaz oko postojećeg toka iz poglavlja 6.5.** Odluka vlasnika (avgust 2026): glasovni kanal prvo dobija interni tim (M17), preko mikrofona u pregledaču (ne prava telefonija/IVR u ovoj fazi), i glasom se **nikad** ne izvršava radnja — isti "nikad izvršenje" princip kao 6.5.4, bez izuzetka za glas.
+
+### 6.6.1 Tok — glas je omotač oko `POST /omnisearch`, ne paralelan sistem
+
+1. Korisnik pritisne/drži ikonicu mikrofona pored omnisearch polja (poglavlje 6.5, M17 poglavlje 5.5) i govori.
+2. Audio se transkribuje u tekst (Speech-to-Text) — čim je tekst spreman, on **ulazi u potpuno isti** `POST /ai-orchestration/omnisearch` poziv (poglavlje 6.5.4, poglavlje 9) kao da je otkucan. `OmnisearchAgent` ne zna niti mu je bitno da li je upit stigao glasom ili tastaturom — isti `agent_role`, ista ograničenja vidljivosti (6.5.2), isti `omnisearch.query = AUTONOMOUS` iz registra (poglavlje 4), ista tvrda ograda "nikad ne izvršava radnju sam" (6.5.4).
+3. Tekstualni odgovor (`ai_answer`, `matched_routes[]`, `entity_results[]`) se prikazuje vizuelno kao i inače, i **dodatno** se pročita naglas (Text-to-Speech) — glas dopunjuje ekran, ne zamenjuje ga (linkovi/dugmad i dalje zahtevaju klik, isto kao 6.5.4).
+4. Ako upit liči na zahtev za radnju ("otkaži...", "pošalji...", "rezerviši..."), agent glasom pročita isti odgovor kao i tekstualno — navigaciju/link ka pravom ekranu, nikad izvršenje — i eksplicitno kaže da radnju treba potvrditi na ekranu, ne samo glasom.
+
+### 6.6.2 Privatnost — audio je prolazan, ne trajan zapis
+
+Sirov audio zapis se **ne čuva** posle transkripcije — samo transkribovan tekst upita ulazi u tok iz 6.5.4 i dobija isti trag u audit logu kao svaki drugi omnisearch upit (princip #5 Master dokumenta, "sve se može revidovati"). Ako se kasnije pokaže potreba za čuvanjem audio zapisa (npr. kvalitet transkripcije, obuka), to zahteva zasebnu odluku vlasnika i dopunu ove specifikacije — nije podrazumevano ponašanje.
+
+### 6.6.3 Aktivacija — po kanalu, iznad postojećeg omnisearch gate-a
+
+Glasovni unos se uključuje **po kanalu**, i to tek kad je omnisearch za taj kanal već aktiviran (`M15_OMNISEARCH`, poglavlje 6.5, napomena o fazi) — glas ne dobija sopstveni `ModuleAgentActivation` red, jer ne uvodi novu akciju, samo nov ulaz u postojeću. Prvi kanal je **M17** (interni tim, potvrđeno sa vlasnikom); M7/M8/M9 (subagenti, gosti na sajtu/u aplikaciji) i prava telefonija/IVR su namerno van obima ove dopune — vidi poglavlje 11.
+
+### 6.6.4 Tehnologija — provajder namerno neodređen (isti obrazac kao poglavlje 11, LLM)
+
+Konkretan izbor Speech-to-Text/Text-to-Speech provajdera nije deo ove specifikacije — tehnička odluka bliže trenutku implementacije, isti princip kao izbor LLM provajdera (poglavlje 11). Postoji već istražen kandidat-stek iz analize prethodnog projekta (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`, poglavlje 12) — hibridni pristup (lokalna transkripcija uz cloud fallback, standardni glas uz premium opciju za prodajni ton) i `Silero-VAD` za prirodnu detekciju kraja rečenice bez dugmeta "govori sad" — vredi ga uzeti kao polaznu tačku umesto istraživanja od nule, ali finalni izbor i dalje čeka potvrdu vlasnika kad se dođe do implementacije.
+
+---
+
 ## 7. Podaci ka spoljnim AI provajderima
 
 Ako se koriste eksterni AI modeli (van internog sistema), lični podaci gostiju se filtriraju pre slanja gde god je moguće (poglavlje 7, tačka 5 Master dokumenta) — konkretno, pozivi domenskih agenata ka spoljnim LLM provajderima ne smeju sadržati podatke poput broja pasoša, punog imena deteta, ili zdravstvenih podataka za osiguranje, osim kad je to apsolutno neophodno za zadatak i uz ugovor o obradi podataka sa tim provajderom.
@@ -4739,6 +4766,9 @@ Prefiks: `/api/v1/ai-orchestration`
 - [ ] `POST /omnisearch` iz M7/M8 konteksta nikad ne vraća identitet dobavljača (isti test kao M2 poglavlje 8, M5 poglavlje 12, primenjen ovde).
 - [ ] Upit koji liči na zahtev za radnju ("otkaži...", "pošalji...") vraća link/navigaciju, nikad ne izvršava radnju — provereno da `OmnisearchAgent` nema nijednu `CREATE`/`EDIT`/`SUBMIT`/`APPROVE` dozvolu ni u jednom modulu.
 - [ ] Prazan upit + Enter prikazuje listu ruta filtriranu na ulogu korisnika, bez poziva ka `OmnisearchAgent`-u (poglavlje 6.5.3).
+- [ ] Glasovni upit u M17 (poglavlje 6.6) transkribovan u tekst daje **identičan** rezultat kao isti tekst otkucan ručno — provereno da `POST /omnisearch` ne razlikuje izvor.
+- [ ] Zahtev za radnju izgovoren glasom ("otkaži...") ne izvršava radnju — vraća se isti link/navigacija kao za tekstualni upit, i pročita se naglas da radnja zahteva potvrdu na ekranu (poglavlje 6.6.1, korak 4).
+- [ ] Sirov audio zapis glasovnog upita se ne čuva posle transkripcije — u bazi/logu postoji samo transkribovan tekst, isti trag u audit logu kao tekstualni omnisearch upit (poglavlje 6.6.2).
 
 ---
 
@@ -4746,6 +4776,8 @@ Prefiks: `/api/v1/ai-orchestration`
 
 - Tačan raspored uvođenja agenata po modulu (koji modul prvi, kojim tempom) — zavisi od stvarnog redosleda stabilizacije u produkciji, ne može se unapred fiksirati u ovom dokumentu.
 - Konkretan izbor LLM provajdera/modela po domenskom agentu — tehnička odluka koja se donosi bliže trenutku implementacije svakog agenta, van obima ove specifikacije.
+- **Konkretan izbor Speech-to-Text/Text-to-Speech provajdera** (poglavlje 6.6.4) — isto obrazloženje kao LLM provajder iznad; PrimeTravel analiza (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`, poglavlje 12) je polazna tačka, ne konačna odluka.
+- **Glas za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR** — namerno van obima poglavlja 6.6 (koje pokriva samo M17/interni tim preko mikrofona u pregledaču); ista arhitektura (STT → tekst → postojeći omnisearch tok → TTS) bi se trebalo da generalizuje na te kanale bez redizajna, ali zahteva zasebnu potvrdu vlasnika pre gradnje — pravi telefonski poziv (IVR/PSTN integracija) dodatno nosi i sopstvenu tehničku/troškovnu odluku (izbor telefonskog provajdera) koja nije razmatrana u ovoj verziji.
 </script>
 <div class="rendered"></div>
 </section>
