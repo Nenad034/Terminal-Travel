@@ -126,11 +126,13 @@ Do sada nedefinisan JSON blob — sad je **niz objekata**, jedan po traženoj so
 | room_type_code | string, nullable | referencira M2 `Product.attributes.room_types[].code` (M2 poglavlje 2.3a) ako je gost/agent već izabrao konkretan tip sobe; `null` dok se samo traži dostupnost bez izbora |
 | adults | integer | |
 | children | integer | |
-| children_ages | niz integer, nullable | uzrast dece — neki dobavljači/RateLine cene zavise od uzrasta (npr. dete do 6 godina besplatno) |
+| children_ages | niz integer, nullable | uzrast svakog deteta (uključujući bebe) — svrstava se u kategoriju prema M2 `room_types[].age_policy[]` (M2 poglavlje 2.3b), vidi validaciju kapaciteta niže |
 
 **Pravilo slaganja:** zbir `adults`/`children` preko svih stavki `room_config[]` mora odgovarati `occupancy.adults`/`occupancy.children` na nivou cele stavke — `occupancy.adults`/`children` ostaju jednostavan zbirni broj (koriste ga i tipovi bez sobe, npr. `TRANSPORT`/`TICKET`/`EVENT`, M5 poglavlje 11), `room_config[]` je detaljan raspored samo za tipove sa smeštajem (`ACCOMMODATION`, `PACKAGE` koji uključuje smeštaj). Neusklađen zbir se odbija pri kreiranju `Quote` (`POST /quotes`) sa jasnom porukom, ne tiho ispravlja.
 
 Ako `room_config` nije poslat za tip koji zahteva smeštaj, tretira se kao jedna soba sa svim gostima zajedno (`[{room_type_code: null, adults, children, children_ages: null}]`) — nazadnokompatibilno ponašanje, ne obavezuje pozivaoca da uvek eksplicitno razlaže po sobama.
+
+**Validacija kapaciteta po uzrastu (dopuna, avgust 2026, na zahtev vlasnika):** kad je `room_type_code` poznat, M5 za svaki uzrast iz `children_ages[]` pronalazi odgovarajuću kategoriju u M2 `room_types[].age_policy[]` (po `age_from`/`age_to` te sobe — M2 poglavlje 2.3b) i broji protiv `capacity_adults`/`capacity_children` **samo kategorije sa `counts_toward_capacity = true`**. Gost čija kategorija ima `counts_toward_capacity = false` (tipično beba u krevetcu) se i dalje evidentira na stavci (radi krevetca i eventualne kasnije cene iz M3), ali se ne računa protiv formalnog kapaciteta sobe niti odbija `Quote` zbog toga. Broj gostiju u pojedinačnoj kategoriji koji prelazi `age_policy[].max_count` te kategorije (npr. druga beba u sobi koja dozvoljava samo jednu) se odbija sa jasnom porukom, nezavisno od ukupnog kapaciteta.
 
 ---
 
@@ -452,6 +454,7 @@ Prefiks: `/api/v1/sales`
 - [ ] `GET /search` ispravno filtrira po `type` (nizu vrednosti — test: dva tipa istovremeno vraćaju uniju rezultata, ne presek), `destination_country`/`destination_city`, `stay_from`/`stay_to`, `occupancy`, `channel`; `type` koji sadrži `PACKAGE` vraća gotove pakete iz M2 za tu stavku.
 - [ ] `GET /search` ispravno vraća `TRANSPORT`/`TICKET`/`EVENT` proizvode kad su traženi, sa atributima iz M2 poglavlja 2.3.
 - [ ] `occupancy.room_config` sa više soba (npr. 2 sobe, različit broj gostiju po sobi) se ispravno čuva i čita kao niz; zbir po sobama koji se ne slaže sa `occupancy.adults`/`children` se odbija pri kreiranju `Quote`.
+- [ ] Test: beba čiji uzrast (iz `children_ages[]`) pada u M2 `age_policy[]` kategoriju sa `counts_toward_capacity = false` ne izaziva odbijanje `Quote` zbog kapaciteta, dok drugo dete/gost koji prelazi kategoriju sa `counts_toward_capacity = true` iznad `capacity_children` biva odbijen (M2 poglavlje 2.3b).
 - [ ] Moguće je sastaviti `Itinerary` sa više segmenata u više destinacija, promeniti im redosled, i konvertovati ga u `Quote` — svaki segment sa popunjenim `product_id` postaje `QuoteItem` sa ispravno primenjenom cenom/maržom (poglavlje 3.0.3).
 - [ ] Segment bez popunjenog `product_id` se ne konvertuje tiho — korisnik dobija jasno upozorenje pre konverzije koji segmenti su preskočeni.
 - [ ] `Quote.itinerary_id` ispravno referencira izvorni `Itinerary` kad Ponuda nastane konverzijom, i ostaje `null` za direktne ponude.

@@ -1,0 +1,471 @@
+<title>Terminal — Mapa: Smeštajni objekat</title>
+<style>
+:root{
+  --ink:#12161d; --ink-2:#1b212b;
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --sans: "Avenir Next", "Century Gothic", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --header-h: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+    --text:#e7e9ed; --text-dim:#98a2b3;
+    --accent:#e7a339; --accent-soft:#3a2c14;
+    --rule:#2b3242;
+    --success:#5cd39a; --success-bg:#173023;
+    --warn:#e7a339; --warn-bg:#332411;
+    --info:#7ab6ec; --info-bg:#122a3d;
+    --purple:#b794f6; --purple-bg:#2a2145;
+    --gray:#8b95a5; --gray-bg:#232a37;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+  --text:#e7e9ed; --text-dim:#98a2b3;
+  --accent:#e7a339; --accent-soft:#3a2c14;
+  --rule:#2b3242;
+  --success:#5cd39a; --success-bg:#173023;
+  --warn:#e7a339; --warn-bg:#332411;
+  --info:#7ab6ec; --info-bg:#122a3d;
+  --purple:#b794f6; --purple-bg:#2a2145;
+  --gray:#8b95a5; --gray-bg:#232a37;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+:root[data-theme="light"]{
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+}
+a{color:var(--accent);}
+
+.board{
+  position:sticky; top:0; height:var(--header-h); z-index:40;
+  background:linear-gradient(180deg,#171c25,#12161d); color:#eef0f4;
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+  border-bottom:1px solid #05070a; box-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.board .brand{
+  font-family:var(--mono); font-weight:700; letter-spacing:.14em; font-size:16px;
+  color:#f4f6f9; text-transform:uppercase; display:flex; align-items:baseline; gap:8px; white-space:nowrap;
+}
+.board .brand small{ font-family:var(--sans); font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; color:#9aa6b8; }
+.board .actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+.board a.back{ color:#c7ceda; font-size:12.5px; text-decoration:none; border:1px solid #333c4a; padding:6px 10px; border-radius:6px; }
+.board a.back:hover{ background:#1f2530; }
+
+main{ padding:20px 0 60px; }
+.wrap{ width:100%; max-width:1360px; margin:0 auto; padding:0 clamp(16px,2.4vw,40px); }
+
+.intro{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:16px 20px; margin-bottom:18px; box-shadow:var(--shadow); font-size:14px; color:var(--text-dim);
+}
+.intro b{ color:var(--text); }
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:12px 18px; margin-bottom:22px; box-shadow:var(--shadow); font-size:12.5px; color:var(--text-dim);
+}
+.legend .item{ display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.swatch{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+.example{
+  background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+  padding:14px 20px; margin-bottom:26px; font-size:13.5px; color:var(--text);
+}
+.example b{ font-family:var(--mono); }
+
+/* section = one entity/table block */
+.section{
+  background:var(--surface); border:1.5px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow); margin-bottom:26px; overflow:hidden;
+}
+.section .shead{
+  display:flex; align-items:center; gap:10px; padding:14px 20px;
+  border-bottom:1px dashed var(--rule); background:var(--paper-2);
+}
+.section .shead .tag{
+  font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em;
+  padding:3px 9px; border-radius:5px;
+}
+.section .shead h2{ margin:0; font-size:16.5px; font-weight:700; }
+.section .shead .note{ margin-left:auto; font-size:12px; color:var(--text-dim); font-family:var(--mono); }
+.section .sbody{ padding:16px 20px 20px; }
+.section .sdesc{ font-size:13px; color:var(--text-dim); margin-bottom:14px; }
+
+.tag.core{ background:var(--info-bg); color:var(--info); }
+.tag.i18n{ background:var(--success-bg); color:var(--success); }
+.tag.attr{ background:var(--warn-bg); color:var(--warn); }
+.tag.nested{ background:var(--purple-bg); color:var(--purple); }
+.tag.ai{ background:var(--gray-bg); color:var(--gray); }
+
+.field-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;
+}
+.field{
+  border:1px solid var(--rule); border-radius:8px; padding:9px 12px; background:var(--paper);
+  position:relative;
+}
+.field.linked{ border-color:var(--purple); }
+.field .fname{ font-family:var(--mono); font-weight:700; font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px; }
+.field .ftype{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; }
+.field .fex{ font-size:12px; color:var(--accent); margin-top:5px; font-style:italic; }
+.field .fnote{ font-size:11.5px; color:var(--text-dim); margin-top:4px; line-height:1.4; }
+.field .link-badge{
+  font-family:var(--mono); font-size:9px; font-weight:700; background:var(--purple-bg); color:var(--purple);
+  padding:1px 5px; border-radius:3px;
+}
+
+/* nested repeating item card */
+.repeat-card{
+  border:1.5px dashed var(--purple); border-radius:10px; padding:14px; background:var(--purple-bg);
+  margin-top:6px;
+}
+.repeat-card .rtitle{ font-family:var(--mono); font-size:12px; font-weight:700; color:var(--purple); margin-bottom:10px; }
+.repeat-card .instances{ display:flex; flex-direction:column; gap:10px; }
+.instance{
+  background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:10px 14px;
+}
+.instance .iname{ font-weight:700; font-size:13.5px; margin-bottom:6px; }
+.instance .irow{ font-size:12px; color:var(--text-dim); display:flex; flex-wrap:wrap; gap:6px 14px; }
+.instance .irow b{ color:var(--text); font-weight:600; }
+
+/* out of scope box */
+.oos{
+  border:1.5px dashed var(--gray); border-radius:10px; padding:14px 18px; background:var(--gray-bg);
+  font-size:13px; color:var(--text-dim); margin-bottom:26px;
+}
+.oos b{ color:var(--text); }
+
+/* flow strip for AI import */
+.flow{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px;
+}
+.flow .step{
+  font-family:var(--mono); font-size:11.5px; background:var(--paper); border:1px solid var(--rule);
+  padding:5px 10px; border-radius:6px; white-space:nowrap;
+}
+.flow .arrow{ color:var(--text-dim); }
+
+.toc{
+  display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;
+}
+.toc a{
+  font-family:var(--mono); font-size:11.5px; text-decoration:none; color:var(--text);
+  background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:6px 10px;
+}
+.toc a:hover{ border-color:var(--accent); color:var(--accent); }
+
+/* dependency chain */
+.dep-chain{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+.dep-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.dep-node{
+  font-family:var(--mono); font-size:12px; font-weight:700; padding:6px 11px; border-radius:7px;
+  border:1.5px solid var(--rule); background:var(--paper); white-space:nowrap;
+}
+.dep-node.m2{ border-color:var(--info); color:var(--info); background:var(--info-bg); }
+.dep-node.m3{ border-color:var(--warn); color:var(--warn); background:var(--warn-bg); }
+.dep-node.m5{ border-color:var(--purple); color:var(--purple); background:var(--purple-bg); }
+.dep-node.m13{ border-color:var(--success); color:var(--success); background:var(--success-bg); }
+.dep-arrow{ color:var(--text-dim); font-size:13px; white-space:nowrap; }
+.dep-label{ font-size:11.5px; color:var(--text-dim); font-style:italic; flex-basis:100%; margin:-2px 0 8px 2px; }
+
+.mod-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:16px; font-size:12px; color:var(--text-dim); }
+.mod-legend .item{ display:flex; align-items:center; gap:6px; }
+
+/* gap / open issue */
+.gap{
+  border:1.5px solid var(--warn); border-radius:12px; background:var(--warn-bg);
+  padding:16px 20px; margin-bottom:20px;
+}
+.gap .ghead{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.gap .ghead .tag{ font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 9px; border-radius:5px; background:var(--warn); color:var(--paper-2); }
+.gap .ghead h3{ margin:0; font-size:15px; }
+.gap p{ font-size:13.5px; margin:6px 0; }
+.gap .cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px; }
+.gap .cols .colbox{ background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:12px 14px; }
+.gap .cols .colbox h4{ margin:0 0 8px; font-size:12px; font-family:var(--mono); text-transform:uppercase; letter-spacing:.04em; color:var(--text-dim); }
+.gap .cols ul{ margin:0; padding-left:18px; font-size:12.5px; }
+.gap .cols li{ margin-bottom:5px; }
+@media (max-width:760px){ .gap .cols{ grid-template-columns:1fr; } }
+.pending-badge{ font-family:var(--mono); font-size:10px; font-weight:800; background:var(--gray-bg); color:var(--gray); padding:2px 7px; border-radius:4px; letter-spacing:.03em; }
+</style>
+
+<div class="board">
+  <div class="brand">Terminal <small>Mapa: Smeštajni objekat (M2 · ACCOMMODATION)</small></div>
+  <div class="actions">
+    <a class="back" href="https://github.com/Nenad034/Terminal-Travel/blob/main/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md" target="_blank" rel="noopener">← M2 specifikacija</a>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      Ovo je mapa <b>svih stavki koje čine jedan smeštajni objekat</b> (`Product.type = ACCOMMODATION`) u M2 katalogu — dakle sve što se o jednom hotelu/vili/apartmanu/hostelu zna, bez obzira odakle je unos stigao (ručno, ili preko AI uvoza sa sajta dobavljača, poglavlje 3.3 specifikacije). Struktura prati <b>03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md</b> poglavlja 2.1–2.3a doslovno — ovo je vizuelni prikaz istog modela, ne novi izvor istine. Ljubičasto isprekidana ivica i <span class="link-badge">link</span> oznaka pokazuju polja koja se međusobno referenciraju (npr. slika sobe → tačan tip sobe).
+    </div>
+
+    <div class="toc">
+      <a href="#core">① Product — jezgro</a>
+      <a href="#i18n">② ProductTranslation — po jeziku</a>
+      <a href="#attrs">③ attributes.ACCOMMODATION</a>
+      <a href="#rooms">③a room_types[]</a>
+      <a href="#media">④ media[] — galerija</a>
+      <a href="#ai">⑤ AI uvoz sadržaja</a>
+      <a href="#oos">⑥ Šta NIJE ovde</a>
+      <a href="#deps">⑦ Zavisnosti (M2 → M3 → M5 → M13)</a>
+      <a href="#gap">⑧ Kreveti i uzrasna politika</a>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="swatch" style="background:var(--info)"></span> Jezgro (jezički nezavisno)</div>
+      <div class="item"><span class="swatch" style="background:var(--success)"></span> Prevod (po jeziku)</div>
+      <div class="item"><span class="swatch" style="background:var(--warn)"></span> Atributi specifični za smeštaj</div>
+      <div class="item"><span class="swatch" style="background:var(--purple)"></span> Ponavljajuća stavka (niz objekata)</div>
+      <div class="item"><span class="swatch" style="background:var(--gray)"></span> AI uvoz / poreklo podatka</div>
+    </div>
+
+    <div class="example">
+      Primer korišćen kroz celu mapu: <b>Hotel Riviera</b>, Budva, 4★, all-inclusive, sa dva tipa soba (Standard i Deluxe sa pogledom na more).
+    </div>
+
+    <!-- ① CORE -->
+    <div class="section" id="core">
+      <div class="shead"><span class="tag core">① CORE</span><h2>Product — jezički nezavisno jezgro</h2><span class="note">poglavlje 2.1</span></div>
+      <div class="sbody">
+        <div class="sdesc">Ista vrednost bez obzira na jezik posetioca — geolokacija, status, poreklo, vidljivost.</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">id</div><div class="ftype">UUID (PK)</div><div class="fex">a1c9…</div></div>
+          <div class="field"><div class="fname">type</div><div class="ftype">enum</div><div class="fex">ACCOMMODATION</div></div>
+          <div class="field"><div class="fname">source_type</div><div class="ftype">enum: CONTRACTED / API</div><div class="fex">CONTRACTED</div><div class="fnote">CONTRACTED = M3 ugovor je izvor istine; API = keširan sadržaj sa provajdera (pogl. 3)</div></div>
+          <div class="field"><div class="fname">source_contract_id</div><div class="ftype">UUID, nullable → M3</div><div class="fnote">popunjeno samo kad source_type = CONTRACTED</div></div>
+          <div class="field"><div class="fname">source_provider</div><div class="ftype">string, nullable</div><div class="fex">travelgate</div><div class="fnote">popunjeno samo kad source_type = API</div></div>
+          <div class="field"><div class="fname">source_external_id</div><div class="ftype">string, nullable</div></div>
+          <div class="field"><div class="fname">destination_country</div><div class="ftype">string</div><div class="fex">Crna Gora</div></div>
+          <div class="field"><div class="fname">destination_city</div><div class="ftype">string</div><div class="fex">Budva</div></div>
+          <div class="field"><div class="fname">geo_lat / geo_lng</div><div class="ftype">decimal, nullable</div><div class="fex">42.286, 18.840</div><div class="fnote">za prikaz na mapi</div></div>
+          <div class="field linked"><div class="fname">media <span class="link-badge">→ ④</span></div><div class="ftype">JSONB, niz</div><div class="fnote">galerija — strukturisano u sekciji ④</div></div>
+          <div class="field linked"><div class="fname">attributes <span class="link-badge">→ ③</span></div><div class="ftype">JSONB</div><div class="fnote">polja specifična za ACCOMMODATION — sekcija ③</div></div>
+          <div class="field"><div class="fname">status</div><div class="ftype">enum</div><div class="fex">ACTIVE</div><div class="fnote">DRAFT / ACTIVE / INACTIVE / ARCHIVED — samo ACTIVE je vidljiv kanalima</div></div>
+          <div class="field"><div class="fname">visible_channels</div><div class="ftype">niz enum</div><div class="fex">[B2C_SITE, B2B_PORTAL]</div><div class="fnote">B2C_SITE / B2B_PORTAL / MOBILE</div></div>
+          <div class="field"><div class="fname">cache_status</div><div class="ftype">enum</div><div class="fex">N/A</div><div class="fnote">N/A za CONTRACTED; NOT_CACHED/CACHED/STALE za API</div></div>
+          <div class="field"><div class="fname">last_synced_at</div><div class="ftype">timestamp, nullable</div></div>
+          <div class="field"><div class="fname">created_at / updated_at</div><div class="ftype">timestamp</div></div>
+          <div class="field"><div class="fname">created_by</div><div class="ftype">UUID → M1 User</div><div class="fnote">može biti i AI agent (M15 pogl. 7)</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② I18N -->
+    <div class="section" id="i18n">
+      <div class="shead"><span class="tag i18n">② PREVOD</span><h2>ProductTranslation — po jeziku (8 jezika)</h2><span class="note">poglavlje 2.2</span></div>
+      <div class="sbody">
+        <div class="sdesc">Jedan red po jeziku: sr, en, hr, sl, es, de, ru, fr. Fallback: traženi jezik → en → sr. sr i en su <b style="color:var(--text)">obavezni</b> pre nego proizvod pređe u ACTIVE.</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">id</div><div class="ftype">UUID (PK)</div></div>
+          <div class="field"><div class="fname">product_id</div><div class="ftype">UUID → Product</div></div>
+          <div class="field"><div class="fname">language_code</div><div class="ftype">enum(8)</div><div class="fex">sr</div></div>
+          <div class="field"><div class="fname">name</div><div class="ftype">string</div><div class="fex">Hotel Riviera</div></div>
+          <div class="field"><div class="fname">description</div><div class="ftype">text</div><div class="fex">Hotel na prvoj liniji, sa pogledom na Jadransko more…</div></div>
+          <div class="field"><div class="fname">slug</div><div class="ftype">string, jedinstven po jeziku</div><div class="fex">hotel-riviera-budva</div><div class="fnote">SEO URL za M8</div></div>
+          <div class="field"><div class="fname">translation_source</div><div class="ftype">enum</div><div class="fex">MANUAL</div><div class="fnote">MANUAL ili AI_GENERATED</div></div>
+          <div class="field"><div class="fname">is_reviewed</div><div class="ftype">boolean</div><div class="fex">true</div><div class="fnote">da li je AI prevod pregledan pre objave</div></div>
+          <div class="field"><div class="fname">created_at / updated_at</div><div class="ftype">timestamp</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ ATTRS -->
+    <div class="section" id="attrs">
+      <div class="shead"><span class="tag attr">③ ATRIBUTI</span><h2>attributes — konvencija za ACCOMMODATION</h2><span class="note">poglavlje 2.3</span></div>
+      <div class="sbody">
+        <div class="sdesc">Deo <span style="font-family:var(--mono)">Product.attributes</span> (JSONB) — jezički nezavisno, kao i jezgro.</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">accommodation_type</div><div class="ftype">enum</div><div class="fex">HOTEL</div><div class="fnote">HOTEL / VILA / APARTMAN / HOSTEL / KAMP / KABINA_NA_BRODU / DRUGO</div></div>
+          <div class="field"><div class="fname">stars</div><div class="ftype">integer</div><div class="fex">4</div></div>
+          <div class="field"><div class="fname">board_type</div><div class="ftype">string</div><div class="fex">all-inclusive</div></div>
+          <div class="field linked"><div class="fname">room_types[] <span class="link-badge">→ ③a</span></div><div class="ftype">niz objekata</div><div class="fnote">strukturisano — sekcija ③a</div></div>
+          <div class="field"><div class="fname">amenities[]</div><div class="ftype">niz stringova</div><div class="fex">bazen, spa, parking, wifi</div></div>
+        </div>
+
+        <!-- ③a room_types nested -->
+        <div class="repeat-card" id="rooms">
+          <div class="rtitle">③a room_types[] — svaka stavka je objekat (ne goli naziv)</div>
+          <div class="field-grid" style="margin-bottom:12px;">
+            <div class="field"><div class="fname">code</div><div class="ftype">string</div><div class="fex">DELUXE_SEA_VIEW</div><div class="fnote">referenciran iz M3 ContractPeriod.room_type (konvencija)</div></div>
+            <div class="field"><div class="fname">name</div><div class="ftype">string</div><div class="fex">Deluxe soba, pogled na more</div></div>
+            <div class="field"><div class="fname">capacity_adults</div><div class="ftype">integer</div><div class="fex">2</div></div>
+            <div class="field"><div class="fname">capacity_children</div><div class="ftype">integer</div><div class="fex">1</div></div>
+            <div class="field"><div class="fname">size_sqm</div><div class="ftype">decimal, nullable</div><div class="fex">28</div></div>
+            <div class="field"><div class="fname">features[]</div><div class="ftype">niz stringova, nullable</div><div class="fex">balkon, pogled na more, kada</div></div>
+          </div>
+          <div class="instances">
+            <div class="instance">
+              <div class="iname">STANDARD</div>
+              <div class="irow"><span><b>naziv:</b> Standard soba</span><span><b>kapacitet:</b> 2+1</span><span><b>m²:</b> 20</span><span><b>features:</b> balkon</span></div>
+            </div>
+            <div class="instance">
+              <div class="iname">DELUXE_SEA_VIEW</div>
+              <div class="irow"><span><b>naziv:</b> Deluxe soba, pogled na more</span><span><b>kapacitet:</b> 2+1</span><span><b>m²:</b> 28</span><span><b>features:</b> balkon, pogled na more, kada</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ MEDIA -->
+    <div class="section" id="media">
+      <div class="shead"><span class="tag nested">④ GALERIJA</span><h2>media[] — slike i video, po kategoriji i sobi</h2><span class="note">poglavlje 2.3a</span></div>
+      <div class="sbody">
+        <div class="sdesc">Deo <span style="font-family:var(--mono)">Product.media</span> (JSONB, na nivou jezgra — iste slike za sve jezike).</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">url</div><div class="ftype">string</div></div>
+          <div class="field"><div class="fname">type</div><div class="ftype">enum: image / video</div></div>
+          <div class="field"><div class="fname">order</div><div class="ftype">integer</div></div>
+          <div class="field"><div class="fname">category</div><div class="ftype">enum</div><div class="fex">ROOM</div><div class="fnote">EXTERIOR / ROOM / AMENITY / RESTAURANT / POOL / BEACH / LOBBY / VIEW / DRUGO</div></div>
+          <div class="field linked"><div class="fname">room_type_code <span class="link-badge">→ ③a</span></div><div class="ftype">string, nullable</div><div class="fex">DELUXE_SEA_VIEW</div><div class="fnote">popunjeno samo kad category = ROOM; mora odgovarati postojećem room_types[].code</div></div>
+          <div class="field"><div class="fname">caption</div><div class="ftype">string, nullable</div><div class="fex">Pogled sa terase</div></div>
+          <div class="field"><div class="fname">source</div><div class="ftype">enum</div><div class="fex">AI_IMPORTED</div><div class="fnote">MANUAL_UPLOAD ili AI_IMPORTED (pogl. 3.3) — AI_IMPORTED prolazi kroz odobrenje pre nego uđe u media[]</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ AI IMPORT -->
+    <div class="section" id="ai">
+      <div class="shead"><span class="tag ai">⑤ AI UVOZ</span><h2>ProductContentImport — popunjavanje svega gore, sa sajta hotela</h2><span class="note">poglavlje 3.3</span></div>
+      <div class="sbody">
+        <div class="sdesc">Zaposleni unese URL sajta hotela → AI izvuče kandidate → čovek odobri/izmeni/odbije → tek tada se upisuje u polja iznad. Nijedan red se ne upisuje automatski, bez obzira na pouzdanost izvlačenja (<span style="font-family:var(--mono)">match_confidence</span>).</div>
+        <div class="flow">
+          <span class="step">field_type: NAME / DESCRIPTION</span><span class="arrow">→</span><span class="step">② ProductTranslation</span>
+        </div>
+        <div class="flow">
+          <span class="step">field_type: AMENITY / SERVICE</span><span class="arrow">→</span><span class="step">③ attributes.amenities[]</span>
+        </div>
+        <div class="flow">
+          <span class="step">field_type: ROOM_TYPE</span><span class="arrow">→</span><span class="step">③a room_types[] (nova stavka)</span>
+        </div>
+        <div class="flow">
+          <span class="step">field_type: PHOTO</span><span class="arrow">→</span><span class="step">④ media[] (source = AI_IMPORTED)</span>
+        </div>
+        <div class="flow">
+          <span class="step">field_type: LOCATION</span><span class="arrow">→</span><span class="step">① destination_country / destination_city / geo_lat / geo_lng</span>
+        </div>
+        <div class="sdesc" style="margin-top:12px;">Svaki izvučen red nosi: <span style="font-family:var(--mono)">extracted_value</span> (sirov sadržaj), <span style="font-family:var(--mono)">match_confidence</span> (0–100), <span style="font-family:var(--mono)">review_status</span> (PENDING/APPROVED/EDITED_AND_APPROVED/REJECTED) i <span style="font-family:var(--mono)">reviewed_by</span> — <b style="color:var(--text)">nikad AI agent</b>, uvek čovek.</div>
+      </div>
+    </div>
+
+    <!-- ⑥ OUT OF SCOPE -->
+    <div class="oos" id="oos">
+      <b>⑥ Namerno NIJE deo smeštajnog objekta u M2:</b> cena, alotman (koliko soba je slobodno) i sezonski cenovnik. Te stavke žive u <b>M3 (Ugovaranje)</b> za CONTRACTED objekte ili se uživo dobijaju kroz <b>M4</b> u trenutku pretrage za API-sourced objekte — nikad se ne čuvaju kao trajno polje na proizvodu (poglavlje 4 specifikacije). Takođe van obima ovde: identitet dobavljača (<span style="font-family:var(--mono)">source_provider</span>, <span style="font-family:var(--mono)">source_contract_id</span> i sve iz M3 Supplier/Contract) — ova polja postoje u jezgru (①) ali se <b>nikad ne vraćaju</b> B2C/B2B/gostinskim kanalima (poglavlje 5.1), samo internom M17.
+    </div>
+
+    <!-- ⑦ DEPENDENCIES -->
+    <div class="section" id="deps">
+      <div class="shead"><span class="tag core" style="background:var(--gray-bg);color:var(--gray)">⑦ ZAVISNOSTI</span><h2>Šta na šta utiče — od tipa sobe do izveštaja</h2><span class="note">M2 → M3 → M5 → M13</span></div>
+      <div class="sbody">
+        <div class="mod-legend">
+          <div class="item"><span class="dep-node m2" style="padding:2px 7px;">M2</span> Katalog (šta postoji)</div>
+          <div class="item"><span class="dep-node m3" style="padding:2px 7px;">M3</span> Ugovaranje (cena/alotman)</div>
+          <div class="item"><span class="dep-node m5" style="padding:2px 7px;">M5</span> Rezervacije (izbor gosta)</div>
+          <div class="item"><span class="dep-node m13" style="padding:2px 7px;">M13</span> BI (izveštaji)</div>
+        </div>
+
+        <div class="dep-chain">
+          <div class="dep-row">
+            <span class="dep-node m2">room_types[].code</span><span class="dep-arrow">→ referenciše ga (konvencija, ne strogi FK) →</span><span class="dep-node m3">ContractPeriod.room_type</span>
+          </div>
+          <div class="dep-label">Svaki sezonski period/cena u ugovoru mora znati za koji tačno tip sobe važi — vezuje se preko istog stringa (`code`), ne preko baznog FK-a (moduli su granice, princip #2).</div>
+
+          <div class="dep-row">
+            <span class="dep-node m3">ContractPeriod</span><span class="dep-arrow">→ 1:N →</span><span class="dep-node m3">RateLine (board_type, cena)</span><span class="dep-arrow">→ bira se pri →</span><span class="dep-node m5">BookingItem.rate_line_id</span>
+          </div>
+          <div class="dep-label">Cena i usluga (all-inclusive/polupansion) dolaze iz M3, ne čuvaju se na proizvodu (M2 poglavlje 4). `room_type` se ne duplira na `BookingItem` — dobija se preko `RateLine → ContractPeriod.room_type`.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m5">occupancy.room_config[].room_type_code</span><span class="dep-arrow">→ referenciše →</span><span class="dep-node m2">room_types[].code</span>
+          </div>
+          <div class="dep-label">Gost/agent bira konkretan tip sobe pri pretrazi/rezervaciji — čuva se kao referenca nazad na M2, odvojeno od cenovne veze preko M3.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m2">room_types[].capacity_adults / capacity_children</span><span class="dep-arrow">→ validira →</span><span class="dep-node m5">room_config (broj gostiju po sobi)</span>
+          </div>
+          <div class="dep-label">M5 pri kreiranju `Quote` proverava da broj gostiju po sobi ne prelazi kapacitet iz M2 — <b style="color:var(--text)">danas samo kao ravan broj</b>, bez razlike po uzrastu (vidi ⑧ ispod).</div>
+
+          <div class="dep-row">
+            <span class="dep-node m2">media[].room_type_code</span><span class="dep-arrow">→ referenciše →</span><span class="dep-node m2">room_types[].code</span>
+          </div>
+          <div class="dep-label">Slika u galeriji je vezana za tačan tip sobe, ne generičku galeriju hotela.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m3">ContractPeriod.room_type</span><span class="dep-arrow">→ preko RateLine/BookingItem, agregira →</span><span class="dep-node m13">Izveštaj "Prodate sobe po tipu"</span>
+          </div>
+          <div class="dep-label">Samo CONTRACTED stavke imaju `room_type` popunjen — API-sourced stavke se broje u ukupnom, ali ne razbijaju po tipu (M13 poglavlje 4.1).</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑧ RESOLVED CAPACITY MODEL -->
+    <div class="section" id="gap">
+      <div class="shead"><span class="tag nested">⑧ REŠENO</span><h2>Kreveti i uzrasna politika po tipu sobe — `beds` / `age_policy[]`</h2><span class="note">poglavlje 2.3b · v1.4</span></div>
+      <div class="sbody">
+        <div class="sdesc">Potvrđeno sa vlasnikom (avgust 2026): starosne granice, da li beba ulazi u kapacitet, i pravilo za krevetac <b style="color:var(--text)">variraju od hotela do hotela</b> — zato je sve ovo podesivo po <span style="font-family:var(--mono)">room_types[]</span> stavci, ne fiksna sistemska konstanta. Ako soba nema eksplicitno podešeno, koristi se razuman podrazumevani niz (ispod).</div>
+
+        <div class="field-grid" style="margin-bottom:14px;">
+          <div class="field"><div class="fname">base_beds</div><div class="ftype">integer</div><div class="fex">2</div><div class="fnote">broj osnovnih kreveta</div></div>
+          <div class="field"><div class="fname">extra_beds_max</div><div class="ftype">integer, nullable</div><div class="fex">1</div><div class="fnote">maks. broj dodatnih/pomoćnih kreveta</div></div>
+        </div>
+
+        <div class="repeat-card">
+          <div class="rtitle">age_policy[] — jedna stavka po uzrasnoj kategoriji, po sobi</div>
+          <div class="field-grid" style="margin-bottom:12px;">
+            <div class="field"><div class="fname">category</div><div class="ftype">enum</div><div class="fex">INFANT</div><div class="fnote">ADULT / CHILD / INFANT, proširivo</div></div>
+            <div class="field"><div class="fname">age_from / age_to</div><div class="ftype">integer / integer, nullable</div><div class="fex">0 / 1</div><div class="fnote">age_to = null → "i više" (ADULT)</div></div>
+            <div class="field"><div class="fname">counts_toward_capacity</div><div class="ftype">boolean</div><div class="fex">false</div><div class="fnote">ulazi li u capacity_adults/capacity_children — različito po hotelu</div></div>
+            <div class="field"><div class="fname">max_count</div><div class="ftype">integer, nullable</div><div class="fex">1</div><div class="fnote">maks. broj gostiju te kategorije po sobi</div></div>
+            <div class="field"><div class="fname">requires_crib</div><div class="ftype">boolean</div><div class="fex">true</div><div class="fnote">relevantno uglavnom za INFANT</div></div>
+            <div class="field"><div class="fname">crib_included</div><div class="ftype">boolean, nullable</div><div class="fex">null</div><div class="fnote">samo kad requires_crib=true; da li se posebno naplaćuje (cena → M3 RateLine)</div></div>
+          </div>
+          <div class="instances">
+            <div class="instance"><div class="iname">Podrazumevano (ako soba nema svoje)</div>
+              <div class="irow"><span><b>ADULT:</b> 12+, računa se</span><span><b>CHILD:</b> 2–11, računa se</span><span><b>INFANT:</b> 0–1, ne računa se, krevetac obavezan</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sdesc" style="margin-top:14px;">
+          <b style="color:var(--text)">Veza sa M5:</b> pri proveri kapaciteta, svaki uzrast iz <span style="font-family:var(--mono)">room_config[].children_ages[]</span> (M5 §3.2a) se svrstava u kategoriju ove sobe i broji protiv kapaciteta samo ako <span style="font-family:var(--mono)">counts_toward_capacity = true</span> — beba u krevetcu tipično ne odbija rezervaciju zbog formalnog kapaciteta, ali i dalje ne sme preći <span style="font-family:var(--mono)">max_count</span> te kategorije.<br>
+          <b style="color:var(--text)">Namerno van obima ovde:</b> tačna cena po kategoriji (npr. "dete besplatno do 11 god.") čeka dopunu M3 <span style="font-family:var(--mono)">RateLine</span> (M3 poglavlje 8, otvoreno) — ovaj model definiše ko ulazi u koju kategoriju i da li ulazi u kapacitet, ne po kojoj ceni.
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
