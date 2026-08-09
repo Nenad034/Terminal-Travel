@@ -93,7 +93,7 @@ Jeftino za implementaciju (samo generisanje JSON-LD bloka iz postojećih polja),
 
 ## 6. Sadržaj van kataloga — namerno van obima
 
-Stranice poput "O nama", blog, marketinški sadržaj — to je posao M12 (Content Engine, Faza 6). Za sada M8 prikazuje jednostavne statične stranice (uređivane direktno u kodu/CMS-lite rešenju), bez posebnog modela podataka — kad M12 bude specificiran, te stranice se povezuju na njegov sadržajni tok umesto da ostanu statične.
+Stranice poput "O nama", blog, marketinški sadržaj — to je posao M12 (Content Engine, Faza 6). Za sada M8 prikazuje jednostavne statične stranice (uređivane direktno u kodu/CMS-lite rešenju), bez posebnog modela podataka. M12 sad ima Nivo 2 specifikaciju, ali ne definiše `M8_SITE` kanal kao izvor za ove opšte stranice (samo za `ContentPiece` vezan za konkretan proizvod) — tačan mehanizam povezivanja ostaje otvoren, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
 
 ---
 

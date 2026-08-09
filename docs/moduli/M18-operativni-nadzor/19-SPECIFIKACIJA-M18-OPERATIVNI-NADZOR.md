@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — dodat `PAYMENT_DEADLINE_MISSED` signal (M10 poglavlje 5.4.3, probijen rok akontacije/balansa prema gostu/nalogodavcu, avgust 2026); v1.4 dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.6 — audit cross-referenci (avgust 2026): `NotificationChannel.channel_type` zvanično dobija `IN_APP` (M19 poglavlje 3 već je na ovo računao otkad je M19 specificiran, ali ovaj dokument ga do sada nije zvanično dodao u sopstveni enum, samo je opisivao kao "buduću dopunu" sa pogrešnim imenom fajla) — poglavlje 3, izlazni kriterijum i "Otvoreno za dalje" usklađeni; v1.5 dodat `PAYMENT_DEADLINE_MISSED` signal (M10 poglavlje 5.4.3, probijen rok akontacije/balansa prema gostu/nalogodavcu, avgust 2026); v1.4 dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -69,14 +69,12 @@ Prelazak u `UNSTABLE`/`OFFLINE` generiše `HealthSignal` tipa `PROVIDER_DEGRADED
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
-| channel_type | enum: `TELEGRAM`, `EMAIL` | potvrđeno za sada — proširivo (`VIBER`, `WHATSAPP`) kad se pokaže stvarna potreba; vidi napomenu niže |
-| config_encrypted | string | za `TELEGRAM`: bot token + chat ID; za `EMAIL`: adresa primaoca — isti obrazac enkripcije kao `ProviderConfig` (M4) |
+| channel_type | enum: `TELEGRAM`, `EMAIL`, `IN_APP` | `IN_APP` dodato pri specifikaciji M19 (poglavlje 3 te specifikacije) — isporuka direktno u internu chat aplikaciju, `CRITICAL`/`WARNING` signali (poglavlje 2.2) stižu i ovim putem, pored Telegram/email; proširivo i dalje (`VIBER`, `WHATSAPP`) kad se pokaže stvarna potreba, vidi napomenu niže |
+| config_encrypted | string | za `TELEGRAM`: bot token + chat ID; za `EMAIL`: adresa primaoca; za `IN_APP`: nema potrebe za kredencijalom, isporuka ide preko internog M19 API-ja — isti obrazac enkripcije kao `ProviderConfig` (M4) za spoljne kanale |
 | recipient_role | string | npr. `VLASNIK`, `DIREKTOR` — kome ide |
 | status | enum: `ACTIVE`, `INACTIVE` | |
 
 **Napomena o Viber/WhatsApp:** oba zahtevaju odobrenje poslovnog naloga kod Meta/Viber (sporiji proces, ponekad trošak po poruci), za razliku od Telegram Bot API-ja (besplatan, par minuta za podizanje) — zato su namerno izostavljeni iz prve verzije. Dodaju se kao dodatne vrednosti `channel_type` bez izmene strukture kad se odluka donese.
-
-**Buduća dopuna (M19):** kad `19-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md` bude izgrađen, dodaje se `channel_type = IN_APP` — isporuka direktno u internu chat aplikaciju, pored Telegram/email.
 
 ---
 
@@ -211,7 +209,7 @@ Prefiks: `/api/v1/ops`
 
 ## 10. Izlazni kriterijum
 
-- [ ] `CRITICAL`/`WARNING` `HealthSignal` odmah generiše Telegram i email obaveštenje, bez čekanja na nedeljni ciklus.
+- [ ] `CRITICAL`/`WARNING` `HealthSignal` odmah generiše Telegram, email i `IN_APP` (M19) obaveštenje na svaki `ACTIVE` `NotificationChannel`, bez čekanja na nedeljni ciklus.
 - [ ] `WeeklyHealthReview` se generiše i šalje svakog ponedeljka, čak i bez ijednog signala u periodu.
 - [ ] `TrendSuggestion` se ne unosi u Dodatak A Master dokumenta bez `approved_by` popunjenog.
 - [ ] Nijedna čisto deterministička provera (rok, limit, datum) ne troši pozive jezičkom modelu — proverljivo kroz `AgentInvocationLog` (nema zapisa za te akcije).
@@ -227,4 +225,3 @@ Prefiks: `/api/v1/ops`
 
 - Dodavanje `VIBER`/`WHATSAPP` kanala — kad se odluka donese, isti obrazac kao `TELEGRAM`/`EMAIL`.
 - Tačan prag za "neuobičajen skok" po tipu signala (koliko grešaka u kom periodu je "previše") — podešava se empirijski kad sistem počne da radi u produkciji, ne unapred nagađa.
-- Veza sa M19 (`IN_APP` kanal) — dodaje se kad taj modul bude izgrađen.

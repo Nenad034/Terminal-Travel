@@ -162,7 +162,7 @@ Prefiks: `/api/v1/bi`
 
 ## 9. Otvoreno za dalje
 
-- Marketing performanse — dodaju se kad M12 bude specificiran (Faza 6).
+- **Marketing performanse** — M12 sad ima Nivo 2 specifikaciju (`15-SPECIFIKACIJA-M12-MARKETING.md`), ali ne definiše šta M13 čita iz njega (npr. `ContentPiece` doseg/engagement po kanalu naspram M5 konverzije) — ovo ostaje otvoreno dok se ne uradi stvarna integracija, ažurirano avgust 2026 iz "kad M12 bude specificiran" pošto to više nije tačno.
 - Tačan skup KPI-jeva koje AI agent (poglavlje 5) treba proaktivno da ističe — počinje se sa osnovnim (pad profitabilnosti, neuobičajen pad prodaje) i širi po potrebi.
 - **Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode** (M3 poglavlje 2.3a) — poredi `ContractPeriod.ukupna_fiksna_obaveza` naspram stvarno naplaćene vrednosti prodatih stavki iz tog perioda; dodaje se kad se za ovim pokaže stvarna potreba (prvi charter/fiksni zakup ugovor).
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj (poglavlje 4.2, npr. brzi prečac "sve po državi pa dobavljaču") — UX pogodnost za M17, ne menja API iz poglavlja 4.2; dodaje se ako se pokaže potreba.

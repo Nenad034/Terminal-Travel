@@ -30,7 +30,7 @@ Istorija putovanja se **ne duplira** kao sopstveni podatak — čita se uživo i
 | linked_user_id | UUID, nullable (FK → M1 User) | ako nalogodavac ima login nalog |
 | marketing_consent | boolean | obavezno pre bilo kakve marketinške komunikacije (M12) |
 | marketing_consent_date | timestamp, nullable | |
-| tags | string[] (JSONB niz), nullable | slobodne oznake za segmentaciju (npr. "VIP", "porodica", "senior", "čest putnik") — čisto informativna kategorizacija, ne utiče na M5 cenu ni M6 lojalnost; koristi ih M12 za ciljano slanje kad taj modul dođe na red. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5) |
+| tags | string[] (JSONB niz), nullable | slobodne oznake za segmentaciju (npr. "VIP", "porodica", "senior", "čest putnik") — čisto informativna kategorizacija, ne utiče na M5 cenu ni M6 lojalnost; namenjeno ciljanom slanju u M12, koji sad ima Nivo 2 specifikaciju ali još ne filtrira `EMAIL` kanal po `tags` (samo po `marketing_consent`, M12 poglavlje 4) — ostaje otvoreno dok se ta veza ne doda. Dodato poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 5) |
 | created_at / updated_at | timestamp | |
 
 ### 2.2 `GuestProfile` — Gost
