@@ -1,0 +1,765 @@
+<title>Terminal — Mapa: Pretraga → Rezultati → Rezervacija</title>
+<style>
+:root{
+  --ink:#12161d; --ink-2:#1b212b;
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --sans: "Avenir Next", "Century Gothic", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --header-h: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+    --text:#e7e9ed; --text-dim:#98a2b3;
+    --accent:#e7a339; --accent-soft:#3a2c14;
+    --rule:#2b3242;
+    --success:#5cd39a; --success-bg:#173023;
+    --warn:#e7a339; --warn-bg:#332411;
+    --info:#7ab6ec; --info-bg:#122a3d;
+    --purple:#b794f6; --purple-bg:#2a2145;
+    --gray:#8b95a5; --gray-bg:#232a37;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+  --text:#e7e9ed; --text-dim:#98a2b3;
+  --accent:#e7a339; --accent-soft:#3a2c14;
+  --rule:#2b3242;
+  --success:#5cd39a; --success-bg:#173023;
+  --warn:#e7a339; --warn-bg:#332411;
+  --info:#7ab6ec; --info-bg:#122a3d;
+  --purple:#b794f6; --purple-bg:#2a2145;
+  --gray:#8b95a5; --gray-bg:#232a37;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+:root[data-theme="light"]{
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+}
+a{color:var(--accent);}
+
+.board{
+  position:sticky; top:0; height:var(--header-h); z-index:40;
+  background:linear-gradient(180deg,#171c25,#12161d); color:#eef0f4;
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+  border-bottom:1px solid #05070a; box-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.board .brand{
+  font-family:var(--mono); font-weight:700; letter-spacing:.14em; font-size:16px;
+  color:#f4f6f9; text-transform:uppercase; display:flex; align-items:baseline; gap:8px; white-space:nowrap;
+}
+.board .brand small{ font-family:var(--sans); font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; color:#9aa6b8; }
+.board .actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+.board a.back{ color:#c7ceda; font-size:12.5px; text-decoration:none; border:1px solid #333c4a; padding:6px 10px; border-radius:6px; }
+.board a.back:hover{ background:#1f2530; }
+
+main{ padding:20px 0 60px; }
+.wrap{ width:100%; max-width:1360px; margin:0 auto; padding:0 clamp(16px,2.4vw,40px); }
+
+.intro{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:16px 20px; margin-bottom:18px; box-shadow:var(--shadow); font-size:14px; color:var(--text-dim);
+}
+.intro b{ color:var(--text); }
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:12px 18px; margin-bottom:22px; box-shadow:var(--shadow); font-size:12.5px; color:var(--text-dim);
+}
+.legend .item{ display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.swatch{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+.example{
+  background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+  padding:14px 20px; margin-bottom:26px; font-size:13.5px; color:var(--text);
+}
+.example b{ font-family:var(--mono); }
+
+/* section = one entity/table block */
+.section{
+  background:var(--surface); border:1.5px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow); margin-bottom:26px; overflow:hidden;
+}
+.section .shead{
+  display:flex; align-items:center; gap:10px; padding:14px 20px;
+  border-bottom:1px dashed var(--rule); background:var(--paper-2); flex-wrap:wrap;
+}
+.section .shead .tag{
+  font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em;
+  padding:3px 9px; border-radius:5px;
+}
+.section .shead h2{ margin:0; font-size:16.5px; font-weight:700; }
+.section .shead .note{ margin-left:auto; font-size:12px; color:var(--text-dim); font-family:var(--mono); }
+.section .sbody{ padding:16px 20px 20px; }
+.section .sdesc{ font-size:13px; color:var(--text-dim); margin-bottom:14px; }
+
+.tag.m2{ background:var(--info-bg); color:var(--info); }
+.tag.m3{ background:var(--warn-bg); color:var(--warn); }
+.tag.m4{ background:var(--success-bg); color:var(--success); }
+.tag.m5{ background:var(--purple-bg); color:var(--purple); }
+.tag.rule{ background:var(--gray-bg); color:var(--gray); }
+
+.field-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;
+}
+.field{
+  border:1px solid var(--rule); border-radius:8px; padding:9px 12px; background:var(--paper);
+  position:relative;
+}
+.field.linked{ border-color:var(--purple); }
+.field .fname{ font-family:var(--mono); font-weight:700; font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px; }
+.field .ftype{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; }
+.field .fex{ font-size:12px; color:var(--accent); margin-top:5px; font-style:italic; }
+.field .fnote{ font-size:11.5px; color:var(--text-dim); margin-top:4px; line-height:1.4; }
+.field .link-badge{
+  font-family:var(--mono); font-size:9px; font-weight:700; background:var(--purple-bg); color:var(--purple);
+  padding:1px 5px; border-radius:3px;
+}
+
+/* nested repeating item card */
+.repeat-card{
+  border:1.5px dashed var(--purple); border-radius:10px; padding:14px; background:var(--purple-bg);
+  margin-top:6px;
+}
+.repeat-card .rtitle{ font-family:var(--mono); font-size:12px; font-weight:700; color:var(--purple); margin-bottom:10px; }
+.repeat-card .instances{ display:flex; flex-direction:column; gap:10px; }
+.instance{
+  background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:10px 14px;
+}
+.instance .iname{ font-weight:700; font-size:13.5px; margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.instance .irow{ font-size:12px; color:var(--text-dim); display:flex; flex-wrap:wrap; gap:6px 14px; }
+.instance .irow b{ color:var(--text); font-weight:600; }
+.pill{ font-family:var(--mono); font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; letter-spacing:.03em; }
+.pill.ok{ background:var(--success-bg); color:var(--success); }
+.pill.req{ background:var(--warn-bg); color:var(--warn); }
+.pill.no{ background:var(--gray-bg); color:var(--gray); text-decoration:line-through; }
+
+/* out of scope box */
+.oos{
+  border:1.5px dashed var(--gray); border-radius:10px; padding:14px 18px; background:var(--gray-bg);
+  font-size:13px; color:var(--text-dim); margin-bottom:26px;
+}
+.oos b{ color:var(--text); }
+
+.toc{
+  display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px;
+}
+.toc a{
+  font-family:var(--mono); font-size:11.5px; text-decoration:none; color:var(--text);
+  background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:6px 10px;
+}
+.toc a:hover{ border-color:var(--accent); color:var(--accent); }
+
+/* stage strip (top flow) */
+.stage-strip{ display:flex; flex-wrap:wrap; align-items:stretch; gap:6px; margin-bottom:26px; }
+.stage{
+  flex:1 1 160px; background:var(--surface); border:1.5px solid var(--rule); border-radius:10px;
+  padding:12px 14px; box-shadow:var(--shadow); position:relative;
+}
+.stage .sn{ font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+.stage .st{ font-weight:700; font-size:13.5px; margin:3px 0 8px; }
+.stage .mods{ display:flex; gap:5px; flex-wrap:wrap; }
+.stage .mods span{ font-family:var(--mono); font-size:9.5px; font-weight:800; padding:1px 6px; border-radius:4px; }
+.stage-arrow{ display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:18px; flex:0 0 auto; }
+@media (max-width:900px){ .stage-arrow{ display:none; } .stage-strip{ flex-direction:column; } }
+
+/* dependency chain */
+.dep-chain{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+.dep-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.dep-node{
+  font-family:var(--mono); font-size:12px; font-weight:700; padding:6px 11px; border-radius:7px;
+  border:1.5px solid var(--rule); background:var(--paper); white-space:nowrap;
+}
+.dep-node.m2{ border-color:var(--info); color:var(--info); background:var(--info-bg); }
+.dep-node.m3{ border-color:var(--warn); color:var(--warn); background:var(--warn-bg); }
+.dep-node.m4{ border-color:var(--success); color:var(--success); background:var(--success-bg); }
+.dep-node.m5{ border-color:var(--purple); color:var(--purple); background:var(--purple-bg); }
+.dep-arrow{ color:var(--text-dim); font-size:13px; white-space:nowrap; }
+.dep-label{ font-size:11.5px; color:var(--text-dim); font-style:italic; flex-basis:100%; margin:-2px 0 8px 2px; }
+
+/* rule / gate box */
+.gate{
+  border:1.5px solid var(--warn); border-radius:12px; background:var(--warn-bg);
+  padding:16px 20px; margin-bottom:20px;
+}
+.gate .ghead{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.gate .ghead .tag{ font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 9px; border-radius:5px; background:var(--warn); color:var(--paper-2); }
+.gate .ghead h3{ margin:0; font-size:15px; }
+.gate p{ font-size:13.5px; margin:6px 0; }
+
+/* sequence timeline */
+.seq{ display:flex; flex-direction:column; gap:0; }
+.seq-step{
+  display:flex; gap:14px; padding:12px 0; border-bottom:1px dashed var(--rule);
+}
+.seq-step:last-child{ border-bottom:none; }
+.seq-num{
+  flex:0 0 30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-weight:800; font-size:12.5px; color:var(--paper-2);
+}
+.seq-body{ flex:1; }
+.seq-body .shead2{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px; }
+.seq-body .sname{ font-weight:700; font-size:13.5px; }
+.seq-body .sdet{ font-size:12.5px; color:var(--text-dim); }
+.modtag{ font-family:var(--mono); font-size:10px; font-weight:800; padding:2px 7px; border-radius:4px; }
+.modtag.m2{ background:var(--info-bg); color:var(--info); }
+.modtag.m3{ background:var(--warn-bg); color:var(--warn); }
+.modtag.m4{ background:var(--success-bg); color:var(--success); }
+.modtag.m5{ background:var(--purple-bg); color:var(--purple); }
+.modtag.m7{ background:var(--gray-bg); color:var(--gray); }
+.modtag.m11{ background:var(--gray-bg); color:var(--gray); }
+
+/* view toggle */
+.view-toggle{
+  display:flex; gap:0; margin-bottom:26px; background:var(--surface); border:1.5px solid var(--rule);
+  border-radius:10px; padding:4px; box-shadow:var(--shadow); width:fit-content;
+}
+.view-toggle button{
+  font-family:var(--mono); font-size:12.5px; font-weight:700; letter-spacing:.02em;
+  background:transparent; border:none; color:var(--text-dim); padding:9px 18px; border-radius:7px;
+  cursor:pointer; transition:background .15s, color .15s;
+}
+.view-toggle button.active{ background:var(--accent); color:#fff; }
+.view-toggle button:not(.active):hover{ color:var(--text); }
+
+/* mind map — full-screen overlay, independent of whatever is in the background */
+#view-mindmap{
+  position:fixed; top:var(--header-h); left:0; right:0; bottom:0; z-index:90;
+  background:var(--paper); padding:14px;
+}
+.mm-scroll{ width:100%; height:100%; position:relative; overflow:hidden; }
+.mm-scale-wrap{ overflow:hidden; position:relative; width:100%; height:100%; }
+.mm-canvas{ position:relative; width:2080px; height:1200px; transform-origin:top left; }
+.mm-close{
+  position:absolute; top:14px; right:14px; z-index:95;
+  font-family:var(--mono); font-size:12.5px; font-weight:700; letter-spacing:.02em;
+  background:var(--surface); border:1.5px solid var(--rule); color:var(--text);
+  padding:9px 16px; border-radius:8px; cursor:pointer; box-shadow:var(--shadow);
+}
+.mm-close:hover{ border-color:var(--accent); color:var(--accent); }
+.mm-title{
+  position:absolute; top:14px; left:14px; z-index:95;
+  font-family:var(--mono); font-size:12px; font-weight:700; color:var(--text-dim);
+  background:var(--surface); border:1.5px solid var(--rule); border-radius:8px; padding:9px 16px; box-shadow:var(--shadow);
+}
+.mm-node{
+  position:absolute; transform:translate(-50%,-50%); border-radius:12px; text-align:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  padding:10px 14px; font-size:12.5px; line-height:1.35; box-shadow:var(--shadow);
+  cursor:grab; user-select:none; -webkit-user-select:none; touch-action:none;
+  transition:box-shadow .12s;
+}
+.mm-node:hover{ box-shadow:0 2px 4px rgba(20,24,31,.1), 0 12px 24px rgba(20,24,31,.14); }
+.mm-node.mm-dragging{ cursor:grabbing; z-index:20 !important; box-shadow:0 4px 10px rgba(20,24,31,.25); }
+.mm-node.mm-selected{ outline:2.5px solid var(--accent); outline-offset:2px; }
+.mm-root{ width:280px; min-height:96px; background:var(--ink-2); color:#fff; border-radius:16px; font-family:var(--mono); font-weight:700; font-size:15px; letter-spacing:.02em; z-index:3; }
+.mm-root small{ font-family:var(--sans); font-weight:400; font-size:11px; color:#aab3c2; margin-top:4px; }
+.mm-branch{ width:230px; min-height:70px; border-width:2px; border-style:solid; font-weight:700; font-size:13px; z-index:2; }
+.mm-leaf{ width:200px; min-height:56px; border:1px solid var(--rule); background:var(--paper); color:var(--text-dim); z-index:1; font-size:11.5px; }
+.mm-leaf .mm-tag{ align-self:center; }
+.mm-branch.mod-m5{ border-color:var(--purple); background:var(--purple-bg); color:var(--purple); }
+.mm-branch.mod-mix{ border-color:var(--gray); background:var(--gray-bg); color:var(--text); }
+.mm-connectors{ position:absolute; inset:0; pointer-events:none; }
+.mm-legend{
+  position:absolute; bottom:10px; right:14px; z-index:5; max-width:300px;
+  display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center;
+  background:var(--surface); border:1px solid var(--rule); border-radius:8px;
+  padding:8px 12px; font-size:10.5px; color:var(--text-dim); box-shadow:var(--shadow);
+}
+.mm-legend .item{ display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.mm-legend .swatch{ width:9px; height:9px; }
+
+/* right explanation panel */
+.mm-panel{
+  position:absolute; top:0; right:0; bottom:0; width:min(360px,88vw); z-index:110;
+  background:var(--surface); border-left:1.5px solid var(--rule); box-shadow:-8px 0 24px rgba(20,24,31,.15);
+  padding:60px 26px 26px; transform:translateX(100%); transition:transform .22s ease;
+  overflow-y:auto;
+}
+.mm-panel.open{ transform:translateX(0); }
+.mm-panel-close{
+  position:absolute; top:14px; right:14px; background:var(--paper); border:1px solid var(--rule);
+  color:var(--text-dim); font-size:13px; width:30px; height:30px; border-radius:7px; cursor:pointer;
+}
+.mm-panel-close:hover{ border-color:var(--accent); color:var(--accent); }
+.mm-panel-tag{
+  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:800; padding:3px 10px;
+  border-radius:5px; margin-bottom:14px;
+}
+.mm-panel h3{ margin:0 0 14px; font-size:19px; line-height:1.3; }
+.mm-panel p{ margin:0; font-size:13.5px; line-height:1.65; color:var(--text-dim); }
+</style>
+
+<div class="board">
+  <div class="brand">Terminal <small>Mapa: Pretraga → Rezultati → Rezervacija (M2 · M3 · M4 · M5)</small></div>
+  <div class="actions">
+    <a class="back" href="https://github.com/Nenad034/Terminal-Travel/blob/main/docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md" target="_blank" rel="noopener">← M5 specifikacija</a>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      Ovo je mapa <b>celog puta jednog upita</b> — od pretrage proizvoda do kreirane rezervacije — kroz četiri modula koji zajedno odgovaraju na "šta imamo i po kojoj ceni": <b>M2</b> (katalog — šta proizvod jeste), <b>M3</b> (ugovoreni alotman/cena), <b>M4</b> (uživo od provajdera preko Travelgate), i <b>M5</b> (orkestracija pretrage, ponuda, rezervacija). Struktura prati <b>06-SPECIFIKACIJA-M5-REZERVACIJE.md</b> poglavlja 3.0b, 3, 4 i 11 doslovno — ovo je vizuelni prikaz istog modela, ne novi izvor istine.
+    </div>
+
+    <div class="toc">
+      <a href="#stages">Tok u pet koraka</a>
+      <a href="#params">① Ulazni parametri — GET /search</a>
+      <a href="#sources">② Dva izvora dostupnosti — M3 vs. M4</a>
+      <a href="#result">③ SearchResult — oblik odgovora</a>
+      <a href="#avail">④ Pravilo: kad ponuda uopšte uđe u rezultate</a>
+      <a href="#toquote">⑤ Od rezultata do Ponude (Quote)</a>
+      <a href="#confirm">⑥ Od Ponude do Rezervacije (Booking)</a>
+      <a href="#seq">⑦ Ceo tok na jednom primeru</a>
+      <a href="#oos">⑧ Šta NIJE ovde</a>
+    </div>
+
+    <div class="legend">
+      <div class="item"><span class="swatch" style="background:var(--info)"></span> M2 — Katalog proizvoda</div>
+      <div class="item"><span class="swatch" style="background:var(--warn)"></span> M3 — Ugovaranje i alotmani</div>
+      <div class="item"><span class="swatch" style="background:var(--success)"></span> M4 — Integracije API (uživo)</div>
+      <div class="item"><span class="swatch" style="background:var(--purple)"></span> M5 — Rezervacije (orkestrira sve)</div>
+    </div>
+
+    <div class="example">
+      Primer korišćen kroz celu mapu: agent u internom panelu (M17) traži <b>Hotel Riviera, Budva</b>, 15–22. avgust, 2 odrasla + 1 dete (5 god.) — jedna soba.
+    </div>
+
+    <div class="view-toggle">
+      <button id="btn-cards" class="active" onclick="ttSetView('cards')">① Kartice</button>
+      <button id="btn-mindmap" onclick="ttSetView('mindmap')">② Mapa uma</button>
+    </div>
+
+    <div id="view-cards">
+    <!-- STAGE STRIP -->
+    <div id="stages"></div>
+    <div class="stage-strip">
+      <div class="stage"><div class="sn">KORAK 1</div><div class="st">Pretraga</div><div class="mods"><span class="tag m5">M5</span></div></div>
+      <div class="stage-arrow">→</div>
+      <div class="stage"><div class="sn">KORAK 2</div><div class="st">Prikupljanje ponuda</div><div class="mods"><span class="tag m2">M2</span><span class="tag m3">M3</span><span class="tag m4">M4</span></div></div>
+      <div class="stage-arrow">→</div>
+      <div class="stage"><div class="sn">KORAK 3</div><div class="st">Rezultati</div><div class="mods"><span class="tag m5">M5</span></div></div>
+      <div class="stage-arrow">→</div>
+      <div class="stage"><div class="sn">KORAK 4</div><div class="st">Ponuda (Quote)</div><div class="mods"><span class="tag m5">M5</span></div></div>
+      <div class="stage-arrow">→</div>
+      <div class="stage"><div class="sn">KORAK 5</div><div class="st">Rezervacija (Booking)</div><div class="mods"><span class="tag m5">M5</span><span class="tag m3">M3</span><span class="tag m4">M4</span></div></div>
+    </div>
+
+    <!-- ① PARAMS -->
+    <div class="section" id="params">
+      <div class="shead"><span class="tag m5">① M5</span><h2>Ulazni parametri — <code style="font-family:var(--mono)">GET /search</code></h2><span class="note">poglavlje 11</span></div>
+      <div class="sbody">
+        <div class="sdesc">Jedan objedinjeni endpoint, bez obzira da li je stavka na kraju CONTRACTED ili API — pozivalac ne mora unapred znati odakle dolazi.</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">type[]</div><div class="ftype">niz enum</div><div class="fex">[ACCOMMODATION]</div><div class="fnote">opciono, bez njega svi tipovi; više vrednosti = unija, ne presek</div></div>
+          <div class="field"><div class="fname">destination_country / city</div><div class="ftype">string, opciono</div><div class="fex">Crna Gora / Budva</div></div>
+          <div class="field"><div class="fname">stay_from / stay_to</div><div class="ftype">date</div><div class="fex">2026-08-15 / 2026-08-22</div><div class="fnote">obavezno za ACCOMMODATION/TRANSFER/EXCURSION/PACKAGE/TRANSPORT</div></div>
+          <div class="field"><div class="fname">occupancy</div><div class="ftype">JSON</div><div class="fex">{adults:2, children:1, room_config:[…]}</div><div class="fnote">isti oblik kao QuoteItem.occupancy, poglavlje 3.2a</div></div>
+          <div class="field"><div class="fname">channel</div><div class="ftype">enum</div><div class="fex">INTERNAL_PANEL</div><div class="fnote">obavezno — filtrira po Product.visible_channels</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② SOURCES -->
+    <div class="section" id="sources">
+      <div class="shead"><span class="tag rule">② IZVORI</span><h2>Dva izvora dostupnosti — M3 (ugovoreno) naspram M4 (uživo)</h2><span class="note">M2 poglavlje 4</span></div>
+      <div class="sbody">
+        <div class="sdesc">M2 <code>Product</code> nema polje za cenu — namerna odluka. Za svaki proizvod koji se poklapa sa filterima, M5 pita tačno jedan od ova dva izvora, zavisno od <code>Product.source_type</code>:</div>
+        <div class="field-grid">
+          <div class="field" style="border-color:var(--warn)">
+            <div class="fname">CONTRACTED → M3</div>
+            <div class="ftype">ContractPeriod + RateLine</div>
+            <div class="fnote"><code>total_capacity</code> / <code>units_sold</code> govore koliko je ostalo; <code>allotment_mode</code> (FIXED/ON_REQUEST/CHARTER/FIXED_LEASE) određuje da li je kapacitet garantovan; cena dolazi iz <code>RateLine.price</code> + <code>age_pricing[]</code> (M3 poglavlje 2.4/2.4a)</div>
+          </div>
+          <div class="field" style="border-color:var(--success)">
+            <div class="fname">API → M4</div>
+            <div class="ftype">AvailabilityQuote</div>
+            <div class="fnote"><code>{externalId, priceAmount, currency, availableUnits, cancellationPolicy, quoteExpiresAt}</code> — pribavljeno uživo preko Travelgate adaptera u trenutku pretrage, nikad trajno sačuvano kao cena proizvoda</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ SEARCHRESULT -->
+    <div class="section" id="result">
+      <div class="shead"><span class="tag m5">③ M5</span><h2>SearchResult — oblik odgovora</h2><span class="note">poglavlje 3.0b</span></div>
+      <div class="sbody">
+        <div class="sdesc">Jedan <code>SearchResultProduct</code> po proizvodu, sa ugnježdenim nizom <code>offers[]</code> — jedan proizvod (hotel) obično ima više ponuda (tip sobe × režim ishrane).</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">product_id</div><div class="ftype">UUID → M2 Product</div></div>
+          <div class="field"><div class="fname">source_type</div><div class="ftype">enum: CONTRACTED / API</div></div>
+          <div class="field"><div class="fname">name</div><div class="ftype">string</div><div class="fex">Hotel Riviera</div><div class="fnote">iz ProductTranslation, traženi jezik</div></div>
+          <div class="field"><div class="fname">thumbnail</div><div class="ftype">object, nullable</div><div class="fnote">prva slika iz media[], prioritet EXTERIOR pa ROOM</div></div>
+          <div class="field linked"><div class="fname">offers[] <span class="link-badge">niže</span></div><div class="ftype">niz SearchResultOffer</div></div>
+        </div>
+
+        <div class="repeat-card" style="margin-top:16px; border-color:var(--purple)">
+          <div class="rtitle">offers[] — SearchResultOffer</div>
+          <div class="instances">
+            <div class="instance">
+              <div class="iname">Standard soba · polupansion <span class="pill ok">AVAILABLE</span></div>
+              <div class="irow">
+                <span><b>room_type_code</b> STANDARD</span>
+                <span><b>price_basis</b> PER_ROOM_PER_NIGHT</span>
+                <span><b>final_price</b> 89 400 RSD (7 noći)</span>
+                <span><b>rate_line_id</b> M3 RateLine →</span>
+              </div>
+            </div>
+            <div class="instance">
+              <div class="iname">Deluxe, pogled na more · all-inclusive <span class="pill req">ON_REQUEST</span></div>
+              <div class="irow">
+                <span><b>room_type_code</b> DELUXE_SEA_VIEW</span>
+                <span><b>availability_status</b> ON_REQUEST</span>
+                <span><b>napomena</b> kapacitet nije garantovan, ide na potvrdu dobavljača</span>
+              </div>
+            </div>
+            <div class="instance">
+              <div class="iname">Superior, preko API provajdera <span class="pill no">SOLD_OUT — ne prikazuje se</span></div>
+              <div class="irow"><span>availableUnits = 0 kod provajdera → filtrirano pre odgovora, korisnik je ne vidi</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid" style="margin-top:14px;">
+          <div class="field"><div class="fname">board_type</div><div class="ftype">string, nullable</div><div class="fex">polupansion</div></div>
+          <div class="field"><div class="fname">availability_status</div><div class="ftype">enum</div><div class="fex">AVAILABLE / ON_REQUEST / SOLD_OUT</div><div class="fnote">vidi ④ za tačno pravilo</div></div>
+          <div class="field"><div class="fname">final_price / final_price_currency</div><div class="ftype">integer / string</div><div class="fnote">CONTRACTED: formula 2.1/3.2b; API: marža na AvailabilityQuote.priceAmount</div></div>
+          <div class="field"><div class="fname">rate_line_id</div><div class="ftype">UUID, nullable → M3</div><div class="fnote">samo CONTRACTED, nosi se dalje u POST /quotes</div></div>
+          <div class="field"><div class="fname">provider_quote_reference</div><div class="ftype">string, nullable</div><div class="fnote">samo API, iz AvailabilityQuote.externalId</div></div>
+          <div class="field"><div class="fname">quote_expires_at</div><div class="ftype">timestamp, nullable</div><div class="fnote">samo API — koliko dugo ova cena važi</div></div>
+          <div class="field"><div class="fname">cancellation_policy_summary</div><div class="ftype">string, nullable</div><div class="fex">30d: 100%, 15d: 50%, 0d: 0%</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ AVAILABILITY RULE -->
+    <div class="gate" id="avail">
+      <div class="ghead"><span class="tag">PRAVILO</span><h3>Kad ponuda uopšte uđe u rezultate</h3></div>
+      <p><b>CONTRACTED, FIXED/CHARTER/FIXED_LEASE</b> — vidljivo samo ako <code>total_capacity − units_sold</code> ≥ broj traženih soba. Manje od toga → <b>SOLD_OUT</b>, izbačeno iz odgovora.</p>
+      <p><b>CONTRACTED, ON_REQUEST</b> — uvek vidljivo, ali označeno <code>ON_REQUEST</code> — sistem ne garantuje kapacitet, potvrda ide ručno ili preko API-ja dobavljača <i>pre</i> nego što se gostu potvrdi.</p>
+      <p><b>API</b> — vidljivo samo ako <code>AvailabilityQuote.availableUnits &gt; 0</code>. Nula jedinica → izbačeno iz odgovora, isto kao rasprodat CONTRACTED alotman.</p>
+      <p style="margin-top:10px; color:var(--text-dim); font-style:italic;">Namerno: sirov pregled punog/zauzetog alotmana i dalje postoji direktno kroz M3 za tim kome ta informacija treba — pretraga samo ne nudi gostu/agentu nešto što se ne može odmah potvrditi ili rezervisati.</p>
+    </div>
+
+    <!-- ⑤ TO QUOTE -->
+    <div class="section" id="toquote">
+      <div class="shead"><span class="tag m5">⑤ M5</span><h2>Od rezultata do Ponude (Quote)</h2><span class="note">poglavlje 3.0b.3 / 3</span></div>
+      <div class="sbody">
+        <div class="sdesc">Korisnik bira jedan <code>SearchResultOffer</code>. Sva polja putuju dalje automatski — ništa se ne unosi ručno po drugi put.</div>
+        <div class="repeat-card" style="border-color:var(--info); background:var(--info-bg)">
+          <div class="rtitle" style="color:var(--info)">POST /quotes — koraci pri kreiranju QuoteItem</div>
+          <div class="instances">
+            <div class="instance"><div class="iname">1. Prepis identifikatora</div><div class="irow">product_id, rate_line_id (CONTRACTED) ili provider_quote_reference (API), stay_from/to, occupancy — direktno iz izabrane ponude/upita</div></div>
+            <div class="instance"><div class="iname">2. Provera isteka (samo API)</div><div class="irow">ako je quote_expires_at već prošao dok je korisnik gledao rezultate → <b>odbijeno</b>, traži se nova pretraga</div></div>
+            <div class="instance"><div class="iname">3. Cena se računa ponovo</div><div class="irow">CONTRACTED: formula 2.1/3.2b, ne kopira se final_price iz rezultata; API: ponovo se čita AvailabilityQuote od M4</div></div>
+            <div class="instance"><div class="iname">4. Ograda za nedostajuću starosnu kategoriju</div><div class="irow">gost bez odgovarajućeg age_pricing[] reda → Quote se odbija, cena se nikad ne pretpostavlja</div></div>
+          </div>
+        </div>
+        <div class="sdesc" style="margin-top:14px;">Isti podaci, ako korisnik prvo sastavlja višedestinacijsko putovanje (poglavlje 3.0), pune <code>ItinerarySegment.product_id</code> — konverzija u Quote (3.0.3) ih prenosi na identičan način.</div>
+      </div>
+    </div>
+
+    <!-- ⑥ CONFIRM -->
+    <div class="section" id="confirm">
+      <div class="shead"><span class="tag m5">⑥ M5</span><h2>Od Ponude do Rezervacije (Booking)</h2><span class="note">poglavlje 4</span></div>
+      <div class="sbody">
+        <div class="sdesc"><code>POST /quotes/:id/confirm</code> — ponuda sama ne drži kapacitet (namerna odluka, poglavlje 3); kapacitet se proverava i rezerviše tek ovde, redosledom koji se nikad ne preskače:</div>
+        <div class="dep-chain">
+          <div class="dep-row">
+            <div class="dep-node m5">Quote.contract_terms_accepted?</div><div class="dep-arrow">→</div>
+            <div class="dep-node" style="border-color:var(--gray); color:var(--gray); background:var(--gray-bg)">M11 garancija putovanja</div><div class="dep-arrow">→</div>
+            <div class="dep-node" style="border-color:var(--gray); color:var(--gray); background:var(--gray-bg)">M7 kreditni limit (B2B)</div><div class="dep-arrow">→</div>
+            <div class="dep-node m3">M3 kapacitet</div>
+            <div class="dep-node m4">/ M4 kapacitet</div><div class="dep-arrow">→</div>
+            <div class="dep-node m5">Booking + BookingItem</div>
+          </div>
+          <div class="dep-label">Redosled je tvrdo pravilo (poglavlje 4, korak 1) — garancija pre kreditnog limita, nikad obrnuto. Neuspeh na bilo kom koraku ne ostavlja "napola" rezervaciju: već rezervisane stavke se oslobađaju.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑦ SEQUENCE -->
+    <div class="section" id="seq">
+      <div class="shead"><span class="tag rule">⑦ CEO TOK</span><h2>Primer: Hotel Riviera, 15–22. avgust, 2+1</h2></div>
+      <div class="sbody">
+        <div class="seq">
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--purple)">1</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">Agent unosi pretragu</span><span class="modtag m5">M5</span></div><div class="sdet">GET /search?destination_city=Budva&stay_from=2026-08-15&stay_to=2026-08-22&occupancy={adults:2,children:1}&channel=INTERNAL_PANEL</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--info)">2</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">M5 nalazi proizvode koji odgovaraju</span><span class="modtag m2">M2</span></div><div class="sdet">filtrira Product po destinaciji/tipu/kanalu — Hotel Riviera je jedan od pogodaka</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--warn)">3</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">Za CONTRACTED stavke, pita M3</span><span class="modtag m3">M3</span></div><div class="sdet">ContractPeriod za taj period/sobu → total_capacity − units_sold, RateLine.price + age_pricing[] za dete (5 god.)</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--success)">4</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">Za API stavke, pita M4 uživo</span><span class="modtag m4">M4</span></div><div class="sdet">Travelgate adapter → AvailabilityQuote sa quote_expires_at (npr. važi 15 min)</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--purple)">5</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">M5 sastavlja SearchResult i vraća agentu</span><span class="modtag m5">M5</span></div><div class="sdet">Standard (AVAILABLE), Deluxe (ON_REQUEST); jedna Superior ponuda preko API-ja je SOLD_OUT → nije u odgovoru</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--purple)">6</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">Agent bira Standard sobu → Ponuda</span><span class="modtag m5">M5</span></div><div class="sdet">POST /quotes — rate_line_id se prepisuje, base_cost se ponovo računa formulom 3.2b (2 odrasla u osnovnoj popunjenosti + dete po age_pricing[] redu)</div></div>
+          </div>
+          <div class="seq-step">
+            <div class="seq-num" style="background:var(--purple)">7</div>
+            <div class="seq-body"><div class="shead2"><span class="sname">Agent potvrđuje → Rezervacija</span><span class="modtag m5">M5</span><span class="modtag m11">M11</span><span class="modtag m3">M3</span></div><div class="sdet">POST /quotes/:id/confirm — garancija putovanja OK → nema B2B kreditnog limita (INTERNAL_PANEL) → M3 units_sold se atomski uvećava → Booking status CONFIRMED</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑧ OOS -->
+    <div class="oos" id="oos">
+      <b>Namerno van obima ove mape:</b> tačan izgled ekrana rezultata pretrage (raspored kartica, filteri u UI-ju) je dizajnersko pitanje, ne podatkovni model. Prag za to koliko često M5 ponovo pita M4 pri <code>POST /quotes</code> (uvek, ili sa vremenskim pragom) ostaje otvoreno pitanje — vidi M5 poglavlje 13. Cena prikazana u rezultatima pretrage nikad nije konačna garancija — to postaje tek kad nastane <code>Quote</code>/<code>Booking</code> (princip #4, determinizam pre autonomije).
+    </div>
+    </div>
+    <!-- /view-cards -->
+
+    <!-- ============ MIND MAP VIEW (full-screen overlay) ============ -->
+    <div id="view-mindmap" style="display:none">
+      <div class="mm-title">Mapa uma — Pretraga → Rezervacija <span style="opacity:.6; font-weight:400;">· prevuci karticu · klikni za objašnjenje</span></div>
+      <button class="mm-close" onclick="ttSetView('cards')">✕ Nazad na kartice</button>
+      <div class="mm-scroll" id="mmScroll">
+        <div class="mm-scale-wrap" id="mmScaleWrap">
+        <div class="mm-canvas" id="mmCanvas">
+          <svg class="mm-connectors" id="mmSvg" viewBox="0 0 2080 1200" width="2080" height="1200"></svg>
+          <!-- nodes injected by JS from ttMindmapData -->
+        </div>
+        <!-- /mm-canvas -->
+        <div class="mm-legend">
+          <div class="item"><span class="swatch" style="background:var(--info)"></span> M2</div>
+          <div class="item"><span class="swatch" style="background:var(--warn)"></span> M3</div>
+          <div class="item"><span class="swatch" style="background:var(--success)"></span> M4</div>
+          <div class="item"><span class="swatch" style="background:var(--purple)"></span> M5</div>
+          <div class="item"><span class="swatch" style="background:var(--gray)"></span> M7/M11 (spoljni gejtovi)</div>
+        </div>
+        </div>
+        <!-- /mm-scale-wrap -->
+      </div>
+
+      <div class="mm-panel" id="mmPanel">
+        <button class="mm-panel-close" onclick="ttClosePanel()">✕</button>
+        <div class="mm-panel-tag" id="mmPanelTag"></div>
+        <h3 id="mmPanelTitle"></h3>
+        <p id="mmPanelDesc"></p>
+      </div>
+    </div>
+    <!-- /view-mindmap -->
+
+  </div>
+</main>
+
+<script>
+/* ============ MIND MAP — data ============ */
+var ttNodes = [
+  {id:'root', x:1030, y:600, type:'root', text:'Pretraga → Rezervacija', title:'Pretraga → Rezervacija', desc:'Ceo put jednog upita kroz M2 (katalog), M3 (ugovoreni alotman/cena), M4 (uživo preko Travelgate) i M5 (orkestracija) — od unosa parametara pretrage do potvrđene rezervacije.'},
+
+  {id:'A', x:1030, y:160, type:'branch', mod:'m5', text:'① Pretraga<br>(parametri)', title:'① Pretraga (parametri)', desc:'GET /search — jedan objedinjeni endpoint bez obzira da li stavka na kraju dolazi iz ugovora (M3) ili uživo od provajdera (M4). Pozivalac ne mora unapred znati odakle dolazi (M5, poglavlje 11).'},
+  {id:'B', x:330, y:430, type:'branch', mod:'mix', text:'② Izvori<br>dostupnosti', title:'② Izvori dostupnosti', desc:'Za svaki proizvod koji odgovara filterima, M5 pita tačno jedan od dva izvora: M3 (ugovoreni alotman/cena) za CONTRACTED proizvode, ili M4 (uživo preko Travelgate) za API proizvode. M2 Product sam nema cenu — namerna odluka (M2, poglavlje 4).'},
+  {id:'C', x:1730, y:430, type:'branch', mod:'m5', text:'③ Rezultati<br>(SearchResult)', title:'③ Rezultati (SearchResult)', desc:'Oblik odgovora GET /search — SearchResultProduct sa ugnježdenim offers[] (SearchResultOffer). Dopunjeno avgust 2026 (M5, poglavlje 3.0b) — do tada je bio definisan samo ulaz, ne i izlaz pretrage.'},
+  {id:'D', x:330, y:900, type:'branch', mod:'m5', text:'④ Ponuda<br>(Quote)', title:'④ Ponuda (Quote)', desc:'POST /quotes — izabrani SearchResultOffer se prepisuje u QuoteItem bez ručnog ponovnog unosa. Cena se uvek računa ponovo, nikad se ne kopira slepo iz rezultata pretrage (M5, poglavlje 3.0b.3).'},
+  {id:'E', x:1730, y:900, type:'branch', mod:'mix', text:'⑤ Rezervacija<br>(Booking)', title:'⑤ Rezervacija (Booking)', desc:'POST /quotes/:id/confirm — kapacitet se proverava i rezerviše tek ovde (ponuda sama ga ne drži). Redosled gejtova je tvrdo pravilo: garancija putovanja (M11) pre kreditnog limita (M7), nikad obrnuto (M5, poglavlje 4).'},
+
+  {id:'A1', x:550, y:70, type:'leaf', chip:'m5', text:'type[] — niz enum, unija rezultata', title:'type[]', desc:'Niz enum vrednosti, isti skup kao M2 Product.type. Opciono — bez njega pretražuju se svi tipovi. Sa više vrednosti rezultat je unija svih traženih tipova, ne presek.'},
+  {id:'A2', x:810, y:40, type:'leaf', chip:'m5', text:'stay_from/stay_to — obavezno', title:'stay_from / stay_to', desc:'Obavezno za ACCOMMODATION/TRANSFER/EXCURSION/PACKAGE/TRANSPORT. Za TICKET/EVENT opciono i menja značenje — filtrira da li proizvod pada u traženi period, ne proverava dostupnost kao kod smeštaja.'},
+  {id:'A3', x:1250, y:40, type:'leaf', chip:'m5', text:'occupancy — {adults, children, room_config}', title:'occupancy', desc:'{adults, children, room_config} — isti oblik i pravilo slaganja kao QuoteItem.occupancy (poglavlje 3.2a). room_config primenjivo samo na ACCOMMODATION/PACKAGE sa smeštajem.'},
+  {id:'A4', x:1510, y:70, type:'leaf', chip:'m5', text:'channel — obavezno, filtrira visible_channels', title:'channel', desc:'Obavezno — filtrira po Product.visible_channels (B2C_SITE/B2B_PORTAL/MOBILE/INTERNAL_PANEL/PHONE). Proizvod može biti ACTIVE a vidljiv samo jednom kanalu.'},
+
+  {id:'B1', x:120, y:220, type:'leaf', chip:'m2', text:'Product — bez cene (namerno, pogl. 4)', title:'M2 Product — bez cene', desc:'Namerna odluka (M2, poglavlje 4): Product nema polje za cenu. Za CONTRACTED proizvode cena/alotman žive u M3, za API zavise od parametara pretrage i pribavljaju se uživo kroz M4.'},
+  {id:'B2', x:120, y:350, type:'leaf', chip:'m3', text:'ContractPeriod — total_capacity / units_sold', title:'M3 ContractPeriod', desc:'total_capacity / units_sold govore koliko je alotmana ostalo za taj period/sobu. allotment_mode (FIXED/ON_REQUEST/CHARTER/FIXED_LEASE) određuje da li je kapacitet garantovan.'},
+  {id:'B3', x:120, y:480, type:'leaf', chip:'m3', text:'RateLine — price + age_pricing[]', title:'M3 RateLine', desc:'price + age_pricing[] (poglavlje 2.4/2.4a) — cena po kombinaciji unutar perioda, uključujući cenu po uzrasnoj kategoriji gosta (dete, tinejdžer, beba).'},
+  {id:'B4', x:120, y:610, type:'leaf', chip:'m4', text:'AvailabilityQuote — uživo, ne čuva se trajno', title:'M4 AvailabilityQuote', desc:'{externalId, priceAmount, currency, availableUnits, cancellationPolicy, quoteExpiresAt} — pribavljeno uživo preko Travelgate adaptera u trenutku pretrage, nikad trajno sačuvano kao cena proizvoda.'},
+
+  {id:'C1', x:1940, y:220, type:'leaf', chip:'m5', text:'SearchResultProduct — name, thumbnail', title:'SearchResultProduct', desc:'name (iz ProductTranslation), thumbnail (prva slika iz media[], prioritet EXTERIOR pa ROOM), short_description — jedan zapis po proizvodu koji odgovara filterima.'},
+  {id:'C2', x:1940, y:350, type:'leaf', chip:'m5', text:'offers[] — room_type, board_type, final_price', title:'offers[]', desc:'Niz SearchResultOffer unutar proizvoda — room_type_code/name, board_type, final_price, price_basis. Jedan proizvod obično ima više ponuda (tip sobe × režim ishrane).'},
+  {id:'C3', x:1940, y:480, type:'leaf', chip:'m5', text:'availability_status — AVAILABLE / ON_REQUEST / SOLD_OUT', title:'availability_status', desc:'AVAILABLE / ON_REQUEST / SOLD_OUT. CONTRACTED FIXED/CHARTER/FIXED_LEASE je SOLD_OUT kad total_capacity − units_sold padne ispod traženog broja soba; ON_REQUEST je uvek vidljivo ali negarantovano.'},
+  {id:'C4', x:1940, y:610, type:'leaf', chip:'m5', text:'SOLD_OUT se filtrira — ne prikazuje se', title:'SOLD_OUT se filtrira', desc:'SOLD_OUT ponude se ne vraćaju u rezultatima — standardno ponašanje pretrage. Pun uvid u zauzet alotman i dalje postoji direktno kroz M3 za tim kome je ta informacija potrebna.'},
+
+  {id:'D1', x:120, y:760, type:'leaf', chip:'m5', text:'prepis identifikatora iz izabrane ponude', title:'Prepis identifikatora', desc:'product_id, rate_line_id (CONTRACTED) ili provider_quote_reference (API), stay_from/to, occupancy — prepisuju se iz izabrane ponude, korisnik ih ne unosi ponovo ručno.'},
+  {id:'D2', x:120, y:880, type:'leaf', chip:'m5', text:'provera isteka — quote_expires_at (API)', title:'Provera isteka (API)', desc:'Ako je quote_expires_at izabrane ponude već prošao u trenutku POST /quotes (korisnik je "sedeo" na rezultatima), kreiranje stavke se odbija sa jasnom porukom — nikad tiha cena koja više nije garantovana.'},
+  {id:'D3', x:120, y:1000, type:'leaf', chip:'m5', text:'cena se računa ponovo, ne kopira se', title:'Cena se računa ponovo', desc:'final_price se ne preuzima slepo iz rezultata pretrage — računa se ponovo po formuli (CONTRACTED) ili ponovnim čitanjem AvailabilityQuote (API), pri svakom POST /quotes pozivu.'},
+  {id:'D4', x:120, y:1120, type:'leaf', chip:'m5', text:'ograda: bez age_pricing reda → Quote odbijena', title:'Ograda: nedostajuća kategorija', desc:'Gost čija starosna kategorija nema odgovarajući age_pricing[] red odbija kreiranje Quote sa jasnom porukom — cena se nikad ne pretpostavlja (princip #4, determinizam pre autonomije).'},
+
+  {id:'E1', x:1940, y:760, type:'leaf', chip:'m5', text:'contract_terms_accepted?', title:'contract_terms_accepted?', desc:'Mora biti true pre nego što se dozvoli prelazak na plaćanje za samouslužne kanale (B2C_SITE/B2B_PORTAL/MOBILE) — čuva clickwrap pristanak pre nego što Booking/ClientContract postoje.'},
+  {id:'E2', x:1940, y:880, type:'leaf', chip:'m11', text:'garancija putovanja — pre kreditnog limita', title:'M11 garancija putovanja', desc:'Provera garancije putovanja se uvek izvršava pre provere kreditnog limita (M7) — tvrdo pravilo, nikad obrnuto (M5, poglavlje 4, korak 1).'},
+  {id:'E3', x:1940, y:1000, type:'leaf', chip:'m7', text:'kreditni limit — B2B subagent', title:'M7 kreditni limit', desc:'Za B2B subagenta, rezervacija koja prekorači kreditni limit odbija potvrdu bez rezervisanja kapaciteta — provera ide pre bilo kog poziva ka M3/M4.'},
+  {id:'E4', x:1940, y:1120, type:'leaf', chip:'m3', text:'kapacitet se zaključava → Booking CONFIRMED', title:'Kapacitet → Booking CONFIRMED', desc:'M3 units_sold se atomski uvećava (ili M4 kapacitet uživo) tek u ovom koraku — ponuda sama ne drži kapacitet. Neuspeh ne ostavlja "napola" rezervaciju: već rezervisane stavke se oslobađaju.'}
+];
+var ttEdges = [
+  ['root','A','m5'], ['root','B','mix'], ['root','C','m5'], ['root','D','m5'], ['root','E','mix'],
+  ['A','A1','m5'], ['A','A2','m5'], ['A','A3','m5'], ['A','A4','m5'],
+  ['B','B1','m2'], ['B','B2','m3'], ['B','B3','m3'], ['B','B4','m4'],
+  ['C','C1','m5'], ['C','C2','m5'], ['C','C3','m5'], ['C','C4','m5'],
+  ['D','D1','m5'], ['D','D2','m5'], ['D','D3','m5'], ['D','D4','m5'],
+  ['E','E1','m5'], ['E','E2','mix'], ['E','E3','mix'], ['E','E4','m3']
+];
+var ttEdgeColor = {m2:'var(--info)', m3:'var(--warn)', m4:'var(--success)', m5:'var(--purple)', mix:'var(--gray)'};
+var ttChipColor = {
+  m2:['var(--info-bg)','var(--info)'], m3:['var(--warn-bg)','var(--warn)'], m4:['var(--success-bg)','var(--success)'],
+  m5:['var(--purple-bg)','var(--purple)'], m7:['var(--gray-bg)','var(--gray)'], m11:['var(--gray-bg)','var(--gray)'],
+  mix:['var(--gray-bg)','var(--gray)']
+};
+var ttNodeById = {};
+ttNodes.forEach(function(n){ ttNodeById[n.id] = n; });
+
+var ttCurrentScaleX = 1, ttCurrentScaleY = 1;
+var ttDrag = null;
+var ttBuilt = false;
+
+function ttBuildMindmap(){
+  if(ttBuilt) return;
+  ttBuilt = true;
+  var canvas = document.getElementById('mmCanvas');
+  ttNodes.forEach(function(n){
+    var div = document.createElement('div');
+    div.id = 'node-' + n.id;
+    div.className = 'mm-node mm-' + n.type + (n.type === 'branch' ? ' mod-' + n.mod : '');
+    div.style.left = n.x + 'px';
+    div.style.top = n.y + 'px';
+    if(n.type === 'root'){
+      div.innerHTML = n.text + '<small>M2 · M3 · M4 · M5</small>';
+    } else if(n.type === 'branch'){
+      div.innerHTML = n.text;
+    } else {
+      div.innerHTML = '<span class="modtag ' + n.chip + ' mm-tag">' + n.chip.toUpperCase() + '</span>' + n.text;
+    }
+    canvas.appendChild(div);
+    ttAttachDrag(div, n);
+  });
+  ttDrawEdges();
+}
+
+function ttDrawEdges(){
+  var svg = document.getElementById('mmSvg');
+  var frag = document.createDocumentFragment();
+  ttEdges.forEach(function(e){
+    var a = ttNodeById[e[0]], b = ttNodeById[e[1]];
+    var midx = (a.x + b.x) / 2;
+    var d = 'M' + a.x + ',' + a.y + ' C' + midx + ',' + a.y + ' ' + midx + ',' + b.y + ' ' + b.x + ',' + b.y;
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', ttEdgeColor[e[2]] || ttEdgeColor.mix);
+    path.setAttribute('stroke-width', a.type === 'root' ? 3 : 2);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('opacity', a.type === 'root' ? .55 : .4);
+    frag.appendChild(path);
+  });
+  svg.innerHTML = '';
+  svg.appendChild(frag);
+}
+
+function ttAttachDrag(el, n){
+  el.addEventListener('pointerdown', function(ev){
+    ev.preventDefault();
+    try{ el.setPointerCapture(ev.pointerId); }catch(e){}
+    ttDrag = {el:el, node:n, startClientX:ev.clientX, startClientY:ev.clientY, startX:n.x, startY:n.y, moved:false};
+    el.classList.add('mm-dragging');
+  });
+  el.addEventListener('pointermove', function(ev){
+    if(!ttDrag || ttDrag.el !== el) return;
+    var dxClient = ev.clientX - ttDrag.startClientX;
+    var dyClient = ev.clientY - ttDrag.startClientY;
+    if(Math.abs(dxClient) > 4 || Math.abs(dyClient) > 4) ttDrag.moved = true;
+    n.x = ttDrag.startX + dxClient / ttCurrentScaleX;
+    n.y = ttDrag.startY + dyClient / ttCurrentScaleY;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    ttDrawEdges();
+  });
+  function endDrag(){
+    if(!ttDrag || ttDrag.el !== el) return;
+    el.classList.remove('mm-dragging');
+    var wasClick = !ttDrag.moved;
+    ttDrag = null;
+    if(wasClick) ttOpenPanel(n);
+  }
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+}
+
+function ttOpenPanel(n){
+  document.querySelectorAll('.mm-node.mm-selected').forEach(function(x){ x.classList.remove('mm-selected'); });
+  var el = document.getElementById('node-' + n.id);
+  if(el) el.classList.add('mm-selected');
+  var chip = n.chip || n.mod || 'm5';
+  var colors = ttChipColor[chip] || ttChipColor.m5;
+  var tagEl = document.getElementById('mmPanelTag');
+  tagEl.textContent = chip.toUpperCase();
+  tagEl.style.background = colors[0];
+  tagEl.style.color = colors[1];
+  document.getElementById('mmPanelTitle').textContent = n.title;
+  document.getElementById('mmPanelDesc').textContent = n.desc;
+  document.getElementById('mmPanel').classList.add('open');
+}
+function ttClosePanel(){
+  document.getElementById('mmPanel').classList.remove('open');
+  document.querySelectorAll('.mm-node.mm-selected').forEach(function(x){ x.classList.remove('mm-selected'); });
+}
+
+function ttFitMindmap(){
+  var scrollBox = document.getElementById('mmScroll');
+  var canvas = document.getElementById('mmCanvas');
+  if(!scrollBox || !canvas) return;
+  var availW = scrollBox.clientWidth;
+  var availH = scrollBox.clientHeight;
+  if(availW <= 0 || availH <= 0) return;
+  ttCurrentScaleX = availW / 2080;
+  ttCurrentScaleY = availH / 1200;
+  canvas.style.transform = 'scale(' + ttCurrentScaleX + ',' + ttCurrentScaleY + ')';
+}
+function ttSetView(v){
+  var mindmap = document.getElementById('view-mindmap');
+  var bC = document.getElementById('btn-cards');
+  var bM = document.getElementById('btn-mindmap');
+  if(v === 'mindmap'){
+    mindmap.style.display = 'block';
+    bM.classList.add('active'); bC.classList.remove('active');
+    ttBuildMindmap();
+    ttFitMindmap();
+  } else {
+    mindmap.style.display = 'none';
+    bC.classList.add('active'); bM.classList.remove('active');
+    ttClosePanel();
+  }
+}
+window.addEventListener('resize', function(){
+  if(document.getElementById('view-mindmap').style.display !== 'none') ttFitMindmap();
+});
+</script>
