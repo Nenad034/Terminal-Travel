@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — na zahtev vlasnika (avgust 2026): `room_types[]` dobija raspodelu kreveta (osnovni/dodatni) i podesivu uzrasnu politiku po sobi (`age_policy[]`) — deca, bebe, krevetac (poglavlje 2.3b); v1.3 na zahtev vlasnika (avgust 2026): `room_types[]` postaje strukturiran niz objekata umesto golih naziva, `media[]` dobija kategorizaciju/galeriju po sobi (poglavlje 2.3a); nov AI agent za uvoz sadržaja hotela sa sajta dobavljača (`ProductContentImport`, poglavlje 3.3), isti obrazac kao M3 `PricelistImport`/M10 `SupplierInvoiceImport`; v1.2 na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
+**Verzija:** 1.5 — na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: `age_policy[].category` dobija `TEEN` kao četvrtu vrednost (poglavlje 2.3b); cena po kategoriji rešena u M3 v1.6, ne ovde; v1.4 na zahtev vlasnika (avgust 2026): `room_types[]` dobija raspodelu kreveta (osnovni/dodatni) i podesivu uzrasnu politiku po sobi (`age_policy[]`) — deca, bebe, krevetac (poglavlje 2.3b); v1.3 na zahtev vlasnika (avgust 2026): `room_types[]` postaje strukturiran niz objekata umesto golih naziva, `media[]` dobija kategorizaciju/galeriju po sobi (poglavlje 2.3a); nov AI agent za uvoz sadržaja hotela sa sajta dobavljača (`ProductContentImport`, poglavlje 3.3), isti obrazac kao M3 `PricelistImport`/M10 `SupplierInvoiceImport`; v1.2 na zahtev vlasnika (avgust 2026): dodata tri nova `Product.type` (`TRANSPORT`, `TICKET`, `EVENT`, poglavlje 2.1) i strukturirana konvencija atributa za svaki (poglavlje 2.3), radi preciznije pretrage po tipu turističkog proizvoda; v1.1 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 5.1), na zahtev vlasnika (avgust 2026)
 **Zavisi od:** M1 (Core / Identitet i pristup)
 
 ---
@@ -112,7 +112,7 @@ Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — n
 
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
-| category | enum: `ADULT`, `CHILD`, `INFANT` | proširivo bez izmene strukture; jedna stavka po kategoriji |
+| category | enum: `ADULT`, `CHILD`, `TEEN`, `INFANT` | proširivo bez izmene strukture; jedna stavka po kategoriji; `TEEN` dodat avgust 2026 (analiza stvarnih cenovnika pokazala da ga više dobavljača koristi kao zaseban razred između `CHILD` i `ADULT`, sa sopstvenom cenom) — soba koja ga ne razlikuje od `ADULT`/`CHILD` jednostavno ne unosi tu kategoriju |
 | age_from / age_to | integer / integer, nullable | uzrasni opseg (godine, uključivo); `age_to = null` znači "i više" (koristi se za `ADULT`) |
 | counts_toward_capacity | boolean | da li gost te kategorije ulazi u `capacity_adults`/`capacity_children` brojanje — **razlikuje se po hotelu**, potvrđeno sa vlasnikom da ne postoji jedinstveno pravilo |
 | max_count | integer, nullable | maksimalan broj gostiju te kategorije po ovoj sobi (npr. najviše 1 beba); `null` = nema posebnog ograničenja van ukupnog kapaciteta |
@@ -123,7 +123,7 @@ Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — n
 
 **Veza sa M5 (rezervacije):** `M5 occupancy.room_config[].children_ages[]` (M5 poglavlje 3.2a) nosi sirov uzrast svakog deteta — pri proveri da li izabrana soba prima traženi broj gostiju, M5 svaki uzrast svrstava u odgovarajuću `age_policy[].category` ove sobe (po `age_from`/`age_to`) i broji samo kategorije sa `counts_toward_capacity = true` protiv `capacity_adults`/`capacity_children`. Beba čija kategorija ima `counts_toward_capacity = false` se i dalje evidentira (radi krevetca i eventualne cene), ali ne odbija rezervaciju zbog formalnog kapaciteta sobe.
 
-**Namerno van obima ovde:** tačna cena po uzrasnoj kategoriji (npr. "dete do 11 godina besplatno", "beba uvek besplatna") pripada M3 `RateLine` (poglavlje 2.4 te specifikacije), ne ovom modulu — M2 ovde definiše samo *ko se u koju kategoriju svrstava i da li ulazi u kapacitet*, ne *po kojoj ceni*. M3 danas čuva `RateLine.occupancy` kao slobodan tekst bez strukture po uzrasnoj kategoriji — otvoreno pitanje za dalje (M3 poglavlje 8).
+**Namerno van obima ovde:** tačna cena po uzrasnoj kategoriji (npr. "dete do 11 godina besplatno", "beba uvek besplatna") pripada M3 `RateLine` (poglavlje 2.4a te specifikacije), ne ovom modulu — M2 ovde definiše samo *ko se u koju kategoriju svrstava i da li ulazi u kapacitet*, ne *po kojoj ceni*. **Rešeno u M3 v1.6** (avgust 2026) — `RateLine.age_pricing[]`, na osnovu analize stvarnih cenovnika više dobavljača.
 
 ---
 

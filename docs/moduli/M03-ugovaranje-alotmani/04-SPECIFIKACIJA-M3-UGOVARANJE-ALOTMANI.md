@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.6 — na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: `RateLine` dobija `price_basis` (po sobi vs. po osobi) i strukturiranu cenu po uzrasnoj kategoriji gosta `age_pricing[]` (poglavlje 2.4a), rešava otvoreno pitanje iz v1.5 o ceni po detetu/bebi; v1.5 ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -121,9 +121,32 @@ Granični slučaj: susedni periodi (npr. jedan se završava 2027-08-31, drugi po
 | id | UUID (PK) | |
 | contract_period_id | UUID (FK → ContractPeriod) | |
 | board_type | string | npr. "polupansion", "all-inclusive" |
-| occupancy | string | npr. "odrasla osoba u dvokrevetnoj", "doplata za jednokrevetnu" |
-| price | integer | u najmanjoj jedinici valute ugovora (`Contract.currency`) — vidi konvenciju u poglavlju 2 |
+| occupancy | string | npr. "odrasla osoba u dvokrevetnoj", "doplata za jednokrevetnu" — i dalje opisuje **osnovnu** popunjenost na koju se `price` odnosi (vidi `price_basis` niže) |
+| price_basis | enum: `PER_ROOM_PER_NIGHT`, `PER_PERSON_PER_NIGHT` | dopuna avgust 2026 — određuje kako se `price` tumači i sabira kad u sobi ima više gostiju (poglavlje 2.4a); potvrđeno analizom stvarnih cenovnika da dobavljači stvarno koriste oba modela, nema jedinstvenog standarda |
+| price | integer | u najmanjoj jedinici valute ugovora (`Contract.currency`) — vidi konvenciju u poglavlju 2; za `PER_ROOM_PER_NIGHT` je to cena cele sobe pri osnovnoj popunjenosti iz `occupancy`, za `PER_PERSON_PER_NIGHT` je to cena po jednom ADULT gostu |
+| crib_fee_per_night | integer, nullable | doplata za krevetac po noći (dopuna avgust 2026) — popunjeno samo kad `M2 room_types[].age_policy[].requires_crib = true` i `crib_included = false` za tu sobu (M2 poglavlje 2.3b); `null` znači krevetac je besplatan ili se ne primenjuje |
 | created_at / updated_at | timestamp | |
+
+### 2.4a `age_pricing[]` — cena po uzrasnoj kategoriji gosta (dopuna, avgust 2026, na zahtev vlasnika)
+
+Rešava otvoreno pitanje iz M2 poglavlja 2.3b: `age_policy[]` (M2) definiše *ko se u koju uzrasnu kategoriju svrstava i da li ulazi u kapacitet sobe* — ovde se definiše *po kojoj ceni*. Zasnovano na analizi stvarnih cenovnika više dobavljača (avgust 2026) — dobavljači u praksi koriste **dva različita načina** da izraze cenu po detetu/bebi/tinejdžeru, ne jedan, pa `age_pricing[]` mora podržati oba:
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| age_category | string | mora odgovarati vrednosti iz `M2 room_types[].age_policy[].category` (ADULT/CHILD/TEEN/INFANT, proširivo — M2 poglavlje 2.3b) za sobu na koju se ovaj `RateLine` odnosi, preko `contract_period_id → ContractPeriod.room_type` |
+| occupant_index | integer, nullable | koje po redu gost te kategorije u sobi (1 = prvi, 2 = drugi...) — pokriva pravila tipa "prvo dete -50%, drugo dete besplatno"; `null` = važi podjednako za svakog gosta te kategorije |
+| min_adults_present | integer, nullable | pravilo važi samo ako je u sobi bar ovoliko `ADULT` gostiju — pokriva pravila tipa "dete sa dva roditelja besplatno, dete sa jednim roditeljem uz doplatu"; `null` = bez uslova |
+| pricing_mode | enum: `PERCENTAGE_OF_BASE_PRICE`, `FLAT_PRICE_PER_NIGHT` | |
+| percentage | decimal, nullable | samo za `PERCENTAGE_OF_BASE_PRICE` — procenat od `RateLine.price` (npr. `50.00` = pola cene); `0` = besplatno |
+| flat_price | integer, nullable | samo za `FLAT_PRICE_PER_NIGHT` — pun iznos po noći za tog gosta, u najmanjoj jedinici valute; `0` = besplatno |
+
+**Napomena o "besplatno":** uvek se upisuje eksplicitan red sa `percentage = 0` ili `flat_price = 0`, nikad se besplatan gost ne predstavlja izostankom reda — izostanak reda za neku kategoriju gosta je greška u unosu (vidi ogradu niže), ne prećutna pretpostavka o ceni.
+
+**Razrešavanje kad više redova odgovara istom gostu (najspecifičniji pobeđuje):** 1) red sa tačnim `occupant_index` (ne `null`), 2) red bez `occupant_index` ali sa najvišim `min_adults_present` koji je zadovoljen, 3) red bez ikakvog uslova (`occupant_index = null`, `min_adults_present = null`) kao podrazumevani. Isti obrazac razrešavanja kao `MarkupRule` (poglavlje 2.2 M5 specifikacije).
+
+**Ograda:** ako gost (iz M5 `room_config`, klasifikovan po M2 `age_policy[]`) pripada kategoriji za koju **nijedan** `age_pricing[]` red ne postoji (ni uslovljen ni podrazumevani) na primenjivom `RateLine`, kreiranje `Quote` (M5) se odbija sa jasnom porukom — sistem nikad ne pretpostavlja punu cenu niti besplatan boravak za nedostajuću kategoriju, u skladu sa principom #4 (determinizam pre autonomije) iz poglavlja 3 Master dokumenta.
+
+**Kako se ovo sabira u ukupnu cenu sobe** — definiše M5 (poglavlje 3.2b te specifikacije, ne ovde), pošto je to deo formule za `base_cost`; ovde se čuvaju samo ulazni podaci.
 
 ### 2.5 `CancellationRule` — pravila otkazivanja po periodu
 | Polje | Tip | Napomena |
@@ -253,6 +276,9 @@ Prefiks: `/api/v1/contracting`
 - [ ] Pokušaj kreiranja ili odobravanja (iz uvoza cenovnika) `ContractPeriod` koji se datumski preklapa sa postojećim periodom za isti `contract_id`/`room_type` se odbija sa jasnom porukom (poglavlje 2.3b); susedni (ne-presecajući) periodi se prihvataju.
 - [ ] Rezervacija koja preostali kapacitet perioda svede na 1 ili 2 jedinice generiše `HealthSignal` tačne ozbiljnosti (`CRITICAL` za 1, `WARNING` za 2, poglavlje 4.3); preostalo > 2 ne generiše signal.
 - [ ] `Contract` ne može preći u `ACTIVE` bez popunjenog `default_tip_nastupanja` (poglavlje 2.2a), isto sprovođenje kao postojeća ograda za `MarkupRule`.
+- [ ] Moguće je kreirati `RateLine` sa `price_basis = PER_ROOM_PER_NIGHT` i sa `price_basis = PER_PERSON_PER_NIGHT`, svaki sa `age_pricing[]` nizom (poglavlje 2.4a).
+- [ ] Test: `age_pricing[]` red sa `occupant_index = 1` i red bez `occupant_index` za istu kategoriju — gost čiji je redni broj u sobi tačno 1 dobija cenu iz prvog reda, ne iz podrazumevanog (poglavlje 2.4a, razrešavanje).
+- [ ] Test: gost čija kategorija nema odgovarajući `age_pricing[]` red (ni uslovljen ni podrazumevani) odbija kreiranje `Quote` sa jasnom porukom — ne pretpostavlja cenu.
 
 ---
 
@@ -264,4 +290,10 @@ Prefiks: `/api/v1/contracting`
 - Break-even/P&L pregled za `CHARTER`/`FIXED_LEASE` periode (poglavlje 2.3a) — definiše se kao izveštaj u M13 (BI) kad ta specifikacija dobije ovu dopunu, ne ovde.
 - Tačan OCR provajder/servis za `SCANNED_PDF` (poglavlje 4.2.1) — bira se pri implementaciji, ovaj dokument samo predviđa mesto za tu integraciju.
 - Da li prag od 85% (poglavlje 4.2.3) treba biti podesiv po dobavljaču/formatu dokumenta, ili ostaje globalna konstanta — otvoreno dok se ne pokaže potreba iz prakse.
-- **Strukturirana cena po uzrasnoj kategoriji na `RateLine`** (dopuna, avgust 2026) — `RateLine.occupancy` (poglavlje 2.4) je danas slobodan tekst (npr. "doplata za jednokrevetnu"), bez veze sa `ADULT`/`CHILD`/`INFANT` kategorijama koje M2 `room_types[].age_policy[]` sada definiše (M2 poglavlje 2.3b). Potrebno je definisati tačan oblik (npr. cena/procenat po kategoriji, "dete do 11 besplatno") kad se vidi kako dobavljači u praksi strukturiraju cenovnike za decu/bebe — namerno odloženo dok M2 §2.3b ne prođe kroz prvu stvarnu primenu.
+- **Nalazi iz analize stvarnih cenovnika više dobavljača** (avgust 2026, vlasnik dostavio 18 primera iz prakse — CG/HR/CY hoteli i tour-operator ugovori) — cena po uzrasnoj kategoriji (poglavlje 2.4a) je rešena ovom verzijom; ostalo iz iste analize namerno ostaje otvoreno dok se ne odluči prioritet:
+  - **Ograničenje tržišta porekla gosta** — više ugovora rate ograničava na spisak zemalja (npr. "važi samo za Kosovo, Češku, Poljsku...") ili dozvoljava dobavljaču da isključi tržište uz najavu — nema mesta u `Contract`/`ContractPeriod` danas.
+  - **Ograničenje po segmentu gosta** (FIT vs. grupa 8+ soba vs. MICE) — neki cenovnici važe samo za pojedinačne goste, ne za grupe.
+  - **Obavezan minimalni markup koji nameće dobavljač** (npr. "min. 20% iznad ove cene") — danas je `MarkupRule` (M5 poglavlje 2.1) isključivo interna odluka agencije; trebalo bi proveravati protiv donje granice koju ugovor nameće.
+  - **Kazna za otkazivanje sa različitom osnovicom po sezoni** (1. noćenje vs. cela rezervacija vs. 100% no-show) — proveriti da `CancellationRule` (poglavlje 2.5) pokriva ovu granularnost, ne samo jedan procenat praga.
+  - **Ponavljajući pomoćni troškovi bez mesta u modelu**: kućni ljubimac (po danu, sa ograničenjem), parking, rani check-in/kasni check-out doplata, room service flat fee, **povratni sigurnosni depozit** (nije trošak, drži se pa vraća — dotiče M10, ne samo M3).
+  - **Boravišna taksa/gradska taksa sa sopstvenim uzrasnim pragovima**, nezavisnim od `age_policy[]` praga za cenu sobe (u istom dokumentu viđeni različiti brojevi za dete — do 12 za taksu, do 11,99 ili do 18 za cenu sobe) — trenutno van obima (M10/M11 su boravišnu taksu isključili iz obima avgusta 2026), ali podaci pokazuju da je ovo realan trošak koji dobavljač prevaljuje na agenciju/gosta, vredi ponovo razmotriti obim.

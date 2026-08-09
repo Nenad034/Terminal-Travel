@@ -462,7 +462,7 @@ main{ padding:20px 0 60px; }
 
         <div class="sdesc" style="margin-top:14px;">
           <b style="color:var(--text)">Veza sa M5:</b> pri proveri kapaciteta, svaki uzrast iz <span style="font-family:var(--mono)">room_config[].children_ages[]</span> (M5 §3.2a) se svrstava u kategoriju ove sobe i broji protiv kapaciteta samo ako <span style="font-family:var(--mono)">counts_toward_capacity = true</span> — beba u krevetcu tipično ne odbija rezervaciju zbog formalnog kapaciteta, ali i dalje ne sme preći <span style="font-family:var(--mono)">max_count</span> te kategorije.<br>
-          <b style="color:var(--text)">Namerno van obima ovde:</b> tačna cena po kategoriji (npr. "dete besplatno do 11 god.") čeka dopunu M3 <span style="font-family:var(--mono)">RateLine</span> (M3 poglavlje 8, otvoreno) — ovaj model definiše ko ulazi u koju kategoriju i da li ulazi u kapacitet, ne po kojoj ceni.
+          <b style="color:var(--text)">Namerno van obima ovde:</b> ovaj model definiše ko ulazi u koju kategoriju i da li ulazi u kapacitet, ne po kojoj ceni. <b style="color:var(--text)">Rešeno u M3 §2.4a</b> (avgust 2026, na osnovu analize stvarnih cenovnika) — <span style="font-family:var(--mono)">RateLine.price_basis</span> (po sobi vs. po osobi) i <span style="font-family:var(--mono)">age_pricing[]</span> (procenat ili flat cena po kategoriji/rednom broju gosta), sabira se u M5 §3.2b.
         </div>
       </div>
     </div>
