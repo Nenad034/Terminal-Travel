@@ -65,6 +65,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Da li `Itinerary` treba sopstveni rok isteka (ABANDONED).
 - Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT` po pod-tipu.
 - Automatski podsetnik gostu o roku za potvrdu/uplatu opcije kod dobavljača — zahteva dalju razradu roka, kanala i praga slanja.
+- Prag za ponovnu proveru `API` cene pri `POST /quotes` (trenutno: uvek proveri ponovo) — uvodi se samo ako se pokaže preskupo u praksi, zahteva potvrdu vlasnika.
 
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
