@@ -38,6 +38,6 @@ Rad u agenciji na svakodnevnim poslovima
 
 
 
-* [ ] Sve najave prema hotelima (nova rezervacija, promena rezervacije, storno) treba da idu sa jedne jedinstvene mejl adrese agencije, ne sa ličnih mejlova zaposlenih, i sve potvrde hotela treba da stižu na tu istu adresu. Napraviti skriptu ili angažovati AI agenta koji će na osnovu poklapajućih informacija (ime hotela, gost, datumi, referenca) da poveže poslat zahtev za potvrdu sa pristiglom potvrdom hotela. Kad svako šalje sa svoje adrese, ne vidi se pouzdano tok rezervacije u delu "najavljeno → potvrđeno" niti se zna zašto nešto nije potvrđeno. *(Otvoreno — vidi GAP-analiza #11)*
+* [x] Sve najave prema hotelima (nova rezervacija, promena rezervacije, storno) treba da idu sa jedne jedinstvene mejl adrese agencije, ne sa ličnih mejlova zaposlenih, i sve potvrde hotela treba da stižu na tu istu adresu. Napraviti skriptu ili angažovati AI agenta koji će na osnovu poklapajućih informacija (ime hotela, gost, datumi, referenca) da poveže poslat zahtev za potvrdu sa pristiglom potvrdom hotela. Kad svako šalje sa svoje adrese, ne vidi se pouzdano tok rezervacije u delu "najavljeno → potvrđeno" niti se zna zašto nešto nije potvrđeno. *(Dopunjeno u specifikaciji — M5 poglavlje 8.8 (`SupplierChangeNotice`, jedinstveno M22 sanduče, `reference_code`) i M22 poglavlje 3.1a (poklapanje po referenci `[REF: TT-NNNNNN]`, sa fuzzy-match rezervom); potvrda dobavljača uvek zahteva ljudski klik, čak i pri tačnom poklapanju reference (potvrđeno sa vlasnikom) — vidi GAP-analiza #11)*
 
 

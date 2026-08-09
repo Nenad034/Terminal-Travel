@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.10 — na zahtev vlasnika (avgust 2026), na osnovu analize stvarnih cenovnika više dobavljača: dodata formula za `base_cost` sobe sa mešovitim uzrastom gostiju, koristeći M3 `RateLine.price_basis`/`age_pricing[]` (poglavlje 3.2b); v1.9 — `occupancy.room_config` (poglavlje 3.2a) postao strukturiran niz po sobi (`room_type_code`, `adults`, `children`, `children_ages`) umesto nedefinisanog bloba, uz pravilo slaganja sa zbirnim `adults`/`children`; v1.8 — `GET /search` `type` parametar postao niz (multi-select), podržava tri nova M2 tipa (`TRANSPORT`/`TICKET`/`EVENT`, poglavlje 11) — dopunjuje M2 poglavlje 2.3; v1.7 (retroaktivno zabeleženo, nije imalo sopstveni changelog unos u trenutku kad je dodato) — poglavlja 8.6 (najava dobavljaču kao formalni koncept) i 8.7 (`SupplierAnnouncementRule`), zatvaraju probleme #2/#3 sa liste; v1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
-**Zavisi od:** M1, M2, M3, M4
+**Verzija:** 1.11 — na zahtev vlasnika (avgust 2026), rešava problem #11: `SupplierManifest` i novi `SupplierChangeNotice` (izmena/storno) dobijaju `reference_code` i idu isključivo kroz jedinstveno M22 sanduče za dobavljače; automatsko poklapanje pristigle potvrde po referentnom kodu (poglavlje 8.8) — potvrda i dalje uvek zahteva ljudski klik, ni pri visokoj pouzdanosti; v1.10 na osnovu analize stvarnih cenovnika više dobavljača: dodata formula za `base_cost` sobe sa mešovitim uzrastom gostiju, koristeći M3 `RateLine.price_basis`/`age_pricing[]` (poglavlje 3.2b); v1.9 — `occupancy.room_config` (poglavlje 3.2a) postao strukturiran niz po sobi (`room_type_code`, `adults`, `children`, `children_ages`) umesto nedefinisanog bloba, uz pravilo slaganja sa zbirnim `adults`/`children`; v1.8 — `GET /search` `type` parametar postao niz (multi-select), podržava tri nova M2 tipa (`TRANSPORT`/`TICKET`/`EVENT`, poglavlje 11) — dopunjuje M2 poglavlje 2.3; v1.7 (retroaktivno zabeleženo, nije imalo sopstveni changelog unos u trenutku kad je dodato) — poglavlja 8.6 (najava dobavljaču kao formalni koncept) i 8.7 (`SupplierAnnouncementRule`), zatvaraju probleme #2/#3 sa liste; v1.6 — rešeni nalazi iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika): dodato `Quote.contract_terms_accepted*` (poglavlje 3.1), automatsko izvođenje `tip_nastupanja` za samouslužne kanale (poglavlje 4.0a), redosled provere garancije/kreditnog limita (poglavlje 4, korak 1), eksplicitni parametri `GET /search` (poglavlje 11), sistemski izuzetak izdavanja vaučera za subagenta unutar odobrenog kredita (poglavlje 6.3); v1.5 dodato pravilo skrivanja identiteta dobavljača od B2C/B2B kanala (poglavlje 6.2), na zahtev vlasnika (avgust 2026), dopunjuje M2 poglavlje 5.1; v1.4 dodato opciono sastavljanje putovanja pre Ponude, za kompleksna višedestinacijska putovanja (poglavlje 3.0), poređenjem sa Travel Compositor portfolio modelom (istraživanje 2.8.2026, vidi Dodatak A Master dokumenta); v1.3 dodati podsetnici/alarmi posle potvrde rezervacije (poglavlje 6.1: neplaćena rezervacija sa izdatim vaučerom, otvorena potvrda dobavljača po stavci, vaučer koji nedostaje uprkos punoj uplati); v1.2 dodala izbor jezika operativne liste za dobavljača (poglavlje 8.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2) — v1.1/v1.2 poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Zavisi od:** M1, M2, M3, M4; od avgusta 2026 i M22 (poglavlje 8.8, jedinstveno sanduče za potvrde dobavljača)
 
 ---
 
@@ -326,6 +326,8 @@ Odvojeno od vaučera koji dobija gost (poglavlje 6), agencija mora dobavljaču �
 | generated_at / generated_by | timestamp / UUID | `generated_by` može biti `AI_AGENT_M5` (poglavlje 8.4) |
 | sent_at / sent_by | timestamp / UUID, nullable | `sent_by` mora biti stvaran korisnik — slanje nikad nije autonomno (poglavlje 8.4) |
 | sent_to_email | string, nullable | kopija `Supplier.contact_email` u trenutku slanja, radi traga čak i ako se kontakt kasnije promeni |
+| reference_code | string, unique, nullable | dopuna avgust 2026 (poglavlje 8.8) — jedinstvena referenca (npr. `TT-000423`) upisana u naslov mejla pri slanju, radi automatskog poklapanja sa potvrdom dobavljača; generiše se pri prelasku u `DRAFT` |
+| confirmation_email_thread_id | UUID, nullable (FK → M22 `EmailThread`) | dopuna avgust 2026 (poglavlje 8.8) — popunjeno kad je nit prepiske o ovoj listi prepoznata (po `reference_code` ili ručno) |
 | supersedes_manifest_id | UUID, nullable (FK → SupplierManifest) | ako je ovo revizija ranije poslate liste |
 
 ### 8.2 `SupplierManifestItem` — spojna tabela
@@ -344,7 +346,7 @@ Odvojeno od vaučera koji dobija gost (poglavlje 6), agencija mora dobavljaču �
 **Jezik dokumenta:** operativna lista se generiše na srpskom ili engleskom (`SupplierManifest.language`, poglavlje 8.1) — dovoljno za sada; ne mora pratiti punih 8 jezika M2 kataloga, pošto je ovo interni operativni dokument ka dobavljaču, ne B2C sadržaj. Korisnik bira jezik pri generisanju nacrta; izabrani jezik ostaje nepromenjen i na revizijama (poglavlje 8.5). Dodato poređenjem sa PrimeTravel rooming-listom (SR/EN prekidač), vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md`.
 
 ### 8.4 Generisanje i slanje — uloga AI agenta
-Agent zadužen za M5 sme **automatski da pripremi nacrt** (`status = DRAFT`) — npr. periodičan posao koji za svaki `ContractPeriod` čiji `stay_from` pada u narednih N dana agregira potvrđene (`item_status = CONFIRMED`) stavke po dobavljaču — ovo je čisto informativna priprema, nivo **"Autonomno"** iz poglavlja 7 Master dokumenta. **Slanje dobavljaču** (prelazak u `status = SENT`) zahteva ljudsku potvrdu, nivo **"Predloži pa čovek odobri"** — isti princip kao slanje ponuda B2B partnerima, i isto obrazloženje kao u M3 poglavlju 4 (agent nikad sam ne šalje potvrdu dobavljaču).
+Agent zadužen za M5 sme **automatski da pripremi nacrt** (`status = DRAFT`) — npr. periodičan posao koji za svaki `ContractPeriod` čiji `stay_from` pada u narednih N dana agregira potvrđene (`item_status = CONFIRMED`) stavke po dobavljaču — ovo je čisto informativna priprema, nivo **"Autonomno"** iz poglavlja 7 Master dokumenta. **Slanje dobavljaču** (prelazak u `status = SENT`) zahteva ljudsku potvrdu, nivo **"Predloži pa čovek odobri"** — isti princip kao slanje ponuda B2B partnerima, i isto obrazloženje kao u M3 poglavlju 4 (agent nikad sam ne šalje potvrdu dobavljaču). Od avgusta 2026 (poglavlje 8.8), slanje ide isključivo kroz jedinstveno M22 sanduče za dobavljače — ne sa ličnog naloga zaposlenog koji klikne "pošalji".
 
 ### 8.5 Izmene posle slanja
 Ako se stavka koja je već na poslatoj listi (`status = SENT`) izmeni ili otkaže (poglavlje 6):
@@ -385,6 +387,34 @@ Poglavlje 8.4 danas priprema `DRAFT` nacrt po fiksnom pravilu (N dana pre `stay_
 
 **Dozvole:** `M5/supplier-announcement-rule/VIEW`, `EDIT` — Vlasnik, Direktor (isti krug kao `markup-rule`, poglavlje 10 — pravila koja utiču na odnos sa dobavljačem su osetljiva).
 
+### 8.8 Jedinstveno sanduče za dobavljače i automatsko poklapanje potvrde (dopuna, avgust 2026 — rešava problem #11 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, vidi `24-GAP-ANALIZA-PROBLEMI-VS-ARHITEKTURA.md` poglavlje 11)
+
+Do sada je potvrda dobavljača (`supplier_confirmed_at`/`by`, poglavlje 8.6) bila isključivo ručan unos zaposlenog, bez veze sa stvarnom mejl porukom koja je stigla — i slanje najave je išlo sa ličnog naloga zaposlenog koji klikne "pošalji". Vlasnik je opisao stvaran problem iz prakse: kad svaki zaposleni šalje sa svog ličnog mejla, potvrda dobavljača stiže na taj isti lični mejl, i nema jednog mesta gde tim vidi ceo tok "najavljeno → potvrđeno" niti lako uočava šta nije potvrđeno. Potvrđeno sa vlasnikom (avgust 2026): jedna zajednička adresa za sve dobavljače (ne po timu/regionu), koja pokriva **i slanje i prijem**; potvrda dobavljača i dalje **uvek** zahteva klik zaposlenog, čak i kad AI prepozna poklapanje sa visokom pouzdanošću — ovo pravilo se ne menja ovom dopunom, samo se ubrzava i pojednostavljuje.
+
+**Jedinstveno sanduče:** postoji tačno jedan M22 `Mailbox` (poglavlje 2.1 te specifikacije, `mailbox_type = SHARED`) kroz koji ide **svaka** komunikacija ka dobavljačima vezana za konkretnu rezervaciju — nova najava (`SupplierManifest`, poglavlje 8.1), izmena, i storno (`SupplierChangeNotice`, niže). Ovo sanduče je sistemska konfiguracija (jedan red, ne po dobavljaču/timu) — koji tačno korisnici imaju `REPLY` pristup određuje se kroz postojeći M22 `MailboxAccess` mehanizam (poglavlje 2.2 M22), ne ovde.
+
+**Referentni kod:** svaki `SupplierManifest` i svaki `SupplierChangeNotice` (niže) dobija `reference_code` pri kreiranju nacrta — format `TT-NNNNNN` (šestocifren, sekvencijalan, jedinstven kroz oba tipa). Pri slanju, kod se upisuje na početak naslova mejla u fiksnom obliku `[REF: TT-NNNNNN] ...` — kratak, bez specijalnih znakova, da preživi i kad dobavljač odgovori kroz "Reply" (thread se čuva) i kad pokrene nov mejl ručno prekucavajući naslov.
+
+#### `SupplierChangeNotice` — najava izmene ili storna (novo, avgust 2026)
+
+Za razliku od nove rezervacije (pokriva je `SupplierManifest`), izmena i storno pojedinačne stavke ne čekaju sledeću rutinsku listu — dobavljač mora **eksplicitno** biti obavešten, ne da sam zaključi iz toga što je gost nestao sa naredne revidirane liste (poglavlje 8.5). Ovo je i direktna pouka iz problema #10 (poglavlje 6.4) — nejasna/prećutna komunikacija ka dobavljaču pri stornu je tačno ono što je izazvalo pravi incident iz prakse.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| booking_item_id | UUID (FK → BookingItem) | |
+| notice_type | enum: `MODIFICATION`, `CANCELLATION` | |
+| reference_code | string, unique | isti format/svrha kao `SupplierManifest.reference_code` iznad |
+| status | enum: `DRAFT`, `SENT` | isti princip kao `SupplierManifest.status`, bez `SUPERSEDED` — jedna izmena/storno je jedna poruka |
+| sent_at / sent_by | timestamp / UUID, nullable | `sent_by` mora biti stvaran korisnik — isto pravilo kao poglavlje 8.4, slanje nikad autonomno |
+| supplier_confirmed_at / supplier_confirmed_by | timestamp / UUID, nullable | popunjava se **isključivo** ljudskim klikom (vidi niže), nikad automatski, bez obzira na pouzdanost prepoznavanja |
+| confirmation_email_thread_id | UUID, nullable (FK → M22 `EmailThread`) | |
+| created_at | timestamp | |
+
+Priprema `DRAFT` je nivo **"Autonomno"** (čisto informativna priprema teksta, ista logika kao poglavlje 8.4) — okidač je promena `item_status` na `MODIFIED`/`CANCELLED` (poglavlje 6). Slanje ostaje **"Predloži pa čovek odobri"**.
+
+**Automatsko poklapanje potvrde (AI agent, M22):** kad u jedinstveno sanduče stigne `INBOUND` poruka, M22 (poglavlje 3.1a te specifikacije) traži `[REF: TT-NNNNNN]` obrazac u naslovu/telu i, ako pronađe poklapanje sa postojećim `SupplierManifest.reference_code`/`SupplierChangeNotice.reference_code`, **predlaže** vezu (popunjava `confirmation_email_thread_id` kao predlog, ne konačno). Ako referenca nije pronađena (dobavljač pokrenuo nov mejl bez nje), pada na fuzzy-match po imenu dobavljača/gosta/datumima (isti obrazac kao poglavlje 6.4 i M10 poglavlje 8.6.3) kao slabiji predlog. **U oba slučaja**, konačno postavljanje `supplier_confirmed_at`/`by` zahteva eksplicitan klik zaposlenog na predloženu vezu (dugme "Potvrdi kao potvrdu dobavljača" u M17, uz vidljiv izvor: dokument je pronašao referencu tačno, ili je predlog samo po sličnosti) — nivo **"Predloži pa čovek odobri"**, potvrđeno sa vlasnikom da se ovo ne menja ni pri visokoj pouzdanosti.
+
 ---
 
 ## 9. Događaji (Event Bus) koje M5 emituje
@@ -408,6 +438,8 @@ Poglavlje 8.4 danas priprema `DRAFT` nacrt po fiksnom pravilu (N dana pre `stay_
 | `M5/supplier-manifest/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
 | `M5/supplier-manifest/CREATE` (nacrt) | Vlasnik, Direktor, Sales Manager, Prodajni agent; i AI agent zadužen za M5 (poglavlje 8.4) |
 | `M5/supplier-manifest/SEND` | Vlasnik, Direktor, Sales Manager — **nikad AI agent**, u skladu sa poglavljem 8.4 |
+| `M5/supplier-change-notice/CREATE`, `SEND` | Isti krug kao `supplier-manifest/CREATE`/`SEND` (poglavlje 8.8) — **slanje nikad AI agent** |
+| `M5/supplier-confirmation/CONFIRM` (ljudski klik na predloženu vezu sa mejlom, poglavlje 8.8) | Vlasnik, Direktor, Sales Manager, Prodajni agent — **nikad AI agent**, isti krug kao `supplier-manifest/VIEW` |
 
 ---
 
@@ -475,6 +507,10 @@ Prefiks: `/api/v1/sales`
 - [ ] Moguće je sastaviti `Itinerary` sa više segmenata u više destinacija, promeniti im redosled, i konvertovati ga u `Quote` — svaki segment sa popunjenim `product_id` postaje `QuoteItem` sa ispravno primenjenom cenom/maržom (poglavlje 3.0.3).
 - [ ] Segment bez popunjenog `product_id` se ne konvertuje tiho — korisnik dobija jasno upozorenje pre konverzije koji segmenti su preskočeni.
 - [ ] `Quote.itinerary_id` ispravno referencira izvorni `Itinerary` kad Ponuda nastane konverzijom, i ostaje `null` za direktne ponude.
+- [ ] `SupplierManifest` i `SupplierChangeNotice` dobijaju jedinstven `reference_code` pri kreiranju nacrta; slanje ide isključivo kroz jedinstveno M22 sanduče (poglavlje 8.8), sa `[REF: TT-NNNNNN]` u naslovu.
+- [ ] Test: `item_status` prelazi u `MODIFIED`/`CANCELLED` ispravno pokreće pripremu `SupplierChangeNotice` nacrta (poglavlje 8.8), odvojeno od revizije `SupplierManifest` (poglavlje 8.5).
+- [ ] Test: dolazna poruka u jedinstveno sanduče sa tačnim `[REF: TT-NNNNNN]` u naslovu se predlaže kao poklapanje sa odgovarajućim `SupplierManifest`/`SupplierChangeNotice`, ali `supplier_confirmed_at`/`by` ostaje prazno dok zaposleni eksplicitno ne klikne potvrdu — provereno da AI agent nema pristup akciji koja to polje popunjava.
+- [ ] Test: dolazna poruka bez prepoznate reference pada na fuzzy-match predlog (ime dobavljača/gosta/datumi), i dalje samo kao predlog, nikad automatski upis.
 
 ---
 

@@ -362,7 +362,7 @@ var NODES = [
     entities:["ProviderConfig","ProviderCallLog"]},
   {id:"m5",  code:"M5",  title:"Rezervacije",                 phase:"F1", chan:false, cel:"g2",
     desc:"Search → Ponuda → Potvrda → Upravljanje rezervacijom; jedino mesto koje pravi konačnu prodajnu cenu.",
-    entities:["Quote","Booking","BookingItem","MarkupRule","SupplierManifest"]},
+    entities:["Quote","Booking","BookingItem","MarkupRule","SupplierManifest","SupplierChangeNotice"]},
   {id:"m10", code:"M10", title:"Finansije",                   phase:"F2", chan:false, cel:"g4",
     desc:"Fakturisanje, fiskalizacija (SEF/ESIR), PDV po sistemu marže (organizator/posrednik), obaveze prema dobavljačima.",
     entities:["FiscalDocument","Payment","SupplierObligation"]},
@@ -415,7 +415,7 @@ var NODES = [
 
 var DEPS = [
   ["m2","m1"],["m3","m1"],["m3","m2"],["m4","m1"],["m4","m2"],
-  ["m5","m1"],["m5","m2"],["m5","m3"],["m5","m4"],
+  ["m5","m1"],["m5","m2"],["m5","m3"],["m5","m4"],["m5","m22"],
   ["m6","m1"],["m6","m5"],
   ["m7","m1"],["m7","m2"],["m7","m5"],["m7","m6"],["m7","m15"],
   ["m8","m1"],["m8","m2"],["m8","m5"],["m8","m6"],["m8","m10"],["m8","m20"],

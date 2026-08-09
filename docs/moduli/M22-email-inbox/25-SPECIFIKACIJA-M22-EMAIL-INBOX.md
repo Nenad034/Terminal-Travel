@@ -3,8 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M22) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna IT/pravna potvrda pre implementacije (poglavlje 10)
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodat eksplicitan kanal prikaza (poglavlje 1, M17) — ranija verzija je opisivala modul kao "poprečan kao M17/M18/M19/M21" u zaglavlju, ali nikad nije rekla kroz koji UI tim stvarno vidi svoj inbox, za razliku od M19/M21 koji to eksplicitno navode; nalaz iz revizije Master dokumenta (avgust 2026). v1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
-**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora), M17 (kanal — vidi poglavlje 1)
+**Verzija:** 1.2 — na zahtev vlasnika (avgust 2026), rešava problem #11: `EmailThread` dobija `related_supplier_manifest_id`/`related_supplier_change_notice_id`, novo poglavlje 3.1a (poklapanje po referentnom kodu `[REF: TT-NNNNNN]` za jedinstveno sanduče dobavljača, M5 poglavlje 8.8); v1.1 — dodat eksplicitan kanal prikaza (poglavlje 1, M17) — ranija verzija je opisivala modul kao "poprečan kao M17/M18/M19/M21" u zaglavlju, ali nikad nije rekla kroz koji UI tim stvarno vidi svoj inbox, za razliku od M19/M21 koji to eksplicitno navode; nalaz iz revizije Master dokumenta (avgust 2026). v1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora), M17 (kanal — vidi poglavlje 1); od avgusta 2026 i M5 (poglavlje 3.1a, `SupplierManifest`/`SupplierChangeNotice` reference)
 
 ---
 
@@ -65,6 +65,8 @@ Vlasnik `PERSONAL` sandučeta (`Mailbox.owner_user_id`) dobija `REPLY` automatsk
 | correspondent_client_account_id | UUID, nullable (FK → M6 `ClientAccount`) | popunjeno kad `correspondent_type = GUEST`/`SUBAGENT` i mejl adresa tačno poklopi postojeći profil |
 | correspondent_supplier_id | UUID, nullable (FK → M3 `Supplier`) | popunjeno kad `correspondent_type = SUPPLIER` |
 | related_booking_id | UUID, nullable (FK → M5 `Booking`) | opciono, ručno ili AI-predloženo povezivanje (poglavlje 3.2) |
+| related_supplier_manifest_id | UUID, nullable (FK → M5 `SupplierManifest`) | dopuna avgust 2026 (poglavlje 3.1a) — popunjeno kad je nit prepoznata kao odgovor na najavu rezervacije |
+| related_supplier_change_notice_id | UUID, nullable (FK → M5 `SupplierChangeNotice`) | dopuna avgust 2026 (poglavlje 3.1a) — popunjeno kad je nit prepoznata kao odgovor na najavu izmene/storna |
 | status | enum: `OPEN`, `AWAITING_REPLY`, `CLOSED` | |
 | converted_to_ticket_id | UUID, nullable (FK → M14 `Ticket`) | popunjeno kad tim konvertuje nit u formalni tiket (poglavlje 5) |
 | last_message_at | timestamp | |
@@ -92,6 +94,15 @@ Vlasnik `PERSONAL` sandučeta (`Mailbox.owner_user_id`) dobija `REPLY` automatsk
 
 Za razliku od M5 poglavlja 6.4 (fuzzy-match imena gosta pri otkazivanju) i M10 poglavlja 8.6.3 (fuzzy-match imena pri uvozu faktura), ovde je dostupan pouzdaniji identifikator — sama mejl adresa. `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se određuju **tačnim poklapanjem** `from_address` prve `INBOUND` poruke naspram M6 `GuestProfile.email`/`ClientAccount` kontakt mejla (subagent) i M3 `Supplier` kontakt mejla — nivo **"Autonomno"**, čista deterministička provera, bez poziva jezičkom modelu (isti princip kao M18 poglavlje 6.2, "Najvažniji nalaz"). Bez poklapanja, ostaje `correspondent_type = OTHER` dok se ručno ne poveže.
 
+### 3.1a Poklapanje po referentnom kodu za prepisku sa dobavljačima (dopuna, avgust 2026 — rešava problem #11, vidi M5 poglavlje 8.8)
+
+Za nit u sandučetu koje je označeno kao jedinstveno sanduče za dobavljače (M5 poglavlje 8.8), svaka nova `INBOUND` poruka se dodatno proverava na obrazac `[REF: TT-NNNNNN]` u naslovu i telu poruke, **pre** fuzzy-match pokušaja iz poglavlja 3.2. Ovo je pouzdaniji signal od bilo kog fuzzy-matching-a — isti princip kao broj tiketa u naslovu (M14) — jer referenca dolazi direktno od nas (upisana pri slanju, M5 poglavlje 8.8) i hotel je najčešće samo vraća neizmenjenu kroz "Reply".
+
+**Tok:**
+1. Ako se prepozna tačan `TT-NNNNNN` obrazac koji odgovara postojećem `SupplierManifest.reference_code` ili `SupplierChangeNotice.reference_code` (M5) — `related_supplier_manifest_id`/`related_supplier_change_notice_id` se popunjava kao **predlog**, nivo **"Autonomno"** za samo prepoznavanje/predlaganje (čisto informativno, ništa se još ne piše u M5 status).
+2. Ako referenca nije pronađena, pokušava se fuzzy-match po imenu dobavljača/gosta/datumima (isti obrazac kao poglavlje 3.2 i M5 poglavlje 6.4) — slabiji predlog, jasno obeležen u UI drugačije od poklapanja po referenci (npr. "predlog po sličnosti" naspram "tačna referenca").
+3. **Konačno postavljanje `BookingItem.supplier_confirmed_at`/`by` (M5)** zahteva eksplicitnu potvrdu zaposlenog kroz `M5/supplier-confirmation/CONFIRM` (M5 poglavlje 10) — M22 sam nikad ne piše u M5 status, samo predlaže vezu; potvrđeno sa vlasnikom da ovo važi bez obzira na pouzdanost poklapanja (poglavlje 3.1a se ovim namerno razlikuje od `related_booking_id` u poglavlju 3.2, gde je ceo predlog interan M22 podatak — ovde predlog prelazi granicu modula ka M5 stanju rezervacije, pa nosi isti oprez kao svaka druga izmena preko granice modula, princip #2 Master dokumenta).
+
 ### 3.2 Povezivanje sa rezervacijom — predlog, ne automatski upis
 
 AI agent sme da **predloži** `related_booking_id` (npr. na osnovu broja rezervacije pomenutog u tekstu poruke ili prepoznatih datuma/destinacije u kombinaciji sa već poznatim `correspondent_client_account_id`) — nivo **"Predloži pa čovek odobri"**, jer pogrešno povezivanje pokazuje timu pogrešan kontekst rezervacije pri odgovaranju. Ručna potvrda popunjava polje.
@@ -117,7 +128,7 @@ Kad zaposleni proceni da mejl zahteva formalno praćenje statusa (npr. reklamaci
 
 ## 6. Dobavljači u obimu (potvrđeno na zahtev vlasnika, avgust 2026)
 
-Prepiska sa dobavljačima (npr. slanje `SupplierManifest`-a i odgovori dobavljača, M5 poglavlje 8.4) ide kroz isti `Mailbox`/`EmailThread` model — `correspondent_type = SUPPLIER`. Ovo **ne zamenjuje** M5 `SupplierManifest` kao entitet (i dalje živi u M5, sa sopstvenim tokom slanja/potvrde) — M22 je samo transportni sloj u kom ta i svaka druga mejl prepiska sa dobavljačem fizički postoji, sa istom kontrolom pristupa i AI sažimanjem kao svako drugo sanduče.
+Prepiska sa dobavljačima (npr. slanje `SupplierManifest`-a i odgovori dobavljača, M5 poglavlje 8.4) ide kroz isti `Mailbox`/`EmailThread` model — `correspondent_type = SUPPLIER`. Ovo **ne zamenjuje** M5 `SupplierManifest` kao entitet (i dalje živi u M5, sa sopstvenim tokom slanja/potvrde) — M22 je samo transportni sloj u kom ta i svaka druga mejl prepiska sa dobavljačem fizički postoji, sa istom kontrolom pristupa i AI sažimanjem kao svako drugo sanduče. Od avgusta 2026 (poglavlje 3.1a), za tačno jedno sanduče (jedinstveno sanduče za dobavljače, M5 poglavlje 8.8) ovaj transportni sloj dodatno prepoznaje referentni kod i predlaže vezu nazad ka M5.
 
 **Razgraničenje od problema #9 (chat sa dobavljačima):** #9 traži poseban **real-time chat** kanal (desktop + mobilni) sa dobavljačima — to ostaje odvojen, budući gap (M22 ne uvodi real-time komunikaciju, samo email). Uključivanjem dobavljača ovde u obim email-a, deo operativne potrebe iz #9 je već pokriven (asinhrona prepiska); #9 ostaje otvoren isključivo za real-time deo.
 
@@ -149,6 +160,7 @@ Prefiks: `/api/v1/email`
 | `/threads/:id/messages/:messageId/send` | POST | ljudska potvrda slanja AI nacrta |
 | `/threads/:id/convert-to-ticket` | POST | konverzija u M14 `Ticket` (poglavlje 5), zahteva `CONVERT_TO_TICKET` |
 | `/threads/:id/link-booking` | POST | ručna potvrda `related_booking_id` (poglavlje 3.2) |
+| `/threads/:id/link-supplier-announcement` | POST | ručna potvrda `related_supplier_manifest_id`/`related_supplier_change_notice_id` (poglavlje 3.1a) — samo veza u M22; stvarno postavljanje M5 `supplier_confirmed_at` ide preko posebnog M5 endpoint-a (M5 poglavlje 8.8), zahteva `M5/supplier-confirmation/CONFIRM` |
 
 ---
 
@@ -162,6 +174,8 @@ Prefiks: `/api/v1/email`
 - [ ] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat.
 - [ ] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno.
 - [ ] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit.
+- [ ] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog.
+- [ ] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga.
 
 ---
 
