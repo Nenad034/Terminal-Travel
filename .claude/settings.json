@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit -m *)",
+      "Bash(git push)",
+      "Bash(git mv *)",
+      "Bash(git restore *)",
+      "Bash(sed -i *)",
+      "Bash(py *)",
+      "Bash(python3 *)",
+      "Bash(mkdir -p *)",
+      "Bash(unzip *)",
+      "Read(//c/Users/nenad/AppData/Local/Temp/**)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
