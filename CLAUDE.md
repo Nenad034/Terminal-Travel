@@ -1,6 +1,6 @@
 # CLAUDE.md — pročitaj ovo pre bilo kakvog rada na kodu
 
-Ovo je repozitorijum **Terminal** — poslovne platforme agencije Terminal Travel (TT). U ovoj fazi (jul 2026) repozitorijum sadrži **isključivo specifikaciju**, ne kod: Master arhitektonski dokument i Nivo 2 specifikaciju za 20 modula. Kad implementacija počne, ovo pravilo ostaje na snazi za sav kod koji se doda.
+Ovo je repozitorijum **Terminal** — poslovne platforme agencije Terminal Travel (TT). Od jula 2026 do avgusta 2026 repozitorijum je sadržao isključivo specifikaciju (Master arhitektonski dokument i Nivo 2 specifikaciju za module). **Implementacija je počela avgusta 2026, svesnom odlukom vlasnika, sa M1 (Core/Identitet) kao prvim modulom, po faznom planu (Faza 0).** Pravilo "nema koda bez oslonca u specifikaciji" ostaje na snazi za sav kod koji se dodaje — vidi "Tvrdo pravilo" ispod.
 
 Ovaj fajl važi za **svakog AI agenta ili saradnika**, ne samo za Claude Code — ista obaveza je već upisana u `docs/00-MASTER-ARHITEKTURA.md`, poglavlje 1: "Svaki AI agent ili saradnik koji radi na bilo kom delu sistema mora prvo pročitati ovaj dokument."
 
@@ -18,7 +18,14 @@ docs/
 ├── analize/                 ← dokumenti koji presecaju više modula (gap-analize, validacije, otvorena pravna pitanja)
 ├── api/M<broj>-<slug>.md    ← razvojna dokumentacija API-ja tog modula sa stvarnim primerima zahteva/odgovora (vidi "API dokumentacija i korisnička uputstva" ispod), nastaje kad modul dobije implementaciju, ne u fazi čiste specifikacije
 └── moduli/M<broj>-<slug>/   ← spec + sve vezano za taj modul (mape, mockupi), npr. moduli/M02-katalog-proizvoda/
+apps/                        ← implementacija, Nx monorepo (od avgusta 2026)
+├── api/                     ← NestJS backend, jedna aplikacija, moduli po M<broj> unutar src/modules/
+└── (web/, panel/... dodaju se kad M8/M9/M17 dođu na red — ne pre)
+packages/                    ← deljeni kod između apps/ (Prisma šema, zajednički TypeScript tipovi)
+docker-compose.yml           ← lokalno dev okruženje (Postgres); EU hosting provajder za produkciju NAMERNO nije izabran — pitati vlasnika pre nego što se bilo šta hostuje van lokalne mašine
 ```
+
+**Kod prati isti "nema bez oslonca u specifikaciji" princip kao dokumentacija.** Struktura `apps/api/src/modules/m<broj>-<slug>/` prati direktno strukturu iz `docs/moduli/` — svaki NestJS modul implementira tačno onu Nivo 2 specifikaciju čiji broj nosi, ništa van nje bez prethodne dopune spec-a.
 
 **Ubuduće, sve što se doda za konkretan modul (spec dopuna, vizuelna mapa, mockup, analiza) ide direktno u njegov `docs/moduli/M<broj>-.../` folder — ne u root.** Novi cross-modularni dokument ide u `docs/analize/`. Novi modul dobija svoj folder pod istim obrascem (vidi listu naziva u `docs/00-MASTER-ARHITEKTURA.md` poglavlje 4 za tačan `<slug>`).
 

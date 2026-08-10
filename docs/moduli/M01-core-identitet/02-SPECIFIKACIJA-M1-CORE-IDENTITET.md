@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
+**Verzija:** 1.3 — počela implementacija (avgust 2026, Faza 0): `apps/api/src/modules/m1-core-identitet/` — auth (login/MFA/refresh/lockout/reset), RBAC evaluacija uživo (§3.6), audit log (append-only trigerom, §3.8), users/roles/permission-override CRUD, seed 7 sistemskih uloga. Testirano uživo (login, pogrešna lozinka, RBAC odbijanje, append-only trigger). Ostaje: infrastruktura iz IaC koda (poglavlje 8, trenutno docker-compose je samo za lokalni razvoj), UI ekrani (poglavlje 7); v1.2 dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
 **Zavisi od:** — (temelj svih ostalih modula)
 
 ---

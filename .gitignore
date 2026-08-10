@@ -1,2 +1,11 @@
 .claude/settings.local.json
 /Primeri cenovnika/
+
+# Implementacija (avgust 2026 —)
+node_modules/
+dist/
+.env
+apps/api/generated/
+*.tsbuildinfo
+coverage/
+.nx/

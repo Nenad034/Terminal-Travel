@@ -1,0 +1,200 @@
+// Prisma šema — M1 (Core / Identitet i pristup)
+// Izvor: docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md, poglavlje 3
+// Ne dodavati polja/entitete bez oslonca u toj specifikaciji (CLAUDE.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// §3.1 `User` — nalog za prijavu
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String?   @map("password_hash") // null dok je status = INVITED (§5 — lozinka se postavlja preko linka)
+  fullName            String    @map("full_name")
+  phone               String?
+  accountType         AccountType @map("account_type")
+  linkedProfileId     String?   @map("linked_profile_id")
+  status              UserStatus @default(INVITED)
+  mfaEnabled          Boolean   @default(false) @map("mfa_enabled")
+  mfaSecretEncrypted  String?   @map("mfa_secret_encrypted")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  lastLoginAt         DateTime? @map("last_login_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  roles               UserRole[]
+  permissionOverrides UserPermissionOverride[] @relation("OverrideSubject")
+  grantedOverrides    UserPermissionOverride[] @relation("OverrideGrantedBy")
+  refreshTokens       RefreshToken[]
+  mfaRecoveryCodes    MfaRecoveryCode[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+// account_type §3.1 — dodavano kako su moduli dolazili na red (M15 Faza 7, M19 dopuna avgust 2026)
+enum AccountType {
+  STAFF
+  GUEST
+  SUBAGENT_CONTACT
+  AI_AGENT
+  SUPPLIER_CONTACT
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+// §3.2 `Role` — uloga
+model Role {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  description  String
+  isSystemRole Boolean  @default(true) @map("is_system_role")
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+// §3.3 `Permission` — katalog mogućih dozvola (svaki modul registruje svoje kad dođe na red)
+model Permission {
+  id          String @id @default(uuid())
+  module      String
+  resource    String
+  action      String
+  description String
+
+  rolePermissions     RolePermission[]
+  userPermissionOverrides UserPermissionOverride[]
+
+  @@unique([module, resource, action])
+  @@map("permissions")
+}
+
+// §3.4 `RolePermission` — podrazumevana prava po ulozi (uvek ALLOW)
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// §3.5 `UserRole` — dodela uloge korisniku
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedBy String   @map("assigned_by")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// §3.6 `UserPermissionOverride` — pojedinačni izuzetak (srž traženog "do nivoa stavke")
+model UserPermissionOverride {
+  id           String            @id @default(uuid())
+  userId       String            @map("user_id")
+  permissionId String            @map("permission_id")
+  effect       PermissionEffect
+  reason       String
+  grantedBy    String            @map("granted_by")
+  grantedAt    DateTime          @default(now()) @map("granted_at")
+  expiresAt    DateTime?         @map("expires_at")
+
+  user       User       @relation("OverrideSubject", fields: [userId], references: [id], onDelete: Cascade)
+  grantedByUser User    @relation("OverrideGrantedBy", fields: [grantedBy], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@map("user_permission_overrides")
+}
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+}
+
+// §3.7 `RefreshToken` (sesija)
+model RefreshToken {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  tokenHash  String    @map("token_hash")
+  issuedAt   DateTime  @default(now()) @map("issued_at")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// §5 — 10 jednokratnih rezervnih kodova pri uključivanju 2FA (hešovani)
+model MfaRecoveryCode {
+  id       String  @id @default(uuid())
+  userId   String  @map("user_id")
+  codeHash String  @map("code_hash")
+  usedAt   DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mfa_recovery_codes")
+}
+
+// §5 — "Zaboravljena lozinka: token sa rokom od 1h, poslat na email, jednokratan."
+// Entitet nije poimenično nabrojan u §3, ali ponašanje jeste — isti obrazac heša
+// kao RefreshToken/MfaRecoveryCode (čuva se heš, ne sirov token).
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// §3.8 `AuditLogEntry` — append-only (sprovedeno na nivou DB role, vidi migraciju)
+model AuditLogEntry {
+  id           String   @id @default(uuid())
+  timestamp    DateTime @default(now())
+  actorType    ActorType @map("actor_type")
+  actorId      String?  @map("actor_id")
+  module       String
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  beforeState  Json?    @map("before_state")
+  afterState   Json?    @map("after_state")
+  context      Json
+  ipAddress    String?  @map("ip_address")
+
+  @@map("audit_log_entries")
+}
+
+enum ActorType {
+  HUMAN
+  AI_AGENT
+  SYSTEM
+}

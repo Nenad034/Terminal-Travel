@@ -1,0 +1,21 @@
+# Lokalno razvojno okruženje. NAMERNO nema hosting-provajder konfiguraciju za
+# produkciju — vlasnik je tu odluku odložio (avgust 2026), podsetiti pre nego
+# što se bilo šta hostuje van ove lokalne mašine (vidi CLAUDE.md).
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: terminal
+      POSTGRES_PASSWORD: terminal_dev_only
+      POSTGRES_DB: terminal
+    ports:
+      # 5435 — ova mašina već ima više drugih Postgres instanci (nativan servis na
+      # 5432, i Docker kontejnere drugih, nepovezanih projekata na 5433/5434) —
+      # izabran prvi slobodan port da se izbegne bilo kakav konflikt/dodir.
+      - '5435:5432'
+    volumes:
+      - terminal_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  terminal_postgres_data:
