@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 7 (model upravljanja AI agentima), poglavlje 10 (mesečni pregled trendova) i `18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — audit cross-referenci (avgust 2026): `NotificationChannel.channel_type` zvanično dobija `IN_APP` (M19 poglavlje 3 već je na ovo računao otkad je M19 specificiran, ali ovaj dokument ga do sada nije zvanično dodao u sopstveni enum, samo je opisivao kao "buduću dopunu" sa pogrešnim imenom fajla) — poglavlje 3, izlazni kriterijum i "Otvoreno za dalje" usklađeni; v1.5 dodat `PAYMENT_DEADLINE_MISSED` signal (M10 poglavlje 5.4.3, probijen rok akontacije/balansa prema gostu/nalogodavcu, avgust 2026); v1.4 dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.7 — novo poglavlje 6.5: tvrdo ograničenje potrošnje AI u EUR (`AIProviderQuota.budget_limit_eur`/`consumed_eur`/`enforcement_state`, nova `AIAgentBudget` po pojedinačnom agentu) — kad se budžet dostigne, pozivi se prisilno degradiraju na `model_tier = LIGHT` umesto da se samo pošalje alarm kao ranije (poglavlje 6.4 ostaje čist alarm, ovo je dopuna, ne zamena); bezbednosno kritične akcije (6.2a) izuzete od degradacije; avgust 2026, na zahtev vlasnika; v1.6 — audit cross-referenci (avgust 2026): `NotificationChannel.channel_type` zvanično dobija `IN_APP` (M19 poglavlje 3 već je na ovo računao otkad je M19 specificiran, ali ovaj dokument ga do sada nije zvanično dodao u sopstveni enum, samo je opisivao kao "buduću dopunu" sa pogrešnim imenom fajla) — poglavlje 3, izlazni kriterijum i "Otvoreno za dalje" usklađeni; v1.5 dodat `PAYMENT_DEADLINE_MISSED` signal (M10 poglavlje 5.4.3, probijen rok akontacije/balansa prema gostu/nalogodavcu, avgust 2026); v1.4 dodat `HELP_AGENT_ABUSE_PATTERN` signal (M21 poglavlje 5.5, neuobičajen obrazac pitanja ka AI asistentu centra za pomoć); v1.3 dodat `LOW_CAPACITY_CRITICAL` signal (M3 poglavlje 4.3, alarm za nizak preostali kapacitet); v1.2 dodala per-provajder infrastrukturne metrike (poglavlje 2.3), bezbednosnu kategorizaciju signala (poglavlje 2.4), potrošnju po AI provajderu (poglavlje 6.4) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M15 (koristi njegov `AIAgent`/`AgentActionType` okvir). Čita signale iz svih ostalih modula (read-only, isti princip kao M13).
 
 ---
@@ -167,6 +167,37 @@ Pored `AgentInvocationLog` (poglavlje 6.3, praćenje po agentu), M18 agregira po
 
 Kad `consumed` dostigne `alert_threshold_percentage` od `quota_limit`, generiše se `HealthSignal` tipa `TOKEN_USAGE_ANOMALY` (poglavlje 2.1) — isti mehanizam kao postojeća anomalija potrošnje, samo na nivou provajdera umesto pojedinačnog agenta.
 
+**Napomena:** ovo poglavlje (do v1.6) je bilo isključivo alarm — `consumed` može preći `quota_limit` bez ikakve stvarne posledice na pozive, samo se šalje obaveštenje. Poglavlje 6.5 dodaje tvrdu granicu koja ovo ne zamenjuje, nego dopunjuje.
+
+### 6.5 Tvrdo ograničenje potrošnje u EUR (budžet, ne samo alarm)
+
+*(dodato v1.7, avgust 2026, na eksplicitan zahtev vlasnika)*
+
+Za razliku od `quota_limit` (poglavlje 6.4, koji može biti u tokenima ili trošku, zavisno od ugovora sa provajderom, i samo upozorava), ovo poglavlje uvodi **stvaran, u EUR izražen budžet sa automatskom posledicom** kad se dostigne, na dva nivoa istovremeno — globalno po AI provajderu i pojedinačno po agentu, jer se pokazalo da samo globalni nivo ne štiti od jednog agenta zaglavljenog u petlji (poglavlje 6.3).
+
+**Dopuna `AIProviderQuota` (poglavlje 6.4):**
+| Novo polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| budget_limit_eur | decimal, nullable | tvrd budžet za taj period, u EUR — odvojen od `quota_limit` (koji ostaje čisto informativan/ugovorni prag) |
+| consumed_eur | decimal | agregirano iz `AgentInvocationLog.estimated_cost` (poglavlje 6.3 — pojašnjeno ovom dopunom da je taj iznos uvek u EUR, ne u tokenima ni valuti provajdera) |
+| enforcement_state | enum: `NORMAL`, `DEGRADED` | `DEGRADED` kad `consumed_eur >= budget_limit_eur`; automatski se vraća na `NORMAL` na `period_start` narednog perioda |
+| degraded_at | timestamp, nullable | |
+
+**Nova `AIAgentBudget`** — isti mehanizam, na nivou pojedinačnog agenta (M15 `AIAgent`), ne samo provajdera:
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| agent_id | UUID (FK → M15 AIAgent) | |
+| period | enum: `DAILY`, `WEEKLY`, `MONTHLY` | |
+| budget_limit_eur | decimal | |
+| consumed_eur | decimal | agregirano iz `AgentInvocationLog` filtriranog po `agent_id` |
+| enforcement_state | enum: `NORMAL`, `DEGRADED` | |
+| period_start / period_end | date | |
+
+**Šta znači `DEGRADED`:** dok je provajder ili konkretan agent u tom stanju, svaki naredni poziv tog provajdera/agenta se **prisilno izvršava na `model_tier = LIGHT`** (poglavlje 6.1), bez obzira na nivo koji bi tabela 6.2 inače izabrala — AI asistencija ostaje dostupna, ne gasi se, samo je jeftinija/prostija dok se budžet ne resetuje ili Vlasnik/Direktor ručno ne vrati `enforcement_state` na `NORMAL` (nova dozvola `M18/ai-provider-quota/OVERRIDE`, poglavlje 7).
+
+**Izuzetak — bezbednosno kritične akcije se ne degradiraju.** Akcije koje po pravilu 6.2a zahtevaju bar `STANDARD`, podrazumevano `HEAVY` (bezbednost, PII, prevara) **zadržavaju taj zahtevani nivo i u `DEGRADED` stanju** — isti princip kao poglavlje 6.2a ("kad se rezultati dva kriterijuma razlikuju, primenjuje se jači od ta dva"), sad proširen i na budžetsko ograničenje: cena propuštene bezbednosne anomalije je veća od cene prekoračenja budžeta. Svaki poziv koji na ovaj način probije `DEGRADED` stanje generiše `HealthSignal` tipa `TOKEN_USAGE_ANOMALY` sa povišenim prioritetom (odvojivim od običnog 80%-upozorenja iz poglavlja 6.4) — Vlasnik mora znati da bezbednosni tok i dalje troši iznad budžeta, ne sme to ostati neprimećeno.
+
 ---
 
 ## 7. Dozvole (registruju se u M1 katalog dozvola)
@@ -180,6 +211,8 @@ Kad `consumed` dostigne `alert_threshold_percentage` od `quota_limit`, generiše
 | `M18/agent-invocation-log/VIEW` | Vlasnik, Direktor |
 | `M18/provider-health/VIEW` | Vlasnik, Direktor |
 | `M18/ai-provider-quota/VIEW` | Vlasnik, Direktor |
+| `M18/ai-provider-quota/OVERRIDE` *(dodato v1.7)* | Vlasnik, Direktor — ručni povratak iz `DEGRADED` u `NORMAL` pre isteka perioda (poglavlje 6.5) |
+| `M18/ai-agent-budget/VIEW`, `EDIT` *(dodato v1.7)* | Vlasnik, Direktor |
 
 ---
 
@@ -204,6 +237,8 @@ Prefiks: `/api/v1/ops`
 | `/agent-invocations` | GET | log potrošnje, filtriran po agentu/periodu |
 | `/provider-health` | GET | trenutni `ProviderHealthSnapshot` po provajderu (poglavlje 2.3) |
 | `/ai-provider-quota` | GET | trenutna potrošnja naspram limita po AI provajderu (poglavlje 6.4) |
+| `/ai-provider-quota/:id/override` | POST | ručan povratak iz `DEGRADED` u `NORMAL` pre isteka perioda (poglavlje 6.5), zahteva `OVERRIDE` dozvolu |
+| `/ai-agent-budgets` | GET / POST / PATCH | budžet po pojedinačnom agentu (poglavlje 6.5) |
 
 ---
 
@@ -218,6 +253,9 @@ Prefiks: `/api/v1/ops`
 - [ ] Provajder čiji `uptime_percentage`/`error_count_last_hour` pređe konfigurabilni prag prelazi u `UNSTABLE`/`OFFLINE` i generiše `PROVIDER_DEGRADED` signal (poglavlje 2.3).
 - [ ] `HealthSignal` tipa `AUTH_ANOMALY` ima popunjen `security_category = AUTH` (poglavlje 2.4).
 - [ ] Potrošnja tokena agregirana po AI provajderu generiše upozorenje na `alert_threshold_percentage` (podrazumevano 80%) od `quota_limit` (poglavlje 6.4).
+- [ ] Kad `AIProviderQuota.consumed_eur` dostigne `budget_limit_eur`, `enforcement_state` prelazi u `DEGRADED` i svaki naredni poziv tog provajdera se izvršava na `model_tier = LIGHT`, osim akcija koje po poglavlju 6.2a zahtevaju bar `STANDARD`/`HEAVY` — te zadržavaju svoj nivo i generišu povišeni `TOKEN_USAGE_ANOMALY` signal (poglavlje 6.5).
+- [ ] Isto pravilo važi nezavisno na nivou `AIAgentBudget` — jedan agent u petlji prelazi u sopstveni `DEGRADED` bez čekanja da cela potrošnja provajdera dostigne globalni budžet.
+- [ ] `enforcement_state` se automatski vraća na `NORMAL` na `period_start` narednog perioda; ručni povratak pre isteka radi isključivo preko `M18/ai-provider-quota/OVERRIDE` dozvole i ostavlja trag u `AuditLogEntry` (M1).
 
 ---
 
@@ -225,3 +263,5 @@ Prefiks: `/api/v1/ops`
 
 - Dodavanje `VIBER`/`WHATSAPP` kanala — kad se odluka donese, isti obrazac kao `TELEGRAM`/`EMAIL`.
 - Tačan prag za "neuobičajen skok" po tipu signala (koliko grešaka u kom periodu je "previše") — podešava se empirijski kad sistem počne da radi u produkciji, ne unapred nagađa.
+- Konkretan iznos `budget_limit_eur` (globalno i po agentu) i period (`DAILY`/`WEEKLY`/`MONTHLY`) — poslovna odluka vlasnika pri implementaciji, ne pretpostavlja se u specifikaciji (poglavlje 6.5).
+- Da li bezbednosno kritične akcije (izuzete od degradacije, poglavlje 6.5) treba da imaju sopstveni, odvojeni budžet umesto deljenja istog sa običnim agentima — razmotriti ako se pokaže da izuzetak redovno probija ukupni budžet.

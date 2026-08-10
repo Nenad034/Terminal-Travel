@@ -1,11 +1,11 @@
 ---
 name: tt-m18-operativni-nadzor
-description: Terminal Travel modul M18 (Operativni nadzor i AI optimizacija) — praćenje signala kvarova kroz sve module, obaveštenja (Telegram/email), praćenje trendova, model-tiering. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
+description: Terminal Travel modul M18 (Operativni nadzor i AI optimizacija) — praćenje signala kvarova kroz sve module, obaveštenja (Telegram/email), praćenje trendova, model-tiering, tvrd EUR budžet za AI potrošnju sa automatskom degradacijom. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
 ---
 
 # M18 — Operativni nadzor i AI optimizacija
 
-Praćenje signala kvarova kroz sve module, obaveštenja (Telegram/email), praćenje trendova, model-tiering.
+Praćenje signala kvarova kroz sve module, obaveštenja (Telegram/email), praćenje trendova, model-tiering, tvrd EUR budžet za AI potrošnju sa automatskom degradacijom na jeftiniji model (poglavlje 6.5, dodato avgust 2026).
 
 **Zavisi od:** M1, M15 (delimično nezavisno)
 

@@ -153,6 +153,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
 - Dodavanje `VIBER`/`WHATSAPP` kanala obaveštenja.
 - Tačan prag za "neuobičajen skok" po tipu signala — podešava se empirijski u produkciji.
+- Konkretan iznos `budget_limit_eur` (globalno i po agentu) i period — poslovna odluka pri implementaciji (§6.5).
+- Da li bezbednosno kritične akcije treba da imaju sopstveni, odvojeni budžet umesto deljenog (§6.5).
 
 ## M19 — Komunikaciona platforma
 *(§11, `docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md`)*
