@@ -3,7 +3,7 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu), kasnije M7 (B2B portal), M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
-**Verzija:** 1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
+**Verzija:** 1.2 — dodato poglavlje 3a (ikonografija — Codicons, rešava ranije otvoreno pitanje) i poglavlje 6 (sadržaj centralnog panela: isticanje pozadinom teksta, kartice, suptilne animacije), proširen opis bočne trake stablo-strukturom (poglavlje 5), sve na zahtev vlasnika (avgust 2026); v1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
 
 ---
 
@@ -42,6 +42,14 @@ Tačne HEX vrednosti nisu fiksirane ovim dokumentom — biraju se/fino podešava
 
 ---
 
+## 3a. Ikonografija
+
+*(dodato avgust 2026, na zahtev vlasnika — rešava ranije otvoreno pitanje "ikonski set", poglavlje 8)*
+
+**Codicons** — zvanična, open-source ikonska biblioteka VS Code-a (MIT licenca, `@vscode/codicons`). Izbor nije slučajan imitator VS Code stila — to je doslovno isti izvor, pa je vizuelni jezik dosledan sa referencom koju vlasnik navodi, ne približna kopija. Tanke linije, jednobojne (prate trenutnu boju teksta, ne nose sopstvenu paletu), minimalističke — bez punih, "flat design" ilustrativnih ikonica.
+
+---
+
 ## 4. Glavni obrazac interakcije — komandna paleta (`Ctrl+K` / `Cmd+K`)
 
 Ovo **nije nova ideja** — ovo je vizuelna/interakciona realizacija onoga što M17 spec već zove *omnisearch* (poglavlje 5.5) i M15 poglavlje 6.5 već definiše kao deljen mehanizam. Ovaj dokument ne menja to ponašanje, samo mu daje konkretan oblik:
@@ -57,15 +65,22 @@ Ovo je i doslovno ono što vlasnik opisuje kao "skrivene naredbe za pokretanje m
 
 ## 5. Raspored ekrana (layout)
 
-- **Tanka bočna traka, samo ikonice** — moduli prikazani kao ikonice, ne puni nazivi; širi se na hover/klik. Moduli koji još nisu implementirani prikazuju se zaključani sa oznakom faze (M17 spec, poglavlje 7 — ovo već postoji kao ideja, samo se sad formalizuje vizuelno).
+- **Tanka bočna traka, samo ikonice** — moduli prikazani kao ikonice (Codicons, poglavlje 3a), ne puni nazivi; širi se na hover/klik. Moduli koji još nisu implementirani prikazuju se zaključani sa oznakom faze (M17 spec, poglavlje 7 — ovo već postoji kao ideja, samo se sad formalizuje vizuelno).
+- **Stablo-struktura unutar bočne trake, kad se proširi** — hijerarhijski odnosi (npr. modul → njegove pod-sekcije) prikazani istim vizuelnim jezikom kao VS Code Explorer/Source Control prikaz: tanke vertikalne linije koje povezuju ugnježđene stavke, strelice/ševroni (`chevron-right`/`chevron-down` iz Codicons) za sklapanje/rasklapanje grana, ne pune ilustracije ili boje po nivou.
 - **Gornja traka minimalna, jedna tanka linija** — bez gomile vidljivih dugmića; sve "teško" ide kroz komandnu paletu (poglavlje 4), ne kroz vidljive menije.
 - **Sadržaj u fokusu** — veći deo ekrana ostaje prazan/posvećen sadržaju, ne navigaciji.
 
 ---
 
-## 6. Pokret / mikro-interakcije
+## 6. Sadržaj centralnog panela — isticanje, kartice, pokret
 
-Suptilno i brzo — bez upadljivih animacija. Brzina i nisko kognitivno opterećenje imaju prioritet nad vizuelnim efektom (isti princip kao poglavlje 1).
+*(dodato avgust 2026, na zahtev vlasnika)*
+
+Centralni panel (glavni radni prostor, ne bočna traka) prati vizuelne konvencije VS Code editora, primenjene na poslovni sadržaj umesto na kod:
+
+- **Bojenje pozadine teksta za isticanje** — isti princip kao highlight rezultata pretrage ili inline dijagnostika u VS Code editoru: deo teksta koji zahteva pažnju (npr. razlog odbijanja, promenjeno polje u pre/posle prikazu audit loga, upozorenje o roku) dobija blagu pozadinsku boju iza samog teksta, ne posebnu ikonicu/banner pored njega. Boja isticanja izvedena iz akcentne (poglavlje 2) ili iz standardnih semantičkih boja (upozorenje/greška/uspeh) — nikad proizvoljna paleta po ekranu.
+- **Kartice za grupisan sadržaj** — blokovi informacija (npr. jedan `UserPermissionOverride` zapis, jedan red audit loga kad se proširi) prikazani kao odvojene kartice sa blago drugačijom pozadinom od okolnog prostora — isti utisak kao VS Code hover/peek prikaz, ne pune tabele sa linijama svuda.
+- **Animacije — suptilne i brze, nikad ukrasne same sebi.** Otvaranje/zatvaranje kartice, prelazak fokusa, pojavljivanje komandne palete (poglavlje 4) — kratki, brzi prelazi (isti utisak kao VS Code editor: momentalno, ne "leprša"). Brzina i nisko kognitivno opterećenje imaju prioritet nad vizuelnim efektom (isti princip kao poglavlje 1) — animacija potvrđuje da se nešto desilo, ne zabavlja korisnika.
 
 ---
 
@@ -79,5 +94,5 @@ Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženj
 
 - Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, uz proveru kontrasta/pristupačnosti.
 - Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 (subagenti su takođe redovni, profesionalni korisnici) ili prilagođenu, jednostavniju verziju — otvoreno dok M7 UI ne dođe na red.
-- Ikonski set (koja biblioteka ikonica) — bira se pri implementaciji.
 - Da li izbor tamnog/svetlog moda treba da se sinhronizuje preko više uređaja po nalogu (zahteva backend polje, npr. na M1 `User`) ili ostaje lokalno po uređaju — v1 pretpostavlja lokalno, revidira se ako se pokaže potreba.
+- Tačna paleta semantičkih boja za isticanje teksta (poglavlje 6) — upozorenje/greška/uspeh — bira se zajedno sa HEX vrednostima palete.

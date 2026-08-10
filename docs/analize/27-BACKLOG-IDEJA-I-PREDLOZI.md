@@ -204,8 +204,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)*
 - Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana.
 - Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 ili prilagođenu verziju.
-- Ikonski set (biblioteka ikonica) — bira se pri implementaciji.
 - Da li izbor tamnog/svetlog moda treba sinhronizaciju preko uređaja (backend polje) ili ostaje lokalno.
+- Tačna paleta semantičkih boja za isticanje teksta (upozorenje/greška/uspeh) — bira se sa HEX vrednostima.
 
 ---
 
