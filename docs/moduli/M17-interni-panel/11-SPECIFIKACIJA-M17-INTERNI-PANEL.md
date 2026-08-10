@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — dodat glasovni unos za omnisearch (poglavlje 5.5), na zahtev vlasnika (avgust 2026) — dopunjuje M15 poglavlje 6.6, prvi kanal koji dobija ovu opciju; v1.3 ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Verzija:** 1.5 — rešena stavka "izgled/UX van obima" (poglavlje 8) — sad upućuje na `docs/analize/29-DIZAJN-SISTEM-UI.md`, na zahtev vlasnika (avgust 2026); v1.4 — dodat glasovni unos za omnisearch (poglavlje 5.5), na zahtev vlasnika (avgust 2026) — dopunjuje M15 poglavlje 6.6, prvi kanal koji dobija ovu opciju; v1.3 ažurirana lista modula koje panel implicitno prikazuje (dodati M21, M22 — nalaz iz revizije Master dokumenta, avgust 2026, ova lista nije praćena kad su ta dva modula dodata); v1.2 dodato poglavlje 5.5 (univerzalna pretraga i AI razgovor — omnisearch), na zahtev vlasnika (avgust 2026), dopunjuje M15 poglavlje 6.5; v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1, M15 (poglavlje 5.5, omnisearch; poglavlje 6.6, glasovni modalitet). Implicitno od API-ja svakog modula koji prikazuje (M2, M3, M5, M6, M7, M9, M10, M11, M12, M13, M14, M16, M18, M19, M20, M21, M22 do sad specificirani).
 
 ---
@@ -96,4 +96,4 @@ Pošto M17 raste sa fazama, izlazni kriterijum je vezan za svaku fazu, ne za jed
 ## 8. Otvoreno za dalje
 
 - Ako se agregacija upozorenja (poglavlje 5) pokaže nedovoljnom kad broj modula poraste (posebno posle M12/M13/M14), razmotriti zaseban modul za notifikacije/podsetnike sa sopstvenim pravilima prioriteta — trenutno namerno nije uveden dok ne postoji stvarna potreba.
-- Tačan izgled/UX (raspored menija, boje, itd.) — dizajnersko pitanje van obima ove specifikacije.
+- ~~Tačan izgled/UX (raspored menija, boje, itd.) — dizajnersko pitanje van obima ove specifikacije.~~ **Rešeno (avgust 2026)**: `docs/analize/29-DIZAJN-SISTEM-UI.md` — paleta boja, tipografija, komandna paleta (`Ctrl+K`) kao vizuelna realizacija omnisearch-a (poglavlje 5.5), raspored bočne trake. Tačne HEX vrednosti i dalje čekaju prvi stvarni ekran (vidi taj dokument, poglavlje 8).

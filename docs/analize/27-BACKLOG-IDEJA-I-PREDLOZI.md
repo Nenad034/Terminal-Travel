@@ -151,7 +151,6 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
-- Tačan izgled/UX (raspored menija, boje) — dizajnersko pitanje.
 
 ## M18 — Operativni nadzor i AI optimizacija
 *(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
@@ -200,6 +199,13 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Tačan prag/algoritam za grupisanje ponovljenih `QUESTION_GAP` pitanja na istu temu.
 - Da li `Article` za destinaciju/zemlju treba hijerarhiju (država sadrži destinacije) ili ravna lista sa filterom je dovoljna.
 - Tačan mehanizam kojim AI "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API) — može zahtevati proveru uslova korišćenja platforme.
+
+## Dizajn sistem UI (cross-modularno)
+*(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)*
+- Tačne HEX vrednosti palete — biraju se pri izradi prvog stvarnog ekrana.
+- Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 ili prilagođenu verziju.
+- Ikonski set (biblioteka ikonica) — bira se pri implementaciji.
+- Svetla tema — čeka stvarnu potrebu, nije pretpostavljena.
 
 ---
 
