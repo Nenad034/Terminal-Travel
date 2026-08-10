@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M4) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — raniji "Travelgate predlog" pomenut u Master dokumentu nije pronađen)
-**Verzija:** 1.4 — poglavlje 5a dopunjeno stvarnim, potvrđenim WSDL/parametrima (strog redosled polja, `countryKey`/`regionKey`, diffgram odgovor, nepouzdano server-side filtriranje) posle izolovanog spike testa uživo protiv Solvex-a — prvobitni "flat" primer iz javne Solvex dokumentacije se pokazao netačnim; dodat otvoren zapis o nedostajućem `NormalizedSearchResult` polja-skupu (poglavlje 9); avgust 2026, na zahtev vlasnika; v1.3 — dodat Solvex (Master-Interlook) kao drugi HOTEL adapter uz Travelgate (poglavlje 5a), na osnovu ranijeg PrimeTravel rada na istoj integraciji; dodata `SESSION_TOKEN` auth strategija (poglavlje 2.2) koju Travelgate/OAuth2 model nije pokrivao; avgust 2026, na zahtev vlasnika; v1.2 — dodato `ProviderConfig.default_tip_nastupanja` (poglavlje 3.1), isto rešenje kao M3 poglavlje 2.2a, za API-sourced proizvode bez ugovora u M3 (avgust 2026, na zahtev vlasnika); v1.1 dodato: tipizirane greške, pluggable auth strategije, circuit breaker, deklarativni profil mogućnosti provajdera — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.5 — definisan `NormalizedSearchResult` (poglavlje 2.1, ranije samo pominjan kao tip); novo poglavlje 2.4 (keširanje šifarnika + gornja granica veličine rezultata pretrage, radi troška poziva i tokena AI agenata); ispravljen `ProviderConfig.auth_strategy` enum (nedostajao `SESSION_TOKEN`, poglavlje 3.1); avgust 2026, na zahtev vlasnika; v1.4 — poglavlje 5a dopunjeno stvarnim, potvrđenim WSDL/parametrima (strog redosled polja, `countryKey`/`regionKey`, diffgram odgovor, nepouzdano server-side filtriranje) posle izolovanog spike testa uživo protiv Solvex-a — prvobitni "flat" primer iz javne Solvex dokumentacije se pokazao netačnim; dodat otvoren zapis o nedostajućem `NormalizedSearchResult` polja-skupu (poglavlje 9); avgust 2026, na zahtev vlasnika; v1.3 — dodat Solvex (Master-Interlook) kao drugi HOTEL adapter uz Travelgate (poglavlje 5a), na osnovu ranijeg PrimeTravel rada na istoj integraciji; dodata `SESSION_TOKEN` auth strategija (poglavlje 2.2) koju Travelgate/OAuth2 model nije pokrivao; avgust 2026, na zahtev vlasnika; v1.2 — dodato `ProviderConfig.default_tip_nastupanja` (poglavlje 3.1), isto rešenje kao M3 poglavlje 2.2a, za API-sourced proizvode bez ugovora u M3 (avgust 2026, na zahtev vlasnika); v1.1 dodato: tipizirane greške, pluggable auth strategije, circuit breaker, deklarativni profil mogućnosti provajdera — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -35,7 +35,8 @@ interface ProviderAdapter {
 
 ### 2.1 Normalizovani oblici (interni, provajder-nezavisni)
 
-- **`NormalizedContent`** — isti oblik kao `Product` + `ProductTranslation` iz M2 (naziv, opis, slike, lokacija, atributi po tipu). M4 vraća ovaj oblik direktno M2-u za lenjo keširanje (vidi M2 spec, poglavlje 3.2) — nema prevođenja "na pola puta".
+- **`NormalizedSearchResult`** *(polja definisana v1.5, na osnovu nalaza iz Solvex spike testa — ranije samo pominjano kao tip bez skupa polja)* — `{ externalId, providerCode, category, name, locationSummary, priceFrom, currency, thumbnailUrl, starRating, quotaStatus: "AVAILABLE" | "ON_REQUEST" | "STOP_SALES" }`. Namerno **tanak** oblik — lista rezultata pretrage nikad ne nosi pun opis/sve slike/sve atribute (to je `NormalizedContent`, poglavlje ispod). `starRating` je `null` kad provajder ne vraća pouzdan podatak (npr. Solvex, gde se broj zvezda izvlači heuristikom iz teksta — poglavlje 5a) — adapter nikad ne pretpostavlja `0` kao da znači "bez zvezda", to bi bio netačan podatak predstavljen kao tačan. Razlog za tanak oblik je direktno vezan za poglavlje 2.4 — manje polja po stavci znači manje tokena kad god se rezultat pretrage na kraju pojavi u kontekstu AI agenta.
+- **`NormalizedContent`** — isti oblik kao `Product` + `ProductTranslation` iz M2 (naziv, opis, slike, lokacija, atributi po tipu). M4 vraća ovaj oblik direktno M2-u za lenjo keširanje (vidi M2 spec, poglavlje 3.2) — nema prevođenja "na pola puta". Za razliku od `NormalizedSearchResult`, ovo se povlači samo za jedan konkretan proizvod kad je stvarno potreban pun prikaz, nikad za celu listu rezultata pretrage.
 - **`AvailabilityQuote`** — `{ externalId, priceAmount, currency, availableUnits, cancellationPolicy, quoteExpiresAt }`. Nikad se ne čuva trajno kao cena proizvoda (u skladu sa M2 spec, poglavlje 4) — koristi se odmah ili se odbacuje.
 - **`BookingConfirmation`** — `{ providerBookingReference, status: "CONFIRMED" | "PENDING_SUPPLIER_CONFIRMATION" | "FAILED", confirmedPrice, confirmedAt }`. Status `PENDING_SUPPLIER_CONFIRMATION` postoji jer neki spoljni hoteli (baš kao `ON_REQUEST` alotman u M3) ne potvrđuju rezervaciju odmah — M5 tretira ovo isto kao "na čekanju" status, bez obzira da li dolazi iz M3 ili M4.
 
@@ -59,6 +60,18 @@ Svaki adapter deklariše koju strategiju koristi (`ProviderConfig.auth_strategy`
 
 Svaki `ProviderConfig` nosi `capabilities_profile` (JSONB) — deklarativan, statički opis šta taj provajder podržava/ograničava (npr. `{ maxResultsPerSearch: 50, supportsCancelBooking: true, rateLimit: "100/min" }`). M4 čita ovo pre poziva da izbegne slanje operacije koju provajder ne podržava ili prekoračenje njegovog rate limit-a, umesto da to otkriva tek iz greške odgovora. Potvrđeno poređenjem sa PrimeTravel `.profile.json` obrascem po adapteru (isti izvor kao 2.2).
 
+### 2.4 Efikasnost — keširanje i ograničenje veličine, radi troška poziva i tokena AI agenata
+
+*(dodato v1.5, avgust 2026, na eksplicitan zahtev vlasnika — adapter mora biti optimizovan, ne samo funkcionalan)*
+
+M4 je jedina tačka u sistemu koja zna koliko "skup" (latencija, rate limit, veličina odgovora) svaki spoljni poziv stvarno jeste — zato ovde, ne u M2/M5/M15, žive sledeća pravila:
+
+- **Keširanje šifarnika po provajderu.** Podaci koji se retko menjaju (države, gradovi, tipovi soba, pansioni i sl.) keširaju se na nivou adaptera sa TTL-om (npr. 24h), ne pozivaju se iznova pri svakoj pretrazi. Ovo je odvojeno od M2 lenjog keširanja `NormalizedContent` (poglavlje 2.1, poglavlje 3.2 M2 spec) — ovde je reč o sirovim rečnicima provajdera, pre normalizacije.
+- **Gornja granica veličine rezultata pretrage.** `search()` nikad ne vraća više stavki od `capabilities_profile.maxResultsPerSearch` (poglavlje 2.3) — M4 seče na tu granicu **pre** vraćanja pozivaocu, ne posle. Podrazumevana vrednost ako provajder ne deklariše svoju: 50.
+- **`NormalizedSearchResult` je namerno tanak oblik** (poglavlje 2.1) — lista rezultata pretrage nikad ne nosi pun opis, sve slike ili sve atribute. Pun sadržaj (`NormalizedContent`) povlači se tek za jedan konkretan proizvod, kad je stvarno potreban, nikad unapred za celu listu "za svaki slučaj".
+- **AI agenti nikad ne vide sirov odgovor provajdera.** M4 interni endpoint-i pozivaju isključivo M2/M5 (poglavlje 6) — čak i kad M15 agent (npr. omnisearch, M15 poglavlje 6.5/6.6) na kraju sumira ponudu gostu, on radi nad već normalizovanim, tankim oblikom koji je prošao kroz ovo poglavlje, nikad nad sirovim GraphQL/SOAP payload-om. Ovo je postojeća granica arhitekture (princip #2, Master dokument), ovde samo eksplicitno povezana sa ciljem "manje tokena po pozivu".
+- **`ProviderCallLog.request_summary` ostaje sažet, ne pun payload** (već propisano poglavljem 3.2) — ova stavka postoji radi potpunosti, isti razlog (trošak/veličina) važi i za operativni log, ne samo za odgovor koji ide dalje kroz sistem.
+
 ---
 
 ## 3. Model podataka
@@ -71,8 +84,8 @@ Svaki `ProviderConfig` nosi `capabilities_profile` (JSONB) — deklarativan, sta
 | display_name | string | |
 | category | enum (vidi 2.) | |
 | auth_config_encrypted | string | API ključevi/endpoint, enkriptovano u mirovanju; stvarni sekret nikad u kodu ili plain konfiguraciji (poglavlje 9) |
-| auth_strategy | enum: `API_KEY`, `BASIC`, `OAUTH2_CLIENT_CREDENTIALS`, `REQUEST_SIGNING` | koju `AuthStrategy` implementaciju adapter koristi (poglavlje 2.2) |
-| capabilities_profile | JSONB | deklarativni opis mogućnosti/ograničenja provajdera (poglavlje 2.3) |
+| auth_strategy | enum: `API_KEY`, `BASIC`, `OAUTH2_CLIENT_CREDENTIALS`, `REQUEST_SIGNING`, `SESSION_TOKEN` | koju `AuthStrategy` implementaciju adapter koristi (poglavlje 2.2) |
+| capabilities_profile | JSONB | deklarativni opis mogućnosti/ograničenja provajdera, uključujući `maxResultsPerSearch` (podrazumevano 50 ako nije eksplicitno postavljeno — poglavlje 2.4) (poglavlje 2.3) |
 | status | enum: `ACTIVE`, `INACTIVE` | isključivanje provajdera bez brisanja konfiguracije |
 | timeout_search_ms / timeout_booking_ms | integer | po provajderu — pretraga sme kraće da čeka od potvrde rezervacije |
 | circuit_state | enum: `CLOSED`, `OPEN`, `HALF_OPEN` | vidi poglavlje 4.1 — `CLOSED` podrazumevano |
@@ -198,6 +211,9 @@ Prefiks: `/api/v1/integrations`
 - [ ] `ProviderConfig` ne može preći u `ACTIVE` bez popunjenog `default_tip_nastupanja` (poglavlje 3.1), isto sprovođenje kao M3 `Contract`.
 - [ ] Solvex adapter implementiran, ispunjava `ProviderAdapter` interfejs u potpunosti (poglavlje 5a); `SESSION_TOKEN` strategija ispravno osvežava token po grešci tipa "nevažeći token", ne na fiksni raspored.
 - [ ] Solvex `QuotaType = 0` ("na zahtev") mapira se u `BookingConfirmation.status = PENDING_SUPPLIER_CONFIRMATION`, isto ponašanje kao `ON_REQUEST` alotman u M3 — provereno da M5 ne pravi razliku po poreklu.
+- [ ] Šifarnici (države/gradovi/tipovi soba/pansioni) se keširaju po provajderu i ne pozivaju se iznova pri svakoj pretrazi (poglavlje 2.4) — test: dva uzastopna `search()` poziva u istom TTL prozoru ne generišu dva poziva ka spoljnom šifarniku.
+- [ ] `search()` nikad ne vraća više od `capabilities_profile.maxResultsPerSearch` stavki (podrazumevano 50), sečenje se dešava u M4 pre vraćanja pozivaocu.
+- [ ] `NormalizedSearchResult` sadrži tačno definisan, tanak skup polja (poglavlje 2.1) — test: veličina serijalizovanog odgovora `search()` za 50 rezultata ostaje u razumnoj, dokumentovanoj granici (definiše se konkretan broj pri implementaciji), ne raste linearno sa punim sadržajem svakog hotela.
 
 ---
 
@@ -208,4 +224,5 @@ Prefiks: `/api/v1/integrations`
 - Ako se pronađe raniji "Travelgate predlog" pomenut u Master dokumentu, ovaj dokument treba uporediti sa njim i uskladiti razlike, ne pisati dva paralelna izvora istine za M4.
 - **Solvex produkcijski pristup** — test kredencijali (avgust 2026) su potvrđeno aktivni, ali produkcioni URL/kredencijali nisu dobijeni; `ProviderConfig.status` ostaje `INACTIVE` do tada.
 - **Dedup istog fizičkog hotela preko više provajdera** (Travelgate i Solvex mogu vratiti isti hotel sa različitim `externalId`) — M2 trenutno nema definisan mehanizam mapiranja/spajanja (npr. GIATA-stil mapiranje, korišćeno u PrimeTravel-u); dok se ne reši, tretiraju se kao dva odvojena `Product` zapisa dok se svesno ne doda dedup sloj.
-- **`NormalizedSearchResult` nema definisan skup polja** u ovoj specifikaciji (poglavlje 2, samo se pominje kao tip) — za razliku od `NormalizedContent`/`AvailabilityQuote`/`BookingConfirmation`, koji ga imaju. Dopuniti pre nego što se piše prvi adapter, na osnovu stvarnih polja koja i Travelgate i Solvex mogu da popune (nalaz iz spike testiranja Solvex-a, avgust 2026).
+- Tačan TTL keša šifarnika po provajderu (poglavlje 2.4) — 24h je polazna pretpostavka, dorađuje se pri implementaciji ako se pokaže da se šifarnici nekog provajdera menjaju češće.
+- Ostali PrimeTravel provajderi (ORS, MTS Globe, Amadeus, Travelport, Duffel...) se namerno ne dodaju u M4 dok ne postoji potvrđena poslovna potreba (stvaran ugovor/odnos) — Travelgate + Solvex su dovoljna dva strukturno različita primera da su validirali `ProviderAdapter` ugovor; dodavanje bez potrebe bi bilo isto širenje obima bez svrhe koje je PrimeTravel iskustvo pokazalo kao problem.

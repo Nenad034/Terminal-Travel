@@ -54,6 +54,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Tačni rate-limit po provajderu — definišu se kad se zna stvarni Travelgate ugovor.
 - Solvex produkcijski pristup (URL/kredencijali) — nije dobijen, test kredencijali potvrđeno aktivni (avgust 2026).
 - Dedup istog fizičkog hotela preko više provajdera (Travelgate + Solvex) — nema definisan mehanizam mapiranja.
+- Tačan TTL keša šifarnika po provajderu (§2.4) — 24h polazna pretpostavka, dorađuje se pri implementaciji.
+- Ostali PrimeTravel provajderi (ORS, MTS Globe, Amadeus, Travelport, Duffel...) namerno nisu dodati bez potvrđene poslovne potrebe.
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
