@@ -1,11 +1,11 @@
 ---
 name: tt-m4-integracije-api
-description: Terminal Travel modul M4 (Integracije spoljnih API konekcija) — Travelgate (hoteli), budući avio/GDS, transferi, aktivnosti — sloj adaptera ka spoljnim provajderima. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
+description: Terminal Travel modul M4 (Integracije spoljnih API konekcija) — Travelgate i Solvex/Master-Interlook (hoteli), budući avio/GDS, transferi, aktivnosti — sloj adaptera ka spoljnim provajderima. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
 ---
 
 # M4 — Integracije spoljnih API konekcija
 
-Travelgate (hoteli), budući avio/GDS, transferi, aktivnosti — sloj adaptera ka spoljnim provajderima.
+Travelgate i Solvex/Master-Interlook (hoteli, poglavlje 5a — SOAP, drugi HOTEL adapter, dodato avgust 2026), budući avio/GDS, transferi, aktivnosti — sloj adaptera ka spoljnim provajderima.
 
 **Zavisi od:** M1, M2
 

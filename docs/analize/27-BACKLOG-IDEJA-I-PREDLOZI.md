@@ -52,6 +52,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
 - Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) — implementiraju se kasnije.
 - Tačni rate-limit po provajderu — definišu se kad se zna stvarni Travelgate ugovor.
+- Solvex produkcijski pristup (URL/kredencijali) — nije dobijen, test kredencijali potvrđeno aktivni (avgust 2026).
+- Dedup istog fizičkog hotela preko više provajdera (Travelgate + Solvex) — nema definisan mehanizam mapiranja.
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*

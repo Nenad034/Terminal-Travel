@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M4) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — raniji "Travelgate predlog" pomenut u Master dokumentu nije pronađen)
-**Verzija:** 1.2 — dodato `ProviderConfig.default_tip_nastupanja` (poglavlje 3.1), isto rešenje kao M3 poglavlje 2.2a, za API-sourced proizvode bez ugovora u M3 (avgust 2026, na zahtev vlasnika); v1.1 dodato: tipizirane greške, pluggable auth strategije, circuit breaker, deklarativni profil mogućnosti provajdera — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.3 — dodat Solvex (Master-Interlook) kao drugi HOTEL adapter uz Travelgate (poglavlje 5a), na osnovu ranijeg PrimeTravel rada na istoj integraciji; dodata `SESSION_TOKEN` auth strategija (poglavlje 2.2) koju Travelgate/OAuth2 model nije pokrivao; avgust 2026, na zahtev vlasnika; v1.2 — dodato `ProviderConfig.default_tip_nastupanja` (poglavlje 3.1), isto rešenje kao M3 poglavlje 2.2a, za API-sourced proizvode bez ugovora u M3 (avgust 2026, na zahtev vlasnika); v1.1 dodato: tipizirane greške, pluggable auth strategije, circuit breaker, deklarativni profil mogućnosti provajdera — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
 
 ---
@@ -45,13 +45,15 @@ Različiti provajderi koriste različite metode autentikacije (API ključ, Basic
 
 ```
 interface AuthStrategy {
-  strategyType: "API_KEY" | "BASIC" | "OAUTH2_CLIENT_CREDENTIALS" | "REQUEST_SIGNING";
-  applyAuth(request): request; // ubacuje header/potpis pre slanja
-  refreshIfNeeded(): Promise<void>; // no-op za API_KEY/BASIC, stvaran refresh za OAUTH2
+  strategyType: "API_KEY" | "BASIC" | "OAUTH2_CLIENT_CREDENTIALS" | "REQUEST_SIGNING" | "SESSION_TOKEN";
+  applyAuth(request): request; // ubacuje header/potpis/token pre slanja
+  refreshIfNeeded(): Promise<void>; // no-op za API_KEY/BASIC, stvaran refresh za OAUTH2/SESSION_TOKEN
 }
 ```
 
 Svaki adapter deklariše koju strategiju koristi (`ProviderConfig.auth_strategy`, poglavlje 3.1); dodavanje provajdera sa novim tipom autentikacije znači dodavanje nove implementacije `AuthStrategy`, ne izmenu postojećih adaptera. Potvrđeno poređenjem sa PrimeTravel `auth.strategies.ts` obrascem (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md` poglavlje 2).
+
+**`SESSION_TOKEN`** *(dodato v1.3, radi Solvex adaptera — poglavlje 5a)* — provajder izlaže poseban login poziv (npr. `Connect(login, password)`) koji vraća kratkoživeći token (GUID); taj token se prosleđuje kao parametar u svakom narednom pozivu, ne kao HTTP header. Za razliku od `OAUTH2_CLIENT_CREDENTIALS`, format tokena i mesto gde se ubacuje (telo zahteva, ne header) su specifični po provajderu — `applyAuth` za ovu strategiju ubacuje token na mesto koje adapter deklariše, ne generički header. `refreshIfNeeded()` ponovo poziva login endpoint kad provajder vrati grešku tipa "nevažeći token" (npr. Solvex `"Invalid GUID"`) — token se ne osvežava na fiksni raspored, nego reaktivno na grešku, jer tačno trajanje sesije nije uvek dokumentovano od strane provajdera.
 
 ### 2.3 Deklarativni profil mogućnosti provajdera
 
@@ -121,6 +123,23 @@ Travelgate izlaže GraphQL API (poglavlje 6 Master dokumenta). Travelgate adapte
 
 ---
 
+## 5a. Solvex (Master-Interlook) adapter — implementaciona napomena
+
+*(dodato v1.3, avgust 2026, na zahtev vlasnika — drugi HOTEL adapter uz Travelgate, ne zamena)*
+
+Solvex izlaže **SOAP/XML API** (`https://iservice.solvex.bg/IntegrationService.asmx` u test okruženju — produkcioni URL/kredencijali se dobijaju odvojeno od Solvex-a pre prelaska u `ProviderConfig.status = ACTIVE`). Solvex adapter je jedino mesto u sistemu koje govori SOAP — mapira XML zahteve/odgovore u isti `NormalizedSearchResult`/`NormalizedContent`/`AvailabilityQuote`/`BookingConfirmation` oblik kao Travelgate adapter (poglavlje 2.1). Ni M2 ni M5 ne vide razliku između izvora.
+
+**Osnovni tok (potvrđen radeći test poziv, avgust 2026):**
+1. `Connect(login, password)` → GUID token, koristi se kao `SESSION_TOKEN` (poglavlje 2.2) u svakom narednom pozivu.
+2. Pretraga: `SearchHotelServicesMinHotel` (minimalna cena po hotelu — mapira se u `search()`) ili `SearchHotelServices` (sve opcije, koristi se samo ako je potrebna puna lista tarifa).
+3. Sadržaj: `GetHotels`/rečnici (`GetCountries`, `GetCities`, `GetRegions`, `GetRoomType`, `GetPansions`) — koriste se za `getStaticContent()` i inicijalno punjenje šifarnika, ne pozivaju se po svakoj pretrazi (kandidat za keširanje na nivou adaptera, odvojeno od M2 lenjog keširanja).
+4. Rezervacija: `CreateReservation` → `providerBookingReference = ExternalID` iz odgovora; `GetReservation`/`CancelReservation` koriste taj isti `ExternalID`.
+5. `QuotaType` (`1`=dostupno, `0`=na zahtev, `2`=stop sales) mapira se u `AvailabilityQuote` — vrednost `0` ("na zahtev") odgovara istom `PENDING_SUPPLIER_CONFIRMATION` statusu koji `BookingConfirmation` već predviđa (poglavlje 2.1), ne novom stanju.
+
+**Napomena o poreklu:** ovaj tok je potvrđen radom na ranijem, srodnom projektu (PrimeTravel) — test `Connect` i `GetCountries` pozivi rade i danas (avgust 2026) sa istim test kredencijalima, što je bilo direktno provereno pre pisanja ove dopune. Sam kod adaptera se ne prenosi automatski — piše se iznova po ugovoru iz poglavlja 2, PrimeTravel implementacija služi samo kao referenca za tok poziva i poznata ograničenja (ćirilični tekst zahteva eksplicitan UTF-8 header; obavezni servisi kao praznični večere se automatski dodaju u `TotalCost` i moraju ući u `AvailabilityQuote.priceAmount` bez posebnog parsiranja od strane M5).
+
+---
+
 ## 6. Dozvole (registruju se u M1 katalog dozvola)
 
 | Dozvola | Podrazumevana dodela po ulozi |
@@ -166,6 +185,8 @@ Prefiks: `/api/v1/integrations`
 - [ ] Provajder sa `circuit_failure_threshold` uzastopnih grešaka prelazi u `OPEN` i M4 prestaje da ga zove do isteka `circuit_cooldown_seconds`, potom šalje tačno jedan probni poziv (`HALF_OPEN`).
 - [ ] Svaki zapis u `ProviderCallLog` ima popunjen normalizovan `error_code` kad poziv ne uspe, nezavisno od stvarnog HTTP/GraphQL statusa provajdera.
 - [ ] `ProviderConfig` ne može preći u `ACTIVE` bez popunjenog `default_tip_nastupanja` (poglavlje 3.1), isto sprovođenje kao M3 `Contract`.
+- [ ] Solvex adapter implementiran, ispunjava `ProviderAdapter` interfejs u potpunosti (poglavlje 5a); `SESSION_TOKEN` strategija ispravno osvežava token po grešci tipa "nevažeći token", ne na fiksni raspored.
+- [ ] Solvex `QuotaType = 0` ("na zahtev") mapira se u `BookingConfirmation.status = PENDING_SUPPLIER_CONFIRMATION`, isto ponašanje kao `ON_REQUEST` alotman u M3 — provereno da M5 ne pravi razliku po poreklu.
 
 ---
 
@@ -174,3 +195,5 @@ Prefiks: `/api/v1/integrations`
 - Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) implementiraju se kad ti proizvodi dođu na red — isti `ProviderAdapter` interfejs, bez redizajna M4.
 - Tačni limiti brzine poziva (rate limiting) po provajderu definišu se kad se zna stvarni Travelgate ugovor i njegova ograničenja — za sada M4 samo predviđa mesto (`ProviderConfig`) gde se ti limiti mogu podesiti.
 - Ako se pronađe raniji "Travelgate predlog" pomenut u Master dokumentu, ovaj dokument treba uporediti sa njim i uskladiti razlike, ne pisati dva paralelna izvora istine za M4.
+- **Solvex produkcijski pristup** — test kredencijali (avgust 2026) su potvrđeno aktivni, ali produkcioni URL/kredencijali nisu dobijeni; `ProviderConfig.status` ostaje `INACTIVE` do tada.
+- **Dedup istog fizičkog hotela preko više provajdera** (Travelgate i Solvex mogu vratiti isti hotel sa različitim `externalId`) — M2 trenutno nema definisan mehanizam mapiranja/spajanja (npr. GIATA-stil mapiranje, korišćeno u PrimeTravel-u); dok se ne reši, tretiraju se kao dva odvojena `Product` zapisa dok se svesno ne doda dedup sloj.
