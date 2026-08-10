@@ -56,6 +56,10 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Dedup istog fizičkog hotela preko više provajdera (Travelgate + Solvex) — nema definisan mehanizam mapiranja.
 - Tačan TTL keša šifarnika po provajderu (§2.4) — 24h polazna pretpostavka, dorađuje se pri implementaciji.
 - Ostali PrimeTravel provajderi (ORS, MTS Globe, Amadeus, Travelport, Duffel...) namerno nisu dodati bez potvrđene poslovne potrebe.
+- `SESSION_TOKEN` ponašanje pod konkurentnim pozivima (§2.2) — svesno odloženo do implementacije.
+- Rate limit se trenutno samo čita (`capabilities_profile`), nema stvaran mehanizam sprovođenja (red čekanja/throttling).
+- Nema definisanog mock/test režima za simulaciju timeout-a/pada provajdera (izlazni kriterijum §8 to pretpostavlja).
+- Test/produkcija nije eksplicitno modelovano u `ProviderConfig` (jedan red sa promenjenim poljima vs. dva odvojena).
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
