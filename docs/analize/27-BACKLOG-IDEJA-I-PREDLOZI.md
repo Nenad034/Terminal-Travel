@@ -206,6 +206,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 ili prilagođenu verziju.
 - Da li izbor tamnog/svetlog moda treba sinhronizaciju preko uređaja (backend polje) ili ostaje lokalno.
 - Tačna paleta semantičkih boja za isticanje teksta (upozorenje/greška/uspeh) — bira se sa HEX vrednostima.
+- Gornja granica broja istovremeno otvorenih tabova (§5a) i ponašanje kad se dostigne.
 
 ---
 
