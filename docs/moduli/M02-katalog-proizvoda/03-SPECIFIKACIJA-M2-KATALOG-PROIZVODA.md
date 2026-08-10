@@ -95,7 +95,7 @@ Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — n
 | category | enum: `EXTERIOR`, `ROOM`, `AMENITY`, `RESTAURANT`, `POOL`, `BEACH`, `LOBBY`, `VIEW`, `DRUGO` | proširivo bez izmene strukture |
 | room_type_code | string, nullable | popunjeno samo kad `category = ROOM` — referencira `room_types[].code` iznad, vezuje sliku uz tačnu sobu umesto generičke galerije |
 | caption | string, nullable | kratak opis slike, jezički nezavisno (isti princip kao `board_type`) |
-| source | enum: `MANUAL_UPLOAD`, `AI_IMPORTED` | odakle je slika stigla — isti princip praćenja porekla kao `ProductTranslation.translation_source` (poglavlje 2.2); `AI_IMPORTED` slike prolaze kroz odobrenje pre nego što uđu u `media[]` (poglavlje 3.3) |
+| source | enum: `MANUAL_UPLOAD`, `AI_IMPORTED` | odakle je slika stigla — isti princip praćenja porekla kao `ProductTranslation.translation_source` (poglavlje 2.2); `AI_IMPORTED` slike prolaze kroz odobrenje pre nego što uđu u `media[]` (poglavlje 3.3). **Napomena (avgust 2026, YUTA preporuka):** obe vrednosti su stvarne fotografije (ručno uneta ili AI-izvučena sa sajta dobavljača) — `media[]` ne sme sadržati sintetički AI-generisan (izmišljen) vizual kao prikaz konkretnog smeštaja, jer bi to dovelo gosta u zabludu o stvarnom izgledu usluge; takav kreativni sadržaj ide isključivo kroz M12 marketinški sadržaj bez `product_id`, sa obaveznom oznakom transparentnosti (M12 poglavlje 3c) |
 
 ### 2.3b Kreveti i uzrasna politika po tipu sobe — `beds` i `age_policy[]` (dopuna, avgust 2026, na zahtev vlasnika)
 

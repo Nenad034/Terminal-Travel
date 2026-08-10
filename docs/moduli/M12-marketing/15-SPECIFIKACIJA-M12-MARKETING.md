@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje (pisano od nule — "Content Engine opisan u prethodnom razgovoru", pomenut u Master dokumentu, nije pronađen u ovom folderu, isti slučaj kao M4)
-**Verzija:** 1.1 — dopuna avgust 2026 (zatvara M6/M8/M13 integracione praznine iz `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`): `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4)
+**Verzija:** 1.2 — dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
 **Zavisi od:** M1, M2, M6
 
 ---
@@ -26,6 +26,7 @@ M12 pokriva tok: **proizvod (M2) → generisanje sadržaja → kalendar/odobrenj
 | tracking_code | string, unique | generiše se automatski pri kreiranju (kratak, npr. 8 karaktera, bez specijalnih znakova) — koristi se za atribuciju rezervacije ka sadržaju (poglavlje 3a), ne za identifikaciju same objave |
 | target_channels | niz enum: `M8_SITE`, `FACEBOOK`, `INSTAGRAM`, `EMAIL`, `MOBILE_PUSH` *(dodato pri specifikaciji M19)* | `MOBILE_PUSH` koristi već postojeći mehanizam push notifikacija iz M9 (M9 specifikacija, poglavlje 5), ne novu infrastrukturu |
 | target_tags | string[] (JSONB niz), nullable *(dodato avgust 2026, poglavlje 4)* | **samo za `EMAIL`** — filtrira primaoce po M6 `ClientAccount.tags`; prazno/`null` = svi sa `marketing_consent = true` (nepromenjeno ponašanje) |
+| contains_ai_generated_media | boolean, default `false` *(dodato avgust 2026, poglavlje 3c — YUTA preporuka)* | `true` kad `body`/`media` sadrži sintetički AI-generisan vizual (ne AI-*izvučenu* stvarnu fotografiju, poglavlje 3c); uslovljava obavezu vidljive oznake transparentnosti pri odobrenju |
 | scheduled_publish_at | timestamp, nullable | kalendar — sortiranje po ovom polju daje prikaz kalendara, bez posebnog entiteta |
 | generated_by | enum: `AI`, `HUMAN` | |
 | approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** |
@@ -67,6 +68,18 @@ Ovo drži M5 potpuno neosetljivim na M12 (samo prenosi string) i poštuje M13 po
 ### 3b. Opšte stranice sajta van kataloga (dopuna, avgust 2026 — zatvara M8 deo otvorenog pitanja)
 
 `ContentPiece.type = STATIC_PAGE`/`BLOG_POST` sa popunjenim `slug` i `product_id = null` pokriva sadržaj koji ne pripada nijednom proizvodu (M8 poglavlje 6, dopuna) — "O nama", "Kontakt", blog članci. Isti tok odobrenja kao svaki drugi `ContentPiece` (poglavlje 3 iznad); jedina razlika je da `M8_SITE` kanal za ovaj tip servira stranicu na `/stranica/:slug` (`STATIC_PAGE`) ili `/blog/:slug` (`BLOG_POST`) umesto na ruti proizvoda.
+
+### 3c. Označavanje AI generisanog vizuelnog sadržaja (YUTA preporuka, avgust 2026)
+
+**Izvor:** YUTA okružnica članicama, avgust 2026, povodom početka primene (2. avgust 2026.) dela odredbi EU AI Act-a o obeležavanju AI generisanog sadržaja. Srbija nije članica EU pa odredba nije direktno pravno obavezujuća za TT, ali YUTA preporučuje članicama transparentno označavanje jer agencija posluje na digitalnom tržištu bez državnih granica (partneri iz EU, gosti iz EU, međunarodne platforme). Ovo je preporuka koju vlasnik prihvata kao internu politiku, ne otvoreno pravno pitanje koje čeka potvrdu — zato ide direktno u ovu specifikaciju, ne u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md`.
+
+**Pravilo:** `ContentPiece` dobija novo polje `contains_ai_generated_media` (boolean, default `false`) — postavlja ga onaj ko kreira sadržaj (AI agent pri nacrtu ili čovek pri ručnom unosu) kad `body`/`media` sadrži fotografiju, ilustraciju ili video generisan veštačkom inteligencijom (npr. DALL-E/Midjourney-stil kreativni vizual za `BANNER`/`SOCIAL_POST`), **za razliku od** stvarne fotografije hotela/destinacije koja je samo AI-*izvučena* sa sajta dobavljača (M2 poglavlje 2.3a, `media.source = AI_IMPORTED`) — to nije sintetički sadržaj i ne podleže ovom pravilu.
+
+Kad je `contains_ai_generated_media = true`:
+- Objava na `APPROVE_PUBLISH` (poglavlje 3, korak 4) zahteva da `ContentTranslation.body` sadrži vidljivu oznaku transparentnosti na jeziku objave, npr. "Fotografija je generisana uz pomoć veštačke inteligencije (AI)." — čovek koji odobrava proverava prisustvo oznake, sistem ne generiše tekst automatski (izbor formulacije ostaje uređivački, ne mehanički).
+- Sintetički AI vizuali se **ne koriste** kao zamena za stvarni prikaz smeštaja/destinacije/atrakcije u sadržaju vezanom za konkretan `product_id` (rizik dovođenja gosta u zabludu o stvarnom izgledu/kvalitetu usluge) — dozvoljeni su samo za ilustrativne/kreativne/promotivne vizuale bez `product_id` ili gde ne predstavljaju konkretnu uslugu (npr. generička destinacijska atmosfera, ne konkretna soba).
+
+Ovo pravilo je interna politika TT po YUTA preporuci, ne zakonska obaveza u Srbiji — ako AI Act ili domaća regulativa kasnije to promene, ažurirati ovo poglavlje.
 
 ---
 
@@ -143,6 +156,7 @@ Prefiks: `/api/v1/marketing`
 - [ ] `STATIC_PAGE`/`BLOG_POST` sa istim `slug` se ne može kreirati dvaput (unique).
 - [ ] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise.
 - [ ] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost.
+- [ ] `ContentPiece` sa `contains_ai_generated_media = true` ne može preći u `APPROVED`/`PUBLISHED` bez vidljive oznake transparentnosti u `body` jezika objave (poglavlje 3c).
 
 ---
 
