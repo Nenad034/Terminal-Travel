@@ -104,7 +104,10 @@ def main():
         html = pattern.sub(repl, html, count=1)
         changed.append(doc_id)
 
-    HTML_PATH.write_text(html, encoding="utf-8", newline="")
+    # Path.write_text(..., newline=...) postoji tek od Python 3.10 - koristi se
+    # open() eksplicitno da skripta radi i na starijim instalacijama (npr. 3.9).
+    with HTML_PATH.open("w", encoding="utf-8", newline="") as f:
+        f.write(html)
 
     print("Azurirano:", changed or "(nista)")
     print("Vec uskladjeno:", unchanged)
