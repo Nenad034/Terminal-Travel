@@ -16,6 +16,7 @@ tools/                       ← skripte (sync-html-overview.py)
 docs/
 ├── 00-MASTER-ARHITEKTURA.md, 00-PREGLED-DOKUMENTACIJE.html, 01-OBJASNJENJE-TEHNICKOG-STEKA.md, ...  ← opšti dokumenti
 ├── analize/                 ← dokumenti koji presecaju više modula (gap-analize, validacije, otvorena pravna pitanja)
+├── api/M<broj>-<slug>.md    ← razvojna dokumentacija API-ja tog modula sa stvarnim primerima zahteva/odgovora (vidi "API dokumentacija i korisnička uputstva" ispod), nastaje kad modul dobije implementaciju, ne u fazi čiste specifikacije
 └── moduli/M<broj>-<slug>/   ← spec + sve vezano za taj modul (mape, mockupi), npr. moduli/M02-katalog-proizvoda/
 ```
 
@@ -62,6 +63,15 @@ Svaka Nivo 2 specifikacija ima sopstvenu sekciju "Otvoreno za dalje" — to osta
 - Kad dodaš novu stavku pod "Otvoreno za dalje" bilo kog modula, u istom prolazu dodaj i jedan red u ovaj indeks (i obrnuto — kad se stavka reši, ukloni je odavde).
 - Ako se u razgovoru pojavi ideja koja još nema jasno mesto ni u jednom postojećem modulu, upiši je u sekciju "Ideje van formalne specifikacije" na vrhu tog fajla, umesto da se izgubi kad se sesija završi.
 - Ovaj fajl se čita na početku rada na bilo kojoj temi koja deluje kao da je već negde dotaknuta — brže je proveriti indeks nego ponovo "otkriti" isto pitanje.
+
+## API dokumentacija i korisnička uputstva (standing pravilo, avgust 2026)
+
+Dva odvojena dokumentaciona sloja postoje **pored** Nivo 2 specifikacije (koja je interna, za AI agenta koji implementira), ne umesto nje:
+
+1. **API dokumentacija za spoljne integratore.** Svaki modul koji izlaže REST API (poglavlje 8 njegove Nivo 2 specifikacije — u praksi svaki modul) dobija prateći `docs/api/M<broj>-<slug>.md` sa stvarnim primerima zahteva/odgovora za svaki endpoint, ne samo šemom. Ovo je namenjeno svakome ko se povezuje sa Terminal-om spolja — subagentima koji žele programski pristup (M7), spoljnim AI agentima (M16), ili budućem korporativnom klijentu koji integriše sopstveni sistem. Dokument nastaje **kad modul dobije implementaciju** (ne u fazi čiste specifikacije) i ulazi kao obavezna stavka u "Izlazni kriterijum" tog modula.
+2. **Korisnička uputstva.** Detaljno uputstvo za korišćenje same platforme (ne za putovanje) već ima svoj modul: **M21 (Centar za pomoć)** — pokriva interni tim (kanal M17), B2B subagente (kanal M7) i korporativne self-service klijente (kanal M8/M9, `ClientAccount.account_type = LEGAL_ENTITY`, dodato avgust 2026). Novo uputstvo za bilo koju od te tri publike ide u M21 kao `HelpArticle`, ne kao poseban dokument u `docs/`.
+
+Kad se doda modul sa API-jem ili se proširi M21 na novu publiku, primeni isto pravilo kao za svaku drugu cross-modularnu izmenu (poglavlje "Održavanje dokumentacije" iznad): izmeni sve pogođene fajlove u istom prolazu.
 
 ## Ko je vlasnik i kako komunicirati
 

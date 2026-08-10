@@ -170,7 +170,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
 - Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj.
 - Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion`.
-- Proširenje na treću publiku (krajnji gosti, M8/M9) — namerno van obima v1.
+- Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9) — namerno van obima.
+- Da li M8/M9 UI za korporativne klijente treba poseban vizuelni prikaz Centra za pomoć ili generički help widget.
 - Da li agent dobija ograničen pristup živim podacima (npr. kreditni limit subagenta) u budućoj verziji.
 
 ## M22 — Email/Inbox platforma

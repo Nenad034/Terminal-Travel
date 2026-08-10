@@ -1,13 +1,13 @@
 ---
 name: tt-m21-centar-za-pomoc
-description: Terminal Travel modul M21 (Centar za pomoć (baza znanja + AI asistent)) — uputstvo za korišćenje platforme za interni tim i B2B subagente, sa AI asistentom nad objavljenim sadržajem. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
+description: Terminal Travel modul M21 (Centar za pomoć (baza znanja + AI asistent)) — uputstvo za korišćenje platforme za interni tim, B2B subagente i korporativne self-service klijente, sa AI asistentom nad objavljenim sadržajem. Učitaj kad zadatak piše/menja kod, dizajn ili specifikaciju za ovaj modul, umesto čitanja celog master dokumenta.
 ---
 
 # M21 — Centar za pomoć (baza znanja + AI asistent)
 
-Uputstvo za korišćenje platforme za interni tim i B2B subagente, sa AI asistentom nad objavljenim sadržajem.
+Uputstvo za korišćenje platforme za interni tim, B2B subagente i korporativne self-service klijente (`ClientAccount.account_type = LEGAL_ENTITY`, dodato avgust 2026), sa AI asistentom nad objavljenim sadržajem.
 
-**Zavisi od:** M1, M14, M15, M7, M17
+**Zavisi od:** M1, M6, M14, M15, M7, M8, M17
 
 ## Pre pisanja koda
 
