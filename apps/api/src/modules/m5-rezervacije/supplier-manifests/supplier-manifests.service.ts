@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { SupplierManifestLanguage, SupplierType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { M22MailboxStubService } from '../common/m22-mailbox-stub.service';
@@ -60,26 +61,100 @@ export class SupplierManifestsService {
       throw new BadRequestException('Nema potvrđenih CONTRACTED stavki za ovog dobavljača u traženom periodu.');
     }
 
+    return this.createManifest({
+      supplierId: dto.supplierId,
+      supplierType: supplier.type,
+      contractPeriodId: dto.contractPeriodId ?? null,
+      language: dto.language ?? 'SR',
+      periodFrom,
+      periodTo,
+      itemIds: candidateItems.map((item) => item.id),
+      generatedBy,
+    });
+  }
+
+  /**
+   * M5 spec §8.4 dopuna (v1.15, na zahtev vlasnika) — "opcija slanja rezervacije pojedinačno
+   * dobavljačima": za JEDNU rezervaciju, odmah (ne čekajući periodični posao), pripremi po
+   * jedan DRAFT SupplierManifest za svakog dobavljača čije CONTRACTED/CONFIRMED stavke ta
+   * rezervacija sadrži — automatski grupisano po dobavljaču (isti princip kao periodično
+   * agregiranje iznad, samo obim je jedna rezervacija umesto vremenskog perioda). Slanje
+   * ostaje nepromenjeno — ručni klik po listi (POST /supplier-manifests/:id/send).
+   */
+  async prepareForBooking(bookingId: string, generatedBy: string, language?: SupplierManifestLanguage) {
+    const items = await this.prisma.bookingItem.findMany({
+      where: {
+        bookingId,
+        sourceType: 'CONTRACTED',
+        itemStatus: 'CONFIRMED',
+        manifestEntries: { none: { supplierManifest: { status: { not: 'SUPERSEDED' } } } },
+      },
+      include: { product: { include: { sourceContract: true } }, rateLine: true },
+    });
+
+    const bySupplier = new Map<string, typeof items>();
+    for (const item of items) {
+      const supplierId = item.product.sourceContract?.supplierId;
+      if (!supplierId) continue; // CONTRACTED stavka bez ugovora ne bi trebalo da postoji (M2 §2.1) — preskoči odbrambeno
+      bySupplier.set(supplierId, [...(bySupplier.get(supplierId) ?? []), item]);
+    }
+
+    const manifests = [];
+    for (const [supplierId, groupItems] of bySupplier) {
+      const supplier = await this.prisma.supplier.findUniqueOrThrow({ where: { id: supplierId } });
+      const stayFroms = groupItems.map((i) => i.stayFrom.getTime());
+      const stayTos = groupItems.map((i) => i.stayTo.getTime());
+      const contractPeriodIds = new Set(groupItems.map((i) => i.rateLine?.contractPeriodId).filter(Boolean));
+
+      manifests.push(
+        await this.createManifest({
+          supplierId,
+          supplierType: supplier.type,
+          // §8.1 — "nullable ako lista objedinjuje više perioda istog dobavljača" — ovde
+          // moguće jer se grupiše po CELOJ rezervaciji, ne po unapred poznatom periodu.
+          contractPeriodId: contractPeriodIds.size === 1 ? [...contractPeriodIds][0]! : null,
+          language: language ?? 'SR',
+          periodFrom: new Date(Math.min(...stayFroms)),
+          periodTo: new Date(Math.max(...stayTos)),
+          itemIds: groupItems.map((i) => i.id),
+          generatedBy,
+        }),
+      );
+    }
+
+    return manifests;
+  }
+
+  private async createManifest(params: {
+    supplierId: string;
+    supplierType: SupplierType;
+    contractPeriodId: string | null;
+    language: SupplierManifestLanguage;
+    periodFrom: Date;
+    periodTo: Date;
+    itemIds: string[];
+    generatedBy: string;
+  }) {
     const referenceCode = await nextReferenceCode(this.prisma);
     const manifest = await this.prisma.supplierManifest.create({
       data: {
-        supplierId: dto.supplierId,
-        contractPeriodId: dto.contractPeriodId,
-        supplierTypeSnapshot: supplier.type,
-        language: dto.language ?? 'SR',
-        periodFrom,
-        periodTo,
+        supplierId: params.supplierId,
+        contractPeriodId: params.contractPeriodId,
+        supplierTypeSnapshot: params.supplierType,
+        language: params.language,
+        periodFrom: params.periodFrom,
+        periodTo: params.periodTo,
         status: 'DRAFT',
-        generatedBy,
+        generatedBy: params.generatedBy,
         referenceCode,
-        items: { create: candidateItems.map((item) => ({ bookingItemId: item.id })) },
+        items: { create: params.itemIds.map((bookingItemId) => ({ bookingItemId })) },
       },
       include: { items: true },
     });
 
     await this.auditLog.write({
-      actorType: generatedBy === 'AI_AGENT_M5' ? 'AI_AGENT' : 'HUMAN',
-      actorId: generatedBy === 'AI_AGENT_M5' ? null : generatedBy,
+      actorType: params.generatedBy === 'AI_AGENT_M5' ? 'AI_AGENT' : 'HUMAN',
+      actorId: params.generatedBy === 'AI_AGENT_M5' ? null : params.generatedBy,
       module: 'M5',
       action: 'supplier_manifest.draft_generated',
       resourceType: 'SupplierManifest',

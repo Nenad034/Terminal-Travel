@@ -5,6 +5,8 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
+import { PrepareSupplierManifestsDto } from './dto/prepare-supplier-manifests.dto';
+import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -16,7 +18,10 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('sales/bookings')
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly supplierManifests: SupplierManifestsService,
+  ) {}
 
   @Get()
   @RequirePermission('M5', 'booking', 'VIEW')
@@ -72,5 +77,19 @@ export class BookingsController {
   @RequirePermission('M5', 'voucher', 'OVERRIDE_ISSUE')
   voucherOverride(@Param('id') id: string, @Body() dto: VoucherOverrideDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.voucherOverride(id, dto.reason, actor);
+  }
+
+  // M5 spec §8.4 dopuna (v1.15) — "opcija slanja rezervacije pojedinačno dobavljačima": priprema
+  // po jedan DRAFT SupplierManifest za svakog dobavljača ove rezervacije, odmah, bez čekanja na
+  // periodični posao. Slanje ostaje nepromenjeno (POST /supplier-manifests/:id/send), ovde se
+  // samo generišu nacrti — ista dozvola kao POST /supplier-manifests (generisanje nacrta).
+  @Post(':id/prepare-supplier-manifests')
+  @RequirePermission('M5', 'supplier-manifest', 'CREATE')
+  prepareSupplierManifests(
+    @Param('id') id: string,
+    @Body() dto: PrepareSupplierManifestsDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.supplierManifests.prepareForBooking(id, actor.userId, dto.language);
   }
 }

@@ -311,6 +311,21 @@ Zahteva `M5/supplier-manifest/SEND`. **Odgovor `200`:**
 ### POST /supplier-manifests/:id/confirm-supplier
 Ručni unos potvrde dobavljača — popunjava `supplierConfirmedAt`/`By` na svim stavkama te liste.
 
+### POST /bookings/:id/prepare-supplier-manifests
+Dopuna v1.15 — ad-hoc priprema DRAFT liste(a) za JEDNU rezervaciju odmah, bez čekanja na periodični posao (§8.4). Ako rezervacija sadrži `CONTRACTED`/`CONFIRMED` stavke od više različitih dobavljača, kreira se po jedan DRAFT nacrt za svakog — operater ne mora ručno da pogodi koji su dobavljači uključeni.
+**Zahtev:**
+```json
+{ "language": "SR" }
+```
+**Odgovor `201` — niz kreiranih nacrta (jedan po dobavljaču):**
+```json
+[
+  { "id": "manifest-1", "supplierId": "sup-hotel-1", "status": "DRAFT", "referenceCode": "TT-000501", "items": [ { "bookingItemId": "bi-1" } ] },
+  { "id": "manifest-2", "supplierId": "sup-transfer-1", "status": "DRAFT", "referenceCode": "TT-000502", "items": [ { "bookingItemId": "bi-2" } ] }
+]
+```
+Slanje ostaje nepromenjeno — ručni klik po listi preko `POST /supplier-manifests/:id/send`.
+
 ---
 
 ## Supplier announcement rules
