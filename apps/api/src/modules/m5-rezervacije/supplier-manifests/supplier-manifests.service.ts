@@ -82,11 +82,54 @@ export class SupplierManifestsService {
    * ostaje nepromenjeno — ručni klik po listi (POST /supplier-manifests/:id/send).
    */
   async prepareForBooking(bookingId: string, generatedBy: string, language?: SupplierManifestLanguage) {
+    return this.prepareGrouped({ bookingId }, generatedBy, language);
+  }
+
+  /**
+   * M5 spec §8.4 dopuna (v1.16, na zahtev vlasnika) — "checkbox izbor" i "grupiši rezervacije
+   * kreirane od...do datuma": ista automatska grupacija po dobavljaču kao prepareForBooking
+   * iznad, samo je obim ili (a) ručno izabrana lista rezervacija (checkbox u M17), ili (b)
+   * sve rezervacije čiji je Booking.created_at u traženom opsegu — TAČNO JEDAN od ova dva
+   * mora biti prosleđen. NAMERNO ne postoji ulaz "AI agent, pošalji sam" — ova akcija samo
+   * PRIPREMA nacrte (nivo "Autonomno", isto obrazloženje kao periodično agregiranje iznad);
+   * slanje ostaje isključivo ljudski klik po listi, bez obzira ko/šta je pripremu pokrenulo
+   * (§8.4 — "agent nikad sam ne šalje potvrdu dobavljaču", spec se ovde ne menja).
+   */
+  async prepareBatch(
+    params: { bookingIds?: string[]; createdFrom?: string; createdTo?: string },
+    generatedBy: string,
+    language?: SupplierManifestLanguage,
+  ) {
+    const hasBookingIds = !!params.bookingIds && params.bookingIds.length > 0;
+    const hasDateRange = params.createdFrom != null && params.createdTo != null;
+    if (hasBookingIds === hasDateRange) {
+      throw new BadRequestException(
+        'Prosledite TAČNO JEDAN način izbora — ili bookingIds (checkbox lista), ili createdFrom+createdTo (opseg datuma), ne oba i ne nijedan (M5 spec §8.4 dopuna v1.16).',
+      );
+    }
+
+    return this.prepareGrouped(
+      hasBookingIds
+        ? { bookingId: { in: params.bookingIds } }
+        : { booking: { createdAt: { gte: new Date(params.createdFrom!), lte: new Date(params.createdTo!) } } },
+      generatedBy,
+      language,
+    );
+  }
+
+  // Deljena logika za prepareForBooking/prepareBatch — pronađi nenajavljene CONTRACTED/CONFIRMED
+  // stavke po datom filteru, grupiši ih po dobavljaču, napravi po jedan DRAFT nacrt za svakog.
+  private async prepareGrouped(
+    bookingFilter: Record<string, unknown>,
+    generatedBy: string,
+    language?: SupplierManifestLanguage,
+  ) {
     const items = await this.prisma.bookingItem.findMany({
       where: {
-        bookingId,
+        ...bookingFilter,
         sourceType: 'CONTRACTED',
         itemStatus: 'CONFIRMED',
+        // "nisu najavljene" — nijedna aktivna (ne-SUPERSEDED, DRAFT ili SENT) lista je već ne sadrži.
         manifestEntries: { none: { supplierManifest: { status: { not: 'SUPERSEDED' } } } },
       },
       include: { product: { include: { sourceContract: true } }, rateLine: true },
@@ -111,7 +154,7 @@ export class SupplierManifestsService {
           supplierId,
           supplierType: supplier.type,
           // §8.1 — "nullable ako lista objedinjuje više perioda istog dobavljača" — ovde
-          // moguće jer se grupiše po CELOJ rezervaciji, ne po unapred poznatom periodu.
+          // moguće jer se grupiše po CELOJ rezervaciji/opsegu, ne po unapred poznatom periodu.
           contractPeriodId: contractPeriodIds.size === 1 ? [...contractPeriodIds][0]! : null,
           language: language ?? 'SR',
           periodFrom: new Date(Math.min(...stayFroms)),

@@ -326,6 +326,19 @@ Dopuna v1.15 — ad-hoc priprema DRAFT liste(a) za JEDNU rezervaciju odmah, bez 
 ```
 Slanje ostaje nepromenjeno — ručni klik po listi preko `POST /supplier-manifests/:id/send`.
 
+### POST /supplier-manifests/prepare-batch
+Dopuna v1.16 — isto kao gore, ali obim je više rezervacija odjednom. Tačno JEDAN od `bookingIds`/(`createdFrom`+`createdTo`) mora biti prosleđen — poziv sa oba ili nijednim vraća `400`.
+
+**Zahtev (checkbox izbor):**
+```json
+{ "bookingIds": ["booking-1", "booking-2", "booking-3"] }
+```
+**Zahtev (opseg datuma kreiranja rezervacije — ne opseg boravka):**
+```json
+{ "createdFrom": "2027-06-01", "createdTo": "2027-06-07", "language": "SR" }
+```
+**Odgovor `201`:** isti oblik kao `POST /bookings/:id/prepare-supplier-manifests` — niz DRAFT nacrta, po jedan za svakog dobavljača uključenog u obuhvaćene rezervacije.
+
 ---
 
 ## Supplier announcement rules
