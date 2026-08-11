@@ -209,6 +209,9 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Tačna paleta semantičkih boja za isticanje teksta (upozorenje/greška/uspeh) — bira se sa HEX vrednostima.
 - Gornja granica broja istovremeno otvorenih tabova (§5a) i ponašanje kad se dostigne.
 
+## Infrastruktura / zavisnosti (cross-modularno)
+- Nadogradnja NestJS 10→11 (major) pre produkcije — `npm audit` (11.8.2026) pokazuje 25 ranjivosti u tranzitivnim zavisnostima (express/body-parser/qs/multer/lodash/js-yaml/picomatch/tmp/webpack), sve zakrpljene tek u NestJS 11 liniji, ne u 10.x (10.4.22 je već poslednja 10.x verzija). Trenutno nizak stvarni rizik — nema produkcionog hostinga, nema upload rute (multer neiskorišćen). Uraditi kao izolovan zadatak, ne usred rada na poslovnim modulima, prirodno uz izbor hosting provajdera pred lansiranje.
+
 ---
 
 ## Napomena o prioritetu
