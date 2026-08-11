@@ -1,0 +1,80 @@
+name: CI
+
+# Faza 0 (docs/00-MASTER-ARHITEKTURA.md poglavlje 8) traži CI/CD kao deo temelja,
+# ne samo kod. Ovaj pipeline pokreće build + unit + e2e testove apps/api na svaki
+# push/PR ka main — ista provera koju bi razvojna mašina radila ručno, samo
+# automatizovana (vidi apps/api/README.md za lokalni ekvivalent ovih koraka).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-tests:
+    name: apps/api — build, unit i e2e testovi
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: terminal
+          POSTGRES_PASSWORD: terminal_ci_only
+          POSTGRES_DB: terminal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U terminal"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: postgresql://terminal:terminal_ci_only@localhost:5432/terminal?schema=public
+      # Nasumični stringovi važe samo za trajanje CI joba — nisu produkcijska tajna
+      # (produkcijski JWT_SECRET/ENCRYPTION_KEY nikad ne idu u repo, vidi CLAUDE.md poglavlje 9).
+      JWT_SECRET: ci-only-jwt-secret-not-for-production-772f1c9a
+      ENCRYPTION_KEY: ci-only-encryption-key-not-for-production-4b8e0d3a
+
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Podesi Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instaliraj zavisnosti (monorepo, npm workspaces)
+        run: npm ci
+
+      - name: Generiši Prisma klijent
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Proveri TypeScript build (M1 i sve ostalo pod apps/api)
+        working-directory: apps/api
+        run: npm run build
+
+      - name: Primeni migracije nad CI bazom
+        working-directory: apps/api
+        run: npx prisma migrate deploy
+
+      - name: Primeni append-only trigger na audit_log_entries (M1 spec §3.8)
+        working-directory: apps/api
+        run: npx prisma db execute --file prisma/sql/audit_log_append_only.sql --schema prisma/schema.prisma
+
+      - name: Pusti seed (7 sistemskih uloga + M1 dozvole, M1 spec §4)
+        working-directory: apps/api
+        run: npx prisma db seed
+
+      - name: Unit testovi (mokovan Prisma)
+        working-directory: apps/api
+        run: npm test
+
+      - name: E2E testovi (dokazuju M1 izlazni kriterijum nad pravom bazom)
+        working-directory: apps/api
+        run: npm run test:e2e

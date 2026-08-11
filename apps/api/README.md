@@ -38,6 +38,10 @@ npm run test:e2e
 
 E2e testovi (`test/m1-exit-criteria.e2e-spec.ts`) direktno dokazuju stavke izlaznog kriterijuma M1 specifikacije (poglavlje 8): login+obavezna 2FA za interne uloge, zaključavanje naloga, 7 seedovanih sistemskih uloga, trenutni efekat `UserPermissionOverride` bez ponovne prijave, i append-only zaštitu audit loga. Kreiraju sopstvene test korisnike (email sufiks `@tt-test.rs`) i čiste ih u `afterAll` — audit log zapisi ostaju (namerno, append-only).
 
+## CI
+
+`.github/workflows/ci.yml` pokreće build + unit + e2e testove na svaki push/PR ka `main`, nad efemernom Postgres bazom (GitHub Actions service container) — isti koraci kao lokalno pokretanje iznad, samo automatizovani. Zatvara "CI/CD" stavku Faze 0 (`docs/00-MASTER-ARHITEKTURA.md` poglavlje 8).
+
 ## Napomene
 
 - **Hosting provajder za produkciju namerno nije izabran** (avgust 2026, odluka vlasnika) — `docker-compose.yml` je isključivo za lokalni razvoj. Pitati vlasnika pre bilo kakvog produkcijskog hostinga.
