@@ -43,16 +43,37 @@ const M2_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M2', resource: 'product-content-import', action: 'REVIEW_FIELD', description: 'Odobri/odbij/izmeni izvučenu stavku uvoza' },
 ];
 
-// Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2 dozvole; HR upravlja korisnicima;
-// Sales Manager/Prodajni agent dobijaju samo M2/product/VIEW (M2 spec §6).
+// M3 spec §5 — dozvole ugovaranja i alotmana.
+const M3_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M3', resource: 'supplier', action: 'VIEW', description: 'Uvid u dobavljače' },
+  { module: 'M3', resource: 'supplier', action: 'CREATE', description: 'Kreiranje dobavljača' },
+  { module: 'M3', resource: 'supplier', action: 'EDIT', description: 'Izmena dobavljača' },
+  { module: 'M3', resource: 'supplier-contact', action: 'VIEW', description: 'Uvid u kontakt-osobe dobavljača' },
+  { module: 'M3', resource: 'supplier-contact', action: 'CREATE', description: 'Dodavanje kontakt-osobe dobavljača' },
+  { module: 'M3', resource: 'supplier-contact', action: 'EDIT', description: 'Izmena kontakt-osobe dobavljača' },
+  { module: 'M3', resource: 'contract', action: 'VIEW', description: 'Uvid u ugovore' },
+  { module: 'M3', resource: 'contract', action: 'CREATE', description: 'Kreiranje ugovora' },
+  { module: 'M3', resource: 'contract', action: 'EDIT', description: 'Izmena ugovora' },
+  { module: 'M3', resource: 'contract', action: 'DELETE', description: 'Brisanje/raskid ugovora' },
+  { module: 'M3', resource: 'contract-period', action: 'VIEW', description: 'Uvid u periode/alotman (uklj. preostali kapacitet)' },
+  { module: 'M3', resource: 'contract-period', action: 'EDIT', description: 'Izmena cena/alotmana/rokova perioda' },
+  { module: 'M3', resource: 'pricelist-import', action: 'CREATE', description: 'Pokretanje AI uvoza cenovnika' },
+  { module: 'M3', resource: 'pricelist-import', action: 'VIEW', description: 'Uvid u uvoze cenovnika' },
+  { module: 'M3', resource: 'pricelist-import', action: 'APPROVE_ROW', description: 'Odobri/odbij red iz uvoza cenovnika' },
+];
+
+// Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3 dozvole; HR upravlja korisnicima;
+// Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
   [SYSTEM_ROLES.VLASNIK]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -61,12 +82,24 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M1', resource: 'user', action: 'DELETE' },
     { module: 'M1', resource: 'role', action: 'VIEW' },
   ],
-  [SYSTEM_ROLES.SALES_MANAGER]: [{ module: 'M2', resource: 'product', action: 'VIEW' }],
-  [SYSTEM_ROLES.PRODAJNI_AGENT]: [{ module: 'M2', resource: 'product', action: 'VIEW' }],
+  [SYSTEM_ROLES.SALES_MANAGER]: [
+    { module: 'M2', resource: 'product', action: 'VIEW' },
+    { module: 'M3', resource: 'supplier', action: 'VIEW' },
+    { module: 'M3', resource: 'supplier-contact', action: 'VIEW' },
+    { module: 'M3', resource: 'supplier-contact', action: 'CREATE' },
+    { module: 'M3', resource: 'supplier-contact', action: 'EDIT' },
+    { module: 'M3', resource: 'contract', action: 'VIEW' },
+    { module: 'M3', resource: 'contract-period', action: 'VIEW' },
+  ],
+  [SYSTEM_ROLES.PRODAJNI_AGENT]: [
+    { module: 'M2', resource: 'product', action: 'VIEW' },
+    { module: 'M3', resource: 'supplier', action: 'VIEW' },
+    { module: 'M3', resource: 'contract-period', action: 'VIEW' },
+  ],
 };
 
 async function main() {
-  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS]) {
+  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
       update: { description: entry.description },
@@ -95,7 +128,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola.`,
   );
 }
 

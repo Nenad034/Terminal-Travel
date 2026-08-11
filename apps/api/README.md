@@ -3,6 +3,7 @@
 NestJS backend. Implementirani moduli:
 - **M1 (Core / Identitet i pristup)** — `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`
 - **M2 (Katalog proizvoda)** — `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`
+- **M3 (Ugovaranje i alotmani)** — `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`
 
 Nema koda ovde bez oslonca u odgovarajućoj specifikaciji — vidi `CLAUDE.md` u korenu repozitorijuma.
 
@@ -40,6 +41,7 @@ npm run test:e2e
 E2e testovi direktno dokazuju stavke izlaznog kriterijuma svake specifikacije (poglavlje 8 svake):
 - `test/m1-exit-criteria.e2e-spec.ts` — login+obavezna 2FA za interne uloge, zaključavanje naloga, 7 seedovanih sistemskih uloga, trenutni efekat `UserPermissionOverride` bez ponovne prijave, append-only zaštita audit loga.
 - `test/m2-exit-criteria.e2e-spec.ts` — CRUD/objava proizvoda sa sr+en gejtom, jezički fallback, javni odgovor bez `source_*` polja (vs. pun interni), `TRANSPORT`/`TICKET`/`EVENT` tipovi, `room_types[]`/`age_policy[]` podrazumevana politika, `ProductContentImport` ljudski tok odobrenja (uklj. `M23_RESEARCH` poreklo).
+- `test/m3-exit-criteria.e2e-spec.ts` — dobavljači/ugovori/periodi (sva 4 `allotment_mode`), sprečavanje preklapanja, **prava konkurentnost rezervacije** (10 paralelnih HTTP zahteva za 1 mesto, 8 za 5 mesta — tačno onoliko uspe koliko ima kapaciteta), `expiring-releases`, M2↔M3 `source_contract_id` FK, uvoz cenovnika sa ljudskim odobrenjem i `SupplierExtractionProfile` učenjem.
 
 Kreiraju sopstvene test korisnike (email sufiks `@tt-test.rs`) i čiste ih u `afterAll` — audit log zapisi ostaju (namerno, append-only).
 

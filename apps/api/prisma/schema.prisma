@@ -209,10 +209,7 @@ model Product {
   id                 String            @id @default(uuid())
   type               ProductType
   sourceType         ProductSourceType @map("source_type")
-  // §2.1 — FK ka M3 (Ugovor); M3 kao Prisma model još ne postoji (nije implementiran) —
-  // isti obrazac odloženog usklađivanja kao M10/M11 stub polja pre M6 (vidi CLAUDE.md
-  // "Recurring pattern"). Plain UUID, bez relacije, dok M3 ne dođe na red.
-  sourceContractId   String?           @map("source_contract_id")
+  sourceContractId   String?           @map("source_contract_id") // §2.1 — FK ka M3 Contract; prava relacija otkad M3 postoji (M3 spec §3, izlazni kriterijum)
   sourceProvider     String?           @map("source_provider")
   sourceExternalId   String?           @map("source_external_id")
   destinationCountry String            @map("destination_country")
@@ -229,8 +226,10 @@ model Product {
   updatedAt          DateTime          @updatedAt @map("updated_at")
   createdBy          String?           @map("created_by") // referencira M1 User ili AI agenta — plain UUID, bez FK (§2.1)
 
-  translations   ProductTranslation[]
-  contentImports ProductContentImport[]
+  sourceContract   Contract?              @relation(fields: [sourceContractId], references: [id])
+  translations     ProductTranslation[]
+  contentImports   ProductContentImport[]
+  pricelistMatches PricelistImportRow[] // M3 §4.2.2 — kandidati mapiranja iz uvoza cenovnika
 
   @@map("products")
 }
@@ -374,4 +373,284 @@ enum ReviewStatus {
   APPROVED
   EDITED_AND_APPROVED
   REJECTED
+}
+
+// ============================================================================
+// M3 — Ugovaranje i alotmani
+// Izvor: docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md
+// Konvencija (poglavlje 2): sve novčane vrednosti su Int u najmanjoj jedinici valute
+// (RSD→para, EUR→cent), nikad Decimal/float.
+// ============================================================================
+
+// §2.1 `Supplier` — dobavljač
+model Supplier {
+  id                 String         @id @default(uuid())
+  name               String
+  type               SupplierType
+  taxId              String         @map("tax_id")
+  registrationNumber String         @map("registration_number")
+  country            String
+  contactName        String         @map("contact_name")
+  contactEmail       String         @map("contact_email")
+  contactPhone       String         @map("contact_phone")
+  bankAccount        String?        @map("bank_account")
+  status             SupplierStatus @default(ACTIVE)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  contacts          SupplierContact[]
+  contracts         Contract[]
+  imports           PricelistImport[]
+  extractionProfile SupplierExtractionProfile?
+
+  @@map("suppliers")
+}
+
+enum SupplierType {
+  HOTEL
+  PREVOZNIK
+  OSIGURAVAC
+  DRUGO
+}
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// §2.1a `SupplierContact` — kontakt-osoba kod dobavljača (real-time chat portal, M19)
+model SupplierContact {
+  id           String                @id @default(uuid())
+  supplierId   String                @map("supplier_id")
+  fullName     String                @map("full_name")
+  email        String
+  phone        String
+  linkedUserId String?               @map("linked_user_id") // FK ka M1 User (account_type=SUPPLIER_CONTACT); plain UUID, popunjeno tek preko M19 toka
+  status       SupplierContactStatus @default(ACTIVE)
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_contacts")
+}
+
+enum SupplierContactStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// §2.2 `Contract` — ugovor
+model Contract {
+  id                       String           @id @default(uuid())
+  supplierId               String           @map("supplier_id")
+  contractNumber           String           @map("contract_number")
+  currency                 ContractCurrency
+  validFrom                DateTime         @map("valid_from")
+  validTo                  DateTime         @map("valid_to")
+  cancellationTermsSummary String           @map("cancellation_terms_summary")
+  documentUrl              String           @map("document_url")
+  status                   ContractStatus   @default(DRAFT)
+  defaultTipNastupanja     TipNastupanja?   @map("default_tip_nastupanja") // §2.2a — obavezno pre ACTIVE
+  createdAt                DateTime         @default(now()) @map("created_at")
+  updatedAt                DateTime         @updatedAt @map("updated_at")
+  createdBy                String?          @map("created_by")
+
+  supplier Supplier         @relation(fields: [supplierId], references: [id])
+  periods  ContractPeriod[]
+  products Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
+
+  @@map("contracts")
+}
+
+enum ContractCurrency {
+  EUR
+  RSD
+  USD
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum TipNastupanja {
+  ORGANIZATOR
+  POSREDNIK
+}
+
+// §2.3 `ContractPeriod` — sezona/period unutar ugovora
+model ContractPeriod {
+  id                      String        @id @default(uuid())
+  contractId              String        @map("contract_id")
+  stayFrom                DateTime      @map("stay_from")
+  stayTo                  DateTime      @map("stay_to")
+  roomType                String        @map("room_type") // konvencija ka M2 attributes.room_types[].code, ne strogi FK
+  allotmentMode           AllotmentMode @map("allotment_mode")
+  totalCapacity           Int?          @map("total_capacity")
+  unitsSold               Int           @default(0) @map("units_sold")
+  releaseDaysBefore       Int?          @map("release_days_before") // samo FIXED
+  ukupnaFiksnaObaveza     Int?          @map("ukupna_fiksna_obaveza") // samo CHARTER/FIXED_LEASE
+  fixedObligationCurrency String?       @map("fixed_obligation_currency")
+  paymentSchedule         Json?         @map("payment_schedule") // samo FIXED_LEASE — niz {due_date, amount}
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  rateLines         RateLine[]
+  cancellationRules CancellationRule[]
+
+  @@map("contract_periods")
+}
+
+enum AllotmentMode {
+  FIXED
+  ON_REQUEST
+  CHARTER
+  FIXED_LEASE
+}
+
+// §2.4 `RateLine` — cena po kombinaciji unutar perioda
+model RateLine {
+  id               String     @id @default(uuid())
+  contractPeriodId String     @map("contract_period_id")
+  boardType        String     @map("board_type")
+  occupancy        String
+  priceBasis       PriceBasis @map("price_basis")
+  price            Int // najmanja jedinica valute ugovora
+  cribFeePerNight  Int?       @map("crib_fee_per_night")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod       @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+  agePricing     RateLineAgePricing[]
+
+  @@map("rate_lines")
+}
+
+enum PriceBasis {
+  PER_ROOM_PER_NIGHT
+  PER_PERSON_PER_NIGHT
+}
+
+// §2.4a `age_pricing[]` — cena po uzrasnoj kategoriji gosta
+model RateLineAgePricing {
+  id               String         @id @default(uuid())
+  rateLineId       String         @map("rate_line_id")
+  ageCategory      AgeCategory    @map("age_category")
+  occupantIndex    Int?           @map("occupant_index")
+  minAdultsPresent Int?           @map("min_adults_present")
+  pricingMode      AgePricingMode @map("pricing_mode")
+  percentage       Decimal? // samo PERCENTAGE_OF_BASE_PRICE
+  flatPrice        Int?           @map("flat_price") // samo FLAT_PRICE_PER_NIGHT, najmanja jedinica valute
+
+  rateLine RateLine @relation(fields: [rateLineId], references: [id], onDelete: Cascade)
+
+  @@map("rate_line_age_pricing")
+}
+
+enum AgeCategory {
+  ADULT
+  CHILD
+  TEEN
+  INFANT
+}
+
+enum AgePricingMode {
+  PERCENTAGE_OF_BASE_PRICE
+  FLAT_PRICE_PER_NIGHT
+}
+
+// §2.5 `CancellationRule` — pravila otkazivanja po periodu
+model CancellationRule {
+  id               String @id @default(uuid())
+  contractPeriodId String @map("contract_period_id")
+  daysBeforeStay   Int    @map("days_before_stay")
+  refundPercentage Int    @map("refund_percentage") // 0-100, NIJE novčani iznos
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@map("cancellation_rules")
+}
+
+// §4.2.1 `PricelistImport`
+model PricelistImport {
+  id            String                @id @default(uuid())
+  supplierId    String                @map("supplier_id")
+  sourceFileUrl String                @map("source_file_url")
+  sourceFormat  PricelistSourceFormat @map("source_format")
+  status        PricelistImportStatus @default(PROCESSING)
+  createdBy     String?               @map("created_by")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  supplier Supplier             @relation(fields: [supplierId], references: [id])
+  rows     PricelistImportRow[]
+
+  @@map("pricelist_imports")
+}
+
+enum PricelistSourceFormat {
+  PDF
+  EXCEL
+  WORD
+  HTML
+  EMAIL
+  SCANNED_PDF
+}
+
+enum PricelistImportStatus {
+  PROCESSING
+  READY_FOR_REVIEW
+  COMPLETED
+  REJECTED
+}
+
+// §4.2.2 `PricelistImportRow` — jedan red = jedna kombinacija hotel/soba/usluga/period/cena
+model PricelistImportRow {
+  id                       String                   @id @default(uuid())
+  pricelistImportId        String                   @map("pricelist_import_id")
+  extractedHotelName       String                   @map("extracted_hotel_name")
+  matchedProductId         String?                  @map("matched_product_id")
+  matchConfidence          Decimal?                 @map("match_confidence")
+  extractedRoomType        String                   @map("extracted_room_type")
+  extractedBoardType       String                   @map("extracted_board_type")
+  extractedOccupancy       String                   @map("extracted_occupancy") // dopuna, nedostajalo u v1.7 spec-a — kandidat za RateLine.occupancy (§2.4), isti obrazac kao susedna extracted_* polja
+  extractedStayFrom        DateTime                 @map("extracted_stay_from")
+  extractedStayTo          DateTime                 @map("extracted_stay_to")
+  extractedPrice           Int                      @map("extracted_price")
+  extractedCurrency        String                   @map("extracted_currency")
+  extractedPriceBasis      PriceBasis?              @map("extracted_price_basis")
+  extractedAgePricing      Json?                    @map("extracted_age_pricing")
+  extractedCribFeePerNight Int?                     @map("extracted_crib_fee_per_night")
+  reviewStatus             PricelistRowReviewStatus @default(PENDING) @map("review_status")
+  reviewedBy               String?                  @map("reviewed_by")
+
+  import         PricelistImport @relation(fields: [pricelistImportId], references: [id], onDelete: Cascade)
+  matchedProduct Product?        @relation(fields: [matchedProductId], references: [id])
+
+  @@map("pricelist_import_rows")
+}
+
+enum PricelistRowReviewStatus {
+  PENDING
+  CONFIRMED
+  MANUALLY_MATCHED
+  REJECTED
+}
+
+// §4.2.5 `SupplierExtractionProfile` — nauči jednom po dobavljaču, koristi ponovo
+model SupplierExtractionProfile {
+  id                    String      @id @default(uuid())
+  supplierId            String      @unique @map("supplier_id")
+  typicalPriceBasis     PriceBasis? @map("typical_price_basis")
+  typicalAgeThresholds  Json?       @map("typical_age_thresholds")
+  structureSignature    Json?       @map("structure_signature")
+  lastConfirmedImportId String?     @map("last_confirmed_import_id")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_extraction_profiles")
 }
