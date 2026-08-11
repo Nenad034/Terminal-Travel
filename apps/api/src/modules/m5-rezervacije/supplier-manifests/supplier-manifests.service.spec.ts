@@ -91,11 +91,18 @@ describe('SupplierManifestsService.prepareBatch (M5 spec §8.4 dopuna v1.16)', (
     await expect(service.prepareBatch({}, 'actor-1')).rejects.toThrow(BadRequestException);
   });
 
-  it('odbija poziv kad su OBA načina izbora prosleđena istovremeno', async () => {
-    const { service } = makeService();
-    await expect(
-      service.prepareBatch({ bookingIds: ['b-1'], createdFrom: '2027-01-01', createdTo: '2027-01-31' }, 'actor-1'),
-    ).rejects.toThrow(BadRequestException);
+  it('bookingIds je isključiv — kad je prosleđen, ignoriše ostale filtere umesto da baca grešku', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ bookingIds: ['b-1'], createdFrom: '2027-01-01', createdTo: '2027-01-31' }, 'actor-1');
+
+    expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ bookingId: { in: ['b-1'] } }) }),
+    );
+    // createdFrom/createdTo NIJE preneto u where kad je bookingIds prosleđen.
+    const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+    expect(where.AND).toBeUndefined();
   });
 
   it('checkbox izbor (bookingIds) filtrira stavke po tačno tim rezervacijama', async () => {
@@ -109,7 +116,7 @@ describe('SupplierManifestsService.prepareBatch (M5 spec §8.4 dopuna v1.16)', (
     );
   });
 
-  it('opseg datuma (createdFrom/createdTo) filtrira po Booking.createdAt, ne po stayFrom/stayTo', async () => {
+  it('opseg datuma kreiranja (createdFrom/createdTo) filtrira po Booking.createdAt, ne po stayFrom/stayTo', async () => {
     const { service, prisma } = makeService();
     prisma.bookingItem.findMany.mockResolvedValue([]);
 
@@ -118,10 +125,80 @@ describe('SupplierManifestsService.prepareBatch (M5 spec §8.4 dopuna v1.16)', (
     expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          booking: { createdAt: { gte: new Date('2027-06-01'), lte: new Date('2027-06-30') } },
+          AND: [{ booking: { createdAt: { gte: new Date('2027-06-01'), lte: new Date('2027-06-30') } } }],
         }),
       }),
     );
+  });
+
+  it('opseg boravka (stayFrom/stayTo) filtrira po preklapanju, isti obrazac kao periodično agregiranje', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ stayFrom: '2027-08-01', stayTo: '2027-08-31' }, 'actor-1');
+
+    expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ stayFrom: { lte: new Date('2027-08-31') }, stayTo: { gte: new Date('2027-08-01') } }],
+        }),
+      }),
+    );
+  });
+
+  it('dolasci od-do (arrivalFrom/arrivalTo) filtrira po stayFrom unutar opsega, ne po preklapanju', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ arrivalFrom: '2027-08-10', arrivalTo: '2027-08-12' }, 'actor-1');
+
+    expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ stayFrom: { gte: new Date('2027-08-10'), lte: new Date('2027-08-12') } }],
+        }),
+      }),
+    );
+  });
+
+  it('odlasci od-do (departureFrom/departureTo) filtrira po stayTo unutar opsega', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ departureFrom: '2027-08-10', departureTo: '2027-08-12' }, 'actor-1');
+
+    expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ stayTo: { gte: new Date('2027-08-10'), lte: new Date('2027-08-12') } }],
+        }),
+      }),
+    );
+  });
+
+  it('status rezervacije filtrira po Booking.status preko liste vrednosti', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ bookingStatus: ['CONFIRMED', 'MODIFIED'] as any }, 'actor-1');
+
+    expect(prisma.bookingItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [{ booking: { status: { in: ['CONFIRMED', 'MODIFIED'] } } }],
+        }),
+      }),
+    );
+  });
+
+  it('kombinuje više filtera istovremeno (logičko I) — npr. dolasci od-do I status', async () => {
+    const { service, prisma } = makeService();
+    prisma.bookingItem.findMany.mockResolvedValue([]);
+
+    await service.prepareBatch({ arrivalFrom: '2027-08-01', arrivalTo: '2027-08-07', bookingStatus: ['CONFIRMED'] as any }, 'actor-1');
+
+    const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+    expect(where.AND).toHaveLength(2);
   });
 
   it('grupiše po dobavljaču isto kao prepareForBooking kad je obim više rezervacija umesto jedne', async () => {

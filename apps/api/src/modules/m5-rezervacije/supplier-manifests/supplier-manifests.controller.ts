@@ -52,7 +52,18 @@ export class SupplierManifestsController {
   @RequirePermission('M5', 'supplier-manifest', 'CREATE')
   prepareBatch(@Body() dto: PrepareManifestsBatchDto, @CurrentUser() actor: { userId: string }) {
     return this.manifests.prepareBatch(
-      { bookingIds: dto.bookingIds, createdFrom: dto.createdFrom, createdTo: dto.createdTo },
+      {
+        bookingIds: dto.bookingIds,
+        createdFrom: dto.createdFrom,
+        createdTo: dto.createdTo,
+        stayFrom: dto.stayFrom,
+        stayTo: dto.stayTo,
+        arrivalFrom: dto.arrivalFrom,
+        arrivalTo: dto.arrivalTo,
+        departureFrom: dto.departureFrom,
+        departureTo: dto.departureTo,
+        bookingStatus: dto.bookingStatus,
+      },
       actor.userId,
       dto.language,
     );

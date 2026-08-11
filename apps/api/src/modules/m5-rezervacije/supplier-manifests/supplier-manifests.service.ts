@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { SupplierManifestLanguage, SupplierType } from '@prisma/client';
+import { BookingStatus, Prisma, SupplierManifestLanguage, SupplierType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { M22MailboxStubService } from '../common/m22-mailbox-stub.service';
@@ -86,41 +86,75 @@ export class SupplierManifestsService {
   }
 
   /**
-   * M5 spec §8.4 dopuna (v1.16, na zahtev vlasnika) — "checkbox izbor" i "grupiši rezervacije
-   * kreirane od...do datuma": ista automatska grupacija po dobavljaču kao prepareForBooking
-   * iznad, samo je obim ili (a) ručno izabrana lista rezervacija (checkbox u M17), ili (b)
-   * sve rezervacije čiji je Booking.created_at u traženom opsegu — TAČNO JEDAN od ova dva
-   * mora biti prosleđen. NAMERNO ne postoji ulaz "AI agent, pošalji sam" — ova akcija samo
-   * PRIPREMA nacrte (nivo "Autonomno", isto obrazloženje kao periodično agregiranje iznad);
-   * slanje ostaje isključivo ljudski klik po listi, bez obzira ko/šta je pripremu pokrenulo
-   * (§8.4 — "agent nikad sam ne šalje potvrdu dobavljaču", spec se ovde ne menja).
+   * M5 spec §8.4 dopuna (v1.16, na zahtev vlasnika) — "checkbox izbor" ILI kombinacija
+   * filtera za izveštaj: rezervacija napravljena od-do, boravak preklapa od-do, dolazak
+   * pada u od-do, odlazak pada u od-do, status rezervacije. Ista automatska grupacija po
+   * dobavljaču kao prepareForBooking iznad. `bookingIds` je poseban, isključiv način
+   * (ručni izbor poništava sve ostale filtere ispod — nema mešanja "izaberi ove ID-jeve
+   * I još filtriraj po datumu", to bi bilo zbunjujuće); inače mora biti prisutan BAR JEDAN
+   * od preostalih filtera — prazan poziv bez ijednog kriterijuma bi zahvatio SVE nenajavljene
+   * stavke ikad, što je namerno onemogućeno (previše širok, rizičan podrazumevani obim).
+   * Filteri ispod se KOMBINUJU (logičko I) kad je prosleđeno više njih istovremeno.
+   * NAMERNO ne postoji ulaz "AI agent, pošalji sam" — ova akcija samo PRIPREMA nacrte
+   * (nivo "Autonomno", isto obrazloženje kao periodično agregiranje iznad); slanje ostaje
+   * isključivo ljudski klik po listi, bez obzira ko/šta je pripremu pokrenulo (§8.4 —
+   * "agent nikad sam ne šalje potvrdu dobavljaču", spec se ovde ne menja).
    */
   async prepareBatch(
-    params: { bookingIds?: string[]; createdFrom?: string; createdTo?: string },
+    params: {
+      bookingIds?: string[];
+      createdFrom?: string;
+      createdTo?: string;
+      stayFrom?: string;
+      stayTo?: string;
+      arrivalFrom?: string;
+      arrivalTo?: string;
+      departureFrom?: string;
+      departureTo?: string;
+      bookingStatus?: BookingStatus | BookingStatus[];
+    },
     generatedBy: string,
     language?: SupplierManifestLanguage,
   ) {
-    const hasBookingIds = !!params.bookingIds && params.bookingIds.length > 0;
-    const hasDateRange = params.createdFrom != null && params.createdTo != null;
-    if (hasBookingIds === hasDateRange) {
+    if (params.bookingIds && params.bookingIds.length > 0) {
+      return this.prepareGrouped({ bookingId: { in: params.bookingIds } }, generatedBy, language);
+    }
+
+    const and: Prisma.BookingItemWhereInput[] = [];
+
+    if (params.createdFrom != null && params.createdTo != null) {
+      and.push({ booking: { createdAt: { gte: new Date(params.createdFrom), lte: new Date(params.createdTo) } } });
+    }
+    // "boravak od-do" — preklapanje opsega (isti obrazac kao periodFrom/periodTo u generateDraft).
+    if (params.stayFrom != null && params.stayTo != null) {
+      and.push({ stayFrom: { lte: new Date(params.stayTo) }, stayTo: { gte: new Date(params.stayFrom) } });
+    }
+    // "dolasci od-do" — sam stay_from pada u opseg (kad tačno gost stiže), ne preklapanje.
+    if (params.arrivalFrom != null && params.arrivalTo != null) {
+      and.push({ stayFrom: { gte: new Date(params.arrivalFrom), lte: new Date(params.arrivalTo) } });
+    }
+    // "odlasci od-do" — sam stay_to pada u opseg.
+    if (params.departureFrom != null && params.departureTo != null) {
+      and.push({ stayTo: { gte: new Date(params.departureFrom), lte: new Date(params.departureTo) } });
+    }
+    if (params.bookingStatus) {
+      const statuses = Array.isArray(params.bookingStatus) ? params.bookingStatus : [params.bookingStatus];
+      and.push({ booking: { status: { in: statuses } } });
+    }
+
+    if (and.length === 0) {
       throw new BadRequestException(
-        'Prosledite TAČNO JEDAN način izbora — ili bookingIds (checkbox lista), ili createdFrom+createdTo (opseg datuma), ne oba i ne nijedan (M5 spec §8.4 dopuna v1.16).',
+        'Prosledite bookingIds (ručni izbor) ili bar jedan filter (rezervacije/boravak/dolasci/odlasci od-do, status rezervacije) — prazan poziv bi zahvatio sve nenajavljene stavke ikad (M5 spec §8.4 dopuna v1.16).',
       );
     }
 
-    return this.prepareGrouped(
-      hasBookingIds
-        ? { bookingId: { in: params.bookingIds } }
-        : { booking: { createdAt: { gte: new Date(params.createdFrom!), lte: new Date(params.createdTo!) } } },
-      generatedBy,
-      language,
-    );
+    return this.prepareGrouped({ AND: and }, generatedBy, language);
   }
 
   // Deljena logika za prepareForBooking/prepareBatch — pronađi nenajavljene CONTRACTED/CONFIRMED
   // stavke po datom filteru, grupiši ih po dobavljaču, napravi po jedan DRAFT nacrt za svakog.
   private async prepareGrouped(
-    bookingFilter: Record<string, unknown>,
+    bookingFilter: Prisma.BookingItemWhereInput,
     generatedBy: string,
     language?: SupplierManifestLanguage,
   ) {
