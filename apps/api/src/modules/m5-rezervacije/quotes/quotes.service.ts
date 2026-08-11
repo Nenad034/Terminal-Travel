@@ -61,6 +61,8 @@ export class QuotesService {
             finalPrice: b.finalPrice,
             finalPriceCurrency: b.finalPriceCurrency,
             providerQuoteReference: b.providerQuoteReference,
+            unitCount: b.unitCount,
+            cancellationPolicySnapshot: b.cancellationPolicySnapshot as any,
           })),
         },
       },

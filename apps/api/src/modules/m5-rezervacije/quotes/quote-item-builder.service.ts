@@ -35,6 +35,12 @@ export interface BuiltQuoteItemData {
   // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
   // podrazumevanih 30 min za čisto ugovorene stavke." null za CONTRACTED (§3.0b.2).
   quoteExpiresAt: string | null;
+  // M5 spec §4.2 dopuna (v1.14) — broj rezervisanih jedinica (soba), iz room_config.length;
+  // koristi se pri potvrdi (§4) i pri release-u kapaciteta (§6) da se oslobodi TAČAN broj.
+  unitCount: number;
+  // M5 spec §4.2 dopuna (v1.14) — samo za API stavke, snimak M4 cancellationPolicy u trenutku
+  // građenja, da se refund% pri otkazivanju računa deterministički bez ponovnog poziva ka M4.
+  cancellationPolicySnapshot: { daysBeforeStay: number; refundPercentage: number }[] | null;
 }
 
 /**
@@ -60,11 +66,13 @@ export class QuoteItemBuilderService {
     const stayFrom = new Date(params.stayFrom);
     const stayTo = new Date(params.stayTo);
     const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
+    // §4.2 dopuna (v1.14) — broj jedinica (soba) je zajednički za oba izvora, izveden jednom ovde.
+    const unitCount = roomConfig.length;
 
     if (product.sourceType === 'CONTRACTED') {
-      return this.buildContracted(product, stayFrom, stayTo, params.occupancy, roomConfig, params.rateLineId ?? null);
+      return this.buildContracted(product, stayFrom, stayTo, params.occupancy, roomConfig, params.rateLineId ?? null, unitCount);
     }
-    return this.buildApi(product, stayFrom, stayTo, params.occupancy, params.selectedOfferQuoteExpiresAt ?? null);
+    return this.buildApi(product, stayFrom, stayTo, params.occupancy, params.selectedOfferQuoteExpiresAt ?? null, unitCount);
   }
 
   private async buildContracted(
@@ -74,6 +82,7 @@ export class QuoteItemBuilderService {
     occupancy: OccupancyInput,
     roomConfig: ReturnType<typeof assertRoomConfigMatchesTotals>,
     explicitRateLineId: string | null,
+    unitCount: number,
   ): Promise<BuiltQuoteItemData> {
     if (!product.sourceContractId || !product.sourceContract) {
       throw new BadRequestException('CONTRACTED proizvod nema povezan ugovor (M2 spec §2.1).');
@@ -146,6 +155,8 @@ export class QuoteItemBuilderService {
       finalPriceCurrency: product.sourceContract.currency,
       providerQuoteReference: null,
       quoteExpiresAt: null,
+      unitCount,
+      cancellationPolicySnapshot: null, // CONTRACTED koristi M3 CancellationRule uživo, §4.2 dopuna v1.14
     };
   }
 
@@ -155,6 +166,7 @@ export class QuoteItemBuilderService {
     stayTo: Date,
     occupancy: OccupancyInput,
     selectedOfferQuoteExpiresAt: string | null,
+    unitCount: number,
   ): Promise<BuiltQuoteItemData> {
     if (!product.sourceProvider || !product.sourceExternalId) {
       throw new BadRequestException('API proizvod nema povezanog provajdera (M2 spec §2.1).');
@@ -195,6 +207,13 @@ export class QuoteItemBuilderService {
       finalPriceCurrency: quote.currency,
       providerQuoteReference: quote.externalId,
       quoteExpiresAt: quote.quoteExpiresAt,
+      unitCount,
+      // §4.2 dopuna v1.14 — snimak M4 cancellationPolicy (isti oblik kao M3 CancellationRule),
+      // radi determinističkog refund% pri otkazivanju bez ponovnog poziva ka M4.
+      cancellationPolicySnapshot: quote.cancellationPolicy.map((p) => ({
+        daysBeforeStay: p.days_before_stay,
+        refundPercentage: p.refund_percentage,
+      })),
     };
   }
 }

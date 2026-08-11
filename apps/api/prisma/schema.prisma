@@ -903,6 +903,15 @@ model QuoteItem {
   finalPrice             Int               @map("final_price")
   finalPriceCurrency     String            @map("final_price_currency")
   providerQuoteReference String?           @map("provider_quote_reference")
+  // §4.2 dopuna (v1.14) — broj rezervisanih jedinica (soba), iz occupancy.room_config.length;
+  // potrebno da se pri otkazivanju/izmeni oslobodi TAČAN broj jedinica nazad u M3 (ne uvek 1).
+  unitCount              Int               @default(1) @map("unit_count")
+  // §4.2 dopuna (v1.14) — samo za API (M4) stavke: snimak M4 AvailabilityQuote.cancellationPolicy
+  // (isti strukturirani oblik kao M3 CancellationRule, §2.1 M4 spec) u trenutku građenja stavke,
+  // da bi se procenat povraćaja pri otkazivanju mogao izračunati deterministički, bez ponovnog
+  // poziva ka M4 (koji možda više ne vraća istu polisu). Null za CONTRACTED stavke (koriste M3
+  // CancellationRule uživo preko rate_line_id, nema potrebe za snimkom).
+  cancellationPolicySnapshot Json?         @map("cancellation_policy_snapshot")
 
   quote      Quote      @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product    Product    @relation(fields: [productId], references: [id])
@@ -970,6 +979,10 @@ model BookingItem {
   finalPriceCurrency           String            @map("final_price_currency")
   itemStatus                   BookingItemStatus @default(CONFIRMED) @map("item_status")
   cancellationRefundPercentage Int?              @map("cancellation_refund_percentage")
+  // §4.2 dopuna (v1.14) — vidi QuoteItem.unitCount/cancellationPolicySnapshot iznad, isto obrazloženje;
+  // kopira se iz QuoteItem pri potvrdi (§4) i pri izmeni (§6, nova stavka).
+  unitCount                    Int               @default(1) @map("unit_count")
+  cancellationPolicySnapshot   Json?             @map("cancellation_policy_snapshot")
   assignedGuideId              String?           @map("assigned_guide_id") // FK -> M1 User (VODIC), plain UUID (M9 još ne postoji)
   duplicateConflictItemId      String?           @map("duplicate_conflict_item_id")
   duplicateCheckOverriddenBy   String?           @map("duplicate_check_overridden_by")

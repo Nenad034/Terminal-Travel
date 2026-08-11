@@ -232,7 +232,7 @@ Tretira se interno kao otkazivanje pogođene stavke + nova stavka po novom zahte
 ```json
 { "itemIds": ["bi-1"], "confirmDuplicateOverride": true }
 ```
-**Odgovor `200`:** ažuriran `Booking` (status `CANCELLED` ako su sve stavke otkazane, inače `MODIFIED`).
+**Odgovor `200`:** ažuriran `Booking` (status `CANCELLED` ako su sve stavke otkazane, inače `MODIFIED`). Svaka otkazana stavka dobija `cancellationRefundPercentage` — za CONTRACTED iz M3 `CancellationRule`, za API deterministički iz `cancellationPolicySnapshot` (poglavlje 3.2/4.2 spec dokumenta, dopuna v1.14) — i oslobađa se tačan broj rezervisanih jedinica (`unitCount`) nazad u M3, ne uvek jedna.
 
 ### PATCH /bookings/:id/payment-status
 **Zahtev:**

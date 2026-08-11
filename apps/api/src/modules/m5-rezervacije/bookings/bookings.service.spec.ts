@@ -8,7 +8,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       product: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
-      booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findMany: jest.fn() },
+      booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       bookingItem: { findMany: jest.fn(), update: jest.fn(), count: jest.fn() },
       bookingItemGuest: { findMany: jest.fn() },
     };
@@ -53,8 +53,8 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         contractTermsAccepted: false,
         clientAccountId: 'client-1',
         items: [
-          { id: 'qi-1', productId: 'p1', sourceType: 'CONTRACTED', rateLineId: 'rl1', occupancy: { adults: 2, children: 0 }, finalPrice: 10000, finalPriceCurrency: 'EUR' },
-          { id: 'qi-2', productId: 'p2', sourceType: 'CONTRACTED', rateLineId: 'rl2', occupancy: { adults: 2, children: 0 }, finalPrice: 8000, finalPriceCurrency: 'EUR' },
+          { id: 'qi-1', productId: 'p1', sourceType: 'CONTRACTED', rateLineId: 'rl1', occupancy: { adults: 2, children: 0 }, finalPrice: 10000, finalPriceCurrency: 'EUR', unitCount: 1 },
+          { id: 'qi-2', productId: 'p2', sourceType: 'CONTRACTED', rateLineId: 'rl2', occupancy: { adults: 2, children: 0 }, finalPrice: 8000, finalPriceCurrency: 'EUR', unitCount: 1 },
         ],
       };
       prisma.quote.findUnique.mockResolvedValue(quote);
@@ -93,6 +93,34 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         items: [],
       });
       await expect(service.confirmQuote('quote-2', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+    });
+
+    it('rezerviše broj jedinica iz QuoteItem.unitCount, ne pretpostavlja uvek 1 (§4.2 dopuna v1.14)', async () => {
+      const { service, prisma, contractPeriods } = makeService();
+
+      const quote = {
+        id: 'quote-multi',
+        status: 'DRAFT',
+        expiresAt: new Date(Date.now() + 60_000),
+        channel: 'INTERNAL_PANEL',
+        contractTermsAccepted: false,
+        clientAccountId: 'client-1',
+        items: [
+          { id: 'qi-1', productId: 'p1', sourceType: 'CONTRACTED', rateLineId: 'rl1', occupancy: { adults: 4, children: 0, roomConfig: [{ adults: 2, children: 0 }, { adults: 2, children: 0 }] }, finalPrice: 20000, finalPriceCurrency: 'EUR', unitCount: 2 },
+        ],
+      };
+      prisma.quote.findUnique.mockResolvedValue(quote);
+      prisma.product.findUniqueOrThrow.mockResolvedValue({ sourceContract: { defaultTipNastupanja: 'POSREDNIK' } });
+      prisma.rateLine.findUniqueOrThrow.mockResolvedValue({ contractPeriodId: 'period-multi', contractPeriod: {} });
+      contractPeriods.reserve.mockResolvedValue({ reserved: true, unitsSold: 2, remaining: 0 });
+      prisma.booking.create.mockResolvedValue({ id: 'booking-multi', items: [{ id: 'bi-1' }] });
+      // prvi poziv: provera jedinstvenosti booking_number (nextBookingNumber) -> "ne postoji";
+      // drugi poziv: findOne posle kreiranja, radi serializeBooking odgovora.
+      prisma.booking.findUnique.mockResolvedValueOnce(null).mockResolvedValue({ id: 'booking-multi', items: [] });
+
+      await service.confirmQuote('quote-multi', {}, { userId: 'actor-1' });
+
+      expect(contractPeriods.reserve).toHaveBeenCalledWith('period-multi', 2, 'actor-1');
     });
 
     it('odbija potvrdu samouslužnog kanala bez contract_terms_accepted (§3.1)', async () => {
@@ -144,6 +172,67 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       // Otkazivanje NIJE izvršeno — kapacitet nije oslobođen, stavka nije menjana.
       expect(contractPeriods.release).not.toHaveBeenCalled();
       expect(prisma.bookingItem.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cancel — oslobađanje kapaciteta i refund% (§6, §4.2 dopuna v1.14)', () => {
+    it('oslobađa TAČAN broj rezervisanih jedinica (unit_count), ne uvek 1 — regresioni test za bivši bug', async () => {
+      const { service, prisma, contractPeriods } = makeService();
+
+      const item = {
+        id: 'item-multi',
+        bookingId: 'booking-multi',
+        productId: 'product-1',
+        sourceType: 'CONTRACTED',
+        rateLineId: 'rl1',
+        itemStatus: 'CONFIRMED',
+        unitCount: 3,
+        stayFrom: new Date(Date.now() + 40 * 86_400_000),
+        stayTo: new Date(Date.now() + 45 * 86_400_000),
+      };
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-multi', items: [item] });
+      prisma.bookingItemGuest.findMany.mockResolvedValue([]); // nema gostiju vezanih -> nema duplikata, prolazi direktno
+      prisma.rateLine.findUnique.mockResolvedValue({ contractPeriodId: 'period-multi', contractPeriod: { cancellationRules: [] } });
+      prisma.bookingItem.count.mockResolvedValue(0);
+      prisma.booking.update.mockResolvedValue({ id: 'booking-multi', items: [] });
+
+      await service.cancel('booking-multi', {}, { userId: 'actor-1' });
+
+      expect(contractPeriods.release).toHaveBeenCalledWith('period-multi', 3, 'actor-1');
+    });
+
+    it('računa refund% za API stavku iz cancellation_policy_snapshot, deterministički (§4.2 dopuna v1.14)', async () => {
+      const { service, prisma } = makeService();
+
+      const item = {
+        id: 'item-api',
+        bookingId: 'booking-api',
+        productId: 'product-api',
+        sourceType: 'API',
+        rateLineId: null,
+        supplierReference: 'ext-ref-1',
+        itemStatus: 'CONFIRMED',
+        unitCount: 1,
+        cancellationPolicySnapshot: [
+          { daysBeforeStay: 30, refundPercentage: 100 },
+          { daysBeforeStay: 7, refundPercentage: 50 },
+          { daysBeforeStay: 0, refundPercentage: 0 },
+        ],
+        stayFrom: new Date(Date.now() + 10 * 86_400_000),
+        stayTo: new Date(Date.now() + 15 * 86_400_000),
+      };
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-api', items: [item] });
+      prisma.bookingItemGuest.findMany.mockResolvedValue([]);
+      prisma.product.findUnique.mockResolvedValue({ sourceProvider: 'travelgate' });
+      prisma.bookingItem.count.mockResolvedValue(0);
+      prisma.booking.update.mockResolvedValue({ id: 'booking-api', items: [] });
+
+      await service.cancel('booking-api', {}, { userId: 'actor-1' });
+
+      // 10 dana do polaska -> primenjuje se pravilo za 7 dana pre (najspecifičnije koje je <= 10) -> 50%.
+      expect(prisma.bookingItem.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ cancellationRefundPercentage: 50 }) }),
+      );
     });
   });
 });

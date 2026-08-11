@@ -144,6 +144,8 @@ export class BookingsService {
               finalPrice: item.finalPrice,
               finalPriceCurrency: item.finalPriceCurrency,
               itemStatus: outcome.itemStatus,
+              unitCount: item.unitCount,
+              cancellationPolicySnapshot: item.cancellationPolicySnapshot as any,
               // §8.6 — API stavke: najava/potvrda automatski, isti trenutak kao CONFIRMED.
               announcedAt: isApi ? now : null,
               supplierConfirmedAt: isApi ? now : null,
@@ -209,6 +211,8 @@ export class BookingsService {
             finalPrice: b.finalPrice,
             finalPriceCurrency: b.finalPriceCurrency,
             providerQuoteReference: b.providerQuoteReference,
+            unitCount: b.unitCount,
+            cancellationPolicySnapshot: b.cancellationPolicySnapshot as any,
           },
         }),
       ),
@@ -263,8 +267,7 @@ export class BookingsService {
     if (item.sourceType === 'CONTRACTED') {
       if (!item.rateLineId) throw new BadRequestException(`QuoteItem ${item.id} (CONTRACTED) nema rate_line_id.`);
       const rateLine = await this.prisma.rateLine.findUniqueOrThrow({ where: { id: item.rateLineId }, include: { contractPeriod: true } });
-      const occupancy = item.occupancy as { roomConfig?: unknown[] } | null;
-      const units = Array.isArray(occupancy?.roomConfig) && occupancy!.roomConfig!.length > 0 ? occupancy!.roomConfig!.length : 1;
+      const units = item.unitCount; // §4.2 dopuna v1.14 — izvedeno jednom u builderu iz room_config.length
 
       const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, units, actorId);
       const itemStatus = 'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation ? 'PENDING_SUPPLIER_CONFIRMATION' : 'CONFIRMED';
@@ -448,7 +451,9 @@ export class BookingsService {
   private async releaseItemCapacity(item: BookingItem, actorId: string) {
     if (item.sourceType === 'CONTRACTED' && item.rateLineId) {
       const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId } });
-      if (rateLine) await this.contractPeriods.release(rateLine.contractPeriodId, 1, actorId);
+      // §4.2 dopuna v1.14 — oslobodi TAČAN broj rezervisanih jedinica, ne uvek 1 (bio je bug:
+      // višesobna rezervacija je pri otkazivanju oslobađala samo jednu sobu nazad u M3 alotman).
+      if (rateLine) await this.contractPeriods.release(rateLine.contractPeriodId, item.unitCount, actorId);
     } else if (item.sourceType === 'API') {
       const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
       if (product?.sourceProvider) {
@@ -458,10 +463,20 @@ export class BookingsService {
   }
 
   private async computeRefundPercentage(item: BookingItem): Promise<number | null> {
-    if (!item.rateLineId) return null; // API stavke — cancellationPolicy se ne čuva trajno na BookingItem (poznato ograničenje)
+    const daysUntilStay = Math.ceil((item.stayFrom.getTime() - Date.now()) / 86_400_000);
+
+    if (!item.rateLineId) {
+      // §4.2 dopuna v1.14 — API stavke: isti deterministički algoritam (najspecifičniji
+      // daysBeforeStay koji je <= daysUntilStay pobeđuje), primenjen na snimljenu M4 polisu
+      // umesto na M3 CancellationRule. Bez snimka (starije stavke pre ove dopune) ostaje null.
+      const snapshot = item.cancellationPolicySnapshot as { daysBeforeStay: number; refundPercentage: number }[] | null;
+      if (!snapshot || snapshot.length === 0) return null;
+      const applicable = snapshot.filter((r) => r.daysBeforeStay <= daysUntilStay).sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
+      return applicable?.refundPercentage ?? 0;
+    }
+
     const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId }, include: { contractPeriod: { include: { cancellationRules: true } } } });
     if (!rateLine) return null;
-    const daysUntilStay = Math.ceil((item.stayFrom.getTime() - Date.now()) / 86_400_000);
     const applicable = rateLine.contractPeriod.cancellationRules
       .filter((r) => r.daysBeforeStay <= daysUntilStay)
       .sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
@@ -511,6 +526,8 @@ export class BookingsService {
         finalPrice: built.finalPrice,
         finalPriceCurrency: built.finalPriceCurrency,
         itemStatus: outcome.itemStatus,
+        unitCount: built.unitCount,
+        cancellationPolicySnapshot: built.cancellationPolicySnapshot as any,
         announcedAt: built.sourceType === 'API' ? new Date() : null,
         supplierConfirmedAt: built.sourceType === 'API' ? new Date() : null,
       },
@@ -549,9 +566,7 @@ export class BookingsService {
     if (built.sourceType === 'CONTRACTED') {
       if (!built.rateLineId) throw new BadRequestException('Nova stavka (CONTRACTED) nema rate_line_id.');
       const rateLine = await this.prisma.rateLine.findUniqueOrThrow({ where: { id: built.rateLineId } });
-      const occupancy = built.occupancy as { roomConfig?: unknown[] };
-      const units = Array.isArray(occupancy.roomConfig) && occupancy.roomConfig.length > 0 ? occupancy.roomConfig.length : 1;
-      const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, units, actorId);
+      const result = await this.contractPeriods.reserve(rateLine.contractPeriodId, built.unitCount, actorId);
       const pending = 'requiresSupplierConfirmation' in result && result.requiresSupplierConfirmation;
       return { itemStatus: pending ? 'PENDING_SUPPLIER_CONFIRMATION' : 'CONFIRMED', supplierReference: rateLine.contractPeriodId };
     }
