@@ -190,6 +190,42 @@ export class ContractPeriodsService {
     return { reserved: true, unitsSold: updated.units_sold, remaining };
   }
 
+  /**
+   * M5 spec §4 korak 3 ("sve ili ništa — već rezervisane stavke se odmah oslobađaju") i
+   * §6 ("otkazivanje — kapacitet se oslobađa nazad, units_sold se umanjuje"). Simetrično
+   * `reserve()` — atomski umanjuje units_sold, nikad ispod 0. ON_REQUEST/nekapacitetni
+   * periodi nemaju šta da oslobode (isto obrazloženje kao reserve()).
+   */
+  async release(periodId: string, units: number, actorId: string) {
+    const period = await this.prisma.contractPeriod.findUnique({ where: { id: periodId } });
+    if (!period) throw new NotFoundException('Period nije pronađen');
+
+    if (!CAPACITY_BEARING_MODES.includes(period.allotmentMode)) {
+      return { released: true, allotmentMode: period.allotmentMode };
+    }
+
+    const rows = await this.prisma.$queryRaw<{ id: string; units_sold: number; total_capacity: number }[]>`
+      UPDATE contract_periods
+      SET units_sold = GREATEST(units_sold - ${units}, 0)
+      WHERE id = ${periodId}
+      RETURNING id, units_sold, total_capacity
+    `;
+    const updated = rows[0];
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'contract_period.released',
+      resourceType: 'ContractPeriod',
+      resourceId: periodId,
+      afterState: { unitsSold: updated.units_sold },
+      context: { units },
+    });
+
+    return { released: true, unitsSold: updated.units_sold, remaining: updated.total_capacity - updated.units_sold };
+  }
+
   // §6 — GET /contracts/expiring-releases
   async expiringReleases() {
     const periods = await this.prisma.contractPeriod.findMany({

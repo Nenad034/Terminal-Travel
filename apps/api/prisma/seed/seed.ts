@@ -72,6 +72,30 @@ const M4_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M4', resource: 'provider-call-log', action: 'VIEW', description: 'Uvid u operativni log poziva ka provajderima' },
 ];
 
+// M5 spec §10 — dozvole rezervacija i toka prodaje.
+const M5_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M5', resource: 'itinerary', action: 'CREATE', description: 'Sastavljanje novog putovanja (Itinerary)' },
+  { module: 'M5', resource: 'itinerary', action: 'VIEW', description: 'Uvid u sastavljena putovanja' },
+  { module: 'M5', resource: 'itinerary', action: 'EDIT', description: 'Izmena segmenata putovanja / konverzija u Ponudu' },
+  { module: 'M5', resource: 'quote', action: 'CREATE', description: 'Kreiranje Ponude' },
+  { module: 'M5', resource: 'quote', action: 'VIEW', description: 'Uvid u Ponude' },
+  { module: 'M5', resource: 'booking', action: 'CREATE', description: 'Potvrda rezervacije (Ponuda → Rezervacija)' },
+  { module: 'M5', resource: 'booking', action: 'VIEW', description: 'Uvid u rezervacije i kalendar rezervacija' },
+  { module: 'M5', resource: 'booking', action: 'MODIFY', description: 'Izmena rezervacije/statusa plaćanja' },
+  { module: 'M5', resource: 'booking', action: 'CANCEL', description: 'Otkazivanje rezervacije/stavke' },
+  { module: 'M5', resource: 'markup-rule', action: 'VIEW', description: 'Uvid u pravila marže' },
+  { module: 'M5', resource: 'markup-rule', action: 'EDIT', description: 'Izmena pravila marže' },
+  { module: 'M5', resource: 'supplier-announcement-rule', action: 'VIEW', description: 'Uvid u pravila automatske pripreme najave dobavljaču' },
+  { module: 'M5', resource: 'supplier-announcement-rule', action: 'EDIT', description: 'Izmena pravila automatske pripreme najave dobavljaču' },
+  { module: 'M5', resource: 'voucher', action: 'OVERRIDE_ISSUE', description: 'Izdavanje vaučera bez pune uplate (izuzetak)' },
+  { module: 'M5', resource: 'supplier-manifest', action: 'VIEW', description: 'Uvid u operativne liste za dobavljače' },
+  { module: 'M5', resource: 'supplier-manifest', action: 'CREATE', description: 'Priprema nacrta operativne liste' },
+  { module: 'M5', resource: 'supplier-manifest', action: 'SEND', description: 'Slanje operativne liste dobavljaču' },
+  { module: 'M5', resource: 'supplier-change-notice', action: 'CREATE', description: 'Priprema nacrta najave izmene/storna dobavljaču' },
+  { module: 'M5', resource: 'supplier-change-notice', action: 'SEND', description: 'Slanje najave izmene/storna dobavljaču' },
+  { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM', description: 'Ručna potvrda prijema od dobavljača (klik na predloženu vezu sa mejlom)' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -80,12 +104,14 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -102,16 +128,48 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M3', resource: 'supplier-contact', action: 'EDIT' },
     { module: 'M3', resource: 'contract', action: 'VIEW' },
     { module: 'M3', resource: 'contract-period', action: 'VIEW' },
+    // M5 spec §10 — Sales Manager vidi sve rezervacije (ne samo sopstvene), i deo je
+    // kruga koji sme da šalje operativne liste/najave dobavljaču.
+    { module: 'M5', resource: 'itinerary', action: 'CREATE' },
+    { module: 'M5', resource: 'itinerary', action: 'VIEW' },
+    { module: 'M5', resource: 'itinerary', action: 'EDIT' },
+    { module: 'M5', resource: 'quote', action: 'CREATE' },
+    { module: 'M5', resource: 'quote', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'CREATE' },
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'MODIFY' },
+    { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
+    { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
+    { module: 'M5', resource: 'supplier-manifest', action: 'SEND' },
+    { module: 'M5', resource: 'supplier-change-notice', action: 'CREATE' },
+    { module: 'M5', resource: 'supplier-change-notice', action: 'SEND' },
+    { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
     { module: 'M3', resource: 'supplier', action: 'VIEW' },
     { module: 'M3', resource: 'contract-period', action: 'VIEW' },
+    // M5 spec §10 — Prodajni agent, podrazumevano ograničen na sopstvene klijente/rezervacije
+    // (sprovodi se u BookingsService, ne ovde — ovo je samo katalog dozvola). Bez SEND
+    // za operativne liste/najave (§10 — taj krug je Vlasnik/Direktor/Sales Manager).
+    { module: 'M5', resource: 'itinerary', action: 'CREATE' },
+    { module: 'M5', resource: 'itinerary', action: 'VIEW' },
+    { module: 'M5', resource: 'itinerary', action: 'EDIT' },
+    { module: 'M5', resource: 'quote', action: 'CREATE' },
+    { module: 'M5', resource: 'quote', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'CREATE' },
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'MODIFY' },
+    { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
+    { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
+    { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
   ],
 };
 
 async function main() {
-  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS, ...M4_PERMISSIONS]) {
+  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS, ...M4_PERMISSIONS, ...M5_PERMISSIONS]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
       update: { description: entry.description },
@@ -140,7 +198,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola.`,
   );
 }
 

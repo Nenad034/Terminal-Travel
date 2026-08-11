@@ -226,10 +226,14 @@ model Product {
   updatedAt          DateTime          @updatedAt @map("updated_at")
   createdBy          String?           @map("created_by") // referencira M1 User ili AI agenta — plain UUID, bez FK (§2.1)
 
-  sourceContract   Contract?              @relation(fields: [sourceContractId], references: [id])
-  translations     ProductTranslation[]
-  contentImports   ProductContentImport[]
-  pricelistMatches PricelistImportRow[] // M3 §4.2.2 — kandidati mapiranja iz uvoza cenovnika
+  sourceContract    Contract?              @relation(fields: [sourceContractId], references: [id])
+  translations      ProductTranslation[]
+  contentImports    ProductContentImport[]
+  pricelistMatches  PricelistImportRow[] // M3 §4.2.2 — kandidati mapiranja iz uvoza cenovnika
+  // M5 spec §3.0.2/§3.2/§4.2 — dopuna avgust 2026, back-relacije ka rezervacijskom toku.
+  itinerarySegments ItinerarySegment[]
+  quoteItems        QuoteItem[]
+  bookingItems      BookingItem[]
 
   @@map("products")
 }
@@ -402,6 +406,9 @@ model Supplier {
   contracts         Contract[]
   imports           PricelistImport[]
   extractionProfile SupplierExtractionProfile?
+  // M5 spec §8 — dopuna avgust 2026, back-relacije ka operativnim listama.
+  supplierManifests SupplierManifest[]
+  announcementRules SupplierAnnouncementRule[]
 
   @@map("suppliers")
 }
@@ -501,6 +508,8 @@ model ContractPeriod {
   contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   rateLines         RateLine[]
   cancellationRules CancellationRule[]
+  // M5 spec §8.1 — dopuna avgust 2026, back-relacija ka operativnim listama.
+  supplierManifests SupplierManifest[]
 
   @@map("contract_periods")
 }
@@ -526,6 +535,9 @@ model RateLine {
 
   contractPeriod ContractPeriod       @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
   agePricing     RateLineAgePricing[]
+  // M5 spec §3.2/§4.2 — dopuna avgust 2026, back-relacije ka rezervacijskom toku.
+  quoteItems     QuoteItem[]
+  bookingItems   BookingItem[]
 
   @@map("rate_lines")
 }
@@ -761,4 +773,357 @@ enum ProviderCallErrorCode {
   NO_AVAILABILITY
   PROVIDER_UNAVAILABLE
   UNKNOWN
+}
+
+// ============================================================================
+// M5 — Rezervacije i tok prodaje (JEZGRO — poglavlja 2, 3.0-3.2b, 4-4.0a, 5, 6-6.4, 7, 9, 10, 11)
+// Izvor: docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md
+// Poglavlje 8 (operativne liste za dobavljače: SupplierManifest/SupplierChangeNotice/
+// SupplierAnnouncementRule) je NAMERNO izostavljeno — odvojen, kasniji zadatak (delimično
+// zavisi od M22). Konvencija (poglavlje 2): sve novčane vrednosti su Int u najmanjoj
+// jedinici valute, nikad Decimal/float.
+// ============================================================================
+
+enum M5Channel {
+  B2C_SITE
+  B2B_PORTAL
+  MOBILE
+  INTERNAL_PANEL
+  PHONE
+}
+
+// §2.1 `MarkupRule`
+model MarkupRule {
+  id                  String          @id @default(uuid())
+  scopeType           MarkupScopeType @map("scope_type")
+  scopeId             String          @map("scope_id") // polimorfno — cilja različite tabele zavisno od scopeType, namerno bez FK (§2.1)
+  percentage          Decimal?
+  fixedAmount         Int?            @map("fixed_amount")
+  fixedAmountCurrency String?         @map("fixed_amount_currency")
+  activeFrom          DateTime?       @map("active_from")
+  activeTo            DateTime?       @map("active_to")
+  createdBy           String?         @map("created_by")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  quoteItems   QuoteItem[]
+  bookingItems BookingItem[]
+
+  @@map("markup_rules")
+}
+
+enum MarkupScopeType {
+  M3_SUPPLIER
+  M3_CONTRACT
+  M3_CONTRACT_PERIOD
+  M4_PROVIDER
+  M2_PRODUCT
+}
+
+// §3.0.1 `Itinerary`
+model Itinerary {
+  id              String          @id @default(uuid())
+  clientAccountId String?         @map("client_account_id") // buduće M6 Nalogodavac — nullable, bez FK (M6 ne postoji)
+  channel         M5Channel
+  status          ItineraryStatus @default(DRAFT)
+  title           String?
+  createdBy       String?         @map("created_by")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  segments ItinerarySegment[]
+  quotes   Quote[]
+
+  @@map("itineraries")
+}
+
+enum ItineraryStatus {
+  DRAFT
+  CONVERTED
+  ABANDONED
+}
+
+// §3.0.2 `ItinerarySegment`
+model ItinerarySegment {
+  id                 String    @id @default(uuid())
+  itineraryId        String    @map("itinerary_id")
+  sequenceOrder      Int       @map("sequence_order")
+  productId          String?   @map("product_id")
+  destinationCountry String?   @map("destination_country")
+  destinationCity    String?   @map("destination_city")
+  stayFrom           DateTime? @map("stay_from")
+  stayTo             DateTime? @map("stay_to")
+  notes              String?
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  product   Product?  @relation(fields: [productId], references: [id])
+
+  @@map("itinerary_segments")
+}
+
+// §3.1 `Quote`
+model Quote {
+  id                      String      @id @default(uuid())
+  clientAccountId         String?     @map("client_account_id") // buduće M6 Nalogodavac
+  channel                 M5Channel
+  status                  QuoteStatus @default(DRAFT)
+  expiresAt               DateTime    @map("expires_at")
+  itineraryId             String?     @map("itinerary_id")
+  contractTermsAccepted   Boolean     @default(false) @map("contract_terms_accepted")
+  contractTermsAcceptedAt DateTime?   @map("contract_terms_accepted_at")
+  createdBy               String?     @map("created_by")
+  referralTrackingCode    String?     @map("referral_tracking_code")
+  createdAt               DateTime    @default(now()) @map("created_at")
+
+  itinerary Itinerary?  @relation(fields: [itineraryId], references: [id])
+  items     QuoteItem[]
+
+  @@map("quotes")
+}
+
+enum QuoteStatus {
+  DRAFT
+  EXPIRED
+  CONVERTED
+}
+
+// §3.2 `QuoteItem`
+model QuoteItem {
+  id                     String            @id @default(uuid())
+  quoteId                String            @map("quote_id")
+  productId              String            @map("product_id")
+  sourceType             ProductSourceType @map("source_type")
+  stayFrom               DateTime          @map("stay_from")
+  stayTo                 DateTime          @map("stay_to")
+  occupancy              Json // §3.2a — {adults, children, room_config[]}
+  baseCost               Int               @map("base_cost")
+  baseCostCurrency       String            @map("base_cost_currency")
+  rateLineId             String?           @map("rate_line_id")
+  markupRuleId           String            @map("markup_rule_id")
+  finalPrice             Int               @map("final_price")
+  finalPriceCurrency     String            @map("final_price_currency")
+  providerQuoteReference String?           @map("provider_quote_reference")
+
+  quote      Quote      @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+  rateLine   RateLine?  @relation(fields: [rateLineId], references: [id])
+  markupRule MarkupRule @relation(fields: [markupRuleId], references: [id])
+
+  @@map("quote_items")
+}
+
+// §4.1 `Booking`
+model Booking {
+  id                        String        @id @default(uuid())
+  bookingNumber             String        @unique @map("booking_number")
+  clientAccountId           String        @map("client_account_id") // buduće M6 Nalogodavac
+  channel                   M5Channel
+  tipNastupanja             TipNastupanja @map("tip_nastupanja")
+  status                    BookingStatus @default(PENDING_SUPPLIER_CONFIRMATION)
+  paymentStatus             PaymentStatus @default(UNPAID) @map("payment_status")
+  totalPrice                Int           @map("total_price")
+  currency                  String
+  voucherUrl                String?       @map("voucher_url")
+  voucherOverrideApprovedBy String?       @map("voucher_override_approved_by")
+  voucherOverrideReason     String?       @map("voucher_override_reason")
+  voucherOverrideAt         DateTime?     @map("voucher_override_at")
+  createdAt                 DateTime      @default(now()) @map("created_at")
+  confirmedAt               DateTime?     @map("confirmed_at")
+  cancelledAt               DateTime?     @map("cancelled_at")
+  createdBy                 String        @map("created_by") // user id ili "GOST_SELF"
+  referralTrackingCode      String?       @map("referral_tracking_code")
+
+  items BookingItem[]
+
+  @@map("bookings")
+}
+
+enum BookingStatus {
+  PENDING_SUPPLIER_CONFIRMATION
+  CONFIRMED
+  MODIFIED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  INVOICE_PENDING
+}
+
+// §4.2 `BookingItem`
+model BookingItem {
+  id                           String            @id @default(uuid())
+  bookingId                    String            @map("booking_id")
+  productId                    String            @map("product_id")
+  sourceType                   ProductSourceType @map("source_type")
+  supplierReference            String            @map("supplier_reference")
+  stayFrom                     DateTime          @map("stay_from")
+  stayTo                       DateTime          @map("stay_to")
+  baseCost                     Int               @map("base_cost")
+  baseCostCurrency             String            @map("base_cost_currency")
+  rateLineId                   String?           @map("rate_line_id")
+  markupRuleId                 String            @map("markup_rule_id")
+  finalPrice                   Int               @map("final_price")
+  finalPriceCurrency           String            @map("final_price_currency")
+  itemStatus                   BookingItemStatus @default(CONFIRMED) @map("item_status")
+  cancellationRefundPercentage Int?              @map("cancellation_refund_percentage")
+  assignedGuideId              String?           @map("assigned_guide_id") // FK -> M1 User (VODIC), plain UUID (M9 još ne postoji)
+  duplicateConflictItemId      String?           @map("duplicate_conflict_item_id")
+  duplicateCheckOverriddenBy   String?           @map("duplicate_check_overridden_by")
+  duplicateCheckOverriddenAt   DateTime?         @map("duplicate_check_overridden_at")
+  // §8.6 polja — deo modela (§4.2 tabela), ali njihova PUNA logika (SupplierManifest tok)
+  // je poglavlje 8, namerno van obima ovog zadatka. Za API stavke se i dalje popunjavaju
+  // pri potvrdi (§8.6 "za API stavke: automatski, isti trenutak kao item_status=CONFIRMED").
+  announcedAt                  DateTime?         @map("announced_at")
+  supplierConfirmedAt          DateTime?         @map("supplier_confirmed_at")
+  supplierConfirmedBy          String?           @map("supplier_confirmed_by")
+
+  booking    Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  product    Product            @relation(fields: [productId], references: [id])
+  rateLine   RateLine?          @relation(fields: [rateLineId], references: [id])
+  markupRule MarkupRule         @relation(fields: [markupRuleId], references: [id])
+  guests     BookingItemGuest[]
+  // M5 spec §8 — dopuna avgust 2026, back-relacije ka operativnim listama.
+  manifestEntries SupplierManifestItem[]
+  changeNotices   SupplierChangeNotice[]
+
+  @@map("booking_items")
+}
+
+enum BookingItemStatus {
+  CONFIRMED
+  PENDING_SUPPLIER_CONFIRMATION
+  CANCELLED
+}
+
+// §4.3 `BookingItemGuest` — spojna tabela; guestProfileId je placeholder ka budućem M6 Gost
+// (bez FK, M6 ne postoji). guestFirstName/guestLastName su stub polja NEOPHODNA da provera
+// duplikata (§6.4, fuzzy-match po imenu) uopšte može da radi pre nego što M6 GuestProfile
+// postoji — kad M6 dođe na red, ova dva polja se povlače iz GuestProfile preko guestProfileId
+// i ova dva stub polja se uklanjaju (dokumentovano i u §13 backlogu).
+model BookingItemGuest {
+  bookingItemId  String  @map("booking_item_id")
+  guestProfileId String? @map("guest_profile_id")
+  guestFirstName String  @map("guest_first_name")
+  guestLastName  String  @map("guest_last_name")
+
+  bookingItem BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+
+  @@id([bookingItemId, guestFirstName, guestLastName])
+  @@map("booking_item_guests")
+}
+
+// ============================================================================
+// M5 — poglavlje 8 (operativne liste za dobavljače): SupplierManifest/
+// SupplierManifestItem/SupplierChangeNotice/SupplierAnnouncementRule.
+// Dopunjeno u istom prolazu kad je poglavlje 8 implementirano (bilo je namerno
+// izostavljeno u prvom prolazu, vidi napomenu iznad enum M5Channel).
+// ============================================================================
+
+enum SupplierManifestStatus {
+  DRAFT
+  SENT
+  SUPERSEDED
+}
+
+enum SupplierManifestLanguage {
+  SR
+  EN
+}
+
+// §8.1 `SupplierManifest`
+model SupplierManifest {
+  id                       String                   @id @default(uuid())
+  supplierId               String                   @map("supplier_id")
+  contractPeriodId         String?                  @map("contract_period_id")
+  supplierTypeSnapshot     SupplierType             @map("supplier_type_snapshot")
+  language                 SupplierManifestLanguage @default(SR)
+  periodFrom               DateTime                 @map("period_from")
+  periodTo                 DateTime                 @map("period_to")
+  status                   SupplierManifestStatus   @default(DRAFT)
+  documentUrl              String?                  @map("document_url")
+  generatedAt              DateTime                 @default(now()) @map("generated_at")
+  generatedBy              String                   @map("generated_by") // user id ili "AI_AGENT_M5"
+  sentAt                   DateTime?                @map("sent_at")
+  sentBy                   String?                  @map("sent_by")
+  sentToEmail              String?                  @map("sent_to_email")
+  referenceCode            String?                  @unique @map("reference_code")
+  confirmationEmailThreadId String?                 @map("confirmation_email_thread_id") // buduće M22 EmailThread, bez FK (M22 ne postoji)
+  supersedesManifestId     String?                  @map("supersedes_manifest_id")
+
+  supplier       Supplier                 @relation(fields: [supplierId], references: [id])
+  contractPeriod ContractPeriod?          @relation(fields: [contractPeriodId], references: [id])
+  supersedes     SupplierManifest?        @relation("ManifestSupersedes", fields: [supersedesManifestId], references: [id])
+  supersededBy   SupplierManifest[]       @relation("ManifestSupersedes")
+  items          SupplierManifestItem[]
+
+  @@map("supplier_manifests")
+}
+
+// §8.2 `SupplierManifestItem` — spojna tabela
+model SupplierManifestItem {
+  supplierManifestId String   @map("supplier_manifest_id")
+  bookingItemId      String   @map("booking_item_id")
+  includedAt         DateTime @default(now()) @map("included_at")
+
+  supplierManifest SupplierManifest @relation(fields: [supplierManifestId], references: [id], onDelete: Cascade)
+  bookingItem      BookingItem      @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+
+  @@id([supplierManifestId, bookingItemId])
+  @@map("supplier_manifest_items")
+}
+
+enum SupplierChangeNoticeType {
+  MODIFICATION
+  CANCELLATION
+}
+
+enum SupplierChangeNoticeStatus {
+  DRAFT
+  SENT
+}
+
+// §8.6/§8.8 `SupplierChangeNotice`
+model SupplierChangeNotice {
+  id                        String                      @id @default(uuid())
+  bookingItemId             String                      @map("booking_item_id")
+  noticeType                SupplierChangeNoticeType    @map("notice_type")
+  referenceCode             String                      @unique @map("reference_code")
+  status                    SupplierChangeNoticeStatus  @default(DRAFT)
+  sentAt                    DateTime?                   @map("sent_at")
+  sentBy                    String?                     @map("sent_by")
+  supplierConfirmedAt       DateTime?                   @map("supplier_confirmed_at")
+  supplierConfirmedBy       String?                     @map("supplier_confirmed_by")
+  confirmationEmailThreadId String?                      @map("confirmation_email_thread_id") // buduće M22 EmailThread
+  createdAt                 DateTime                    @default(now()) @map("created_at")
+
+  bookingItem BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_change_notices")
+}
+
+enum AnnouncementTriggerCondition {
+  DAYS_BEFORE_STAY
+  ON_CONFIRMATION
+  AFTER_DEPOSIT_PAID
+  AFTER_FULL_PAYMENT
+}
+
+// §8.7 `SupplierAnnouncementRule`
+model SupplierAnnouncementRule {
+  id              String                        @id @default(uuid())
+  supplierId      String?                       @map("supplier_id") // NULL = podrazumevano pravilo
+  triggerCondition AnnouncementTriggerCondition @map("trigger_condition")
+  daysBeforeStay  Int?                          @map("days_before_stay")
+  createdBy       String?                       @map("created_by")
+  createdAt       DateTime                      @default(now()) @map("created_at")
+  updatedBy       String?                       @map("updated_by")
+  updatedAt       DateTime                      @updatedAt @map("updated_at")
+
+  supplier Supplier? @relation(fields: [supplierId], references: [id])
+
+  @@map("supplier_announcement_rules")
 }
