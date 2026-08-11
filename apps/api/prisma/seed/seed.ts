@@ -30,21 +30,43 @@ const M1_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M1', resource: 'audit-log', action: 'VIEW', description: 'Uvid u audit log' },
 ];
 
-// Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1 dozvole; HR upravlja korisnicima.
-const DEFAULT_ROLE_PERMISSIONS: Record<string, { resource: string; action: string }[]> = {
-  [SYSTEM_ROLES.VLASNIK]: M1_PERMISSIONS.map((p) => ({ resource: p.resource, action: p.action })),
-  [SYSTEM_ROLES.DIREKTOR]: M1_PERMISSIONS.map((p) => ({ resource: p.resource, action: p.action })),
-  [SYSTEM_ROLES.HR]: [
-    { resource: 'user', action: 'VIEW' },
-    { resource: 'user', action: 'CREATE' },
-    { resource: 'user', action: 'EDIT' },
-    { resource: 'user', action: 'DELETE' },
-    { resource: 'role', action: 'VIEW' },
+// M2 spec §6 — dozvole kataloga proizvoda.
+const M2_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M2', resource: 'product', action: 'VIEW', description: 'Uvid u katalog proizvoda' },
+  { module: 'M2', resource: 'product', action: 'CREATE', description: 'Ručno kreiranje CONTRACTED proizvoda' },
+  { module: 'M2', resource: 'product', action: 'EDIT', description: 'Izmena proizvoda' },
+  { module: 'M2', resource: 'product', action: 'PUBLISH', description: 'Objava proizvoda / izmena vidljivosti po kanalu' },
+  { module: 'M2', resource: 'product', action: 'DELETE', description: 'Arhiviranje proizvoda (meko gašenje)' },
+  { module: 'M2', resource: 'product-translation', action: 'EDIT', description: 'Izmena prevoda proizvoda' },
+  { module: 'M2', resource: 'product-content-import', action: 'CREATE', description: 'Pokretanje AI-potpomognutog uvoza sadržaja' },
+  { module: 'M2', resource: 'product-content-import', action: 'VIEW', description: 'Uvid u uvoze sadržaja' },
+  { module: 'M2', resource: 'product-content-import', action: 'REVIEW_FIELD', description: 'Odobri/odbij/izmeni izvučenu stavku uvoza' },
+];
+
+// Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2 dozvole; HR upravlja korisnicima;
+// Sales Manager/Prodajni agent dobijaju samo M2/product/VIEW (M2 spec §6).
+const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
+  [SYSTEM_ROLES.VLASNIK]: [
+    ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
+  [SYSTEM_ROLES.DIREKTOR]: [
+    ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+  ],
+  [SYSTEM_ROLES.HR]: [
+    { module: 'M1', resource: 'user', action: 'VIEW' },
+    { module: 'M1', resource: 'user', action: 'CREATE' },
+    { module: 'M1', resource: 'user', action: 'EDIT' },
+    { module: 'M1', resource: 'user', action: 'DELETE' },
+    { module: 'M1', resource: 'role', action: 'VIEW' },
+  ],
+  [SYSTEM_ROLES.SALES_MANAGER]: [{ module: 'M2', resource: 'product', action: 'VIEW' }],
+  [SYSTEM_ROLES.PRODAJNI_AGENT]: [{ module: 'M2', resource: 'product', action: 'VIEW' }],
 };
 
 async function main() {
-  for (const entry of M1_PERMISSIONS) {
+  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
       update: { description: entry.description },
@@ -62,7 +84,7 @@ async function main() {
     const defaultPerms = DEFAULT_ROLE_PERMISSIONS[roleSeed.name] ?? [];
     for (const perm of defaultPerms) {
       const permission = await prisma.permission.findUniqueOrThrow({
-        where: { module_resource_action: { module: 'M1', resource: perm.resource, action: perm.action } },
+        where: { module_resource_action: { module: perm.module, resource: perm.resource, action: perm.action } },
       });
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
@@ -72,7 +94,9 @@ async function main() {
     }
   }
 
-  console.log(`Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola.`);
+  console.log(
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola.`,
+  );
 }
 
 main()

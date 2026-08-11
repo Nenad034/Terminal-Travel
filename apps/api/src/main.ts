@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,7 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
+  app.useGlobalFilters(new PrismaExceptionFilter());
 
   // M1 spec §6: svi endpoint-i dokumentovani OpenAPI semom pre implementacije.
   const config = new DocumentBuilder()

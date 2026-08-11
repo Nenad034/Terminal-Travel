@@ -8,6 +8,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { encryptSecret } from '../src/common/crypto/secret-box';
 import { SYSTEM_ROLES } from '../src/modules/m1-core-identitet/roles/system-roles.constants';
+import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
 
 /**
  * E2E protiv prave Postgres baze (docker-compose, port 5435) — pokriva stavke
@@ -31,6 +32,7 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalFilters(new PrismaExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
   });

@@ -13,21 +13,21 @@ datasource db {
 
 // §3.1 `User` — nalog za prijavu
 model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  passwordHash        String?   @map("password_hash") // null dok je status = INVITED (§5 — lozinka se postavlja preko linka)
-  fullName            String    @map("full_name")
+  id                  String      @id @default(uuid())
+  email               String      @unique
+  passwordHash        String?     @map("password_hash") // null dok je status = INVITED (§5 — lozinka se postavlja preko linka)
+  fullName            String      @map("full_name")
   phone               String?
   accountType         AccountType @map("account_type")
-  linkedProfileId     String?   @map("linked_profile_id")
-  status              UserStatus @default(INVITED)
-  mfaEnabled          Boolean   @default(false) @map("mfa_enabled")
-  mfaSecretEncrypted  String?   @map("mfa_secret_encrypted")
-  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime? @map("locked_until")
-  lastLoginAt         DateTime? @map("last_login_at")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @updatedAt @map("updated_at")
+  linkedProfileId     String?     @map("linked_profile_id")
+  status              UserStatus  @default(INVITED)
+  mfaEnabled          Boolean     @default(false) @map("mfa_enabled")
+  mfaSecretEncrypted  String?     @map("mfa_secret_encrypted")
+  failedLoginAttempts Int         @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?   @map("locked_until")
+  lastLoginAt         DateTime?   @map("last_login_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
 
   roles               UserRole[]
   permissionOverrides UserPermissionOverride[] @relation("OverrideSubject")
@@ -56,10 +56,10 @@ enum UserStatus {
 
 // §3.2 `Role` — uloga
 model Role {
-  id           String   @id @default(uuid())
-  name         String   @unique
+  id           String  @id @default(uuid())
+  name         String  @unique
   description  String
-  isSystemRole Boolean  @default(true) @map("is_system_role")
+  isSystemRole Boolean @default(true) @map("is_system_role")
 
   rolePermissions RolePermission[]
   userRoles       UserRole[]
@@ -75,7 +75,7 @@ model Permission {
   action      String
   description String
 
-  rolePermissions     RolePermission[]
+  rolePermissions         RolePermission[]
   userPermissionOverrides UserPermissionOverride[]
 
   @@unique([module, resource, action])
@@ -110,18 +110,18 @@ model UserRole {
 
 // §3.6 `UserPermissionOverride` — pojedinačni izuzetak (srž traženog "do nivoa stavke")
 model UserPermissionOverride {
-  id           String            @id @default(uuid())
-  userId       String            @map("user_id")
-  permissionId String            @map("permission_id")
+  id           String           @id @default(uuid())
+  userId       String           @map("user_id")
+  permissionId String           @map("permission_id")
   effect       PermissionEffect
   reason       String
-  grantedBy    String            @map("granted_by")
-  grantedAt    DateTime          @default(now()) @map("granted_at")
-  expiresAt    DateTime?         @map("expires_at")
+  grantedBy    String           @map("granted_by")
+  grantedAt    DateTime         @default(now()) @map("granted_at")
+  expiresAt    DateTime?        @map("expires_at")
 
-  user       User       @relation("OverrideSubject", fields: [userId], references: [id], onDelete: Cascade)
-  grantedByUser User    @relation("OverrideGrantedBy", fields: [grantedBy], references: [id])
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  user          User       @relation("OverrideSubject", fields: [userId], references: [id], onDelete: Cascade)
+  grantedByUser User       @relation("OverrideGrantedBy", fields: [grantedBy], references: [id])
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@map("user_permission_overrides")
 }
@@ -133,14 +133,14 @@ enum PermissionEffect {
 
 // §3.7 `RefreshToken` (sesija)
 model RefreshToken {
-  id         String    @id @default(uuid())
-  userId     String    @map("user_id")
-  tokenHash  String    @map("token_hash")
-  issuedAt   DateTime  @default(now()) @map("issued_at")
-  expiresAt  DateTime  @map("expires_at")
-  revokedAt  DateTime? @map("revoked_at")
-  ipAddress  String?   @map("ip_address")
-  userAgent  String?   @map("user_agent")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  issuedAt  DateTime  @default(now()) @map("issued_at")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  ipAddress String?   @map("ip_address")
+  userAgent String?   @map("user_agent")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -149,9 +149,9 @@ model RefreshToken {
 
 // §5 — 10 jednokratnih rezervnih kodova pri uključivanju 2FA (hešovani)
 model MfaRecoveryCode {
-  id       String  @id @default(uuid())
-  userId   String  @map("user_id")
-  codeHash String  @map("code_hash")
+  id       String    @id @default(uuid())
+  userId   String    @map("user_id")
+  codeHash String    @map("code_hash")
   usedAt   DateTime? @map("used_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -177,18 +177,18 @@ model PasswordResetToken {
 
 // §3.8 `AuditLogEntry` — append-only (sprovedeno na nivou DB role, vidi migraciju)
 model AuditLogEntry {
-  id           String   @id @default(uuid())
-  timestamp    DateTime @default(now())
+  id           String    @id @default(uuid())
+  timestamp    DateTime  @default(now())
   actorType    ActorType @map("actor_type")
-  actorId      String?  @map("actor_id")
+  actorId      String?   @map("actor_id")
   module       String
   action       String
-  resourceType String   @map("resource_type")
-  resourceId   String   @map("resource_id")
-  beforeState  Json?    @map("before_state")
-  afterState   Json?    @map("after_state")
+  resourceType String    @map("resource_type")
+  resourceId   String    @map("resource_id")
+  beforeState  Json?     @map("before_state")
+  afterState   Json?     @map("after_state")
   context      Json
-  ipAddress    String?  @map("ip_address")
+  ipAddress    String?   @map("ip_address")
 
   @@map("audit_log_entries")
 }
@@ -197,4 +197,181 @@ enum ActorType {
   HUMAN
   AI_AGENT
   SYSTEM
+}
+
+// ============================================================================
+// M2 — Katalog proizvoda
+// Izvor: docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md
+// ============================================================================
+
+// §2.1 `Product` — jezički nezavisno jezgro
+model Product {
+  id                 String            @id @default(uuid())
+  type               ProductType
+  sourceType         ProductSourceType @map("source_type")
+  // §2.1 — FK ka M3 (Ugovor); M3 kao Prisma model još ne postoji (nije implementiran) —
+  // isti obrazac odloženog usklađivanja kao M10/M11 stub polja pre M6 (vidi CLAUDE.md
+  // "Recurring pattern"). Plain UUID, bez relacije, dok M3 ne dođe na red.
+  sourceContractId   String?           @map("source_contract_id")
+  sourceProvider     String?           @map("source_provider")
+  sourceExternalId   String?           @map("source_external_id")
+  destinationCountry String            @map("destination_country")
+  destinationCity    String            @map("destination_city")
+  geoLat             Decimal?          @map("geo_lat")
+  geoLng             Decimal?          @map("geo_lng")
+  media              Json              @default("[]") // §2.3a — niz strukturiranih stavki galerije
+  attributes         Json              @default("{}") // §2.3 — konvencija po tipu proizvoda
+  status             ProductStatus     @default(DRAFT)
+  visibleChannels    VisibleChannel[]  @map("visible_channels")
+  cacheStatus        CacheStatus       @default(N_A) @map("cache_status")
+  lastSyncedAt       DateTime?         @map("last_synced_at")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  createdBy          String?           @map("created_by") // referencira M1 User ili AI agenta — plain UUID, bez FK (§2.1)
+
+  translations   ProductTranslation[]
+  contentImports ProductContentImport[]
+
+  @@map("products")
+}
+
+enum ProductType {
+  ACCOMMODATION
+  PACKAGE
+  TRANSFER
+  EXCURSION
+  FLIGHT
+  INSURANCE
+  TRANSPORT
+  TICKET
+  EVENT
+}
+
+enum ProductSourceType {
+  CONTRACTED
+  API
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum VisibleChannel {
+  B2C_SITE
+  B2B_PORTAL
+  MOBILE
+}
+
+// §2.1 — `cache_status`; N_A (Prisma enum ne dozvoljava "N/A" kao ime vrednosti) mapira se na "N/A" u bazi.
+enum CacheStatus {
+  N_A        @map("N/A")
+  NOT_CACHED
+  CACHED
+  STALE
+}
+
+// §2.2 `ProductTranslation` — jezički zavisan sadržaj, redovi po jeziku
+model ProductTranslation {
+  id                String            @id @default(uuid())
+  productId         String            @map("product_id")
+  languageCode      LanguageCode      @map("language_code")
+  name              String
+  description       String
+  slug              String
+  translationSource TranslationSource @default(MANUAL) @map("translation_source")
+  isReviewed        Boolean           @default(false) @map("is_reviewed")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, languageCode])
+  @@unique([languageCode, slug])
+  @@map("product_translations")
+}
+
+enum LanguageCode {
+  sr
+  en
+  hr
+  sl
+  es
+  de
+  ru
+  fr
+}
+
+enum TranslationSource {
+  MANUAL
+  AI_GENERATED
+}
+
+// §3.3 `ProductContentImport` — AI-potpomognut uvoz sadržaja sa sajta hotela (CONTRACTED)
+model ProductContentImport {
+  id            String       @id @default(uuid())
+  productId     String?      @map("product_id")
+  sourceUrl     String?      @map("source_url") // nullable — §3.3a M23_RESEARCH nema URL, ekstrakcija već urađena
+  origin        ImportOrigin @default(MANUAL_URL)
+  status        ImportStatus @default(PENDING)
+  extractedAt   DateTime?    @map("extracted_at")
+  failureReason String?      @map("failure_reason")
+  createdBy     String?      @map("created_by") // M1 User ili M23 agent — plain UUID, bez FK
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  product Product?                    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  fields  ProductContentImportField[]
+
+  @@map("product_content_imports")
+}
+
+enum ImportOrigin {
+  MANUAL_URL
+  M23_RESEARCH
+}
+
+enum ImportStatus {
+  PENDING
+  EXTRACTED
+  REVIEW_IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// §3.3 `ProductContentImportField` — jedna stavka po izvučenom podatku
+model ProductContentImportField {
+  id                      String          @id @default(uuid())
+  importId                String          @map("import_id")
+  fieldType               ImportFieldType @map("field_type")
+  extractedValue          Json            @map("extracted_value")
+  matchConfidence         Decimal?        @map("match_confidence")
+  reviewStatus            ReviewStatus    @default(PENDING) @map("review_status")
+  reviewedBy              String?         @map("reviewed_by") // M1 User — nikad AI agent (§3.3)
+  reviewedAt              DateTime?       @map("reviewed_at")
+  appliedAt               DateTime?       @map("applied_at")
+  // §3.3a — FK ka M23 ArticleRevision; M23 nije implementiran, plain UUID bez relacije (isti obrazac kao Product.sourceContractId)
+  sourceArticleRevisionId String?         @map("source_article_revision_id")
+
+  import ProductContentImport @relation(fields: [importId], references: [id], onDelete: Cascade)
+
+  @@map("product_content_import_fields")
+}
+
+enum ImportFieldType {
+  NAME
+  DESCRIPTION
+  AMENITY
+  ROOM_TYPE
+  PHOTO
+  LOCATION
+  SERVICE
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  EDITED_AND_APPROVED
+  REJECTED
 }
