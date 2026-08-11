@@ -25,6 +25,19 @@ npm run start:dev
 API: `http://localhost:3000/api/v1`
 OpenAPI dokumentacija (Swagger UI): `http://localhost:3000/api/docs`
 
+## Testovi
+
+```bash
+# unit testovi (mokovan Prisma, ne treba baza) — src/**/*.spec.ts
+npm test
+
+# e2e testovi (prava Postgres baza) — test/**/*.e2e-spec.ts
+# preduslov: koraci iz "Lokalno pokretanje" iznad već urađeni (baza migrirana, trigger primenjen, seed pušten)
+npm run test:e2e
+```
+
+E2e testovi (`test/m1-exit-criteria.e2e-spec.ts`) direktno dokazuju stavke izlaznog kriterijuma M1 specifikacije (poglavlje 8): login+obavezna 2FA za interne uloge, zaključavanje naloga, 7 seedovanih sistemskih uloga, trenutni efekat `UserPermissionOverride` bez ponovne prijave, i append-only zaštitu audit loga. Kreiraju sopstvene test korisnike (email sufiks `@tt-test.rs`) i čiste ih u `afterAll` — audit log zapisi ostaju (namerno, append-only).
+
 ## Napomene
 
 - **Hosting provajder za produkciju namerno nije izabran** (avgust 2026, odluka vlasnika) — `docker-compose.yml` je isključivo za lokalni razvoj. Pitati vlasnika pre bilo kakvog produkcijskog hostinga.

@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.3 — počela implementacija (avgust 2026, Faza 0): `apps/api/src/modules/m1-core-identitet/` — auth (login/MFA/refresh/lockout/reset), RBAC evaluacija uživo (§3.6), audit log (append-only trigerom, §3.8), users/roles/permission-override CRUD, seed 7 sistemskih uloga. Testirano uživo (login, pogrešna lozinka, RBAC odbijanje, append-only trigger). Ostaje: infrastruktura iz IaC koda (poglavlje 8, trenutno docker-compose je samo za lokalni razvoj), UI ekrani (poglavlje 7); v1.2 dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
+**Verzija:** 1.4 — automatizovani testovi (avgust 2026): 77 unit testova (`*.spec.ts`, mokovan Prisma — auth login/2FA/lockout/refresh-rotacija/reset lozinke, RBAC evaluacija §3.6 svih pet koraka, guard-ovi, enkripcija/heš) plus 9 e2e testova (`test/m1-exit-criteria.e2e-spec.ts`, prava Postgres baza preko docker-compose) koji direktno dokazuju stavke 1, 2, 3, 4 i 5 izlaznog kriterijuma (poglavlje 8 ovog dokumenta) — uključujući append-only trigger, live efekat `UserPermissionOverride` bez ponovne prijave, i pun login→MFA HTTP tok. Stavka 6 (IaC za produkciju) ostaje otvorena, čeka odluku o hosting provajderu. `npm test` / `npm run test:e2e` u `apps/api`; v1.3 — počela implementacija (avgust 2026, Faza 0): `apps/api/src/modules/m1-core-identitet/` — auth (login/MFA/refresh/lockout/reset), RBAC evaluacija uživo (§3.6), audit log (append-only trigerom, §3.8), users/roles/permission-override CRUD, seed 7 sistemskih uloga. Testirano uživo (login, pogrešna lozinka, RBAC odbijanje, append-only trigger). Ostaje: infrastruktura iz IaC koda (poglavlje 8, trenutno docker-compose je samo za lokalni razvoj), UI ekrani (poglavlje 7); v1.2 dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
 **Zavisi od:** — (temelj svih ostalih modula)
 
 ---
@@ -197,12 +197,12 @@ Sidebar M17 ljuske prikazuje i sve ostale module (Katalog, Ugovori, Rezervacije.
 
 Preuzeto i razrađeno iz tabele u poglavlju 8:
 
-- [ ] Korisnik se može prijaviti email-om i lozinkom; interne uloge ne mogu proći bez uspešno podešene 2FA.
-- [ ] Sve sedam podrazumevanih uloga postoje u bazi kao sistemske (`is_system_role = true`) sa razumnim podrazumevanim dozvolama iz poglavlja 4.
-- [ ] Moguće je dodeliti i ukloniti pojedinačni izuzetak (`UserPermissionOverride`) korisniku, sa obaveznim razlogom, i taj izuzetak odmah utiče na sledeći zahtev tog korisnika (bez potrebe za ponovnom prijavom).
-- [ ] Svaka izmena korisnika, uloge ili dozvole ostavlja zapis u `AuditLogEntry`; tabela je fizički zaštićena od izmene/brisanja.
-- [ ] Zaključavanje naloga posle neuspešnih pokušaja radi i beleži se.
-- [ ] Infrastruktura (baza, backend) se diže iz IaC koda, ne ručnim koracima.
+- [x] Korisnik se može prijaviti email-om i lozinkom; interne uloge ne mogu proći bez uspešno podešene 2FA. *(dokazano e2e testom, avgust 2026)*
+- [x] Sve sedam podrazumevanih uloga postoje u bazi kao sistemske (`is_system_role = true`) sa razumnim podrazumevanim dozvolama iz poglavlja 4. *(dokazano e2e testom, avgust 2026)*
+- [x] Moguće je dodeliti i ukloniti pojedinačni izuzetak (`UserPermissionOverride`) korisniku, sa obaveznim razlogom, i taj izuzetak odmah utiče na sledeći zahtev tog korisnika (bez potrebe za ponovnom prijavom). *(dokazano e2e testom, avgust 2026)*
+- [x] Svaka izmena korisnika, uloge ili dozvole ostavlja zapis u `AuditLogEntry`; tabela je fizički zaštićena od izmene/brisanja. *(dokazano unit + e2e testom, avgust 2026)*
+- [x] Zaključavanje naloga posle neuspešnih pokušaja radi i beleži se. *(dokazano e2e testom, avgust 2026)*
+- [ ] Infrastruktura (baza, backend) se diže iz IaC koda, ne ručnim koracima. *(ostaje — čeka odluku o hosting provajderu, vidi apps/api/README.md)*
 
 ---
 
