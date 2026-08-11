@@ -32,6 +32,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Autorska prava nad AI-uvezenim sadržajem — potvrditi sa dobavljačem/pravnikom pre objave.
 - Automatsko pronalaženje sajta hotela (bez URL-a) — odloženo iz v1.
 - Da li `SERVICE` treba odvojeno polje od `amenities[]` u `attributes`.
+- Kineski jezik u katalogu — odloženo (avgust 2026), dodati tek uz konkretan poslovni razlog (npr. direktan let BEG–PEK, B2B partner).
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
