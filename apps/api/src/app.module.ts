@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { M1CoreIdentitetModule } from './modules/m1-core-identitet/m1-core-identitet.module';
 import { M2KatalogProizvodaModule } from './modules/m2-katalog-proizvoda/m2-katalog-proizvoda.module';
 import { M3UgovaranjeAlotmaniModule } from './modules/m3-ugovaranje-alotmani/m3-ugovaranje-alotmani.module';
+import { M4IntegracijeApiModule } from './modules/m4-integracije-api/m4-integracije-api.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { M3UgovaranjeAlotmaniModule } from './modules/m3-ugovaranje-alotmani/m3-
     M1CoreIdentitetModule,
     M2KatalogProizvodaModule,
     M3UgovaranjeAlotmaniModule,
+    M4IntegracijeApiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -4,6 +4,7 @@ NestJS backend. Implementirani moduli:
 - **M1 (Core / Identitet i pristup)** — `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`
 - **M2 (Katalog proizvoda)** — `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`
 - **M3 (Ugovaranje i alotmani)** — `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`
+- **M4 (Integracije spoljnih API konekcija)** — `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`
 
 Nema koda ovde bez oslonca u odgovarajućoj specifikaciji — vidi `CLAUDE.md` u korenu repozitorijuma.
 
@@ -42,6 +43,7 @@ E2e testovi direktno dokazuju stavke izlaznog kriterijuma svake specifikacije (p
 - `test/m1-exit-criteria.e2e-spec.ts` — login+obavezna 2FA za interne uloge, zaključavanje naloga, 7 seedovanih sistemskih uloga, trenutni efekat `UserPermissionOverride` bez ponovne prijave, append-only zaštita audit loga.
 - `test/m2-exit-criteria.e2e-spec.ts` — CRUD/objava proizvoda sa sr+en gejtom, jezički fallback, javni odgovor bez `source_*` polja (vs. pun interni), `TRANSPORT`/`TICKET`/`EVENT` tipovi, `room_types[]`/`age_policy[]` podrazumevana politika, `ProductContentImport` ljudski tok odobrenja (uklj. `M23_RESEARCH` poreklo).
 - `test/m3-exit-criteria.e2e-spec.ts` — dobavljači/ugovori/periodi (sva 4 `allotment_mode`), sprečavanje preklapanja, **prava konkurentnost rezervacije** (10 paralelnih HTTP zahteva za 1 mesto, 8 za 5 mesta — tačno onoliko uspe koliko ima kapaciteta), `expiring-releases`, M2↔M3 `source_contract_id` FK, uvoz cenovnika sa ljudskim odobrenjem i `SupplierExtractionProfile` učenjem.
+- `test/m4-exit-criteria.e2e-spec.ts` — koristi `ProviderConfig.use_mock` (bez gađanja pravog Travelgate/Solvex servera): kredencijali nikad u odgovoru/logu, `default_tip_nastupanja` gejt, sečenje na `maxResultsPerSearch`, circuit breaker CLOSED→OPEN→HALF_OPEN→CLOSED, normalizovan `error_code`, idempotentnost `confirmBooking` (drugi poziv sa istim `idempotency_key` ne dotiče adapter), redakcija ličnih podataka, M1 audit log za rezervaciju.
 
 Kreiraju sopstvene test korisnike (email sufiks `@tt-test.rs`) i čiste ih u `afterAll` — audit log zapisi ostaju (namerno, append-only).
 
@@ -54,4 +56,4 @@ Kreiraju sopstvene test korisnike (email sufiks `@tt-test.rs`) i čiste ih u `af
 - **Hosting provajder za produkciju namerno nije izabran** (avgust 2026, odluka vlasnika) — `docker-compose.yml` je isključivo za lokalni razvoj. Pitati vlasnika pre bilo kakvog produkcijskog hostinga.
 - Port 5435 (ne 5432/5433/5434) — mašina na kojoj je ovo pisano već ima druge, nepovezane Postgres instance na tim portovima.
 - Append-only trigger za `audit_log_entries` (M1 spec §3.8) nije u Prisma šemi (Prisma ne upravlja trigerima) — pokrenuti `prisma/sql/audit_log_append_only.sql` ručno posle svake `prisma migrate dev`.
-- `SESSION_TOKEN`/rate-limit/mock-mode pitanja iz M4 specifikacije se ne tiču M1 — M1 nema spoljne API adaptere.
+- M4: Travelgate adapter je implementiran ali live neproveren (nema pravih kredencijala); Solvex SOAP format je uživo potvrđen ispravnim, ali test kredencijali su trenutno odbijeni na serveru (verovatno IP whitelist) — oba testirana preko `ProviderConfig.use_mock`. Vidi M4 spec poglavlje 9.

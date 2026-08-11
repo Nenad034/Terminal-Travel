@@ -654,3 +654,111 @@ model SupplierExtractionProfile {
 
   @@map("supplier_extraction_profiles")
 }
+
+// ============================================================================
+// M4 — Integracije spoljnih API konekcija
+// Izvor: docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md
+// ============================================================================
+
+// §3.1 `ProviderConfig`
+model ProviderConfig {
+  id                         String               @id @default(uuid())
+  providerCode               String               @unique @map("provider_code")
+  displayName                String               @map("display_name")
+  category                   ProviderCategory
+  authConfigEncrypted        String               @map("auth_config_encrypted")
+  authStrategy               ProviderAuthStrategy @map("auth_strategy")
+  capabilitiesProfile        Json                 @default("{}") @map("capabilities_profile")
+  status                     ProviderStatus       @default(INACTIVE)
+  timeoutSearchMs            Int                  @map("timeout_search_ms")
+  timeoutBookingMs           Int                  @map("timeout_booking_ms")
+  circuitState               CircuitState         @default(CLOSED) @map("circuit_state")
+  circuitFailureThreshold    Int                  @default(5) @map("circuit_failure_threshold")
+  circuitCooldownSeconds     Int                  @default(60) @map("circuit_cooldown_seconds")
+  // §4.1 — brojač uzastopnih grešaka i trenutak otvaranja kola; nisu poimenično u §3.1
+  // tabeli ali su neophodni da se pravilo iz §4.1 stvarno sprovede (kad brojati, kad
+  // isteknje cooldown).
+  circuitConsecutiveFailures Int                  @default(0) @map("circuit_consecutive_failures")
+  circuitOpenedAt            DateTime?            @map("circuit_opened_at")
+  defaultTipNastupanja       TipNastupanja?       @map("default_tip_nastupanja")
+  // §9 — "vredi formalizovati ProviderConfig.use_mock po uzoru na PrimeTravel obrazac".
+  // Kad je true, ProviderRegistryService bira MockProviderAdapter umesto pravog
+  // adaptera (Travelgate/Solvex) — omogućava testiranje circuit breaker/idempotency/
+  // degradacije bez gađanja pravog spoljnog servera.
+  useMock                    Boolean              @default(false) @map("use_mock")
+  createdAt                  DateTime             @default(now()) @map("created_at")
+  updatedAt                  DateTime             @updatedAt @map("updated_at")
+
+  callLogs ProviderCallLog[]
+
+  @@map("provider_configs")
+}
+
+enum ProviderCategory {
+  HOTEL
+  FLIGHT
+  TRANSFER
+  ACTIVITY
+  INSURANCE
+}
+
+enum ProviderAuthStrategy {
+  API_KEY
+  BASIC
+  OAUTH2_CLIENT_CREDENTIALS
+  REQUEST_SIGNING
+  SESSION_TOKEN
+}
+
+enum ProviderStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CircuitState {
+  CLOSED
+  OPEN
+  HALF_OPEN
+}
+
+// §3.2 `ProviderCallLog` — operativni log (odvojeno od M1 audit loga)
+model ProviderCallLog {
+  id             String                 @id @default(uuid())
+  providerCode   String                 @map("provider_code")
+  operation      ProviderCallOperation
+  requestSummary Json                   @map("request_summary")
+  responseStatus String                 @map("response_status")
+  errorCode      ProviderCallErrorCode? @map("error_code")
+  latencyMs      Int                    @map("latency_ms")
+  errorMessage   String?                @map("error_message")
+  // §4 — "idempotency_key (generisan u M5 po pokušaju rezervacije)"; samo za BOOK.
+  idempotencyKey String?                @map("idempotency_key")
+  // §4 — "M4 prvo proverava ProviderCallLog da li je taj idempotency_key već poslat i sa
+  // kojim ishodom" — mora postojati mesto da se taj ishod (BookingConfirmation) stvarno
+  // sačuva da bi se mogao vratiti bez ponovnog poziva; nije poimenično u §3.2 tabeli, ali
+  // je neophodno da bi se §4 pravilo o idempotentnosti stvarno moglo sprovesti.
+  responseBody   Json?                  @map("response_body")
+  timestamp      DateTime               @default(now())
+
+  provider ProviderConfig @relation(fields: [providerCode], references: [providerCode])
+
+  @@map("provider_call_logs")
+}
+
+enum ProviderCallOperation {
+  SEARCH
+  CONTENT
+  AVAILABILITY
+  BOOK
+  CANCEL
+}
+
+enum ProviderCallErrorCode {
+  TIMEOUT
+  RATE_LIMITED
+  AUTH_FAILED
+  INVALID_REQUEST
+  NO_AVAILABILITY
+  PROVIDER_UNAVAILABLE
+  UNKNOWN
+}
