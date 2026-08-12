@@ -9,6 +9,7 @@ import { M2KatalogProizvodaModule } from './modules/m2-katalog-proizvoda/m2-kata
 import { M3UgovaranjeAlotmaniModule } from './modules/m3-ugovaranje-alotmani/m3-ugovaranje-alotmani.module';
 import { M4IntegracijeApiModule } from './modules/m4-integracije-api/m4-integracije-api.module';
 import { M5RezervacijeModule } from './modules/m5-rezervacije/m5-rezervacije.module';
+import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { M5RezervacijeModule } from './modules/m5-rezervacije/m5-rezervacije.mod
     M3UgovaranjeAlotmaniModule,
     M4IntegracijeApiModule,
     M5RezervacijeModule,
+    M10FinansijeModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

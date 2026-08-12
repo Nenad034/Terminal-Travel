@@ -460,6 +460,10 @@ model Contract {
   validTo                  DateTime         @map("valid_to")
   cancellationTermsSummary String           @map("cancellation_terms_summary")
   documentUrl              String           @map("document_url")
+  // M10 spec §8.0/§8.1 dopuna (avgust 2026, otkriveno pri implementaciji) — rok plaćanja
+  // dobavljaču u danima od prijema fakture; M10 SupplierObligation.due_date se izvodi odavde.
+  // Nullable — kad nije uneto, M10 koristi podrazumevanih 30 dana (uobičajena praksa).
+  paymentTermsDays         Int?             @map("payment_terms_days")
   status                   ContractStatus   @default(DRAFT)
   defaultTipNastupanja     TipNastupanja?   @map("default_tip_nastupanja") // §2.2a — obavezno pre ACTIVE
   createdAt                DateTime         @default(now()) @map("created_at")

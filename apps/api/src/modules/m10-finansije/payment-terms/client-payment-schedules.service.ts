@@ -15,6 +15,16 @@ export class ClientPaymentSchedulesService {
     private readonly paymentTerms: PaymentTermsConfigService,
   ) {}
 
+  async findAll(filters: { bookingId?: string; depositStatus?: string; balanceStatus?: string }) {
+    return this.prisma.clientPaymentSchedule.findMany({
+      where: {
+        bookingId: filters.bookingId,
+        depositStatus: filters.depositStatus as any,
+        balanceStatus: filters.balanceStatus as any,
+      },
+    });
+  }
+
   // §5.4.2 — poziva se automatski po booking.confirmed (isti trigger obrazac kao §6.0/§8.0).
   async createForBooking(bookingId: string) {
     const existing = await this.prisma.clientPaymentSchedule.findUnique({ where: { bookingId } });
