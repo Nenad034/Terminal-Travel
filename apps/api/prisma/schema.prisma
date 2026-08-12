@@ -1226,7 +1226,8 @@ model FiscalDocument {
   bookingId               String?                @map("booking_id") // nullable — jedini slučaj je KNJIZNO_ODOBRENJE (§5.1a)
   documentType            FiscalDocumentType     @map("document_type")
   status                  FiscalDocumentStatus   @default(DRAFT)
-  vatCalculationBasis     VatCalculationBasis    @map("vat_calculation_basis")
+  vatCalculationBasis     VatCalculationBasis?   @map("vat_calculation_basis") // nullable — KNJIZNO_ODOBRENJE (§5.1a) nema booking_id pa nema osnovicu za izvođenje
+  stornoOfDocumentId      String?                @map("storno_of_document_id") // §6.1 — popunjeno na storno dokumentu, referencira original
   externalReference       String?                @map("external_reference")
   amountOriginal          Int                    @map("amount_original")
   currencyOriginal        String                 @map("currency_original")
@@ -1249,6 +1250,8 @@ model FiscalDocument {
 
   booking              Booking?              @relation(fields: [bookingId], references: [id])
   exchangeRateSnapshot ExchangeRateSnapshot? @relation(fields: [exchangeRateSnapshotId], references: [id])
+  stornoOf             FiscalDocument?       @relation("FiscalDocumentStorno", fields: [stornoOfDocumentId], references: [id])
+  stornoDocuments      FiscalDocument[]      @relation("FiscalDocumentStorno")
 
   @@map("fiscal_documents")
 }
