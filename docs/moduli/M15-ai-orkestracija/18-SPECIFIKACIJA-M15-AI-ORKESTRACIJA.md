@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M15), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (Faza 7)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.7 — dodate tri stavke registra za M23 `knowledge_*` (poglavlje 4) i prošireno poglavlje 6.6 da pokriva i `POST /knowledge/ask` (nov modul M23, avgust 2026, na zahtev vlasnika); v1.6 dodato poglavlje 6.6 (glasovni modalitet za omnisearch — Speech-to-Text/Text-to-Speech kao omotač oko postojećeg `POST /omnisearch` toka, bez novog agenta ili akcije), na zahtev vlasnika (avgust 2026): prvi kanal je M17 (interni tim) preko mikrofona u pregledaču, glasom se nikad ne izvršava radnja, audio se ne čuva posle transkripcije; v1.5 dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
+**Verzija:** 1.8 — dodato poglavlje 6.5.6 (spoljna pretraga recenzija hotela/destinacija preko imenovanog, ograničenog spiska sajtova — `ExternalReviewSource`), i pojašnjenje da rezultati pretrage proizvoda uključuju direktno M2 `media[]` (fotografije) bez dodatnog jezičkog opisa, radi manje potrošnje tokena — oboje na zahtev vlasnika (avgust 2026), poreklo: razgovor o mogućnosti da korisnici pričaju sa aplikacijom (tekstom/glasom) i traže slike hotela, dodatne informacije o destinaciji ili recenzije sa spoljnih sajtova; v1.7 — dodate tri stavke registra za M23 `knowledge_*` (poglavlje 4) i prošireno poglavlje 6.6 da pokriva i `POST /knowledge/ask` (nov modul M23, avgust 2026, na zahtev vlasnika); v1.6 dodato poglavlje 6.6 (glasovni modalitet za omnisearch — Speech-to-Text/Text-to-Speech kao omotač oko postojećeg `POST /omnisearch` toka, bez novog agenta ili akcije), na zahtev vlasnika (avgust 2026): prvi kanal je M17 (interni tim) preko mikrofona u pregledaču, glasom se nikad ne izvršava radnja, audio se ne čuva posle transkripcije; v1.5 dodate tri stavke registra za M7 `subagent_chat.*` (poglavlje 4), AI agent chat za subagente sa izvršnim ovlašćenjem, na zahtev vlasnika (avgust 2026), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`; v1.4 dodato poglavlje 6.5 (univerzalna pretraga i AI razgovor kroz M17/M7/M8 — omnisearch), na zahtev vlasnika (avgust 2026), posle vizuelnog nacrta za sva tri kanala; v1.3 dodate četiri stavke registra za M21 (Centar za pomoć); v1.2 dodata stavka M3 `contract_period.low_capacity_alert` (poglavlje 4.3); v1.1 ispravila zastarelu referencu na M14 poglavlje 3 (pomereno na 4 pri dodavanju Reklamacija) i dodala nedostajuće stavke za M20/M11/M14 uvedene naknadno
 **Zavisi od:** svi moduli
 
 ---
@@ -99,6 +99,7 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 | M23 | `knowledge_article.research_draft` | `AUTONOMOUS` | M23 poglavlje 4c — AI priprema `ArticleRevision` nacrt iz odobrenih izvora, ništa se ne piše u objavljen članak |
 | M23 | `knowledge_article.publish` | `NEVER_AUTONOMOUS` | M23 poglavlje 6 — isto tako `article-source.approve`/`article-revision.approve`, nikad AI (poglavlje 4b/4c) |
 | (globalno) | `omnisearch.query` | `AUTONOMOUS` | poglavlje 6.5 — **isključivo pronalaženje/navigacija, nikad izvršenje radnje** (potvrđena odluka vlasnika, avgust 2026); svaki predlog radnje (npr. "otkaži rezervaciju X") vraća se kao link ka pravoj stranici/zapisu gde čovek ručno potvrđuje, nikad se ne izvršava iz same pretrage — **isti kod pokriva i glasovni unos** (poglavlje 6.6), nema posebnog `action_code` za glas |
+| (globalno) | `omnisearch.external_review_lookup` | `AUTONOMOUS` | poglavlje 6.5.6 — čisto informativno; ograničeno na kod-nivo whitelistu (`ExternalReviewSource`, samo `ACTIVE` zapisi), agent ne konstruiše proizvoljan URL, samo bira izvor i pojam pretrage |
 
 **Napomena:** ne uključuju se ovde automatski deterministički procesi koji nisu AI odluka (npr. M11 CIS registracija garancije putovanja, M4/M10 pozivi ka spoljnim provajderima, M12 izvršenje već odobrene objave) — ti su eksplicitno razjašnjeni u svojim specifikacijama kao "isti princip kao poziv ka spoljnom provajderu, ne AI odluka" i ne spadaju u ovaj registar jer ih AI agent uopšte ne odlučuje.
 
@@ -150,7 +151,7 @@ Za svaki kanal (M17, M7, M8) postoji **statička, ulogom filtrirana lista** dost
 
 Tek kad korisnik unese tekst, poziva se `POST /ai-orchestration/omnisearch` (poglavlje 9). Agent:
 1. Pokušava prvo **direktno poklapanje** sa poznatim entitetima (broj rezervacije, ime gosta/subagenta, naziv proizvoda) preko internih API-ja modula relevantnih za taj kanal — brzo, bez jezičkog modela, ako je upit dovoljno konkretan.
-2. Ako upit liči na pitanje na prirodnom jeziku ("koje rezervacije čekaju fiskalni dokument", "koliko mi je ostalo do sledećeg praga provizije", "porodični hotel u Grčkoj u avgustu"), prosleđuje se jezičkom modelu (`model_tier`, isto podešavanje kao ostali agenti, M18 poglavlje 6) koji prevodi pitanje u pozive ka relevantnim internim API-jima (M5 pretraga/rezervacije, M7 provizija/kredit, M10 fakture — u granicama prava korisnika) i vraća sažet odgovor sa linkovima ka konkretnim zapisima/stranicama.
+2. Ako upit liči na pitanje na prirodnom jeziku ("koje rezervacije čekaju fiskalni dokument", "koliko mi je ostalo do sledećeg praga provizije", "porodični hotel u Grčkoj u avgustu"), prosleđuje se jezičkom modelu (`model_tier`, isto podešavanje kao ostali agenti, M18 poglavlje 6) koji prevodi pitanje u pozive ka relevantnim internim API-jima (M5 pretraga/rezervacije, M7 provizija/kredit, M10 fakture — u granicama prava korisnika) i vraća sažet odgovor sa linkovima ka konkretnim zapisima/stranicama. Kad rezultat uključuje M2 proizvod (npr. hotel), `entity_results[]` nosi direktno M2 `Product.media[]` (fotografije, poglavlje 2.3a te specifikacije) — model ih ne opisuje niti prepričava, kanal ih prikaže onako kako stoje, radi manje potrošnje tokena (isti princip kao poglavlje 6.5.3 — deo odgovora koji ne zahteva jezički model se i ne šalje kroz njega).
 3. Odgovor **nikad ne izvršava radnju sam** (poglavlje 4, `omnisearch.query = AUTONOMOUS`, ali ograničeno na pronalaženje) — ako korisnik pita "otkaži mi rezervaciju TT-2027-000482", agent vraća link do te rezervacije sa dugmetom za otkazivanje na toj stranici, gde korisnik ručno potvrđuje kroz postojeći M5 tok — isto obrazloženje kao "Nikad autonomno"/"Predloži pa čovek odobri" primeri kroz ceo ovaj dokument, primenjeno ovde kao jednostavno pravilo bez izuzetka: omnisearch nikad ne piše, samo čita i navigira.
 
 ### 6.5.5 Razlika po kanalu (kontekst upisan u sam kanal, ne ovde)
@@ -159,7 +160,25 @@ Tek kad korisnik unese tekst, poziva se `POST /ai-orchestration/omnisearch` (pog
 - **M8** — najuži obim: destinacije/proizvodi, sopstvene rezervacije, pomoć (M21) — AI razgovor ovde se preklapa sa M21 §5.2 (help pitanja); `OmnisearchAgent` na M8 poziva i M21 kad pitanje liči na "kako se koristi sajt/uslovi", ne samo na pretragu proizvoda (M8 poglavlje 3a).
 - **M7** — obim subagenta: katalog (bez dobavljača), sopstvene rezervacije, sopstvena mreža sub-subagenata, provizija/kredit (M7 poglavlje 2.0.3).
 
-### 6.5.6 Praćenje zloupotrebe
+### 6.5.6 Spoljne recenzije — ograničen, imenovan spisak sajtova (dopuna, avgust 2026, na zahtev vlasnika)
+
+Kad korisnik pita za recenzije hotela/destinacije ("kakve su recenzije za ovaj hotel"), `OmnisearchAgent` **ne pretražuje slobodno internet** — sme da poseti isključivo sajtove sa unapred odobrenog spiska koji unosi Vlasnik/Direktor. Razlog: sprečava da agent ode na nerelevantan ili nepouzdan sajt, i drži trošak/vreme upita predvidivim (jedan do nekoliko ciljanih poziva, ne opšta pretraga).
+
+#### `ExternalReviewSource`
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| site_name | string | npr. "TripAdvisor", "Booking.com recenzije" — prikazuje se korisniku uz izvor odgovora |
+| search_url_template | string | template sa jednim placeholder-om za pojam pretrage (npr. naziv hotela + destinacija), npr. `https://primer.com/search?q={query}` — agent SME samo da popuni `{query}`, nikad da sastavi ili poseti bilo koji drugi URL na tom ili drugom domenu |
+| status | enum: `ACTIVE`, `DISABLED` | isključen izvor se preskače bez greške korisniku |
+| added_by | UUID (FK → M1 User) | uvek ljudski unos — dodavanje/uklanjanje sajta sa spiska nikad nije AI odluka |
+| created_at | timestamp | |
+
+**Tok:** agent prepozna da pitanje traži recenziju (isti korak kao 6.5.4, tačka 2, deo prevoda pitanja u nameru), pozove **samo** `ACTIVE` izvore preko njihovog `search_url_template`-a (deterministička zamena placeholder-a, ne slobodna navigacija), izvuče kratak sažetak/ocenu ako je dostupna (ne kopira ceo sadržaj strane), i vrati odgovor sa jasno označenim izvorom ("prema TripAdvisor-u...") i linkom na samu stranicu za dalje čitanje. Ako nijedan izvor ne vrati rezultat, agent to kaže umesto da izmišlja recenziju.
+
+**Sprovedba na nivou koda (isti princip kao poglavlje 5):** poziv spoljnom sajtu ide kroz jedan zajednički klijent koji prima samo `(sourceId, query)`, sastavlja URL isključivo iz `search_url_template` te baze zapisa, i odbija svaki pokušaj da mu se prosledi proizvoljan URL — jezički model ne konstruiše URL sam, samo bira koji `ExternalReviewSource` (po `site_name`) je relevantan i koji pojam pretrage da pošalje.
+
+### 6.5.7 Praćenje zloupotrebe
 
 Isti obrazac kao M21 poglavlje 5.5 (`HELP_AGENT_ABUSE_PATTERN`) — neuobičajen obrazac upita (pokušaj sistematskog "izvlačenja" podataka van uobičajene upotrebe) generiše `HealthSignal` ka M18, čisto informativno.
 
@@ -206,6 +225,8 @@ Ako se koriste eksterni AI modeli (van internog sistema), lični podaci gostiju 
 | `M15/module-activation/ACTIVATE` | Vlasnik, Direktor — **nikad AI agent** |
 | `M15/agent-action-type/VIEW`, `EDIT` | Vlasnik, Direktor |
 | `M15/agent-inbox/VIEW` | Vlasnik, Direktor (i uloge sa relevantnim dozvolama za pojedinačne stavke, npr. Računovođa vidi M11 stavke) |
+| `M15/external-review-source/VIEW` | Vlasnik, Direktor, Sales Manager |
+| `M15/external-review-source/EDIT` | Vlasnik, Direktor — dodavanje/uklanjanje sajta sa whitelist-e, nikad AI agent |
 
 ---
 
@@ -220,6 +241,7 @@ Prefiks: `/api/v1/ai-orchestration`
 | `/action-types` | GET / POST / PATCH | registar iz poglavlja 4 |
 | `/inbox` | GET | agregovane stavke na čekanju odobrenja (poglavlje 6) |
 | `/omnisearch` | POST | `{query, channel, context}` → `{matched_routes[], entity_results[], ai_answer?}` (poglavlje 6.5); poziva se sa identitetom/pravima korisnika koji pretražuje, nikad sa širim pristupom agenta |
+| `/external-review-sources` | GET / POST / PATCH | whitelist sajtova za spoljnu pretragu recenzija (poglavlje 6.5.6), uvek ljudski unos |
 
 ---
 
@@ -237,6 +259,8 @@ Prefiks: `/api/v1/ai-orchestration`
 - [ ] Glasovni upit u M17 (poglavlje 6.6) transkribovan u tekst daje **identičan** rezultat kao isti tekst otkucan ručno — provereno da `POST /omnisearch` ne razlikuje izvor.
 - [ ] Zahtev za radnju izgovoren glasom ("otkaži...") ne izvršava radnju — vraća se isti link/navigacija kao za tekstualni upit, i pročita se naglas da radnja zahteva potvrdu na ekranu (poglavlje 6.6.1, korak 4).
 - [ ] Sirov audio zapis glasovnog upita se ne čuva posle transkripcije — u bazi/logu postoji samo transkribovan tekst, isti trag u audit logu kao tekstualni omnisearch upit (poglavlje 6.6.2).
+- [ ] Pitanje o proizvodu (npr. hotelu) u odgovoru direktno nosi M2 `Product.media[]`, bez jezičkog opisa fotografija (poglavlje 6.5.4).
+- [ ] Spoljna pretraga recenzija (poglavlje 6.5.6) poziva isključivo `ACTIVE` zapise iz `ExternalReviewSource` — test: pokušaj da se agent uputi na sajt/URL van whitelist-e se odbija na nivou koda, ne samo uputstvom modelu; `DISABLED` izvor se tiho preskače.
 
 ---
 
