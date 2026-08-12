@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsEnum, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { TipNastupanja } from '@prisma/client';
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, ValidateIf, ValidateNested } from 'class-validator';
+import { BuyerType, TipNastupanja } from '@prisma/client';
 
 export class GuestInputDto {
   @IsInt()
@@ -20,6 +20,18 @@ export class ConfirmQuoteDto {
   @IsEnum(TipNastupanja)
   @IsOptional()
   tipNastupanja?: TipNastupanja;
+
+  // M5 spec §4.1 dopuna (v1.17) — minimalni podaci o kupcu, potrebni M10 fiskalizaciji
+  // (SEF vs ESIR izbor po buyerType). Ne čekaju M6 — vidi napomenu na Booking modelu.
+  @IsString()
+  buyerName!: string;
+
+  @IsEnum(BuyerType)
+  buyerType!: BuyerType;
+
+  @ValidateIf((o) => o.buyerType === BuyerType.PRAVNO_LICE)
+  @IsString()
+  buyerTaxId?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

@@ -926,6 +926,13 @@ model Booking {
   id                        String        @id @default(uuid())
   bookingNumber             String        @unique @map("booking_number")
   clientAccountId           String        @map("client_account_id") // buduće M6 Nalogodavac
+  // §4.1 dopuna (v1.17, avgust 2026) — minimalni podaci o kupcu, unose se pri potvrdi rezervacije
+  // (ConfirmQuoteDto). Ne čekaju M6 jer su potrebni odmah M10 fiskalizaciji (SEF/ESIR izbor tipa
+  // dokumenta, M10 spec §1.1/§2) — kad M6 Nalogodavac zaživi, ova polja mogu postati izvedena iz
+  // njega umesto ručnog unosa, ali oblik ostaje isti.
+  buyerName                 String        @map("buyer_name")
+  buyerType                 BuyerType     @map("buyer_type")
+  buyerTaxId                String?       @map("buyer_tax_id") // obavezno kad je buyerType = PRAVNO_LICE (validacija u DTO-u)
   channel                   M5Channel
   tipNastupanja             TipNastupanja @map("tip_nastupanja")
   status                    BookingStatus @default(PENDING_SUPPLIER_CONFIRMATION)
@@ -945,6 +952,12 @@ model Booking {
   items BookingItem[]
 
   @@map("bookings")
+}
+
+// §4.1 dopuna (v1.17) — ko je kupac: fizičko ili pravno lice (određuje SEF vs ESIR u M10).
+enum BuyerType {
+  FIZICKO_LICE
+  PRAVNO_LICE
 }
 
 enum BookingStatus {

@@ -66,6 +66,12 @@ export class BookingsService {
       throw new BadRequestException('Ponuda nema povezan client_account_id — gost mora biti identifikovan pre potvrde rezervacije.');
     }
 
+    // §4.1 dopuna (v1.17) — buyer_tax_id obavezan kad je buyer_type = PRAVNO_LICE (odbrana u dubinu,
+    // pored @ValidateIf u ConfirmQuoteDto).
+    if (dto.buyerType === 'PRAVNO_LICE' && !dto.buyerTaxId) {
+      throw new BadRequestException('buyerTaxId je obavezan kad je buyerType PRAVNO_LICE (M5 spec §4.1).');
+    }
+
     // §4.0a — određivanje tip_nastupanja.
     const tipNastupanja = await this.resolveBookingTipNastupanja(quote, dto.tipNastupanja);
 
@@ -118,6 +124,9 @@ export class BookingsService {
       data: {
         bookingNumber,
         clientAccountId: quote.clientAccountId,
+        buyerName: dto.buyerName,
+        buyerType: dto.buyerType,
+        buyerTaxId: dto.buyerTaxId,
         channel: quote.channel,
         tipNastupanja,
         status: bookingStatus,

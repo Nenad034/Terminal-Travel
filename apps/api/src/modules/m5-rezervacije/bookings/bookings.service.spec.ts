@@ -73,7 +73,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         return Promise.reject(new BadRequestException('Nema dovoljno preostalog kapaciteta'));
       });
 
-      await expect(service.confirmQuote('quote-1', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.confirmQuote('quote-1', {} as any, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
 
       // §4 korak 3 — već rezervisana prva stavka MORA biti oslobođena.
       expect(contractPeriods.release).toHaveBeenCalledWith('period-1', 1, 'actor-1');
@@ -92,7 +92,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         clientAccountId: null,
         items: [],
       });
-      await expect(service.confirmQuote('quote-2', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.confirmQuote('quote-2', {} as any, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
     });
 
     it('rezerviše broj jedinica iz QuoteItem.unitCount, ne pretpostavlja uvek 1 (§4.2 dopuna v1.14)', async () => {
@@ -118,9 +118,38 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       // drugi poziv: findOne posle kreiranja, radi serializeBooking odgovora.
       prisma.booking.findUnique.mockResolvedValueOnce(null).mockResolvedValue({ id: 'booking-multi', items: [] });
 
-      await service.confirmQuote('quote-multi', {}, { userId: 'actor-1' });
+      await service.confirmQuote(
+        'quote-multi',
+        { buyerName: 'Petar Petrović', buyerType: 'FIZICKO_LICE' } as any,
+        { userId: 'actor-1' },
+      );
 
       expect(contractPeriods.reserve).toHaveBeenCalledWith('period-multi', 2, 'actor-1');
+      expect(prisma.booking.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ buyerName: 'Petar Petrović', buyerType: 'FIZICKO_LICE' }),
+        }),
+      );
+    });
+
+    it('odbija potvrdu kad je buyerType PRAVNO_LICE bez buyerTaxId (§4.1 dopuna v1.17)', async () => {
+      const { service, prisma } = makeService();
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'quote-pravno',
+        status: 'DRAFT',
+        expiresAt: new Date(Date.now() + 60_000),
+        channel: 'INTERNAL_PANEL',
+        contractTermsAccepted: false,
+        clientAccountId: 'client-1',
+        items: [],
+      });
+      await expect(
+        service.confirmQuote(
+          'quote-pravno',
+          { buyerName: 'Firma DOO', buyerType: 'PRAVNO_LICE' } as any,
+          { userId: 'actor-1' },
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('odbija potvrdu samouslužnog kanala bez contract_terms_accepted (§3.1)', async () => {
@@ -134,7 +163,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         clientAccountId: 'client-1',
         items: [],
       });
-      await expect(service.confirmQuote('quote-3', {}, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
+      await expect(service.confirmQuote('quote-3', {} as any, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
     });
   });
 
