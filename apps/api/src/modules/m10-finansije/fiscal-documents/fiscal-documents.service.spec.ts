@@ -115,6 +115,36 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1' }));
     });
 
+    it('preračunava amount_rsd po kursu na dan uplate koja dovodi do pune naplate, ako se razlikuje od kursa na dan nacrta (§3)', async () => {
+      const { service, prisma, gateway, exchangeRates } = makeService();
+      const draft = {
+        id: 'fd-1',
+        status: 'DRAFT',
+        bookingId: 'booking-1',
+        documentType: 'SEF_EFAKTURA',
+        amountOriginal: 100000,
+        currencyOriginal: 'EUR',
+        amountRsd: 11700000, // pripremljeno po kursu 117 na dan nacrta
+        vatAmount: 6667,
+        exchangeRateSnapshotId: 'ex-draft',
+        buyerNameSnapshot: 'Firma DOO',
+        buyerTaxIdSnapshot: '123456789',
+      };
+      prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 100000, paymentStatus: 'PAID' });
+      const paymentDate = new Date('2026-08-15T10:00:00Z');
+      prisma.payment.findMany.mockResolvedValue([{ amount: 100000, status: 'RECEIVED', receivedAt: paymentDate }]);
+      exchangeRates.findForCurrencyOnOrBefore.mockResolvedValue({ id: 'ex-payment', nbsMiddleRate: 118 });
+      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-123', xmlUrl: 'x.xml', pdfUrl: 'x.pdf' });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+
+      const result = await service.submit('fd-1', { userId: 'actor-1' });
+
+      expect(exchangeRates.findForCurrencyOnOrBefore).toHaveBeenCalledWith('EUR', paymentDate);
+      expect(result.amountRsd).toBe(100000 * 118);
+      expect(result.exchangeRateSnapshotId).toBe('ex-payment');
+    });
+
     it('postavlja buyer_acceptance_status = N_A za ESIR_RACUN (nema koncept prihvatanja)', async () => {
       const { service, prisma, gateway } = makeService();
       const draft = {
@@ -150,7 +180,7 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
     });
 
     it('kreira nov dokument koji referencira original, ne menja original', async () => {
-      const { service, prisma, gateway } = makeService();
+      const { service, prisma, gateway, auditLog } = makeService();
       const original = {
         id: 'fd-1',
         status: 'SUBMITTED',
@@ -175,6 +205,30 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(storno.status).toBe('STORNIRANO');
       expect(storno.stornoOfDocumentId).toBe('fd-1');
       expect(prisma.fiscalDocument.update).not.toHaveBeenCalled(); // original se ne menja
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ actorType: 'HUMAN', actorId: 'actor-1', action: 'fiscal_document.storno' }),
+      );
+    });
+  });
+
+  describe('prepareCreditNoteDraft (§5.1a)', () => {
+    it('kreira KNJIZNO_ODOBRENJE nacrt bez booking_id, sa popunjenim related_subagent_id/credited_rebate_id', async () => {
+      const { service, prisma } = makeService();
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-credit-1', ...data }));
+
+      const doc = await service.prepareCreditNoteDraft({
+        relatedSubagentId: 'subagent-1',
+        creditedRebateId: 'rebate-1',
+        amount: 25000,
+        currency: 'RSD',
+      });
+
+      expect(doc.documentType).toBe('KNJIZNO_ODOBRENJE');
+      expect(doc.bookingId).toBeNull();
+      expect(doc.status).toBe('DRAFT');
+      expect(doc.relatedSubagentId).toBe('subagent-1');
+      expect(doc.creditedRebateId).toBe('rebate-1');
+      expect(doc.amountRsd).toBe(25000); // RSD, bez konverzije
     });
   });
 });

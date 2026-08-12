@@ -110,6 +110,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima.
 - Tačan tehnički format kojim SEF prihvata `KNJIZNO_ODOBRENJE` — potvrditi sa knjigovođom.
 - FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
+- `buyer_acceptance_status → EXPIRED` prelazak nije implementiran (nema periodičnog posla koji proverava istekle 15-dnevne rokove) — dodato pri implementaciji, avgust 2026.
+- `virtual_card_reference` nema programsku zaštitu od unosa punog broja kartice — dodato pri implementaciji, avgust 2026.
 
 ## M11 — Regulatorni modul (Compliance)
 *(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)*
