@@ -96,6 +96,34 @@ const M5_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM', description: 'Ručna potvrda prijema od dobavljača (klik na predloženu vezu sa mejlom)' },
 ];
 
+// M10 spec §9 — dozvole finansija/fiskalizacije. Svaki SUBMIT/APPROVE/EXECUTE je eksplicitno
+// "nikad AI agent" — sprovedeno i na nivou koda (servisi zahtevaju actor.userId), dozvola je
+// druga linija odbrane.
+const M10_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M10', resource: 'fiscal-document', action: 'VIEW', description: 'Uvid u fiskalne dokumente' },
+  { module: 'M10', resource: 'fiscal-document', action: 'CREATE_DRAFT', description: 'Priprema nacrta fiskalnog dokumenta (sme i AI agent)' },
+  { module: 'M10', resource: 'fiscal-document', action: 'SUBMIT', description: 'Slanje ka SEF/ESIR i storno — nikad AI agent' },
+  { module: 'M10', resource: 'payment', action: 'VIEW', description: 'Uvid u uplate' },
+  { module: 'M10', resource: 'payment', action: 'RECORD', description: 'Ručan unos prijema uplate (BANK_TRANSFER/CASH)' },
+  { module: 'M10', resource: 'exchange-rate', action: 'VIEW', description: 'Uvid u kurseve' },
+  { module: 'M10', resource: 'exchange-rate', action: 'EDIT', description: 'Ručan unos dnevnog kursa' },
+  { module: 'M10', resource: 'payment-gateway-config', action: 'VIEW', description: 'Uvid u konfiguraciju platnog provajdera' },
+  { module: 'M10', resource: 'payment-gateway-config', action: 'EDIT', description: 'Podešavanje kredencijala platnog provajdera' },
+  { module: 'M10', resource: 'supplier-obligation', action: 'VIEW', description: 'Uvid u obaveze prema dobavljačima' },
+  { module: 'M10', resource: 'supplier-obligation', action: 'APPROVE', description: 'Odobrenje/plaćanje obaveze prema dobavljaču — nikad AI agent' },
+  { module: 'M10', resource: 'supplier-payment-instruction', action: 'VIEW', description: 'Uvid u instrukcije za isplatu dobavljaču' },
+  { module: 'M10', resource: 'supplier-payment-instruction', action: 'EXECUTE', description: 'Izvršenje isplate dobavljaču — nikad AI agent' },
+  { module: 'M10', resource: 'refund-instruction', action: 'VIEW', description: 'Uvid u zahteve za refundaciju gosta' },
+  { module: 'M10', resource: 'refund-instruction', action: 'APPROVE', description: 'Odobrenje refundacije — nikad AI agent' },
+  { module: 'M10', resource: 'refund-instruction', action: 'EXECUTE', description: 'Izvršenje refundacije — nikad AI agent' },
+  { module: 'M10', resource: 'payment-terms-config', action: 'VIEW', description: 'Uvid u politiku akontacije/balansa' },
+  { module: 'M10', resource: 'payment-terms-config', action: 'EDIT', description: 'Izmena globalne politike akontacije/balansa' },
+  { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW', description: 'Uvid u rokove naplate po rezervaciji' },
+  { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW', description: 'Uvid u uvoze ulaznih faktura dobavljača' },
+  { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE', description: 'Pokretanje uvoza/AI ekstrakcije ulazne fakture (sme i AI agent za ekstrakciju)' },
+  { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW', description: 'Potvrda/ručno mapiranje reda uvoza — nikad AI agent' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -105,6 +133,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -112,6 +141,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -165,11 +195,35 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
+    // M10 spec §9 — client-payment-schedule/VIEW je jedina M10 dozvola koju dobija
+    // Prodajni agent (uvid u rok naplate sopstvenih rezervacija), ništa drugo iz M10.
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+  ],
+  // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
+  // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
+  // refund-instruction (tj. Vlasnik/Direktor su jedini koji izvršavaju stvaran prenos novca).
+  [SYSTEM_ROLES.RACUNOVODJA]: [
+    { module: 'M10', resource: 'fiscal-document', action: 'VIEW' },
+    { module: 'M10', resource: 'fiscal-document', action: 'CREATE_DRAFT' },
+    { module: 'M10', resource: 'fiscal-document', action: 'SUBMIT' },
+    { module: 'M10', resource: 'payment', action: 'VIEW' },
+    { module: 'M10', resource: 'payment', action: 'RECORD' },
+    { module: 'M10', resource: 'exchange-rate', action: 'VIEW' },
+    { module: 'M10', resource: 'exchange-rate', action: 'EDIT' },
+    { module: 'M10', resource: 'supplier-obligation', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-obligation', action: 'APPROVE' },
+    { module: 'M10', resource: 'supplier-payment-instruction', action: 'VIEW' },
+    { module: 'M10', resource: 'refund-instruction', action: 'VIEW' },
+    { module: 'M10', resource: 'payment-terms-config', action: 'VIEW' },
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE' },
+    { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
   ],
 };
 
 async function main() {
-  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS, ...M4_PERMISSIONS, ...M5_PERMISSIONS]) {
+  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS, ...M4_PERMISSIONS, ...M5_PERMISSIONS, ...M10_PERMISSIONS]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
       update: { description: entry.description },
@@ -198,7 +252,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola.`,
   );
 }
 
