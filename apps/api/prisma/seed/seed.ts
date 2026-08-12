@@ -96,6 +96,22 @@ const M5_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM', description: 'Ručna potvrda prijema od dobavljača (klik na predloženu vezu sa mejlom)' },
 ];
 
+// M6 spec §7 — dozvole CRM (Nalogodavci, Gosti, lojalnost, komunikacija, post-trip anketa).
+const M6_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M6', resource: 'client-account', action: 'VIEW', description: 'Uvid u nalogodavce' },
+  { module: 'M6', resource: 'client-account', action: 'CREATE', description: 'Kreiranje nalogodavca' },
+  { module: 'M6', resource: 'client-account', action: 'EDIT', description: 'Izmena nalogodavca' },
+  { module: 'M6', resource: 'guest-profile', action: 'VIEW', description: 'Uvid u profile gostiju' },
+  { module: 'M6', resource: 'guest-profile', action: 'CREATE', description: 'Kreiranje profila gosta' },
+  { module: 'M6', resource: 'guest-profile', action: 'EDIT', description: 'Izmena profila gosta' },
+  { module: 'M6', resource: 'loyalty-tier', action: 'VIEW', description: 'Uvid u nivoe lojalnosti' },
+  { module: 'M6', resource: 'loyalty-tier', action: 'EDIT', description: 'Izmena definicija nivoa lojalnosti' },
+  { module: 'M6', resource: 'loyalty-status', action: 'OVERRIDE', description: 'Ručna dodela nivoa lojalnosti mimo praga — obavezan razlog' },
+  { module: 'M6', resource: 'communication-log', action: 'VIEW', description: 'Uvid u komunikaciju sa klijentima/gostima' },
+  { module: 'M6', resource: 'communication-log', action: 'CREATE', description: 'Beleženje/slanje komunikacije' },
+  { module: 'M6', resource: 'post-trip-survey', action: 'VIEW', description: 'Uvid u ankete posle putovanja' },
+];
+
 // M10 spec §9 — dozvole finansija/fiskalizacije. Svaki SUBMIT/APPROVE/EXECUTE je eksplicitno
 // "nikad AI agent" — sprovedeno i na nivou koda (servisi zahtevaju actor.userId), dozvola je
 // druga linija odbrane.
@@ -152,6 +168,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M6_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -162,6 +179,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M6_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -203,6 +221,17 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M20 spec §5 — Sales Manager vidi i ručno evidentira prihvatanje ugovora (telefon/interni panel).
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
+    // M6 spec §7 — Sales Manager vidi/uređuje CRM celog tima, definicije nivoa lojalnosti (VIEW).
+    { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    { module: 'M6', resource: 'client-account', action: 'CREATE' },
+    { module: 'M6', resource: 'client-account', action: 'EDIT' },
+    { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
+    { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
+    { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
+    { module: 'M6', resource: 'loyalty-tier', action: 'VIEW' },
+    { module: 'M6', resource: 'communication-log', action: 'VIEW' },
+    { module: 'M6', resource: 'communication-log', action: 'CREATE' },
+    { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -231,6 +260,17 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M20 spec §5 — Prodajni agent vidi i ručno evidentira prihvatanje ugovora sopstvenih klijenata.
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
+    // M6 spec §7 — Prodajni agent, ograničeno na sopstvene klijente (sprovodi se u servisu).
+    { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    { module: 'M6', resource: 'client-account', action: 'CREATE' },
+    { module: 'M6', resource: 'client-account', action: 'EDIT' },
+    { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
+    { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
+    { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
+    { module: 'M6', resource: 'loyalty-tier', action: 'VIEW' },
+    { module: 'M6', resource: 'communication-log', action: 'VIEW' },
+    { module: 'M6', resource: 'communication-log', action: 'CREATE' },
+    { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -254,6 +294,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
     // M11 spec §4 — Računovođa generiše izvoze za inspekciju.
     { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
+    // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6.
+    { module: 'M6', resource: 'client-account', action: 'VIEW' },
   ],
   // M20 spec §5 — Gost vidi isključivo sopstvene ugovore (M8 tok, prihvata sam kroz clickwrap,
   // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
@@ -267,6 +309,7 @@ async function main() {
     ...M3_PERMISSIONS,
     ...M4_PERMISSIONS,
     ...M5_PERMISSIONS,
+    ...M6_PERMISSIONS,
     ...M10_PERMISSIONS,
     ...M11_PERMISSIONS,
     ...M20_PERMISSIONS,
@@ -299,7 +342,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
   );
 }
 

@@ -968,6 +968,7 @@ model Booking {
   clientPaymentSchedule       ClientPaymentSchedule?
   travelGuaranteeRegistration TravelGuaranteeRegistration?
   clientContracts             ClientContract[]
+  postTripSurvey              PostTripSurvey?
 
   @@map("bookings")
 }
@@ -1606,4 +1607,181 @@ model ClientContract {
   supersededBy       ClientContract[] @relation("ClientContractRevision")
 
   @@map("client_contracts")
+}
+
+// ============================================================================
+// M6 — CRM (Gosti i Nalogodavci). docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md
+// §6 dopuna (implementacija, avgust 2026): spec kaže da Booking.client_account_id i
+// BookingItemGuest.guest_profile_id "sada formalno referenciraju" ClientAccount/GuestProfile.
+// NAMERNO bez DB-nivo FK ograničenja na Booking/Quote/Itinerary.client_account_id — postojeći
+// M10/M11/M20 e2e testovi (i stvaran istorijski podatak posle) koriste proizvoljne string
+// vrednosti kreirane pre nego što je M6 postojao; uvođenje tvrdog FK-a bi ih sve pokvarilo bez
+// stvarne dobiti (M6 API čita uživo preko ID-a, ne preko Prisma relacije). Isti obrazac kao
+// MarkupRule.scope_id (§2.1 M5) — polimorfna/slaba referenca, sprovedena na nivou aplikacije.
+// BookingItemGuest.guest_profile_id ostaje nullable, guest_first_name/guest_last_name stub
+// polja OSTAJU (uklanjanje je poseban, veći zahvat — vidi poglavlje 11 M6 spec "Otvoreno za dalje").
+// ============================================================================
+
+enum ClientAccountType {
+  INDIVIDUAL
+  LEGAL_ENTITY
+}
+
+// §2.1 `ClientAccount` — Nalogodavac
+model ClientAccount {
+  id                   String            @id @default(uuid())
+  accountType          ClientAccountType @map("account_type")
+  fullName             String?           @map("full_name")
+  companyName          String?           @map("company_name")
+  taxId                String?           @map("tax_id")
+  email                String?
+  phone                String?
+  address              String?
+  country              String?
+  preferredLanguage    LanguageCode?     @map("preferred_language")
+  linkedUserId         String?           @map("linked_user_id")
+  marketingConsent     Boolean           @default(false) @map("marketing_consent")
+  marketingConsentDate DateTime?         @map("marketing_consent_date")
+  tags                 Json? // string[] — slobodne oznake za segmentaciju (§2.1)
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  guestProfiles GuestProfile[]
+
+  @@map("client_accounts")
+}
+
+enum GuestDocumentType {
+  PASSPORT
+  LICNA_KARTA
+}
+
+// §2.2 `GuestProfile` — Gost
+model GuestProfile {
+  id                    String            @id @default(uuid())
+  fullName              String            @map("full_name")
+  documentType          GuestDocumentType @map("document_type")
+  documentNumber        String            @map("document_number")
+  nationality           String
+  dateOfBirth           DateTime          @map("date_of_birth")
+  email                 String?
+  phone                 String?
+  preferences           Json?
+  linkedClientAccountId String?           @map("linked_client_account_id")
+  linkedUserId          String?           @map("linked_user_id")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  linkedClientAccount ClientAccount? @relation(fields: [linkedClientAccountId], references: [id])
+
+  @@map("guest_profiles")
+}
+
+enum LoyaltyQualificationMetric {
+  TOTAL_SPEND_RSD
+  BOOKING_COUNT
+  NIGHT_COUNT
+}
+
+enum LoyaltyQualificationPeriod {
+  LIFETIME
+  ROLLING_12_MONTHS
+  CALENDAR_YEAR
+}
+
+// §3.1 `LoyaltyTier`
+model LoyaltyTier {
+  id                  String                     @id @default(uuid())
+  name                String
+  rank                Int
+  qualificationMetric LoyaltyQualificationMetric @map("qualification_metric")
+  qualificationPeriod LoyaltyQualificationPeriod @map("qualification_period")
+  threshold           Decimal
+  discountPercentage  Decimal                    @map("discount_percentage")
+  benefitDescription  String?                    @map("benefit_description")
+
+  currentForStatuses  ClientLoyaltyStatus[] @relation("CurrentTier")
+  overrideForStatuses ClientLoyaltyStatus[] @relation("OverrideTier")
+
+  @@map("loyalty_tiers")
+}
+
+// §3.2 `ClientLoyaltyStatus`. NAPOMENA (implementacija, avgust 2026): client_account_id NAMERNO
+// bez FK ka ClientAccount — ovaj zapis se automatski kreira/ažurira preko M5 booking.confirmed/
+// booking.cancelled (M6EventSubscribersService), a Booking.client_account_id sam po sebi nema
+// DB-nivo FK (vidi napomenu iznad ClientContract §6 dopune) — postojeći M10/M11/M20 e2e testovi
+// koriste proizvoljne string vrednosti za Booking.client_account_id kreirane pre M6. Tvrd FK ovde
+// bi svaki booking.confirmed iz tih testova pretvorio u neuhvaćen FK constraint violation.
+model ClientLoyaltyStatus {
+  id                    String    @id @default(uuid())
+  clientAccountId       String    @unique @map("client_account_id")
+  currentTierId         String?   @map("current_tier_id")
+  calculatedMetricValue Decimal   @default(0) @map("calculated_metric_value")
+  tierSince             DateTime? @map("tier_since")
+  lastRecalculatedAt    DateTime? @map("last_recalculated_at")
+  manualOverrideTierId  String?   @map("manual_override_tier_id")
+  manualOverrideReason  String?   @map("manual_override_reason")
+  manualOverrideBy      String?   @map("manual_override_by")
+
+  currentTier        LoyaltyTier? @relation("CurrentTier", fields: [currentTierId], references: [id])
+  manualOverrideTier LoyaltyTier? @relation("OverrideTier", fields: [manualOverrideTierId], references: [id])
+
+  @@map("client_loyalty_statuses")
+}
+
+enum CommunicationChannel {
+  EMAIL
+  PHONE
+  SMS
+  IN_PERSON
+}
+
+enum CommunicationDirection {
+  INBOUND
+  OUTBOUND
+}
+
+// §4.1 `CommunicationLog`. client_account_id/guest_profile_id NAMERNO bez FK — isti razlog kao
+// ClientLoyaltyStatus iznad (M6TriggersService/PostTripSurveysService kreiraju zapise iz
+// booking.client_account_id, koji nema DB-nivo FK).
+model CommunicationLog {
+  id              String                 @id @default(uuid())
+  clientAccountId String?                @map("client_account_id")
+  guestProfileId  String?                @map("guest_profile_id")
+  channel         CommunicationChannel
+  direction       CommunicationDirection
+  summary         String
+  draftedByAi     Boolean                @default(false) @map("drafted_by_ai")
+  sentBy          String?                @map("sent_by")
+  createdAt       DateTime               @default(now()) @map("created_at")
+
+  @@map("communication_logs")
+}
+
+enum PostTripSurveyStatus {
+  PENDING
+  SENT
+  COMPLETED
+}
+
+// §4.3 `PostTripSurvey`. client_account_id NAMERNO bez FK — isti razlog kao ClientLoyaltyStatus
+// iznad (kopira se direktno iz Booking.client_account_id, koji nema DB-nivo FK).
+model PostTripSurvey {
+  id                    String               @id @default(uuid())
+  bookingId             String               @unique @map("booking_id")
+  clientAccountId       String               @map("client_account_id")
+  accessToken           String               @unique @map("access_token")
+  status                PostTripSurveyStatus @default(PENDING)
+  scheduledSendAt       DateTime             @map("scheduled_send_at")
+  sentAt                DateTime?            @map("sent_at")
+  responses             Json?
+  overallRating         Int?                 @map("overall_rating")
+  wantsGoogleReview     Boolean?             @map("wants_google_review")
+  googleReviewClickedAt DateTime?            @map("google_review_clicked_at")
+  completedAt           DateTime?            @map("completed_at")
+  createdAt             DateTime             @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("post_trip_surveys")
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from './quote-item-builder.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
+import { LoyaltyStubService } from '../common/loyalty-stub.service';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
 // podrazumevanih 30 min za čisto ugovorene stavke."
@@ -12,6 +13,7 @@ export class QuotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly builder: QuoteItemBuilderService,
+    private readonly loyalty: LoyaltyStubService,
   ) {}
 
   // M5 spec §3.1/§3.2/§3.0b.3 — POST /quotes: konstruiše sve stavke po ISTIM pravilima
@@ -37,6 +39,13 @@ export class QuotesService {
         ? new Date(Math.min(...apiExpiries.map((v) => new Date(v).getTime())))
         : new Date(Date.now() + DEFAULT_QUOTE_EXPIRY_MINUTES * 60_000);
 
+    // M6 spec §3.3 — popust nivoa lojalnosti primenjen POSLE marže, kao poslednji korak u toku
+    // cene. B2B subagenti (M7) koriste sopstveni mehanizam popusta umesto ovog kad M7 dođe na
+    // red (M5 spec §13) — dok M7 ne postoji, popust lojalnosti se primenjuje na svaki
+    // Quote.client_account_id koji ima nivo, bez razlikovanja B2C/B2B.
+    const discountPercentage = dto.clientAccountId ? await this.loyalty.getDiscountPercentage(dto.clientAccountId) : 0;
+    const applyDiscount = (price: number) => (discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price);
+
     const quote = await this.prisma.quote.create({
       data: {
         clientAccountId: dto.clientAccountId,
@@ -58,7 +67,7 @@ export class QuotesService {
             baseCostCurrency: b.baseCostCurrency,
             rateLineId: b.rateLineId,
             markupRuleId: b.markupRuleId,
-            finalPrice: b.finalPrice,
+            finalPrice: applyDiscount(b.finalPrice),
             finalPriceCurrency: b.finalPriceCurrency,
             providerQuoteReference: b.providerQuoteReference,
             unitCount: b.unitCount,

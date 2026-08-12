@@ -32,7 +32,22 @@ export class RemindersService {
       this.checkVoucherMissingDespitePaid(),
       this.checkUnannouncedBeforeStay(),
       this.checkAnnouncedWithoutSupplierConfirmation(),
+      this.completeFinishedBookings(),
     ]);
+  }
+
+  // §6.1a — CONFIRMED/MODIFIED rezervacija čije su sve neotkazane stavke prošle stay_to prelazi
+  // u COMPLETED i emituje booking.completed (M6 §4.3 post-trip anketa je pretplatnik).
+  async completeFinishedBookings() {
+    const candidates = await this.prisma.booking.findMany({
+      where: { status: { in: ['CONFIRMED', 'MODIFIED'] }, items: { none: { itemStatus: { not: 'CANCELLED' }, stayTo: { gt: new Date() } } } },
+      select: { id: true, bookingNumber: true },
+    });
+    for (const b of candidates) {
+      await this.prisma.booking.update({ where: { id: b.id }, data: { status: 'COMPLETED' } });
+      await this.eventBus.emit('M5', 'booking.completed', { bookingId: b.id, bookingNumber: b.bookingNumber });
+    }
+    return candidates.length;
   }
 
   // §6.1, alarm 1 — neplaćena rezervacija sa izdatim vaučerom (override).

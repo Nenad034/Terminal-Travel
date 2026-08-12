@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M6) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Status:** Implementirano (avgust 2026)
+**Verzija:** 1.3 — implementacija (avgust 2026): svi entiteti/endpoint-i iz ovog dokumenta izgrađeni. Dve implementacione dopune: (a) `ClientAccount`/`GuestProfile` reference iz M5 (`Booking.client_account_id`, `BookingItemGuest.guest_profile_id`) i iz M6 (`ClientLoyaltyStatus`/`CommunicationLog`/`PostTripSurvey`) su NAMERNO bez DB-nivo FK ka M6 tabelama — postojeći M10/M11/M20 podaci (i test fixture-i) predviđaju proizvoljne stringove za `client_account_id` kreirane pre M6, tvrd FK bi ih sve pokvario; sprovedeno na nivou aplikacije, ne baze (isti obrazac kao `MarkupRule.scope_id`, M5 §2.1); (b) M6 §4.3 (post-trip anketa) zahteva da `Booking.status` ume da pređe u `COMPLETED` — taj prelaz nikad nije bio definisan u M5 specifikaciji (enum vrednost je postojala od početka, mehanizam nije), dopunjeno M5 §6.1a (v1.20) kao periodičan posao koji CONFIRMED/MODIFIED rezervaciju sa svim stavkama u prošlosti prevodi u COMPLETED i emituje `booking.completed`; v1.2 dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M5
 
 ---
@@ -209,16 +209,16 @@ Prefiks: `/api/v1/crm`
 
 ## 10. Izlazni kriterijum (M6 deo Faze 3)
 
-- [ ] Gost može samostalno da se registruje na sajtu (kad M8 bude gotov) i time se kreira `ClientAccount` + `GuestProfile` povezani na njegov M1 `User`.
-- [ ] Lojalnost se automatski preračunava po potvrdi/otkazivanju rezervacije (test: prelazak praga tačno menja nivo).
-- [ ] Ručni override nivoa radi i ostaje trajno vidljiv u audit logu (razlog, ko je odobrio).
-- [ ] M5 tok cene ispravno primenjuje popust lojalnosti kao poslednji korak, posle marže.
-- [ ] Istorija putovanja se ispravno prikazuje bez ijednog duplog zapisa rezervacije u M6 bazi.
-- [ ] AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
-- [ ] Rođendan/godišnjica/pred-put okidači ispravno generišu `CommunicationLog` zapis na tačan datum, i šalju se automatski samo uz `marketing_consent = true`.
-- [ ] `ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na izračun cene ili lojalnosti.
-- [ ] `PostTripSurvey` se automatski kreira tačno 2 dana posle prelaska `Booking` u `COMPLETED`; email se automatski šalje samo ako je `marketing_consent = true`, inače čeka ljudsko slanje.
-- [ ] Popunjena anketa sa ocenom ≥ praga ispravno prikazuje ponudu za Google recenziju; klik na link se beleži u `google_review_clicked_at`, nezavisno od toga da li je recenzija stvarno ostavljena na Google-u.
+- [ ] Gost može samostalno da se registruje na sajtu (kad M8 bude gotov) i time se kreira `ClientAccount` + `GuestProfile` povezani na njegov M1 `User`. *(čeka M8 — nije testabilno pre tog modula, isto obrazloženje kao ostale M8-zavisne stavke u drugim modulima)*
+- [x] Lojalnost se automatski preračunava po potvrdi/otkazivanju rezervacije (test: prelazak praga tačno menja nivo). *(`test/m6-exit-criteria.e2e-spec.ts` §3.2)*
+- [x] Ručni override nivoa radi i ostaje trajno vidljiv u audit logu (razlog, ko je odobrio). *(§3.2, audit log potvrđen u testu)*
+- [x] M5 tok cene ispravno primenjuje popust lojalnosti kao poslednji korak, posle marže. *(§3.3, poređenje sa/bez `clientAccountId`)*
+- [x] Istorija putovanja se ispravno prikazuje bez ijednog duplog zapisa rezervacije u M6 bazi. *(§5, uživo iz M5, M6 ne drži kopiju)*
+- [x] AI-generisan nacrt poruke koji pominje cenu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom. *(§4.1, sprovedeno u `CommunicationLogService.create` — `sent_by` uvek `null` za `draftedByAi=true`, jedini put je `POST .../mark-sent`)*
+- [x] Rođendan/godišnjica/pred-put okidači ispravno generišu `CommunicationLog` zapis na tačan datum, i šalju se automatski samo uz `marketing_consent = true`. *(§4.2, `M6TriggersService`, `sentBy='SYSTEM_AUTO'` samo uz saglasnost)*
+- [x] `ClientAccount.tags` se ispravno čuva i vraća preko API-ja, bez uticaja na izračun cene ili lojalnosti. *(§2.1)*
+- [x] `PostTripSurvey` se automatski kreira tačno 2 dana posle prelaska `Booking` u `COMPLETED`; email se automatski šalje samo ako je `marketing_consent = true`, inače čeka ljudsko slanje. *(§4.3, `PostTripSurveysService.createForBooking`/`sendDueSurveys`)*
+- [x] Popunjena anketa sa ocenom ≥ praga ispravno prikazuje ponudu za Google recenziju; klik na link se beleži u `google_review_clicked_at`, nezavisno od toga da li je recenzija stvarno ostavljena na Google-u. *(§4.3)*
 
 ---
 

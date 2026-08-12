@@ -7,11 +7,13 @@ import { IntegrationsModule } from '../../m4-integracije-api/integrations/integr
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
 import { BookingsModule } from '../bookings/bookings.module';
+import { LoyaltyStubService } from '../common/loyalty-stub.service';
+import { LoyaltyModule } from '../../m6-crm/loyalty/loyalty.module';
 
 @Module({
-  imports: [MarkupRulesModule, IntegrationsModule, AuthModule, PermissionsModule, BookingsModule],
+  imports: [MarkupRulesModule, IntegrationsModule, AuthModule, PermissionsModule, BookingsModule, LoyaltyModule],
   controllers: [QuotesController],
-  providers: [QuotesService, QuoteItemBuilderService],
+  providers: [QuotesService, QuoteItemBuilderService, LoyaltyStubService],
   exports: [QuoteItemBuilderService, QuotesService],
 })
 export class QuotesModule {}
