@@ -17,14 +17,14 @@ export class ClientContractsController {
 
   @Get()
   @RequirePermission('M20', 'client-contract', 'VIEW')
-  findMany(@Query() query: ListClientContractsDto) {
-    return this.clientContracts.findMany(query);
+  findMany(@Query() query: ListClientContractsDto, @CurrentUser() actor: { userId: string }) {
+    return this.clientContracts.findMany(query, actor.userId);
   }
 
   @Get(':id')
   @RequirePermission('M20', 'client-contract', 'VIEW')
-  findOne(@Param('id') id: string) {
-    return this.clientContracts.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.clientContracts.findOne(id, actor.userId);
   }
 
   @Post(':id/accept')

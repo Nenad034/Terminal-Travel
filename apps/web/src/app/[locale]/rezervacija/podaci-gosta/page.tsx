@@ -1,0 +1,63 @@
+import { getTranslations } from 'next-intl/server';
+import { getSession } from '@/lib/session';
+
+// M8 spec poglavlje 3, korak 3 — podaci gosta. Nalog gosta u ovom prvom prolazu M8
+// implementacije već postoji (registracija je preduslov za rezervaciju, poglavlje 9a) —
+// ovaj korak zato traži samo ime putnika za ugovor/vaučer (M5 ConfirmQuoteDto.buyerName),
+// ne pravi nov nalog. Detaljan GuestProfile (putni dokument) ostaje za /nalog/profil.
+export default async function GuestInfoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  const { locale } = await params;
+  const sp = await searchParams;
+  const t = await getTranslations({ locale, namespace: 'booking.guestInfo' });
+  const session = await getSession();
+
+  const forward = new URLSearchParams({
+    productId: sp.productId ?? '',
+    stayFrom: sp.stayFrom ?? '',
+    stayTo: sp.stayTo ?? '',
+    adults: sp.adults ?? '2',
+    children: sp.children ?? '0',
+  });
+
+  return (
+    <div className="mx-auto max-w-xl">
+      <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
+
+      {!session && (
+        <p className="mb-4 rounded-md bg-brand-light p-3 text-sm">
+          {t('loginPrompt')}{' '}
+          <a href={`/${locale}/nalog/prijava`} className="font-medium text-brand underline">
+            {t('loginLink')}
+          </a>{' '}
+          {t('registerPrompt')}{' '}
+          <a href={`/${locale}/nalog/registracija`} className="font-medium text-brand underline">
+            {t('registerLink')}
+          </a>
+        </p>
+      )}
+
+      <form action={`/${locale}/rezervacija/uslovi`} method="get" className="flex flex-col gap-3">
+        {[...forward.entries()].map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
+        <label className="text-sm">
+          {t('fullName')}
+          <input name="buyerName" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+        </label>
+        <button
+          type="submit"
+          disabled={!session}
+          className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+        >
+          {t('submit')}
+        </button>
+      </form>
+    </div>
+  );
+}

@@ -1,0 +1,113 @@
+{
+  "nav": {
+    "home": "Početna",
+    "search": "Pretraga",
+    "myBookings": "Moje rezervacije",
+    "profile": "Profil",
+    "login": "Prijava",
+    "register": "Registracija",
+    "logout": "Odjava",
+    "searchPlaceholder": "Pretražite destinacije, hotele, aranžmane..."
+  },
+  "home": {
+    "title": "Pronađite savršeno putovanje",
+    "subtitle": "Pretražite ponudu smeštaja, aranžmana i izleta.",
+    "featured": "Izdvojene ponude",
+    "cta": "Pretraži"
+  },
+  "search": {
+    "title": "Rezultati pretrage",
+    "destination": "Destinacija",
+    "stayFrom": "Datum dolaska",
+    "stayTo": "Datum odlaska",
+    "adults": "Odrasli",
+    "children": "Deca",
+    "submit": "Pretraži",
+    "noResults": "Nema rezultata za zadate kriterijume.",
+    "viewOffer": "Pogledaj ponudu"
+  },
+  "product": {
+    "from": "od",
+    "selectDates": "Izaberite datume",
+    "book": "Rezerviši"
+  },
+  "booking": {
+    "offer": {
+      "title": "Pregled ponude",
+      "confirm": "Nastavi"
+    },
+    "guestInfo": {
+      "title": "Podaci gosta",
+      "loginPrompt": "Već imate nalog?",
+      "loginLink": "Prijavite se",
+      "registerPrompt": "Nemate nalog?",
+      "registerLink": "Registrujte se",
+      "continueAsGuest": "Nastavi bez naloga",
+      "fullName": "Ime i prezime",
+      "email": "Email",
+      "phone": "Telefon",
+      "submit": "Nastavi"
+    },
+    "terms": {
+      "title": "Uslovi ugovora o putovanju",
+      "accept": "Prihvatam uslove ugovora o putovanju",
+      "submit": "Nastavi na plaćanje",
+      "mustAccept": "Morate prihvatiti uslove ugovora pre nastavka."
+    },
+    "payment": {
+      "title": "Plaćanje",
+      "card": "Platna kartica",
+      "bankTransfer": "Bankovni prenos",
+      "submit": "Plati",
+      "bankInstructions": "Rezervacija je potvrđena. Instrukcije za uplatu poslate su na vaš email."
+    },
+    "confirmation": {
+      "title": "Rezervacija potvrđena",
+      "bookingNumber": "Broj rezervacije",
+      "voucherPending": "Vaučer će biti dostupan čim se generiše.",
+      "voucherLink": "Preuzmi vaučer"
+    }
+  },
+  "account": {
+    "login": {
+      "title": "Prijava",
+      "email": "Email",
+      "password": "Lozinka",
+      "submit": "Prijavi se",
+      "noAccount": "Nemate nalog?",
+      "registerLink": "Registrujte se"
+    },
+    "register": {
+      "title": "Registracija",
+      "fullName": "Ime i prezime",
+      "email": "Email",
+      "phone": "Telefon (opciono)",
+      "password": "Lozinka (najmanje 12 karaktera)",
+      "submit": "Registruj se",
+      "hasAccount": "Već imate nalog?",
+      "loginLink": "Prijavite se"
+    },
+    "myBookings": {
+      "title": "Moje rezervacije",
+      "empty": "Još uvek nemate rezervacija.",
+      "status": "Status",
+      "dates": "Datumi"
+    },
+    "profile": {
+      "title": "Profil",
+      "fullName": "Ime i prezime",
+      "email": "Email",
+      "phone": "Telefon",
+      "marketingConsent": "Želim da primam marketinšku komunikaciju",
+      "save": "Sačuvaj"
+    }
+  },
+  "comingSoon": {
+    "title": "Uskoro",
+    "body": "Ovaj sadržaj još nije dostupan."
+  },
+  "footer": {
+    "terms": "Uslovi",
+    "rightsReserved": "Sva prava zadržana."
+  }
+}

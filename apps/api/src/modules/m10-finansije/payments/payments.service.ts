@@ -82,7 +82,17 @@ export class PaymentsService {
       },
     });
 
-    return { paymentId: payment.id, redirectUrl: result.redirectUrl, clientToken: result.clientToken };
+    // gatewayTransactionId se vraća pozivaocu SAMO zato što mock gateway (§7.1) nema stvaran
+    // hostovani checkout — dok se PSP ne izabere (§12), M8 sam simulira korak provajdera i
+    // odmah poziva /card/webhook sa istim ID-jem (vidi M8 rezervacija/actions.ts). Stvaran
+    // provajder ovo polje ne bi trebalo da otkriva klijentu — ukloniti kad hostovani checkout
+    // zameni ovu privremenu simulaciju.
+    return {
+      paymentId: payment.id,
+      redirectUrl: result.redirectUrl,
+      clientToken: result.clientToken,
+      gatewayTransactionId: result.gatewayTransactionId,
+    };
   }
 
   // §7.2 koraci 2-5 — provajder potvrđuje naplatu; TEK SAD M5 pokreće potvrdu rezervacije

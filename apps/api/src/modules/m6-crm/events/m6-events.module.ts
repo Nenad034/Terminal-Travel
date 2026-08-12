@@ -4,9 +4,10 @@ import { M6TriggersService } from './m6-triggers.service';
 import { EventBusModule } from '../../../common/events/event-bus.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { PostTripSurveysModule } from '../post-trip-surveys/post-trip-surveys.module';
+import { ClientAccountsModule } from '../client-accounts/client-accounts.module';
 
 @Module({
-  imports: [EventBusModule, LoyaltyModule, PostTripSurveysModule],
+  imports: [EventBusModule, LoyaltyModule, PostTripSurveysModule, ClientAccountsModule],
   providers: [M6EventSubscribersService, M6TriggersService],
 })
 export class M6EventsModule {}

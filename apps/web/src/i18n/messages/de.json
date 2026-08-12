@@ -1,0 +1,113 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "myBookings": "My Bookings",
+    "profile": "Profile",
+    "login": "Log in",
+    "register": "Register",
+    "logout": "Log out",
+    "searchPlaceholder": "Search destinations, hotels, packages..."
+  },
+  "home": {
+    "title": "Find your perfect trip",
+    "subtitle": "Search accommodation, packages and excursions.",
+    "featured": "Featured offers",
+    "cta": "Search"
+  },
+  "search": {
+    "title": "Search results",
+    "destination": "Destination",
+    "stayFrom": "Check-in",
+    "stayTo": "Check-out",
+    "adults": "Adults",
+    "children": "Children",
+    "submit": "Search",
+    "noResults": "No results for the given criteria.",
+    "viewOffer": "View offer"
+  },
+  "product": {
+    "from": "from",
+    "selectDates": "Select dates",
+    "book": "Book"
+  },
+  "booking": {
+    "offer": {
+      "title": "Offer overview",
+      "confirm": "Continue"
+    },
+    "guestInfo": {
+      "title": "Guest details",
+      "loginPrompt": "Already have an account?",
+      "loginLink": "Log in",
+      "registerPrompt": "Don't have an account?",
+      "registerLink": "Register",
+      "continueAsGuest": "Continue without an account",
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "submit": "Continue"
+    },
+    "terms": {
+      "title": "Travel contract terms",
+      "accept": "I accept the travel contract terms",
+      "submit": "Continue to payment",
+      "mustAccept": "You must accept the contract terms before continuing."
+    },
+    "payment": {
+      "title": "Payment",
+      "card": "Card payment",
+      "bankTransfer": "Bank transfer",
+      "submit": "Pay",
+      "bankInstructions": "Booking confirmed. Payment instructions have been sent to your email."
+    },
+    "confirmation": {
+      "title": "Booking confirmed",
+      "bookingNumber": "Booking number",
+      "voucherPending": "The voucher will be available once generated.",
+      "voucherLink": "Download voucher"
+    }
+  },
+  "account": {
+    "login": {
+      "title": "Log in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Log in",
+      "noAccount": "Don't have an account?",
+      "registerLink": "Register"
+    },
+    "register": {
+      "title": "Register",
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "password": "Password (at least 12 characters)",
+      "submit": "Register",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Log in"
+    },
+    "myBookings": {
+      "title": "My Bookings",
+      "empty": "You don't have any bookings yet.",
+      "status": "Status",
+      "dates": "Dates"
+    },
+    "profile": {
+      "title": "Profile",
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "marketingConsent": "I want to receive marketing communication",
+      "save": "Save"
+    }
+  },
+  "comingSoon": {
+    "title": "Coming soon",
+    "body": "This content is not available yet."
+  },
+  "footer": {
+    "terms": "Terms",
+    "rightsReserved": "All rights reserved."
+  }
+}

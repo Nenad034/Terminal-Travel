@@ -28,8 +28,8 @@ export class QuotesController {
 
   @Get(':id')
   @RequirePermission('M5', 'quote', 'VIEW')
-  findOne(@Param('id') id: string) {
-    return this.quotes.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.quotes.findOne(id, actor.userId);
   }
 
   // M5 spec §4/§11 — POST /quotes/:id/confirm: pokreće tok Ponuda → Rezervacija.

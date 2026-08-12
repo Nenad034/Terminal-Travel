@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 
 describe('BookingsService (M5 spec §4/§6.4)', () => {
@@ -11,6 +11,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       bookingItem: { findMany: jest.fn(), update: jest.fn(), count: jest.fn() },
       bookingItemGuest: { findMany: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
@@ -219,6 +220,22 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       });
       await expect(service.confirmQuote('quote-3', {} as any, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
     });
+
+    it('gost NE može da potvrdi tuđu Ponudu — 404 (§6.2 dopuna)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'quote-tudj',
+        status: 'DRAFT',
+        expiresAt: new Date(Date.now() + 60_000),
+        channel: 'B2C_SITE',
+        contractTermsAccepted: true,
+        clientAccountId: 'acc-tudj',
+        items: [],
+      });
+
+      await expect(service.confirmQuote('quote-tudj', {} as any, { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('cancel — provera duplikata pre otkazivanja (§6.4)', () => {
@@ -315,6 +332,83 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       // 10 dana do polaska -> primenjuje se pravilo za 7 dana pre (najspecifičnije koje je <= 10) -> 50%.
       expect(prisma.bookingItem.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ cancellationRefundPercentage: 50 }) }),
+      );
+    });
+  });
+
+  describe('findOne — kontekst i vlasništvo (§6.2 dopuna, priprema za M8)', () => {
+    const bookingItem = {
+      id: 'item-1',
+      productId: 'p1',
+      sourceType: 'CONTRACTED',
+      supplierReference: 'supplier-secret-ref',
+      stayFrom: new Date(),
+      stayTo: new Date(),
+      baseCost: 5000,
+      baseCostCurrency: 'EUR',
+      rateLineId: 'rl1',
+      markupRuleId: 'mr1',
+      finalPrice: 8000,
+      finalPriceCurrency: 'EUR',
+      itemStatus: 'CONFIRMED',
+      cancellationRefundPercentage: null,
+    };
+
+    it('interno osoblje (nema User zapis sa account_type GUEST/SUBAGENT_CONTACT) dobija pun prikaz bilo koje rezervacije', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj', items: [bookingItem] });
+
+      const result = await service.findOne('b1', 'staff-1');
+
+      expect((result.items[0] as any).supplierReference).toBe('supplier-secret-ref');
+    });
+
+    it('gost (account_type GUEST) dobija maskiran prikaz sopstvene rezervacije, bez supplierReference/baseCost/markupRuleId/rateLineId', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-1', items: [bookingItem] });
+
+      const result = await service.findOne('b1', 'guest-1');
+
+      expect(result.items[0]).not.toHaveProperty('supplierReference');
+      expect(result.items[0]).not.toHaveProperty('baseCost');
+      expect(result.items[0]).not.toHaveProperty('markupRuleId');
+      expect(result.items[0]).not.toHaveProperty('rateLineId');
+      expect(result.items[0].finalPrice).toBe(8000);
+    });
+
+    it('gost NE može da vidi tuđu rezervaciju — vraća 404, ne otkriva postojanje', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj', items: [bookingItem] });
+
+      await expect(service.findOne('b1', 'guest-1')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('findAll — ownership se nameće za gost/B2B kontekst (§6.2 dopuna)', () => {
+    it('gost ne može da vidi tuđe rezervacije slanjem tuđeg clientAccountId parametra — parametar se ignoriše', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await service.findAll({ clientAccountId: 'client-tudj' }, { userId: 'guest-1' });
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ clientAccountId: 'client-1' }) }),
+      );
+    });
+
+    it('interno osoblje zadržava puni klijentski clientAccountId filter', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await service.findAll({ clientAccountId: 'bilo-koji' }, { userId: 'staff-1' });
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ clientAccountId: 'bilo-koji' }) }),
       );
     });
   });

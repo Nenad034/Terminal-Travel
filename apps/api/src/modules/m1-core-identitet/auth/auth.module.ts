@@ -3,9 +3,10 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthSharedModule } from '../../../common/auth-shared.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { EventBusModule } from '../../../common/events/event-bus.module';
 
 @Module({
-  imports: [AuthSharedModule, AuditLogModule],
+  imports: [AuthSharedModule, AuditLogModule, EventBusModule],
   controllers: [AuthController],
   providers: [AuthService],
   // AuthSharedModule se re-eksportuje da moduli koji importuju AuthModule (za AuthService)

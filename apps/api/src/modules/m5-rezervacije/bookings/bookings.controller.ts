@@ -48,11 +48,10 @@ export class BookingsController {
 
   @Get(':id')
   @RequirePermission('M5', 'booking', 'VIEW')
-  findOne(@Param('id') id: string) {
-    // Interni panel je jedini pozivalac ovog kontrolera (M17) — M8/M9/M7 dobijaju svoje
-    // maskirane odgovore preko sopstvenih (budućih) kanala; §6.2 sprovodi se ovde eksplicitno
-    // preko konteksta INTERNAL_PANEL, ne implicitno.
-    return this.bookings.findOne(id, 'INTERNAL_PANEL');
+  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    // §6.2 dopuna (avgust 2026) — kontekst (INTERNAL_PANEL/B2C/B2B) i vlasništvo se
+    // učitavaju uživo po pozivaocu unutar servisa, ne prosleđuju se odavde.
+    return this.bookings.findOne(id, actor.userId);
   }
 
   @Post(':id/modify')

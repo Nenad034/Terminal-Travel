@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M6) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026)
-**Verzija:** 1.3 — implementacija (avgust 2026): svi entiteti/endpoint-i iz ovog dokumenta izgrađeni. Dve implementacione dopune: (a) `ClientAccount`/`GuestProfile` reference iz M5 (`Booking.client_account_id`, `BookingItemGuest.guest_profile_id`) i iz M6 (`ClientLoyaltyStatus`/`CommunicationLog`/`PostTripSurvey`) su NAMERNO bez DB-nivo FK ka M6 tabelama — postojeći M10/M11/M20 podaci (i test fixture-i) predviđaju proizvoljne stringove za `client_account_id` kreirane pre M6, tvrd FK bi ih sve pokvario; sprovedeno na nivou aplikacije, ne baze (isti obrazac kao `MarkupRule.scope_id`, M5 §2.1); (b) M6 §4.3 (post-trip anketa) zahteva da `Booking.status` ume da pređe u `COMPLETED` — taj prelaz nikad nije bio definisan u M5 specifikaciji (enum vrednost je postojala od početka, mehanizam nije), dopunjeno M5 §6.1a (v1.20) kao periodičan posao koji CONFIRMED/MODIFIED rezervaciju sa svim stavkama u prošlosti prevodi u COMPLETED i emituje `booking.completed`; v1.2 dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.5 — Gost dobija stvarne M5/M6/M20 dozvole (poglavlje 7) i ownership sprovođenje u client-account/guest-profile kontrolerima, priprema za M8, avgust 2026; v1.4 — dodat `user.registered.guest` subscriber (poglavlje 6, priprema za M8 samostalnu registraciju gosta, avgust 2026); v1.3 — implementacija (avgust 2026): svi entiteti/endpoint-i iz ovog dokumenta izgrađeni. Dve implementacione dopune: (a) `ClientAccount`/`GuestProfile` reference iz M5 (`Booking.client_account_id`, `BookingItemGuest.guest_profile_id`) i iz M6 (`ClientLoyaltyStatus`/`CommunicationLog`/`PostTripSurvey`) su NAMERNO bez DB-nivo FK ka M6 tabelama — postojeći M10/M11/M20 podaci (i test fixture-i) predviđaju proizvoljne stringove za `client_account_id` kreirane pre M6, tvrd FK bi ih sve pokvario; sprovedeno na nivou aplikacije, ne baze (isti obrazac kao `MarkupRule.scope_id`, M5 §2.1); (b) M6 §4.3 (post-trip anketa) zahteva da `Booking.status` ume da pređe u `COMPLETED` — taj prelaz nikad nije bio definisan u M5 specifikaciji (enum vrednost je postojala od početka, mehanizam nije), dopunjeno M5 §6.1a (v1.20) kao periodičan posao koji CONFIRMED/MODIFIED rezervaciju sa svim stavkama u prošlosti prevodi u COMPLETED i emituje `booking.completed`; v1.2 dodato (avgust 2026, na zahtev vlasnika): automatska anketa posle povratka sa putovanja + ponuda za Google recenziju (poglavlje 4.3); uklonjena zastarela referenca ka M11 `GuestRegistration` (poglavlje 6) jer je taj entitet ukinut u M11 v2.0 (eTurista prijava je nadležnost hotela, ne agencije); v1.1 dodato: tagovi/segmentacija, automatizovane komunikacije po okidaču (rođendan/godišnjica/pred put) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M5
 
 ---
@@ -152,6 +152,7 @@ Ako gost popuni anketu i ostavi visoku ocenu (prag konfigurabilan, podrazumevano
 - **M5** `Booking.client_account_id` i `BookingItemGuest.guest_profile_id` sada formalno referenciraju `M6.ClientAccount` i `M6.GuestProfile`.
 - **M10** `FiscalDocument` treba da **snimi (snapshot)** ime/PIB nalogodavca u trenutku slanja (`SUBMIT`), ne samo da referencira `booking_id` — jer fiskalni dokument mora ostati istorijski tačan i ako se profil nalogodavca kasnije promeni (npr. subagent promeni naziv firme). *Ovo je dopuna M10 specifikacije, primenjena direktno u tom dokumentu (poglavlje 8 ovog dokumenta).*
 - ~~**M11** `GuestRegistration`...~~ Uklonjeno (avgust 2026) — M11 više ne prati eTurista prijavu gostiju, to je nadležnost smeštajnog objekta, ne agencije. Vidi `08-SPECIFIKACIJA-M11-COMPLIANCE.md` v2.0.
+- **M1 `user.registered.guest` (dopuna avgust 2026, priprema za M8).** Kad se gost sam registruje preko M1 `POST /auth/register` (M1 specifikacija, poglavlje 5), M6 sluša taj event (isti Postgres LISTEN/NOTIFY mehanizam kao ostali event subscriber-i ovog modula, npr. `booking.completed` iz poglavlja 4.3) i automatski kreira `ClientAccount(account_type = INDIVIDUAL)`, povezanu na `User.id` preko `User.linked_profile_id`. **`GuestProfile` se namerno ne pravi u ovom koraku** — zahteva podatke o putnom dokumentu (§2.2: `document_type`, `document_number`, `nationality`, `date_of_birth`) koje registracija ne prikuplja; pravi se kasnije, u toku rezervacije ili kroz ekran profila, kad gost stvarno unese te podatke. M6 ovde nikad ne piše u M1 tabele niti obrnuto — samo reaguje na događaj, isti princip kao ostatak ovog poglavlja. Ovim se delimično ispunjava izlazni kriterijum iz poglavlja 10 ("Gost može samostalno da se registruje... kad M8 bude gotov") — `ClientAccount` deo; `GuestProfile` deo te stavke ostaje vezan za tok gde se putni podaci stvarno unose.
 
 ---
 
@@ -159,8 +160,8 @@ Ako gost popuni anketu i ostavi visoku ocenu (prag konfigurabilan, podrazumevano
 
 | Dozvola | Podrazumevana dodela po ulozi |
 | :---- | :---- |
-| `M6/client-account/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Računovođa (VIEW radi fakturisanja) |
-| `M6/guest-profile/VIEW`, `CREATE`, `EDIT` | isto kao gore |
+| `M6/client-account/VIEW`, `CREATE`, `EDIT` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Računovođa (VIEW radi fakturisanja); Gost (`VIEW`/`EDIT`, isključivo sopstveni nalog — `CREATE` namerno izostavljen, gost sebi ne pravi dodatne naloge, sopstveni već nastaje preko M1 registracije, poglavlje 6) |
+| `M6/guest-profile/VIEW`, `CREATE`, `EDIT` | isto kao gore, uključujući Gost (sopstveni profil — `CREATE` ovde JESTE dozvoljen, gost sam unosi podatke o putnom dokumentu koje registracija nije prikupila, poglavlje 6) |
 | `M6/loyalty-tier/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent |
 | `M6/loyalty-tier/EDIT` (definicije nivoa) | Vlasnik, Direktor |
 | `M6/loyalty-status/OVERRIDE` | Vlasnik, Direktor — obavezan razlog, upisuje se u audit log |
@@ -168,6 +169,8 @@ Ako gost popuni anketu i ostavi visoku ocenu (prag konfigurabilan, podrazumevano
 | `M6/post-trip-survey/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti) — gost pristupa sopstvenoj anketi preko `access_token` iz email-a, ne preko ove dozvole |
 
 Uloga **Gost** ima pristup isključivo sopstvenom `ClientAccount`/`GuestProfile` (preko `linked_user_id`), bez pristupa internom panelu.
+
+**Vlasništvo, ne samo dozvola (dopuna avgust 2026, priprema za M8, isti obrazac kao M5 spec §6.2).** `M6/client-account/VIEW,EDIT` i `M6/guest-profile/VIEW,CREATE,EDIT` sami po sebi ne razlikuju "sopstveno" od "tuđe" — to sprovode `ClientAccountsController`/`GuestProfilesController` eksplicitno: kad pozivalac ima `account_type = GUEST` (učitano uživo po `userId`, isti mehanizam kao M5), `:id` operacije i liste se ograničavaju na `ownClientAccountId` (`User.linked_profile_id`) odnosno profile povezane preko `linked_client_account_id` — pokušaj pristupa tuđem zapisu vraća 404, ne otkriva postojanje.
 
 ---
 
@@ -209,7 +212,7 @@ Prefiks: `/api/v1/crm`
 
 ## 10. Izlazni kriterijum (M6 deo Faze 3)
 
-- [ ] Gost može samostalno da se registruje na sajtu (kad M8 bude gotov) i time se kreira `ClientAccount` + `GuestProfile` povezani na njegov M1 `User`. *(čeka M8 — nije testabilno pre tog modula, isto obrazloženje kao ostale M8-zavisne stavke u drugim modulima)*
+- [ ] Gost može samostalno da se registruje na sajtu i time se kreira `ClientAccount` povezan na njegov M1 `User` (poglavlje 6, `user.registered.guest`); `GuestProfile` se pravi naknadno, kad gost unese podatke o putnom dokumentu (tok rezervacije ili profil naloga) — sam registracijski korak ga namerno ne kreira.
 - [x] Lojalnost se automatski preračunava po potvrdi/otkazivanju rezervacije (test: prelazak praga tačno menja nivo). *(`test/m6-exit-criteria.e2e-spec.ts` §3.2)*
 - [x] Ručni override nivoa radi i ostaje trajno vidljiv u audit logu (razlog, ko je odobrio). *(§3.2, audit log potvrđen u testu)*
 - [x] M5 tok cene ispravno primenjuje popust lojalnosti kao poslednji korak, posle marže. *(§3.3, poređenje sa/bez `clientAccountId`)*

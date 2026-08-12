@@ -1,15 +1,14 @@
-import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
-import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 
-// M5 spec §11, prefiks /api/v1/sales — pretraga je dostupna svakom autentifikovanom
-// pozivaocu (interni tim, B2B portal, gost na sajtu preko M8/M9), bez posebne dozvole
-// (isti princip kao M4 interni operativni pozivi — samo JwtAuthGuard).
+// M5 spec §11 dopuna (avgust 2026, priprema za M8) — pretraga je JAVNA, bez guard-a.
+// M8 spec poglavlje 3 korak 1 zahteva anonimnu pretragu (gost bez naloga); ranija verzija
+// ovog kontrolera zahtevala je JwtAuthGuard, što je bilo neusklađeno sa tim zahtevom —
+// isti princip kao M2 PublicProductsController (poglavlje 5.1: identitet dobavljača se
+// ionako nikad ne izlaže ka B2C/B2B, nema osetljivog podatka koji bi guard štitio ovde).
 @ApiTags('sales-search')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('sales/search')
 export class SearchController {
   constructor(private readonly search: SearchService) {}

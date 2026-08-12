@@ -1,4 +1,4 @@
-import { ForbiddenException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
@@ -15,9 +15,11 @@ describe('AuthService', () => {
         findUnique: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
         findUniqueOrThrow: jest.fn(),
+        create: jest.fn(),
       },
       userRole: {
         findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({}),
       },
       refreshToken: {
         create: jest.fn().mockResolvedValue({}),
@@ -33,6 +35,9 @@ describe('AuthService', () => {
       mfaRecoveryCode: {
         createMany: jest.fn().mockResolvedValue({}),
       },
+      role: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'role-gost' }),
+      },
       $transaction: jest.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
     };
   }
@@ -40,12 +45,57 @@ describe('AuthService', () => {
   function makeService() {
     const prisma = makePrismaMock();
     const auditLog = { write: jest.fn().mockResolvedValue({}) };
-    const service = new AuthService(prisma as any, jwt, auditLog as any);
-    return { service, prisma, auditLog };
+    const eventBus = { emit: jest.fn().mockResolvedValue(undefined) };
+    const service = new AuthService(prisma as any, jwt, auditLog as any, eventBus as any);
+    return { service, prisma, auditLog, eventBus };
   }
 
   beforeAll(() => {
     process.env.ENCRYPTION_KEY = 'test-encryption-key-not-for-production';
+  });
+
+  describe('register', () => {
+    it('baca ConflictException kad email već postoji', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'postojeci' });
+
+      await expect(
+        service.register({ email: 'gost@tt.rs', password: 'lozinka1234567', fullName: 'Gost Gostić' }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('kreira User sa account_type GUEST i status ACTIVE, emituje user.registered.guest, izdaje tokene', async () => {
+      const { service, prisma, eventBus } = makeService();
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ id: 'novi-gost', email: 'gost@tt.rs', fullName: 'Gost Gostić' });
+
+      const result = await service.register({
+        email: 'gost@tt.rs',
+        password: 'lozinka1234567',
+        fullName: 'Gost Gostić',
+      });
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ accountType: 'GUEST', status: 'ACTIVE', email: 'gost@tt.rs' }),
+        }),
+      );
+      expect(eventBus.emit).toHaveBeenCalledWith('M1', 'user.registered.guest', expect.objectContaining({ userId: 'novi-gost' }));
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+    });
+
+    it('dodeljuje GOST ulogu novom gostu (assignedBy = sopstveni id)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockResolvedValue({ id: 'novi-gost', email: 'gost@tt.rs', fullName: 'Gost Gostić' });
+
+      await service.register({ email: 'gost@tt.rs', password: 'lozinka1234567', fullName: 'Gost Gostić' });
+
+      expect(prisma.userRole.create).toHaveBeenCalledWith({
+        data: { userId: 'novi-gost', roleId: 'role-gost', assignedBy: 'novi-gost' },
+      });
+    });
   });
 
   describe('login', () => {

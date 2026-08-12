@@ -17,6 +17,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
+import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 
 interface ItemReservationOutcome {
   quoteItemId: string;
@@ -46,6 +47,15 @@ export class BookingsService {
   async confirmQuote(quoteId: string, dto: ConfirmQuoteDto, actor: { userId: string }) {
     let quote = await this.prisma.quote.findUnique({ where: { id: quoteId }, include: { items: true } });
     if (!quote) throw new NotFoundException(`Ponuda ${quoteId} nije pronađena.`);
+
+    // §6.2 obrazac dopune — gost sme da potvrdi isključivo sopstvenu Ponudu (client_account_id
+    // je već primorano na sopstveni nalog pri POST /quotes, ova provera zatvara pokušaj
+    // potvrde TUĐE ponude pogađanjem/enumeracijom quoteId).
+    const { context, ownClientAccountId } = await this.resolveApiContext(actor.userId);
+    if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== ownClientAccountId) {
+      throw new NotFoundException(`Ponuda ${quoteId} nije pronađena.`);
+    }
+
     if (quote.status !== 'DRAFT') {
       throw new BadRequestException(`Ponuda ${quoteId} nije u statusu DRAFT (status: ${quote.status}).`);
     }
@@ -335,22 +345,45 @@ export class BookingsService {
   // ==========================================================================
   // Pregled
   // ==========================================================================
-  async findAll(filters: { status?: string; channel?: string; clientAccountId?: string }, actor: { userId: string; ownClientAccountIds?: string[] }) {
-    return this.prisma.booking.findMany({
+
+  /** M5 spec §6.2 dopuna (avgust 2026, priprema za M8) — vidi common/auth/resolve-caller-identity.ts. */
+  private async resolveApiContext(userId: string): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null }> {
+    const identity = await resolveCallerIdentity(this.prisma, userId);
+    if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
+    if (identity.accountType === 'SUBAGENT_CONTACT') return { context: 'B2B', ownClientAccountId: identity.ownProfileId };
+    return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
+  }
+
+  async findAll(filters: { status?: string; channel?: string; clientAccountId?: string }, actor: { userId: string }) {
+    const { context, ownClientAccountId } = await this.resolveApiContext(actor.userId);
+    // Gost/B2B kontekst: ownership se NAMEĆE (ownClientAccountId), klijentski
+    // clientAccountId parametar se ignoriše — sprečava da gost sam sebi zatraži
+    // tuđe rezervacije menjajući query parametar.
+    const clientAccountId = context === 'INTERNAL_PANEL' ? filters.clientAccountId : (ownClientAccountId ?? undefined);
+
+    const bookings = await this.prisma.booking.findMany({
       where: {
         status: filters.status as any,
         channel: filters.channel as any,
-        clientAccountId: filters.clientAccountId,
+        clientAccountId,
       },
       include: { items: true },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
+    const { serializeBooking } = await import('./booking-visibility');
+    return bookings.map((b) => serializeBooking(b as any, context));
   }
 
-  async findOne(id: string, context: 'INTERNAL_PANEL' | 'B2C' | 'B2B' | 'MOBILE_GUEST' = 'INTERNAL_PANEL') {
+  async findOne(id: string, actorUserId: string) {
+    const { context, ownClientAccountId } = await this.resolveApiContext(actorUserId);
     const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true } });
     if (!booking) throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
+    if (context !== 'INTERNAL_PANEL' && booking.clientAccountId !== ownClientAccountId) {
+      // Ne otkrivati postojanje tuđe rezervacije — ista "ne otkrivati" filozofija
+      // kao M1 requestPasswordReset (ne kaže da li email postoji).
+      throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
+    }
     const { serializeBooking } = await import('./booking-visibility');
     return serializeBooking(booking as any, context);
   }

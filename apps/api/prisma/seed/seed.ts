@@ -297,9 +297,32 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6.
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
   ],
-  // M20 spec §5 — Gost vidi isključivo sopstvene ugovore (M8 tok, prihvata sam kroz clickwrap,
-  // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
-  [SYSTEM_ROLES.GOST]: [{ module: 'M20', resource: 'client-contract', action: 'VIEW' }],
+  // M5 spec §10 tabela ("Gost — samo sopstvene") i M6 spec §7 ("Uloga Gost ima pristup
+  // isključivo sopstvenom ClientAccount/GuestProfile") — dozvole same po sebi ne razlikuju
+  // "sopstveno" od "tuđe" (M1 §3.6 to ne modeluje), pa ownership sprovode servisi/kontroleri
+  // (M5 bookings.service.resolveApiContext, M6 client-accounts/guest-profiles kontroleri),
+  // ne dozvola. Ova dodela je namerno dodata pri implementaciji M8 (avgust 2026) — do tada
+  // GOST rola nije imala dozvole za M5/M6, pa registrovan gost ne bi mogao ni da pretraži
+  // ni da rezerviše.
+  [SYSTEM_ROLES.GOST]: [
+    { module: 'M5', resource: 'itinerary', action: 'CREATE' },
+    { module: 'M5', resource: 'itinerary', action: 'VIEW' },
+    { module: 'M5', resource: 'itinerary', action: 'EDIT' },
+    { module: 'M5', resource: 'quote', action: 'CREATE' },
+    { module: 'M5', resource: 'quote', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'CREATE' },
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'MODIFY' },
+    { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    { module: 'M6', resource: 'client-account', action: 'EDIT' },
+    { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
+    { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
+    { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
+    // M20 spec §5 — Gost vidi isključivo sopstvene ugovore (M8 tok, prihvata sam kroz clickwrap,
+    // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
+    { module: 'M20', resource: 'client-contract', action: 'VIEW' },
+  ],
 };
 
 async function main() {

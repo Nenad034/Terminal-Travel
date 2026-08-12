@@ -6,6 +6,7 @@ import { UpdateClientAccountDto } from './dto/update-client-account.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 // M6 spec §9, prefiks /api/v1/crm
 @ApiTags('crm-client-accounts')
@@ -17,20 +18,20 @@ export class ClientAccountsController {
 
   @Get()
   @RequirePermission('M6', 'client-account', 'VIEW')
-  findMany(@Query('email') email?: string, @Query('taxId') taxId?: string) {
-    return this.clientAccounts.findMany({ email, taxId });
+  findMany(@Query('email') email: string | undefined, @Query('taxId') taxId: string | undefined, @CurrentUser() actor: { userId: string }) {
+    return this.clientAccounts.findMany({ email, taxId }, actor.userId);
   }
 
   @Get(':id')
   @RequirePermission('M6', 'client-account', 'VIEW')
-  findOne(@Param('id') id: string) {
-    return this.clientAccounts.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.clientAccounts.findOne(id, actor.userId);
   }
 
   @Get(':id/travel-history')
   @RequirePermission('M6', 'client-account', 'VIEW')
-  travelHistory(@Param('id') id: string) {
-    return this.clientAccounts.travelHistory(id);
+  travelHistory(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.clientAccounts.travelHistory(id, actor.userId);
   }
 
   @Post()
@@ -41,7 +42,7 @@ export class ClientAccountsController {
 
   @Patch(':id')
   @RequirePermission('M6', 'client-account', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateClientAccountDto) {
-    return this.clientAccounts.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateClientAccountDto, @CurrentUser() actor: { userId: string }) {
+    return this.clientAccounts.update(id, dto, actor.userId);
   }
 }

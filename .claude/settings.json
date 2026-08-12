@@ -78,12 +78,27 @@
       "Bash(disown)",
       "Bash(npx jest *)",
       "Bash(npx tsc *)",
-      "Bash(npx ts-node *)"
+      "Bash(npx ts-node *)",
+      "Bash(mkdir -p \"d:/Terminal Travel/apps/web/src/app/[locale]\" \"d:/Terminal Travel/apps/web/src/lib\" \"d:/Terminal Travel/apps/web/src/components\" \"d:/Terminal Travel/apps/web/src/app/api/session\")",
+      "Bash(mkdir -p \"d:/Terminal Travel/apps/web/src/app/[locale]/pretraga\")",
+      "Bash(mkdir -p \"d:/Terminal Travel/apps/web/src/app/[locale]/[tip]/[slug]\" \"d:/Terminal Travel/apps/web/src/app/[locale]/rezervacija/ponuda\" \"d:/Terminal Travel/apps/web/src/app/[locale]/rezervacija/uslovi\" \"d:/Terminal Travel/apps/web/src/app/[locale]/rezervacija/placanje\" \"d:/Terminal Travel/apps/web/src/app/[locale]/rezervacija/potvrda\")",
+      "Bash(mkdir -p \"d:/Terminal Travel/apps/web/src/app/[locale]/rezervacija/podaci-gosta\")",
+      "Bash(mkdir -p \"d:/Terminal Travel/apps/web/src/app/[locale]/nalog/prijava\" \"d:/Terminal Travel/apps/web/src/app/[locale]/nalog/registracija\" \"d:/Terminal Travel/apps/web/src/app/[locale]/nalog/moje-rezervacije\" \"d:/Terminal Travel/apps/web/src/app/[locale]/nalog/profil\" \"d:/Terminal Travel/apps/web/src/app/[locale]/uslovi\" \"d:/Terminal Travel/apps/web/src/app/[locale]/stranica/[slug]\" \"d:/Terminal Travel/apps/web/src/app/[locale]/blog/[slug]\" \"d:/Terminal Travel/apps/web/src/app/[locale]/znanje/[shareToken]\")",
+      "Bash(npx next *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L http://localhost:3100/sr/nalog/moje-rezervacije)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/sr/rezervacija/ponuda?productId=x)",
+      "Bash(curl -s http://localhost:3100/sr)",
+      "Bash(pkill -f \"next dev\")"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",
       "C:\\Users\\nenad\\AppData\\Local\\Temp\\claude\\d--Terminal-Travel\\d496cb78-c613-4ae3-aeef-b6e5d43a2918\\scratchpad",
-      "\\tmp"
+      "\\tmp",
+      "d:\\Terminal Travel\\apps\\web\\src\\app",
+      "d:\\Terminal Travel\\apps\\web\\src\\app\\[locale]",
+      "d:\\Terminal Travel\\apps\\web\\src\\app\\[locale]\\[tip]",
+      "d:\\Terminal Travel\\apps\\web\\src\\app\\[locale]\\rezervacija",
+      "d:\\Terminal Travel\\apps\\web\\src\\app\\[locale]\\nalog"
     ]
   }
 }

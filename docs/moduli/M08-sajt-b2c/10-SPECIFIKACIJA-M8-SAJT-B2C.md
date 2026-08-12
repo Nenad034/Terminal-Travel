@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M8), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 3)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.6 — dodate rute `/stranica/[slug]`/`/blog/[slug]` (M12 poglavlje 6, dopuna avgust 2026) i `/znanje/[share_token]` (M23 poglavlje 5, avgust 2026, nov modul); v1.5 dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Verzija:** 1.8 — poglavlje 9a dopunjeno: anonimni checkout bez naloga (korak 3) odložen, nedostaje javan M6 endpoint; v1.7 — dodata arhitektonska odluka o BFF pozivima ka backend-u (poglavlje 1) i obim prvog prolaza implementacije (poglavlje 9a), avgust 2026, pri početku implementacije; v1.6 — dodate rute `/stranica/[slug]`/`/blog/[slug]` (M12 poglavlje 6, dopuna avgust 2026) i `/znanje/[share_token]` (M23 poglavlje 5, avgust 2026, nov modul); v1.5 dodato poglavlje 3a (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.4 eksplicitan `account_type = INDIVIDUAL` za anonimnog gosta bez naloga (poglavlje 3, korak 3), ažurirana referenca na `Quote.contract_terms_accepted` (poglavlje 3, korak 4) — rešava nalaze iz `VALIDACIJA-WORKFLOW-B2C.md` (avgust 2026, na zahtev vlasnika); v1.3 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1); v1.2 dodato prihvatanje ugovora sa klijentom (clickwrap) u tok rezervacije, M20 kao zavisnost (poglavlje 3) — zatvara raniju forward-referencu iz M20 specifikacije; v1.1 dodala konkretnu listu schema.org komponenti (poglavlje 5.1) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja), M15 (poglavlje 3a, omnisearch), M12 (poglavlje 6, opšte stranice), M23 (poglavlje 5, deljen članak baze znanja)
 
 ---
@@ -11,6 +11,8 @@
 ## 1. Svrha i obim modula
 
 M8 je javni Next.js sajt za krajnje goste. **Nema sopstvenu bazu ni sopstveni API** — u skladu sa principom "jedan izvor istine" i pravilom iz poglavlja 5 Master dokumenta ("sajt nikad ne poziva Travelgate ili SEF direktno"), M8 isključivo čita i piše kroz interne API-je M1 (autentikacija), M2 (katalog), M5 (pretraga/ponuda/rezervacija), M6 (nalog gosta) i M10 (kartično plaćanje). Back office (unos proizvoda, upravljanje rezervacijama) je isključivo u internom panelu, ne na ovom sajtu — M8 je samo prikaz.
+
+**Arhitektura poziva ka backend-u (dopuna avgust 2026, potvrđeno vlasnikom pri početku implementacije).** Next.js **server** (ne browser gosta direktno) poziva NestJS API server-to-server. Gost dobija httpOnly, potpisan sesijski kolačić od samog Next.js servera; M1 access/refresh token nikad ne izlazi u kod koji se izvršava u browseru. Razlog: manji bezbednosni rizik (JWT nije dostupan XSS napadu) i nema potrebe da M1 uvodi CORS podešavanje za javni domen sajta. Route handler-i unutar `apps/web` (`/api/session/*`) su jedino mesto gde Next.js server direktno rukuje M1 tokenima.
 
 ---
 
@@ -128,6 +130,12 @@ M8 nema sopstveni katalog dozvola u M1 — on samo poziva API-je drugih modula, 
 - [ ] `/znanje/[share_token]` prikazuje tačno jedan M23 članak, radi bez prijave, i ne izlaže nikakvu navigaciju ka ostatku baze znanja ili sajta.
 
 ---
+
+## 9a. Obim prvog prolaza implementacije (avgust 2026)
+
+M12 (Content Engine), M15 (AI orkestracija/omnisearch) i M23 (Znanje) nemaju kod u trenutku kad M8 počinje da se gradi. Prvi prolaz implementacije pokriva sve rute iz poglavlja 2 koje ne zavise od ta tri modula — pretraga, stranica proizvoda, ceo tok rezervacije/plaćanja, nalog gosta. `/stranica/[slug]`, `/blog/[slug]`, omnisearch traka (poglavlje 3a) i `/znanje/[share_token]` dobijaju privremenu "uskoro" stranicu i **ne ulaze u izlazni kriterijum ovog prolaza** — vraćaju se čim odgovarajući modul dobije kod, isti obrazac kao ranije forward-reference u drugim modulima (npr. M6 poglavlje 10 čeka M8).
+
+**Dodatno odloženo, otkriveno pri implementaciji:** poglavlje 3, korak 3, opcija "nastaviti kao gost bez naloga" zahteva javan (bez prijave) M6 endpoint za kreiranje minimalnog `ClientAccount`/`GuestProfile` — takav endpoint danas ne postoji (M6 `POST /client-accounts` zahteva internu dozvolu, namerno, da spreči zloupotrebu/spam bez ikakve autentikacije). U ovom prolazu M8 tok korak 3 nudi samo "prijavi se"/"registruj se" (M1 `POST /auth/register`, poglavlje 4) — opcija bez naloga se vraća kad se javan, rate-limitovan M6 put za to definiše kao posebna dopuna (upisati u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`).
 
 ## 10. Otvoreno za dalje
 

@@ -5,7 +5,9 @@
 node_modules/
 dist/
 .env
+.env.local
 apps/api/generated/
 *.tsbuildinfo
 coverage/
 .nx/
+apps/web/.next/

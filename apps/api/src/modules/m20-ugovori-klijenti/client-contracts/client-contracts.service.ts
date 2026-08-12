@@ -6,6 +6,7 @@ import { AgencyStaticConfigService } from './agency-static-config';
 import { buildContentSnapshot, determineContractType } from './contract-content-builder';
 import type { ContractDocumentGeneratorAdapter } from '../adapters/contract-document-generator-adapter.interface';
 import { CONTRACT_DOCUMENT_GENERATOR_ADAPTER } from '../adapters/contract-document-generator.token';
+import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 
 // M20 spec §3 — DRAFT→GENERATED je nivo "Autonomno" (deterministično sastavljanje iz postojećih
 // podataka, princip #4 Master dokumenta); ACCEPT/VOID su uvek ljudska ili sistemski-deterministička
@@ -21,17 +22,44 @@ export class ClientContractsService {
     @Inject(CONTRACT_DOCUMENT_GENERATOR_ADAPTER) private readonly gateway: ContractDocumentGeneratorAdapter,
   ) {}
 
-  async findMany(filter: { bookingId?: string; status?: ClientContract['status'] }) {
+  // §6 dopuna (avgust 2026, priprema za M8) — ClientContract nema sopstveni
+  // client_account_id, ide preko booking.client_account_id. Gost (GOST rola dobija
+  // M20/client-contract/VIEW, M5 spec §10 tabela) sme da vidi isključivo ugovore
+  // sopstvenih rezervacija — bez ove provere bi mogao da pročita TUĐ ugovor (uklj.
+  // ime/adresu/cenu nalogodavca) prostim nagađanjem ID-a.
+  async findMany(filter: { bookingId?: string; status?: ClientContract['status'] }, actorUserId?: string) {
+    const ownAccountId = await this.ownAccountIdIfGuest(actorUserId);
+    if (ownAccountId === null) return []; // gost bez sopstvenog naloga (još) — nema šta da vidi
+
     return this.prisma.clientContract.findMany({
-      where: { bookingId: filter.bookingId, status: filter.status },
+      where: {
+        bookingId: filter.bookingId,
+        status: filter.status,
+        booking: ownAccountId !== undefined ? { clientAccountId: ownAccountId } : undefined,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: string): Promise<ClientContract> {
+  async findOne(id: string, actorUserId?: string): Promise<ClientContract> {
     const contract = await this.prisma.clientContract.findUnique({ where: { id } });
     if (!contract) throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
+
+    const ownAccountId = await this.ownAccountIdIfGuest(actorUserId);
+    if (ownAccountId !== undefined) {
+      // Odvojen upit (ne include) — sprečava da booking (sa internim poljima poput
+      // supplier_reference) slučajno ispadne u odgovor gostu.
+      const booking = await this.prisma.booking.findUnique({ where: { id: contract.bookingId } });
+      if (booking?.clientAccountId !== ownAccountId) throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
+    }
     return contract;
+  }
+
+  /** `undefined` = pozivalac nije Gost (nema ownership restrikciju); `string | null` = Gost, sopstveni nalog (ili null ako ga još nema). */
+  private async ownAccountIdIfGuest(actorUserId: string | undefined): Promise<string | null | undefined> {
+    if (!actorUserId) return undefined;
+    const identity = await resolveCallerIdentity(this.prisma, actorUserId);
+    return identity.accountType === 'GUEST' ? identity.ownProfileId : undefined;
   }
 
   // §3.1 — poziva se na M5 booking.confirmed. Idempotentno: ako AKTIVAN (ne-VOIDED) ugovor za

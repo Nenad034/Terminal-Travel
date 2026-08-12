@@ -1,11 +1,13 @@
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { authenticator } from 'otplib';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { EventBusService } from '../../../common/events/event-bus.service';
 import { decryptSecret, encryptSecret, generateRawToken, hashToken } from '../../../common/crypto/secret-box';
-import { ROLES_REQUIRING_MANDATORY_MFA } from '../roles/system-roles.constants';
+import { ROLES_REQUIRING_MANDATORY_MFA, SYSTEM_ROLES } from '../roles/system-roles.constants';
+import { RegisterDto } from './dto/register.dto';
 
 const FAILED_ATTEMPTS_BEFORE_LOCK = 5; // M1 spec §5
 const LOCK_DURATION_MINUTES = 15; // M1 spec §5
@@ -20,7 +22,54 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly auditLog: AuditLogService,
+    private readonly eventBus: EventBusService,
   ) {}
+
+  /**
+   * M1 spec §5 — samostalna registracija gosta. Za razliku od `POST /users` (interno
+   * osoblje, status INVITED, poziva ga neko sa M1/user/CREATE), ovde nalog nastaje
+   * bez ičije dozvole (anoniman poziv) i odmah je ACTIVE — gost sam sebe registruje,
+   * nema koga da "pozove". Emituje `user.registered.guest`; M6 na to pravi ClientAccount
+   * (§5 M1 spec, §6 M6 spec) — M1 sam ne piše u M6 tabele.
+   */
+  async register(dto: RegisterDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Nalog sa ovim email-om već postoji');
+
+    const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email,
+        passwordHash,
+        fullName: dto.fullName,
+        phone: dto.phone ?? null,
+        accountType: 'GUEST',
+        status: 'ACTIVE',
+      },
+    });
+
+    // M1 spec §4 — GOST je sistemska uloga; registracija je jedini slučaj gde se uloga
+    // dodeljuje bez ičije intervencije (assignedBy = sopstveni id, gost sam sebe registruje).
+    const gostRole = await this.prisma.role.findUnique({ where: { name: SYSTEM_ROLES.GOST } });
+    if (gostRole) {
+      await this.prisma.userRole.create({
+        data: { userId: user.id, roleId: gostRole.id, assignedBy: user.id },
+      });
+    }
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: user.id,
+      module: 'M1',
+      action: 'user.registered.guest',
+      resourceType: 'User',
+      resourceId: user.id,
+      context: {},
+    });
+    await this.eventBus.emit('M1', 'user.registered.guest', { userId: user.id, email: user.email, fullName: user.fullName });
+
+    return this.issueTokens(user.id, null, null);
+  }
 
   private async userRequiresMfa(userId: string): Promise<boolean> {
     const roles = await this.prisma.userRole.findMany({ where: { userId }, include: { role: true } });

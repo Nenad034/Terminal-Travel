@@ -3,9 +3,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { EventListenerService } from '../../../common/events/event-listener.service';
 import { ClientLoyaltyStatusService } from '../loyalty/client-loyalty-status.service';
 import { PostTripSurveysService } from '../post-trip-surveys/post-trip-surveys.service';
+import { ClientAccountsService } from '../client-accounts/client-accounts.service';
 
-// M6 spec §3.2 (booking.confirmed/booking.cancelled → preračun lojalnosti) i §4.3
-// (booking.completed → kreiranje PostTripSurvey). Isti obrazac kao M11EventSubscribersService.
+// M6 spec §3.2 (booking.confirmed/booking.cancelled → preračun lojalnosti), §4.3
+// (booking.completed → kreiranje PostTripSurvey) i §6 (M1 user.registered.guest →
+// ClientAccount za samostalno registrovanog gosta). Isti obrazac kao M11EventSubscribersService.
 @Injectable()
 export class M6EventSubscribersService implements OnModuleInit {
   constructor(
@@ -13,6 +15,7 @@ export class M6EventSubscribersService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly loyaltyStatus: ClientLoyaltyStatusService,
     private readonly postTripSurveys: PostTripSurveysService,
+    private readonly clientAccounts: ClientAccountsService,
   ) {}
 
   onModuleInit(): void {
@@ -25,6 +28,21 @@ export class M6EventSubscribersService implements OnModuleInit {
     this.eventListener.on('M5', 'booking.completed', async (payload) => {
       await this.postTripSurveys.createForBooking(payload.bookingId as string);
     });
+    this.eventListener.on('M1', 'user.registered.guest', async (payload) => {
+      await this.createClientAccountForGuest(payload.userId as string, payload.email as string, payload.fullName as string);
+    });
+  }
+
+  // M6 spec §6 — GuestProfile se namerno NE pravi ovde (traži podatke o putnom
+  // dokumentu koje registracija ne prikuplja); pravi se kasnije, kad gost stvarno
+  // unese te podatke (tok rezervacije ili profil naloga).
+  private async createClientAccountForGuest(userId: string, email: string, fullName: string): Promise<void> {
+    const account = await this.clientAccounts.create({
+      accountType: 'INDIVIDUAL',
+      fullName,
+      email,
+    });
+    await this.prisma.user.update({ where: { id: userId }, data: { linkedProfileId: account.id } });
   }
 
   private async recalculateLoyalty(bookingId: string): Promise<void> {

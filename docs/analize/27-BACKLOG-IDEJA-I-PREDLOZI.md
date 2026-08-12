@@ -92,8 +92,9 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Tačan format/podrazumevana vrednost `ai_chat_review_threshold_amount`.
 
 ## M8 — Sajt agencije (B2C prikaz)
-*(§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
+*(§9a/§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
 - Detalji cookie/consent banera — potvrditi sa pravnikom pri implementaciji.
+- "Nastavi bez naloga" (anonimni checkout, poglavlje 3 korak 3) odloženo — treba javan, rate-limitovan M6 endpoint za minimalan `ClientAccount`/`GuestProfile` bez prijave; u prvom prolazu M8 traži registraciju pre rezervacije (§9a, avgust 2026).
 
 ## M9 — Mobilna aplikacija
 *(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
@@ -106,7 +107,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
 - Ograničenje gotovine (AML) — potvrditi sa pravnikom da li je ručna procedura dovoljna.
 - Kurs pri više uplata u različitim danima (avans + balans) — zahteva potvrdu knjigovođe.
-- Izbor konkretnog PCI-DSS platnog provajdera koji podržava RSD/lokalne kartice.
+- Izbor konkretnog PCI-DSS platnog provajdera koji podržava RSD/lokalne kartice. **Do tada:** `card/initiate` odgovor izlaže `gatewayTransactionId` i M8 sam poziva `card/webhook` odmah posle initiate (simulira korak provajdera, poglavlje 7.1/7.2 dopuna avgust 2026) — ukloniti čim stvaran hostovani checkout postoji.
 - Granični slučajevi PDV po sistemu marže (mešoviti aranžmani) — zahtevaju potvrdu knjigovođe.
 - Pravna posledica `buyer_acceptance_status = EXPIRED`/`REJECTED` kod SEF fakture.
 - BSP poravnanje — mehanizam definiše se kad M4 dobije avio/GDS adapter.

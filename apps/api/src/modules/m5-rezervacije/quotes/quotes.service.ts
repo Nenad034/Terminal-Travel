@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from './quote-item-builder.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { LoyaltyStubService } from '../common/loyalty-stub.service';
+import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
 // podrazumevanih 30 min za čisto ugovorene stavke."
@@ -19,6 +20,19 @@ export class QuotesService {
   // M5 spec §3.1/§3.2/§3.0b.3 — POST /quotes: konstruiše sve stavke po ISTIM pravilima
   // cene/marže kao POST /itineraries/:id/to-quote (deljeno preko QuoteItemBuilderService).
   async create(dto: CreateQuoteDto, actor: { userId?: string } | null) {
+    // §6.2 obrazac dopune (avgust 2026, priprema za M8) — client_account_id se NIKAD ne
+    // uzima direktno iz tela zahteva za GUEST pozivaoca; bez ovoga bi gost mogao da
+    // pripiše Quote/Booking tuđem nalogu (i tuđ popust lojalnosti) prostim slanjem tuđeg
+    // clientAccountId parametra. Interno osoblje zadržava puno poverenje u parametar
+    // (kreira ponudu u ime bilo kog klijenta).
+    let clientAccountId = dto.clientAccountId;
+    if (actor?.userId) {
+      const identity = await resolveCallerIdentity(this.prisma, actor.userId);
+      if (identity.accountType === 'GUEST') {
+        clientAccountId = identity.ownProfileId ?? undefined;
+      }
+    }
+
     const built = await Promise.all(
       dto.items.map((item) =>
         this.builder.build({
@@ -43,12 +57,12 @@ export class QuotesService {
     // cene. B2B subagenti (M7) koriste sopstveni mehanizam popusta umesto ovog kad M7 dođe na
     // red (M5 spec §13) — dok M7 ne postoji, popust lojalnosti se primenjuje na svaki
     // Quote.client_account_id koji ima nivo, bez razlikovanja B2C/B2B.
-    const discountPercentage = dto.clientAccountId ? await this.loyalty.getDiscountPercentage(dto.clientAccountId) : 0;
+    const discountPercentage = clientAccountId ? await this.loyalty.getDiscountPercentage(clientAccountId) : 0;
     const applyDiscount = (price: number) => (discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price);
 
     const quote = await this.prisma.quote.create({
       data: {
-        clientAccountId: dto.clientAccountId,
+        clientAccountId,
         channel: dto.channel,
         status: 'DRAFT',
         expiresAt,
@@ -82,9 +96,17 @@ export class QuotesService {
   }
 
   // M5 spec §11 — GET /quotes/:id: "pregled ponude, uključujući da li je istekla."
-  async findOne(id: string) {
+  async findOne(id: string, actorUserId?: string) {
     const quote = await this.prisma.quote.findUnique({ where: { id }, include: { items: true } });
     if (!quote) throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
+
+    if (actorUserId) {
+      const identity = await resolveCallerIdentity(this.prisma, actorUserId);
+      if (identity.accountType === 'GUEST' && quote.clientAccountId !== identity.ownProfileId) {
+        throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
+      }
+    }
+
     return { ...quote, isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now() };
   }
 }

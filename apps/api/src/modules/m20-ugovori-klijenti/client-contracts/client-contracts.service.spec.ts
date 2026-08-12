@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ClientContractsService } from './client-contracts.service';
 
 describe('ClientContractsService (M20 spec §3)', () => {
@@ -8,6 +8,7 @@ describe('ClientContractsService (M20 spec §3)', () => {
       booking: { findUnique: jest.fn() },
       travelGuarantee: { findFirst: jest.fn() },
       clientPaymentSchedule: { findUnique: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     const auditLog = { write: jest.fn() };
     const agencyConfig = {
@@ -195,6 +196,51 @@ describe('ClientContractsService (M20 spec §3)', () => {
       prisma.clientContract.findFirst.mockResolvedValue(null);
 
       await expect(service.hasGeneratedContract('booking-1')).resolves.toBe(false);
+    });
+  });
+
+  describe('findOne/findMany — ownership (§6 dopuna, priprema za M8)', () => {
+    it('gost NE vidi ugovor tuđe rezervacije — 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', bookingId: 'booking-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', clientAccountId: 'acc-tudj' });
+
+      await expect(service.findOne('cc-1', 'guest-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('gost vidi ugovor sopstvene rezervacije', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.clientContract.findUnique.mockResolvedValue({ id: 'cc-1', bookingId: 'booking-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', clientAccountId: 'acc-own' });
+
+      const result = await service.findOne('cc-1', 'guest-1');
+
+      expect(result.id).toBe('cc-1');
+    });
+
+    it('findMany za gosta filtrira po sopstvenom nalogu', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.clientContract.findMany.mockResolvedValue([]);
+
+      await service.findMany({}, 'guest-1');
+
+      expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ booking: { clientAccountId: 'acc-own' } }) }),
+      );
+    });
+
+    it('interno osoblje (bez actorUserId) vidi bez ownership filtera', async () => {
+      const { service, prisma } = makeService();
+      prisma.clientContract.findMany.mockResolvedValue([]);
+
+      await service.findMany({});
+
+      expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ booking: undefined }) }),
+      );
     });
   });
 });
