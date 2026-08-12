@@ -33,6 +33,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Automatsko pronalaženje sajta hotela (bez URL-a) — odloženo iz v1.
 - Da li `SERVICE` treba odvojeno polje od `amenities[]` u `attributes`.
 - Kineski jezik u katalogu — odloženo (avgust 2026), dodati tek uz konkretan poslovni razlog (npr. direktan let BEG–PEK, B2B partner).
+- **Zakon o zaštiti potrošača (istraživanje, avgust 2026):** transparentnost online cenovnika (mašinski čitljiv format) i zabrana lažnih recenzija — proveriti primenljivost na M2/M8 sa pravnikom pre implementacije.
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
@@ -75,6 +76,9 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT` po pod-tipu.
 - Automatski podsetnik gostu o roku za potvrdu/uplatu opcije kod dobavljača — zahteva dalju razradu roka, kanala i praga slanja.
 - Prag za ponovnu proveru `API` cene pri `POST /quotes` (trenutno: uvek proveri ponovo) — uvodi se samo ako se pokaže preskupo u praksi, zahteva potvrdu vlasnika.
+- **Zakon o zaštiti potrošača — povećanje cene posle potvrde rezervacije (istraživanje, avgust 2026):** trenutno ne postoji nikakav koncept izmene cene posle `booking.confirmed` — zakon (prema istraženim izvorima, potrebna potvrda pravnika za tačne brojeve) dozvoljava povećanje samo za gorivo/takse/kurs, ograničeno na 8% ukupne cene, uz pisano obaveštenje gostu najmanje 20 dana pre polaska. Realna pravna izloženost dok se ne implementira ili svesno ne odluči da agencija cene nikad ne menja posle potvrde.
+- **Zakon o zaštiti potrošača — "opravdan razlog" izuzetak pri otkazivanju od strane gosta (isto istraživanje):** trenutni `cancellation_refund_percentage` (poglavlje 6) preuzima dobavljačevu politiku otkazivanja bez razdvajanja od onoga što firma zakonski duguje gostu, i ne postoji izuzetak za iznenadnu bolest/smrt u porodici/višu silu (gost bi tad trebalo da dobije nazad sve osim stvarnih troškova, ne standardnu naknadu po danima). Zahteva potvrdu pravnika pre spec dopune.
+- **Zakon o zaštiti potrošača — minimalan broj učesnika (isto istraživanje):** `min_participants` postoji samo kao opisno polje za `EXCURSION` proizvode u M2, nema procesa automatskog otkazivanja/punog povraćaja kad se minimum ne skupi, niti rokova obaveštenja (20/7/2 dana zavisno od dužine putovanja) iz zakona. Trenutno van obima za `PACKAGE`/`ACCOMMODATION` proizvode.
 
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
@@ -112,6 +116,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
 - `buyer_acceptance_status → EXPIRED` prelazak nije implementiran (nema periodičnog posla koji proverava istekle 15-dnevne rokove) — dodato pri implementaciji, avgust 2026.
 - `virtual_card_reference` nema programsku zaštitu od unosa punog broja kartice — dodato pri implementaciji, avgust 2026.
+- **Zakon o zaštiti potrošača — rok povraćaja novca (istraživanje, avgust 2026):** `RefundInstruction` (poglavlje 8.5.3) prati status (`PENDING → APPROVED → EXECUTED`) ali nema rok/deadline polje niti alarm — zakon (prema istraženim izvorima, potrebna potvrda pravnika) traži povraćaj u roku od 14 dana od otkazivanja. Isti obrazac kao `buyer_acceptance_deadline` (§6) samo primenjen na refundaciju — mehanička dopuna kad se rok potvrdi.
 
 ## M11 — Regulatorni modul (Compliance)
 *(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)*
@@ -137,6 +142,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema).
 - Integracija sa M9 mobilnom aplikacijom za goste (Faza 6).
 - Mehanizam formalnog beleženja odluke o povraćaju novca na tiketu.
+- **Zakon o zaštiti potrošača — rok gosta za prijavu reklamacije (istraživanje, avgust 2026):** poglavlje 3 ispravno prati 8-dnevni rok agencije za odgovor (`zzp_response_deadline`), ali ne ograničava kada gost sme da otvori `REKLAMACIJA` tiket u odnosu na datum povratka — zakon (potrebna potvrda pravnika) daje gostu 15 dana posle povratka da prijavi.
 
 ## M15 — AI agentska orkestracija
 *(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)*
