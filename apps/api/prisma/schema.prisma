@@ -957,10 +957,11 @@ model Booking {
   createdBy                 String        @map("created_by") // user id ili "GOST_SELF"
   referralTrackingCode      String?       @map("referral_tracking_code")
 
-  items                 BookingItem[]
-  fiscalDocuments       FiscalDocument[]
-  payments              Payment[]
-  clientPaymentSchedule ClientPaymentSchedule?
+  items                       BookingItem[]
+  fiscalDocuments             FiscalDocument[]
+  payments                    Payment[]
+  clientPaymentSchedule       ClientPaymentSchedule?
+  travelGuaranteeRegistration TravelGuaranteeRegistration?
 
   @@map("bookings")
 }
@@ -1487,4 +1488,60 @@ model SupplierInvoiceImportRow {
   matchedObligation SupplierObligation?   @relation(fields: [matchedSupplierObligationId], references: [id])
 
   @@map("supplier_invoice_import_rows")
+}
+
+// ============================================================================
+// M11 — Regulatorni modul (Compliance): docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md
+// ============================================================================
+
+// §2.1 `TravelGuarantee`
+enum TravelGuaranteeStatus {
+  ACTIVE
+  EXPIRED
+  PENDING_RENEWAL
+}
+
+model TravelGuarantee {
+  id             String                @id @default(uuid())
+  provider       String
+  policyNumber   String                @map("policy_number")
+  coverageAmount Int                   @map("coverage_amount") // para
+  currency       String
+  validFrom      DateTime              @map("valid_from")
+  validTo        DateTime              @map("valid_to")
+  documentUrl    String?               @map("document_url")
+  status         TravelGuaranteeStatus @default(ACTIVE)
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  registrations TravelGuaranteeRegistration[]
+
+  @@map("travel_guarantees")
+}
+
+// §2.3 `TravelGuaranteeRegistration`
+enum TravelGuaranteeRegistrationStatus {
+  PENDING
+  REGISTERED
+  RELEASE_PENDING
+  RELEASED
+  FAILED
+}
+
+model TravelGuaranteeRegistration {
+  id                    String                            @id @default(uuid())
+  bookingId             String                            @unique @map("booking_id")
+  travelGuaranteeId     String?                           @map("travel_guarantee_id") // nullable — bootstrap slučaj, još nijedna garancija nije uneta (M11 spec §2.3)
+  cisRegistrationNumber String?                           @map("cis_registration_number")
+  status                TravelGuaranteeRegistrationStatus @default(PENDING)
+  registeredAt          DateTime?                         @map("registered_at")
+  releaseRequestedAt    DateTime?                         @map("release_requested_at")
+  releasedAt            DateTime?                         @map("released_at")
+  failureReason         String?                           @map("failure_reason")
+  createdAt             DateTime                          @default(now()) @map("created_at")
+
+  booking         Booking          @relation(fields: [bookingId], references: [id])
+  travelGuarantee TravelGuarantee? @relation(fields: [travelGuaranteeId], references: [id])
+
+  @@map("travel_guarantee_registrations")
 }

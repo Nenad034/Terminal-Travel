@@ -10,6 +10,7 @@ import { M3UgovaranjeAlotmaniModule } from './modules/m3-ugovaranje-alotmani/m3-
 import { M4IntegracijeApiModule } from './modules/m4-integracije-api/m4-integracije-api.module';
 import { M5RezervacijeModule } from './modules/m5-rezervacije/m5-rezervacije.module';
 import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module';
+import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module
     M4IntegracijeApiModule,
     M5RezervacijeModule,
     M10FinansijeModule,
+    M11ComplianceModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

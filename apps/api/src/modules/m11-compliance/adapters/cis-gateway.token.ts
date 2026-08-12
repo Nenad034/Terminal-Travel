@@ -1,0 +1,1 @@
+export const CIS_GATEWAY_ADAPTER = Symbol('CIS_GATEWAY_ADAPTER');

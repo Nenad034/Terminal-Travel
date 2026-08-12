@@ -124,6 +124,18 @@ const M10_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW', description: 'Potvrda/ručno mapiranje reda uvoza — nikad AI agent' },
 ];
 
+// M11 spec §4 — dozvole regulatornog modula (garancija putovanja, evidencije za inspekciju).
+// travel-guarantee-registration/RETRY je mehanička dopuna (avgust 2026, nije bilo eksplicitno u
+// spec §4 tabeli) — VIEW ne sme da otključa mutirajuću akciju (ručno ponavljanje CIS poziva),
+// dodeljeno samo Vlasnik/Direktor isti krug kao travel-guarantee/EDIT.
+const M11_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M11', resource: 'travel-guarantee', action: 'VIEW', description: 'Uvid u trenutnu garanciju putovanja i iskorišćenost' },
+  { module: 'M11', resource: 'travel-guarantee', action: 'EDIT', description: 'Ručna izmena/obnavljanje garancije putovanja — nikad AI agent' },
+  { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW', description: 'Uvid u CIS registracije garancije po rezervaciji' },
+  { module: 'M11', resource: 'travel-guarantee-registration', action: 'RETRY', description: 'Ručno ponavljanje CIS registracije/skidanja opterećenja' },
+  { module: 'M11', resource: 'inspection-export', action: 'CREATE', description: 'Generisanje izvoza evidencije za inspekciju' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -134,6 +146,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -142,6 +155,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M4_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -175,6 +189,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'supplier-change-notice', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-change-notice', action: 'SEND' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
+    // M11 spec §4 — Sales Manager vidi CIS registracije garancije po rezervaciji (read-only).
+    { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -198,6 +214,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M10 spec §9 — client-payment-schedule/VIEW je jedina M10 dozvola koju dobija
     // Prodajni agent (uvid u rok naplate sopstvenih rezervacija), ništa drugo iz M10.
     { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+    // M11 spec §4 — Prodajni agent vidi CIS registracije garancije po sopstvenim rezervacijama.
+    { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -219,11 +237,21 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW' },
     { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE' },
     { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
+    // M11 spec §4 — Računovođa generiše izvoze za inspekciju.
+    { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
   ],
 };
 
 async function main() {
-  for (const entry of [...M1_PERMISSIONS, ...M2_PERMISSIONS, ...M3_PERMISSIONS, ...M4_PERMISSIONS, ...M5_PERMISSIONS, ...M10_PERMISSIONS]) {
+  for (const entry of [
+    ...M1_PERMISSIONS,
+    ...M2_PERMISSIONS,
+    ...M3_PERMISSIONS,
+    ...M4_PERMISSIONS,
+    ...M5_PERMISSIONS,
+    ...M10_PERMISSIONS,
+    ...M11_PERMISSIONS,
+  ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
       update: { description: entry.description },
@@ -252,7 +280,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola.`,
   );
 }
 

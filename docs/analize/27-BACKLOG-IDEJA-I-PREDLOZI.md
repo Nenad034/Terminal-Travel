@@ -115,7 +115,8 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 
 ## M11 — Regulatorni modul (Compliance)
 *(§7, `docs/moduli/M11-compliance/08-SPECIFIKACIJA-M11-COMPLIANCE.md`)*
-- Tačan tehnički ugovor za CIS registraciju garancije i skidanje opterećenja pri stornu.
+- Tačan tehnički ugovor za CIS registraciju garancije i skidanje opterećenja pri stornu — implementirano kao `MockCisGatewayAdapter` dok se ne potvrdi.
+- Lep PDF/nativni XLSX format izvoza za inspekciju — trenutno JSON + CSV (bez nove biblioteke), čeka izbor konkretne biblioteke sa vlasnikom.
 - Da li M11 treba da prati i druge licence/dozvole agencije van YUTA garancije.
 - Alarm za rok važenja putne isprave gosta — gde ga vratiti (verovatno M6 `GuestProfile`).
 

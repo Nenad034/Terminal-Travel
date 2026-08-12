@@ -2,9 +2,9 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M11), poglavlje 8 (Faza 2) i poglavlje 9 (rokovi)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna potvrda pravnika pre implementacije
-**Status:** Nacrt za usvajanje
-**Verzija:** 2.0 — na direktan zahtev vlasnika (avgust 2026): uklonjena eTurista/CIS prijava gostiju i boravišna taksa (ranija poglavlja 2 i 3) — obe su zakonska obaveza smeštajnog objekta (hotela/dobavljača) koji gosta direktno prima, ne agencije-touroperatora koja aranžman prodaje; modul sada pokriva isključivo garanciju putovanja (YUTA) i evidencije za inspekciju; preostala poglavlja prenumerisana (bivše 4→2, 5→3, 6→4, 7→5, 8→6, 9→7). Funkcionalnost CIS registracije garancije po rezervaciji (uvedena u v1.1) ostaje nepromenjena, sada kao poglavlje 2.3.
-**Zavisi od:** M1, M5.
+**Status:** Implementiran (Faza 2), avgust 2026 — vidi poglavlje 6 (izlazni kriterijum).
+**Verzija:** 2.1 — implementacija (avgust 2026): dodat hibridni grace-period mehanizam za period bez važeće garancije (§2.2, dogovoreno sa vlasnikom), dozvola `travel-guarantee-registration/RETRY` (§4, mehanička dopuna — VIEW ne sme otključati mutirajuću akciju), i tehnička (ne poslovna) zavisnost od M10 `ExchangeRatesService` za konverziju multi-valutnog prometa pri izračunu iskorišćenosti garancije (§2.2). Prethodna verzija (2.0, na direktan zahtev vlasnika): uklonjena eTurista/CIS prijava gostiju i boravišna taksa (ranija poglavlja 2 i 3) — obe su zakonska obaveza smeštajnog objekta (hotela/dobavljača) koji gosta direktno prima, ne agencije-touroperatora koja aranžman prodaje; modul sada pokriva isključivo garanciju putovanja (YUTA) i evidencije za inspekciju; preostala poglavlja prenumerisana (bivše 4→2, 5→3, 6→4, 7→5, 8→6, 9→7). Funkcionalnost CIS registracije garancije po rezervaciji (uvedena u v1.1) ostaje nepromenjena, sada kao poglavlje 2.3.
+**Zavisi od:** M1, M5 (poslovna zavisnost). Tehnička zavisnost od M10 `ExchangeRatesService` (in-process poziv, konverzija valuta pri izračunu §2.2) — isti obrazac kao M5 koji ponovo koristi M3 fuzzy-match utilitete, ne menja poslovni redosled izgradnje.
 
 ---
 
@@ -39,6 +39,12 @@ Ukupna vrednost aktivno prodatih aranžmana gde je agencija organizator (`Bookin
 - **Tvrda blokada (100%):** M5, u koraku potvrde rezervacije (M5 poglavlje 4, pre bilo kog poziva ka M3/M4 — isti obrazac kao provera B2B kreditnog limita u M7 poglavlje 4), poziva `GET /travel-guarantee/utilization` iz M11 za svaku stavku sa `tip_nastupanja = ORGANIZATOR`. Ako bi potvrda te rezervacije prevazišla `coverage_amount`, potvrda se odbija **pre** rezervisanja bilo kog kapaciteta — gost/agent dobija jasnu poruku, ne generičku grešku.
 - Otkazivanje rezervacije (M5 poglavlje 6) smanjuje kumulativnu iskorišćenost nazad — provera je uvek nad trenutnim, ne istorijskim stanjem.
 - Ova provera se odnosi isključivo na `ORGANIZATOR` promet — `POSREDNIK` rezervacije (M10 poglavlje 4.3) ne troše kapacitet sopstvene garancije agencije, jer odgovornost za izvršenje snosi stvarni organizator čiji aranžman se preprodaje.
+- Zbir prodatih `ORGANIZATOR` iznosa može biti u više valuta (rezervacije u EUR i RSD istovremeno) — konvertuje se u valutu garancije preko M10 `ExchangeRateSnapshot` po tekućem kursu (isti obrazac triangulacije kao M10 `FiscalDocumentsService.convertToRsd`), pre poređenja sa `coverage_amount`.
+
+**Hibridno rešenje za period bez važeće garancije (dogovoreno sa vlasnikom, avgust 2026):** u praksi obnavljanje garancije zna da administrativno kasni — trenutak kad prethodna polisa istekne (`validTo` prošao ili `status != ACTIVE`) a nova još nije uneta ne sme odmah da blokira prodaju, ali ne sme ni da ostane trajno otvorena rupa u zakonskoj usklađenosti. Rešenje: **grace period od 15 dana** od `validTo` prethodne garancije (isti rok kao SEF prihvatanje fakture u M10 §6 — dosledna konvencija "razumnog zakonskog roka" kroz sistem):
+- Unutar grace perioda: potvrda `ORGANIZATOR` rezervacije se **dozvoljava**, ali sistem šalje hitan alarm (`travel_guarantee_gap_urgent`) Vlasniku/Direktoru — nivo "Autonomno" (informativno, ne blokira).
+- Nakon isteka grace perioda: potvrda se **blokira** (`travel_guarantee_blocked`) dok se garancija ne obnovi — isti zakonski princip kao gore, samo odložen za razuman administrativni period.
+- Ako nijedna garancija nikad nije uneta u sistem (bootstrap slučaj, npr. odmah nakon uvođenja M11 pre prvog ručnog unosa): potvrda se dozvoljava uz hitan alarm (`travel_guarantee_missing_urgent`) — nema referentnog `validTo` od kog bi se računao grace period, pa se prodaja ne blokira dok Vlasnik/Direktor ne unese prvu garanciju.
 
 ### 2.3 CIS registracija garancije po rezervaciji
 
@@ -81,6 +87,7 @@ Ne uvodi se nova baza podataka — ovo je **izveštaj/izvoz na zahtev** koji agr
 | `M11/travel-guarantee/VIEW` | Vlasnik, Direktor |
 | `M11/travel-guarantee/EDIT` | Vlasnik, Direktor — nikad AI agent |
 | `M11/travel-guarantee-registration/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (poglavlje 2.3) |
+| `M11/travel-guarantee-registration/RETRY` | Vlasnik, Direktor — mehanička dopuna (implementacija, avgust 2026): VIEW ne sme otključati mutirajuću akciju (ručno ponavljanje CIS poziva), isti krug kao `travel-guarantee/EDIT` |
 | `M11/inspection-export/CREATE` | Vlasnik, Direktor, Računovođa |
 
 ---
@@ -101,17 +108,19 @@ Prefiks: `/api/v1/compliance`
 
 ## 6. Izlazni kriterijum (M11 deo Faze 2 — poglavlje 8 Master dokumenta)
 
-- [ ] Garancija putovanja prati datum isteka i šalje podsetnik unapred; izmena zapisa je uvek ljudska radnja, nikad AI.
-- [ ] Provera iskorišćenosti garancije upozorava na 80% i ispravno blokira potvrdu nove `ORGANIZATOR` rezervacije koja bi prevazišla `coverage_amount`; `POSREDNIK` rezervacije nisu pogođene ovom proverom.
-- [ ] Svaka `CONFIRMED` `ORGANIZATOR` rezervacija dobija `TravelGuaranteeRegistration` zapis; nedostatak broja garancije (`status != REGISTERED`) duže od 48h generiše vidljivo upozorenje Vlasniku/Direktoru (poglavlje 2.3).
-- [ ] Storno `ORGANIZATOR` rezervacije prevodi zapis u `RELEASE_PENDING`; ako opterećenje nije skinuto u CIS-u duže od 48h, generiše se upozorenje (poglavlje 2.3).
-- [ ] Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period.
-- [ ] Svaka radnja koja zahteva ljudsku potvrdu (izmena garancije) upisana je u M1 audit log sa identitetom osobe.
+- [x] Garancija putovanja prati datum isteka i šalje podsetnik unapred (60/30/7 dana, `M11AlarmsService` @Cron); izmena zapisa je uvek ljudska radnja, nikad AI (`PATCH /travel-guarantee`, dozvola `EDIT`, testirano da endpoint odbija bez dozvole).
+- [x] Provera iskorišćenosti garancije upozorava na 80% i ispravno blokira potvrdu nove `ORGANIZATOR` rezervacije koja bi prevazišla `coverage_amount`; `POSREDNIK` rezervacije nisu pogođene ovom proverom — testirano jedinično (`travel-guarantee.service.spec.ts`, `bookings.service.spec.ts`) i e2e.
+- [x] Svaka `CONFIRMED` `ORGANIZATOR` rezervacija dobija `TravelGuaranteeRegistration` zapis (kreiran automatski preko M5 `booking.confirmed`, `M11EventSubscribersService`); nedostatak broja garancije (`status != REGISTERED`) duže od 48h generiše vidljivo upozorenje Vlasniku/Direktoru (`travel_guarantee_registration_missing`, poglavlje 2.3) — testirano jedinično i e2e.
+- [x] Storno `ORGANIZATOR` rezervacije prevodi zapis u `RELEASE_PENDING`; ako opterećenje nije skinuto u CIS-u duže od 48h, generiše se upozorenje (`travel_guarantee_release_pending`, poglavlje 2.3) — testirano jedinično i e2e.
+- [x] Izvoz za inspekciju generiše čitljiv dokument koji objedinjuje podatke iz M1/M5/M10/M11 za zadati period (`POST /inspection-export`) — trenutno JSON + CSV (CSV se otvara u Excel-u); PDF/nativni XLSX format čeka potvrdu konkretne biblioteke sa vlasnikom (CLAUDE.md — nema nove tehnologije bez potvrde), vidi poglavlje 7.
+- [x] Svaka radnja koja zahteva ljudsku potvrdu (izmena garancije, ručni retry CIS registracije) upisana je u M1 audit log sa identitetom osobe — testirano e2e (`actorType: HUMAN`, `actorId` = stvaran korisnik).
+- [ ] Tačan tehnički ugovor sa CIS/YUTA sistemom (poglavlje 2.3) — trenutno `MockCisGatewayAdapter`, čeka potvrdu zvanične dokumentacije/YUTA pre zamene stvarnim pozivom (isti obrazac kao SEF u M10).
 
 ---
 
 ## 7. Otvoreno za dalje
 
-- Tačan tehnički ugovor za CIS registraciju garancije po rezervaciji i skidanje opterećenja pri stornu (poglavlje 2.3) — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao SEF u M10 (poglavlje 6).
+- Tačan tehnički ugovor za CIS registraciju garancije po rezervaciji i skidanje opterećenja pri stornu (poglavlje 2.3) — potvrditi sa zvaničnom dokumentacijom i, po potrebi, pravnikom/YUTA pre implementacije, isto obrazloženje kao SEF u M10 (poglavlje 6). Implementirano kao `MockCisGatewayAdapter` (deterministički mock) dok se ugovor ne potvrdi.
+- **Format izvoza za inspekciju (poglavlje 3):** implementiran kao JSON + CSV (CSV se otvara u Excel-u), bez nove biblioteke. Prava PDF/nativna XLSX formatirana forma čeka konkretan izbor biblioteke (npr. `pdfkit`, `exceljs`) — CLAUDE.md zahteva potvrdu vlasnika pre uvođenja nove tehnologije (poglavlje 6 Master dokumenta), nije uvedeno unapred.
 - Da li M11 treba da prati i druge licence/dozvole agencije (van YUTA garancije) — trenutno van obima, dodaje se ako se pokaže potreba.
 - **Alarm za rok važenja putne isprave gosta** (<6 meseci do polaska) je ranije živeo na `GuestRegistration` entitetu (uklonjenom ovom verzijom, avgust 2026) — funkcionalno koristan podsetnik, nezavisan od eTurista. Da li ga treba ponovo dodati negde drugde (verovatno M6 `GuestProfile`, koji bi tada trebalo da dobije `document_expiry_date` polje) ostaje otvoreno, čeka odluku vlasnika.

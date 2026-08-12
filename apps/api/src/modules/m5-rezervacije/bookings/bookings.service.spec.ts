@@ -95,6 +95,60 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       await expect(service.confirmQuote('quote-2', {} as any, { userId: 'actor-1' })).rejects.toThrow(BadRequestException);
     });
 
+    it('korak 1a — poziva M11 proveru garancije putovanja i blokira ORGANIZATOR potvrdu kad M11 vrati allowed=false', async () => {
+      const { service, prisma, compliance } = makeService();
+      compliance.checkTravelGuaranteeUtilization.mockResolvedValue({ allowed: false, reason: 'test-blokada-garancije' });
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'quote-3',
+        status: 'DRAFT',
+        expiresAt: new Date(Date.now() + 60_000),
+        channel: 'INTERNAL_PANEL',
+        contractTermsAccepted: false,
+        clientAccountId: 'client-1',
+        items: [{ id: 'qi-1', productId: 'p1', sourceType: 'CONTRACTED', finalPrice: 10000, finalPriceCurrency: 'EUR', unitCount: 1 }],
+      });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({ sourceContract: { defaultTipNastupanja: 'ORGANIZATOR' } });
+
+      await expect(service.confirmQuote('quote-3', {} as any, { userId: 'actor-1' })).rejects.toThrow('test-blokada-garancije');
+      expect(compliance.checkTravelGuaranteeUtilization).toHaveBeenCalledWith({ bookingTotalPrice: 10000, currency: 'EUR' });
+      expect(prisma.booking.create).not.toHaveBeenCalled();
+    });
+
+    it('korak 1a — ne poziva M11 proveru garancije za POSREDNIK rezervacije (M11 spec §2.2)', async () => {
+      const { service, prisma, contractPeriods, compliance } = makeService();
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'quote-4',
+        status: 'DRAFT',
+        expiresAt: new Date(Date.now() + 60_000),
+        channel: 'INTERNAL_PANEL',
+        contractTermsAccepted: false,
+        clientAccountId: 'client-1',
+        buyerName: 'Petar Petrović',
+        buyerType: 'FIZICKO_LICE',
+        items: [{ id: 'qi-1', productId: 'p1', sourceType: 'CONTRACTED', rateLineId: 'rl1', occupancy: { adults: 2, children: 0 }, finalPrice: 10000, finalPriceCurrency: 'EUR', unitCount: 1 }],
+      });
+      prisma.product.findUniqueOrThrow.mockResolvedValue({ sourceContract: { defaultTipNastupanja: 'POSREDNIK' } });
+      prisma.rateLine.findUniqueOrThrow.mockResolvedValue({ contractPeriodId: 'period-1', contractPeriod: {} });
+      contractPeriods.reserve.mockResolvedValue({ reserved: true, unitsSold: 1, remaining: 5 });
+      prisma.booking.create.mockResolvedValue({ id: 'booking-4', items: [] });
+      prisma.booking.findUnique.mockImplementation(({ where }: any) => {
+        if (where.bookingNumber) return Promise.resolve(null); // §4 nextBookingNumber uniqueness check
+        return Promise.resolve({
+          id: 'booking-4',
+          items: [],
+          status: 'CONFIRMED',
+          voucherUrl: null,
+          paymentStatus: 'UNPAID',
+          clientAccountId: 'client-1',
+          tipNastupanja: 'POSREDNIK',
+        });
+      });
+
+      await service.confirmQuote('quote-4', { buyerName: 'Petar Petrović', buyerType: 'FIZICKO_LICE' } as any, { userId: 'actor-1' });
+
+      expect(compliance.checkTravelGuaranteeUtilization).not.toHaveBeenCalled();
+    });
+
     it('rezerviše broj jedinica iz QuoteItem.unitCount, ne pretpostavlja uvek 1 (§4.2 dopuna v1.14)', async () => {
       const { service, prisma, contractPeriods } = makeService();
 

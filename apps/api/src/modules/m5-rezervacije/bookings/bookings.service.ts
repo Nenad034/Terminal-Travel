@@ -82,7 +82,9 @@ export class BookingsService {
     if (tipNastupanja === 'ORGANIZATOR') {
       const guarantee = await this.compliance.checkTravelGuaranteeUtilization({ bookingTotalPrice: totalPrice, currency });
       if (!guarantee.allowed) {
-        throw new BadRequestException('Potvrda odbijena — prekoračenje limita garancije putovanja (M11, M5 spec §4 korak 1a).');
+        throw new BadRequestException(
+          guarantee.reason ?? 'Potvrda odbijena — prekoračenje limita garancije putovanja (M11, M5 spec §4 korak 1a).',
+        );
       }
     }
     if (quote.clientAccountId) {
