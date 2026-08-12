@@ -13,6 +13,7 @@ import { IntegrationsModule } from '../../m4-integracije-api/integrations/integr
 import { MarkupRulesModule } from '../markup-rules/markup-rules.module';
 import { SupplierManifestsModule } from '../supplier-manifests/supplier-manifests.module';
 import { TravelGuaranteeModule } from '../../m11-compliance/travel-guarantee/travel-guarantee.module';
+import { ClientContractsModule } from '../../m20-ugovori-klijenti/client-contracts/client-contracts.module';
 
 // M5 spec §4-§8 (jezgro tok potvrde/upravljanja rezervacijom). QuoteItemBuilderService se
 // namerno instancira i ovde (ne uvozi se iz QuotesModule) da bi se izbegla kružna zavisnost
@@ -28,6 +29,7 @@ import { TravelGuaranteeModule } from '../../m11-compliance/travel-guarantee/tra
     MarkupRulesModule,
     SupplierManifestsModule,
     TravelGuaranteeModule,
+    ClientContractsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService, QuoteItemBuilderService, ComplianceStubsService, ClientContractStubService],

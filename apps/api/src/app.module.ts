@@ -11,6 +11,7 @@ import { M4IntegracijeApiModule } from './modules/m4-integracije-api/m4-integrac
 import { M5RezervacijeModule } from './modules/m5-rezervacije/m5-rezervacije.module';
 import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module';
 import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.module';
+import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugovori-klijenti.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.mod
     M5RezervacijeModule,
     M10FinansijeModule,
     M11ComplianceModule,
+    M20UgovoriKlijentiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

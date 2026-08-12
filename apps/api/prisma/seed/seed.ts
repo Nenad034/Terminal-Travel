@@ -136,6 +136,13 @@ const M11_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M11', resource: 'inspection-export', action: 'CREATE', description: 'Generisanje izvoza evidencije za inspekciju' },
 ];
 
+// M20 spec §5 — dozvole ugovora sa klijentima.
+const M20_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M20', resource: 'client-contract', action: 'VIEW', description: 'Uvid u ugovore sa klijentima' },
+  { module: 'M20', resource: 'client-contract', action: 'ACCEPT', description: 'Ručno evidentiranje prihvatanja (WET_SIGNATURE_SCAN) — gost prihvata sam kroz M8 tok, ne kroz ovu dozvolu' },
+  { module: 'M20', resource: 'client-contract', action: 'VOID', description: 'Poništavanje ugovora — nikad AI agent' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -147,6 +154,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -156,6 +164,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M5_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -191,6 +200,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
     // M11 spec §4 — Sales Manager vidi CIS registracije garancije po rezervaciji (read-only).
     { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW' },
+    // M20 spec §5 — Sales Manager vidi i ručno evidentira prihvatanje ugovora (telefon/interni panel).
+    { module: 'M20', resource: 'client-contract', action: 'VIEW' },
+    { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -216,6 +228,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
     // M11 spec §4 — Prodajni agent vidi CIS registracije garancije po sopstvenim rezervacijama.
     { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW' },
+    // M20 spec §5 — Prodajni agent vidi i ručno evidentira prihvatanje ugovora sopstvenih klijenata.
+    { module: 'M20', resource: 'client-contract', action: 'VIEW' },
+    { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -240,6 +255,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M11 spec §4 — Računovođa generiše izvoze za inspekciju.
     { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
   ],
+  // M20 spec §5 — Gost vidi isključivo sopstvene ugovore (M8 tok, prihvata sam kroz clickwrap,
+  // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
+  [SYSTEM_ROLES.GOST]: [{ module: 'M20', resource: 'client-contract', action: 'VIEW' }],
 };
 
 async function main() {
@@ -251,6 +269,7 @@ async function main() {
     ...M5_PERMISSIONS,
     ...M10_PERMISSIONS,
     ...M11_PERMISSIONS,
+    ...M20_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -280,7 +299,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
   );
 }
 

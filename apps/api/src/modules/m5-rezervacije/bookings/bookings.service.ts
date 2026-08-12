@@ -138,6 +138,9 @@ export class BookingsService {
         confirmedAt: bookingStatus === 'CONFIRMED' ? now : null,
         createdBy: actor.userId,
         referralTrackingCode: quote.referralTrackingCode,
+        // M20 spec §3.2 dopuna — prenosi već dati clickwrap pristanak (samouslužni kanali)
+        // dalje na rezervaciju, da M20 zna da automatski prihvati ugovor bez ponovnog koraka.
+        contractTermsAcceptedAt: quote.contractTermsAccepted ? quote.contractTermsAcceptedAt : null,
         items: {
           create: quote.items.map((item, idx) => {
             const outcome = outcomes[idx];

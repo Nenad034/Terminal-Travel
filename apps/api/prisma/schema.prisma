@@ -956,12 +956,18 @@ model Booking {
   cancelledAt               DateTime?     @map("cancelled_at")
   createdBy                 String        @map("created_by") // user id ili "GOST_SELF"
   referralTrackingCode      String?       @map("referral_tracking_code")
+  // M20 spec §3.2 dopuna (avgust 2026) — kopija Quote.contract_terms_accepted_at u trenutku
+  // potvrde, kad je samouslužni kanal (M8/M9/M7) već dobio clickwrap pristanak pre potvrde.
+  // Ne postoji Booking.quote_id (rezervacija se ne referencira nazad na Ponudu), pa se ovde
+  // kopira samo ono što je M20 stvarno potrebno — isti obrazac kao buyer_name/buyer_type dopuna.
+  contractTermsAcceptedAt   DateTime?     @map("contract_terms_accepted_at")
 
   items                       BookingItem[]
   fiscalDocuments             FiscalDocument[]
   payments                    Payment[]
   clientPaymentSchedule       ClientPaymentSchedule?
   travelGuaranteeRegistration TravelGuaranteeRegistration?
+  clientContracts             ClientContract[]
 
   @@map("bookings")
 }
@@ -1544,4 +1550,60 @@ model TravelGuaranteeRegistration {
   travelGuarantee TravelGuarantee? @relation(fields: [travelGuaranteeId], references: [id])
 
   @@map("travel_guarantee_registrations")
+}
+
+// ============================================================================
+// M20 — Ugovori sa klijentima: docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md
+// ============================================================================
+
+// §2.2
+enum ContractType {
+  ORGANIZOVANO_PUTOVANJE
+  POSREDOVANJE
+  PRODAJA_AVIO_KARTE
+  TRANSFER
+  KORPORATIVNI_OKVIRNI
+}
+
+enum ClientContractStatus {
+  DRAFT
+  GENERATED
+  ACCEPTED
+  VOIDED
+}
+
+enum ClientContractAcceptedMethod {
+  ELECTRONIC_CLICKWRAP
+  WET_SIGNATURE_SCAN
+}
+
+// §2.1 `ClientContract`. NAPOMENA (implementacija, avgust 2026): spec tabela označava
+// booking_id kao "unique", ali §3.4 (revizija pri izmeni rezervacije) eksplicitno zahteva
+// VIŠE zapisa po istoj rezervaciji (stari VOIDED + nova verzija sa supersedes_contract_id) —
+// interna neusklađenost u spec tekstu. Rešeno kao "jedan AKTIVAN (ne-VOIDED) ugovor po
+// rezervaciji" sprovedeno u servisu (ClientContractsService), ne kao DB unique constraint —
+// dopuna dokumentovana u spec changelog-u.
+model ClientContract {
+  id                   String                        @id @default(uuid())
+  bookingId            String                        @map("booking_id")
+  contractType         ContractType                  @map("contract_type")
+  status               ClientContractStatus          @default(DRAFT)
+  documentUrl          String?                       @map("document_url")
+  generatedAt          DateTime?                     @map("generated_at")
+  acceptedAt           DateTime?                     @map("accepted_at")
+  acceptedMethod       ClientContractAcceptedMethod? @map("accepted_method")
+  voidedBy             String?                       @map("voided_by") // null = sistemska radnja (§3.4), inače M1 User id
+  supersedesContractId String?                       @map("supersedes_contract_id")
+  // Dopuna (implementacija, avgust 2026) — snapshot svih popunjenih obaveznih elemenata
+  // (§2.3), potreban da "document_url" (mock dok se PDF biblioteka/EU cloud skladište ne
+  // potvrde sa vlasnikom) i dalje bude proverljiv/testabilan sadržaj, ne crna kutija.
+  contentSnapshot      Json                          @map("content_snapshot")
+  createdAt            DateTime                      @default(now()) @map("created_at")
+  updatedAt            DateTime                      @updatedAt @map("updated_at")
+
+  booking            Booking          @relation(fields: [bookingId], references: [id])
+  supersedesContract ClientContract?  @relation("ClientContractRevision", fields: [supersedesContractId], references: [id])
+  supersededBy       ClientContract[] @relation("ClientContractRevision")
+
+  @@map("client_contracts")
 }

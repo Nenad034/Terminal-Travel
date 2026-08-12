@@ -179,11 +179,12 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 
 ## M20 — Ugovori sa klijentima
 *(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)*
-- Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje.
+- Tačan izgled/template ugovora po `contract_type` — dizajnersko/pravno pitanje, implementirano kao `MockContractDocumentGeneratorAdapter` dok se ne potvrdi.
 - Tačan trenutak kad prihvatanje/potpis mora biti završen u odnosu na izdavanje vaučera.
 - `contract_type = PRODAJA_AVIO_KARTE`/`TRANSFER` — uskladiti sa PDV pitanjem iz M10.
 - `KORPORATIVNI_OKVIRNI` tip čeka punu razradu B2B okvirnih ugovora.
-- Samostalna prodaja `INSURANCE` proizvoda ne odgovara nijednom postojećem `contract_type`.
+- Samostalna prodaja `INSURANCE` proizvoda ne odgovara nijednom postojećem `contract_type` — trenutno se automatsko generisanje ugovora svesno preskače za samo-INSURANCE rezervacije.
+- Ownership-scoping za `GET /client-contracts` (Prodajni agent/Gost "sopstveno") nije implementiran na nivou servisa, samo kao dozvola po ulozi.
 
 ## M21 — Centar za pomoć (baza znanja + AI asistent)
 *(§8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
