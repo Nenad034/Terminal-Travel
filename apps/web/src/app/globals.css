@@ -1,3 +1,51 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* M8 spec §1a — paleta "Zalazak", ista kao docs/moduli/M01-core-identitet/
+   00-MOCKUP-M1-TERMINAL-STYLE.html (paleta 1, samo boje, ne terminal izgled). */
+:root {
+  --bg: #fbf3e6;
+  --panel: #ffffff;
+  --panel-2: #f3e6d0;
+  --border: #e6d3b0;
+  --text: #2a1c0c;
+  --text-dim: #6b5636;
+  --text-faint: #9c8663;
+  --accent: #c1791f;
+  --accent-strong: #9c5f14;
+  --accent-soft: #f5e2bd;
+  --accent-ink: #fff8ec;
+  --accent2: #12907d;
+  --accent2-soft: #dcf2ee;
+  --ok: #1f9d67;
+  --ok-bg: #e3f6ec;
+  --warn: #a86a12;
+  --warn-bg: #f9edd3;
+  --danger: #b3392a;
+  --danger-bg: #fbe4e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #150e08;
+    --panel: #1f1610;
+    --panel-2: #2a1d13;
+    --border: #3d2a1a;
+    --text: #f5ead9;
+    --text-dim: #c9b294;
+    --text-faint: #8f7a62;
+    --accent: #e8a63c;
+    --accent-strong: #f4c473;
+    --accent-soft: #3a2810;
+    --accent-ink: #2a1a04;
+    --accent2: #2ba894;
+    --accent2-soft: #0f2e28;
+    --ok: #3ecf8e;
+    --ok-bg: #0f2b21;
+    --warn: #e0a542;
+    --warn-bg: #332508;
+    --danger: #e2685a;
+    --danger-bg: #3a1712;
+  }
+}

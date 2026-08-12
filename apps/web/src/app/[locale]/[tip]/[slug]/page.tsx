@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
+import { slugToType } from '@/lib/categories';
 
 // M8 spec poglavlje 2 — /[tip]/[slug]. M2 public endpoint pretražuje samo po :id, nema
 // slug lookup (dopuna po potrebi, zavedeno u backlogu) — ova stranica zato učita ceo
@@ -12,7 +13,7 @@ export default async function ProductPage({
 }: {
   params: Promise<{ locale: string; tip: string; slug: string }>;
 }) {
-  const { locale, slug } = await params;
+  const { locale, tip, slug } = await params;
   const t = await getTranslations({ locale, namespace: 'product' });
 
   const products = await apiFetch<PublicProduct[]>(
@@ -20,7 +21,7 @@ export default async function ProductPage({
     { auth: false },
   ).catch(() => []);
   const product = products.find((p) => p.translation?.slug === slug);
-  if (!product) notFound();
+  if (!product || slugToType(tip) !== product.type) notFound();
 
   const jsonLd = buildJsonLd(product, locale);
 
@@ -30,26 +31,29 @@ export default async function ProductPage({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <div className="lg:col-span-2">
-        <h1 className="text-2xl font-semibold">{product.translation?.name}</h1>
-        <p className="mt-1 text-gray-500">
+        <div className="mb-6 flex h-64 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
+          <span>{product.type}</span>
+        </div>
+        <h1 className="text-2xl font-semibold text-ink">{product.translation?.name}</h1>
+        <p className="mt-1 text-ink-faint">
           {[product.destinationCity, product.destinationCountry].filter(Boolean).join(', ')}
         </p>
-        <p className="mt-4 whitespace-pre-line text-gray-700">{product.translation?.description}</p>
+        <p className="mt-4 whitespace-pre-line text-ink-dim">{product.translation?.description}</p>
       </div>
 
-      <div className="rounded-lg border border-gray-200 p-4">
+      <div className="h-fit rounded-lg border border-border bg-panel p-4">
         <form action={`/${locale}/rezervacija/ponuda`} method="get" className="flex flex-col gap-3">
           <input type="hidden" name="productId" value={product.id} />
-          <label className="text-sm">
+          <label className="text-sm text-ink-dim">
             {t('selectDates')}
-            <input type="date" name="stayFrom" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+            <input type="date" name="stayFrom" required className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-ink" />
           </label>
-          <input type="date" name="stayTo" required className="w-full rounded-md border border-gray-300 px-3 py-2" />
+          <input type="date" name="stayTo" required className="w-full rounded-md border border-border bg-bg px-3 py-2 text-ink" />
           <div className="flex gap-2">
-            <input type="number" name="adults" defaultValue={2} min={1} className="w-1/2 rounded-md border border-gray-300 px-3 py-2" />
-            <input type="number" name="children" defaultValue={0} min={0} className="w-1/2 rounded-md border border-gray-300 px-3 py-2" />
+            <input type="number" name="adults" defaultValue={2} min={1} className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink" />
+            <input type="number" name="children" defaultValue={0} min={0} className="w-1/2 rounded-md border border-border bg-bg px-3 py-2 text-ink" />
           </div>
-          <button type="submit" className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark">
+          <button type="submit" className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong">
             {t('book')}
           </button>
         </form>

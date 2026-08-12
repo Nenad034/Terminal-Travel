@@ -53,29 +53,29 @@ export default function RegisterForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3">
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-md bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       <label className="text-sm">
         {labels.fullName}
-        <input name="fullName" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+        <input name="fullName" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
       </label>
       <label className="text-sm">
         {labels.email}
-        <input type="email" name="email" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+        <input type="email" name="email" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
       </label>
       <label className="text-sm">
         {labels.phone}
-        <input name="phone" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+        <input name="phone" className="mt-1 w-full rounded-md border border-border px-3 py-2" />
       </label>
       <label className="text-sm">
         {labels.password}
-        <input type="password" name="password" required minLength={12} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+        <input type="password" name="password" required minLength={12} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
       </label>
-      <button type="submit" disabled={pending} className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50">
+      <button type="submit" disabled={pending} className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50">
         {labels.submit}
       </button>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-ink-faint">
         {labels.hasAccount}{' '}
-        <Link href={`/${locale}/nalog/prijava`} className="font-medium text-brand underline">
+        <Link href={`/${locale}/nalog/prijava`} className="font-medium text-accent underline">
           {labels.loginLink}
         </Link>
       </p>

@@ -26,21 +26,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ locale
           <input type="hidden" name="accountId" value={account.id} />
           <label className="text-sm">
             {t('fullName')}
-            <input name="fullName" defaultValue={account.fullName ?? ''} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+            <input name="fullName" defaultValue={account.fullName ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
           </label>
           <label className="text-sm">
             {t('email')}
-            <input name="email" defaultValue={account.email ?? ''} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+            <input name="email" defaultValue={account.email ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
           </label>
           <label className="text-sm">
             {t('phone')}
-            <input name="phone" defaultValue={account.phone ?? ''} className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+            <input name="phone" defaultValue={account.phone ?? ''} className="mt-1 w-full rounded-md border border-border px-3 py-2" />
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="marketingConsent" defaultChecked={account.marketingConsent} />
             {t('marketingConsent')}
           </label>
-          <button type="submit" className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark">
+          <button type="submit" className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong">
             {t('save')}
           </button>
         </form>

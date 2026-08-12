@@ -18,7 +18,7 @@ export default async function TermsPage({
     <div className="mx-auto max-w-xl">
       <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
 
-      <div className="mb-6 max-h-64 overflow-y-auto rounded-md border border-gray-200 p-4 text-sm text-gray-600">
+      <div className="mb-6 max-h-64 overflow-y-auto rounded-md border border-border p-4 text-sm text-ink-dim">
         {/* M20 spec §2.3 — puni tekst ugovora se generiše po rezervaciji tek posle
             potvrde (ClientContract.content_snapshot); ovde stoji opšti tekst uslova
             (isti kao statična /uslovi stranica) jer Booking još ne postoji. */}
@@ -36,7 +36,7 @@ export default async function TermsPage({
           {t('accept')}
         </label>
 
-        <button type="submit" className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong">
           {t('submit')}
         </button>
       </form>

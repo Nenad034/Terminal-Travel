@@ -30,13 +30,13 @@ export default async function GuestInfoPage({
       <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
 
       {!session && (
-        <p className="mb-4 rounded-md bg-brand-light p-3 text-sm">
+        <p className="mb-4 rounded-md bg-accent-soft p-3 text-sm">
           {t('loginPrompt')}{' '}
-          <a href={`/${locale}/nalog/prijava`} className="font-medium text-brand underline">
+          <a href={`/${locale}/nalog/prijava`} className="font-medium text-accent underline">
             {t('loginLink')}
           </a>{' '}
           {t('registerPrompt')}{' '}
-          <a href={`/${locale}/nalog/registracija`} className="font-medium text-brand underline">
+          <a href={`/${locale}/nalog/registracija`} className="font-medium text-accent underline">
             {t('registerLink')}
           </a>
         </p>
@@ -48,12 +48,12 @@ export default async function GuestInfoPage({
         ))}
         <label className="text-sm">
           {t('fullName')}
-          <input name="buyerName" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2" />
+          <input name="buyerName" required className="mt-1 w-full rounded-md border border-border px-3 py-2" />
         </label>
         <button
           type="submit"
           disabled={!session}
-          className="rounded-md bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong disabled:opacity-50"
         >
           {t('submit')}
         </button>

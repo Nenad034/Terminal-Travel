@@ -19,13 +19,13 @@ export default async function MyBookingsPage({ params }: { params: Promise<{ loc
     <div>
       <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
       {bookings.length === 0 ? (
-        <p className="text-gray-500">{t('empty')}</p>
+        <p className="text-ink-faint">{t('empty')}</p>
       ) : (
         <div className="flex flex-col gap-3">
           {bookings.map((b) => (
-            <div key={b.id} className="rounded-lg border border-gray-200 p-4">
+            <div key={b.id} className="rounded-lg border border-border p-4">
               <p className="font-medium">{b.bookingNumber}</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-ink-faint">
                 {t('status')}: {b.status} — {b.paymentStatus}
               </p>
             </div>

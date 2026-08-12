@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import type { SearchResultProduct } from '@/lib/types';
+import { typeToSlug } from '@/lib/categories';
 
 // M8 spec poglavlje 3, korak 1 — anonimna pretraga, poziva M5 GET /search (javno od
 // avgust 2026 dopune — vidi M5 spec §11 changelog v1.22).
@@ -39,36 +40,36 @@ export default async function SearchPage({
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
+      <h1 className="mb-6 text-2xl font-semibold text-ink">{t('title')}</h1>
 
-      <form method="get" className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-gray-200 p-4 sm:grid-cols-5">
+      <form method="get" className="mb-8 grid grid-cols-1 gap-4 rounded-lg border border-border bg-panel p-4 sm:grid-cols-5">
         <Field label={t('destination')} name="destination" defaultValue={sp.destination} />
         <Field label={t('stayFrom')} name="stayFrom" type="date" defaultValue={sp.stayFrom} />
         <Field label={t('stayTo')} name="stayTo" type="date" defaultValue={sp.stayTo} />
         <Field label={t('adults')} name="adults" type="number" defaultValue={sp.adults ?? '2'} />
         <Field label={t('children')} name="children" type="number" defaultValue={sp.children ?? '0'} />
-        <button type="submit" className="col-span-full rounded-md bg-brand px-4 py-2 font-medium text-white sm:col-span-1">
+        <button type="submit" className="col-span-full rounded-md bg-accent px-4 py-2 font-medium text-accent-ink hover:bg-accent-strong sm:col-span-1">
           {t('submit')}
         </button>
       </form>
 
-      {hasQuery && results.length === 0 && <p className="text-gray-500">{t('noResults')}</p>}
+      {hasQuery && results.length === 0 && <p className="text-ink-faint">{t('noResults')}</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {results.map((r) => (
-          <div key={r.productId} className="rounded-lg border border-gray-200 p-4">
-            <h3 className="font-medium">{r.translation?.name ?? r.productId}</h3>
-            <p className="text-sm text-gray-500">
+          <div key={r.productId} className="rounded-lg border border-border bg-panel p-4">
+            <h3 className="font-medium text-ink">{r.translation?.name ?? r.productId}</h3>
+            <p className="text-sm text-ink-faint">
               {[r.destinationCity, r.destinationCountry].filter(Boolean).join(', ')}
             </p>
             {r.offers[0] && (
-              <p className="mt-2 font-semibold text-brand">
-                {t('viewOffer')} — {formatPrice(r.offers[0].finalPrice, r.offers[0].finalPriceCurrency)}
+              <p className="mt-2 font-semibold text-accent">
+                {formatPrice(r.offers[0].finalPrice, r.offers[0].finalPriceCurrency)}
               </p>
             )}
             <Link
-              href={`/${locale}/${r.type.toLowerCase()}/${r.translation?.slug ?? r.productId}`}
-              className="mt-2 inline-block text-sm text-brand underline"
+              href={`/${locale}/${typeToSlug(r.type)}/${r.translation?.slug ?? r.productId}`}
+              className="mt-2 inline-block text-sm font-medium text-accent underline"
             >
               {t('viewOffer')}
             </Link>
@@ -91,13 +92,13 @@ function Field({
   defaultValue?: string;
 }) {
   return (
-    <label className="flex flex-col text-sm">
-      <span className="mb-1 text-gray-600">{label}</span>
+    <label className="flex flex-col text-sm text-ink-dim">
+      <span className="mb-1">{label}</span>
       <input
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="rounded-md border border-gray-300 px-3 py-2"
+        className="rounded-md border border-border bg-bg px-3 py-2 text-ink"
       />
     </label>
   );

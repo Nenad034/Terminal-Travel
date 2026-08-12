@@ -1,15 +1,44 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { CATEGORY_TYPES } from '@/lib/categories';
 
 export default async function Footer({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: 'footer' });
+  const tc = await getTranslations({ locale, namespace: 'categories' });
+
   return (
-    <footer className="mt-16 border-t border-gray-200 bg-gray-50">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-gray-500">
-        <span>
-          © {new Date().getFullYear()} Terminal Travel — {t('rightsReserved')}
-        </span>
-        <Link href={`/${locale}/uslovi`}>{t('terms')}</Link>
+    <footer className="mt-16 border-t border-border bg-panel2">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 text-sm sm:grid-cols-4">
+        <div className="col-span-2 sm:col-span-1">
+          <p className="text-lg font-bold text-accent">
+            Terminal <span className="text-ink">Travel</span>
+          </p>
+        </div>
+        <div>
+          <p className="mb-2 font-medium text-ink">{t('categoriesTitle')}</p>
+          <ul className="flex flex-col gap-1 text-ink-dim">
+            {CATEGORY_TYPES.slice(0, 5).map((c) => (
+              <li key={c.type}>
+                <Link href={`/${locale}/${c.slug}`} className="hover:text-accent">
+                  {tc(c.type)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="mb-2 font-medium text-ink">{t('infoTitle')}</p>
+          <ul className="flex flex-col gap-1 text-ink-dim">
+            <li>
+              <Link href={`/${locale}/uslovi`} className="hover:text-accent">
+                {t('terms')}
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div className="border-t border-border px-4 py-4 text-center text-xs text-ink-faint">
+        © {new Date().getFullYear()} Terminal Travel — {t('rightsReserved')}
       </div>
     </footer>
   );

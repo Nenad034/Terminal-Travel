@@ -12,8 +12,21 @@
   "home": {
     "title": "Pronađite savršeno putovanje",
     "subtitle": "Pretražite ponudu smeštaja, aranžmana i izleta.",
+    "categories": "Kategorije",
     "featured": "Izdvojene ponude",
     "cta": "Pretraži"
+  },
+  "categories": {
+    "ACCOMMODATION": "Smeštaj",
+    "PACKAGE": "Aranžmani",
+    "EXCURSION": "Izleti",
+    "TRANSFER": "Transferi",
+    "TRANSPORT": "Prevoz",
+    "FLIGHT": "Letovi",
+    "TICKET": "Karte",
+    "EVENT": "Događaji",
+    "INSURANCE": "Osiguranje",
+    "empty": "Trenutno nema ponude u ovoj kategoriji."
   },
   "search": {
     "title": "Rezultati pretrage",
@@ -107,6 +120,8 @@
     "body": "Ovaj sadržaj još nije dostupan."
   },
   "footer": {
+    "categoriesTitle": "Kategorije",
+    "infoTitle": "Informacije",
     "terms": "Uslovi",
     "rightsReserved": "Sva prava zadržana."
   }

@@ -6,7 +6,7 @@ export default async function ComingSoon({ locale }: { locale: string }) {
   return (
     <div className="mx-auto max-w-md py-16 text-center">
       <h1 className="text-xl font-semibold">{t('title')}</h1>
-      <p className="mt-2 text-gray-500">{t('body')}</p>
+      <p className="mt-2 text-ink-faint">{t('body')}</p>
     </div>
   );
 }

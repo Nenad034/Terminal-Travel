@@ -12,8 +12,21 @@
   "home": {
     "title": "Find your perfect trip",
     "subtitle": "Search accommodation, packages and excursions.",
+    "categories": "Categories",
     "featured": "Featured offers",
     "cta": "Search"
+  },
+  "categories": {
+    "ACCOMMODATION": "Accommodation",
+    "PACKAGE": "Packages",
+    "EXCURSION": "Excursions",
+    "TRANSFER": "Transfers",
+    "TRANSPORT": "Transport",
+    "FLIGHT": "Flights",
+    "TICKET": "Tickets",
+    "EVENT": "Events",
+    "INSURANCE": "Insurance",
+    "empty": "No offers in this category yet."
   },
   "search": {
     "title": "Search results",
@@ -107,6 +120,8 @@
     "body": "This content is not available yet."
   },
   "footer": {
+    "categoriesTitle": "Categories",
+    "infoTitle": "Information",
     "terms": "Terms",
     "rightsReserved": "All rights reserved."
   }

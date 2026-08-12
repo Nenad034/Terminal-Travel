@@ -33,9 +33,9 @@ export default async function OfferPreviewPage({
   return (
     <div className="mx-auto max-w-xl">
       <h1 className="mb-6 text-2xl font-semibold">{t('title')}</h1>
-      <div className="rounded-lg border border-gray-200 p-4">
+      <div className="rounded-lg border border-border p-4">
         <h2 className="font-medium">{product?.translation?.name ?? sp.productId}</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-gray-600">
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-sm text-ink-dim">
           <dt>{sp.stayFrom}</dt>
           <dd>→ {sp.stayTo}</dd>
           <dt>{sp.adults} + {sp.children}</dt>
@@ -43,7 +43,7 @@ export default async function OfferPreviewPage({
       </div>
       <Link
         href={`/${locale}/rezervacija/podaci-gosta?${forward.toString()}`}
-        className="mt-6 inline-block rounded-md bg-brand px-6 py-3 font-medium text-white hover:bg-brand-dark"
+        className="mt-6 inline-block rounded-md bg-accent px-6 py-3 font-medium text-accent-ink hover:bg-accent-strong"
       >
         {t('confirm')}
       </Link>

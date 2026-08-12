@@ -88,7 +88,9 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -L http://localhost:3100/sr/nalog/moje-rezervacije)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3100/sr/rezervacija/ponuda?productId=x)",
       "Bash(curl -s http://localhost:3100/sr)",
-      "Bash(pkill -f \"next dev\")"
+      "Bash(pkill -f \"next dev\")",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/api/v1/catalog/public/products?channel=B2C_SITE)"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",
