@@ -17,6 +17,7 @@ import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugo
 import { M14HelpdeskModule } from './modules/m14-helpdesk/m14-helpdesk.module';
 import { M13BiModule } from './modules/m13-bi/m13-bi.module';
 import { M12MarketingModule } from './modules/m12-marketing/m12-marketing.module';
+import { M16McpDistribucijaModule } from './modules/m16-mcp-distribucija/m16-mcp-distribucija.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { M12MarketingModule } from './modules/m12-marketing/m12-marketing.module
     M14HelpdeskModule,
     M13BiModule,
     M12MarketingModule,
+    M16McpDistribucijaModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

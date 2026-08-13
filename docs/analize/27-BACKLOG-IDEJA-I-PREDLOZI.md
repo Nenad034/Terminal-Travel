@@ -153,10 +153,11 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M16 — Agentski distribucioni interfejs (MCP)
 *(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
-- Tačan MCP wire-protokol (transport, autentikacija) — potvrditi pre implementacije.
-- Mehanizam agentskog plaćanja — proveriti stanje standarda pre implementacije.
+- **Rešeno (avgust 2026):** MCP wire-protokol implementiran (2026-07-28 spec). Oblik odgovora ostao pljosnat (isti DTO kao M5), poruke o greškama za write-alate su akcione.
+- Pun OAuth 2.1 authorization server (dinamička registracija, PKCE, discovery) — prvi prolaz koristi jednostavan unapred-deljen ključ, potvrđeno vlasnikom kao svesna odluka.
+- Mehanizam agentskog plaćanja — proveriti stanje standarda pre uvođenja (trenutno `confirm_booking` potvrđuje bez naplate, `UNPAID`).
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom.
-- Oblik odgovora MCP alata — razmotriti pljosnatiji serializer i jasnije poruke o greškama.
+- Automatsko obaveštavanje tima o neuobičajenom obrascu poziva (rate limiter trenutno samo blokira, ne alarmira).
 
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*

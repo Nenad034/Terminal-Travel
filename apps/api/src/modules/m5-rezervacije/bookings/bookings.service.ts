@@ -207,7 +207,15 @@ export class BookingsService {
     // čim Booking.status = CONFIRMED, nezavisno od payment_status.
     await this.maybeIssueVoucher(booking.id);
 
-    return this.findOne(booking.id, 'INTERNAL_PANEL');
+    // §6.2 dopuna (avgust 2026, otkriveno pri M16 verifikaciji) — RANIJE hardkodovano na
+    // 'INTERNAL_PANEL', pa je confirmQuote uvek vraćao NEMASKIRAN prikaz (supplier_reference/
+    // base_cost/markup_rule_id) direktno pozivaocu, bez obzira na kanal — isti odgovor koji
+    // M8 bankovni prenos (payByBankTransferAction) i sada M16 confirm_booking prosleđuju
+    // direktno gostu/spoljnom MCP klijentu. Pravi actor.userId daje ispravno INTERNAL_PANEL
+    // za osoblje/sistemske aktore (resolveApiContext ionako pada na taj podrazumevani slučaj
+    // kad korisnik ne postoji, npr. M10 SYSTEM_ACTOR) i ispravno B2C/B2B maskiranje za
+    // GUEST/SUBAGENT_CONTACT/AI_AGENT — isti obrazac kao findAll/findOne.
+    return this.findOne(booking.id, actor.userId);
   }
 
   private async recomputeExpiredQuote(quote: Prisma.QuoteGetPayload<{ include: { items: true } }>) {
@@ -363,6 +371,12 @@ export class BookingsService {
         : null;
       return { context: 'B2B', ownClientAccountId: clientAccountId };
     }
+    // M16 spec §2/§4 dopuna (avgust 2026) — MCP klijent (User.accountType=AI_AGENT) dobija isto
+    // B2C maskiranje kao gost (sakriva supplier polja, §6.2), ali sopstveni ClientAccount
+    // predstavlja CEO spoljnog partnera (pool svih njegovih rezervacija), ne pojedinačnog
+    // putnika — isti obrazac kao B2B iznad, samo bez SubagentStub posredovanja jer
+    // User.linked_profile_id VEĆ jeste direktno ClientAccount.id za AI_AGENT (M16 registracija).
+    if (identity.accountType === 'AI_AGENT') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
     return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
   }
 

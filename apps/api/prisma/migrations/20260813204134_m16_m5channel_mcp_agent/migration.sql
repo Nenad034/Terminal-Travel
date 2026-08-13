@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "M5Channel" ADD VALUE 'MCP_AGENT';

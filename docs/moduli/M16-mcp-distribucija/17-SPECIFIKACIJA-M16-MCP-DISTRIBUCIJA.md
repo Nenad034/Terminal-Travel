@@ -2,8 +2,16 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 1.1 (strateški kontekst), poglavlje 4 (M16), poglavlje 8 (Faza 6) i Dodatak A (nalaz od 28.7.2026. o MCP reviziji; nalaz od 1.8.2026. o Sabre Agentic APIs)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde tačan protokol treba potvrditi pred implementaciju
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodata stavka u poglavlje 10 (Otvoreno za dalje) o payload optimizaciji i akcionim porukama o greškama za MCP alate, po uzoru na Sabre Agentic APIs (Dodatak A, 1.8.2026)
+**Status:** Implementirano (avgust 2026) — vidi poglavlje 9 za tačan obim; API dokumentacija u `docs/api/M16-mcp-distribucija.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M16-ZA-VLASNIKA.md` (isti folder)
+**Verzija:** 1.2 — implementacija (avgust 2026): protokol potvrđen naspram zvanične specifikacije 2026-07-28 (poglavlje 1.1) neposredno pre pisanja koda — stateless, JSON-RPC 2.0, `@modelcontextprotocol/server`/`@modelcontextprotocol/node` v2 (nova zavisnost, potvrđeno vlasnikom preko AskUserQuestion). Ključne implementacione odluke:
+- **Identitet MCP klijenta u postojećem sistemu.** `MCPClientRegistration` pri prelasku `PENDING→ACTIVE` (`POST /mcp-admin/clients/:id/activate`, implementaciona dopuna — spec tabela poglavlja 7 nije imala dozvolu za ovaj korak, dodato `M16/mcp-client/MANAGE`) atomski kreira prateći `ClientAccount` (`LEGAL_ENTITY`) i `User` (`account_type = AI_AGENT`, M1 šema — polje je postojalo od ranije, nikad ožičeno) — isti "sopstveni pool rezervacija" obrazac kao `SUBAGENT_CONTACT` (M7), ne izolacija po pojedinačnom putniku. M5 `resolveApiContext`/`QuotesService.create` dobili malu dopunu da prepoznaju `AI_AGENT` (isto B2C maskiranje, `bookings.service.ts`/`quotes.service.ts`) — vidi M5 spec dopunu.
+- **Kredencijal (poglavlje 3.1 `credentials_encrypted`).** Implementiran kao SHA-256 heš (isti obrazac kao `RefreshToken`/`PasswordResetToken`, `hashToken()`), ne reverzibilna enkripcija — server samo poredi predati Bearer token, nikad ga ne mora ponovo poslati spoljnoj strani. Plaintext kredencijal se vraća tačno jednom, u `POST /mcp-admin/clients` odgovoru.
+- **Autorizacija (poglavlje 5/10, "otvoreno pitanje").** Prvi prolaz: jednostavan unapred-deljen ključ (Bearer = kredencijal iznad), potvrđeno vlasnikom kao svesna odluka. MCP spec 2026-07-28 tretira autorizaciju kao OPCIONU — pun OAuth 2.1 authorization server (dinamička registracija klijenta, PKCE, RFC9728/8414 discovery) je sam po sebi višenedeljni projekat odvojen od poslovne vrednosti (M2/M5 pristup) i ostaje otvorena stavka (dole).
+- **Plaćanje (poglavlje 5).** `confirm_booking` potvrđuje rezervaciju bez naplate (`payment_status = UNPAID`), isti obrazac kao M8 bankovni prenos — spec's "minimalna pretpostavka" fallback. Agentsko/kartično plaćanje ostaje otvoreno.
+- **Novi M5 kanal.** `M5Channel` dobio vrednost `MCP_AGENT` (Prisma šema) — rezervacije preko MCP-a su vidljivo razdvojene u izveštajima (M13) od M7/M8/M9, u skladu sa izlaznim kriterijumom (poglavlje 9, stavka 4).
+- **Otkriven i zatvoren pratећi bezbednosni nalaz (van M16, u M5):** `BookingsService.confirmQuote()` je uvek vraćao NEMASKIRAN prikaz rezervacije (hardkodovano na `INTERNAL_PANEL` kontekst), bez obzira na pozivaoca — pogađalo je i M8 (gost koji potvrdi bankovni prenos je dobijao supplier polja u odgovoru), ne samo M16. Ispravljeno da koristi stvarni `actor.userId` (M5 spec §6.2 dopuna).
+
+v1.1 — dodata stavka u poglavlje 10 (Otvoreno za dalje) o payload optimizaciji i akcionim porukama o greškama za MCP alate, po uzoru na Sabre Agentic APIs (Dodatak A, 1.8.2026)
 **Zavisi od:** M1, M2, M5
 
 ---
@@ -74,30 +82,34 @@ Standardi za "agentski" (agentic commerce) plaćanje — kako spoljni AI agent p
 | Dozvola | Podrazumevana dodela po ulozi |
 | :---- | :---- |
 | `M16/mcp-client/VIEW` | Vlasnik, Direktor |
+| `M16/mcp-client/MANAGE` | Vlasnik, Direktor — registracija/aktivacija/suspendovanje klijenta (implementaciona dopuna avgust 2026 — bez ove dozvole niko ne bi mogao ni da registruje prvog MCP klijenta) |
 | `M16/mcp-client/APPROVE_READ_WRITE` | Vlasnik, Direktor — **nikad automatski**, isti princip kao odobravanje subagenta (M7) |
 
 ---
 
 ## 8. API/MCP ugovor
 
-Prefiks internog administrativnog dela: `/api/v1/mcp-admin` (upravljanje `MCPClientRegistration`, van samog MCP protokola).
+Prefiks internog administrativnog dela: `/api/v1/mcp-admin` (upravljanje `MCPClientRegistration`, van samog MCP protokola) — `GET /clients`, `GET /clients/:id`, `POST /clients` (vraća plaintext kredencijal tačno jednom), `POST /clients/:id/activate`, `POST /clients/:id/approve-read-write`, `POST /clients/:id/suspend`.
 
-Sam MCP server (alati iz poglavlja 2) implementira se prema zvaničnoj MCP specifikaciji verzije 2026-07-28 ili novijoj (poglavlje 1.1) — tačan endpoint/transport definiše ta specifikacija, ne ovaj dokument.
+Sam MCP server je implementiran na `POST /api/v1/mcp` (stateless, JSON-RPC 2.0, protokol 2026-07-28 preko `@modelcontextprotocol/server`/`@modelcontextprotocol/node` v2) — pet alata iz poglavlja 2, sve iza Bearer autentikacije (poglavlje 3.1/5, implementaciono poglavlje verzije 1.2). Detalji zahteva/odgovora u `docs/api/M16-mcp-distribucija.md`.
 
 ---
 
 ## 9. Izlazni kriterijum (M16 deo Faze 6)
 
-- [ ] Registrovan MCP klijent u `READ_ONLY` režimu može uspešno da izvrši `search_products` i dobije iste rezultate kao M8.
-- [ ] `confirm_booking` sa nepotpunim podacima gosta se odbija sa jasnom porukom, isto kao na bilo kom drugom kanalu.
-- [ ] Prelazak klijenta iz `READ_ONLY` u `READ_WRITE` zahteva eksplicitno ljudsko odobrenje, upisano u audit log.
-- [ ] Kreditni limit i provera kapaciteta rade identično bez obzira da li rezervacija dolazi sa M8, M9, M7 ili M16.
+- [x] Registrovan MCP klijent u `READ_ONLY` režimu može uspešno da izvrši `search_products` i dobije iste rezultate kao M8. (`McpToolsService.searchProducts` poziva `SearchService.search` in-process sa `channel=B2C_SITE`, testirano `test/m16-exit-criteria.e2e-spec.ts`)
+- [x] `confirm_booking` sa nepotpunim podacima gosta se odbija sa jasnom porukom, isto kao na bilo kom drugom kanalu. (zod `inputSchema` odbija zahtev pre dispatch-a alata sa jasnom porukom po polju)
+- [x] Prelazak klijenta iz `READ_ONLY` u `READ_WRITE` zahteva eksplicitno ljudsko odobrenje, upisano u audit log. (`McpAdminService.approveReadWrite`, `module: 'M16', action: 'mcp_client.approved_read_write'`)
+- [x] Kreditni limit i provera kapaciteta rade identično bez obzira da li rezervacija dolazi sa M8, M9, M7 ili M16. (`McpToolsService` poziva iste `QuotesService`/`BookingsService` metode kao svaki drugi kanal, bez zaobilaznog puta; kapacitet dokazan e2e testom preko potrošenog `totalCapacity=1`)
 
 ---
 
 ## 10. Otvoreno za dalje
 
-- Tačan MCP wire-protokol (transport, autentikacija na nivou protokola) — potvrditi naspram zvanične specifikacije neposredno pre implementacije (poglavlje 1.1).
-- Mehanizam agentskog plaćanja — proveriti tekuće stanje standarda kroz mesečni pregled trendova pre implementacije (poglavlje 5).
+**Rešeno (avgust 2026, implementacija):** tačan MCP wire-protokol potvrđen (2026-07-28, `@modelcontextprotocol/server`/`node` v2) i implementiran.
+
+- **Pun OAuth 2.1 authorization server** (dinamička registracija klijenta, PKCE, RFC9728/8414 discovery metadata) — prvi prolaz koristi jednostavan unapred-deljen ključ (poglavlje 3.1, implementaciono poglavlje verzije 1.2), potvrđeno vlasnikom kao svesna odluka jer MCP spec autorizaciju tretira kao opcionu. Vratiti se na ovo ako neka spoljna platforma (ChatGPT/Google/Sabre) zahteva pun OAuth tok kao uslov integracije.
+- Mehanizam agentskog plaćanja — `confirm_booking` trenutno potvrđuje bez naplate (`UNPAID`, isti obrazac kao M8 bankovni prenos); proveriti tekuće stanje standarda kroz mesečni pregled trendova pre uvođenja kartičnog/agentskog plaćanja (poglavlje 5).
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom (ChatGPT, Google, Sabre/MindTrip) pre `READ_WRITE` odobrenja — pravno pitanje, van obima ove tehničke specifikacije.
-- **Oblik odgovora MCP alata (poglavlje 2)** — pri implementaciji razmotriti da odgovor bude pljosnatiji/manji od internog M8 odgovora (poseban serializer za MCP sloj, ne isti DTO), i da poruke o greškama (npr. odbijen `confirm_booking` iz poglavlja 4) budu pisane tako da spoljni agent može sam da ispravi poziv, ne samo šifra greške. Uzor: Sabre-ova javno opisana praksa za sopstvene "agentic-ready" API-je (Dodatak A, nalaz od 1.8.2026) — nije obavezujući standard, samo potvrđen primer dobre prakse iz istog domena.
+- Automatsko obaveštavanje tima o neuobičajenom obrascu poziva (poglavlje 6) — trenutno `McpRateLimiterService` samo blokira preko limita, ne šalje alarm; upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
+- **Oblik odgovora MCP alata (poglavlje 2)** — implementirano kao pljosnat JSON (isti DTO oblik kao M5 servisi, ne poseban MCP serializer); poruke o greškama za `create_quote`/`confirm_booking`/`cancel_booking` (`assertWriteAllowed`) su akcione ("zahteva READ_WRITE... kontaktirajte..."), zod validacione poruke po polju su čitljive ali generičke. Sabre-stil dodatna optimizacija payload-a ostaje otvorena za kasnije, nije blokirajuća za prvi prolaz.

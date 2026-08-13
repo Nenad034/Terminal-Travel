@@ -38,6 +38,10 @@ export class QuotesService {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
         clientAccountId = (await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+      } else if (identity.accountType === 'AI_AGENT') {
+        // M16 spec §2 dopuna — MCP klijent, isti razlog kao GUEST iznad ali bez stub
+        // posredovanja: User.linked_profile_id je već direktno ClientAccount.id (bookings.service.ts).
+        clientAccountId = identity.ownProfileId ?? undefined;
       }
     }
 

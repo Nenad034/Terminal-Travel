@@ -797,6 +797,7 @@ enum M5Channel {
   MOBILE
   INTERNAL_PANEL
   PHONE
+  MCP_AGENT // M16 spec §2/§9 — rezervacije napravljene preko eksternog MCP klijenta (avgust 2026)
 }
 
 // §2.1 `MarkupRule`
@@ -2171,4 +2172,42 @@ model ChannelConfig {
   updatedAt           DateTime            @updatedAt @map("updated_at")
 
   @@map("channel_configs")
+}
+
+// ============================================================================
+// M16 — Agentski distribucioni interfejs (MCP)
+// docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md §3.1
+// ============================================================================
+
+enum McpAccessLevel {
+  READ_ONLY
+  READ_WRITE
+}
+
+enum McpClientStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+// §3.1 — svaki registrovan spoljni MCP klijent (ChatGPT, Google, Sabre/MindTrip...).
+// linkedUserId/linkedClientAccountId se popunjavaju pri prvom prelasku u ACTIVE (avgust 2026,
+// implementaciona dopuna) — jedan AI_AGENT User + jedan LEGAL_ENTITY ClientAccount po klijentu,
+// isti obrazac "sopstveni pool rezervacija" kao SUBAGENT_CONTACT (M7), ne GUEST po putniku.
+model MCPClientRegistration {
+  id                    String         @id @default(uuid())
+  clientName            String         @map("client_name")
+  // Heš (SHA-256, isti obrazac kao RefreshToken/PasswordResetToken — hashToken() u
+  // secret-box.ts), ne reverzibilna enkripcija: server samo poredi predati Bearer token
+  // sa ovim, nikad ne mora da ga ponovo pošalje spoljnoj strani. Naziv kolone prati spec §3.1.
+  credentialsEncrypted  String         @unique @map("credentials_encrypted")
+  accessLevel           McpAccessLevel @default(READ_ONLY) @map("access_level")
+  status                McpClientStatus @default(PENDING)
+  rateLimitPerMinute    Int            @default(60) @map("rate_limit_per_minute")
+  linkedUserId          String?        @map("linked_user_id")
+  linkedClientAccountId String?        @map("linked_client_account_id")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  @@map("mcp_client_registrations")
 }

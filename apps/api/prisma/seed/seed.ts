@@ -207,6 +207,16 @@ const M12_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M12', resource: 'channel-config', action: 'EDIT', description: 'Izmena konfiguracije/kredencijala distribucionih kanala' },
 ];
 
+// M16 spec §7 — dozvole MCP distribucije. MANAGE (kreiranje/aktivacija/suspendovanje klijenta)
+// je dopuna otkrivena pri implementaciji (spec tabela je imala samo VIEW/APPROVE_READ_WRITE —
+// bez nje niko ne bi mogao ni da registruje prvog MCP klijenta), APPROVE_READ_WRITE ostaje
+// odvojena dozvola, "nikad automatski" (§3.1).
+const M16_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M16', resource: 'mcp-client', action: 'VIEW', description: 'Uvid u registrovane MCP klijente' },
+  { module: 'M16', resource: 'mcp-client', action: 'MANAGE', description: 'Registracija/aktivacija/suspendovanje MCP klijenta (implementaciona dopuna avgust 2026)' },
+  { module: 'M16', resource: 'mcp-client', action: 'APPROVE_READ_WRITE', description: 'Odobrenje prelaska READ_ONLY→READ_WRITE — nikad automatski' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -224,6 +234,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -239,6 +250,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -443,6 +455,7 @@ async function main() {
     ...M14_PERMISSIONS,
     ...M13_PERMISSIONS,
     ...M12_PERMISSIONS,
+    ...M16_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -472,7 +485,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola.`,
   );
 }
 
