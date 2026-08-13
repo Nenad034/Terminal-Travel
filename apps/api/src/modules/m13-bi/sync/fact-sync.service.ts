@@ -8,6 +8,7 @@ import { ClientAccountsService } from '../../m6-crm/client-accounts/client-accou
 import { SubagentsService } from '../../m7-b2b-subagenti/subagents/subagents.service';
 import { PaymentsService } from '../../m10-finansije/payments/payments.service';
 import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchange-rates.service';
+import { ContentService } from '../../m12-marketing/content/content.service';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -35,6 +36,7 @@ export class FactSyncService {
     private readonly subagents: SubagentsService,
     private readonly payments: PaymentsService,
     private readonly exchangeRates: ExchangeRatesService,
+    private readonly content: ContentService,
   ) {}
 
   // ==========================================================================
@@ -141,15 +143,16 @@ export class FactSyncService {
   }
 
   // M13 spec §4.3 — razrešava Booking.referral_tracking_code protiv M12 ContentPiece.tracking_code.
-  // M12 (Marketing i sadržajni engine) je samo specifikovan, još nema implementaciju u kodu
-  // (proveri apps/api/src/modules) — ovaj stub zato UVEK vraća null, tačno kako spec §4.3
-  // predviđa ("null ako kod nedostaje ili ne poklapa nijedan sadržaj"). Kad M12 dobije kod, ovo
-  // mesto se menja da pozove M12 servis (npr. ContentPiecesService.findByTrackingCode), isti
-  // obrazac kao ostali cross-modul pozivi u ovom fajlu — ne pre toga.
+  // M12 je sad implementiran (avgust 2026) — poziva se ContentService.findByTrackingCode preko
+  // in-process DI (isti obrazac kao ostali cross-modul pozivi u ovom fajlu: M2/M3/M6/M7/M10).
+  // Nepostojeći/null kod ostaje null, isto kao pre — sistem nikad ne izmišlja atribuciju (§3a).
   private async resolveContentAttribution(
-    _trackingCode: string | null,
+    trackingCode: string | null,
   ): Promise<{ contentId: string | null; contentName: string | null }> {
-    return { contentId: null, contentName: null };
+    if (!trackingCode) return { contentId: null, contentName: null };
+    const content = await this.content.findByTrackingCode(trackingCode);
+    if (!content) return { contentId: null, contentName: null };
+    return { contentId: content.id, contentName: content.name };
   }
 
   // ==========================================================================

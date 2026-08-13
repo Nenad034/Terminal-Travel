@@ -7,6 +7,7 @@ import { ClientAccountsModule } from '../../m6-crm/client-accounts/client-accoun
 import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
 import { PaymentsModule } from '../../m10-finansije/payments/payments.module';
 import { ExchangeRatesModule } from '../../m10-finansije/exchange-rates/exchange-rates.module';
+import { ContentModule } from '../../m12-marketing/content/content.module';
 
 // M13 spec §1.1/§2 — jezgro projekcije (FactBooking/FactPayment). Uvozi servise M2/M3/M6/M7/M10
 // (in-process, read-only) da bi izgradio/proverio izvedenu BI projekciju, nikad obrnuto.
@@ -19,6 +20,7 @@ import { ExchangeRatesModule } from '../../m10-finansije/exchange-rates/exchange
     SubagentsModule,
     PaymentsModule,
     ExchangeRatesModule,
+    ContentModule,
   ],
   providers: [FactSyncService],
   exports: [FactSyncService],

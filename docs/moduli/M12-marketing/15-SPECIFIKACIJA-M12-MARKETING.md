@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje (pisano od nule — "Content Engine opisan u prethodnom razgovoru", pomenut u Master dokumentu, nije pronađen u ovom folderu, isti slučaj kao M4)
-**Verzija:** 1.2 — dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
+**Status:** Implementirano (avgust 2026) — vidi poglavlje 8 za tačan obim; API dokumentacija u `docs/api/M12-marketing.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M12-ZA-VLASNIKA.md` (isti folder)
+**Verzija:** 1.3 — implementacija (avgust 2026): kod pod `apps/api/src/modules/m12-marketing/`, `ContentPiece`/`ContentTranslation`/`ChannelConfig` u Prisma šemi, M13 `resolveContentAttribution` povezan na pravi `ContentService.findByTrackingCode` (in-process DI, poglavlje 6c). M8-zavisne stavke (poglavlje 3b/6b — `/stranica/:slug`, `/blog/:slug`, hvatanje `?ref=`) namerno nisu implementirane (M8 pauziran, CLAUDE.md). v1.2 dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
 **Zavisi od:** M1, M2, M6
 
 ---
@@ -149,14 +149,15 @@ Prefiks: `/api/v1/marketing`
 
 ## 8. Izlazni kriterijum (M12 deo Faze 6)
 
-- [ ] Objava proizvoda u M2 automatski generiše nacrt sadržaja u M12, bez ljudske intervencije do koraka odobrenja.
-- [ ] Sadržaj se ne može objaviti (`PUBLISHED`) bez `approved_by` popunjenog ljudskim nalogom.
-- [ ] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`; kad je `target_tags` popunjeno, skup se dodatno suzi na poklapajuće `tags`, nikad ne proširi.
-- [ ] Zakazana objava odobrenog sadržaja radi automatski u planirano vreme.
-- [ ] `STATIC_PAGE`/`BLOG_POST` sa istim `slug` se ne može kreirati dvaput (unique).
-- [ ] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise.
-- [ ] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost.
-- [ ] `ContentPiece` sa `contains_ai_generated_media = true` ne može preći u `APPROVED`/`PUBLISHED` bez vidljive oznake transparentnosti u `body` jezika objave (poglavlje 3c).
+- [x] Objava proizvoda u M2 automatski generiše nacrt sadržaja u M12, bez ljudske intervencije do koraka odobrenja. (`M12EventSubscribersService` na `product.published`, `ContentService.createAiDraft` — `PENDING_APPROVAL`/`generated_by=AI`; testirano `test/m12-exit-criteria.e2e-spec.ts`)
+- [x] Sadržaj se ne može objaviti (`PUBLISHED`) bez `approved_by` popunjenog ljudskim nalogom. (`ContentService.publish` zahteva prethodni `APPROVED` status, koji jedino `approve()` postavlja uz `approved_by`)
+- [x] Email kanal nikad ne šalje `ClientAccount`-ima bez `marketing_consent = true`; kad je `target_tags` popunjeno, skup se dodatno suzi na poklapajuće `tags`, nikad ne proširi. (`DistributionService.publishEmail` preko M6 `findMarketingRecipients`)
+- [x] Zakazana objava odobrenog sadržaja radi automatski u planirano vreme. (`ContentPublishSchedulerService`, `@Cron(EVERY_MINUTE)` → `ContentService.publishDueContent`)
+- [x] `STATIC_PAGE`/`BLOG_POST` sa istim `slug` se ne može kreirati dvaput (unique). (DB `@unique` + eksplicitna provera u servisu, `409 Conflict`)
+- [x] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise. (`generateTrackingCode`, kolizija proverena pre upisa)
+- [x] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost. (`FactSyncService.resolveContentAttribution` → `ContentService.findByTrackingCode`)
+- [x] `ContentPiece` sa `contains_ai_generated_media = true` ne može preći u `APPROVED`/`PUBLISHED` bez vidljive oznake transparentnosti u `body` jezika objave (poglavlje 3c). (`hasAiTransparencyMarker` regex provera u `approve()`; dodatno, `BANNER` vezan za `product_id` je uvek odbijen kao proksi-provera drugog pravila §3c — dokumentovano u kodu)
+- [ ] M8 zavisne stavke (poglavlje 3b/3a) — `/stranica/:slug`, `/blog/:slug` rute i hvatanje `?ref=` na sajtu — čekaju M8 frontend (namerno van obima, CLAUDE.md "NE DIRAJ apps/web/"). M12 backend deo (model, `slug` unique, `tracking_code`) je gotov i spreman da ih posluži čim M8 dobije kod.
 
 ---
 

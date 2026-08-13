@@ -25,13 +25,12 @@ Ovo je testirano baš u tom najgorem scenariju: namerno smo simulirali da jedna 
 - **Prodaja** — koliko je rezervacija, koliko vredi ukupno, kolika je prosečna vrednost rezervacije.
 - **Zauzetost smeštaja** — koliko je ljudi putovalo, koliko noćenja, koliko je soba prodato, i razvrstano po tipu sobe, usluzi (polupansion/all-inclusive), kategoriji hotela (broj zvezdica) i tipu smeštaja (hotel, vila, apartman...). Kad neki podatak nedostaje (npr. rezervacije iz spoljnih sistema često ne nose tip sobe), izveštaj to jasno kaže brojem — ne pravi se da tog dela prodaje nema.
 - **Dinamički izveštaj** — umesto fiksnih tabela, tim sam bira redosled po kojem želi da vidi podatke (npr. "prvo po državi, pa unutar toga po dobavljaču") i sistem sam sastavi rezultat tim redosledom, sa zaradom/naplatom/dugom na svakom nivou.
-- **Marketing performanse** — koje rezervacije stvarno potiču od klika na promotivni sadržaj (blog objava, društvene mreže) koji je agencija objavila. Ovo zavisi od budućeg modula za marketing (M12), koji još nije izgrađen — dok se ne izgradi, ovaj deo izveštaja iskreno pokazuje "nepoznato poreklo" za sve rezervacije, umesto da nešto izmišlja.
+- **Marketing performanse** — koje rezervacije stvarno potiču od klika na promotivni sadržaj (blog objava, društvene mreže) koji je agencija objavila preko M12 (marketing modul, izgrađen avgust 2026). Kad gost rezerviše preko linka koji nosi trag konkretne objave, izveštaj ga poveže sa tim sadržajem; ako trag nedostaje ili ne odgovara nijednoj objavi, rezervacija se iskreno prikazuje kao "nepoznato poreklo", nikad se ništa ne izmišlja.
 
 Svaki izveštaj u gornjem uglu pokazuje kada je poslednji put osvežen — da tim zna da li gleda podatke od pre par sekundi ili od sinoćne provere.
 
 ## Šta još čeka (namerno, ne propust)
 
-- Kad M12 (marketing modul) bude izgrađen, marketing izveštaj automatski počinje da povezuje rezervacije sa konkretnim promotivnim sadržajem — mesto za to je već pripremljeno u M13, samo čeka da M12 postoji.
 - Poseban izveštaj profita/gubitka za charter/fiksni zakup ugovore (kad agencija unapred plati ceo avion ili ceo hotel) — dodaje se kad se prvi takav ugovor stvarno pojavi.
 - Sačuvani prečaci za dinamički izveštaj (npr. "uvek pokaži po državi pa dobavljaču" jednim klikom) — praktično poboljšanje za kasnije, ne menja ono što izveštaj već ume da uradi.
 

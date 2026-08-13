@@ -16,6 +16,7 @@ import { M7B2bSubagentiModule } from './modules/m7-b2b-subagenti/m7-b2b-subagent
 import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugovori-klijenti.module';
 import { M14HelpdeskModule } from './modules/m14-helpdesk/m14-helpdesk.module';
 import { M13BiModule } from './modules/m13-bi/m13-bi.module';
+import { M12MarketingModule } from './modules/m12-marketing/m12-marketing.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { M13BiModule } from './modules/m13-bi/m13-bi.module';
     M20UgovoriKlijentiModule,
     M14HelpdeskModule,
     M13BiModule,
+    M12MarketingModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

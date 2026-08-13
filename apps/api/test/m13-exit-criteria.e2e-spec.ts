@@ -444,7 +444,7 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       await factSync.syncBookingItem(item.id);
 
       const fact = await prisma.factBooking.findUniqueOrThrow({ where: { bookingItemId: item.id } });
-      expect(fact.referralContentId).toBeNull(); // M12 ne postoji — trajno null (spec §4.3)
+      expect(fact.referralContentId).toBeNull(); // bez referral_tracking_code na Booking-u → null (spec §4.3), bez obzira što M12 sad postoji
 
       const res = await request(app.getHttpServer()).get('/api/v1/bi/reports/marketing').set(authed(accessToken));
       expect(res.status).toBe(200);

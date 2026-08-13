@@ -2073,3 +2073,102 @@ model FactPayment {
 
   @@map("fact_payments")
 }
+
+// ============================================================================
+// M12 — Marketing i sadržajni engine (docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md)
+// ============================================================================
+
+enum ContentPieceType {
+  BLOG_POST
+  SOCIAL_POST
+  EMAIL_NEWSLETTER
+  BANNER
+  STATIC_PAGE
+}
+
+enum ContentChannel {
+  M8_SITE
+  FACEBOOK
+  INSTAGRAM
+  EMAIL
+  MOBILE_PUSH
+}
+
+// §3 — DRAFT je rezervisan isključivo za sadržaj koji ručno unosi čovek i još ga ne smatra
+// spremnim za pregled; AI nacrt ulazi direktno u PENDING_APPROVAL (nema poseban ljudski korak
+// koji bi ga prebacio iz DRAFT). APPROVED → PUBLISHED je nepovratna granica (approved_by).
+enum ContentPieceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+}
+
+enum ContentGeneratedBy {
+  AI
+  HUMAN
+}
+
+// §2.1 `ContentPiece`
+model ContentPiece {
+  id           String             @id @default(uuid())
+  productId    String?            @map("product_id") // weak ref → M2 Product; null za STATIC_PAGE i opšti BLOG_POST (§3b)
+  type         ContentPieceType
+  slug         String?            @unique // obavezno za STATIC_PAGE/BLOG_POST (§3b), nepotrebno za ostale tipove
+  trackingCode String             @unique @map("tracking_code") // auto-generisan, 8 karaktera, koristi se za atribuciju (§3a)
+  targetChannels ContentChannel[] @map("target_channels")
+  targetTags   Json?              @map("target_tags") // string[] — samo za EMAIL (§4); null/prazno = svi sa marketing_consent=true
+  // §3c (YUTA preporuka avgust 2026) — true kad body/media sadrži SINTETIČKI AI-generisan
+  // vizual (npr. DALL-E/Midjourney stil), za razliku od stvarne fotografije samo AI-*izvučene*
+  // sa sajta dobavljača (M2 media.source=AI_IMPORTED, koja NE podleže ovom pravilu).
+  containsAiGeneratedMedia Boolean @default(false) @map("contains_ai_generated_media")
+  scheduledPublishAt DateTime?    @map("scheduled_publish_at") // kalendar = sort po ovom polju, bez posebnog entiteta
+  status       ContentPieceStatus @default(DRAFT)
+  generatedBy  ContentGeneratedBy @map("generated_by")
+  approvedBy   String?            @map("approved_by") // weak ref → M1 User; obavezno pre PUBLISHED, nikad AI
+  publishedAt  DateTime?          @map("published_at")
+  createdAt    DateTime           @default(now()) @map("created_at")
+  updatedAt    DateTime           @updatedAt @map("updated_at")
+
+  translations ContentTranslation[]
+
+  @@map("content_pieces")
+}
+
+// §2.2 `ContentTranslation` — isti obrazac kao M2 ProductTranslation (red po jeziku).
+model ContentTranslation {
+  id                String            @id @default(uuid())
+  contentPieceId    String            @map("content_piece_id")
+  languageCode      LanguageCode      @map("language_code")
+  title             String
+  body              String
+  translationSource TranslationSource @default(MANUAL) @map("translation_source")
+  isReviewed        Boolean           @default(false) @map("is_reviewed")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+
+  @@unique([contentPieceId, languageCode])
+  @@map("content_translations")
+}
+
+enum ChannelConfigStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// §4 — konfiguracija distribucionih kanala, isti obrazac kao M4 ProviderConfig (kredencijali
+// enkriptovano). M8_SITE i MOBILE_PUSH nemaju sopstveni adapter (§4) pa auth_config_encrypted
+// ostaje null za njih — samo status/display_name su relevantni.
+model ChannelConfig {
+  id                  String              @id @default(uuid())
+  channelCode         ContentChannel      @unique @map("channel_code")
+  displayName         String              @map("display_name")
+  authConfigEncrypted String?             @map("auth_config_encrypted")
+  status              ChannelConfigStatus @default(INACTIVE)
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  @@map("channel_configs")
+}

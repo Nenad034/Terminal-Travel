@@ -82,6 +82,22 @@ export class ClientAccountsService {
     });
   }
 
+  // M12 spec §4 (dopuna avgust 2026) — kandidati za EMAIL distribucioni kanal: uvek
+  // marketing_consent=true (M6 spec §7, Zakon o zaštiti podataka o ličnosti), dodatno suženo na
+  // presek sa targetTags kad je popunjeno (nikad prošireno van marketing_consent=true skupa).
+  // Koristi ga M12 EmailDistributionAdapter preko DI, isti obrazac kao ostali cross-modul pozivi.
+  async findMarketingRecipients(targetTags?: string[] | null) {
+    const consented = await this.prisma.clientAccount.findMany({
+      where: { marketingConsent: true, email: { not: null } },
+    });
+    if (!targetTags || targetTags.length === 0) return consented;
+
+    return consented.filter((account) => {
+      const accountTags = Array.isArray(account.tags) ? (account.tags as unknown[]).map(String) : [];
+      return targetTags.some((tag) => accountTags.includes(tag));
+    });
+  }
+
   // §5 — GET /client-accounts/:id/travel-history: spaja M5 Booking/BookingItem uživo, uz proveru
   // da nalogodavac zaista postoji (404 ako ne).
   async travelHistory(id: string, actorUserId?: string) {
