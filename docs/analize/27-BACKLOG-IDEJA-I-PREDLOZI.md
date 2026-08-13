@@ -221,7 +221,7 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 - Gornja granica broja istovremeno otvorenih tabova (§5a) i ponašanje kad se dostigne.
 
 ## Infrastruktura / zavisnosti (cross-modularno)
-- Nadogradnja NestJS 10→11 (major) pre produkcije — `npm audit` (11.8.2026) pokazuje 25 ranjivosti u tranzitivnim zavisnostima (express/body-parser/qs/multer/lodash/js-yaml/picomatch/tmp/webpack), sve zakrpljene tek u NestJS 11 liniji, ne u 10.x (10.4.22 je već poslednja 10.x verzija). Trenutno nizak stvarni rizik — nema produkcionog hostinga, nema upload rute (multer neiskorišćen). Uraditi kao izolovan zadatak, ne usred rada na poslovnim modulima, prirodno uz izbor hosting provajdera pred lansiranje.
+- Nadogradnja NestJS 10→11, Next.js 14→16 i next-intl 3→4 (sve major) pre produkcije — `npm audit` (13.8.2026, posle dodavanja M8/`apps/web`) pokazuje 30 ranjivosti (12 high/15 moderate/3 low). U pravoj putanji zahteva (ne samo dev-alati poput `@nestjs/cli`/`@angular-devkit`/`eslint-config-next`): `express`/`body-parser`/`multer`/`qs`/`@nestjs/core`/`@nestjs/swagger`/`js-yaml`/`lodash` (API), i `next`/`next-intl`/`postcss` (web — HTTP request smuggling, DoS, open redirect). Sve zakrpe zahtevaju major skok, nema patch/minor rešenja. Trenutno nizak stvaran rizik — nema produkcionog hostinga (EU provajder namerno još nije izabran). Uraditi kao izolovan zadatak (ne usred rada na poslovnim modulima), sa punom e2e regresijom posle — prirodno uz izbor hosting provajdera pred lansiranje.
 
 ---
 
