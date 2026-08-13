@@ -58,6 +58,7 @@ describe('M13 — izlazni kriterijum (e2e)', () => {
       await prisma.payment.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       // booking.confirmed (emitovan ili preko M5 automatike) triggeruje M11/M20 pretplatnike —
       // isti FK cleanup redosled kao M7/M14 e2e testovi.
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.clientContract.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });

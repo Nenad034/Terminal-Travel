@@ -46,6 +46,7 @@ describe('M20 — izlazni kriterijum (e2e)', () => {
 
   afterAll(async () => {
     if (createdBookingIds.length) {
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.clientContract.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });

@@ -52,6 +52,7 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     await wait(300);
     if (createdChannelConfigIds.length) await prisma.channelConfig.deleteMany({ where: { id: { in: createdChannelConfigIds } } });
     if (createdBookingIds.length) {
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.factBooking.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItemGuest.deleteMany({ where: { bookingItem: { bookingId: { in: createdBookingIds } } } });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });

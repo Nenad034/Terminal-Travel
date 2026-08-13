@@ -48,7 +48,10 @@ describe('M14 — izlazni kriterijum (e2e)', () => {
       await prisma.ticketMessage.deleteMany({ where: { ticketId: { in: createdTicketIds } } });
       await prisma.ticket.deleteMany({ where: { id: { in: createdTicketIds } } });
     }
-    if (createdBookingIds.length) await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    if (createdBookingIds.length) {
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    }
     if (createdSubagentIds.length) await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
     if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {

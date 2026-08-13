@@ -42,6 +42,7 @@ describe('M11 — izlazni kriterijum (e2e)', () => {
 
   afterAll(async () => {
     if (createdBookingIds.length) {
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.travelGuaranteeRegistration.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }

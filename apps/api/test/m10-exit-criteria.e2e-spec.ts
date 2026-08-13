@@ -43,6 +43,7 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
   afterAll(async () => {
     if (createdBookingIds.length) {
       await prisma.fiscalDocument.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.clientPaymentSchedule.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.payment.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
