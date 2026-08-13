@@ -100,6 +100,54 @@ export class FiscalDocumentsService {
     });
   }
 
+  // M14 spec §3.2 — priprema DRAFT storno nacrt (za razliku od storno() ispod, koji odmah šalje
+  // ka fiskalnom gateway-u): traži poslednji SUBMITTED/ISSUED dokument vezan za booking, kreira
+  // NOVI FiscalDocument u statusu DRAFT sa stornoOfDocumentId popunjenim, iste vrednosti kao
+  // original. Idempotentno (kao prepareDraft) — ako DRAFT storno nacrt za taj original već postoji,
+  // vraća ga. Ako booking nema poslat dokument za storniranje, vraća null (informativno, ne baca
+  // grešku — pozivalac, M14 event subscriber, odlučuje šta dalje).
+  async prepareStornoDraftForBooking(bookingId: string) {
+    const original = await this.prisma.fiscalDocument.findFirst({
+      where: { bookingId, status: { in: ['SUBMITTED', 'ISSUED'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!original) return null;
+
+    const existingDraft = await this.prisma.fiscalDocument.findFirst({
+      where: { stornoOfDocumentId: original.id, status: 'DRAFT' },
+    });
+    if (existingDraft) return existingDraft;
+
+    const document = await this.prisma.fiscalDocument.create({
+      data: {
+        bookingId: original.bookingId,
+        documentType: original.documentType,
+        status: 'DRAFT',
+        vatCalculationBasis: original.vatCalculationBasis,
+        stornoOfDocumentId: original.id,
+        amountOriginal: original.amountOriginal,
+        currencyOriginal: original.currencyOriginal,
+        amountRsd: original.amountRsd,
+        vatRate: original.vatRate,
+        vatAmount: original.vatAmount,
+        exchangeRateSnapshotId: original.exchangeRateSnapshotId,
+        buyerNameSnapshot: original.buyerNameSnapshot,
+        buyerTaxIdSnapshot: original.buyerTaxIdSnapshot,
+      },
+    });
+
+    await this.auditLog.write({
+      actorType: 'SYSTEM',
+      module: 'M10',
+      action: 'fiscal_document.storno_draft_created',
+      resourceType: 'FiscalDocument',
+      resourceId: document.id,
+      afterState: document,
+    });
+
+    return document;
+  }
+
   async findOne(id: string) {
     const document = await this.prisma.fiscalDocument.findUnique({ where: { id } });
     if (!document) throw new NotFoundException(`FiscalDocument ${id} nije pronađen.`);
@@ -130,11 +178,15 @@ export class FiscalDocumentsService {
     // koncept prihvatanja; ESIR_RACUN je N/A (poglavlje 5.1).
     const isSefStyle = document.documentType !== 'ESIR_RACUN';
     const buyerAcceptanceDeadline = isSefStyle ? new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000) : null;
+    // M14 spec §3.2 — DRAFT pripremljen preko prepareStornoDraftForBooking (stornoOfDocumentId
+    // popunjen) završava slanje u statusu STORNIRANO, ne SUBMITTED — isti krajnji status kao
+    // odmah-pošalji storno() ispod, samo dvostepen (DRAFT → ljudska SUBMIT potvrda).
+    const isStornoDraft = !!document.stornoOfDocumentId;
 
     const updated = await this.prisma.fiscalDocument.update({
       where: { id },
       data: {
-        status: 'SUBMITTED',
+        status: isStornoDraft ? 'STORNIRANO' : 'SUBMITTED',
         externalReference: result.externalReference,
         xmlUrl: result.xmlUrl,
         pdfUrl: result.pdfUrl,
@@ -152,7 +204,7 @@ export class FiscalDocumentsService {
       actorType: 'HUMAN',
       actorId: actor.userId,
       module: 'M10',
-      action: 'fiscal_document.submitted',
+      action: isStornoDraft ? 'fiscal_document.storno' : 'fiscal_document.submitted',
       resourceType: 'FiscalDocument',
       resourceId: id,
       beforeState: document,

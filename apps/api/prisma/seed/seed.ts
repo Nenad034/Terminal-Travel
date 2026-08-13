@@ -173,6 +173,15 @@ const M20_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M20', resource: 'client-contract', action: 'VOID', description: 'Poništavanje ugovora — nikad AI agent' },
 ];
 
+// M14 spec §5 — dozvole podrške/helpdeska. RESPOND je interno-samo (izmena statusa/prioriteta,
+// STAFF/AI_DRAFT poruke, mark-sent); Gost/SUBAGENT_ADMIN dobijaju CREATE/VIEW ograničeno na
+// sopstvene tikete na nivou API-ja (obim se sprovodi u TicketsService, ne kroz poseban ključ).
+const M14_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M14', resource: 'ticket', action: 'VIEW', description: 'Uvid u tikete (svi za interni tim, sopstveni za Gosta/subagenta)' },
+  { module: 'M14', resource: 'ticket', action: 'CREATE', description: 'Otvaranje tiketa i dodavanje sopstvene (REQUESTER) poruke' },
+  { module: 'M14', resource: 'ticket', action: 'RESPOND', description: 'Izmena statusa/prioriteta/dodele, STAFF/AI_DRAFT poruke, mark-sent — nikad Gost/subagent' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -187,6 +196,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -199,6 +209,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -251,6 +262,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'communication-log', action: 'VIEW' },
     { module: 'M6', resource: 'communication-log', action: 'CREATE' },
     { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
+    // M14 spec §5 — Sales Manager vidi/odgovara na sve tikete (isti krug kao Vlasnik/Direktor).
+    { module: 'M14', resource: 'ticket', action: 'VIEW' },
+    { module: 'M14', resource: 'ticket', action: 'CREATE' },
+    { module: 'M14', resource: 'ticket', action: 'RESPOND' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -290,6 +305,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'communication-log', action: 'VIEW' },
     { module: 'M6', resource: 'communication-log', action: 'CREATE' },
     { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
+    // M14 spec §5 — Prodajni agent dobija podrazumevano isti krug kao Sales Manager (spec §5:
+    // "svi tiketi; Prodajni agent podrazumevano samo sopstveni klijenti, širi se izuzetkom") —
+    // finije filtriranje po sopstvenim klijentima nije sprovedeno na nivou dozvole ovde, isti
+    // obrazac kao M5/M6 (ownership bi se sprovodio u servisu, ako/kad se pokaže potreba).
+    { module: 'M14', resource: 'ticket', action: 'VIEW' },
+    { module: 'M14', resource: 'ticket', action: 'CREATE' },
+    { module: 'M14', resource: 'ticket', action: 'RESPOND' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -341,6 +363,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M20 spec §5 — Gost vidi isključivo sopstvene ugovore (M8 tok, prihvata sam kroz clickwrap,
     // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
+    // M14 spec §5 — Gost otvara/vidi isključivo sopstvene tikete (ownership u TicketsService, ne
+    // poseban ključ dozvole); nema RESPOND (ne može menjati status/prioritet ni slati STAFF poruke).
+    { module: 'M14', resource: 'ticket', action: 'VIEW' },
+    { module: 'M14', resource: 'ticket', action: 'CREATE' },
   ],
   // M7 spec §8/§10 — SUBAGENT_ADMIN: sopstveni Subagent/ClientAccount profil, sopstvene
   // rezervacije preko M5 (§5 provizija se primenjuje automatski), upravljanje sopstvenom mrežom.
@@ -361,6 +387,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M7', resource: 'subagent', action: 'VIEW' },
     { module: 'M7', resource: 'subagent', action: 'MANAGE_OWN_NETWORK' },
+    // M14 spec §5 — SUBAGENT_ADMIN otvara/vidi isključivo sopstvene tikete (ownership preko
+    // Subagent.client_account_id u TicketsService); nema RESPOND, isti krug kao Gost.
+    { module: 'M14', resource: 'ticket', action: 'VIEW' },
+    { module: 'M14', resource: 'ticket', action: 'CREATE' },
   ],
 };
 
@@ -376,6 +406,7 @@ async function main() {
     ...M11_PERMISSIONS,
     ...M7_PERMISSIONS,
     ...M20_PERMISSIONS,
+    ...M14_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -405,7 +436,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola.`,
   );
 }
 

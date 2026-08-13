@@ -26,6 +26,12 @@ export class M10EventSubscribersService implements OnModuleInit {
     this.eventListener.on('M5', 'booking.confirmed', async (payload) => {
       await this.onBookingConfirmed(payload.bookingId as string);
     });
+    // M14 spec §3.2 — reklamacija rešena uz odluku o povraćaju: pripremi DRAFT storno nacrt.
+    // M10 NE uvozi M14 direktno (izbegava kružnu zavisnost, isti obrazac odluke kao M7↔M10
+    // credit_note.submitted) — event bus umesto DI poziva.
+    this.eventListener.on('M14', 'ticket.resolved_with_refund', async (payload) => {
+      await this.onTicketResolvedWithRefund(payload.relatedBookingId as string | null);
+    });
   }
 
   async onBookingConfirmed(bookingId: string): Promise<void> {
@@ -38,5 +44,10 @@ export class M10EventSubscribersService implements OnModuleInit {
     for (const item of items) {
       await this.supplierObligations.createFromBookingItem(item.id);
     }
+  }
+
+  async onTicketResolvedWithRefund(bookingId: string | null): Promise<void> {
+    if (!bookingId) return; // §3.2 — tiket bez related_booking_id nema šta da se stornira
+    await this.fiscalDocuments.prepareStornoDraftForBooking(bookingId);
   }
 }

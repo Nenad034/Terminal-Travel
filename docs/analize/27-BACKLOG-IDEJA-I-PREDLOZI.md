@@ -142,7 +142,6 @@ Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili 
 *(§8, `docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md`)*
 - SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema).
 - Integracija sa M9 mobilnom aplikacijom za goste (Faza 6).
-- Mehanizam formalnog beleženja odluke o povraćaju novca na tiketu.
 - **Zakon o zaštiti potrošača — rok gosta za prijavu reklamacije (istraživanje, avgust 2026):** poglavlje 3 ispravno prati 8-dnevni rok agencije za odgovor (`zzp_response_deadline`), ali ne ograničava kada gost sme da otvori `REKLAMACIJA` tiket u odnosu na datum povratka — zakon (potrebna potvrda pravnika) daje gostu 15 dana posle povratka da prijavi.
 
 ## M15 — AI agentska orkestracija

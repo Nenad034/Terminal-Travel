@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M14) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodato `Ticket.source_email_thread_id` (M22 poglavlje 5, konverzija mejl niti u tiket), avgust 2026; v1.1 dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
+**Status:** Implementirano (avgust 2026) — `apps/api/src/modules/m14-helpdesk/`
+**Verzija:** 1.3 — puna implementacija, avgust 2026: dodato `Ticket.refund_decision` (zatvara §8 otvoreno pitanje, vidi §3.2), dokumentovan mehanizam eskalacije i storno nacrta; v1.2 dodato `Ticket.source_email_thread_id` (M22 poglavlje 5, konverzija mejl niti u tiket), avgust 2026; v1.1 dodata `HELP_CENTER` vrednost u `Ticket.channel` (M21 eskalacija)
 **Zavisi od:** M1, M5, M6, M7. Formalno i od M22 (izvor tiketa kad nastaje konverzijom mejla) kad taj modul postoji.
 
 ---
@@ -37,6 +37,7 @@ M14 je tiketing sistem za goste (preko M8 sajta ili M9 aplikacije) i subagente (
 | assigned_to | UUID, nullable (FK → M1 User) | |
 | zzp_response_deadline | date, nullable | **samo za `category = REKLAMACIJA`** — `created_at + 8 dana` (poglavlje 3.1), popunjava se automatski pri kreiranju |
 | zzp_escalated_at | timestamp, nullable | **samo za `category = REKLAMACIJA`** — popunjava se automatski ako tiket ostane bez odgovora tima 5 dana od `created_at` |
+| refund_decision | boolean, default `false` | *(dodato pri implementaciji, avgust 2026 — zatvara §8 otvoreno pitanje)* mehanizam kojim se formalno beleži odluka o povraćaju: `PATCH /tickets/:id` sa `status=RESOLVED` i `refund_decision=true` okida `ticket.resolved_with_refund` (§3.2) |
 | created_at / updated_at / resolved_at | timestamp | |
 
 ### 2.2 `TicketMessage`
@@ -66,6 +67,8 @@ Neodgovaranje u roku od 8 dana pravno ovlašćuje gosta na sniženje cene ili ra
 ### 3.2 Automatski nacrt storno dokumenta pri povraćaju
 
 Ako se rešenje reklamacije (`status → RESOLVED`) veže za odluku o povraćaju novca, M14 emituje događaj `ticket.resolved_with_refund` (Event Bus, referencira `related_booking_id`) — M10 se pretplaćuje i **automatski priprema nacrt** storno fiskalnog dokumenta (`FiscalDocument.status = DRAFT`, M10 poglavlje 6.1), isto kao svaki drugi nacrt u M10. Ovo ne menja pravilo iz M10: **slanje** storno dokumenta i dalje zahteva ljudsku potvrdu (`M10/fiscal-document/SUBMIT`) — M14 samo ubrzava pripremu, nikad sam ne izvršava fiskalnu radnju.
+
+**Mehanizam formalnog beleženja odluke (zatvara §8 otvoreno pitanje, implementirano avgust 2026):** `Ticket.refund_decision` (boolean, default `false`). Jedini put koji tu odluku menja je `PATCH /tickets/:id`; kad zahtev nosi `status: "RESOLVED"` **i** `refund_decision: true`, i tiket u tom pozivu stvarno prelazi u `RESOLVED` (tranzicija, ne svaki naredni PATCH nad već rešenim tiketom), servis emituje `ticket.resolved_with_refund`. Na M10 strani, `FiscalDocumentsService.prepareStornoDraftForBooking(bookingId)` traži poslednji `SUBMITTED`/`ISSUED` `FiscalDocument` za tu rezervaciju i kreira nov zapis u statusu `DRAFT` sa `storno_of_document_id` popunjenim (idempotentno — ponovljen event ne pravi duplikat dok god prethodni nacrt nije poslat). `FiscalDocumentsService.submit()` prepoznaje `storno_of_document_id` i pri ljudskoj potvrdi završava taj dokument u statusu `STORNIRANO` (ne `SUBMITTED`) — isti krajnji ishod kao postojeći "odmah pošalji" `storno()` poziv, samo dvostepen. M10 ne uvozi M14 direktno (izbegava kružnu zavisnost, isti obrazac odluke kao M7↔M10 `credit_note.submitted`) — pretplata ide isključivo preko Event Bus-a (`M10EventSubscribersService`).
 
 ---
 
@@ -99,12 +102,12 @@ Prefiks: `/api/v1/helpdesk`
 
 ## 7. Izlazni kriterijum (M14 deo Faze 5)
 
-- [ ] Gost sa sajta (M8) i subagent sa B2B portala (M7) mogu da otvore tiket i vide status/odgovore.
-- [ ] Interne beleške (`is_internal_note`) nikad nisu vidljive van internog panela (M17).
-- [ ] AI-generisan nacrt koji pominje cenu/obavezu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom.
-- [ ] Tiket vezan za rezervaciju (`related_booking_id`) prikazuje kontekst iz M5 bez dupliranja podataka.
-- [ ] `zzp_response_deadline` se automatski postavlja na 8 dana za `REKLAMACIJA` tikete; `zzp_escalated_at` se popunjava i menadžment obaveštava tačno posle 5 dana bez odgovora tima.
-- [ ] Rešavanje reklamacije uz povraćaj novca automatski priprema nacrt storno dokumenta u M10, ali slanje i dalje zahteva ljudsku potvrdu.
+- [x] Gost sa sajta (M8) i subagent sa B2B portala (M7) mogu da otvore tiket i vide status/odgovore. Pokriveno e2e testom `apps/api/test/m14-exit-criteria.e2e-spec.ts` §7.
+- [x] Interne beleške (`is_internal_note`) nikad nisu vidljive van internog panela (M17). `TicketsService.findMessages` filtrira za Gost/`SUBAGENT_ADMIN`; interni panel (M17) i dalje čeka svoju implementaciju, ali API sloj koji ga hrani već sprovodi pravilo.
+- [x] AI-generisan nacrt koji pominje cenu/obavezu ne može biti poslat bez `sent_by` popunjenog ljudskim nalogom. `TicketMessage.sender_type=AI_DRAFT` nikad ne dobija `sent_by` pri kreiranju; jedini put je `POST /tickets/:id/messages/:messageId/send` (`M14/ticket/RESPOND`).
+- [x] Tiket vezan za rezervaciju (`related_booking_id`) prikazuje kontekst iz M5 bez dupliranja podataka. `GET /tickets/:id` vraća `relatedBooking` uživo (bookingNumber/status), ne kopira ga u `Ticket`.
+- [x] `zzp_response_deadline` se automatski postavlja na 8 dana za `REKLAMACIJA` tikete; `zzp_escalated_at` se popunjava i menadžment obaveštava tačno posle 5 dana bez odgovora tima. `M14AlarmsService` (`@Cron`, svako jutro) — obaveštavanje je Event Bus signal (`ticket_zzp_escalated`), M18 dashboard/email još ne postoji kao poseban modul (vidi objašnjenje za vlasnika).
+- [x] Rešavanje reklamacije uz povraćaj novca automatski priprema nacrt storno dokumenta u M10, ali slanje i dalje zahteva ljudsku potvrdu. Vidi §3.2 mehanizam (`refund_decision`) i e2e test §3.2.
 
 ---
 
@@ -112,4 +115,4 @@ Prefiks: `/api/v1/helpdesk`
 
 - SLA pravila za ostale kategorije tiketa (npr. automatsko eskaliranje tehničkog problema otvorenog duže od X sati) — dodaju se ako se pokaže potreba; `REKLAMACIJA` kategorija već ima zakonski rok (poglavlje 3.1), ne čeka ovu opštu odluku.
 - Integracija sa M9 mobilnom aplikacijom (Faza 6) za goste — dodaje se kad taj kanal bude gotov.
-- Tačan mehanizam kojim se odluka o povraćaju novca formalno beleži na tiketu (npr. novo polje `refund_decision`) pre nego što se emituje `ticket.resolved_with_refund` — definiše se kad se dođe do stvarne izrade, van obima ove specifikacije.
+- ~~Tačan mehanizam kojim se odluka o povraćaju novca formalno beleži na tiketu~~ — **zatvoreno avgust 2026**, vidi §2.1 (`Ticket.refund_decision`) i §3.2.

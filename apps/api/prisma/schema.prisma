@@ -1914,3 +1914,94 @@ model CommissionRebate {
 
   @@map("commission_rebates")
 }
+
+// M14 — Podrška / Helpdesk: docs/moduli/M14-helpdesk/14-SPECIFIKACIJA-M14-HELPDESK.md
+// §2.1/§2.2 — requester_client_account_id (M6), related_booking_id (M5), source_email_thread_id
+// (M22, modul još ne postoji u kodu) i assigned_to/sent_by (M1 User) su NAMERNO bez DB-nivo FK —
+// isti obrazac kao M6/M7/M10/M11/M20 (weak reference, jer ovi moduli već koriste proizvoljne
+// placeholder ID-jeve u e2e fixtures — vidi napomenu iznad ClientAccountType).
+
+enum TicketRequesterType {
+  GUEST
+  SUBAGENT
+  STAFF_ON_BEHALF
+}
+
+enum TicketCategory {
+  REZERVACIJA
+  PLACANJE
+  TEHNICKI_PROBLEM
+  REKLAMACIJA
+  DRUGO
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+// §2.1 — HELP_CENTER dodato pri specifikaciji M21 (eskalacija iz AI asistenta).
+enum TicketChannel {
+  SITE_FORM
+  B2B_PORTAL
+  EMAIL
+  PHONE
+  HELP_CENTER
+}
+
+// §2.1 `Ticket`
+model Ticket {
+  id                        String              @id @default(uuid())
+  ticketNumber              String              @unique @map("ticket_number")
+  requesterClientAccountId  String?             @map("requester_client_account_id") // weak ref → M6 ClientAccount
+  requesterType             TicketRequesterType @map("requester_type")
+  relatedBookingId          String?             @map("related_booking_id") // weak ref → M5 Booking
+  subject                   String
+  category                  TicketCategory
+  priority                  TicketPriority      @default(NORMAL)
+  status                    TicketStatus        @default(OPEN)
+  channel                   TicketChannel
+  sourceEmailThreadId       String?             @map("source_email_thread_id") // weak ref → M22 EmailThread (modul ne postoji još)
+  assignedTo                String?             @map("assigned_to") // weak ref → M1 User, isti obrazac kao CommunicationLog.sent_by
+  zzpResponseDeadline       DateTime?           @map("zzp_response_deadline") // §3.1 — samo REKLAMACIJA, created_at + 8 dana
+  zzpEscalatedAt            DateTime?           @map("zzp_escalated_at") // §3.1 — popunjeno ako 5 dana bez STAFF odgovora
+  refundDecision            Boolean             @default(false) @map("refund_decision") // §3.2/§8 dopuna — vidi PATCH /tickets/:id
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
+  resolvedAt                DateTime?           @map("resolved_at")
+
+  messages TicketMessage[]
+
+  @@map("tickets")
+}
+
+enum TicketMessageSenderType {
+  REQUESTER
+  STAFF
+  AI_DRAFT
+}
+
+// §2.2 `TicketMessage`
+model TicketMessage {
+  id             String                  @id @default(uuid())
+  ticketId       String                  @map("ticket_id")
+  senderType     TicketMessageSenderType @map("sender_type")
+  senderId       String?                 @map("sender_id") // M1 User ili M6 ClientAccount/GuestProfile, weak ref
+  body           String
+  isInternalNote Boolean                 @default(false) @map("is_internal_note")
+  sentBy         String?                 @map("sent_by") // weak ref → M1 User — popunjeno tek pri stvarnom slanju (§4)
+  createdAt      DateTime                @default(now()) @map("created_at")
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+
+  @@map("ticket_messages")
+}

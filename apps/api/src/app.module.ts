@@ -14,6 +14,7 @@ import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module
 import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.module';
 import { M7B2bSubagentiModule } from './modules/m7-b2b-subagenti/m7-b2b-subagenti.module';
 import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugovori-klijenti.module';
+import { M14HelpdeskModule } from './modules/m14-helpdesk/m14-helpdesk.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugo
     M11ComplianceModule,
     M7B2bSubagentiModule,
     M20UgovoriKlijentiModule,
+    M14HelpdeskModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
