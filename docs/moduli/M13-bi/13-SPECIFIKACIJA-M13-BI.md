@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M13) i poglavlje 8 (Faza 5)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodat izveštaj "Marketing performanse" (poglavlje 4.3, `FactBooking.referral_content_id`/`referral_content_name`), atribucija rezervacije ka M12 sadržaju preko M5 `referral_tracking_code` — zatvara M12↔M13 integracionu prazninu iz backlog-a (avgust 2026, na zahtev vlasnika); v1.1 dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
+**Status:** Implementirano (avgust 2026) — vidi poglavlje 8 (izlazni kriterijum) i `docs/api/M13-bi.md`
+**Verzija:** 1.3 — implementacija (avgust 2026): dopunjena tabela §3.1 sa `booking_id` i §3.2 sa `payment_id`, oba otkrivena pri implementaciji (potreban stabilan weak-ref ključ za idempotentan upsert i za spoj FactBooking↔FactPayment u §4.2.1 paid/balance); v1.2 dodat izveštaj "Marketing performanse" (poglavlje 4.3, `FactBooking.referral_content_id`/`referral_content_name`), atribucija rezervacije ka M12 sadržaju preko M5 `referral_tracking_code` — zatvara M12↔M13 integracionu prazninu iz backlog-a (avgust 2026, na zahtev vlasnika); v1.1 dodat dinamički izveštaj sa korisnički sastavljivim redosledom dimenzija (poglavlje 4.2) — poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** svi moduli, read-only (poglavlje 4 Master dokumenta); formalno i od M5 (`referral_tracking_code`) i M12 (`ContentPiece.tracking_code`) za poglavlje 4.3
 
 ---
@@ -32,7 +32,8 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
-| booking_item_id | UUID | referenca ka M5, ne FK sa ograničenjem (projekcija je nezavisna) |
+| booking_item_id | UUID | referenca ka M5, ne FK sa ograničenjem (projekcija je nezavisna); unique — jedan red po stavci, omogućava idempotentan upsert |
+| booking_id | UUID | dopuna otkrivena pri implementaciji (avgust 2026) — referenca ka M5 `Booking`, potrebna da se §4.2.1 `paid`/`balance` po čvoru spoji sa `FactPayment.booking_id` bez live upita ka M5 |
 | booking_date | date | datum potvrde |
 | stay_from / stay_to | date | |
 | nights | integer | izvedeno: `stay_to − stay_from` u danima, čuva se radi brzine agregacije |
@@ -63,6 +64,7 @@ M13 **ne čita direktno iz baza drugih modula** (princip #2, poglavlje 3 Master 
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
+| payment_id | UUID | dopuna otkrivena pri implementaciji (avgust 2026) — referenca ka M10 `Payment`, unique; stabilan ključ za idempotentan upsert, isti princip kao `FactBooking.booking_item_id` |
 | booking_id | UUID | |
 | amount_rsd | decimal | |
 | method | string | |
@@ -168,14 +170,16 @@ Prefiks: `/api/v1/bi`
 
 ## 8. Izlazni kriterijum (M13 deo Faze 5)
 
-- [ ] Menadžment vidi profitabilnost po destinaciji, dobavljaču/provajderu i kanalu, sa tačnim `margin` izračunom.
-- [ ] Gubitak pojedinačnog događaja (simuliran) se ispravlja narednom noćnom rekonsilijacijom, bez ručne intervencije.
-- [ ] Svaki izveštaj prikazuje vreme poslednjeg osvežavanja podataka.
-- [ ] Brisanje cele M13 projekcije i njena rekonstrukcija iz izvornih modula daje identičan rezultat kao pre brisanja.
-- [ ] Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba (ukupno i po `room_type`) za zadati period.
-- [ ] Isti izveštaj se ispravno razvrstava po `board_type`, `stars` i `accommodation_type`, uz jasnu naznaku broja stavki koje nisu razvrstane (npr. `API`-sourced stavke bez `room_type`/`board_type`).
-- [ ] Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim `revenue`/`paid`/`balance` po čvoru na svakom nivou.
-- [ ] Marketing izveštaj (poglavlje 4.3) ispravno grupiše rezervacije po sadržaju koji ih je doveo, i posebno prikazuje broj/vrednost rezervacija bez poznatog porekla (`referral_content_id IS NULL`), bez mešanja u agregat po sadržaju.
+Sve stavke dokazane e2e testom (`apps/api/test/m13-exit-criteria.e2e-spec.ts`), protiv prave Postgres baze — implementacija avgust 2026.
+
+- [x] Menadžment vidi profitabilnost po destinaciji, dobavljaču/provajderu i kanalu, sa tačnim `margin` izračunom.
+- [x] Gubitak pojedinačnog događaja (simuliran) se ispravlja narednom noćnom rekonsilijacijom, bez ručne intervencije.
+- [x] Svaki izveštaj prikazuje vreme poslednjeg osvežavanja podataka.
+- [x] Brisanje cele M13 projekcije i njena rekonstrukcija iz izvornih modula daje identičan rezultat kao pre brisanja.
+- [x] Izveštaj "Operativna statistika smeštaja" tačno prikazuje broj osoba, noćenja i broj prodatih soba (ukupno i po `room_type`) za zadati period.
+- [x] Isti izveštaj se ispravno razvrstava po `board_type`, `stars` i `accommodation_type`, uz jasnu naznaku broja stavki koje nisu razvrstane (npr. `API`-sourced stavke bez `room_type`/`board_type`).
+- [x] Dinamički izveštaj gradi stablo tačno onim redosledom dimenzija koji je korisnik odabrao, sa ispravnim `revenue`/`paid`/`balance` po čvoru na svakom nivou.
+- [x] Marketing izveštaj (poglavlje 4.3) ispravno grupiše rezervacije po sadržaju koji ih je doveo, i posebno prikazuje broj/vrednost rezervacija bez poznatog porekla (`referral_content_id IS NULL`), bez mešanja u agregat po sadržaju.
 
 ---
 

@@ -2005,3 +2005,71 @@ model TicketMessage {
 
   @@map("ticket_messages")
 }
+
+// ============================================================================
+// M13 — Izveštavanje i BI (docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md)
+// ============================================================================
+
+// §3.1 `FactBooking` — denormalizovana činjenična tabela, IZVEDENA projekcija (poglavlje 1.1):
+// obnovljiva u potpunosti iz M2/M3/M5/M6/M7 preko rekonsilijacije, nikad izvor istine. Sva
+// polja osim id/last_synced_at su weak reference/snapshot (bez Prisma @relation), isti obrazac
+// kao M6/M7/M10/M11/M14/M20. Jedan red po M5 BookingItem (booking_item_id je unique — omogućava
+// idempotentan upsert i iz Event Bus pretplate i iz noćne rekonsilijacije).
+model FactBooking {
+  id                   String            @id @default(uuid())
+  bookingItemId        String            @unique @map("booking_item_id") // weak ref → M5 BookingItem
+  // `booking_id` je dopuna otkrivena pri implementaciji (van izvorne spec tabele §3.1) — bez nje
+  // dinamički izveštaj (§4.2.1) ne bi mogao da spoji FactBooking sa FactPayment.booking_id (§3.2)
+  // za paid/balance po čvoru, a da ostane samodovoljna projekcija bez live upita ka M5. Upisano i
+  // u spec §3.1, isti princip kao FactPayment.payment_id ispod.
+  bookingId            String            @map("booking_id") // weak ref → M5 Booking
+  bookingDate          DateTime          @map("booking_date")
+  stayFrom             DateTime          @map("stay_from")
+  stayTo               DateTime          @map("stay_to")
+  nights               Int
+  guestCount           Int               @map("guest_count")
+  productId            String            @map("product_id") // weak ref → M2 Product
+  productType          ProductType       @map("product_type")
+  accommodationType    String?           @map("accommodation_type") // samo product_type=ACCOMMODATION
+  stars                Int?
+  roomType             String?           @map("room_type") // samo CONTRACTED ACCOMMODATION stavke (M3 ContractPeriod.room_type)
+  boardType            String?           @map("board_type") // samo CONTRACTED stavke (M3 RateLine.board_type)
+  destinationCountry   String            @map("destination_country")
+  destinationCity      String            @map("destination_city")
+  sourceType           ProductSourceType @map("source_type")
+  supplierId           String?           @map("supplier_id") // weak ref → M3 Supplier, kad CONTRACTED
+  providerCode         String?           @map("provider_code") // weak ref → M4, kad API
+  channel              String
+  clientAccountId      String            @map("client_account_id") // weak ref → M6 ClientAccount
+  baseCost             Int               @map("base_cost") // najmanja jedinica valute (M5 konvencija)
+  finalPrice           Int               @map("final_price")
+  currency             String
+  margin               Int // izračunato: final_price - base_cost
+  productName          String            @map("product_name") // snapshot naziva (M2 ProductTranslation)
+  supplierName         String?           @map("supplier_name") // snapshot naziva dobavljača (M3), CONTRACTED
+  subagentName         String?           @map("subagent_name") // snapshot naziva subagenta (M7); null = direktna prodaja
+  // §4.3 dopuna (avgust 2026) — atribucija ka M12 sadržaju preko Booking.referral_tracking_code
+  // vs. ContentPiece.tracking_code. M12 još ne postoji kao implementacija (samo spec) — ostaje
+  // trajno null dok M12 ne dobije kod (spec §4.3 eksplicitno predviđa ovo kao normalan slučaj).
+  referralContentId    String?           @map("referral_content_id") // weak ref → M12 ContentPiece
+  referralContentName  String?           @map("referral_content_name")
+  status               BookingItemStatus
+  lastSyncedAt         DateTime          @map("last_synced_at")
+
+  @@map("fact_bookings")
+}
+
+// §3.2 `FactPayment` — za finansijske izveštaje (M10 Payment). `payment_id` je dopuna otkrivena
+// pri implementaciji (van izvorne spec tabele od 5 kolona) — potreban je stabilan weak-ref ključ
+// ka izvornom M10 Payment da bi upsert pri rekonsilijaciji/Event Bus sinhronizaciji bio
+// idempotentan, isti princip kao FactBooking.booking_item_id; upisano i u spec §3.2.
+model FactPayment {
+  id         String   @id @default(uuid())
+  paymentId  String   @unique @map("payment_id") // weak ref → M10 Payment
+  bookingId  String   @map("booking_id") // weak ref → M5 Booking
+  amountRsd  Int      @map("amount_rsd")
+  method     String
+  receivedAt DateTime @map("received_at")
+
+  @@map("fact_payments")
+}

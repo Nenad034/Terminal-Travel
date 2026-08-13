@@ -182,6 +182,19 @@ const M14_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M14', resource: 'ticket', action: 'RESPOND', description: 'Izmena statusa/prioriteta/dodele, STAFF/AI_DRAFT poruke, mark-sent — nikad Gost/subagent' },
 ];
 
+// M13 spec §6 — dozvole izveštavanja/BI. `resource` polje koristi format `report:podtip` (isti
+// obrazac koji M1 spec §3.3 daje kao primer) — nema poseban ključ za POST /reconciliation/run
+// (spec §7 kaže samo "Vlasnik/Direktor" tekstualno); gejtuje se u kodu sa report:profitability/VIEW,
+// jedina dozvola sa istim tačnim krugom.
+const M13_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M13', resource: 'report:profitability', action: 'VIEW', description: 'Profitabilnost po destinaciji/dobavljaču/kanalu; gejtuje i ručno pokretanje rekonsilijacije' },
+  { module: 'M13', resource: 'report:sales', action: 'VIEW', description: 'Izveštaj prodaje' },
+  { module: 'M13', resource: 'report:financial', action: 'VIEW', description: 'Finansijski izveštaji (FactPayment)' },
+  { module: 'M13', resource: 'report:occupancy', action: 'VIEW', description: 'Operativna statistika smeštaja (broj osoba, noćenja, prodate sobe)' },
+  { module: 'M13', resource: 'report:dynamic', action: 'VIEW', description: 'Dinamički drill-down izveštaj sa korisnički sastavljivim redosledom dimenzija' },
+  { module: 'M13', resource: 'report:marketing', action: 'VIEW', description: 'Marketing performanse — atribucija rezervacije ka M12 sadržaju' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -197,6 +210,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -210,6 +224,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M14_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -266,6 +281,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     { module: 'M14', resource: 'ticket', action: 'RESPOND' },
+    // M13 spec §6 — Sales Manager dobija sales/occupancy (nije cenovno osetljivo kao profitabilnost/dinamički).
+    { module: 'M13', resource: 'report:sales', action: 'VIEW' },
+    { module: 'M13', resource: 'report:occupancy', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -337,6 +355,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
     // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6.
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    // M13 spec §6 — Računovođa dobija finansijski izveštaj (FactPayment).
+    { module: 'M13', resource: 'report:financial', action: 'VIEW' },
   ],
   // M5 spec §10 tabela ("Gost — samo sopstvene") i M6 spec §7 ("Uloga Gost ima pristup
   // isključivo sopstvenom ClientAccount/GuestProfile") — dozvole same po sebi ne razlikuju
@@ -407,6 +427,7 @@ async function main() {
     ...M7_PERMISSIONS,
     ...M20_PERMISSIONS,
     ...M14_PERMISSIONS,
+    ...M13_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -436,7 +457,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola.`,
   );
 }
 

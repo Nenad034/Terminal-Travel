@@ -15,6 +15,7 @@ import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.mod
 import { M7B2bSubagentiModule } from './modules/m7-b2b-subagenti/m7-b2b-subagenti.module';
 import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugovori-klijenti.module';
 import { M14HelpdeskModule } from './modules/m14-helpdesk/m14-helpdesk.module';
+import { M13BiModule } from './modules/m13-bi/m13-bi.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { M14HelpdeskModule } from './modules/m14-helpdesk/m14-helpdesk.module';
     M7B2bSubagentiModule,
     M20UgovoriKlijentiModule,
     M14HelpdeskModule,
+    M13BiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
