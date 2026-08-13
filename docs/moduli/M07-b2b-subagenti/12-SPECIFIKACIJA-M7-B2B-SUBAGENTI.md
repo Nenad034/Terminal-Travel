@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M7) i poglavlje 8 (Faza 4)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.4 — dodato poglavlje 2.0.4 (AI agent chat za subagente sa izvršnim ovlašćenjem — pretraga/rezervacija/plaćanje/vaučer unutar kreditnog limita, dva gejta: potvrda subagenta uvek, pregled osoblja iznad praga), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, na zahtev vlasnika (avgust 2026); v1.3 dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
+**Status:** Implementirano (avgust 2026) — poglavlja 2.1/3/3.1/3.2/4/5/6/7/8/9/10 i deo 11 (backend API); poglavlja 2.0.1–2.0.4 (portal frontend, omnisearch, AI chat) čekaju M8-obrazac portala i M15, vidi poglavlje 12
+**Verzija:** 1.5 — implementacija (avgust 2026): Prisma modeli `Subagent`/`CommissionVolumeTier`/`SubagentVolumeStatus`/`CommissionRebate`, `SUBAGENT_ADMIN` uloga (M1 katalog), M5 izmene (`SubagentStubService`, kreditni limit pre M3/M4, provizija umesto M6 lojalnosti), e2e testovi (`apps/api/test/m7-exit-criteria.e2e-spec.ts`, 17/17); poglavlje 12 ažurirano — vidi tačan spisak stavki koje čekaju M15/portal frontend; v1.4 dodato poglavlje 2.0.4 (AI agent chat za subagente sa izvršnim ovlašćenjem — pretraga/rezervacija/plaćanje/vaučer unutar kreditnog limita, dva gejta: potvrda subagenta uvek, pregled osoblja iznad praga), zatvara problem #8 iz `Problemi koje zelimo da resimo ovom aplikacijom.md`, na zahtev vlasnika (avgust 2026); v1.3 dodato poglavlje 2.0.3 (univerzalna pretraga i AI razgovor — omnisearch), dopunjuje M15 poglavlje 6.5 (avgust 2026, na zahtev vlasnika); v1.2 dodato poglavlje 2.0 (struktura portala i tok rezervacije korak po korak, ekvivalent M8 poglavlja 2/3), pojašnjeno prepoznavanje Subagenta u M5 toku (poglavlje 5), rešava strukturni nalaz iz `VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026, na zahtev vlasnika); v1.1 dodata stavka izlaznog kriterijuma za responsive prikaz (Master dokument poglavlje 5.1)
 **Zavisi od:** M1, M2, M5, M6, M15 (poglavlje 2.0.3, omnisearch; poglavlje 2.0.4, AI agent chat sa izvršnim ovlašćenjem)
 
 ---
@@ -290,24 +290,33 @@ Prefiks: `/api/v1/b2b`
 
 ## 12. Izlazni kriterijum (M7 deo Faze 4)
 
-- [ ] Novi subagent se registruje, ostaje `PENDING_APPROVAL`, i ne može da naruči dok se ne odobri.
-- [ ] Tier 1 provizija postavlja isključivo agencija; sub-subagent proviziju postavlja isključivo roditeljski subagent, sa ogradom da ne pređe roditeljsku.
-- [ ] Rezervacija koja bi prekoračila kreditni limit se odbija pre bilo kakve rezervacije kapaciteta kod M3/M4.
-- [ ] Cena prikazana subagentu ispravno odražava njegovu proviziju, bez obzira na koji je nivo u lancu.
-- [ ] Subagent ne može da vidi rezervacije ili goste svog sub-subagenta, samo osnovne podatke (status, provizija, kredit) potrebne za upravljanje mrežom.
-- [ ] Kad subagent u posmatranom periodu pređe postavljeni prag obima, `effective_commission_percentage` se automatski podigne i sledeća ponuda odražava novu cenu — bez ljudske intervencije.
-- [ ] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje, ne menja tiho postojeći odnos.
-- [ ] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
-- [ ] Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
-- [ ] Ceo tok iz poglavlja 2.0.2 (pretraga → ponuda → putnici → uslovi → potvrda) radi kraj-do-kraja kroz rute iz poglavlja 2.0.1, bez ijednog koraka koji zaobilazi interne API-je M2/M5/M6.
-- [ ] Rezervacija sa `LEGAL_ENTITY` `ClientAccount` koji **nema** `Subagent` zapis dobija standardnu M5/M6 cenu (marža + eventualna lojalnost), ne proviziju — potvrđuje da se prepoznavanje radi po postojanju zapisa, ne po tipu naloga.
-- [ ] Omnisearch (poglavlje 2.0.3) ne vraća identitet dobavljača niti podatke tuđeg sub-subagenta u rezultatima.
-- [ ] `/b2b/chat` (poglavlje 2.0.4) nije dostupan subagentu čiji `ai_chat_enabled = false`.
-- [ ] `SubagentBookingRequest` ne može preći u `EXECUTING`/`CONFIRMED` bez `subagent_confirmed_at`/`subagent_confirmed_by` popunjenog — i to isključivo nalogom istog `subagent_id`, potvrđeno testom da tuđi `SUBAGENT_ADMIN` (uključujući sopstvenog roditelja/dete u hijerarhiji) ne može potvrditi.
-- [ ] Zahtev sa `requires_staff_review = true` ne izvršava M5 potvrdu dok `staff_reviewed_by` nije popunjeno ljudskim nalogom sa `M7/subagent-chat/STAFF_REVIEW` — provereno da AI agent nema pristup ovom prelazu.
-- [ ] Izvršenje (korak 5, poglavlje 2.0.4c) ponovo proverava garanciju i kreditni limit u trenutku izvršenja, ne samo u trenutku pripreme ponude — test: kreditni limit se popuni drugom rezervacijom između potvrde subagenta i izvršenja, zahtev prelazi u `FAILED`, ne u `CONFIRMED`.
-- [ ] Chat ni u jednom trenutku ne prikuplja/čuva podatke kartice — plaćanje karticom ide isključivo kroz isti hostovani checkout kao portal (M10 poglavlje 7.1).
-- [ ] Otkazivanje pokrenuto kroz chat prolazi kroz istu proveru duplikata kao svaki drugi kanal (M5 poglavlje 6.4).
+Implementacija avgust 2026 (prvi prolaz) pokriva poglavlja 2.1, 3, 3.1, 3.2, 4, 5, 6, 7, 8, 9, 10
+i deo 11 (API ugovor osim `/chat-messages`, `/booking-requests*`) — svi testovi u
+`apps/api/test/m7-exit-criteria.e2e-spec.ts` (17/17 zeleno). Poglavlja 2.0.3 (omnisearch) i 2.0.4
+(AI chat, `SubagentBookingRequest`/`SubagentChatMessage`) su **namerno izostavljeni** ovog prolaza
+— zavise od M15 (AI agentska orkestracija), koji još ne postoji kao NestJS modul u
+`apps/api/src/modules/`; ne izmišljati taj API pre toga (CLAUDE.md — "šta ne raditi"). Portal
+frontend (poglavlje 2.0.1/2.0.2 rute) takođe nije građen ovog prolaza — samo backend API koji bi
+ga servisirao, isti obrazac kao M6.
+
+- [x] Novi subagent se registruje, ostaje `PENDING_APPROVAL`, i ne može da naruči dok se ne odobri.
+- [x] Tier 1 provizija postavlja isključivo agencija; sub-subagent proviziju postavlja isključivo roditeljski subagent, sa ogradom da ne pređe roditeljsku.
+- [x] Rezervacija koja bi prekoračila kreditni limit se odbija pre bilo kakve rezervacije kapaciteta kod M3/M4.
+- [x] Cena prikazana subagentu ispravno odražava njegovu proviziju, bez obzira na koji je nivo u lancu.
+- [x] Subagent ne može da vidi rezervacije ili goste svog sub-subagenta, samo osnovne podatke (status, provizija, kredit) potrebne za upravljanje mrežom.
+- [x] Kad subagent u posmatranom periodu pređe postavljeni prag obima, `effective_commission_percentage` se automatski podigne i sledeća ponuda odražava novu cenu — bez ljudske intervencije.
+- [x] Ako roditeljev obimski bonus istekne i njegova efektivna provizija padne ispod već postavljene provizije deteta, sistem to prijavljuje kao upozorenje (audit log `M7/subagent.commission_ceiling_warning`), ne menja tiho postojeći odnos.
+- [x] Prelazak `retroactive` praga usred perioda automatski kreira `CommissionRebate` u statusu `DRAFT` sa ispravno izračunatim iznosom; rabat se ne primeni (`APPLIED`) bez ljudskog odobrenja; nijedan već poslat fiskalni dokument (M10) se ne dira.
+- [ ] **Čeka M8/portal (frontend)** — Portal se instalira kao PWA i ostaje potpuno upotrebljiv na telefonu i tabletu — subagent poručuje i prati proviziju/kreditni limit bez potrebe za desktop računarom (Master dokument poglavlje 5.1).
+- [ ] **Čeka M8/portal (frontend)** — Ceo tok iz poglavlja 2.0.2 (pretraga → ponuda → putnici → uslovi → potvrda) radi kraj-do-kraja kroz rute iz poglavlja 2.0.1, bez ijednog koraka koji zaobilazi interne API-je M2/M5/M6 — backend API koji bi ga servisirao je implementiran i testiran (§4/§5 gore), sama portal ruta/PWA nije.
+- [x] Rezervacija sa `LEGAL_ENTITY` `ClientAccount` koji **nema** `Subagent` zapis dobija standardnu M5/M6 cenu (marža + eventualna lojalnost), ne proviziju — potvrđuje da se prepoznavanje radi po postojanju zapisa, ne po tipu naloga.
+- [ ] **Čeka M15** — Omnisearch (poglavlje 2.0.3) ne vraća identitet dobavljača niti podatke tuđeg sub-subagenta u rezultatima.
+- [ ] **Čeka M15** — `/b2b/chat` (poglavlje 2.0.4) nije dostupan subagentu čiji `ai_chat_enabled = false`.
+- [ ] **Čeka M15** — `SubagentBookingRequest` ne može preći u `EXECUTING`/`CONFIRMED` bez `subagent_confirmed_at`/`subagent_confirmed_by` popunjenog — i to isključivo nalogom istog `subagent_id`, potvrđeno testom da tuđi `SUBAGENT_ADMIN` (uključujući sopstvenog roditelja/dete u hijerarhiji) ne može potvrditi.
+- [ ] **Čeka M15** — Zahtev sa `requires_staff_review = true` ne izvršava M5 potvrdu dok `staff_reviewed_by` nije popunjeno ljudskim nalogom sa `M7/subagent-chat/STAFF_REVIEW` — provereno da AI agent nema pristup ovom prelazu.
+- [ ] **Čeka M15** — Izvršenje (korak 5, poglavlje 2.0.4c) ponovo proverava garanciju i kreditni limit u trenutku izvršenja, ne samo u trenutku pripreme ponude — test: kreditni limit se popuni drugom rezervacijom između potvrde subagenta i izvršenja, zahtev prelazi u `FAILED`, ne u `CONFIRMED`.
+- [ ] **Čeka M15** — Chat ni u jednom trenutku ne prikuplja/čuva podatke kartice — plaćanje karticom ide isključivo kroz isti hostovani checkout kao portal (M10 poglavlje 7.1).
+- [ ] **Čeka M15** — Otkazivanje pokrenuto kroz chat prolazi kroz istu proveru duplikata kao svaki drugi kanal (M5 poglavlje 6.4) — sama duplikat-provera (M5 §6.4) je implementirana i važi za SVAKI kanal koji koristi `POST /bookings/:id/cancel`, uklj. B2B portal; specifično chat-inicirano otkazivanje čeka M15.
 
 ---
 

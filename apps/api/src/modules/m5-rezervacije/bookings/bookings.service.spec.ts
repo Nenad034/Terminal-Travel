@@ -26,6 +26,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     const clientContractStub = { hasGeneratedContract: jest.fn().mockResolvedValue(false) };
     const changeNotices = { prepareDraft: jest.fn() };
     const supplierManifests = { supersedeIfOnSentManifest: jest.fn() };
+    const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
 
     const service = new BookingsService(
       prisma,
@@ -38,6 +39,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       clientContractStub as any,
       changeNotices as any,
       supplierManifests as any,
+      subagentStub as any,
     );
     return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance };
   }

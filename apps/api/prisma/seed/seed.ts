@@ -14,6 +14,7 @@ const SYSTEM_ROLE_SEED: { name: string; description: string }[] = [
   { name: SYSTEM_ROLES.PRODAJNI_AGENT, description: 'Katalog (read), Rezervacije i CRM — ograničeno na sopstvene klijente/rezervacije.' },
   { name: SYSTEM_ROLES.RACUNOVODJA, description: 'M10 (Finansije/fiskalizacija), M11 (Compliance), read-only uvid u rezervacije.' },
   { name: SYSTEM_ROLES.GOST, description: 'Isključivo sopstveni profil i sopstvene rezervacije (M6/M8).' },
+  { name: SYSTEM_ROLES.SUBAGENT_ADMIN, description: 'M7 — portal nalog B2B subagenta (bilo kog nivoa), isključivo sopstvena mreža/rezervacije.' },
 ];
 
 // M1 spec §3.3 — M1 sopstvene dozvole (upravljanje korisnicima/ulogama/audit logom).
@@ -152,6 +153,19 @@ const M11_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M11', resource: 'inspection-export', action: 'CREATE', description: 'Generisanje izvoza evidencije za inspekciju' },
 ];
 
+// M7 spec §10 — dozvole B2B modula (Subagenti). MANAGE_OWN_NETWORK je namerno dodeljena i
+// Vlasnik/Direktor pored SUBAGENT_ADMIN (vidi komentar u SubagentsController) — spec §10 tabela
+// navodi samo podrazumevanu dodelu po ulozi, ne isključivost.
+const M7_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M7', resource: 'subagent', action: 'VIEW', description: 'Uvid u subagente (ceo lanac za agenciju, sopstveni+deca za SUBAGENT_ADMIN)' },
+  { module: 'M7', resource: 'subagent', action: 'CREATE', description: 'Registracija novog Tier 1 subagenta' },
+  { module: 'M7', resource: 'subagent', action: 'APPROVE', description: 'Odobravanje subagenta (PENDING_APPROVAL → ACTIVE) — postavlja kreditni limit' },
+  { module: 'M7', resource: 'subagent', action: 'EDIT', description: 'Izmena kreditnog limita/statusa subagenta' },
+  { module: 'M7', resource: 'subagent', action: 'MANAGE_OWN_NETWORK', description: 'Upravljanje sopstvenim direktnim sub-subagentima (kreiranje, provizija, pragovi obima)' },
+  { module: 'M7', resource: 'commission-rebate', action: 'VIEW', description: 'Uvid u retroaktivne rabate provizije' },
+  { module: 'M7', resource: 'commission-rebate', action: 'APPROVE', description: 'Odobrenje/odbijanje rabata — nikad AI agent' },
+];
+
 // M20 spec §5 — dozvole ugovora sa klijentima.
 const M20_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
   { module: 'M20', resource: 'client-contract', action: 'VIEW', description: 'Uvid u ugovore sa klijentima' },
@@ -171,6 +185,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M6_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
@@ -182,6 +197,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M6_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M10_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M11_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M7_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M20_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
@@ -221,6 +237,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M20 spec §5 — Sales Manager vidi i ručno evidentira prihvatanje ugovora (telefon/interni panel).
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
+    // M7 spec §10 — Sales Manager vidi ceo lanac subagenata i rabate provizije, ne odobrava ih.
+    { module: 'M7', resource: 'subagent', action: 'VIEW' },
+    { module: 'M7', resource: 'commission-rebate', action: 'VIEW' },
     // M6 spec §7 — Sales Manager vidi/uređuje CRM celog tima, definicije nivoa lojalnosti (VIEW).
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
     { module: 'M6', resource: 'client-account', action: 'CREATE' },
@@ -323,6 +342,26 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // ne kroz M20/client-contract/ACCEPT — ta dozvola je samo za ručno evidentiranje internog tima).
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
   ],
+  // M7 spec §8/§10 — SUBAGENT_ADMIN: sopstveni Subagent/ClientAccount profil, sopstvene
+  // rezervacije preko M5 (§5 provizija se primenjuje automatski), upravljanje sopstvenom mrežom.
+  // Ownership (§6 vidljivost kroz hijerarhiju) se sprovodi u SubagentsService, ne ovde.
+  [SYSTEM_ROLES.SUBAGENT_ADMIN]: [
+    { module: 'M5', resource: 'itinerary', action: 'CREATE' },
+    { module: 'M5', resource: 'itinerary', action: 'VIEW' },
+    { module: 'M5', resource: 'itinerary', action: 'EDIT' },
+    { module: 'M5', resource: 'quote', action: 'CREATE' },
+    { module: 'M5', resource: 'quote', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'CREATE' },
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'MODIFY' },
+    { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
+    { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
+    { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
+    { module: 'M20', resource: 'client-contract', action: 'VIEW' },
+    { module: 'M7', resource: 'subagent', action: 'VIEW' },
+    { module: 'M7', resource: 'subagent', action: 'MANAGE_OWN_NETWORK' },
+  ],
 };
 
 async function main() {
@@ -335,6 +374,7 @@ async function main() {
     ...M6_PERMISSIONS,
     ...M10_PERMISSIONS,
     ...M11_PERMISSIONS,
+    ...M7_PERMISSIONS,
     ...M20_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
@@ -365,7 +405,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola.`,
   );
 }
 

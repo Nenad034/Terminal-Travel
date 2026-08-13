@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from './quote-item-builder.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
 import { LoyaltyStubService } from '../common/loyalty-stub.service';
+import { SubagentStubService } from '../common/subagent-stub.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
@@ -15,6 +16,7 @@ export class QuotesService {
     private readonly prisma: PrismaService,
     private readonly builder: QuoteItemBuilderService,
     private readonly loyalty: LoyaltyStubService,
+    private readonly subagentStub: SubagentStubService,
   ) {}
 
   // M5 spec §3.1/§3.2/§3.0b.3 — POST /quotes: konstruiše sve stavke po ISTIM pravilima
@@ -25,11 +27,17 @@ export class QuotesService {
     // pripiše Quote/Booking tuđem nalogu (i tuđ popust lojalnosti) prostim slanjem tuđeg
     // clientAccountId parametra. Interno osoblje zadržava puno poverenje u parametar
     // (kreira ponudu u ime bilo kog klijenta).
+    // M7 spec §6.2 dopuna — SUBAGENT_CONTACT pozivalac takođe dobija clientAccountId primoran
+    // na sopstveni nalog, isti razlog kao GUEST iznad. identity.ownProfileId je za
+    // SUBAGENT_CONTACT Subagent.id (resolve-caller-identity.ts), mora se mapirati na pravi
+    // ClientAccount.id preko SubagentStubService pre nego što uđe u Quote.client_account_id.
     let clientAccountId = dto.clientAccountId;
     if (actor?.userId) {
       const identity = await resolveCallerIdentity(this.prisma, actor.userId);
       if (identity.accountType === 'GUEST') {
         clientAccountId = identity.ownProfileId ?? undefined;
+      } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
+        clientAccountId = (await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
       }
     }
 
@@ -53,11 +61,16 @@ export class QuotesService {
         ? new Date(Math.min(...apiExpiries.map((v) => new Date(v).getTime())))
         : new Date(Date.now() + DEFAULT_QUOTE_EXPIRY_MINUTES * 60_000);
 
-    // M6 spec §3.3 — popust nivoa lojalnosti primenjen POSLE marže, kao poslednji korak u toku
-    // cene. B2B subagenti (M7) koriste sopstveni mehanizam popusta umesto ovog kad M7 dođe na
-    // red (M5 spec §13) — dok M7 ne postoji, popust lojalnosti se primenjuje na svaki
-    // Quote.client_account_id koji ima nivo, bez razlikovanja B2C/B2B.
-    const discountPercentage = clientAccountId ? await this.loyalty.getDiscountPercentage(clientAccountId) : 0;
+    // M7 spec §5 — B2B subagenti NE učestvuju u M6 loyalty programu; ako Quote.client_account_id
+    // ima Subagent zapis (proverava se POSTOJANJE zapisa, ne ClientAccount.account_type — jedan
+    // LEGAL_ENTITY nalog bez Subagent zapisa je i dalje običan M6/M5 kupac), primenjuje se
+    // effective_commission_percentage UMESTO M6 loyalty-status, kao poslednji korak posle marže
+    // (isti obrazac/mesto u toku cene kao M6 spec §3.3).
+    let discountPercentage = 0;
+    if (clientAccountId) {
+      const commissionPercentage = await this.subagentStub.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
+      discountPercentage = commissionPercentage != null ? commissionPercentage : await this.loyalty.getDiscountPercentage(clientAccountId);
+    }
     const applyDiscount = (price: number) => (discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price);
 
     const quote = await this.prisma.quote.create({

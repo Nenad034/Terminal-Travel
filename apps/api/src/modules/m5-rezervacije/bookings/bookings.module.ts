@@ -14,6 +14,9 @@ import { MarkupRulesModule } from '../markup-rules/markup-rules.module';
 import { SupplierManifestsModule } from '../supplier-manifests/supplier-manifests.module';
 import { TravelGuaranteeModule } from '../../m11-compliance/travel-guarantee/travel-guarantee.module';
 import { ClientContractsModule } from '../../m20-ugovori-klijenti/client-contracts/client-contracts.module';
+import { SubagentStubService } from '../common/subagent-stub.service';
+import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
+import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.module';
 
 // M5 spec §4-§8 (jezgro tok potvrde/upravljanja rezervacijom). QuoteItemBuilderService se
 // namerno instancira i ovde (ne uvozi se iz QuotesModule) da bi se izbegla kružna zavisnost
@@ -30,9 +33,11 @@ import { ClientContractsModule } from '../../m20-ugovori-klijenti/client-contrac
     SupplierManifestsModule,
     TravelGuaranteeModule,
     ClientContractsModule,
+    SubagentsModule,
+    CommissionModule,
   ],
   controllers: [BookingsController],
-  providers: [BookingsService, QuoteItemBuilderService, ComplianceStubsService, ClientContractStubService],
+  providers: [BookingsService, QuoteItemBuilderService, ComplianceStubsService, ClientContractStubService, SubagentStubService],
   exports: [BookingsService],
 })
 export class BookingsModule {}

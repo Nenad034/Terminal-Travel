@@ -10,8 +10,12 @@ describe('QuotesService', () => {
     };
     const builder = { build: jest.fn() };
     const loyalty = { getDiscountPercentage: jest.fn().mockResolvedValue(0) };
-    const service = new QuotesService(prisma, builder as any, loyalty as any);
-    return { service, prisma, builder, loyalty };
+    const subagentStub = {
+      resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null),
+      getEffectiveCommissionPercentageForClientAccount: jest.fn().mockResolvedValue(null),
+    };
+    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentStub as any);
+    return { service, prisma, builder, loyalty, subagentStub };
   }
 
   describe('create — client_account_id se ne uzima slepo iz tela zahteva za gosta', () => {

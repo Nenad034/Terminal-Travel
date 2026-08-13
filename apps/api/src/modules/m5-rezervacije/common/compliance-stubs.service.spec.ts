@@ -1,13 +1,15 @@
 import { ComplianceStubsService } from './compliance-stubs.service';
 
-// M5 spec §4 korak 1 — M11 provera garancije putovanja je od avgusta 2026 stvarna (in-process
-// poziv ka TravelGuaranteeService), testirano ovde kroz mock istog obrasca kao ostali M5
-// servisi koji zovu susedne module. M7 (B2B) i dalje ne postoji — taj deo ostaje no-op stub.
+// M5 spec §4 korak 1 — M11 (garancija putovanja) i M7 (kreditni limit subagenta) su od avgusta
+// 2026 oba stvarna in-process pozivi ka svojim modulima (M11 direktno, M7 preko
+// SubagentStubService, isti folder) — testirano ovde kroz mock istog obrasca kao ostali M5
+// servisi koji zovu susedne module (SubagentStubService sam ima svoje jedinične testove).
 describe('ComplianceStubsService (M5 spec §4 korak 1)', () => {
   function makeService() {
     const travelGuarantee = { assessForBooking: jest.fn() };
-    const service = new ComplianceStubsService(travelGuarantee as any);
-    return { service, travelGuarantee };
+    const subagentStub = { checkCreditLimitIfSubagent: jest.fn(), isActiveSubagentWithinCreditLimit: jest.fn() };
+    const service = new ComplianceStubsService(travelGuarantee as any, subagentStub as any);
+    return { service, travelGuarantee, subagentStub };
   }
 
   it('garancija putovanja (M11) — prosleđuje rezultat TravelGuaranteeService.assessForBooking', async () => {
@@ -20,15 +22,21 @@ describe('ComplianceStubsService (M5 spec §4 korak 1)', () => {
     expect(result).toEqual({ allowed: false, reason: 'test-razlog' });
   });
 
-  it('kreditni limit (M7) trenutno uvek prijavljuje "nije subagent"', async () => {
-    const { service } = makeService();
-    await expect(
-      service.checkCreditLimitIfSubagent({ clientAccountId: 'x', additionalAmount: 1000, currency: 'EUR' }),
-    ).resolves.toEqual({ isSubagent: false, allowed: true });
+  it('kreditni limit (M7) — prosleđuje rezultat SubagentStubService.checkCreditLimitIfSubagent', async () => {
+    const { service, subagentStub } = makeService();
+    subagentStub.checkCreditLimitIfSubagent.mockResolvedValue({ isSubagent: true, allowed: false, withinCreditLimit: false });
+
+    const result = await service.checkCreditLimitIfSubagent({ clientAccountId: 'x', additionalAmount: 1000, currency: 'EUR' });
+
+    expect(subagentStub.checkCreditLimitIfSubagent).toHaveBeenCalledWith({ clientAccountId: 'x', additionalAmount: 1000, currency: 'EUR' });
+    expect(result).toEqual({ isSubagent: true, allowed: false, withinCreditLimit: false });
   });
 
-  it('subagent-unutar-kredita izuzetak vaučera (M7 §6.3) trenutno uvek vraća false', async () => {
-    const { service } = makeService();
-    await expect(service.isActiveSubagentWithinCreditLimit('x')).resolves.toBe(false);
+  it('subagent-unutar-kredita izuzetak vaučera (M7 §6.3) — prosleđuje rezultat SubagentStubService', async () => {
+    const { service, subagentStub } = makeService();
+    subagentStub.isActiveSubagentWithinCreditLimit.mockResolvedValue(true);
+
+    await expect(service.isActiveSubagentWithinCreditLimit('x')).resolves.toBe(true);
+    expect(subagentStub.isActiveSubagentWithinCreditLimit).toHaveBeenCalledWith('x');
   });
 });

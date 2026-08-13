@@ -1785,3 +1785,132 @@ model PostTripSurvey {
 
   @@map("post_trip_surveys")
 }
+
+// ============================================================================
+// M7 — B2B modul (Subagenti). docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md
+// Implementacija avgust 2026 pokriva §2.1, §3, §3.1, §3.2, §4, §5, §6, §8, §9, §10 — §2.0.3
+// (omnisearch) i §2.0.4 (AI chat, SubagentBookingRequest/SubagentChatMessage) NAMERNO izostavljeni
+// (zavise od M15, koji još ne postoji kao NestJS modul — vidi tt-m7-b2b-subagenti skill).
+// ============================================================================
+
+enum SubagentStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  SUSPENDED
+}
+
+// §2.1 `Subagent` — client_account_id NAMERNO bez FK ka ClientAccount, isti razlog kao svako drugo
+// polje koje referencira M6 ClientAccount.id u ovoj šemi (ClientLoyaltyStatus/CommunicationLog/
+// PostTripSurvey iznad, ClientContract §6 dopuna) — aplikativni nivo je jedini koji sprovodi
+// postojanje/tip naloga (M7 spec §2.1 "mora biti account_type = LEGAL_ENTITY"), ne baza.
+// current_outstanding_balance se NAMERNO ne čuva ovde — računa se uživo (§2.1) preko
+// SubagentsService.outstandingBalance, isti princip kao M6 istorija putovanja.
+// commission_percentage/credit_limit(_currency) su NAMERNO nullable — mehanička dopuna (avgust
+// 2026): §9 kaže da Vlasnik/Direktor "postavlja kreditni limit i, ako je Tier 1, proviziju" TEK
+// pri odobravanju (approve()), pa novoregistrovan PENDING_APPROVAL subagent ta polja još nema.
+model Subagent {
+  id                   String         @id @default(uuid())
+  clientAccountId      String         @unique @map("client_account_id")
+  parentSubagentId     String?        @map("parent_subagent_id")
+  status               SubagentStatus @default(PENDING_APPROVAL)
+  commissionPercentage Decimal?       @map("commission_percentage")
+  creditLimit          Decimal?       @map("credit_limit")
+  creditLimitCurrency  String?        @map("credit_limit_currency")
+  approvedBy           String?        @map("approved_by")
+  approvedAt           DateTime?      @map("approved_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  parent   Subagent?  @relation("SubagentHierarchy", fields: [parentSubagentId], references: [id])
+  children Subagent[] @relation("SubagentHierarchy")
+
+  volumeTiers  CommissionVolumeTier[]
+  volumeStatus SubagentVolumeStatus?
+  rebates      CommissionRebate[]
+
+  @@map("subagents")
+}
+
+enum CommissionVolumeMetric {
+  TOTAL_SALES_RSD
+  BOOKING_COUNT
+  NIGHT_COUNT
+}
+
+enum CommissionVolumePeriod {
+  CALENDAR_QUARTER
+  CALENDAR_YEAR
+  ROLLING_12_MONTHS
+}
+
+// §3.1 `CommissionVolumeTier` — pragovi su specifični po subagentskom odnosu (ne globalni,
+// za razliku od M6 LoyaltyTier), jer su B2B ugovori pojedinačno pregovarani.
+model CommissionVolumeTier {
+  id                             String                 @id @default(uuid())
+  subagentId                     String                 @map("subagent_id")
+  rank                           Int
+  thresholdMetric                CommissionVolumeMetric @map("threshold_metric")
+  thresholdPeriod                CommissionVolumePeriod @map("threshold_period")
+  thresholdValue                 Decimal                @map("threshold_value")
+  resultingCommissionPercentage  Decimal?               @map("resulting_commission_percentage")
+  resultingCommissionFixedAmount Decimal?               @map("resulting_commission_fixed_amount")
+  resultingCommissionCurrency    String?                @map("resulting_commission_currency")
+  retroactive                    Boolean                @default(false)
+  createdBy                      String?                @map("created_by")
+  createdAt                      DateTime               @default(now()) @map("created_at")
+
+  subagent             Subagent               @relation(fields: [subagentId], references: [id])
+  currentForStatuses   SubagentVolumeStatus[]
+  triggeringForRebates CommissionRebate[]
+
+  @@map("commission_volume_tiers")
+}
+
+// §3.1 `SubagentVolumeStatus` — automatski preračun na booking.confirmed/booking.cancelled
+// (M5 Event Bus), isti obrazac kao M6 ClientLoyaltyStatus.
+model SubagentVolumeStatus {
+  id                            String    @id @default(uuid())
+  subagentId                    String    @unique @map("subagent_id")
+  calculatedMetricValue         Decimal   @default(0) @map("calculated_metric_value")
+  currentTierId                 String?   @map("current_tier_id")
+  effectiveCommissionPercentage Decimal   @map("effective_commission_percentage")
+  periodStart                   DateTime  @map("period_start")
+  periodEnd                     DateTime  @map("period_end")
+  lastRecalculatedAt            DateTime? @map("last_recalculated_at")
+
+  subagent    Subagent              @relation(fields: [subagentId], references: [id])
+  currentTier CommissionVolumeTier? @relation(fields: [currentTierId], references: [id])
+
+  @@map("subagent_volume_statuses")
+}
+
+enum CommissionRebateStatus {
+  DRAFT
+  APPROVED
+  APPLIED
+  REJECTED
+}
+
+// §3.2 `CommissionRebate` — poseban jednokratan rabat, NE ponovno otvaranje/storniranje već
+// poslatih fiskalnih dokumenata (M10). rejection_reason namerno nije kolona (spec §3.2 tabela je
+// ne navodi) — razlog odbijanja se upisuje u audit log context, isti obrazac kao svaka druga
+// APPROVE/REJECT odluka bez sopstvenog polja u ovom modulu.
+model CommissionRebate {
+  id               String                 @id @default(uuid())
+  subagentId       String                 @map("subagent_id")
+  triggeringTierId String                 @map("triggering_tier_id")
+  periodStart      DateTime               @map("period_start")
+  periodEnd        DateTime               @map("period_end")
+  calculatedAmount Decimal                @map("calculated_amount")
+  currency         String
+  status           CommissionRebateStatus @default(DRAFT)
+  approvedBy       String?                @map("approved_by")
+  approvedAt       DateTime?              @map("approved_at")
+  appliedAt        DateTime?              @map("applied_at")
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  subagent       Subagent             @relation(fields: [subagentId], references: [id])
+  triggeringTier CommissionVolumeTier @relation(fields: [triggeringTierId], references: [id])
+
+  @@map("commission_rebates")
+}

@@ -9,6 +9,9 @@ export const SYSTEM_ROLES = {
   PRODAJNI_AGENT: 'PRODAJNI_AGENT',
   RACUNOVODJA: 'RACUNOVODJA',
   GOST: 'GOST',
+  // M7 spec §8 (avgust 2026) — portal nalog subagenta (bilo kog nivoa u hijerarhiji). Nema
+  // pristup internom panelu (M17) niti podacima drugih subagenata.
+  SUBAGENT_ADMIN: 'SUBAGENT_ADMIN',
 } as const;
 
 // M1 spec §5 — "2FA... obavezna za sve interne uloge... ne može se ugasiti od strane

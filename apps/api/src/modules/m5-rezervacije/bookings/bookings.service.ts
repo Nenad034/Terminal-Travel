@@ -18,6 +18,7 @@ import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { SubagentStubService } from '../common/subagent-stub.service';
 
 interface ItemReservationOutcome {
   quoteItemId: string;
@@ -39,6 +40,7 @@ export class BookingsService {
     private readonly clientContractStub: ClientContractStubService,
     private readonly changeNotices: SupplierChangeNoticesService,
     private readonly supplierManifests: SupplierManifestsService,
+    private readonly subagentStub: SubagentStubService,
   ) {}
 
   // ==========================================================================
@@ -346,11 +348,21 @@ export class BookingsService {
   // Pregled
   // ==========================================================================
 
-  /** M5 spec §6.2 dopuna (avgust 2026, priprema za M8) — vidi common/auth/resolve-caller-identity.ts. */
+  /**
+   * M5 spec §6.2 dopuna (avgust 2026, priprema za M8) — vidi common/auth/resolve-caller-identity.ts.
+   * M7 dopuna (avgust 2026): za SUBAGENT_CONTACT, identity.ownProfileId je Subagent.id (ne
+   * ClientAccount.id) — mora se mapirati preko SubagentStubService na pravi ClientAccount.id
+   * pre poređenja sa Quote/Booking.client_account_id, inače ownership provera nikad ne pogađa.
+   */
   private async resolveApiContext(userId: string): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null }> {
     const identity = await resolveCallerIdentity(this.prisma, userId);
     if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
-    if (identity.accountType === 'SUBAGENT_CONTACT') return { context: 'B2B', ownClientAccountId: identity.ownProfileId };
+    if (identity.accountType === 'SUBAGENT_CONTACT') {
+      const clientAccountId = identity.ownProfileId
+        ? await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
+        : null;
+      return { context: 'B2B', ownClientAccountId: clientAccountId };
+    }
     return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
   }
 

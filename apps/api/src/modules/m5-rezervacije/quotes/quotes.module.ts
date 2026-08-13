@@ -9,11 +9,14 @@ import { PermissionsModule } from '../../m1-core-identitet/permissions/permissio
 import { BookingsModule } from '../bookings/bookings.module';
 import { LoyaltyStubService } from '../common/loyalty-stub.service';
 import { LoyaltyModule } from '../../m6-crm/loyalty/loyalty.module';
+import { SubagentStubService } from '../common/subagent-stub.service';
+import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
+import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.module';
 
 @Module({
-  imports: [MarkupRulesModule, IntegrationsModule, AuthModule, PermissionsModule, BookingsModule, LoyaltyModule],
+  imports: [MarkupRulesModule, IntegrationsModule, AuthModule, PermissionsModule, BookingsModule, LoyaltyModule, SubagentsModule, CommissionModule],
   controllers: [QuotesController],
-  providers: [QuotesService, QuoteItemBuilderService, LoyaltyStubService],
+  providers: [QuotesService, QuoteItemBuilderService, LoyaltyStubService, SubagentStubService],
   exports: [QuoteItemBuilderService, QuotesService],
 })
 export class QuotesModule {}

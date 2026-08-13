@@ -12,6 +12,7 @@ import { M5RezervacijeModule } from './modules/m5-rezervacije/m5-rezervacije.mod
 import { M6CrmModule } from './modules/m6-crm/m6-crm.module';
 import { M10FinansijeModule } from './modules/m10-finansije/m10-finansije.module';
 import { M11ComplianceModule } from './modules/m11-compliance/m11-compliance.module';
+import { M7B2bSubagentiModule } from './modules/m7-b2b-subagenti/m7-b2b-subagenti.module';
 import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugovori-klijenti.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { M20UgovoriKlijentiModule } from './modules/m20-ugovori-klijenti/m20-ugo
     M6CrmModule,
     M10FinansijeModule,
     M11ComplianceModule,
+    M7B2bSubagentiModule,
     M20UgovoriKlijentiModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
