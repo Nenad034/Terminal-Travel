@@ -11,8 +11,9 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
     const auditLog = { write: jest.fn() };
     const exchangeRates = { findForCurrencyOnOrBefore: jest.fn() };
     const gateway = { submitDocument: jest.fn() };
-    const service = new FiscalDocumentsService(prisma, auditLog as any, exchangeRates as any, gateway as any);
-    return { service, prisma, auditLog, exchangeRates, gateway };
+    const eventBus = { emit: jest.fn() };
+    const service = new FiscalDocumentsService(prisma, auditLog as any, exchangeRates as any, gateway as any, eventBus as any);
+    return { service, prisma, auditLog, exchangeRates, gateway, eventBus };
   }
 
   describe('prepareDraft (§2, §4.4, §6.0)', () => {
@@ -145,6 +146,56 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(result.exchangeRateSnapshotId).toBe('ex-payment');
     });
 
+    it('emituje M10 credit_note.submitted kad je KNJIZNO_ODOBRENJE poslat (§5.1a — M7 rabat prelazi u APPLIED preko Event Bus-a)', async () => {
+      const { service, prisma, gateway, eventBus } = makeService();
+      const draft = {
+        id: 'fd-credit-1',
+        status: 'DRAFT',
+        bookingId: null,
+        documentType: 'KNJIZNO_ODOBRENJE',
+        amountOriginal: 25000,
+        currencyOriginal: 'RSD',
+        amountRsd: 25000,
+        vatAmount: 0,
+        exchangeRateSnapshotId: null,
+        buyerNameSnapshot: 'M7 Test Turagencija',
+        buyerTaxIdSnapshot: null,
+        relatedSubagentId: 'subagent-1',
+        creditedRebateId: 'rebate-1',
+      };
+      prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
+      gateway.submitDocument.mockResolvedValue({ externalReference: 'SEF-CN-1', xmlUrl: 'cn.xml', pdfUrl: 'cn.pdf' });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+
+      await service.submit('fd-credit-1', { userId: 'actor-1' });
+
+      expect(eventBus.emit).toHaveBeenCalledWith('M10', 'credit_note.submitted', { creditedRebateId: 'rebate-1', fiscalDocumentId: 'fd-credit-1' });
+    });
+
+    it('NE emituje credit_note.submitted za SEF_EFAKTURA/ESIR_RACUN (samo KNJIZNO_ODOBRENJE)', async () => {
+      const { service, prisma, gateway, eventBus } = makeService();
+      const draft = {
+        id: 'fd-1',
+        status: 'DRAFT',
+        bookingId: null,
+        documentType: 'ESIR_RACUN',
+        amountOriginal: 50000,
+        currencyOriginal: 'RSD',
+        amountRsd: 50000,
+        vatAmount: 8333,
+        exchangeRateSnapshotId: null,
+        buyerNameSnapshot: 'Petar Petrović',
+        buyerTaxIdSnapshot: null,
+      };
+      prisma.fiscalDocument.findUnique.mockResolvedValue(draft);
+      gateway.submitDocument.mockResolvedValue({ externalReference: 'ESIR-1', xmlUrl: null, pdfUrl: 'x.pdf' });
+      prisma.fiscalDocument.update.mockImplementation(({ data }: any) => Promise.resolve({ ...draft, ...data }));
+
+      await service.submit('fd-1', { userId: 'actor-1' });
+
+      expect(eventBus.emit).not.toHaveBeenCalled();
+    });
+
     it('postavlja buyer_acceptance_status = N_A za ESIR_RACUN (nema koncept prihvatanja)', async () => {
       const { service, prisma, gateway } = makeService();
       const draft = {
@@ -229,6 +280,22 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(doc.relatedSubagentId).toBe('subagent-1');
       expect(doc.creditedRebateId).toBe('rebate-1');
       expect(doc.amountRsd).toBe(25000); // RSD, bez konverzije
+      expect(doc.buyerNameSnapshot).toBe(''); // nije prosleđeno — prazan string fallback
+    });
+
+    it('koristi prosleđen buyer_name_snapshot (M7 FiscalDocumentStubService, M10 spec §5.1a dopuna)', async () => {
+      const { service, prisma } = makeService();
+      prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-credit-2', ...data }));
+
+      const doc = await service.prepareCreditNoteDraft({
+        relatedSubagentId: 'subagent-1',
+        creditedRebateId: 'rebate-1',
+        amount: 25000,
+        currency: 'RSD',
+        buyerNameSnapshot: 'M7 Test Turagencija',
+      });
+
+      expect(doc.buyerNameSnapshot).toBe('M7 Test Turagencija');
     });
   });
 });

@@ -1,8 +1,10 @@
-import { IsInt, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Min } from 'class-validator';
 
-// M10 spec §5.1a — KNJIZNO_ODOBRENJE nacrt, iz M7 CommissionRebate (M7 još ne postoji —
-// iznos/subagent se prosleđuju direktno dok M7 ne bude specificiran, isti obrazac kao
-// M5 Booking.client_account_id pre M6).
+// M10 spec §5.1a — KNJIZNO_ODOBRENJE nacrt, iz M7 CommissionRebate. Sad kad M7 postoji
+// (avgust 2026), M7 FiscalDocumentStubService popunjava buyerNameSnapshot stvarnim nazivom
+// firme (M6 ClientAccount.company_name preko Subagent.client_account_id) pre poziva ovog
+// endpointa — polje ostaje opciono radi unazadne kompatibilnosti sa ručnim pozivom
+// (npr. iz Swagger UI-a) kad naziv firme namerno nije poznat.
 export class CreateCreditNoteDto {
   @IsString()
   relatedSubagentId!: string;
@@ -16,4 +18,8 @@ export class CreateCreditNoteDto {
 
   @IsString()
   currency!: string;
+
+  @IsOptional()
+  @IsString()
+  buyerNameSnapshot?: string;
 }

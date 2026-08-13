@@ -14,6 +14,7 @@ import { CommissionRebatesService } from '../src/modules/m7-b2b-subagenti/commis
 import { QuotesService } from '../src/modules/m5-rezervacije/quotes/quotes.service';
 import { BookingsService } from '../src/modules/m5-rezervacije/bookings/bookings.service';
 import { EventBusService } from '../src/common/events/event-bus.service';
+import { FiscalDocumentsService } from '../src/modules/m10-finansije/fiscal-documents/fiscal-documents.service';
 
 /**
  * E2E protiv prave Postgres baze — pokriva stavke M7 izlaznog kriterijuma
@@ -32,6 +33,8 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
   let quotes: QuotesService;
   let bookings: BookingsService;
   let eventBus: EventBusService;
+  let fiscalDocuments: FiscalDocumentsService;
+  let exchangeRateSnapshot: { id: string };
 
   const testRunId = Date.now();
   const createdUserIds: string[] = [];
@@ -59,6 +62,14 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
     quotes = app.get(QuotesService);
     bookings = app.get(BookingsService);
     eventBus = app.get(EventBusService);
+    fiscalDocuments = app.get(FiscalDocumentsService);
+
+    // §3.2 dopuna — approve() sad sinhrono priprema M10 KNJIZNO_ODOBRENJE nacrt, koji zahteva
+    // ExchangeRateSnapshot za EUR na dan pripreme (M10 spec §3) — fixture, isti obrazac kao
+    // M10 sopstveni e2e testovi koji ili koriste RSD ili unose kurs unapred.
+    exchangeRateSnapshot = await prisma.exchangeRateSnapshot.create({
+      data: { currency: 'EUR', rateDate: new Date(), nbsMiddleRate: 117, source: 'MANUAL' },
+    });
   });
 
   afterAll(async () => {
@@ -69,6 +80,7 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
+    await prisma.fiscalDocument.deleteMany({ where: { relatedSubagentId: { in: createdSubagentIds } } });
     await prisma.commissionRebate.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
     await prisma.subagentVolumeStatus.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
     await prisma.commissionVolumeTier.deleteMany({ where: { subagentId: { in: createdSubagentIds } } });
@@ -89,6 +101,7 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       await prisma.userRole.deleteMany({ where: { userId: { in: createdUserIds } } });
       await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
     }
+    if (exchangeRateSnapshot) await prisma.exchangeRateSnapshot.deleteMany({ where: { id: exchangeRateSnapshot.id } });
     await app.close();
   });
 
@@ -560,9 +573,12 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       // (10000 + 10000) * (15-5)/100 = 2000
       expect(Number(rebate.calculatedAmount)).toBe(2000);
 
+      // approve() je ljudska odluka: DRAFT → APPROVED, appliedAt ostaje prazno dok M10 stvarno
+      // ne pošalje knjižno odobrenje (M7 spec §3.2, dopuna avgust 2026 — vidi §3.2a test ispod).
       const approved = await rebates.approve(rebate.id, { userId: staff.id });
-      expect(approved.status).toBe('APPLIED');
-      expect(approved.appliedAt).not.toBeNull();
+      expect(approved.status).toBe('APPROVED');
+      expect(approved.approvedAt).not.toBeNull();
+      expect(approved.appliedAt).toBeNull();
     });
 
     it('DRAFT rabat se odbacuje sa razlogom kad se odluči da se ne primeni', async () => {
@@ -581,6 +597,51 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       const [rebate] = await rebates.findMany(subagent.id);
       const rejected = await rebates.reject(rebate.id, 'Interni dogovor — ne primenjuje se ovog kvartala', { userId: staff.id });
       expect(rejected.status).toBe('REJECTED');
+    });
+  });
+
+  describe('§3.2 dopuna (avgust 2026) — kraj-do-kraja povezivanje sa M10 (KNJIZNO_ODOBRENJE)', () => {
+    it('approve() automatski priprema M10 KNJIZNO_ODOBRENJE nacrt sa ispravnim buyer_name_snapshot/amount/creditedRebateId; submit() vraća M7 rabat u APPLIED', async () => {
+      const { subagent, clientAccount } = await createActiveSubagent({ commissionPercentage: 5 });
+      const { user: staff } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+
+      await volumeStatus.recalculate(subagent.id);
+      await createBooking(clientAccount.id, { totalPrice: 10000, currency: 'EUR' });
+      await createBooking(clientAccount.id, { totalPrice: 10000, currency: 'EUR' });
+
+      await volumeTiers.create(
+        subagent.id,
+        { rank: 1, thresholdMetric: 'BOOKING_COUNT', thresholdPeriod: 'CALENDAR_YEAR', thresholdValue: 2, resultingCommissionPercentage: 15, retroactive: true },
+        { userId: staff.id },
+      );
+      await volumeStatus.recalculate(subagent.id);
+
+      const [rebate] = await rebates.findMany(subagent.id);
+      expect(rebate.status).toBe('DRAFT');
+
+      // approve() (M7 spec §3.2) → DRAFT → APPROVED + sinhrono priprema M10 nacrt preko
+      // FiscalDocumentStubService (M10 spec §5.1a dopuna).
+      const approved = await rebates.approve(rebate.id, { userId: staff.id });
+      expect(approved.status).toBe('APPROVED');
+
+      const creditNote = await prisma.fiscalDocument.findFirst({ where: { creditedRebateId: rebate.id } });
+      expect(creditNote).not.toBeNull();
+      expect(creditNote!.documentType).toBe('KNJIZNO_ODOBRENJE');
+      expect(creditNote!.bookingId).toBeNull();
+      expect(creditNote!.relatedSubagentId).toBe(subagent.id);
+      expect(Number(creditNote!.amountOriginal)).toBe(Number(rebate.calculatedAmount));
+      expect(creditNote!.currencyOriginal).toBe(rebate.currency);
+      expect(creditNote!.buyerNameSnapshot).toBe(clientAccount.companyName); // stvarno ime firme iz M6, ne prazan string
+
+      // submit() (M10 spec §6, ljudski nalog) — kad je KNJIZNO_ODOBRENJE stvarno poslat, M10
+      // emituje Event Bus 'credit_note.submitted' koji M7EventSubscribersService sluša i zove
+      // CommissionRebatesService.markApplied — APPROVED → APPLIED tek sad, ne pri odobrenju.
+      await fiscalDocuments.submit(creditNote!.id, { userId: staff.id });
+      await new Promise((resolve) => setTimeout(resolve, 500)); // async LISTEN/NOTIFY, isti obrazac kao §3.1 test iznad
+
+      const rebateAfterSubmit = await rebates.findOneOrThrow(rebate.id);
+      expect(rebateAfterSubmit.status).toBe('APPLIED');
+      expect(rebateAfterSubmit.appliedAt).not.toBeNull();
     });
   });
 

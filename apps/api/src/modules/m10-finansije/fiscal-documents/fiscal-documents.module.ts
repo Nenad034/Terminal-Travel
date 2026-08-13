@@ -7,9 +7,10 @@ import { PermissionsModule } from '../../m1-core-identitet/permissions/permissio
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { MockFiscalizationGatewayAdapter } from '../adapters/mock-fiscalization-gateway.adapter';
 import { FISCALIZATION_GATEWAY_ADAPTER } from '../adapters/fiscalization-gateway.token';
+import { EventBusModule } from '../../../common/events/event-bus.module';
 
 @Module({
-  imports: [AuditLogModule, AuthModule, PermissionsModule, ExchangeRatesModule],
+  imports: [AuditLogModule, AuthModule, PermissionsModule, ExchangeRatesModule, EventBusModule],
   controllers: [FiscalDocumentsController],
   providers: [
     FiscalDocumentsService,

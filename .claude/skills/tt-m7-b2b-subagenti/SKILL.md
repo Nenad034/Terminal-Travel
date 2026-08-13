@@ -7,7 +7,7 @@ description: Terminal Travel modul M7 (B2B modul (Subagenti)) — portal za posl
 
 Portal za poslovne kupce, cenovnici, provizije, kreditni limiti, višenivovska mreža partnera sa kaskadnom podelom provizije.
 
-**Zavisi od:** M1, M2, M5, M6, M15
+**Zavisi od:** M1, M2, M5, M6, M10, M15
 
 ## Pre pisanja koda
 

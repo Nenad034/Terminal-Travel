@@ -171,7 +171,23 @@ Lista svih statusa. Dozvola: `M7/commission-rebate/VIEW`.
 
 ### POST /b2b/subagents/:id/commission-rebates/:rebateId/approve
 
-Ljudsko odobrenje — prevodi `DRAFT` → `APPLIED` (knjiži se kao umanjenje sledećeg dugovanja, ne menja već poslate fiskalne dokumente). Dozvola: `M7/commission-rebate/APPROVE` (Vlasnik/Direktor/Računovođa, **nikad AI agent**).
+Ljudsko odobrenje — prevodi `DRAFT` → `APPROVED` (avgust 2026, dopuna: ranije je ovaj poziv odmah vraćao `APPLIED`; sad je to dva odvojena koraka, vidi ispod). Dozvola: `M7/commission-rebate/APPROVE` (Vlasnik/Direktor/Računovođa, **nikad AI agent**).
+
+Odmah po prelasku u `APPROVED`, sistem sinhrono priprema M10 `FiscalDocument` nacrt (`document_type = KNJIZNO_ODOBRENJE`, M10 spec §5.1a) sa stvarnim nazivom firme subagenta (`buyer_name_snapshot`, iz M6 `ClientAccount.company_name`) — vidljiv preko M10 `GET /finance/fiscal-documents/:id` čim je `approve` odgovorio.
+
+**`APPLIED` se postavlja tek kad je taj `FiscalDocument` stvarno poslat** (M10 `POST /finance/fiscal-documents/:id/submit`, ljudski nalog sa `M10/fiscal-document/SUBMIT`) — do tada rabat ostaje `APPROVED`. Ovo je posledica knjiženja, ne nova ljudska odluka na M7 strani.
+
+**Odgovor `200` (odmah po approve, pre submit-a na M10 strani):**
+```json
+{
+  "id": "rebate-1",
+  "subagentId": "sub-1",
+  "status": "APPROVED",
+  "approvedBy": "user-1",
+  "approvedAt": "2027-03-20T09:00:00.000Z",
+  "appliedAt": null
+}
+```
 
 ### POST /b2b/subagents/:id/commission-rebates/:rebateId/reject
 

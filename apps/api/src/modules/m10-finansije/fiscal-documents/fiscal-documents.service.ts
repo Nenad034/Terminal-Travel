@@ -6,6 +6,7 @@ import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { CreateCreditNoteDto } from './dto/create-credit-note.dto';
 import type { FiscalizationGatewayAdapter } from '../adapters/fiscalization-gateway-adapter.interface';
 import { FISCALIZATION_GATEWAY_ADAPTER } from '../adapters/fiscalization-gateway.token';
+import { EventBusService } from '../../../common/events/event-bus.service';
 
 const VAT_RATE_PERCENT = 20; // opšta stopa PDV, M10 spec §4.2/§4.3
 
@@ -17,6 +18,7 @@ export class FiscalDocumentsService {
     private readonly auditLog: AuditLogService,
     private readonly exchangeRates: ExchangeRatesService,
     @Inject(FISCALIZATION_GATEWAY_ADAPTER) private readonly gateway: FiscalizationGatewayAdapter,
+    private readonly eventBus: EventBusService,
   ) {}
 
   // §6.0 — poziva se i ručno (POST /fiscal-documents/draft) i automatski po booking.confirmed.
@@ -87,7 +89,11 @@ export class FiscalDocumentsService {
         vatRate: 0,
         vatAmount: 0,
         exchangeRateSnapshotId,
-        buyerNameSnapshot: '', // §5.1a — subagent nema buyer_name na ovom nivou (nema Booking); popunjava se ručno kad M7/M6 profil bude dostupan
+        // §5.1a — subagent nema buyer_name na ovom nivou (nema Booking); M7 FiscalDocumentStubService
+        // (apps/api/src/modules/m7-b2b-subagenti/commission/fiscal-document-stub.service.ts) popunjava
+        // stvarni naziv firme preko M6 ClientAccount.company_name pre poziva ovog metoda. Prazan string
+        // ostaje fallback za pozive van tog toka (npr. ručno preko Swagger UI-ja) gde naziv nije poznat.
+        buyerNameSnapshot: dto.buyerNameSnapshot ?? '',
         relatedSubagentId: dto.relatedSubagentId,
         creditedRebateId: dto.creditedRebateId,
       },
@@ -152,6 +158,16 @@ export class FiscalDocumentsService {
       beforeState: document,
       afterState: updated,
     });
+
+    // §5.1a — kad je ovo KNJIZNO_ODOBRENJE (M7 CommissionRebate primena), M7 rabat prelazi u
+    // APPLIED tek SAD, kad je knjiženje stvarno poslato — ne pri odobrenju (M7 spec §3.2).
+    // M10 NE uvozi M7 direktno (M7 CommissionModule već uvozi M10 FiscalDocumentsModule za
+    // korak "kreiranje nacrta pri odobrenju" — obrnut DI smer bi napravio kružnu zavisnost
+    // modula), zato ide preko Event Bus-a (isti LISTEN/NOTIFY obrazac kao M5 booking.confirmed)
+    // — M7EventSubscribersService sluša ovaj događaj i zove CommissionRebatesService.markApplied.
+    if (updated.documentType === 'KNJIZNO_ODOBRENJE' && updated.creditedRebateId) {
+      await this.eventBus.emit('M10', 'credit_note.submitted', { creditedRebateId: updated.creditedRebateId, fiscalDocumentId: updated.id });
+    }
 
     return updated;
   }
