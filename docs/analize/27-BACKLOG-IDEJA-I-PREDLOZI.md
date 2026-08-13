@@ -16,7 +16,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## Ideje van formalne specifikacije (još nemaju mesto ni u jednom modulu)
 
-Trenutno nema stavki ovde — sve što je do sada razmatrano u razgovoru je ili implementirano, ili već upisano u "Otvoreno za dalje" nekog modula ispod. Ova sekcija postoji za slučaj kad se u razgovoru pojavi ideja koja još ne pripada jasno nijednom postojećem modulu (npr. predlog za nov modul pre nego što prođe kroz `tt-architecture-core` potvrdu).
+- **AI Semantički sloj nad podacima** (predlog vlasnika, 13.8.2026) — semantički sloj (npr. Cube.dev stila) između AI agenata i baze, da LLM ne generiše sirov SQL nego bira iz kataloga testiranih metrika; row/column-level security po ulozi ugrađena u sam sloj. Odloženo na zahtev vlasnika ("uradićemo kasnije") pre nego što je prošlo kroz `tt-architecture-core` proveru. Otvoreno: poreklo pomenutog "M-24 Inventory Aggregation Layer" (ne postoji u trenutnoj mapi modula), fizička lokacija pomenutog lokalnog LLM hardvera (EU rezidencija, poglavlje 9), usklađivanje predložene podele agenata sa već specificiranim M15 modelom, i uvođenje tehnologija van poglavlja 6 (Cube.dev/pgvector/LiteLLM). Pun originalni predlog i analiza sudara: `docs/analize/30-PREDLOG-AI-SEMANTICKI-SLOJ.md`.
 
 ---
 
