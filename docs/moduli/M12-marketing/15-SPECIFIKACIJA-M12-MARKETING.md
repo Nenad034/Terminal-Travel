@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 8 za tačan obim; API dokumentacija u `docs/api/M12-marketing.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M12-ZA-VLASNIKA.md` (isti folder)
-**Verzija:** 1.3 — implementacija (avgust 2026): kod pod `apps/api/src/modules/m12-marketing/`, `ContentPiece`/`ContentTranslation`/`ChannelConfig` u Prisma šemi, M13 `resolveContentAttribution` povezan na pravi `ContentService.findByTrackingCode` (in-process DI, poglavlje 6c). M8-zavisne stavke (poglavlje 3b/6b — `/stranica/:slug`, `/blog/:slug`, hvatanje `?ref=`) namerno nisu implementirane (M8 pauziran, CLAUDE.md). v1.2 dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
+**Verzija:** 1.4 — M8 integracija (avgust 2026, M8 nastavljen posle M12): nov javan endpoint `GET /marketing/public/content` (`PublicContentController`, bez guard-a, servira samo `status=PUBLISHED` sadržaj sa `M8_SITE` u `target_channels` preko `ContentService.findPublishedBySlug`) — zatvara poslednju otvorenu stavku poglavlja 8 (`/stranica/:slug`, `/blog/:slug` na M8 strani sada mogu da čitaju). Hvatanje `?ref=` ostaje na M8 strani (M8 spec poglavlje 3, korak 0), M12 se ovim ne menja. v1.3 — implementacija (avgust 2026): kod pod `apps/api/src/modules/m12-marketing/`, `ContentPiece`/`ContentTranslation`/`ChannelConfig` u Prisma šemi, M13 `resolveContentAttribution` povezan na pravi `ContentService.findByTrackingCode` (in-process DI, poglavlje 6c). M8-zavisne stavke (poglavlje 3b/6b — `/stranica/:slug`, `/blog/:slug`, hvatanje `?ref=`) namerno nisu implementirane (M8 pauziran, CLAUDE.md). v1.2 dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
 **Zavisi od:** M1, M2, M6
 
 ---
@@ -144,6 +144,7 @@ Prefiks: `/api/v1/marketing`
 | `/content/:id/approve` | POST | ljudsko odobrenje, zahteva `M12/content/APPROVE_PUBLISH` |
 | `/content/:id/translations` | GET / PUT | |
 | `/channels` | GET / POST / PATCH | konfiguracija distribucionih kanala |
+| `/public/content` | GET | **bez autentikacije** (dopuna avgust 2026) — `?type=STATIC_PAGE\|BLOG_POST&slug=...&lang=...`, vraća samo `status=PUBLISHED` sadržaj koji ima `M8_SITE` u `target_channels`; inače `404`. Namena: M8 `/stranica/:slug`, `/blog/:slug` (poglavlje 3b) |
 
 ---
 
@@ -157,7 +158,7 @@ Prefiks: `/api/v1/marketing`
 - [x] `tracking_code` se automatski generiše pri kreiranju i jedinstven je kroz sve `ContentPiece` zapise. (`generateTrackingCode`, kolizija proverena pre upisa)
 - [x] Rezervacija sa `Booking.referral_tracking_code` koji poklapa postojeći `ContentPiece.tracking_code` ispravno popunjava `FactBooking.referral_content_id` u M13 projekciji; nepostojeći kod ostaje `null`, ne pogrešnu vrednost. (`FactSyncService.resolveContentAttribution` → `ContentService.findByTrackingCode`)
 - [x] `ContentPiece` sa `contains_ai_generated_media = true` ne može preći u `APPROVED`/`PUBLISHED` bez vidljive oznake transparentnosti u `body` jezika objave (poglavlje 3c). (`hasAiTransparencyMarker` regex provera u `approve()`; dodatno, `BANNER` vezan za `product_id` je uvek odbijen kao proksi-provera drugog pravila §3c — dokumentovano u kodu)
-- [ ] M8 zavisne stavke (poglavlje 3b/3a) — `/stranica/:slug`, `/blog/:slug` rute i hvatanje `?ref=` na sajtu — čekaju M8 frontend (namerno van obima, CLAUDE.md "NE DIRAJ apps/web/"). M12 backend deo (model, `slug` unique, `tracking_code`) je gotov i spreman da ih posluži čim M8 dobije kod.
+- [x] M8 zavisne stavke (poglavlje 3b/3a) — javan endpoint gotov: `GET /marketing/public/content` servira samo `PUBLISHED` sadržaj sa `M8_SITE` kanalom (`PublicContentController`/`ContentService.findPublishedBySlug`, testirano `test/m12-exit-criteria.e2e-spec.ts`, §8 stavka 9). M8 `/stranica/:slug`, `/blog/:slug` stranice i hvatanje `?ref=` implementirani na M8 strani (M8 spec verzija koja sledi ovu).
 
 ---
 

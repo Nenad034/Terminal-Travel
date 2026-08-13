@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { ContentController } from './content.controller';
+import { PublicContentController } from './public-content.controller';
 import { ContentPublishSchedulerService } from './content-publish-scheduler.service';
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
@@ -9,7 +10,7 @@ import { DistributionModule } from '../distribution/distribution.module';
 
 @Module({
   imports: [AuthModule, PermissionsModule, AuditLogModule, DistributionModule],
-  controllers: [ContentController],
+  controllers: [ContentController, PublicContentController],
   providers: [ContentService, ContentPublishSchedulerService],
   exports: [ContentService],
 })

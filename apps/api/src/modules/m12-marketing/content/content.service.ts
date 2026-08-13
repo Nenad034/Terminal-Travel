@@ -170,6 +170,32 @@ export class ContentService {
     return content;
   }
 
+  // §3b/§7 dopuna (M8 integracija, avgust 2026) — javno čitanje objavljene STATIC_PAGE/BLOG_POST
+  // stranice preko PublicContentController. Namerno stroža provera od findBySlug: sadržaj mora
+  // biti PUBLISHED i mora imati M8_SITE u target_channels ("M8_SITE kanal servira stranicu",
+  // §3b) — neobjavljen sadržaj ili sadržaj koji nikad nije nameravan za sajt ostaje nevidljiv,
+  // NotFoundException umesto otkrivanja da zapis uopšte postoji.
+  async findPublishedBySlug(type: ContentPieceType, slug: string, lang?: LanguageCode) {
+    const content = await this.prisma.contentPiece.findUnique({ where: { slug }, include: { translations: true } });
+    if (
+      !content ||
+      content.type !== type ||
+      content.status !== 'PUBLISHED' ||
+      !content.targetChannels.includes('M8_SITE')
+    ) {
+      throw new NotFoundException(`Objavljena stranica sa slug="${slug}" nije pronađena.`);
+    }
+    const translation = resolveContentTranslation(content.translations, lang ?? DEFAULT_LANGUAGE);
+    return {
+      id: content.id,
+      type: content.type,
+      slug: content.slug,
+      translation: translation
+        ? { languageCode: translation.languageCode, title: translation.title, body: translation.body }
+        : null,
+    };
+  }
+
   /** M13 fact-sync — razrešava Booking.referral_tracking_code ka nazivu sadržaja (§3a). */
   async findByTrackingCode(trackingCode: string): Promise<{ id: string; name: string } | null> {
     const content = await this.prisma.contentPiece.findUnique({

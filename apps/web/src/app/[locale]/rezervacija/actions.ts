@@ -1,5 +1,6 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { getSession } from '@/lib/session';
@@ -28,6 +29,9 @@ export async function acceptTermsAndCreateQuoteAction(formData: FormData): Promi
   const adults = Number(formData.get('adults') ?? 2);
   const children = Number(formData.get('children') ?? 0);
   const buyerName = String(formData.get('buyerName'));
+  // M8 spec poglavlje 3, korak 0 — ?ref= zabeležen ranije u middleware.ts, prenosi se
+  // u Quote.referral_tracking_code (M5 spec §3.1) samo pri kreiranju, čist prolazan string.
+  const referralTrackingCode = (await cookies()).get('tt_ref')?.value;
 
   const quote = await apiFetch<Quote>('/sales/quotes', {
     method: 'POST',
@@ -35,6 +39,7 @@ export async function acceptTermsAndCreateQuoteAction(formData: FormData): Promi
       channel: 'B2C_SITE',
       contractTermsAccepted: true,
       items: [{ productId, stayFrom, stayTo, occupancy: { adults, children } }],
+      ...(referralTrackingCode ? { referralTrackingCode } : {}),
     },
   });
 

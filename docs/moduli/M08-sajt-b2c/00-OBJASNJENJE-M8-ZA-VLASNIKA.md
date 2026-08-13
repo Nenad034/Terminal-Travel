@@ -33,11 +33,16 @@ Ovo nije bio propust u ideji — specifikacija je od početka govorila da gost t
 6. Vidi potvrdu rezervacije i preuzme vaučer čim bude spreman.
 7. Kasnije se vrati na "Moje rezervacije" i "Profil" da pregleda/izmeni svoje podatke.
 
+## Dopuna avgust 2026 — "O nama"/"Kontakt"/blog sad rade
+
+M12 (Marketing/Content Engine) je u međuvremenu napravljen (drugi modul, ne ovaj). Njegov zadatak je da tim kroz interni panel piše i odobrava tekst opštih stranica ("O nama", "Kontakt") i blog članaka, uz isti korak odobrenja kao svaki drugi sadržaj (neko iz tima mora da klikne "Odobri" pre nego što bilo šta postane javno vidljivo). Sajt sad ume da pročita taj odobreni tekst i prikaže ga na `/stranica/o-nama`, `/stranica/kontakt`, `/blog/naziv-clanka`, itd. — dok tim ne objavi ništa kroz interni panel, te stranice jednostavno ne postoje (gost dobija "nije pronađeno", ne prazan ili polomljen ekran).
+
+Uz to, sajt sad prepoznaje kad neko dođe preko marketinškog linka (npr. objava na Facebook-u sa posebnim kodom u adresi) i taj kod tiho prati posetioca do trenutka rezervacije — kasnije, u izveštajima (M13), moći ćete da vidite koliko je rezervacija zaista došlo iz koje objave, ne samo koliko je ljudi kliknulo.
+
 ## Šta namerno JOŠ nije uključeno (nije propust, čeka drugi modul ili dodatnu odluku)
 
 - **Rezervacija bez ikakvog naloga** ("nastavi kao gost") — spec je ovo predviđao, ali bi zahtevalo novi javni "ulaz" u M6 koji bi mogao da se zloupotrebi (spam bez ikakve prijave) ako se ne doda i zaštita od automatizovanih zahteva. Za sada gost mora da napravi nalog (traje par sekundi) pre nego što rezerviše.
 - **Traka za "pametnu" pretragu prirodnim jezikom** (otkucaš "porodični odmor na moru u avgustu") — čeka M15 (AI orkestracija), koji još nema kod.
-- **Stranice sa opštim sadržajem i blog** — čekaju M12 (Marketing/Content Engine).
 - **Deljeni linkovi ka bazi znanja o destinacijama** — čekaju M23.
 - **Pravo plaćanje karticom** — pošto konkretan platni provajder (banka/procesor) još nije izabran (otvoreno pitanje, čeka vas), sajt trenutno koristi privremenu simulaciju umesto prave forme za unos kartice. Kad izaberete provajdera, ovaj deo se menja, ostatak toka ostaje isti.
 

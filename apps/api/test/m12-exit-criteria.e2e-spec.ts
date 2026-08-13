@@ -313,6 +313,69 @@ describe('M12 — izlazni kriterijum (e2e)', () => {
     });
   });
 
+  describe('§8, stavka 9 (M8 integracija) — GET /marketing/public/content servira samo objavljen M8_SITE sadržaj, bez tokena', () => {
+    it('objavljen STATIC_PAGE se čita bez Authorization header-a', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const slug = `o-nama-public-${testRunId}`;
+      const draft = await createManualDraft(accessToken, { type: 'STATIC_PAGE', slug, targetChannels: ['M8_SITE'] });
+      await addTranslation(accessToken, draft.id, 'Tekst o agenciji Terminal Travel.');
+      const approveRes = await request(app.getHttpServer())
+        .post(`/api/v1/marketing/content/${draft.id}/approve`)
+        .set(authed(accessToken));
+      expect(approveRes.body.status).toBe('PUBLISHED');
+
+      const res = await request(app.getHttpServer()).get(
+        `/api/v1/marketing/public/content?type=STATIC_PAGE&slug=${slug}&lang=sr`,
+      );
+      expect(res.status).toBe(200);
+      expect(res.body.slug).toBe(slug);
+      expect(res.body.translation.body).toContain('Terminal Travel');
+    });
+
+    it('DRAFT/PENDING_APPROVAL sadržaj vraća 404 na javnoj ruti', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const slug = `nacrt-${testRunId}`;
+      await createManualDraft(accessToken, { type: 'BLOG_POST', slug, targetChannels: ['M8_SITE'] });
+
+      const res = await request(app.getHttpServer()).get(
+        `/api/v1/marketing/public/content?type=BLOG_POST&slug=${slug}&lang=sr`,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('objavljen sadržaj bez M8_SITE u target_channels vraća 404 na javnoj ruti', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const slug = `interno-${testRunId}`;
+      // STATIC_PAGE zahteva slug (assertSlugRule), ali M8_SITE namerno izostavljen —
+      // provera da se target_channels poštuje čak i za tipove koji inače imaju M8 rutu.
+      const draft = await createManualDraft(accessToken, { type: 'STATIC_PAGE', slug, targetChannels: ['FACEBOOK'] });
+      await addTranslation(accessToken, draft.id, 'Sadržaj koji nije za sajt.');
+      await request(app.getHttpServer())
+        .post(`/api/v1/marketing/content/${draft.id}/approve`)
+        .set(authed(accessToken));
+
+      const res = await request(app.getHttpServer()).get(
+        `/api/v1/marketing/public/content?type=STATIC_PAGE&slug=${slug}&lang=sr`,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it('pogrešan type za postojeći slug vraća 404', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const slug = `blog-clanak-${testRunId}`;
+      const draft = await createManualDraft(accessToken, { type: 'BLOG_POST', slug, targetChannels: ['M8_SITE'] });
+      await addTranslation(accessToken, draft.id, 'Blog tekst.');
+      await request(app.getHttpServer())
+        .post(`/api/v1/marketing/content/${draft.id}/approve`)
+        .set(authed(accessToken));
+
+      const res = await request(app.getHttpServer()).get(
+        `/api/v1/marketing/public/content?type=STATIC_PAGE&slug=${slug}&lang=sr`,
+      );
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('§8, stavka 6 — tracking_code se automatski generiše i jedinstven je', () => {
     it('POST /content kreira ContentPiece sa unique tracking_code bez da ga klijent prosledi', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);

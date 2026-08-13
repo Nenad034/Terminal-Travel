@@ -79,6 +79,18 @@ export interface Booking {
   [key: string]: unknown;
 }
 
+// Oblik odgovora M12 `GET /marketing/public/content` (public-content.controller.ts).
+export interface PublicContent {
+  id: string;
+  type: string;
+  slug: string | null;
+  translation: {
+    languageCode: string;
+    title: string;
+    body: string;
+  } | null;
+}
+
 export interface ClientAccount {
   id: string;
   accountType: string;
