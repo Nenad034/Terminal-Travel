@@ -1,5 +1,9 @@
+import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
+import Icon from '@/components/Icon';
+import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
 
 interface BookingItem {
   id: string;
@@ -20,9 +24,30 @@ interface Booking {
   items: BookingItem[];
 }
 
+interface TravelGuaranteeRegistration {
+  id: string;
+  status: string;
+  cisRegistrationNumber: string | null;
+}
+
+interface ClientContract {
+  id: string;
+  contractType: string;
+  status: string;
+  documentUrl: string | null;
+}
+
 // M17 spec §4 (Faza 1), M5 §6 GET /bookings/:id — poziv iz internog panela vraća
 // pun (nemaskiran) prikaz, uključujući supplier_reference (M5 spec §6.2).
+// M17 spec §2 — ova stranica je direktan primer "kompozicije na nivou prikaza": pored M5
+// (status, stavke) dodaje M10 (status fiskalnog dokumenta i plaćanja) i M11 (status garancije
+// putovanja) na istom ekranu, poziva samo njihove postojeće API-je, ne uvodi novu logiku.
 export default async function BookingDetailPage({ params }: { params: { id: string } }) {
+  const me = await getMe();
+  const canPrepareFiscal = hasPermission(me, 'M10', 'fiscal-document', 'CREATE_DRAFT');
+  const canViewRegistrations = hasPermission(me, 'M11', 'travel-guarantee-registration', 'VIEW');
+  const canViewContracts = hasPermission(me, 'M20', 'client-contract', 'VIEW');
+
   let booking: Booking | null = null;
   let error: string | null = null;
   try {
@@ -30,6 +55,13 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
   } catch (err) {
     error = err instanceof ApiError && err.status === 404 ? 'Rezervacija nije pronađena.' : 'Rezervacija trenutno nije dostupna.';
   }
+
+  const [registrations, contracts] = await Promise.all([
+    booking && canViewRegistrations
+      ? apiFetch<TravelGuaranteeRegistration[]>(`/compliance/travel-guarantee-registrations?bookingId=${booking.id}`).catch(() => [])
+      : Promise.resolve([]),
+    booking && canViewContracts ? apiFetch<ClientContract[]>(`/client-contracts?bookingId=${booking.id}`).catch(() => []) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -70,8 +102,68 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
               </div>
             ))}
           </div>
+
+          {(canPrepareFiscal || canViewRegistrations || canViewContracts) && (
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {canPrepareFiscal && (
+                <CompositionCard icon="credit-card" title="M10 — fiskalni dokument">
+                  <p className="mb-2 text-xs text-ink-faint">Nacrt se priprema automatski pri potvrdi rezervacije; kliknite da ga prikažete i, po potrebi, pošaljete.</p>
+                  <PrepareFiscalDocumentButton bookingId={booking.id} />
+                </CompositionCard>
+              )}
+
+              {canViewRegistrations && (
+                <CompositionCard icon="law" title="M11 — garancija putovanja">
+                  {registrations.length === 0 ? (
+                    <p className="text-xs text-ink-faint">Nema CIS registracije (rezervacija nije ORGANIZATOR tip, ili je posrednička).</p>
+                  ) : (
+                    registrations.map((r) => (
+                      <div key={r.id} className="text-xs text-ink-dim">
+                        <Badge label={r.status} />
+                        {r.cisRegistrationNumber && <p className="mt-1">CIS broj: {r.cisRegistrationNumber}</p>}
+                        <Link href="/compliance" className="mt-2 inline-block text-accent hover:underline">
+                          otvori compliance →
+                        </Link>
+                      </div>
+                    ))
+                  )}
+                </CompositionCard>
+              )}
+
+              {canViewContracts && (
+                <CompositionCard icon="checklist" title="M20 — ugovor sa klijentom">
+                  {contracts.length === 0 ? (
+                    <p className="text-xs text-ink-faint">Ugovor još nije generisan.</p>
+                  ) : (
+                    contracts
+                      .filter((c) => c.status !== 'VOIDED')
+                      .map((c) => (
+                        <div key={c.id} className="text-xs text-ink-dim">
+                          <Badge label={c.status} />
+                          <p className="mt-1">{c.contractType}</p>
+                          <Link href={`/ugovori-klijenti/${c.id}`} className="mt-2 inline-block text-accent hover:underline">
+                            otvori ugovor →
+                          </Link>
+                        </div>
+                      ))
+                  )}
+                </CompositionCard>
+              )}
+            </div>
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+function CompositionCard({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+        <Icon name={icon} className="text-accent" /> {title}
+      </div>
+      {children}
     </div>
   );
 }

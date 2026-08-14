@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TravelGuarantee } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -37,6 +37,8 @@ export interface TravelGuaranteeUtilizationSnapshot {
 // koji uvek zahteva actor.userId i upisuje audit log.
 @Injectable()
 export class TravelGuaranteeService {
+  private readonly logger = new Logger(TravelGuaranteeService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
@@ -237,7 +239,24 @@ export class TravelGuaranteeService {
     const now = new Date();
     let total = 0;
     for (const booking of bookings) {
-      total += await this.convert(booking.totalPrice, booking.currency, guarantee.currency, now);
+      try {
+        total += await this.convert(booking.totalPrice, booking.currency, guarantee.currency, now);
+      } catch (err) {
+        // Bug otkriven i ispravljen pri implementaciji M17 Faza 2 (avgust 2026): jedna rezervacija
+        // u valuti bez unetog ExchangeRateSnapshot-a (M10 spec §3.1) je pre ove izmene rušila CEO
+        // GET /travel-guarantee/utilization sa 404 (NotFoundException iz ExchangeRatesService),
+        // sprečavajući tim da uopšte vidi status garancije — suprotno nameri poglavlja 2.2 (čisto
+        // informativna provera, "nivo Autonomno"). Jedna rezervacija bez kursa se sad izostavlja iz
+        // zbira (uz upozorenje u logu), umesto da obori ceo prikaz — isti princip opreza kao ostali
+        // alarmi u ovom modulu (informativno, ne blokira).
+        if (err instanceof NotFoundException) {
+          this.logger.warn(
+            `Preskačem rezervaciju u izračunu iskorišćenosti garancije — nedostaje kurs za konverziju: ${err.message}`,
+          );
+          continue;
+        }
+        throw err;
+      }
     }
     return total;
   }

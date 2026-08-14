@@ -87,7 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/finansije',
     permission: { module: 'M10', resource: 'fiscal-document', action: 'VIEW' },
     phase: 2,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'compliance',
@@ -96,7 +96,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/compliance',
     permission: { module: 'M11', resource: 'travel-guarantee', action: 'VIEW' },
     phase: 2,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'ugovori-klijenti',
@@ -105,7 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/ugovori-klijenti',
     permission: { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     phase: 2,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'crm',

@@ -37,7 +37,7 @@ export default async function DashboardPage() {
       ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => [])
       : Promise.resolve([]),
     canTravelGuarantee
-      ? apiFetch<{ utilizedPercent: number; guaranteeExpiresAt: string | null }>(
+      ? apiFetch<{ utilizationPercent: number; guaranteeStatus: string | null }>(
           '/compliance/travel-guarantee/utilization',
         ).catch(() => null)
       : Promise.resolve(null),
@@ -76,17 +76,15 @@ export default async function DashboardPage() {
         )}
 
         {canTravelGuarantee && (
-          <Card icon="law" title="M11 — garancija putovanja" href="#">
-            {guaranteeUtilization ? (
+          <Card icon="law" title="M11 — garancija putovanja" href="/compliance">
+            {guaranteeUtilization && guaranteeUtilization.guaranteeStatus ? (
               <div className="text-xs text-ink-dim">
                 <p>
-                  Iskorišćenost: <b className="text-ink">{guaranteeUtilization.utilizedPercent}%</b>
+                  Iskorišćenost: <b className="text-ink">{guaranteeUtilization.utilizationPercent.toFixed(1)}%</b>
                 </p>
-                {guaranteeUtilization.guaranteeExpiresAt && (
-                  <p className="mt-1">
-                    Ističe: <b className="text-ink">{new Date(guaranteeUtilization.guaranteeExpiresAt).toLocaleDateString('sr-RS')}</b>
-                  </p>
-                )}
+                <p className="mt-1">
+                  Status garancije: <b className="text-ink">{guaranteeUtilization.guaranteeStatus}</b>
+                </p>
               </div>
             ) : (
               <EmptyRow text="Nema podataka o garanciji putovanja." />

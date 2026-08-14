@@ -125,6 +125,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Lep PDF/nativni XLSX format izvoza za inspekciju — trenutno JSON + CSV (bez nove biblioteke), čeka izbor konkretne biblioteke sa vlasnikom.
 - Da li M11 treba da prati i druge licence/dozvole agencije van YUTA garancije.
 - Alarm za rok važenja putne isprave gosta — gde ga vratiti (verovatno M6 `GuestProfile`).
+- `assessForBooking` (§2.2, blokada potvrde ORGANIZATOR rezervacije preko limita garancije) baca grešku umesto sigurnog ponašanja kad booking-ova valuta nema uneti kurs — otkriveno avgust 2026 (M17 Faza 2), zahteva odluku vlasnika (§7 tog dokumenta za detalje).
 
 ## M12 — Marketing i sadržajni engine
 *(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
