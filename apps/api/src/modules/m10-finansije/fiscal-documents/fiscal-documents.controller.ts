@@ -7,11 +7,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M10 spec §10, prefiks /api/v1/finance
 @ApiTags('finance-fiscal-documents')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('finance/fiscal-documents')
 export class FiscalDocumentsController {
   constructor(private readonly fiscalDocuments: FiscalDocumentsService) {}
@@ -36,6 +38,7 @@ export class FiscalDocumentsController {
 
   @Post(':id/submit')
   @RequirePermission('M10', 'fiscal-document', 'SUBMIT')
+  @AgentAction('M10', 'fiscal_document.submit')
   submit(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.fiscalDocuments.submit(id, actor);
   }

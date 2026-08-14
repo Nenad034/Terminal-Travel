@@ -19,6 +19,13 @@ interface ExpiringRelease {
   releaseDeadline: string;
 }
 
+interface AgentInboxSource {
+  moduleCode: string;
+  actionCode: string;
+  label: string;
+  count: number;
+}
+
 // M17 spec §5 — dashboard agregira upozorenja iz M3 (rokovi alotmana), M11 (istek
 // garancije putovanja) i M1 (neuspeli pokušaji prijave/zaključani nalozi), filtrirano po
 // ulozi (svaka sekcija se povlači samo ako korisnik ima odgovarajuću dozvolu — čitanje iz
@@ -30,8 +37,9 @@ export default async function DashboardPage() {
   const canAudit = hasPermission(me, 'M1', 'audit-log', 'VIEW');
   const canContractPeriods = hasPermission(me, 'M3', 'contract-period', 'VIEW');
   const canTravelGuarantee = hasPermission(me, 'M11', 'travel-guarantee', 'VIEW');
+  const canAgentInbox = hasPermission(me, 'M15', 'agent-inbox', 'VIEW');
 
-  const [auditEntries, expiringReleases, guaranteeUtilization] = await Promise.all([
+  const [auditEntries, expiringReleases, guaranteeUtilization, agentInbox] = await Promise.all([
     canAudit ? apiFetch<AuditLogEntry[]>('/iam/audit-log').catch(() => []) : Promise.resolve([]),
     canContractPeriods
       ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => [])
@@ -41,6 +49,7 @@ export default async function DashboardPage() {
           '/compliance/travel-guarantee/utilization',
         ).catch(() => null)
       : Promise.resolve(null),
+    canAgentInbox ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => []) : Promise.resolve([]),
   ]);
 
   const securityAlerts = (auditEntries as AuditLogEntry[])
@@ -117,16 +126,34 @@ export default async function DashboardPage() {
             </Link>
           </Card>
         )}
+
+        {canAgentInbox && (
+          <Card icon="inbox" title="Agent Inbox — čeka odobrenje">
+            {(agentInbox as AgentInboxSource[]).every((s) => s.count === 0) ? (
+              <EmptyRow text="Nema stavki koje čekaju odobrenje." />
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {(agentInbox as AgentInboxSource[])
+                  .filter((s) => s.count > 0)
+                  .map((s) => (
+                    <li key={`${s.moduleCode}.${s.actionCode}`} className="rounded bg-warn-bg px-2 py-1 text-xs text-warn">
+                      {s.moduleCode} — {s.label}: <b>{s.count}</b>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </Card>
+        )}
       </div>
 
-      {!canAudit && !canContractPeriods && !canTravelGuarantee && (
+      {!canAudit && !canContractPeriods && !canTravelGuarantee && !canAgentInbox && (
         <p className="mt-6 text-xs text-ink-faint">Nema dodatnih upozorenja za vašu ulogu.</p>
       )}
     </div>
   );
 }
 
-function Card({ icon, title, href, children }: { icon: string; title: string; href: string; children: React.ReactNode }) {
+function Card({ icon, title, children }: { icon: string; title: string; href?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">

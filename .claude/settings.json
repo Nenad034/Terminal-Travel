@@ -108,7 +108,13 @@
       "Bash(npx expo *)",
       "Bash(nohup npm run dev --workspace=apps/api)",
       "Bash(nohup npm run start:dev --workspace=apps/api)",
-      "Bash(taskkill //F //PID 14828 //T)"
+      "Bash(taskkill //F //PID 14828 //T)",
+      "Bash(xargs -I{} sh -c 'echo {}; cat {}')",
+      "Bash(tee /tmp/e2e-run2.log)",
+      "Bash(tee /tmp/e2e-serial.log)",
+      "Bash(wmic OS get FreePhysicalMemory,TotalVisibleMemorySize)",
+      "Bash(wmic cpu *)",
+      "Bash(xargs -n1 basename)"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",

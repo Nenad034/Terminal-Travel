@@ -7,11 +7,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M5 spec §8/§11, prefiks /api/v1/sales
 @ApiTags('sales-supplier-manifests')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('sales/supplier-manifests')
 export class SupplierManifestsController {
   constructor(private readonly manifests: SupplierManifestsService) {}
@@ -36,6 +38,7 @@ export class SupplierManifestsController {
 
   @Post(':id/send')
   @RequirePermission('M5', 'supplier-manifest', 'SEND')
+  @AgentAction('M5', 'supplier_manifest.send')
   send(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.manifests.send(id, actor.userId);
   }

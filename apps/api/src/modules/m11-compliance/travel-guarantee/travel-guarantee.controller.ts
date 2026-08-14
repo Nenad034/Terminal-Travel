@@ -6,11 +6,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M11 spec §5, prefiks /api/v1/compliance
 @ApiTags('compliance-travel-guarantee')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('compliance/travel-guarantee')
 export class TravelGuaranteeController {
   constructor(private readonly travelGuarantee: TravelGuaranteeService) {}
@@ -29,6 +31,7 @@ export class TravelGuaranteeController {
 
   @Patch()
   @RequirePermission('M11', 'travel-guarantee', 'EDIT')
+  @AgentAction('M11', 'travel_guarantee.edit')
   update(@Body() dto: UpdateTravelGuaranteeDto, @CurrentUser() actor: { userId: string }) {
     return this.travelGuarantee.update(dto, actor);
   }

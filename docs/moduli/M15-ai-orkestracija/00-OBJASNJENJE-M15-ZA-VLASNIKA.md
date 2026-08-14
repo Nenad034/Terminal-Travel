@@ -29,12 +29,22 @@ Ovo je namerno, ne propust. Princip koji smo primenili na svaki AI mehanizam u s
 
 Svaki upit se beleži u isti dnevnik svih izmena u sistemu (audit log) sa oznakom da je akter "AI agent", isto kao što se beleži svaka ljudska akcija — tako da uvek možete da vidite ko je (čovek ili AI) šta pitao i kad, ista transparentnost kao za sve ostalo u Terminal-u.
 
+## Nova dopuna (avgust 2026) — ograda za budući ceo AI tim
+
+Omnisearch (iznad) je bio prvi, uzak korak. Ovaj prolaz gradi **ogradu** za sve ono što dolazi posle — ne uvodi nove AI agente, nego pravi bravu koja će ih čekati kad stignu:
+
+- **Spisak svih akcija koje bi bilo koji budući AI agent mogao da dodirne, sa oznakom za svaku** — sme sam ("Autonomno"), sme da predloži ali čovek mora da potvrdi ("Predloži pa čovek odobri"), ili nikad sam ("Nikad autonomno" — novac, fiskalizacija, ugovori). Ovo je bilo napisano u specifikaciji od ranije; sada je i stvarno upisano u bazu, ne samo na papiru.
+- **Sama brava u kodu.** Do sada, ta lista je bila samo dokumentacija — kod je nekome ko bi se predstavio kao AI agent dozvoljavao skoro sve što bi i pravi zaposleni smeo. Sad devet konkretnih, osetljivih mesta u sistemu (slanje fiskalnog računa, prenos novca dobavljaču, potpisivanje ugovora sa gostom, izmena garancije putovanja, i još par) fizički odbijaju zahtev čim vide da je pošiljalac AI agent, bez obzira na to da li bi mu neka buduća greška u podešavanju slučajno dala dozvolu. Ljudski zaposleni ovo uopšte ne primete — za njih se ništa nije promenilo.
+- **Jedno mesto gde se vidi šta čeka odobrenje.** Nova kartica na početnoj strani panela ("Agent Inbox") sabira sve što trenutno čeka nečiju potvrdu kroz ceo sistem — cenovnici na čekanju, operativne liste spremne za slanje dobavljaču, rabati provizije, marketinški sadržaj, nacrti odgovora na tikete — svako vidi samo ono za šta već ima pravo pristupa, ništa novo.
+
+Zamislite ovo kao ugradnju brave na vrata pre nego što ste uopšte kupili sef koji treba da čuva — sef (pravi AI agenti po modulima) dolazi kasnije, ali vrata su već zaključana i spremna.
+
 ## Šta još nije gotovo (namerno)
 
 - **Glasovni unos (mikrofon pored polja)** — čeka poseban, kasniji prolaz; ista logika (pitanje → isti tok → glasovni odgovor), samo dodatni sloj za snimanje/čitanje glasa.
 - **Pretraga spoljnih recenzija hotela** — čeka da Vi lično sastavite spisak sajtova kojima verujete (agent sme da pita samo te sajtove, nikad slobodno pretražuje internet) — to je poslovna odluka, ne tehnička.
 - **Ista pretraga za B2B portal (subagenti) i sajt (gosti)** — ovaj prolaz pokriva samo interni tim (M17); isti mehanizam se kasnije uključuje i tamo, sa užim obimom (subagent npr. ne vidi ime dobavljača, gost vidi samo svoje rezervacije).
 - **Praćenje zloupotrebe** (neko pokušava sistematski da "izvuče" podatke van uobičajene upotrebe) — čeka modul M18 (operativni nadzor), koji još ne postoji u kodu.
-- **Punih 22+ AI agenata po modulima** (jedan za finansije, jedan za dobavljače, itd.) — to je Faza 7 celog plana, mnogo kasnije; ovaj prvi prolaz namerno pokriva samo omnisearch jer on može da krene čim su M5 (rezervacije) i M17 (panel) stabilni, nezavisno od tog velikog koraka.
+- **Sami pravi AI agenti po modulima** (jedan za finansije, jedan za dobavljače, itd., koji stvarno, samostalno rade posao) — ovaj prolaz je napravio samo bravu za njih, ne i same agente. Svaki modul dobija svog agenta tek kad radi u produkciji bez problema bar jedan pun poslovni ciklus — to je Vaša odluka za svaki modul posebno, ne unapred fiksiran raspored.
 
 Ništa od ovoga nije propust — ista svesna odluka da se gradi po delovima koji stvarno mogu da se provere, kao i kod svakog drugog modula do sada.

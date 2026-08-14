@@ -6,11 +6,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M20 spec §6, prefiks /api/v1/client-contracts
 @ApiTags('client-contracts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('client-contracts')
 export class ClientContractsController {
   constructor(private readonly clientContracts: ClientContractsService) {}
@@ -29,6 +31,7 @@ export class ClientContractsController {
 
   @Post(':id/accept')
   @RequirePermission('M20', 'client-contract', 'ACCEPT')
+  @AgentAction(null, 'contract.sign')
   accept(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.clientContracts.accept(id, actor);
   }

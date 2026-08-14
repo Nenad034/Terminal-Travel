@@ -7,11 +7,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M3 spec §6/§7, prefiks /api/v1/contracting
 @ApiTags('contracting-pricelist-imports')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('contracting/pricelist-imports')
 export class PricelistImportsController {
   constructor(private readonly imports: PricelistImportsService) {}
@@ -42,6 +44,7 @@ export class PricelistImportsController {
 
   @Post(':id/rows/:rowId/approve')
   @RequirePermission('M3', 'pricelist-import', 'APPROVE_ROW')
+  @AgentAction('M3', 'pricelist_import.approve_row')
   approve(
     @Param('id') id: string,
     @Param('rowId') rowId: string,

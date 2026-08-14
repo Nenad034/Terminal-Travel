@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { AgentActionTier, PrismaClient } from '@prisma/client';
 import { SYSTEM_ROLES } from '../../src/modules/m1-core-identitet/roles/system-roles.constants';
 
 const prisma = new PrismaClient();
@@ -232,6 +232,9 @@ const M9_PERMISSIONS: { module: string; resource: string; action: string; descri
 const M15_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
   { module: 'M15', resource: 'module-activation', action: 'VIEW', description: 'Uvid u status aktivacije M15 gate-ova (npr. M15_OMNISEARCH)' },
   { module: 'M15', resource: 'module-activation', action: 'ACTIVATE', description: 'Ljudska potvrda prelaska gate-a u ACTIVATED — nikad AI agent' },
+  { module: 'M15', resource: 'agent-action-type', action: 'VIEW', description: 'Uvid u registar akcija AI agenata (poglavlje 4) i njihov nivo autonomije' },
+  { module: 'M15', resource: 'agent-action-type', action: 'EDIT', description: 'Izmena nivoa autonomije registrovane akcije — nikad AI agent' },
+  { module: 'M15', resource: 'agent-inbox', action: 'VIEW', description: 'Agregovan prikaz PROPOSE_THEN_APPROVE stavki koje čekaju ljudsko odobrenje kroz sve module' },
 ];
 
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
@@ -329,6 +332,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M13 spec §6 — Sales Manager dobija sales/occupancy (nije cenovno osetljivo kao profitabilnost/dinamički).
     { module: 'M13', resource: 'report:sales', action: 'VIEW' },
     { module: 'M13', resource: 'report:occupancy', action: 'VIEW' },
+    // M15 spec §8 — Agent Inbox: vidi stavke iz izvora za koje već ima VIEW (M5/M7/M14 iznad).
+    { module: 'M15', resource: 'agent-inbox', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -513,6 +518,7 @@ async function main() {
   }
 
   await seedM15Omnisearch();
+  await seedM15ActionRegistry();
 
   console.log(
     `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola.`,
@@ -576,6 +582,72 @@ async function seedM15Omnisearch() {
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
+}
+
+// Compound unique (module_code, action_code) ne prihvata `null` u Prisma `where` tipu za
+// globalne ("(globalno)" u spec tabeli §4) redove — isti find-first-pa-create/update obrazac
+// kao seedM15Omnisearch iznad, izdvojen ovde jer ga koristi ceo registar ispod.
+async function upsertAgentActionType(moduleCode: string | null, actionCode: string, tier: AgentActionTier, sourceNote: string) {
+  const existing = await prisma.agentActionType.findFirst({ where: { moduleCode, actionCode } });
+  if (existing) {
+    await prisma.agentActionType.update({ where: { id: existing.id }, data: { tier, sourceNote } });
+  } else {
+    await prisma.agentActionType.create({ data: { moduleCode, actionCode, tier, sourceNote } });
+  }
+}
+
+// M15 spec §4 v1.10 — pun registar (Faza 7 prvi prolaz: registar + sprovedba na nivou koda +
+// Agent Inbox, avgust 2026). Namerno IZOSTAVLJA `M11 tourist_tax_remittance.draft`/`.submit` —
+// stale red, M11 spec v2.0 je eTurista/boravišnu taksu eksplicitno uklonio iz obima modula
+// ("zakonska obaveza smeštajnog objekta, ne agencije-touroperatora"), tabela ovde je usklađena
+// u istom prolazu. `omnisearch.query` je već seedovan iznad (seedM15Omnisearch), ne ponavlja se.
+async function seedM15ActionRegistry() {
+  const rows: { moduleCode: string | null; actionCode: string; tier: AgentActionTier; sourceNote: string }[] = [
+    { moduleCode: 'M3', actionCode: 'contract_period.release_warning', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M3 poglavlje 4.1' },
+    { moduleCode: 'M3', actionCode: 'pricelist_import.extract', tier: 'AUTONOMOUS', sourceNote: 'M3 poglavlje 4.2.4' },
+    { moduleCode: 'M3', actionCode: 'pricelist_import.approve_row', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M3 poglavlje 4.2.4' },
+    { moduleCode: 'M3', actionCode: 'contract_period.low_capacity_alert', tier: 'AUTONOMOUS', sourceNote: 'M3 poglavlje 4.3 — čisto informativan signal na 1–2 preostale jedinice, ne blokira prodaju' },
+    { moduleCode: 'M5', actionCode: 'supplier_manifest.draft', tier: 'AUTONOMOUS', sourceNote: 'M5 poglavlje 8.4, 8.7 — priprema nacrta i njeno prioritetno isticanje ostaju čisto informativni' },
+    { moduleCode: 'M5', actionCode: 'supplier_manifest.send', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M5 poglavlje 8.4' },
+    { moduleCode: 'M5', actionCode: 'booking_item.cancel_duplicate_check', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M5 poglavlje 6.4 — deterministički fuzzy-match, upozorenje pre storna zahteva svesnu potvrdu operatera' },
+    { moduleCode: 'M6', actionCode: 'communication.draft', tier: 'AUTONOMOUS', sourceNote: 'M6 poglavlje 4' },
+    { moduleCode: 'M6', actionCode: 'communication.send_with_price_or_obligation', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M6 poglavlje 4' },
+    { moduleCode: 'M7', actionCode: 'commission_rebate.calculate_draft', tier: 'AUTONOMOUS', sourceNote: 'M7 poglavlje 3.2' },
+    { moduleCode: 'M7', actionCode: 'commission_rebate.apply', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M7 poglavlje 3.2' },
+    { moduleCode: 'M7', actionCode: 'subagent_chat.search', tier: 'AUTONOMOUS', sourceNote: 'M7 poglavlje 2.0.4c — čitanje kataloga, isti obim kao portal' },
+    { moduleCode: 'M7', actionCode: 'subagent_chat.quote_draft', tier: 'AUTONOMOUS', sourceNote: 'M7 poglavlje 2.0.4c — deterministička cena, ništa obavezujuće' },
+    { moduleCode: 'M7', actionCode: 'subagent_chat.booking_confirm', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M7 poglavlje 2.0.4c — odobrava isključivo subagent sopstvenim nalogom (Gejt A)' },
+    { moduleCode: 'M10', actionCode: 'fiscal_document.draft', tier: 'AUTONOMOUS', sourceNote: 'M10 poglavlje 6' },
+    { moduleCode: 'M10', actionCode: 'fiscal_document.submit', tier: 'NEVER_AUTONOMOUS', sourceNote: 'M10 poglavlje 6' },
+    { moduleCode: 'M11', actionCode: 'travel_guarantee.expiry_reminder', tier: 'AUTONOMOUS', sourceNote: 'M11 poglavlje 4' },
+    { moduleCode: 'M11', actionCode: 'travel_guarantee.edit', tier: 'NEVER_AUTONOMOUS', sourceNote: 'M11 poglavlje 4' },
+    { moduleCode: 'M11', actionCode: 'travel_guarantee.utilization_warning', tier: 'AUTONOMOUS', sourceNote: 'M11 poglavlje 4.2 — upozorenje na 80% praga, ne tvrda blokada' },
+    { moduleCode: 'M12', actionCode: 'content.draft', tier: 'AUTONOMOUS', sourceNote: 'M12 poglavlje 3' },
+    { moduleCode: 'M12', actionCode: 'content.approve_publish', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M12 poglavlje 3' },
+    { moduleCode: 'M13', actionCode: 'insight.surface_trend', tier: 'AUTONOMOUS', sourceNote: 'M13 poglavlje 5' },
+    { moduleCode: 'M14', actionCode: 'ticket_response.draft', tier: 'AUTONOMOUS', sourceNote: 'M14 poglavlje 4' },
+    { moduleCode: 'M14', actionCode: 'ticket_response.send_with_price_or_obligation', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M14 poglavlje 4' },
+    { moduleCode: 'M14', actionCode: 'complaint.escalate_notify', tier: 'AUTONOMOUS', sourceNote: 'M14 poglavlje 3.1 — čisto informativna eskalacija (ZZP rok), ne izvršenje' },
+    { moduleCode: 'M20', actionCode: 'client_contract.generate_draft', tier: 'AUTONOMOUS', sourceNote: 'M20 poglavlje 4' },
+    { moduleCode: null, actionCode: 'contract.sign', tier: 'NEVER_AUTONOMOUS', sourceNote: 'poglavlje 7 Master dokumenta' },
+    { moduleCode: null, actionCode: 'money.transfer', tier: 'NEVER_AUTONOMOUS', sourceNote: 'poglavlje 7 Master dokumenta' },
+    { moduleCode: null, actionCode: 'license_data.edit', tier: 'NEVER_AUTONOMOUS', sourceNote: 'poglavlje 7 Master dokumenta' },
+    { moduleCode: 'M18', actionCode: 'trend_research.draft', tier: 'AUTONOMOUS', sourceNote: 'M18 poglavlje 5' },
+    { moduleCode: 'M18', actionCode: 'trend_research.apply_to_docs', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M18 poglavlje 5' },
+    { moduleCode: 'M18', actionCode: 'health_signal.detect_and_notify', tier: 'AUTONOMOUS', sourceNote: 'M18 poglavlje 2 — čisto informativno, isporuka upozorenja nije poslovna odluka' },
+    { moduleCode: 'M21', actionCode: 'help_question.answer', tier: 'AUTONOMOUS', sourceNote: 'M21 poglavlje 5.2 — isključivo pretraga objavljenog sadržaja, bez pristupa živim podacima' },
+    { moduleCode: 'M21', actionCode: 'help_escalation.create_ticket', tier: 'AUTONOMOUS', sourceNote: 'M21 poglavlje 5.3 — korisnik koji pita sam potvrđuje eskalaciju sopstvenog pitanja' },
+    { moduleCode: 'M21', actionCode: 'help_article_suggestion.draft', tier: 'AUTONOMOUS', sourceNote: 'M21 poglavlje 5.4 — čisto pripremni nacrt iz obrasca ponovljenih pitanja' },
+    { moduleCode: 'M21', actionCode: 'help_article_suggestion.approve', tier: 'PROPOSE_THEN_APPROVE', sourceNote: 'M21 poglavlje 5.4' },
+    { moduleCode: 'M23', actionCode: 'knowledge_question.answer', tier: 'AUTONOMOUS', sourceNote: 'M23 poglavlje 3.2 — isključivo pretraga objavljenog sadržaja' },
+    { moduleCode: 'M23', actionCode: 'knowledge_article.research_draft', tier: 'AUTONOMOUS', sourceNote: 'M23 poglavlje 4c — priprema ArticleRevision nacrt iz odobrenih izvora' },
+    { moduleCode: 'M23', actionCode: 'knowledge_article.publish', tier: 'NEVER_AUTONOMOUS', sourceNote: 'M23 poglavlje 6 — isto tako article-source.approve/article-revision.approve, nikad AI' },
+    { moduleCode: null, actionCode: 'omnisearch.external_review_lookup', tier: 'AUTONOMOUS', sourceNote: 'poglavlje 6.5.6 — čisto informativno, ograničeno na whitelist ExternalReviewSource' },
+  ];
+
+  for (const row of rows) {
+    await upsertAgentActionType(row.moduleCode, row.actionCode, row.tier, row.sourceNote);
+  }
 }
 
 main()

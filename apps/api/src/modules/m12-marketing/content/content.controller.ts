@@ -9,11 +9,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M12 spec §7, prefiks /api/v1/marketing
 @ApiTags('marketing-content')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('marketing/content')
 export class ContentController {
   constructor(private readonly content: ContentService) {}
@@ -49,6 +51,7 @@ export class ContentController {
 
   @Post(':id/approve')
   @RequirePermission('M12', 'content', 'APPROVE_PUBLISH')
+  @AgentAction('M12', 'content.approve_publish')
   approve(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.content.approve(id, actor.userId);
   }

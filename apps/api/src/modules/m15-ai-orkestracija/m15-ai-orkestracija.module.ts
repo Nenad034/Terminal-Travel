@@ -4,20 +4,25 @@ import { ModuleActivationService } from './module-activation/module-activation.s
 import { OmnisearchController } from './omnisearch/omnisearch.controller';
 import { OmnisearchService } from './omnisearch/omnisearch.service';
 import { AnthropicClientService } from './anthropic/anthropic-client.service';
+import { ActionTypesController } from './action-types/action-types.controller';
+import { ActionTypesService } from './action-types/action-types.service';
+import { AgentInboxController } from './agent-inbox/agent-inbox.controller';
+import { AgentInboxService } from './agent-inbox/agent-inbox.service';
 import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { BookingsModule } from '../m5-rezervacije/bookings/bookings.module';
 import { ProductsModule } from '../m2-katalog-proizvoda/products/products.module';
 
-// docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md — prvi prolaz
-// (avgust 2026): samo omnisearch (§6.5) za M17 kanal. Uvozi BookingsModule/ProductsModule da
-// pozove njihove servise IN-PROCESS sa identitetom korisnika koji pretražuje (§6.5.2) — ne
-// preko HTTP-a, isti obrazac kao SearchModule (M5) koji uvozi MarkupRulesModule/IntegrationsModule.
+// docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
+// v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
+// koda (AgentActionGuard, apps/api/src/common/) i Agent Inbox — poglavlje 6/9. Agent Inbox čita
+// direktno iz Prisma (isti "čitanje iz postojećih tabela više modula" princip kao M17 dashboard),
+// zato ne zahteva uvoz M3/M7/M12/M14 modula ovde.
 @Module({
   imports: [AuthModule, PermissionsModule, AuditLogModule, BookingsModule, ProductsModule],
-  controllers: [ModuleActivationController, OmnisearchController],
-  providers: [ModuleActivationService, OmnisearchService, AnthropicClientService],
+  controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController],
+  providers: [ModuleActivationService, OmnisearchService, AnthropicClientService, ActionTypesService, AgentInboxService],
   exports: [OmnisearchService],
 })
 export class M15AiOrkestracijaModule {}

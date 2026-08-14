@@ -8,11 +8,13 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { AgentActionGuard } from '../../../common/guards/agent-action.guard';
+import { AgentAction } from '../../../common/decorators/agent-action.decorator';
 
 // M14 spec §6, prefiks /api/v1/helpdesk
 @ApiTags('helpdesk-tickets')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard, AgentActionGuard)
 @Controller('helpdesk/tickets')
 export class TicketsController {
   constructor(private readonly tickets: TicketsService) {}
@@ -58,6 +60,7 @@ export class TicketsController {
 
   @Post(':id/messages/:messageId/send')
   @RequirePermission('M14', 'ticket', 'RESPOND')
+  @AgentAction('M14', 'ticket_response.send_with_price_or_obligation')
   sendMessage(@Param('id') id: string, @Param('messageId') messageId: string, @CurrentUser() actor: { userId: string }) {
     return this.tickets.sendMessage(id, messageId, actor);
   }

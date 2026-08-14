@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { BookingItem, PaymentStatus, Prisma, QuoteItem, TipNastupanja } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -456,6 +456,18 @@ export class BookingsService {
     );
     if (targetItems.length === 0) {
       throw new BadRequestException('Nema aktivnih stavki za otkazivanje.');
+    }
+
+    // M15 spec §4/§5 — booking_item.cancel_duplicate_check je PROPOSE_THEN_APPROVE: agent sme
+    // da pokrene proveru (ispod), ali sam override potvrde upozorenja o duplikatu je uvek
+    // ljudska odluka, isti "defense in depth" princip kao ModuleActivationService.update.
+    if (dto.confirmDuplicateOverride) {
+      const actorUser = await this.prisma.user.findUnique({ where: { id: actor.userId } });
+      if (actorUser?.accountType === 'AI_AGENT') {
+        throw new ForbiddenException(
+          'AI agent ne sme sam da potvrdi otkazivanje uprkos upozorenju o duplikatu (M15 spec §5 — booking_item.cancel_duplicate_check je PROPOSE_THEN_APPROVE).',
+        );
+      }
     }
 
     if (!dto.confirmDuplicateOverride) {
