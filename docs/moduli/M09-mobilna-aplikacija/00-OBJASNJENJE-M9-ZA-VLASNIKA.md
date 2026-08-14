@@ -4,11 +4,20 @@
 
 ---
 
-## Šta je urađeno u ovom prolazu — i šta namerno nije
+## Šta je urađeno — i šta namerno nije (ažurirano avgust 2026, v1.4)
 
-M9 je zamišljen kao jedna mobilna aplikacija sa **dva potpuno različita lica**: verzija za goste (pregled ponude, rezervacija, vaučer na telefonu) i verzija za vodiče koji su fizički na terenu sa grupom. U ovom prolazu je napravljena **samo pozadina (backend)** za drugu polovinu — vodiča. Nema još telefonske aplikacije koju bi vodič instalirao — to je posao za kasniju fazu (Faza 6). Zamislite ovo kao izgrađenu kuhinju restorana bez još otvorene sale za goste: hrana se već može pripremiti i poslužiti, ali gost još ne sedi za stolom.
+M9 je zamišljen kao jedna mobilna aplikacija sa **dva potpuno različita lica**: verzija za goste (pregled ponude, rezervacija, vaučer na telefonu) i verzija za vodiče koji su fizički na terenu sa grupom. Prvi prolaz je napravio **samo pozadinu (backend)** za vodiča — restoran je imao kuhinju, ali salu za goste još nije otvorio. **U ovom prolazu je napravljena i sama telefonska aplikacija** (React Native, alat Expo) — sala je sad otvorena, obe strane rade od početka do kraja na pravom telefonu.
 
-Deo za goste uopšte nije dirat u ovom prolazu — i ne treba da bude. On već postoji kroz sajt (M8) i koristiće potpuno iste "recepte" (API-je) kad mobilna aplikacija bude napravljena, bez ijedne nove poslovne logike.
+Deo za goste koristi potpuno iste "recepte" (API-je) koje sajt (M8) već koristi — nema nijedne nove poslovne logike napisane samo za telefon, tačno kao što je od početka i planirano.
+
+### Kako sada rade obadva lica aplikacije
+
+- **Gost** se prijavi ili registruje, pretraži ponudu, izabere aranžman, prihvati uslove putovanja, plati (karticom ili uplatom na račun) i dobije potvrdu sa vaučerom koji ima QR kod — pogodan da ga neko na licu mesta (hotel, prevoznik) skenira umesto da traži papir.
+- **Vodič** se prijavi (obavezna dvofaktorska prijava, isto kao ostatak internog tima), vidi svoj raspored, i za svaku turu može da odčekira goste i prijavi problem na terenu — sve to radi i **bez signala**, telefon sve pamti lokalno i pošalje čim se veza vrati.
+
+### Obaveštenja na telefonu (novo u ovom prolazu)
+
+Aplikacija sad ume da pošalje pravo obaveštenje na telefon (kao SMS ili poruka iz drugih aplikacija): gostu kad je rezervacija potvrđena, i vodiču kad kolega na istoj turi prijavi hitan problem. Ovo koristi besplatan servis koji dolazi sa istim alatom (Expo) kojim je napravljena sama aplikacija — nije dodat nijedan novi spoljni ugovor/vendor. Napomena: ova obaveštenja rade tek kad se aplikacija instalira kao prava aplikacija (ne u "Expo Go" probnom režimu koji se koristi za brzo testiranje tokom razvoja) — to je ograničenje samog alata, ne nešto što je ovde propušteno.
 
 ## Zašto je vodič poseban slučaj — "offline-first"
 
@@ -34,9 +43,9 @@ Napravljena je nova uloga u sistemu, "Vodič" — potpuno odvojena od prodajnog 
 
 ## Šta još čeka (namerno, ne propust)
 
-- **Sama telefonska aplikacija (React Native)** — pozadina je gotova i testirana, ali još nema ekrana koje bi vodič dodirivao na telefonu. Ovo čeka Fazu 6 celog plana izgradnje.
-- **Prikaz upozorenja na ekranu tima u realnom vremenu** — signal se već šalje, ali dok M17 (interni panel) i M19 (tim-chat) ne budu izgrađeni, niko ga još ne "hvata" na ekranu — trenutno ostaje zapisan u trajnom tragu, proverljiv, ali ne i automatski iskačući na nečijem monitoru.
-- **Konkretan provajder push notifikacija** (npr. za obaveštavanje kolege vodiča o hitnoj situaciji na istoj turi) — bira se pri izgradnji same aplikacije.
+- **Objavljivanje u App Store/Google Play** — aplikacija radi i testira se preko Expo alata, ali još nije predata prodavnicama aplikacija (to zahteva razvojne naloge kod Apple/Google i vlasnikovu odluku o budžetu za to).
+- **Prikaz hitnog upozorenja na ekranu tima u realnom vremenu** — signal se već šalje i sad i gura obaveštenje direktno na telefon drugog vodiča na istoj turi, ali dok M19 (tim-chat) ne bude izgrađen, tim u kancelariji (M17) ga još ne "hvata" automatski na svom ekranu — trenutno ostaje zapisan u trajnom tragu, proverljiv, ali ne i sam iskačući na nečijem monitoru u kancelariji.
+- **Testiranje na pravom preklopnom telefonu** — raspored se prilagođava širini ekrana i lokalno je proveren simulacijom promenljive veličine prozora; pravi preklopni uređaj nije bio dostupan za fizičko testiranje.
 
 ---
 

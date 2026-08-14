@@ -1,6 +1,6 @@
 # API dokumentacija — M9 (Mobilna aplikacija — deo za vodiče na terenu)
 
-**Namena:** ovaj dokument je za svakoga ko se povezuje sa Terminal-om spolja ili programski — pre svega budući React Native mobilni klijent (Faza 6, još ne postoji u ovom prolazu). Interni oslonac za implementaciju (poslovna pravila, redosled provera, izlazni kriterijum) ostaje `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md` — ovaj dokument ga ne zamenjuje.
+**Namena:** ovaj dokument je za svakoga ko se povezuje sa Terminal-om spolja ili programski — pre svega React Native (Expo) mobilni klijent, `apps/mobile` (v1.4, avgust 2026). Interni oslonac za implementaciju (poslovna pravila, redosled provera, izlazni kriterijum) ostaje `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md` — ovaj dokument ga ne zamenjuje.
 
 **Namerno uzak obim ovog dokumenta (avgust 2026):** pokriva isključivo deo za vodiče na terenu (poglavlje 3/4 specifikacije). Deo za goste (poglavlje 2) nema sopstvene M9 endpoint-e — koristi identične API-je kao M8 (sajt), vidi `docs/api/M5-rezervacije.md` i pripadajuće M6/M10/M20 dokumente.
 
@@ -94,6 +94,20 @@ Oba niza su opciona — klijent šalje samo ono što ima u redu čekanja.
 
 ---
 
+## Registracija push tokena (`POST /mobile/push-token`)
+
+v1.4 dopuna — bilo koja autentikovana mobilna uloga (gost ili vodič) registruje sopstveni Expo push token. Nema posebne dozvole (isti obrazac kao `GET /iam/permissions` — svako sme za sopstveni nalog).
+
+**Zahtev:**
+```json
+{ "pushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" }
+```
+**Odgovor `201`:** `{ "ok": true }`
+
+Server čuva token u `User.push_token` i koristi ga (preko postojećih Event Bus signala — M5 `booking.confirmed`, M9 `field_incident.urgent`) da pošalje Expo push poruku odgovarajućem korisniku. Odsustvo registrovanog tokena se tiho preskače, nije greška.
+
+---
+
 ## Dodela vodiča (interni panel, van `/mobile` prefiksa)
 
 M9 spec §4 dopunjuje M5 `BookingItem` poljem `assigned_guide_id` (nullable, FK ka M1 `User`, weak reference). Dodeljuje ga interni panel (M17, još ne postoji kao implementacija) preko M5 endpoint-a:
@@ -105,16 +119,16 @@ Content-Type: application/json
 
 { "assignedGuideId": "u-vodic-1" }
 ```
-Dozvola: `M5/booking/MODIFY` (ista dozvola kao ostale izmene rezervacije — M9 spec ne uvodi poseban ključ za dodelu vodiča). `assignedGuideId: null` uklanja dodelu. Detalji: `docs/api/M5-rezervacije.md`.
+Dozvola: `M5/booking/MODIFY` (ista dozvola kao ostale izmene rezervacije — M9 spec ne uvodi poseban ključ za dodelu vodiča). `assignedGuideId: null` uklanja dodelu. Detalji: `docs/api/M5-rezervacije.md`. M17 (interni panel) postoji kao implementacija, ali još nema poseban ekran za ovu dodelu — poziva se direktno dok taj ekran ne bude dodat, isto ograničenje kao za `URGENT` upozorenje ispod.
 
 ---
 
 ## Deo za goste (poglavlje 2 specifikacije) — nema sopstvene M9 rute
 
-Pretraga, ponuda, rezervacija, kartično plaćanje, "moje rezervacije", vaučeri — isti API-ji kao M8 (`docs/api/M5-rezervacije.md`, `M6-crm.md`, i M10/M20 tokovi plaćanja/prihvatanja ugovora). Push notifikacije i QR prikaz vaučera su mobilne specifičnosti van backend obima (nema poseban API — konkretan provajder push notifikacija je otvoreno pitanje, §9 specifikacije).
+Pretraga, ponuda, rezervacija, kartično plaćanje, "moje rezervacije", vaučeri — isti API-ji kao M8 (`docs/api/M5-rezervacije.md`, `M6-crm.md`, i M10/M20 tokovi plaćanja/prihvatanja ugovora), `channel: "MOBILE"` (M5 `M5Channel` enum) umesto `B2C_SITE`. QR prikaz vaučera je mobilna specifičnost bez sopstvenog API-ja (kodira postojeći `voucherUrl`).
 
 ---
 
-## Šta čeka mobilni klijent (React Native, van obima ovog prolaza)
+## Mobilni klijent (`apps/mobile`, React Native/Expo, v1.4)
 
-Ovaj dokument pokriva isključivo backend. Prikaz na telefonu/tabletu/preklopnom telefonu (izlazni kriterijum stavka 5-6 specifikacije), lokalna SQLite baza, red čekanja za offline upise i sam UI nisu implementirani — backend je spreman (endpoint-i iznad su stabilan ugovor za taj klijent kad dođe na red, Faza 6).
+Postoji kao implementacija (avgust 2026) — oba iskustva (gost i vodič), offline-first sinhronizacija (lokalna SQLite baza + red čekanja opisan iznad), Expo push notifikacije. Endpoint-i iznad su stabilan ugovor koji klijent koristi direktno (bez BFF sloja, za razliku od `apps/web`/`apps/panel`). `M17`/`M19` konzumacija `field_incident.urgent` signala u realnom vremenu (iskačuće upozorenje na ekranu tima) ostaje otvorena stavka — signal je već spreman preko Event Bus-a, čeka pretplatnika na strani tih modula.

@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M9) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Delimično implementirano (avgust 2026) — backend za deo vodiča na terenu gotov (poglavlje 3/4, izlazni kriterijum stavke 1-4); deo za goste ne zahteva sopstveni kod (isti API-ji kao M8); mobilni klijent (React Native, izlazni kriterijum stavke 5-6) čeka Fazu 6.
-**Verzija:** 1.3 (avgust 2026) — implementacija backend dela za vodiče: nova uloga `VODIC` (M1), dopuna M5 `BookingItem.assigned_guide_id`, Prisma modeli `FieldCheckIn`/`FieldIncidentNote`, `GET /mobile/staff/my-itinerary`, `POST /mobile/staff/sync`, dozvole (poglavlje 6), API dokumentacija `docs/api/M9-mobilna-aplikacija.md`. Nema React Native mobilnog klijenta u ovom prolazu — namerno ograničen obim, potvrđeno vlasnikom. v1.2 dodata napomena o namerno uskom obimu (poglavlje 1) i stavka izlaznog kriterijuma za prikaz na tabletu/preklopnom telefonu (Master dokument poglavlje 5.1); v1.1 dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
+**Status:** Implementirano (avgust 2026) — backend za deo vodiča na terenu gotov (poglavlje 3/4, izlazni kriterijum stavke 1-4); React Native (Expo) mobilni klijent za oba iskustva gotov (`apps/mobile`, izlazni kriterijum stavke 5-6), poglavlje 5 dopunjeno mehanizmom push notifikacija. Preostaje samo objavljivanje u App Store/Google Play (poglavlje 9).
+**Verzija:** 1.4 (avgust 2026) — React Native (Expo, managed workflow) mobilni klijent, `apps/mobile`: oba iskustva (gost preko postojećih M8/M5/M6/M10/M20 API-ja, vodič preko offline-first sinhronizacije iz poglavlja 3). Push notifikacije rešene preko Expo Push servisa (poglavlje 5 dopunjena): novo polje `User.pushToken` (M1) i `POST /mobile/push-token` endpoint za registraciju uređajskog tokena; time se briše otvoreno pitanje "konkretan provajder" iz poglavlja 9. v1.3 implementacija backend dela za vodiče: nova uloga `VODIC` (M1), dopuna M5 `BookingItem.assigned_guide_id`, Prisma modeli `FieldCheckIn`/`FieldIncidentNote`, `GET /mobile/staff/my-itinerary`, `POST /mobile/staff/sync`, dozvole (poglavlje 6), API dokumentacija `docs/api/M9-mobilna-aplikacija.md`. v1.2 dodata napomena o namerno uskom obimu (poglavlje 1) i stavka izlaznog kriterijuma za prikaz na tabletu/preklopnom telefonu (Master dokument poglavlje 5.1); v1.1 dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja) — isti tok kao M8, vidi poglavlje 2
 
 ---
@@ -83,7 +83,10 @@ Da bi sistem znao koji vodič pokriva koji polazak, u `05-SPECIFIKACIJA-M5-REZER
 - **Gosti:** potvrda rezervacije, podsetnik pred putovanje, promena statusa.
 - **Vodiči:** hitna izmena itinerara, `URGENT` `FieldIncidentNote` od kolege na istoj turi (ako je relevantno timski).
 
-Implementacija (konkretan provajder push notifikacija) — van obima ove specifikacije, standardna infrastruktura.
+**Provajder (avgust 2026, v1.4):** Expo Push servis — deo istog Expo SDK-a koji nosi mobilni klijent (poglavlje 6 master dokumenta), bez dodatnog vendora. Mehanizam:
+- M1 `User` dobija novo polje `push_token` (string, nullable) — uređajski Expo push token.
+- `POST /mobile/push-token` (autentikovan, bilo koja mobilna uloga — gost ili vodič) upisuje/ažurira `push_token` za pozivaoca. Isti idempotentni obrazac kao ostali M9 upisi (ponovljen isti token ne pravi duplikat, samo osvežava zapis).
+- Slanje: postojeći Event Bus signali (`M9 field_incident.urgent`, M5 signali za potvrdu/promenu statusa rezervacije, M8 podsetnik pred putovanje) dobijaju pretplatnika koji čita `push_token` ciljanog korisnika i šalje preko Expo Push API-ja. Ovaj pretplatnik je deo mobilnog prvog prolaza implementacije, ne novi modul.
 
 ---
 
@@ -105,6 +108,7 @@ Prefiks: `/api/v1/mobile`
 | :---- | :---- | :---- |
 | `/staff/my-itinerary` | GET | agregovan paket za offline period, filtriran po `assigned_guide_id` |
 | `/staff/sync` | POST | šalje red čekanja (`FieldCheckIn[]`, `FieldIncidentNote[]`), svaki zapis sa `idempotency_key` |
+| `/push-token` | POST | registruje/osvežava Expo push token pozivaoca (poglavlje 5, v1.4), bilo koja mobilna uloga |
 | Ostalo (deo za goste) | — | isti endpoint-i kao M8, samo mobilni klijent |
 
 ---
@@ -115,12 +119,14 @@ Prefiks: `/api/v1/mobile`
 - [x] Radnje urađene bez signala (check-in, beleška) se ispravno sinhronizuju čim se veza vrati, bez duplikata (test: pokušaj sinhronizacije dvaput istim `idempotency_key`). *(`POST /mobile/staff/sync`, testirano istim e2e fajlom, §8 stavka 2 — ponovljen isti `id` ne pravi duplikat, upisuje M1 audit log za svaku sinhronizovanu promenu.)*
 - [x] `URGENT` beleška odmah generiše vidljivo upozorenje timu po sinhronizaciji. *(M1 audit log zapis `field_incident.urgent_alert` + Event Bus `M9 field_incident.urgent`, testirano §8 stavka 3 — ne ponavlja se pri idempotentnom re-sync-u bez promene sadržaja.)*
 - [x] Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture. *(`assigned_guide_id` filter + test sa dva vodiča, §8 stavka 4; korisnik bez uloge `VODIC` dobija 403.)*
-- [ ] Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u mobilnoj aplikaciji. *(Nema šta da se testira ovde — nema sopstvenog M9 koda za ovaj deo, spec §2 eksplicitno upućuje na M8/M5/M6/M10/M20 API-je. Čeka M9 mobilni klijent da bi se ovo proverilo end-to-end sa pravim uređajem.)*
-- [ ] Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu, fluidnim rasporedom (Master dokument poglavlje 5.1). *(Čeka M9 mobilni klijent — React Native UI nije u obimu ovog prolaza; backend ne utiče na ovu stavku.)*
+- [x] Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u mobilnoj aplikaciji. *(v1.4 — `apps/mobile/src/guest/*` poziva isključivo postojeće M5/M6/M10/M20 endpoint-e (`channel: MOBILE`), bez nove logike; isti tok kao `apps/web` rezervacija/actions.ts. TypeScript provera i `npm test --workspace=@terminal/mobile` prolaze; ceo tok (pretraga → ponuda → uslovi → plaćanje → potvrda → vaučer) ručno proveren kroz Expo klijent.)*
+- [x] Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu, fluidnim rasporedom (Master dokument poglavlje 5.1). *(v1.4 — RN Flexbox + širina-ekrana breakpoint (`src/shared/responsive.ts`), ručno testirano promenljivom veličinom prozora u Expo Go/simulatoru; pravi fizički preklopni uređaj nije bio dostupan za testiranje, zabeleženo kao poznato ograničenje u §9.)*
 
 ---
 
 ## 9. Otvoreno za dalje
 
 - Tačna dubina unapred preuzetih podataka (14 dana je predlog) — podesivo, prilagodiće se stvarnom obrascu rada kad agencija počne da koristi modul.
-- Konkretan provajder push notifikacija — bira se pri implementaciji.
+- Objavljivanje u App Store/Google Play (EAS submit, developer nalozi) — čeka vlasnikovu odluku o nalozima/budžetu.
+- Testiranje na fizičkom preklopnom uređaju (v1.4 — lokalno je provereno samo simulacijom promenljive širine ekrana).
+- M17/M19 pretplata na `M9 field_incident.urgent` za prikaz upozorenja na ekranu tima u realnom vremenu (v1.4 — signal i mobilno push obaveštenje kolegi već rade, ekranski prikaz čeka ta dva modula).

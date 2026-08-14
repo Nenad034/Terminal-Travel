@@ -15,7 +15,9 @@
     "prisma:migrate": "npm run prisma:migrate --workspace=apps/api",
     "prisma:seed": "npm run prisma:seed --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
-    "build:web": "npm run build --workspace=apps/web"
+    "build:web": "npm run build --workspace=apps/web",
+    "start:mobile": "npm run start --workspace=@terminal/mobile",
+    "test:mobile": "npm run test --workspace=@terminal/mobile"
   },
   "engines": {
     "node": ">=20"

@@ -26,6 +26,8 @@ model User {
   failedLoginAttempts Int         @default(0) @map("failed_login_attempts")
   lockedUntil         DateTime?   @map("locked_until")
   lastLoginAt         DateTime?   @map("last_login_at")
+  // M9 spec §5 v1.4 — Expo push token mobilnog uređaja, registruje se preko POST /mobile/push-token.
+  pushToken           String?     @map("push_token")
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
