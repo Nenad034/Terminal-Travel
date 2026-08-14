@@ -11,3 +11,4 @@ apps/api/generated/
 coverage/
 .nx/
 apps/web/.next/
+apps/panel/.next/

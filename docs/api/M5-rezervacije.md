@@ -12,6 +12,8 @@
 
 Objedinjena pretraga (M2 katalog + M3 ugovorena dostupnost + M4 uživo), sa već primenjenom maržom.
 
+**`channel` i autentikacija (dopuna, avgust 2026):** za `B2C_SITE`/`B2B_PORTAL`/`MOBILE` endpoint ostaje potpuno javan, bez tokena. Za `channel=INTERNAL_PANEL` (interni tim, koristi ga M17) obavezan je `Authorization: Bearer <JWT>` sa dozvolom `M5/booking/VIEW` — bez toga `401`/`403`. Ova vrednost preskače `Product.visible_channels` filter (tim vidi svaki `ACTIVE` proizvod, ne samo javno objavljene).
+
 **Zahtev:**
 ```
 GET /api/v1/sales/search?type=ACCOMMODATION&destinationCountry=Grčka&stayFrom=2027-06-10&stayTo=2027-06-17&occupancy={"adults":2,"children":1,"roomConfig":[{"adults":2,"children":1,"childrenAges":[6]}]}&channel=INTERNAL_PANEL

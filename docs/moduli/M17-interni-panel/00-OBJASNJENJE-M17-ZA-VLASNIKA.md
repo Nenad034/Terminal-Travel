@@ -1,0 +1,41 @@
+# M17 (Interni radni panel) — objašnjenje za vlasnika
+
+## Šta je ovo, jednostavnim rečima
+
+Do sada smo napravili motor (M1-M14, M16, M20) — sve funkcioniše, ali samo kroz programske pozive koje testovi rade automatski, ne kroz nešto što bi neko iz tima mogao da klikne. M17 je **prvi ekran** — aplikacija kroz koju Vaš tim (Vi, Direktor, prodajni agenti, računovođa) stvarno radi svakodnevni posao: unosi proizvode, ugovara sa dobavljačima, pretražuje i rezerviše za goste.
+
+Zamislite da smo do sada napravili kompletnu unutrašnjost restorana — kuhinju, magacin, kasu koja radi — ali nema ulaznih vrata ni stolova. M17 je ulaz i sala. Ono što se kuva (M2 katalog, M5 rezervacije, M10 finansije...) već postoji i radi ispravno; M17 je mesto gde to postaje nešto što čovek stvarno koristi.
+
+## Zašto je urađen baš sada
+
+M17 raste postepeno — svaki modul dobija svoj ekran u panelu tek kad taj modul bude gotov iza kulisa. Do sada smo završili M1-M14, M16 i M20 na backend strani, pa je konačno bilo dovoljno gotovih delova da prvi pravi ekran ima smisla. Ovaj prvi prolaz pokriva ono što spec zove "Faza 0 i Faza 1" — prijava i osnovni alati za prodaju (katalog, ugovori, pretraga i rezervacije).
+
+## Šta tačno možete da radite kroz panel sada
+
+- **Prijava** — sa lozinkom i obaveznim dvofaktorskim kodom (isti nivo bezbednosti kao internet bankarstvo), pošto interni tim ima pristup osetljivim podacima.
+- **Početna strana (dashboard)** — vidite ko ste prijavljeni, Vašu ulogu, i (ako ste Vlasnik/Direktor) trag svega što se u sistemu desilo (audit log).
+- **Katalog proizvoda** — spisak svih proizvoda, sa mogućnošću da ručno dodate nov (npr. hotel, izlet).
+- **Dobavljači i ugovori** — spisak dobavljača i ugovora, sa mogućnošću unosa novih.
+- **Pretraga i rezervacije** — pretražite šta imate na raspolaganju (po destinaciji, datumu, broju gostiju), izaberete ponudu, unesete podatke gosta, i potvrdite rezervaciju — potpuno isti tok kao kad gost rezerviše preko sajta, samo sad Vaš tim to radi ručno (npr. gost zove telefonom).
+- **Kalendar rezervacija** — mesečni pregled ko dolazi, ko odlazi, ko je u toku boravka, po danu.
+
+## Šta izgleda kao Chrome/VS Code, i zašto
+
+Dogovorili smo se ranije da panel radi po obrascima koje ljudi već znaju iz svakodnevnog korišćenja kompjutera — ne izmišljamo novi način rada, samo ga oblačimo u naš sopstveni vizuelni identitet. Konkretno:
+
+- **Tanka traka ikonica sa leve strane** (kao VS Code) — moduli koji još nisu gotovi se vide, ali zaključani, sa oznakom faze kad dolaze na red — da znate šta dolazi, ne samo šta postoji.
+- **Traka "tabova" na vrhu** (kao pretraživač) — možete da imate otvoreno više rezervacija/zapisa istovremeno i da se prebacujete među njima, bez da izgubite mesto na kom ste stali.
+- **Skrivena "komandna paleta"** (`Ctrl+K`) — umesto klikanja kroz menije, pritisnete taster i otkucate šta tražite. Prazan upit vam pokaže sve što možete da otvorite; kad dodamo pravu AI pretragu (čeka poseban modul, M15), moći ćete i da postavite pitanje prirodnim jezikom ("koje rezervacije čekaju fakturu").
+- **Tamni i svetli mod** — panel prati podešavanje Vašeg računara, uz mogućnost ručnog prekidača.
+
+## Jedna stvar koju smo usput otkrili i popravili
+
+Dok smo gradili ekran za pretragu, otkrili smo da pretraga s internog panela nikad zapravo nije mogla da radi — mehanizam koji određuje "gde se proizvod prikazuje" (sajt, B2B portal, mobilna app) nikad nije uključivao "interni panel" kao opciju, jer do sada niko nije stvarno pozvao pretragu na taj način (postojali su samo automatski testovi, ne stvaran ekran). Ispravili smo to — sad Vaš tim vidi svaki aktivan proizvod, bez obzira da li je već objavljen na sajtu ili ne (logično, jer prodajni agent mora da može da proda nešto i pre nego što je to javno vidljivo, npr. dogovor telefonom pre zvanične objave).
+
+## Šta još nije gotovo (namerno)
+
+- **Ostatak modula** (finansije, CRM, B2B partneri, izveštaji, podrška, marketing) — dolaze u narednim koracima, jedan po jedan, istim tempom kao što su i sami ti moduli rađeni.
+- **Prava AI pretraga i glasovna komanda** — čekaju poseban modul (M15) koji upravlja AI agentima kroz ceo sistem; trenutno komandna paleta radi samo kao brz način navigacije, ne "razgovor" sa sistemom.
+- **Instaliranje na telefon kao aplikacija (PWA)** — dodaje se kad bude više ekrana da to ima smisla testirati na pravom uređaju.
+
+Ništa od ovoga nije propust — to su svesne odluke da se gradi po delovima koji stvarno mogu da se provere, ne "sve odjednom".

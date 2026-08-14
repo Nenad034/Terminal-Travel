@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import '@vscode/codicons/dist/codicon.css';
+
+/* M17 zadatak (avgust 2026) — paleta "Horizont" (docs/analize/29-DIZAJN-SISTEM-UI.md §2,
+   docs/moduli/M01-core-identitet/00-MOCKUP-M1-TERMINAL-STYLE.html paleta 3), fino podešena
+   i PROVERENA lokalno protiv WCAG 2.1 AA (§2a): 4.5:1 tekst, 3:1 velik tekst/ikonice/granice,
+   svaka pozadinska nijansa (bg/panel/panel-2) posebno testirana, identično u oba moda.
+
+   Podrazumevano: prati prefers-color-scheme (:root bez [data-theme] = tamni ili svetli po OS-u).
+   Ručni prekidač postavlja [data-theme="dark"|"light"] na <html> i pamti izbor u localStorage
+   (src/components/ThemeToggle.tsx) — data-theme selektor uvek pobeđuje prefers-color-scheme. */
+
+:root {
+  /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel-2: #e9eef4;
+  --border: #6f8298;
+  --text: #0e1826;
+  --text-dim: #3c4f66;
+  --text-faint: #54677d;
+  --accent: #9c6216;
+  --accent-strong: #78490e;
+  --accent-soft: #f4e2c2;
+  --accent-ink: #fffaf0;
+  --accent2: #0a6d5e;
+  --accent2-soft: #d9f0ec;
+  --ok: #1f9d67;
+  --ok-bg: #e3f6ec;
+  --warn: #a86a12;
+  --warn-bg: #f9edd3;
+  --danger: #b3392a;
+  --danger-bg: #fbe4e1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0c1420;
+    --panel: #121b29;
+    --panel-2: #1a2536;
+    --border: #5a7594;
+    --text: #eef2f7;
+    --text-dim: #b7c4d4;
+    --text-faint: #8998ac;
+    --accent: #eab35c;
+    --accent-strong: #f2c274;
+    --accent-soft: #33270f;
+    --accent-ink: #1c1206;
+    --accent2: #4fd0ba;
+    --accent2-soft: #0f322c;
+    --ok: #3ecf8e;
+    --ok-bg: #0f2b21;
+    --warn: #e0a542;
+    --warn-bg: #332508;
+    --danger: #e2685a;
+    --danger-bg: #3a1712;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #0c1420;
+  --panel: #121b29;
+  --panel-2: #1a2536;
+  --border: #5a7594;
+  --text: #eef2f7;
+  --text-dim: #b7c4d4;
+  --text-faint: #8998ac;
+  --accent: #eab35c;
+  --accent-strong: #f2c274;
+  --accent-soft: #33270f;
+  --accent-ink: #1c1206;
+  --accent2: #4fd0ba;
+  --ok: #3ecf8e;
+  --ok-bg: #0f2b21;
+  --warn: #e0a542;
+  --warn-bg: #332508;
+  --danger: #e2685a;
+  --danger-bg: #3a1712;
+}
+
+:root[data-theme='light'] {
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel-2: #e9eef4;
+  --border: #6f8298;
+  --text: #0e1826;
+  --text-dim: #3c4f66;
+  --text-faint: #54677d;
+  --accent: #9c6216;
+  --accent-strong: #78490e;
+  --accent-soft: #f4e2c2;
+  --accent-ink: #fffaf0;
+  --accent2: #0a6d5e;
+  --accent2-soft: #d9f0ec;
+  --ok: #1f9d67;
+  --ok-bg: #e3f6ec;
+  --warn: #a86a12;
+  --warn-bg: #f9edd3;
+  --danger: #b3392a;
+  --danger-bg: #fbe4e1;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+code,
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+@layer components {
+  /* Zajednički stil za text/select/textarea polja u formama (M2/M3/M5 Faza 1 ekrani) —
+     WCAG AA kontrast border/bg proveren u tailwind.config.ts komentaru (paleta "Horizont"). */
+  .input {
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+  .input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}

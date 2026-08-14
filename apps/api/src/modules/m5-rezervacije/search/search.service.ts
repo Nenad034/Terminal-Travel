@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LanguageCode, Prisma, ProductType, VisibleChannel } from '@prisma/client';
+import { LanguageCode, Prisma, ProductType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
@@ -7,6 +7,7 @@ import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language
 import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
 import { SearchResultOffer, SearchResultProduct } from './search-result.types';
+import { SearchChannel } from './dto/search-query.dto';
 
 export interface SearchParamsInput {
   type?: ProductType[];
@@ -15,7 +16,7 @@ export interface SearchParamsInput {
   stayFrom?: string;
   stayTo?: string;
   occupancy?: OccupancyInput;
-  channel: VisibleChannel;
+  channel: SearchChannel;
   lang?: LanguageCode;
 }
 
@@ -36,7 +37,11 @@ export class SearchService {
   async search(params: SearchParamsInput): Promise<SearchResultProduct[]> {
     const where: Prisma.ProductWhereInput = {
       status: 'ACTIVE',
-      visibleChannels: { has: params.channel },
+      // M2 spec §5.1 — visible_channels kontroliše samo gde se proizvod PRIKAZUJE gostima/
+      // subagentima (B2C_SITE/B2B_PORTAL/MOBILE); interni tim (INTERNAL_PANEL) vidi svaki
+      // ACTIVE proizvod bez obzira na to polje (autorizacija za ovaj kanal je već sprovedena
+      // u SearchController pre poziva ovde — vidi napomenu u search-query.dto.ts).
+      ...(params.channel === 'INTERNAL_PANEL' ? {} : { visibleChannels: { has: params.channel } }),
     };
     if (params.type && params.type.length > 0) where.type = { in: params.type };
     if (params.destinationCountry) where.destinationCountry = params.destinationCountry;

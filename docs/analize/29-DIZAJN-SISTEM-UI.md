@@ -120,7 +120,21 @@ Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženj
 
 ## 8. Otvoreno za dalje
 
-- Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).
+- ~~Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).~~ **Rešeno (avgust 2026, prvi prolaz M17 implementacije)** — paleta "Horizont" (`apps/panel/tailwind.config.ts`, `apps/panel/src/app/globals.css`):
+
+  | Uloga | Svetli mod | Tamni mod |
+  | :---- | :---- | :---- |
+  | pozadina (bg) | `#f6f8fb` | `#0c1420` |
+  | panel | `#ffffff` | `#121b29` |
+  | panel-2 (bočna traka/gornja traka) | `#e9eef4` | `#1a2536` |
+  | granica (border) | `#6f8298` | `#5a7594` |
+  | tekst | `#0e1826` | `#eef2f7` |
+  | tekst — sekundaran | `#3c4f66` | `#b7c4d4` |
+  | tekst — najslabiji | `#54677d` | `#8998ac` |
+  | akcent (jedina) | `#9c6216` | `#eab35c` |
+  | akcent — tekst na akcentu | `#fffaf0` | `#1c1206` |
+
+  Svaka kombinacija tekst/granica-protiv-pozadine iz gornje tabele proverena programski (formula WCAG 2.1 relativne luminanse) — najniži rezultat je `3.71:1` (granica na svetlom modu, ispod praga za tekst ali iznad 3:1 zahteva za granice/ikonice), sav tekst prolazi sa marginom (`4.84:1` do `17.84:1`). `--danger`/`--danger-bg` i slični semantički parovi (uspeh/upozorenje) takođe provereni, najniži `4.85:1`.
 - Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 (subagenti su takođe redovni, profesionalni korisnici) ili prilagođenu, jednostavniju verziju — otvoreno dok M7 UI ne dođe na red.
 - Da li izbor tamnog/svetlog moda treba da se sinhronizuje preko više uređaja po nalogu (zahteva backend polje, npr. na M1 `User`) ili ostaje lokalno po uređaju — v1 pretpostavlja lokalno, revidira se ako se pokaže potreba.
 - Tačna paleta semantičkih boja za isticanje teksta (poglavlje 6) — upozorenje/greška/uspeh — bira se zajedno sa HEX vrednostima palete.

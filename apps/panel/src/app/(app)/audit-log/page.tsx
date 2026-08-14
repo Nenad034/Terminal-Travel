@@ -1,0 +1,57 @@
+import { apiFetch } from '@/lib/api-client';
+import RegisterTab from '@/components/RegisterTab';
+
+interface AuditLogEntry {
+  id: string;
+  action: string;
+  module: string;
+  actorType: string;
+  actorId: string;
+  resourceType: string;
+  resourceId: string;
+  createdAt: string;
+  beforeState?: unknown;
+  afterState?: unknown;
+}
+
+// M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
+// (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
+// korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
+// (isti princip kao §3 — panel ne izmišlja dozvole, samo poštuje ono što API vrati).
+export default async function AuditLogPage() {
+  let entries: AuditLogEntry[] = [];
+  let error: string | null = null;
+  try {
+    entries = await apiFetch<AuditLogEntry[]>('/iam/audit-log');
+  } catch {
+    error = 'Nemate dozvolu za uvid u audit log (M1/audit-log/VIEW).';
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl p-6">
+      <RegisterTab label="Audit log" />
+      <h1 className="mb-1 font-mono text-lg">
+        <span className="text-accent">$</span> tail -f audit.log
+      </h1>
+      <p className="mb-4 text-xs text-ink-dim">Append-only zapis svake izmene u sistemu.</p>
+
+      {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+
+      {!error && (
+        <div className="overflow-hidden rounded-lg border border-border">
+          {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
+          {entries.map((e) => (
+            <div key={e.id} className="border-b border-border bg-panel px-4 py-2 font-mono text-xs last:border-b-0 hover:bg-panel-2">
+              <span className="text-ink-faint">{new Date(e.createdAt).toLocaleString('sr-RS')}</span>{' '}
+              <span className="text-accent2">{e.module}</span> <span className="text-ink">{e.action}</span>{' '}
+              <span className="text-ink-dim">
+                {e.resourceType}#{e.resourceId?.slice(0, 8)}
+              </span>{' '}
+              <span className="text-ink-faint">[{e.actorType}]</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

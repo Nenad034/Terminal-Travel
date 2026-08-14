@@ -1,6 +1,8 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { PermissionsService } from '../permissions/permissions.service';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
@@ -11,7 +13,11 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @ApiTags('auth')
 @Controller('iam/auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly prisma: PrismaService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   @Post('register')
   register(@Body() dto: RegisterDto) {
@@ -65,5 +71,33 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   confirmMfaEnrollment(@Body('code') code: string, @Req() req: Request & { user: { userId: string } }) {
     return this.auth.confirmMfaEnrollment(req.user.userId, code).then(() => ({ ok: true }));
+  }
+
+  /**
+   * M17 integracija (avgust 2026, minimalna dopuna otkrivena pri implementaciji panela) —
+   * "ko sam ja i šta smem" za trenutno prijavljenog korisnika. Ne postoji poseban ključ
+   * dozvole (svako sme da vidi SOPSTVENI profil/prava — GET /iam/users/:id to zahteva
+   * M1/user/VIEW koje npr. Prodajni agent nema, pa ne može da posluži ovoj svrsi).
+   * Prava se, kao i svuda u M1 (§3.6), računaju uživo nad bazom (PermissionsService),
+   * nikad iz JWT payload-a (§3.7 — access token nosi samo user_id/session_id).
+   */
+  @Get('me')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async me(@Req() req: Request & { user: { userId: string } }) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: req.user.userId },
+      include: { roles: { include: { role: true } } },
+    });
+    const permissions = await this.permissions.effectivePermissions(req.user.userId);
+    return {
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      accountType: user.accountType,
+      status: user.status,
+      roles: user.roles.map((r) => r.role.name),
+      permissions,
+    };
   }
 }
