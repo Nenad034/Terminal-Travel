@@ -114,7 +114,8 @@
       "Bash(tee /tmp/e2e-serial.log)",
       "Bash(wmic OS get FreePhysicalMemory,TotalVisibleMemorySize)",
       "Bash(wmic cpu *)",
-      "Bash(xargs -n1 basename)"
+      "Bash(xargs -n1 basename)",
+      "Bash(tee /tmp/e2e-full-run.log)"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",
