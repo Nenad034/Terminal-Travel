@@ -19,6 +19,7 @@ import { M13BiModule } from './modules/m13-bi/m13-bi.module';
 import { M12MarketingModule } from './modules/m12-marketing/m12-marketing.module';
 import { M16McpDistribucijaModule } from './modules/m16-mcp-distribucija/m16-mcp-distribucija.module';
 import { M9MobilnaAplikacijaModule } from './modules/m9-mobilna-aplikacija/m9-mobilna-aplikacija.module';
+import { M15AiOrkestracijaModule } from './modules/m15-ai-orkestracija/m15-ai-orkestracija.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { M9MobilnaAplikacijaModule } from './modules/m9-mobilna-aplikacija/m9-mo
     M12MarketingModule,
     M16McpDistribucijaModule,
     M9MobilnaAplikacijaModule,
+    M15AiOrkestracijaModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

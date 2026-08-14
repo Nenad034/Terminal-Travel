@@ -226,6 +226,14 @@ const M9_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M9', resource: 'field-incident', action: 'CREATE', description: 'Slanje FieldIncidentNote zapisa pri sinhronizaciji (POST /mobile/staff/sync)' },
 ];
 
+// M15 spec §8 — dozvole AI agentske orkestracije. module-activation/ACTIVATE je namerno uska:
+// Vlasnik/Direktor, nikad AI agent (sprovedeno i na nivou koda u ModuleActivationController,
+// defense-in-depth §5 — actor_type = AI_AGENT se odbija čak i kad bi dozvola teorijski dozvolila).
+const M15_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M15', resource: 'module-activation', action: 'VIEW', description: 'Uvid u status aktivacije M15 gate-ova (npr. M15_OMNISEARCH)' },
+  { module: 'M15', resource: 'module-activation', action: 'ACTIVATE', description: 'Ljudska potvrda prelaska gate-a u ACTIVATED — nikad AI agent' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -244,6 +252,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -260,6 +269,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M13_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -473,6 +483,7 @@ async function main() {
     ...M12_PERMISSIONS,
     ...M16_PERMISSIONS,
     ...M9_PERMISSIONS,
+    ...M15_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -501,9 +512,70 @@ async function main() {
     }
   }
 
+  await seedM15Omnisearch();
+
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola.`,
   );
+}
+
+// M15 spec §4 (registar), §3 (ModuleAgentActivation), §6.5.1 (OmnisearchAgent) — prvi prolaz
+// (avgust 2026) seeduje samo ono što omnisearch koristi: dva registar reda relevantna za
+// omnisearch (drugi, external_review_lookup, je van obima — §6.5.6 čeka whitelist odluku
+// vlasnika), jedan ModuleAgentActivation red koji STARTUJE kao NOT_READY (Vlasnik/Direktor ga
+// ručno prevode preko PATCH /ai-orchestration/modules/:code/activation, nikad ovde), i jedan
+// formalni M1 nalog (account_type = AI_AGENT) + AIAgent zapis koji nosi actor_type = AI_AGENT
+// u audit logu svakog omnisearch upita.
+async function seedM15Omnisearch() {
+  // Compound unique (moduleCode, actionCode) ne prihvata `null` u Prisma `where` tipu za
+  // globalne (module_code = null) redove (§4 "(globalno)") — ručni find+create/update umesto
+  // upsert-a preko tog ključa.
+  const existingActionType = await prisma.agentActionType.findFirst({
+    where: { moduleCode: null, actionCode: 'omnisearch.query' },
+  });
+  if (existingActionType) {
+    await prisma.agentActionType.update({ where: { id: existingActionType.id }, data: { tier: 'AUTONOMOUS' } });
+  } else {
+    await prisma.agentActionType.create({
+      data: {
+        moduleCode: null,
+        actionCode: 'omnisearch.query',
+        tier: 'AUTONOMOUS',
+        sourceNote:
+          'poglavlje 6.5 — isključivo pronalaženje/navigacija, nikad izvršenje radnje (potvrđena odluka vlasnika, avgust 2026)',
+      },
+    });
+  }
+
+  await prisma.moduleAgentActivation.upsert({
+    where: { moduleCode: 'M15_OMNISEARCH' },
+    update: {},
+    create: { moduleCode: 'M15_OMNISEARCH', status: 'NOT_READY' },
+  });
+
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'omnisearch-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'omnisearch-agent@sistem.terminal-travel.local',
+      fullName: 'OmnisearchAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'OMNISEARCH_AGENT',
+      moduleCode: null,
+      status: 'DISABLED', // §3 ograda na nivou koda — ne može ACTIVE dok M15_OMNISEARCH != ACTIVATED
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
 }
 
 main()

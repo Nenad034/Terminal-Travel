@@ -1966,24 +1966,24 @@ enum TicketChannel {
 
 // §2.1 `Ticket`
 model Ticket {
-  id                        String              @id @default(uuid())
-  ticketNumber              String              @unique @map("ticket_number")
-  requesterClientAccountId  String?             @map("requester_client_account_id") // weak ref → M6 ClientAccount
-  requesterType             TicketRequesterType @map("requester_type")
-  relatedBookingId          String?             @map("related_booking_id") // weak ref → M5 Booking
-  subject                   String
-  category                  TicketCategory
-  priority                  TicketPriority      @default(NORMAL)
-  status                    TicketStatus        @default(OPEN)
-  channel                   TicketChannel
-  sourceEmailThreadId       String?             @map("source_email_thread_id") // weak ref → M22 EmailThread (modul ne postoji još)
-  assignedTo                String?             @map("assigned_to") // weak ref → M1 User, isti obrazac kao CommunicationLog.sent_by
-  zzpResponseDeadline       DateTime?           @map("zzp_response_deadline") // §3.1 — samo REKLAMACIJA, created_at + 8 dana
-  zzpEscalatedAt            DateTime?           @map("zzp_escalated_at") // §3.1 — popunjeno ako 5 dana bez STAFF odgovora
-  refundDecision            Boolean             @default(false) @map("refund_decision") // §3.2/§8 dopuna — vidi PATCH /tickets/:id
-  createdAt                 DateTime            @default(now()) @map("created_at")
-  updatedAt                 DateTime            @updatedAt @map("updated_at")
-  resolvedAt                DateTime?           @map("resolved_at")
+  id                       String              @id @default(uuid())
+  ticketNumber             String              @unique @map("ticket_number")
+  requesterClientAccountId String?             @map("requester_client_account_id") // weak ref → M6 ClientAccount
+  requesterType            TicketRequesterType @map("requester_type")
+  relatedBookingId         String?             @map("related_booking_id") // weak ref → M5 Booking
+  subject                  String
+  category                 TicketCategory
+  priority                 TicketPriority      @default(NORMAL)
+  status                   TicketStatus        @default(OPEN)
+  channel                  TicketChannel
+  sourceEmailThreadId      String?             @map("source_email_thread_id") // weak ref → M22 EmailThread (modul ne postoji još)
+  assignedTo               String?             @map("assigned_to") // weak ref → M1 User, isti obrazac kao CommunicationLog.sent_by
+  zzpResponseDeadline      DateTime?           @map("zzp_response_deadline") // §3.1 — samo REKLAMACIJA, created_at + 8 dana
+  zzpEscalatedAt           DateTime?           @map("zzp_escalated_at") // §3.1 — popunjeno ako 5 dana bez STAFF odgovora
+  refundDecision           Boolean             @default(false) @map("refund_decision") // §3.2/§8 dopuna — vidi PATCH /tickets/:id
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
+  resolvedAt               DateTime?           @map("resolved_at")
 
   messages TicketMessage[]
 
@@ -2022,45 +2022,45 @@ model TicketMessage {
 // kao M6/M7/M10/M11/M14/M20. Jedan red po M5 BookingItem (booking_item_id je unique — omogućava
 // idempotentan upsert i iz Event Bus pretplate i iz noćne rekonsilijacije).
 model FactBooking {
-  id                   String            @id @default(uuid())
-  bookingItemId        String            @unique @map("booking_item_id") // weak ref → M5 BookingItem
+  id                  String            @id @default(uuid())
+  bookingItemId       String            @unique @map("booking_item_id") // weak ref → M5 BookingItem
   // `booking_id` je dopuna otkrivena pri implementaciji (van izvorne spec tabele §3.1) — bez nje
   // dinamički izveštaj (§4.2.1) ne bi mogao da spoji FactBooking sa FactPayment.booking_id (§3.2)
   // za paid/balance po čvoru, a da ostane samodovoljna projekcija bez live upita ka M5. Upisano i
   // u spec §3.1, isti princip kao FactPayment.payment_id ispod.
-  bookingId            String            @map("booking_id") // weak ref → M5 Booking
-  bookingDate          DateTime          @map("booking_date")
-  stayFrom             DateTime          @map("stay_from")
-  stayTo               DateTime          @map("stay_to")
-  nights               Int
-  guestCount           Int               @map("guest_count")
-  productId            String            @map("product_id") // weak ref → M2 Product
-  productType          ProductType       @map("product_type")
-  accommodationType    String?           @map("accommodation_type") // samo product_type=ACCOMMODATION
-  stars                Int?
-  roomType             String?           @map("room_type") // samo CONTRACTED ACCOMMODATION stavke (M3 ContractPeriod.room_type)
-  boardType            String?           @map("board_type") // samo CONTRACTED stavke (M3 RateLine.board_type)
-  destinationCountry   String            @map("destination_country")
-  destinationCity      String            @map("destination_city")
-  sourceType           ProductSourceType @map("source_type")
-  supplierId           String?           @map("supplier_id") // weak ref → M3 Supplier, kad CONTRACTED
-  providerCode         String?           @map("provider_code") // weak ref → M4, kad API
-  channel              String
-  clientAccountId      String            @map("client_account_id") // weak ref → M6 ClientAccount
-  baseCost             Int               @map("base_cost") // najmanja jedinica valute (M5 konvencija)
-  finalPrice           Int               @map("final_price")
-  currency             String
-  margin               Int // izračunato: final_price - base_cost
-  productName          String            @map("product_name") // snapshot naziva (M2 ProductTranslation)
-  supplierName         String?           @map("supplier_name") // snapshot naziva dobavljača (M3), CONTRACTED
-  subagentName         String?           @map("subagent_name") // snapshot naziva subagenta (M7); null = direktna prodaja
+  bookingId           String            @map("booking_id") // weak ref → M5 Booking
+  bookingDate         DateTime          @map("booking_date")
+  stayFrom            DateTime          @map("stay_from")
+  stayTo              DateTime          @map("stay_to")
+  nights              Int
+  guestCount          Int               @map("guest_count")
+  productId           String            @map("product_id") // weak ref → M2 Product
+  productType         ProductType       @map("product_type")
+  accommodationType   String?           @map("accommodation_type") // samo product_type=ACCOMMODATION
+  stars               Int?
+  roomType            String?           @map("room_type") // samo CONTRACTED ACCOMMODATION stavke (M3 ContractPeriod.room_type)
+  boardType           String?           @map("board_type") // samo CONTRACTED stavke (M3 RateLine.board_type)
+  destinationCountry  String            @map("destination_country")
+  destinationCity     String            @map("destination_city")
+  sourceType          ProductSourceType @map("source_type")
+  supplierId          String?           @map("supplier_id") // weak ref → M3 Supplier, kad CONTRACTED
+  providerCode        String?           @map("provider_code") // weak ref → M4, kad API
+  channel             String
+  clientAccountId     String            @map("client_account_id") // weak ref → M6 ClientAccount
+  baseCost            Int               @map("base_cost") // najmanja jedinica valute (M5 konvencija)
+  finalPrice          Int               @map("final_price")
+  currency            String
+  margin              Int // izračunato: final_price - base_cost
+  productName         String            @map("product_name") // snapshot naziva (M2 ProductTranslation)
+  supplierName        String?           @map("supplier_name") // snapshot naziva dobavljača (M3), CONTRACTED
+  subagentName        String?           @map("subagent_name") // snapshot naziva subagenta (M7); null = direktna prodaja
   // §4.3 dopuna (avgust 2026) — atribucija ka M12 sadržaju preko Booking.referral_tracking_code
   // vs. ContentPiece.tracking_code. M12 još ne postoji kao implementacija (samo spec) — ostaje
   // trajno null dok M12 ne dobije kod (spec §4.3 eksplicitno predviđa ovo kao normalan slučaj).
-  referralContentId    String?           @map("referral_content_id") // weak ref → M12 ContentPiece
-  referralContentName  String?           @map("referral_content_name")
-  status               BookingItemStatus
-  lastSyncedAt         DateTime          @map("last_synced_at")
+  referralContentId   String?           @map("referral_content_id") // weak ref → M12 ContentPiece
+  referralContentName String?           @map("referral_content_name")
+  status              BookingItemStatus
+  lastSyncedAt        DateTime          @map("last_synced_at")
 
   @@map("fact_bookings")
 }
@@ -2117,24 +2117,24 @@ enum ContentGeneratedBy {
 
 // §2.1 `ContentPiece`
 model ContentPiece {
-  id           String             @id @default(uuid())
-  productId    String?            @map("product_id") // weak ref → M2 Product; null za STATIC_PAGE i opšti BLOG_POST (§3b)
-  type         ContentPieceType
-  slug         String?            @unique // obavezno za STATIC_PAGE/BLOG_POST (§3b), nepotrebno za ostale tipove
-  trackingCode String             @unique @map("tracking_code") // auto-generisan, 8 karaktera, koristi se za atribuciju (§3a)
-  targetChannels ContentChannel[] @map("target_channels")
-  targetTags   Json?              @map("target_tags") // string[] — samo za EMAIL (§4); null/prazno = svi sa marketing_consent=true
+  id                       String             @id @default(uuid())
+  productId                String?            @map("product_id") // weak ref → M2 Product; null za STATIC_PAGE i opšti BLOG_POST (§3b)
+  type                     ContentPieceType
+  slug                     String?            @unique // obavezno za STATIC_PAGE/BLOG_POST (§3b), nepotrebno za ostale tipove
+  trackingCode             String             @unique @map("tracking_code") // auto-generisan, 8 karaktera, koristi se za atribuciju (§3a)
+  targetChannels           ContentChannel[]   @map("target_channels")
+  targetTags               Json?              @map("target_tags") // string[] — samo za EMAIL (§4); null/prazno = svi sa marketing_consent=true
   // §3c (YUTA preporuka avgust 2026) — true kad body/media sadrži SINTETIČKI AI-generisan
   // vizual (npr. DALL-E/Midjourney stil), za razliku od stvarne fotografije samo AI-*izvučene*
   // sa sajta dobavljača (M2 media.source=AI_IMPORTED, koja NE podleže ovom pravilu).
-  containsAiGeneratedMedia Boolean @default(false) @map("contains_ai_generated_media")
-  scheduledPublishAt DateTime?    @map("scheduled_publish_at") // kalendar = sort po ovom polju, bez posebnog entiteta
-  status       ContentPieceStatus @default(DRAFT)
-  generatedBy  ContentGeneratedBy @map("generated_by")
-  approvedBy   String?            @map("approved_by") // weak ref → M1 User; obavezno pre PUBLISHED, nikad AI
-  publishedAt  DateTime?          @map("published_at")
-  createdAt    DateTime           @default(now()) @map("created_at")
-  updatedAt    DateTime           @updatedAt @map("updated_at")
+  containsAiGeneratedMedia Boolean            @default(false) @map("contains_ai_generated_media")
+  scheduledPublishAt       DateTime?          @map("scheduled_publish_at") // kalendar = sort po ovom polju, bez posebnog entiteta
+  status                   ContentPieceStatus @default(DRAFT)
+  generatedBy              ContentGeneratedBy @map("generated_by")
+  approvedBy               String?            @map("approved_by") // weak ref → M1 User; obavezno pre PUBLISHED, nikad AI
+  publishedAt              DateTime?          @map("published_at")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
 
   translations ContentTranslation[]
 
@@ -2200,19 +2200,19 @@ enum McpClientStatus {
 // implementaciona dopuna) — jedan AI_AGENT User + jedan LEGAL_ENTITY ClientAccount po klijentu,
 // isti obrazac "sopstveni pool rezervacija" kao SUBAGENT_CONTACT (M7), ne GUEST po putniku.
 model MCPClientRegistration {
-  id                    String         @id @default(uuid())
-  clientName            String         @map("client_name")
+  id                    String          @id @default(uuid())
+  clientName            String          @map("client_name")
   // Heš (SHA-256, isti obrazac kao RefreshToken/PasswordResetToken — hashToken() u
   // secret-box.ts), ne reverzibilna enkripcija: server samo poredi predati Bearer token
   // sa ovim, nikad ne mora da ga ponovo pošalje spoljnoj strani. Naziv kolone prati spec §3.1.
-  credentialsEncrypted  String         @unique @map("credentials_encrypted")
-  accessLevel           McpAccessLevel @default(READ_ONLY) @map("access_level")
+  credentialsEncrypted  String          @unique @map("credentials_encrypted")
+  accessLevel           McpAccessLevel  @default(READ_ONLY) @map("access_level")
   status                McpClientStatus @default(PENDING)
-  rateLimitPerMinute    Int            @default(60) @map("rate_limit_per_minute")
-  linkedUserId          String?        @map("linked_user_id")
-  linkedClientAccountId String?        @map("linked_client_account_id")
-  createdAt             DateTime       @default(now()) @map("created_at")
-  updatedAt             DateTime       @updatedAt @map("updated_at")
+  rateLimitPerMinute    Int             @default(60) @map("rate_limit_per_minute")
+  linkedUserId          String?         @map("linked_user_id")
+  linkedClientAccountId String?         @map("linked_client_account_id")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
 
   @@map("mcp_client_registrations")
 }
@@ -2257,4 +2257,86 @@ model FieldIncidentNote {
   syncedAt  DateTime?             @map("synced_at")
 
   @@map("field_incident_notes")
+}
+
+// ============================================================================
+// M15 — AI agentska orkestracija (prvi prolaz, avgust 2026): docs/moduli/M15-ai-orkestracija/
+// 18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md. Ovaj prolaz implementira SAMO omnisearch (§6.5) za
+// M17 kanal — modeli prate puni oblik iz §2.1/§3/§4 da bi budući prolazi (domenski agenti po
+// modulu) mogli da dopune bez izmene šeme, ali se ovde seeduje samo ono što omnisearch koristi.
+// ============================================================================
+
+// §2.1 `AIAgent.agent_role` — treći enum vrednost OMNISEARCH_AGENT dodata u §6.5.1 (dopuna
+// avgust 2026): poput GLAVNI_AGENT ima pristup preko granica modula, ali striktno samo za
+// čitanje (nema CREATE/EDIT/SUBMIT/APPROVE ni u jednom M1 permission zapisu).
+enum AgentRole {
+  GLAVNI_AGENT
+  DOMENSKI_AGENT
+  OMNISEARCH_AGENT
+}
+
+enum AgentStatus {
+  ACTIVE
+  DISABLED
+}
+
+// §2.1 model_tier — stabilna kategorija složenosti (dodato pri specifikaciji M18).
+enum ModelTier {
+  LIGHT
+  STANDARD
+  HEAVY
+}
+
+// §2.1 `AIAgent` — svaki AI agent je formalni M1 identitet (account_type = AI_AGENT).
+model AIAgent {
+  id              String      @id @default(uuid())
+  userId          String      @unique @map("user_id") // FK -> M1 User, account_type = AI_AGENT
+  agentRole       AgentRole   @map("agent_role")
+  moduleCode      String?     @map("module_code") // null za GLAVNI_AGENT/OMNISEARCH_AGENT (koordinira preko svih)
+  status          AgentStatus @default(DISABLED)
+  modelTier       ModelTier?  @map("model_tier")
+  modelIdentifier String?     @map("model_identifier")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@map("ai_agents")
+}
+
+enum ModuleActivationStatus {
+  NOT_READY
+  READY_FOR_ACTIVATION
+  ACTIVATED
+}
+
+// §3 `ModuleAgentActivation` — postepeno uvođenje, uvek ljudska odluka (activated_by).
+// M15_OMNISEARCH je zaseban module_code, nezavisan od Faze 7 punog M15 okvira (§6.5 napomena).
+model ModuleAgentActivation {
+  moduleCode               String                 @id @map("module_code")
+  testsPassing             Boolean                @default(false) @map("tests_passing")
+  productionCycleCompleted Boolean                @default(false) @map("production_cycle_completed")
+  status                   ModuleActivationStatus @default(NOT_READY)
+  activatedBy              String?                @map("activated_by") // FK -> M1 User (Vlasnik/Direktor), nikad AI agent
+  activatedAt              DateTime?              @map("activated_at")
+
+  @@map("module_agent_activations")
+}
+
+enum AgentActionTier {
+  NEVER_AUTONOMOUS
+  PROPOSE_THEN_APPROVE
+  AUTONOMOUS
+}
+
+// §4 `AgentActionType` — centralni registar akcija. Pun oblik tabele; ovaj prolaz seeduje samo
+// omnisearch.query (globalno, AUTONOMOUS) — omnisearch.external_review_lookup je van obima
+// (čeka whitelist odluku vlasnika, §6.5.6), ostale module-akcije iz spec §4 nisu seedovane ovde.
+model AgentActionType {
+  id         String          @id @default(uuid())
+  moduleCode String?         @map("module_code") // null = "(globalno)" u spec tabeli §4
+  actionCode String          @map("action_code")
+  tier       AgentActionTier
+  sourceNote String          @map("source_note") // "Izvor odluke" kolona iz §4
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@unique([moduleCode, actionCode])
+  @@map("agent_action_types")
 }
