@@ -169,7 +169,23 @@ export class TravelGuaranteeService {
     }
 
     const utilizedAmount = await this.computeUtilizedAmount(guarantee);
-    const additional = await this.convert(params.bookingTotalPrice, params.currency, guarantee.currency, now);
+    let additional: number;
+    try {
+      additional = await this.convert(params.bookingTotalPrice, params.currency, guarantee.currency, now);
+    } catch (err) {
+      if (err instanceof NotFoundException) {
+        // Odluka vlasnika (avgust 2026, M11 spec §7): kad kurs za valutu rezervacije nedostaje,
+        // provera limita garancije NE SME da propusti rezervaciju bez stvarne provere (pogrešan
+        // pravac opreza) — potvrda se blokira dok kurs ne postoji, isto obrazloženje kao "Nikad
+        // autonomno"/zakonske provere kroz ostatak specifikacije. Očekuje se retko posle dnevnog
+        // automatskog NBS uvoza (M10 spec §11) — ovo je sad samo zaštita za ispad/nepraćenu valutu.
+        return {
+          allowed: false,
+          reason: `Potvrda odbijena — kurs za valutu ${params.currency} nije dostupan na dan ${now.toISOString().slice(0, 10)}, pa se limit garancije putovanja ne može pouzdano proveriti (M11 spec §2.2/§7). Sačekajte dnevni uvoz kursa ili unesite kurs ručno (M10).`,
+        };
+      }
+      throw err;
+    }
     const projected = utilizedAmount + additional;
 
     if (projected > guarantee.coverageAmount) {

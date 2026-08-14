@@ -70,6 +70,19 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
       expect(result.allowed).toBe(true);
     });
 
+    it('blokira potvrdu (ne baca grešku) kad kurs za valutu rezervacije nedostaje (§7, avgust 2026)', async () => {
+      const { NotFoundException } = require('@nestjs/common');
+      const { service, prisma, exchangeRates } = makeService();
+      prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 1_000_00, currency: 'RSD' });
+      prisma.booking.findMany.mockResolvedValue([]);
+      exchangeRates.findForCurrencyOnOrBefore.mockRejectedValue(new NotFoundException('nema kursa'));
+
+      const result = await service.assessForBooking({ bookingTotalPrice: 5_00, currency: 'EUR' });
+
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toMatch(/kurs za valutu EUR nije dostupan/);
+    });
+
     it('POSREDNIK rezervacije nisu deo ove provere (M5 ih uopšte ne poziva za POSREDNIK, testirano u M5)', () => {
       // Dokumentacioni test — sama provera ovde ne zna za tip_nastupanja, filtriranje je na M5
       // strani (BookingsService §4 korak 1a: "if (tipNastupanja === 'ORGANIZATOR') { ... }").
