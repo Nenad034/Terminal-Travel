@@ -737,6 +737,33 @@ export class BookingsService {
   }
 
   // ==========================================================================
+  // M5 spec §4.2 dopuna (M9 spec §4) — dodela vodiča na terenu za stavku rezervacije.
+  // ==========================================================================
+  async assignGuide(bookingItemId: string, assignedGuideId: string | null, actor: { userId: string }) {
+    const before = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
+    if (!before) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
+
+    const updated = await this.prisma.bookingItem.update({
+      where: { id: bookingItemId },
+      data: { assignedGuideId },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking_item.guide_assigned',
+      resourceType: 'BookingItem',
+      resourceId: bookingItemId,
+      beforeState: { assignedGuideId: before.assignedGuideId },
+      afterState: { assignedGuideId: updated.assignedGuideId },
+      context: {},
+    });
+
+    return updated;
+  }
+
+  // ==========================================================================
   // M5 spec §7 — kalendar rezervacija
   // ==========================================================================
   async calendarSummary(from: Date, to: Date) {

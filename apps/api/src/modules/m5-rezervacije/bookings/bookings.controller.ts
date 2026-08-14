@@ -5,6 +5,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
+import { AssignGuideDto } from './dto/assign-guide.dto';
 import { PrepareSupplierManifestsDto } from './dto/prepare-supplier-manifests.dto';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
@@ -70,6 +71,15 @@ export class BookingsController {
   @RequirePermission('M5', 'booking', 'MODIFY')
   updatePaymentStatus(@Param('id') id: string, @Body() dto: UpdatePaymentStatusDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.updatePaymentStatus(id, dto.paymentStatus, actor);
+  }
+
+  // M5 spec §4.2 dopuna (M9 spec §4) — dodela vodiča na terenu; interni panel (M17) je
+  // nameravani pozivalac, dok M17 ne postoji ova ruta je zamena. Ista dozvola kao ostale
+  // izmene rezervacije (booking/MODIFY) — nema poseban ključ, nije eksplicitno tražen u spec.
+  @Patch('items/:itemId/assign-guide')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  assignGuide(@Param('itemId') itemId: string, @Body() dto: AssignGuideDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.assignGuide(itemId, dto.assignedGuideId ?? null, actor);
   }
 
   @Post(':id/voucher/override')

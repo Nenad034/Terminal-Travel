@@ -15,6 +15,7 @@ const SYSTEM_ROLE_SEED: { name: string; description: string }[] = [
   { name: SYSTEM_ROLES.RACUNOVODJA, description: 'M10 (Finansije/fiskalizacija), M11 (Compliance), read-only uvid u rezervacije.' },
   { name: SYSTEM_ROLES.GOST, description: 'Isključivo sopstveni profil i sopstvene rezervacije (M6/M8).' },
   { name: SYSTEM_ROLES.SUBAGENT_ADMIN, description: 'M7 — portal nalog B2B subagenta (bilo kog nivoa), isključivo sopstvena mreža/rezervacije.' },
+  { name: SYSTEM_ROLES.VODIC, description: 'M9 — vodič na terenu, isključivo sopstveni dodeljeni itinerar i gosti na tim polascima, offline-first mobilna sinhronizacija.' },
 ];
 
 // M1 spec §3.3 — M1 sopstvene dozvole (upravljanje korisnicima/ulogama/audit logom).
@@ -215,6 +216,14 @@ const M16_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M16', resource: 'mcp-client', action: 'VIEW', description: 'Uvid u registrovane MCP klijente' },
   { module: 'M16', resource: 'mcp-client', action: 'MANAGE', description: 'Registracija/aktivacija/suspendovanje MCP klijenta (implementaciona dopuna avgust 2026)' },
   { module: 'M16', resource: 'mcp-client', action: 'APPROVE_READ_WRITE', description: 'Odobrenje prelaska READ_ONLY→READ_WRITE — nikad automatski' },
+];
+
+// M9 spec §6 — dozvole mobilne aplikacije za vodiče na terenu (deo za goste nema sopstvene
+// M9 dozvole, isti API-ji kao M8, §6 tabela).
+const M9_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M9', resource: 'field-itinerary', action: 'VIEW', description: 'Uvid u sopstveni dodeljeni itinerar (GET /mobile/staff/my-itinerary)' },
+  { module: 'M9', resource: 'field-checkin', action: 'CREATE', description: 'Slanje FieldCheckIn zapisa pri sinhronizaciji (POST /mobile/staff/sync)' },
+  { module: 'M9', resource: 'field-incident', action: 'CREATE', description: 'Slanje FieldIncidentNote zapisa pri sinhronizaciji (POST /mobile/staff/sync)' },
 ];
 
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
@@ -438,6 +447,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
   ],
+  // M9 spec §6 — VODIC dobija isključivo svoje tri M9 dozvole; ownership (sopstveni
+  // assigned_guide_id) se sprovodi u FieldStaffService, ne ovde.
+  [SYSTEM_ROLES.VODIC]: [
+    { module: 'M9', resource: 'field-itinerary', action: 'VIEW' },
+    { module: 'M9', resource: 'field-checkin', action: 'CREATE' },
+    { module: 'M9', resource: 'field-incident', action: 'CREATE' },
+  ],
 };
 
 async function main() {
@@ -456,6 +472,7 @@ async function main() {
     ...M13_PERMISSIONS,
     ...M12_PERMISSIONS,
     ...M16_PERMISSIONS,
+    ...M9_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -485,7 +502,7 @@ async function main() {
   }
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola.`,
   );
 }
 

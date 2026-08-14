@@ -1053,6 +1053,11 @@ enum BookingItemStatus {
 // postoji — kad M6 dođe na red, ova dva polja se povlače iz GuestProfile preko guestProfileId
 // i ova dva stub polja se uklanjaju (dokumentovano i u §13 backlogu).
 model BookingItemGuest {
+  // M9 spec §3.2/§3.3 dopuna (avgust 2026) — sintetički `id` dodat da FieldCheckIn ima
+  // stabilan UUID FK cilj (ranije samo složeni ključ, nepogodan za "klijentski generisan
+  // idempotency_key po zapisu" na FieldCheckIn strani). Složeni ključ ostaje kao @@unique,
+  // fuzzy-match duplikat provera (§6.4) i dalje radi nepromenjeno preko bookingItemId.
+  id             String  @id @default(uuid())
   bookingItemId  String  @map("booking_item_id")
   guestProfileId String? @map("guest_profile_id")
   guestFirstName String  @map("guest_first_name")
@@ -1060,7 +1065,7 @@ model BookingItemGuest {
 
   bookingItem BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
 
-  @@id([bookingItemId, guestFirstName, guestLastName])
+  @@unique([bookingItemId, guestFirstName, guestLastName])
   @@map("booking_item_guests")
 }
 
@@ -2210,4 +2215,46 @@ model MCPClientRegistration {
   updatedAt             DateTime       @updatedAt @map("updated_at")
 
   @@map("mcp_client_registrations")
+}
+
+// ============================================================================
+// M9 — Mobilna aplikacija, poglavlje 3.2/3.3 (deo za vodiče na terenu, offline-first).
+// Deo za goste (poglavlje 2) ne uvodi sopstvene modele — isti API-ji/entiteti kao M8/M5/M6.
+// ============================================================================
+
+// §3.3 `FieldIncidentNote.severity`
+enum FieldIncidentSeverity {
+  INFO
+  WARNING
+  URGENT
+}
+
+// §3.3 `FieldCheckIn` — vodič potvrđuje prisustvo gosta na polasku, upisano bez signala i
+// sinhronizovano kasnije. `id` je KLIJENTSKI generisan UUID (aplikacija ga pravi pre slanja) i
+// služi kao idempotency ključ za POST /mobile/staff/sync (§3.2 — "klijentski generisan
+// idempotency_key po zapisu"), zato NEMA @default(uuid()) ovde.
+model FieldCheckIn {
+  id                 String    @id
+  bookingItemGuestId String    @map("booking_item_guest_id") // FK -> M5 BookingItemGuest, weak reference (bez @relation, isti obrazac kao ostala cross-modul polja)
+  checkedInAt        DateTime  @map("checked_in_at") // vreme na uređaju u trenutku radnje, ne vreme sinhronizacije
+  checkedInBy        String    @map("checked_in_by") // FK -> M1 User (vodič), weak reference
+  syncedAt           DateTime? @map("synced_at") // popunjava server pri prijemu (§3.2)
+
+  @@map("field_check_ins")
+}
+
+// §3.3 `FieldIncidentNote` — beleška vodiča o incidentu na terenu; URGENT odmah generiše
+// vidljivo upozorenje timu čim se sinhronizuje (§3.3, isti princip kao M10 neuspešno slanje
+// fiskalnog dokumenta ka SEF/ESIR — vidi M9EventsService). `id` je klijentski generisan UUID,
+// isti idempotency obrazac kao FieldCheckIn.
+model FieldIncidentNote {
+  id        String                @id
+  bookingId String                @map("booking_id") // FK -> M5 Booking, weak reference
+  guideId   String                @map("guide_id") // FK -> M1 User (vodič), weak reference
+  note      String
+  severity  FieldIncidentSeverity
+  createdAt DateTime              @map("created_at") // vreme na uređaju
+  syncedAt  DateTime?             @map("synced_at")
+
+  @@map("field_incident_notes")
 }
