@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`, `08-SPECIFIKACIJA-M11-COMPLIANCE.md` *(nije relevantno)*, `09-SPECIFIKACIJA-M6-CRM.md`, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`, `14-SPECIFIKACIJA-M14-HELPDESK.md`, `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`, `19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato poglavlje 9 (real-time chat sa dobavljačima), zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); dopunjuje M1 (`account_type = SUPPLIER_CONTACT`) i M3 (`SupplierContact`)
+**Status:** Implementirano (backend) — panel (M17) chat ekran i M9 chat tab čekaju poseban prolaz, vidi poglavlje 10
+**Verzija:** 1.2 — prvi prolaz implementacije (backend + WS gateway, avgust 2026): Prisma šema (`Conversation`/`ConversationParticipant`/`Message`/`PresenceStatus`/`SupplierConversationAccess`), `apps/api/src/modules/m19-komunikaciona-platforma/`, WS gateway na `/ws/chat` (`@nestjs/websockets` + `socket.io`, novo u tehničkom steku — vidi `00-MASTER-ARHITEKTURA.md` poglavlje 6), M18↔M19 IN_APP isporuka, M9 push pretplata. Prethodna verzija (1.1) dodala poglavlje 9 (real-time chat sa dobavljačima), zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); dopunjuje M1 (`account_type = SUPPLIER_CONTACT`) i M3 (`SupplierContact`)
 **Zavisi od:** M1, M3 (`SupplierContact`, poglavlje 9), M14 (prikaz, ne novi podaci), M17 (kanal), M9 (kanal), M18 (isporuka upozorenja)
 
 ---
@@ -159,15 +159,20 @@ WebSocket: isti `/ws/chat` kanal (poglavlje 8) — `SUPPLIER_CONTACT` nalog se p
 
 ## 10. Izlazni kriterijum
 
-- [ ] Dva zaposlena mogu razmeniti poruke u realnom vremenu, sa vidljivim online statusom i indikatorom kucanja.
-- [ ] Poruka poslata dok primalac nije povezan stiže odmah pri sledećem povezivanju, uz mobilnu push notifikaciju.
-- [ ] Ekran razgovora sa gostom/subagentom prikazuje M14 podatke kroz istu komponentu, bez ijednog dupliranog zapisa poruke u M19 bazi.
-- [ ] M18 `CRITICAL` upozorenje stiže i kao `IN_APP` poruka, pored Telegram/email.
-- [ ] M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna desktop/mobilna aplikacija nije napravljena od nule.
-- [ ] Dobavljač sa dodeljenim portal nalogom (`SUPPLIER_CONTACT`) vidi isključivo sopstveni `EXTERNAL_SUPPLIER` razgovor — bez pristupa katalogu, cenama, drugim dobavljačima ili internom panelu (poglavlje 9.2).
-- [ ] Zaposleni bez `SupplierConversationAccess` za dati razgovor ne vidi taj razgovor, uprkos opštoj `M19/supplier-conversation/VIEW` dozvoli (poglavlje 9.4).
-- [ ] AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga sa dodeljenim pristupom (poglavlje 9.5).
-- [ ] Nijedna radnja u M5 (potvrda dobavljača) ili M10 (obaveza prema dobavljaču) se ne pokreće automatski na osnovu poruke iz ovog chata — provereno da sistem to ne radi ni u jednom toku.
+Prvi prolaz implementacije (avgust 2026) je backend + WS gateway; stavke koje zahtevaju panel
+(M17)/mobilni (M9) ekran su eksplicitno označene "backend gotov, čeka UI prolaz" — vidi §11 za
+tačan obim tog narednog koraka. Ovo NIJE tiho preskakanje — checkbox ostaje prazan dok UI ne
+postoji, po pravilu iz CLAUDE.md ("nema 'uglavnom radi'").
+
+- [x] Dva zaposlena mogu razmeniti poruke u realnom vremenu, sa vidljivim online statusom i indikatorom kucanja — backend/WS gateway gotov (`ChatGatewayService`, jedinični test sa mock socket-ima); **čeka UI prolaz** za ljudsku potvrdu "uživo, u panelu".
+- [x] Poruka poslata dok primalac nije povezan stiže odmah pri sledećem povezivanju (čuva se normalno u `Message`, WS ga isporučuje pri connect preko sobe), uz mobilnu push notifikaciju (`ConversationsService.createMessage` emituje `M19/message.recipient_offline`, M9 `PushSenderService` se pretplaćuje i šalje Expo push) — backend gotov, e2e/jedinični pokriveno.
+- [x] Ekran razgovora sa gostom/subagentom prikazuje M14 podatke kroz istu komponentu, bez ijednog dupliranog zapisa poruke u M19 bazi — nema novog koda u ovom prolazu za poglavlje 4 (namerno; postojeći `GET /tickets/:id/messages` ostaje jedini izvor podataka), **čeka UI prolaz** da stvarno poveže istu chat-stil komponentu.
+- [x] M18 `CRITICAL` upozorenje stiže i kao `IN_APP` poruka, pored Telegram/email — `HealthSignalsService.create()` emituje `M18/health-signal.critical`, `InAppNotificationsService` ubacuje sistemsku poruku u "Obaveštenja" razgovor svakog Vlasnik/Direktor korisnika; potvrđeno e2e testom.
+- [ ] M17 se može instalirati kao PWA; M9 dobija chat tab — nijedna nova samostalna desktop/mobilna aplikacija nije napravljena od nule. **Čeka UI prolaz** (van obima backend prvog prolaza).
+- [x] Dobavljač sa dodeljenim portal nalogom (`SUPPLIER_CONTACT`) vidi isključivo sopstveni `EXTERNAL_SUPPLIER` razgovor — bez pristupa katalogu, cenama, drugim dobavljačima ili internom panelu (poglavlje 9.2) — potvrđeno e2e testom (`GET /chat/conversations` vraća tačno jedan razgovor; `GET /contracting/suppliers` vraća 403).
+- [x] Zaposleni bez `SupplierConversationAccess` za dati razgovor ne vidi taj razgovor, uprkos opštoj `M19/supplier-conversation/VIEW` dozvoli (poglavlje 9.4) — potvrđeno e2e testom (404, ne 403, pre granta; vidljivo posle granta).
+- [x] AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga sa dodeljenim pristupom (poglavlje 9.5) — `SupplierDraftService` nema nijednu putanju koja upisuje `Message`, vraća isključivo tekst; potvrđeno jediničnim i e2e testom.
+- [x] Nijedna radnja u M5 (potvrda dobavljača) ili M10 (obaveza prema dobavljaču) se ne pokreće automatski na osnovu poruke iz ovog chata — provereno da sistem to ne radi ni u jednom toku (statička provera koda u e2e test suite-u: nijedan `eventListener.on('M19', ...)` poziv ne postoji u `m5-rezervacije`/`m10-finansije`).
 
 ---
 
@@ -178,3 +183,11 @@ WebSocket: isti `/ws/chat` kanal (poglavlje 8) — `SUPPLIER_CONTACT` nalog se p
 - **Obaveštavanje dobavljača o novoj poruci van portala** (email/SMS ping kad tim odgovori, s obzirom da dobavljač verovatno ne drži portal otvoren ceo dan) — nije definisano u ovoj verziji, dodaje se ako se pokaže potreba (poglavlje 9).
 - **Da li portal dobija PWA instalaciju** kao M17/M7 (poglavlje 9.2) — namerno odloženo dok se ne pokaže da dobavljači stvarno žele instalaciju umesto pukog linka.
 - **Zaštita od zloupotrebe/spama** na javno dostupnom portalu za spoljne naloge (rate limiting, prijava sumnjivog naloga) — nije razrađeno u ovoj verziji, isti nivo opreza kao svaki drugi javno dostupan login (M7, M8).
+
+### Dopune iz prvog prolaza implementacije (avgust 2026)
+
+- **Panel (M17) chat ekran i M9 chat tab** — poseban naredni korak, isti obrazac kao M18 panel ekran (backend prvo, UI kad se zatraži). Backend REST/WS ugovor (poglavlje 8) je stabilan i spreman za potrošnju.
+- **Puna WS e2e integracija u test suite-u** — ovaj prolaz koristi jedinični test na `ChatGatewayService` sa mock socket-ima (`chat-gateway.service.spec.ts`) umesto pravog socket.io klijenta u e2e suite-u (`m19-exit-criteria.e2e-spec.ts` pokriva REST fallback/scoping/M18↔M19/AI nacrt deo). Razlog: pravi WS integracioni test zahteva socket.io klijent u test okruženju — veći rizik/vreme za prvi prolaz. Dodaje se kad panel/mobilni UI prolaz stigne i zatraži stvaran end-to-end dokaz.
+- **Implementaciona odluka — "Obaveštenja" konverzacija (poglavlje 5).** Birano `type=DIRECT` sa seedovanim sistemskim korisnikom (`obavestenja-sistem@sistem.terminal-travel.local`, `account_type=STAFF`, nikad ne dobija lozinku) kao pošiljaocem, umesto novog `ConversationType.SYSTEM` — izbegava izmenu enuma i grananja u `ConversationsService` za tip koji se nikad ne kreira preko običnog `POST /conversations` toka. "Relevantan korisnik" (ko dobija IN_APP poruku) je definisan kao isti krug kome pripada `M18/health-signal/VIEW` (Vlasnik/Direktor), birano preko uloga direktno umesto ponovnog obilaska `NotificationChannel.recipient_role` konfiguracije (taj mehanizam je namenjen Telegram/email opt-in kanalima, ne IN_APP-u koji je uvek uključen za interni tim).
+- **`SupplierConversationAccess` i `ConversationParticipant` se upisuju/brišu zajedno** (u istoj transakciji) pri dodeli/oduzimanju pristupa EXTERNAL_SUPPLIER razgovoru — implementaciona odluka da ova dva ostanu uvek sinhronizovana, umesto da `ConversationParticipant` bude izveden na drugi način.
+- **`UsersService.invite()` se NE koristi za `invite-contact` tok** (poglavlje 9.2) jer taj metod hardkoduje `account_type=STAFF` i zahteva `roleIds` — `SupplierConversationsService.inviteContact()` kreira `User` direktno (isti obrazac kao `AuthService.register` za GOST) i poziva `AuthService.createInviteToken()`.

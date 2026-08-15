@@ -178,6 +178,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Obaveštavanje dobavljača o novoj poruci van portala (email/SMS ping).
 - Da li portal dobavljača dobija PWA instalaciju.
 - Zaštita od zloupotrebe/spama na javno dostupnom portalu za spoljne naloge.
+- Panel (M17) chat ekran i mobilni (M9) chat tab — backend/WS gotov (avgust 2026), UI je poseban naredni korak.
+- Puna WS e2e integracija u test suite-u (pravi socket.io klijent) — jedinični test sa mock socket-ima za sada.
 
 ## M20 — Ugovori sa klijentima
 *(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)*

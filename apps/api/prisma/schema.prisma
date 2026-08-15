@@ -2276,6 +2276,7 @@ enum AgentRole {
   GLAVNI_AGENT
   DOMENSKI_AGENT
   OMNISEARCH_AGENT
+  SUPPLIER_DRAFT_AGENT // M19 spec §9.5, dodato avgust 2026
 }
 
 enum AgentStatus {
@@ -2560,4 +2561,100 @@ model AIAgentBudget {
 
   @@unique([agentId, period, periodStart])
   @@map("ai_agent_budgets")
+}
+
+// ============================================================================
+// M19 — Komunikaciona platforma
+// Izvor: docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md
+// poglavlja 2, 9. Interni real-time tim-chat (DIRECT/GROUP, §2) + EXTERNAL_SUPPLIER razgovor sa
+// SupplierContact portal nalogom (§9) — ista infrastruktura (Message/PresenceStatus), uža ograda
+// po tipu razgovora (§9.3), ne paralelan sistem.
+// ============================================================================
+
+enum ConversationType {
+  DIRECT
+  GROUP
+  EXTERNAL_SUPPLIER
+}
+
+// §2.1/§9.3 `Conversation`
+model Conversation {
+  id         String           @id @default(uuid())
+  type       ConversationType
+  name       String? // samo za GROUP
+  createdBy  String           @map("created_by") // FK -> M1 User
+  // §9.3 — popunjeno isključivo za EXTERNAL_SUPPLIER; plain UUID (weak ref ka M3 Supplier,
+  // isti princip kao ProviderHealthSnapshot.providerCode — M19 ne uvozi M3 modul direktno).
+  supplierId String?          @map("supplier_id")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  participants         ConversationParticipant[]
+  messages             Message[]
+  supplierAccessGrants SupplierConversationAccess[]
+
+  @@map("conversations")
+}
+
+// §2.2/§9.3 `ConversationParticipant` — DIRECT/GROUP: isključivo account_type=STAFF;
+// EXTERNAL_SUPPLIER: STAFF (uz SupplierConversationAccess, §9.4) + tačno jedan SUPPLIER_CONTACT.
+// Sprovedeno na nivou aplikacije (ConversationsService), ne DB constraint-om (isti stil kao ostali
+// moduli — CLAUDE.md: "nema koda bez oslonca u specifikaciji" ne znači "svaka provera je u šemi").
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String    @map("conversation_id")
+  userId         String    @map("user_id") // FK -> M1 User
+  joinedAt       DateTime  @default(now()) @map("joined_at")
+  lastReadAt     DateTime? @map("last_read_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+// §2.3 `Message` — meko brisanje (deletedAt), ne fizičko.
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String    @map("conversation_id")
+  senderId       String    @map("sender_id") // FK -> M1 User
+  body           String
+  sentAt         DateTime  @default(now()) @map("sent_at")
+  editedAt       DateTime? @map("edited_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+enum PresenceStatusValue {
+  ONLINE
+  AWAY
+  OFFLINE
+}
+
+// §2.4 `PresenceStatus` — "kuca poruku..." je efemeran WS signal, ne perzistira se ovde (§2.4 napomena).
+model PresenceStatus {
+  userId     String              @id @map("user_id") // FK -> M1 User, unique
+  status     PresenceStatusValue @default(OFFLINE)
+  lastSeenAt DateTime            @default(now()) @map("last_seen_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  @@map("presence_statuses")
+}
+
+// §9.4 `SupplierConversationAccess` — isti dvoslojni obrazac kao M22 MailboxAccess: opšta
+// M19/supplier-conversation/VIEW dozvola određuje DA LI tip pristupa uopšte postoji za tu ulogu,
+// ovaj red određuje KOJI konkretan EXTERNAL_SUPPLIER razgovor.
+model SupplierConversationAccess {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id") // FK -> Conversation, type=EXTERNAL_SUPPLIER
+  userId         String   @map("user_id") // FK -> M1 User, account_type=STAFF
+  grantedBy      String   @map("granted_by") // FK -> M1 User
+  grantedAt      DateTime @default(now()) @map("granted_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("supplier_conversation_accesses")
 }

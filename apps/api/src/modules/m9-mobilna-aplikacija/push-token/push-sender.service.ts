@@ -28,6 +28,17 @@ export class PushSenderService implements OnModuleInit {
     this.eventListener.on('M9', 'field_incident.urgent', async (payload) => {
       await this.onFieldIncidentUrgent(payload.bookingId as string, payload.guideId as string, payload.note as string);
     });
+
+    // M19 spec §3 — "mobilni klijent dodatno šalje push notifikaciju kroz mehanizam koji M9 već
+    // ima" kad primalac poruke nije trenutno povezan na WS. M19 samo emituje (ne direktan DI uvoz
+    // M9 modula ovde, isti razlog obrnutog smera kao M5 booking.confirmed iznad).
+    this.eventListener.on('M19', 'message.recipient_offline', async (payload) => {
+      await this.onChatMessageRecipientOffline(
+        payload.recipientUserId as string,
+        payload.senderName as string,
+        payload.bodyPreview as string,
+      );
+    });
   }
 
   private async onBookingConfirmed(bookingId: string, bookingNumber: string): Promise<void> {
@@ -54,6 +65,12 @@ export class PushSenderService implements OnModuleInit {
       if (!colleague.pushToken) continue;
       await this.send(colleague.pushToken, 'Hitna beleška na vašoj turi', note);
     }
+  }
+
+  private async onChatMessageRecipientOffline(recipientUserId: string, senderName: string, bodyPreview: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: recipientUserId } });
+    if (!user?.pushToken) return;
+    await this.send(user.pushToken, senderName, bodyPreview);
   }
 
   private async send(pushToken: string, title: string, body: string): Promise<void> {

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { HealthSignalSecurityCategory, HealthSignalSeverity, HealthSignalType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationDispatchService } from '../notification-channels/notification-dispatch.service';
+import { EventBusService } from '../../../common/events/event-bus.service';
 
 export interface CreateHealthSignalParams {
   sourceModule: string;
@@ -20,6 +21,7 @@ export class HealthSignalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dispatch: NotificationDispatchService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async create(params: CreateHealthSignalParams) {
@@ -32,6 +34,19 @@ export class HealthSignalsService {
         details: params.details as Prisma.InputJsonValue,
       },
     });
+
+    // M19 spec §5 — CRITICAL dobija IN_APP isporuku pored Telegram/email (§2.2 dispatch ispod).
+    // Emitovano preko Event Bus-a (ne direktan DI uvoz M19 modula) da M18 ostane samostalan —
+    // M19 se pretplaćuje (InAppNotificationsService), isti obrazac kao M9 PushSenderService na
+    // M5 booking.confirmed. Namerno samo CRITICAL, ne i WARNING (spec §5 tačno tako kaže).
+    if (params.severity === 'CRITICAL') {
+      await this.eventBus.emit('M18', 'health-signal.critical', {
+        signalId: signal.id,
+        sourceModule: signal.sourceModule,
+        signalType: signal.signalType,
+        details: params.details,
+      });
+    }
 
     if (params.severity === 'WARNING' || params.severity === 'CRITICAL') {
       return this.dispatch.dispatch(signal);

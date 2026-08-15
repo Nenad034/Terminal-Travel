@@ -254,6 +254,19 @@ const M18_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M18', resource: 'ai-agent-budget', action: 'EDIT', description: 'Izmena/kreiranje budžeta pojedinačnog AI agenta' },
 ];
 
+// M19 spec §7/§9.6 — dozvole komunikacione platforme. conversation/* je interni tim-chat (širi
+// krug — svi interni tim članovi, spec §7 tabela); supplier-conversation/* je uže (spec §9.6 —
+// VIEW/SEND_MESSAGE: Vlasnik/Direktor/Sales Manager/Prodajni agent SAMO uz SupplierConversationAccess
+// §9.4; GRANT_ACCESS: Vlasnik/Direktor/Sales Manager, isti krug kao M22 MailboxAccess dodela).
+const M19_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M19', resource: 'conversation', action: 'CREATE', description: 'Kreiranje internog DIRECT/GROUP razgovora' },
+  { module: 'M19', resource: 'conversation', action: 'VIEW', description: 'Uvid u sopstvene interne razgovore/prisustvo tima' },
+  { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE', description: 'Slanje poruke u interni razgovor' },
+  { module: 'M19', resource: 'supplier-conversation', action: 'VIEW', description: 'Uvid u EXTERNAL_SUPPLIER razgovor — samo uz SupplierConversationAccess (§9.4)' },
+  { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE', description: 'Slanje poruke dobavljaču — samo uz SupplierConversationAccess (§9.4)' },
+  { module: 'M19', resource: 'supplier-conversation', action: 'GRANT_ACCESS', description: 'Dodela/oduzimanje pristupa zaposlenom EXTERNAL_SUPPLIER razgovoru, pokretanje portal pozivnice dobavljaču' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -274,6 +287,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -292,6 +306,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -299,6 +314,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M1', resource: 'user', action: 'EDIT' },
     { module: 'M1', resource: 'user', action: 'DELETE' },
     { module: 'M1', resource: 'role', action: 'VIEW' },
+    // M19 spec §7 — HR je deo internog tim-chata (conversation/*), ali NIJE u §9.6 krugu za
+    // supplier-conversation (taj krug je Vlasnik/Direktor/Sales Manager/Prodajni agent).
+    { module: 'M19', resource: 'conversation', action: 'CREATE' },
+    { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
   ],
   [SYSTEM_ROLES.SALES_MANAGER]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -353,6 +373,15 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M13', resource: 'report:occupancy', action: 'VIEW' },
     // M15 spec §8 — Agent Inbox: vidi stavke iz izvora za koje već ima VIEW (M5/M7/M14 iznad).
     { module: 'M15', resource: 'agent-inbox', action: 'VIEW' },
+    // M19 spec §7/§9.6 — Sales Manager je u oba kruga: interni tim-chat i EXTERNAL_SUPPLIER
+    // (VIEW/SEND_MESSAGE uz SupplierConversationAccess §9.4, i GRANT_ACCESS — isti krug kao
+    // M22 MailboxAccess dodela).
+    { module: 'M19', resource: 'conversation', action: 'CREATE' },
+    { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
+    { module: 'M19', resource: 'supplier-conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE' },
+    { module: 'M19', resource: 'supplier-conversation', action: 'GRANT_ACCESS' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -399,6 +428,14 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     { module: 'M14', resource: 'ticket', action: 'RESPOND' },
+    // M19 spec §7/§9.6 — Prodajni agent je u oba kruga: interni tim-chat i EXTERNAL_SUPPLIER
+    // (VIEW/SEND_MESSAGE uz SupplierConversationAccess §9.4), ali NE GRANT_ACCESS (§9.6 tabela —
+    // taj krug je uže Vlasnik/Direktor/Sales Manager).
+    { module: 'M19', resource: 'conversation', action: 'CREATE' },
+    { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
+    { module: 'M19', resource: 'supplier-conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -432,6 +469,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
     // M13 spec §6 — Računovođa dobija finansijski izveštaj (FactPayment).
     { module: 'M13', resource: 'report:financial', action: 'VIEW' },
+    // M19 spec §7 — Računovođa je u internom tim-chatu, ali van §9.6 kruga za
+    // supplier-conversation (taj krug je Vlasnik/Direktor/Sales Manager/Prodajni agent).
+    { module: 'M19', resource: 'conversation', action: 'CREATE' },
+    { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
   ],
   // M5 spec §10 tabela ("Gost — samo sopstvene") i M6 spec §7 ("Uloga Gost ima pristup
   // isključivo sopstvenom ClientAccount/GuestProfile") — dozvole same po sebi ne razlikuju
@@ -515,6 +557,7 @@ async function main() {
     ...M9_PERMISSIONS,
     ...M15_PERMISSIONS,
     ...M18_PERMISSIONS,
+    ...M19_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -545,9 +588,11 @@ async function main() {
 
   await seedM15Omnisearch();
   await seedM15ActionRegistry();
+  await seedM19SupplierDraftAgent();
+  await seedM19SystemNotificationUser();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola.`,
   );
 }
 
@@ -669,11 +714,59 @@ async function seedM15ActionRegistry() {
     { moduleCode: 'M23', actionCode: 'knowledge_article.research_draft', tier: 'AUTONOMOUS', sourceNote: 'M23 poglavlje 4c — priprema ArticleRevision nacrt iz odobrenih izvora' },
     { moduleCode: 'M23', actionCode: 'knowledge_article.publish', tier: 'NEVER_AUTONOMOUS', sourceNote: 'M23 poglavlje 6 — isto tako article-source.approve/article-revision.approve, nikad AI' },
     { moduleCode: null, actionCode: 'omnisearch.external_review_lookup', tier: 'AUTONOMOUS', sourceNote: 'poglavlje 6.5.6 — čisto informativno, ograničeno na whitelist ExternalReviewSource' },
+    { moduleCode: 'M19', actionCode: 'supplier_draft.generate', tier: 'AUTONOMOUS', sourceNote: 'M19 poglavlje 9.5 — isključivo sažimanje/nacrt, nikad slanje (message.send ostaje ljudska radnja)' },
   ];
 
   for (const row of rows) {
     await upsertAgentActionType(row.moduleCode, row.actionCode, row.tier, row.sourceNote);
   }
+}
+
+// M19 spec §9.5 — SupplierDraftAgent, isti obrazac kao seedM15Omnisearch (formalni M1 nalog +
+// AIAgent zapis da audit log/AgentInvocationLog imaju actor_type=AI_AGENT). Za razliku od
+// OmnisearchAgent, ne zavisi od ModuleAgentActivation gate-a (M19 spec §9.5 nema takav gate —
+// "predloži-pa-čovek-odobri" je već sama ograda, sprovedena u SupplierDraftService, ne aktivacijom).
+async function seedM19SupplierDraftAgent() {
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'supplier-draft-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'supplier-draft-agent@sistem.terminal-travel.local',
+      fullName: 'SupplierDraftAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'SUPPLIER_DRAFT_AGENT',
+      moduleCode: 'M19',
+      status: 'ACTIVE',
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
+}
+
+// M19 spec §5 — sistemski pošiljalac za "Obaveštenja" DIRECT razgovore (InAppNotificationsService,
+// M18 CRITICAL isporuka). account_type=STAFF (ne AI_AGENT) da prođe ConversationParticipant
+// ogradu za DIRECT (§2.2 — isključivo STAFF); nikad ne dobija password_hash, pa ne može da se
+// prijavi (isto obrazbeno kao INVITED nalog koji čeka aktivaciju, samo trajno).
+async function seedM19SystemNotificationUser() {
+  await prisma.user.upsert({
+    where: { email: 'obavestenja-sistem@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'obavestenja-sistem@sistem.terminal-travel.local',
+      fullName: 'Terminal Travel — sistemska obaveštenja',
+      accountType: 'STAFF',
+      status: 'ACTIVE',
+    },
+  });
 }
 
 main()
