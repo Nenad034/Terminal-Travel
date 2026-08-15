@@ -132,7 +132,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/izvestaji',
     permission: { module: 'M13', resource: 'report:sales', action: 'VIEW' },
     phase: 5,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'podrska',
@@ -141,7 +141,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/podrska',
     permission: { module: 'M14', resource: 'ticket', action: 'VIEW' },
     phase: 5,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'marketing',
@@ -150,7 +150,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/marketing',
     permission: { module: 'M12', resource: 'content', action: 'VIEW' },
     phase: 6,
-    implemented: false,
+    implemented: true,
   },
 ];
 

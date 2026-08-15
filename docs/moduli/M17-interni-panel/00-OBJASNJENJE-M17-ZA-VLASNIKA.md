@@ -65,9 +65,19 @@ Terminal Travel ne prodaje samo direktno gostima — deo prodaje ide preko poslo
 
 **Jedna stvar koju smo usput otkrili i popravili:** specifikacija je od početka predviđala da Računovođa sme da odobrava/odbija rabate provizije (ima direktan uticaj na novac, isto kao slanje fakture), ali ta dozvola nikad nije stvarno upisana u sistem — u praksi bi samo Vi i Direktor mogli to da uradite. Ispravili smo to da odgovara onome što je oduvek bilo planirano.
 
+## Faza 5 — Izveštaji i Podrška (avgust 2026)
+
+Dva modula odjednom, jer spec plan predviđa da idu zajedno kao Faza 5.
+
+- **Izveštaji (M13)** — do sada su brojke o poslovanju postojale samo "ispod haube", tačne ali nevidljive. Novi ekran "Izveštaji" pokazuje pet pogleda: profitabilnost (po destinaciji/dobavljaču/kanalu), prodaja (broj i vrednost rezervacija), smeštaj (broj gostiju, noćenja, prodate sobe), "dinamički" izveštaj gde sami birate po čemu se grupiše i kojim redosledom (npr. "prvo po državi, pa po dobavljaču"), i marketing performanse (koja rezervacija je došla preko kog objavljenog sadržaja, kad taj deo bude korišćen). Svaki izveštaj pokazuje kad su podaci poslednji put osveženi — brojke se ne prave uživo iz cele baze svaki put (to bi bilo presporo), već iz sopstvene, redovno osvežavane kopije, i uvek se vidi koliko je ta kopija "stara". Dugme "pokreni rekonsilijaciju" ručno pokreće to osvežavanje van uobičajenog noćnog rasporeda, za slučaj da nešto hitno treba da se vidi odmah.
+- **Podrška (M14)** — ekran "Podrška" pokazuje sve tikete (prijavljene probleme/pitanja) gostiju i poslovnih partnera, sa mogućnošću da tim odgovori, promeni status, ili unese tiket u ime gosta koji je pozvao telefonom. Posebna pažnja je na reklamacijama — zakon (Zakon o zaštiti potrošača) daje agenciji tačno 8 dana da odgovori na pisanu reklamaciju, a sistem sam upozorava menadžment ako 5 dana prođe bez odgovora tima, da rok nikad ne prođe neprimećeno. Kad se reklamacija reši uz odluku da se novac vrati gostu, sistem automatski pripremi (ne pošalje) nacrt storniranog računa u Finansijama — isto pravilo kao svuda: priprema je automatska, slanje je uvek svesna ljudska odluka.
+
+## Faza 6 — Marketing sadržaj (avgust 2026)
+
+- **Marketing (M12)** — kad se objavi nov proizvod u katalogu, sistem sam pripremi nacrt marketinškog objavnog teksta (npr. za društvenu mrežu ili sajt) — ali taj nacrt se **nikad** ne objavljuje sam. Novi ekran "Marketing sadržaj" pokazuje kalendar svega pripremljenog (i onog što je AI predložio, i onog što je tim ručno uneo), sa prevodima na sve jezike koje koristimo, i jednim jasnim dugmetom "odobri" koje jedino Vi ili Direktor smete da kliknete — taj klik je nepovratan korak ka javnoj objavi, isto pravilo kao slanje fakture ili fiskalnog dokumenta. Ako sadržaj sadrži veštački (AI) generisanu sliku/vizual (ne stvarnu fotografiju hotela, nego nešto što je AI "izmislio"), ekran to jasno upozorava — to je preporuka strukovnog udruženja (YUTA) da se takav sadržaj uvek transparentno označi, kako gost ne bi pomislio da gleda pravu fotografiju. Poseban ekran "kanali" pokazuje koje distribucione kanale (Facebook, Instagram, email) koristimo, bez prikazivanja lozinki/pristupnih podataka u čitljivom obliku.
+
 ## Šta još nije gotovo (namerno)
 
-- **Ostatak modula** (izveštaji, podrška, marketing) — dolaze u narednim koracima, jedan po jedan, istim tempom kao što su i sami ti moduli rađeni.
 - **Prava AI pretraga i glasovna komanda** — čekaju poseban modul (M15) koji upravlja AI agentima kroz ceo sistem; trenutno komandna paleta radi samo kao brz način navigacije, ne "razgovor" sa sistemom.
 - **Instaliranje na telefon kao aplikacija (PWA)** — dodaje se kad bude više ekrana da to ima smisla testirati na pravom uređaju.
 
