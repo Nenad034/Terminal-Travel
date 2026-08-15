@@ -2301,6 +2301,10 @@ model AIAgent {
   modelIdentifier String?     @map("model_identifier")
   createdAt       DateTime    @default(now()) @map("created_at")
 
+  // M18 spec §6.3/§6.5 — nazad-veze, dodato pri implementaciji M18.
+  invocationLogs AgentInvocationLog[]
+  budgets        AIAgentBudget[]
+
   @@map("ai_agents")
 }
 
@@ -2342,4 +2346,218 @@ model AgentActionType {
 
   @@unique([moduleCode, actionCode])
   @@map("agent_action_types")
+}
+
+// ============================================================================
+// M18 — Operativni nadzor i AI optimizacija: docs/moduli/M18-operativni-nadzor/
+// 19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md. Read-only nad ostalim modulima (isti princip
+// kao M13, spec §1). AIAgent.modelTier/modelIdentifier (iznad, M15 sekcija) su deo ovog
+// modula po spec §6.1, već postoje u šemi otkad je M15 prvi prolaz implementiran.
+// ============================================================================
+
+enum HealthSignalType {
+  PROVIDER_ERROR_SPIKE
+  PAYMENT_FAILURE_SPIKE
+  GUEST_REGISTRATION_FAILED
+  FIELD_INCIDENT_URGENT
+  AUTH_ANOMALY
+  TOKEN_USAGE_ANOMALY
+  RECONCILIATION_MISMATCH
+  PROVIDER_DEGRADED
+  LOW_CAPACITY_CRITICAL
+  HELP_AGENT_ABUSE_PATTERN
+  PAYMENT_DEADLINE_MISSED
+}
+
+enum HealthSignalSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum HealthSignalSecurityCategory {
+  AUTH
+  PII
+  GDPR
+  API_ABUSE
+  ENCRYPTION
+}
+
+// §2.1 `HealthSignal` — jedan red po detektovanoj nepravilnosti. `sourceModule` je slobodan
+// string (npr. "M4", "M10"), ne FK — isti princip kao M13 projekcija (nezavisna od izvora).
+model HealthSignal {
+  id               String                        @id @default(uuid())
+  sourceModule     String                        @map("source_module")
+  signalType       HealthSignalType              @map("signal_type")
+  severity         HealthSignalSeverity
+  securityCategory HealthSignalSecurityCategory? @map("security_category")
+  details          Json
+  detectedAt       DateTime                      @default(now()) @map("detected_at")
+  notifiedAt       DateTime?                     @map("notified_at")
+
+  @@map("health_signals")
+}
+
+enum NotificationChannelType {
+  TELEGRAM
+  EMAIL
+  IN_APP
+}
+
+enum NotificationChannelStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// §3 `NotificationChannel` — spoljni kanal dostave. `configEncrypted` isti obrazac kao
+// `ProviderConfig.authConfigEncrypted` (M4) — AES-256-GCM preko common/crypto/secret-box.ts.
+// IN_APP nema kredencijal (isporuka preko budućeg M19 API-ja) — polje ostaje prazan string.
+model NotificationChannel {
+  id              String                    @id @default(uuid())
+  channelType     NotificationChannelType   @map("channel_type")
+  configEncrypted String                    @map("config_encrypted")
+  recipientRole   String                    @map("recipient_role")
+  status          NotificationChannelStatus @default(ACTIVE)
+  createdAt       DateTime                  @default(now()) @map("created_at")
+
+  @@map("notification_channels")
+}
+
+enum ProviderHealthStatus {
+  ONLINE
+  UNSTABLE
+  OFFLINE
+}
+
+// §2.3 `ProviderHealthSnapshot` — per-provajder metrika, izvedena periodičnim poslom iz
+// M4 ProviderCallLog (poslednji prozor, poglavlje 2.3). providerCode nije FK (weak ref,
+// isti princip kao M13 projekcija) — snapshot mora da preživi i provajdera koji je uklonjen.
+model ProviderHealthSnapshot {
+  id                 String               @id @default(uuid())
+  providerCode       String               @map("provider_code")
+  latencyMsAvg       Int                  @map("latency_ms_avg")
+  uptimePercentage   Decimal              @map("uptime_percentage")
+  errorCountLastHour Int                  @map("error_count_last_hour")
+  status             ProviderHealthStatus
+  computedAt         DateTime             @default(now()) @map("computed_at")
+
+  @@map("provider_health_snapshots")
+}
+
+enum WeeklyHealthReviewStatus {
+  GENERATED
+  SENT
+}
+
+// §4.1 `WeeklyHealthReview` — nedeljni sažetak, uvek generisan i poslat (i "sve je u redu").
+model WeeklyHealthReview {
+  id              String                   @id @default(uuid())
+  periodStart     DateTime                 @map("period_start") @db.Date
+  periodEnd       DateTime                 @map("period_end") @db.Date
+  summary         String
+  signalsIncluded Json                     @map("signals_included")
+  status          WeeklyHealthReviewStatus @default(GENERATED)
+  generatedAt     DateTime                 @default(now()) @map("generated_at")
+  sentAt          DateTime?                @map("sent_at")
+
+  @@map("weekly_health_reviews")
+}
+
+enum TrendSuggestionCategory {
+  AGENTSKI_TURIZAM
+  PROIZVOD_UX
+  TEHNOLOGIJA
+}
+
+enum TrendSuggestionStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+// §5.1 `TrendSuggestion` — nikad automatski ne ulazi u Dodatak A Master dokumenta bez
+// approved_by (ljudski uređivački korak van ovog sistema, spec §5, poglavlje "Tok").
+model TrendSuggestion {
+  id              String                  @id @default(uuid())
+  category        TrendSuggestionCategory
+  summary         String
+  suggestedAction String                  @map("suggested_action")
+  status          TrendSuggestionStatus   @default(DRAFT)
+  approvedBy      String?                 @map("approved_by") // FK -> M1 User
+  createdAt       DateTime                @default(now()) @map("created_at")
+
+  @@map("trend_suggestions")
+}
+
+// §6.3 `AgentInvocationLog` — svaki stvaran poziv jezičkom modelu, bez obzira na agenta.
+// Deterministički kod (provera roka/limita/datuma) NIKAD ne piše ovde (izlazni kriterijum §10) —
+// odsustvo zapisa za action_code je dokaz, ne poseban flag.
+model AgentInvocationLog {
+  id               String    @id @default(uuid())
+  agentId          String    @map("agent_id") // FK -> AIAgent
+  actionCode       String    @map("action_code")
+  modelTier        ModelTier @map("model_tier")
+  modelIdentifier  String    @map("model_identifier")
+  inputTokens      Int       @map("input_tokens")
+  outputTokens     Int       @map("output_tokens")
+  estimatedCostEur Decimal   @map("estimated_cost_eur")
+  latencyMs        Int       @map("latency_ms")
+  timestamp        DateTime  @default(now())
+
+  agent AIAgent @relation(fields: [agentId], references: [id])
+
+  @@map("agent_invocation_logs")
+}
+
+enum QuotaPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum EnforcementState {
+  NORMAL
+  DEGRADED
+}
+
+// §6.4/§6.5 `AIProviderQuota` — potrošnja po AI provajderu naspram ugovornog kvota
+// (quota_limit/consumed, informativan alarm) I tvrdog EUR budžeta (budget_limit_eur/
+// consumed_eur/enforcement_state, dopuna §6.5 — automatska degradacija na model_tier=LIGHT).
+model AIProviderQuota {
+  id                       String           @id @default(uuid())
+  providerName             String           @map("provider_name")
+  period                   QuotaPeriod
+  // Ni quota_limit (ugovorni prag, tokeni) ni budget_limit_eur nisu pretpostavljeni ovde
+  // (M18 spec §11 — "poslovna odluka vlasnika pri implementaciji") — oba nullable dok
+  // Vlasnik/Direktor ne unese stvarnu vrednost preko PATCH /ai-provider-quota.
+  quotaLimit               Int?             @map("quota_limit")
+  consumed                 Int              @default(0)
+  budgetLimitEur           Decimal?         @map("budget_limit_eur")
+  consumedEur              Decimal          @default(0) @map("consumed_eur")
+  enforcementState         EnforcementState @default(NORMAL) @map("enforcement_state")
+  degradedAt               DateTime?        @map("degraded_at")
+  periodStart              DateTime         @map("period_start") @db.Date
+  periodEnd                DateTime         @map("period_end") @db.Date
+  alertThresholdPercentage Int              @default(80) @map("alert_threshold_percentage")
+
+  @@unique([providerName, period, periodStart])
+  @@map("ai_provider_quotas")
+}
+
+// §6.5 `AIAgentBudget` — isti mehanizam, na nivou pojedinačnog agenta (jedan agent u petlji
+// prelazi u sopstveni DEGRADED bez čekanja da cela potrošnja provajdera dostigne limit).
+model AIAgentBudget {
+  id               String           @id @default(uuid())
+  agentId          String           @map("agent_id") // FK -> AIAgent
+  period           QuotaPeriod
+  budgetLimitEur   Decimal          @map("budget_limit_eur")
+  consumedEur      Decimal          @default(0) @map("consumed_eur")
+  enforcementState EnforcementState @default(NORMAL) @map("enforcement_state")
+  periodStart      DateTime         @map("period_start") @db.Date
+  periodEnd        DateTime         @map("period_end") @db.Date
+
+  agent AIAgent @relation(fields: [agentId], references: [id])
+
+  @@unique([agentId, period, periodStart])
+  @@map("ai_agent_budgets")
 }

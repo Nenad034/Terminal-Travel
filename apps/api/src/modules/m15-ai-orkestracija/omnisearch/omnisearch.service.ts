@@ -5,6 +5,7 @@ import { PermissionsService } from '../../m1-core-identitet/permissions/permissi
 import { BookingsService } from '../../m5-rezervacije/bookings/bookings.service';
 import { ProductsService } from '../../m2-katalog-proizvoda/products/products.service';
 import { AnthropicClientService } from '../anthropic/anthropic-client.service';
+import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { EntityResult, MatchedRoute, OmnisearchResponse } from './omnisearch-result.types';
 
 export interface OmnisearchRequest {
@@ -39,6 +40,7 @@ export class OmnisearchService {
     private readonly bookings: BookingsService,
     private readonly products: ProductsService,
     private readonly anthropic: AnthropicClientService,
+    private readonly invocationLog: AgentInvocationLogService,
   ) {}
 
   async search(req: OmnisearchRequest): Promise<OmnisearchResponse> {
@@ -213,6 +215,27 @@ export class OmnisearchService {
     let messages: any[] = [{ role: 'user', content: req.query }];
     const entityResults: EntityResult[] = [];
     const matchedRoutes: MatchedRoute[] = [];
+    const startedAt = Date.now();
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
+    // M18 spec §6.3 — jedan AgentInvocationLog zapis po pozivu omnisearch-a (svi tool-use
+    // iteracije zbrojene), ne po pojedinačnom Anthropic pozivu — actionCode identifikuje ceo
+    // omnisearch upit, ne unutrašnji korak.
+    const logInvocation = async () => {
+      const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'OMNISEARCH_AGENT' } });
+      if (!agentUser) return; // seed nije pokrenut — ne blokira odgovor korisniku
+      await this.invocationLog.record({
+        agentId: agentUser.id,
+        actionCode: 'omnisearch.query',
+        requestedTier: agentUser.modelTier ?? 'LIGHT',
+        securityCritical: false,
+        modelIdentifier: AnthropicClientService.MODEL,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        latencyMs: Date.now() - startedAt,
+      });
+    };
 
     for (let iteration = 0; iteration < 3; iteration++) {
       const response = await client.messages.create({
@@ -222,10 +245,13 @@ export class OmnisearchService {
         tools,
         messages,
       });
+      totalInputTokens += response.usage.input_tokens;
+      totalOutputTokens += response.usage.output_tokens;
 
       const toolUses = response.content.filter((b: any) => b.type === 'tool_use');
       if (toolUses.length === 0) {
         const textBlock = response.content.find((b: any) => b.type === 'text') as { text: string } | undefined;
+        await logInvocation();
         return {
           active: true,
           matchedRoutes,
@@ -256,6 +282,7 @@ export class OmnisearchService {
       messages.push({ role: 'user', content: toolResults });
     }
 
+    await logInvocation();
     return {
       active: true,
       matchedRoutes,

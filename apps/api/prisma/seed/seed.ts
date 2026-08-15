@@ -237,6 +237,23 @@ const M15_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M15', resource: 'agent-inbox', action: 'VIEW', description: 'Agregovan prikaz PROPOSE_THEN_APPROVE stavki koje čekaju ljudsko odobrenje kroz sve module' },
 ];
 
+// M18 spec §7 — dozvole operativnog nadzora. Svih devet ide isključivo Vlasniku/Direktoru
+// (spec tabela — nema šire uloge, isti obrazac kao M15 dozvole).
+const M18_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M18', resource: 'health-signal', action: 'VIEW', description: 'Uvid u detektovane operativne signale (kvarovi/nepravilnosti kroz sve module)' },
+  { module: 'M18', resource: 'notification-channel', action: 'VIEW', description: 'Uvid u spoljne kanale obaveštavanja (Telegram/email/in-app)' },
+  { module: 'M18', resource: 'notification-channel', action: 'EDIT', description: 'Izmena/kreiranje kanala obaveštavanja' },
+  { module: 'M18', resource: 'weekly-review', action: 'VIEW', description: 'Uvid u nedeljne sveobuhvatne preglede, uklj. ručno pokretanje van rasporeda' },
+  { module: 'M18', resource: 'trend-suggestion', action: 'VIEW', description: 'Uvid u predloge trendova' },
+  { module: 'M18', resource: 'trend-suggestion', action: 'APPROVE', description: 'Odobrenje/odbijanje predloga trenda pre ulaska u Dodatak A Master dokumenta' },
+  { module: 'M18', resource: 'agent-invocation-log', action: 'VIEW', description: 'Uvid u log poziva jezičkom modelu (potrošnja/trošak po agentu)' },
+  { module: 'M18', resource: 'provider-health', action: 'VIEW', description: 'Uvid u trenutno stanje (latencija/dostupnost) po dobavljaču/provajderu' },
+  { module: 'M18', resource: 'ai-provider-quota', action: 'VIEW', description: 'Uvid u potrošnju naspram kvota/budžeta po AI provajderu' },
+  { module: 'M18', resource: 'ai-provider-quota', action: 'OVERRIDE', description: 'Ručan povratak iz DEGRADED u NORMAL pre isteka perioda' },
+  { module: 'M18', resource: 'ai-agent-budget', action: 'VIEW', description: 'Uvid u budžet po pojedinačnom AI agentu' },
+  { module: 'M18', resource: 'ai-agent-budget', action: 'EDIT', description: 'Izmena/kreiranje budžeta pojedinačnog AI agenta' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -256,6 +273,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -273,6 +291,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M12_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M16_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -495,6 +514,7 @@ async function main() {
     ...M16_PERMISSIONS,
     ...M9_PERMISSIONS,
     ...M15_PERMISSIONS,
+    ...M18_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -527,7 +547,7 @@ async function main() {
   await seedM15ActionRegistry();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola.`,
   );
 }
 

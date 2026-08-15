@@ -13,6 +13,7 @@ import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { BookingsModule } from '../m5-rezervacije/bookings/bookings.module';
 import { ProductsModule } from '../m2-katalog-proizvoda/products/products.module';
+import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -20,7 +21,7 @@ import { ProductsModule } from '../m2-katalog-proizvoda/products/products.module
 // direktno iz Prisma (isti "čitanje iz postojećih tabela više modula" princip kao M17 dashboard),
 // zato ne zahteva uvoz M3/M7/M12/M14 modula ovde.
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, BookingsModule, ProductsModule],
+  imports: [AuthModule, PermissionsModule, AuditLogModule, BookingsModule, ProductsModule, M18OperativniNadzorModule],
   controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController],
   providers: [ModuleActivationService, OmnisearchService, AnthropicClientService, ActionTypesService, AgentInboxService],
   exports: [OmnisearchService],

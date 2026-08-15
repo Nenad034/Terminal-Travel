@@ -122,7 +122,9 @@
       "Bash(curl -s -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0YzAzNzcyYy1mOGQ3LTQ1ODgtOGE3My1kM2EyOGJmMzUwNWUiLCJzZXNzaW9uSWQiOiJzbW9rZS1zZXNzaW9uIiwiaWF0IjoxNzg2Nzk5NDE3fQ.a4Q5AGaVCV0Bqap9Cb9mzt1geM3T3YEyvX8UAk165hg' http://127.0.0.1:3000/api/v1/iam/auth/me)",
       "Bash(API_BASE_URL=\"http://127.0.0.1:3000/api/v1\" npm run dev)",
       "Bash(API_BASE_URL=\"http://127.0.0.1:3000/api/v1\" npx next dev -p 3101)",
-      "Bash(taskkill //PID 17744 //F)"
+      "Bash(taskkill //PID 17744 //F)",
+      "Bash(taskkill //PID 32784 //F)",
+      "Bash(taskkill //PID 27440 //F)"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",

@@ -23,6 +23,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       isConfigured: jest.fn().mockReturnValue(overrides?.anthropicConfigured ?? false),
       getClient: jest.fn(),
     };
+    const invocationLog = { record: jest.fn().mockResolvedValue({ tier: 'LIGHT', estimatedCostEur: 0 }) };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -31,8 +32,9 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       bookings as any,
       products as any,
       anthropic as any,
+      invocationLog as any,
     );
-    return { service, prisma, auditLog, permissions, bookings, products, anthropic };
+    return { service, prisma, auditLog, permissions, bookings, products, anthropic, invocationLog };
   }
 
   it('vraća active:false dok M15_OMNISEARCH nije ACTIVATED (§3 aktivacioni gate)', async () => {
