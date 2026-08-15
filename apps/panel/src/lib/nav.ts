@@ -123,7 +123,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/b2b',
     permission: { module: 'M7', resource: 'subagent', action: 'VIEW' },
     phase: 4,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'izvestaji',

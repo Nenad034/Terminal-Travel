@@ -403,6 +403,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
     // M11 spec §4 — Računovođa generiše izvoze za inspekciju.
     { module: 'M11', resource: 'inspection-export', action: 'CREATE' },
+    // M7 spec §10 tabela — commission-rebate/VIEW i APPROVE dodeljeni "Vlasnik, Direktor,
+    // Računovođa" (direktan uticaj na novac, isti obrazac kao M10 fiskalni dokument). Nalaz
+    // pri implementaciji M17 Faze 4 (avgust 2026): ova dodela nedostajala je iz seed.ts otkad
+    // je M7 prvi put implementiran — Računovođa je imao dozvolu u spec tabeli, ne i u kodu.
+    { module: 'M7', resource: 'commission-rebate', action: 'VIEW' },
+    { module: 'M7', resource: 'commission-rebate', action: 'APPROVE' },
     // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6.
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
     // M13 spec §6 — Računovođa dobija finansijski izveštaj (FactPayment).

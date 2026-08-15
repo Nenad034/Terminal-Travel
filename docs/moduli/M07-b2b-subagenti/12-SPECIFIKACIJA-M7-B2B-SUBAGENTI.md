@@ -301,6 +301,14 @@ i deo 11 (API ugovor osim `/chat-messages`, `/booking-requests*`) — svi testov
 frontend (poglavlje 2.0.1/2.0.2 rute) takođe nije građen ovog prolaza — samo backend API koji bi
 ga servisirao, isti obrazac kao M6.
 
+**Dopuna (avgust 2026) — staff-facing ekrani u M17.** Deo ovog izlaznog kriterijuma koji se tiče
+internog tima agencije (ne subagenta samog) sad ima svoj ekran: `apps/panel/src/app/(app)/b2b/`
+(`docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`, Faza 4) — lista/detalj
+subagenata, odobravanje novog partnera, kreditni limit/status, pragovi obima, uvid u mrežu
+sub-subagenata (bez upravljanja njome — to ostaje portal, poglavlje 2.0.1), i odobravanje/
+odbijanje rabata provizije (poglavlje 3.2). Portal iz poglavlja 2.0.1/2.0.2 (subagent radi
+sopstvenim identitetom) i dalje nije građen — ovo je isključivo strana koju agencija koristi.
+
 - [x] Novi subagent se registruje, ostaje `PENDING_APPROVAL`, i ne može da naruči dok se ne odobri.
 - [x] Tier 1 provizija postavlja isključivo agencija; sub-subagent proviziju postavlja isključivo roditeljski subagent, sa ogradom da ne pređe roditeljsku.
 - [x] Rezervacija koja bi prekoračila kreditni limit se odbija pre bilo kakve rezervacije kapaciteta kod M3/M4.

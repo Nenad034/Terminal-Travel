@@ -51,9 +51,23 @@ Do sada je svaki gost/nalogodavac postojao samo kao ime uz rezervaciju — nije 
 - **Ankete posle putovanja** — pregled onoga što gosti odgovore nakon povratka.
 - Na stranici svake rezervacije sad postoji i direktan link ka nalogodavcu — isti princip kao veze ka fakturi/garanciji/ugovoru iz Faze 2, sve na jednom mestu umesto skakanja između ekrana.
 
+## Faza 4 — B2B partneri (avgust 2026)
+
+Terminal Travel ne prodaje samo direktno gostima — deo prodaje ide preko poslovnih partnera, "subagenata" (druge turističke agencije koje dalje prodaju naše aranžmane svojim klijentima, uz sopstvenu proviziju). Do sada je taj deo sistema postojao samo iza kulisa (testiran automatski, nikad viđen ljudskim okom). Novi ekran "B2B partneri" to menja.
+
+- **Lista i detalj subagenata** — ko su naši poslovni partneri, koliki im je kreditni limit (koliko duguju agenciji pre nego što moraju da plate), kolika im je provizija, i da li su trenutno dostigli neki "prag obima" koji im automatski podiže proviziju (npr. "posle 50.000 EUR prodaje ovog kvartala, provizija raste sa 10% na 15%") — isti princip kao popust za stalne kupce, samo za poslovne partnere.
+- **Odobravanje novog partnera** — kad se neko novi prijavi da postane subagent, ne može odmah da prodaje — čeka da Vi ili Direktor svesno odobrite, i tom prilikom postavite koliki mu je kreditni limit i koja mu je provizija. Ovo je namerna kočnica: sistem nikad sam ne otvara kreditnu liniju nikom.
+- **Mreža partnera** — neki subagenti imaju sopstvene "pod-partnere" (manje agencije koje rade preko njih). Tim iz agencije vidi celu tu mrežu, ali upravljanje proviziom unutar mreže (ko koliko dobija od koga) ostaje posao samih partnera međusobno — mi imamo uvid, ne mešamo se, isto kao što ne diktiramo kako neka firma deli platu unutar sebe.
+- **Rabati provizije** — kad partner usred perioda pređe prag obima koji smo unapred dogovorili da "važi unazad", sistem sam izračuna koliko mu duguje dodatno za ono što je već prodao pre nego što je prag dostignut, i pripremi to kao nacrt. Ali taj nacrt **ne postaje stvaran** dok Vi, Direktor ili Računovođa svesno ne kliknete "odobri" — isti princip kao slanje fakture u Fazi 2 (M10): sistem predlaže, čovek odlučuje. Novi ekran "Rabati provizije" pokazuje sve te predloge na jednom mestu, filtrirane po statusu, sa jasnim dugmetom za odobrenje ili odbijanje (uz obavezan razlog ako se odbija).
+- Kad se rabat odobri, to automatski priprema (ne šalje) odgovarajući knjigovodstveni dokument u Finansijama (M10, Faza 2) — isto pravilo kao svugde: automatika sme da pripremi, čovek mora da pošalje.
+
+**Šta namerno nije na ovom ekranu:** upravljanje sopstvenom mrežom sub-partnera (to rade sami partneri kroz svoj budući poseban portal, ne kroz naš interni panel) i AI ćaskanje kroz koje bi partner sam mogao da rezerviše razgovorom — oboje čeka poseban modul (M15) koji tek treba da bude izgrađen.
+
+**Jedna stvar koju smo usput otkrili i popravili:** specifikacija je od početka predviđala da Računovođa sme da odobrava/odbija rabate provizije (ima direktan uticaj na novac, isto kao slanje fakture), ali ta dozvola nikad nije stvarno upisana u sistem — u praksi bi samo Vi i Direktor mogli to da uradite. Ispravili smo to da odgovara onome što je oduvek bilo planirano.
+
 ## Šta još nije gotovo (namerno)
 
-- **Ostatak modula** (CRM, B2B partneri, izveštaji, podrška, marketing) — dolaze u narednim koracima, jedan po jedan, istim tempom kao što su i sami ti moduli rađeni.
+- **Ostatak modula** (izveštaji, podrška, marketing) — dolaze u narednim koracima, jedan po jedan, istim tempom kao što su i sami ti moduli rađeni.
 - **Prava AI pretraga i glasovna komanda** — čekaju poseban modul (M15) koji upravlja AI agentima kroz ceo sistem; trenutno komandna paleta radi samo kao brz način navigacije, ne "razgovor" sa sistemom.
 - **Instaliranje na telefon kao aplikacija (PWA)** — dodaje se kad bude više ekrana da to ima smisla testirati na pravom uređaju.
 
