@@ -124,7 +124,9 @@
       "Bash(API_BASE_URL=\"http://127.0.0.1:3000/api/v1\" npx next dev -p 3101)",
       "Bash(taskkill //PID 17744 //F)",
       "Bash(taskkill //PID 32784 //F)",
-      "Bash(taskkill //PID 27440 //F)"
+      "Bash(taskkill //PID 27440 //F)",
+      "Bash(powershell -Command \"Stop-Process -Id 4528 -Force -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command 'Get-CimInstance Win32_Process | Where-Object { $_.Name -eq '\\\\''node.exe'\\\\'' } | Select-Object ProcessId, ParentProcessId, CommandLine | Format-List')"
     ],
     "additionalDirectories": [
       "d:\\Terminal Travel\\.claude\\skills",
