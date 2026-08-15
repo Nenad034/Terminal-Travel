@@ -59,6 +59,9 @@ import { EventBusModule } from '../../common/events/event-bus.module';
     AiProviderQuotaService,
     AiAgentBudgetsService,
   ],
-  exports: [AgentInvocationLogService],
+  // HealthSignalsService — dodato pri implementaciji M21 (avgust 2026): HelpAbuseDetectorService
+  // (§5.5) kreira HELP_AGENT_ABUSE_PATTERN signale preko in-process DI, isti obrazac kao
+  // AgentInvocationLogService export ispod (M13 FactSyncService hibridni princip).
+  exports: [AgentInvocationLogService, HealthSignalsService],
 })
 export class M18OperativniNadzorModule {}

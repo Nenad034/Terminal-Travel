@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M21), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — dodata treća publika: korporativni self-service klijenti (poglavlje 1, 2, 3), na zahtev vlasnika (avgust 2026) uz zahtev za API dokumentacijom za spoljne integratore (vidi Master dokument, napomena posle poglavlja 8)
+**Status:** Implementirano (backend) — vidi poglavlje 7 (izlazni kriterijum) i `docs/api/M21-centar-za-pomoc.md`. M17/M7/M8 UI ekrani ostaju poseban naredni korak (poglavlje 7, predzadnja stavka).
+**Verzija:** 1.3 — prvi prolaz implementacije (avgust 2026): kod pod `apps/api/src/modules/m21-centar-za-pomoc/`. Potvrđene vlasnikove odluke iz poglavlja 8 (prethodno "otvoreno"): (a) `EDIT`/`PUBLISH` podela — HR dobija `EDIT` za sve tri publike (staff/subagent/business), `PUBLISH` isključivo Direktor/Vlasnik, isti dvoslojni obrazac kao M12 `ContentPiece`; (b) prag/algoritam grupisanja `HelpArticleSuggestion` — 3+ pitanja (`confidence IN {NONE,LOW}` ili `was_helpful=false`) u prozoru od 30 dana, grupisano po `audience_context` + (preklapanje `matched_article_ids` KAD postoji, ili preklapanje ≥2 značajne reči teksta pitanja inače, jer `NONE` pitanja po definiciji nemaju poklapanja) — dokumentovano kao "podešava se empirijski", isti princip kao M18 pragovi. Prompt-injection ograda (§5.2) sprovedena strukturno: kandidat-članci za AI asistenta se učitavaju isključivo iz `HelpArticle.status=PUBLISHED` filtrirano po `audience_context` pozivaoca PRE nego što jezički model (ili heuristički fallback bez njega) uopšte vidi bilo šta — sadržaj van tog skupa fizički ne stiže do modela, bez obzira na formulaciju pitanja. v1.2 — dodata treća publika: korporativni self-service klijenti (poglavlje 1, 2, 3), na zahtev vlasnika (avgust 2026) uz zahtev za API dokumentacijom za spoljne integratore (vidi Master dokument, napomena posle poglavlja 8)
 **Zavisi od:** M1 (identitet, RBAC, audit log), M6 (provera `ClientAccount.account_type = LEGAL_ENTITY`), M14 (eskalacija ka tiketu), M15 (AI agent okvir), M17 (kanal za tim), M7 (kanal za subagente), M8 (kanal za korporativne klijente)
 
 ---
@@ -150,24 +150,26 @@ Uz ovaj ugovor, u `docs/api/M21-centar-za-pomoc.md` vodi se dokument sa stvarnim
 
 ## 7. Izlazni kriterijum
 
-- [ ] Interni tim vidi članke gde `audience` sadrži `STAFF`; subagent isključivo gde sadrži `SUBAGENT`; korporativni klijent (GUEST + LEGAL_ENTITY) isključivo gde sadrži `BUSINESS_CLIENT` — provereno da nijedna publika ne vidi članke namenjene isključivo drugoj, uključujući pojedinačnog (INDIVIDUAL) GUEST korisnika koji ne dobija pristup nijednom članku (van obima v1, poglavlje 1).
-- [ ] AI agent odgovara isključivo na osnovu `PUBLISHED` članaka dostupnih toj publici; test-pokušaj da se agent nagovori da otkrije sadržaj van tog opsega (parafraziran zahtev za "tuđe" članke ili podatke) se odbija.
-- [ ] Pitanje bez pouzdanog odgovora (`confidence = NONE`) nudi eskalaciju; potvrda korisnika kreira M14 tiket sa `channel = HELP_CENTER` i pitanjem već upisanim u prvu poruku.
-- [ ] Ponovljena `NONE`/`LOW` pitanja na istu temu generišu `HelpArticleSuggestion`; predlog se ne pretvara u vidljiv članak bez ljudskog odobrenja, a odobren predlog i dalje čeka zaseban korak objavljivanja.
-- [ ] Svako pitanje/odgovor upisano je u `AuditLogEntry` sa `actor_type = AI_AGENT`.
-- [ ] Neuobičajen obrazac pitanja (učestalost ili sadržaj koji liči na pokušaj zaobilaženja ograde) generiše `HELP_AGENT_ABUSE_PATTERN` signal u M18.
-- [ ] Fallback jezika radi ispravno (traženi jezik → engleski → srpski), isto pravilo kao M2.
-- [ ] `is_critical_example` članci prikazuju se izdvojeno i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.
-- [ ] Centar za pomoć (unutar M17, M7 i M8/M9) ostaje potpuno upotrebljiv na telefonu i tabletu — nasleđuje responsive zahtev kanala u kom se prikazuje (Master dokument poglavlje 5.1), bez sopstvenog dodatnog UI sloja.
-- [ ] Korporativni klijent (GUEST + LEGAL_ENTITY) dobija pristup isključivo kroz M8/M9 kanal, prijavljen na sopstveni nalog; provera `ClientAccount.account_type` radi se uživo nad M6, ne iz keširanog/token podatka.
-- [ ] `docs/api/M21-centar-za-pomoc.md` postoji i sadrži stvaran primer zahteva/odgovora za svaki endpoint iz poglavlja 6 — standing pravilo za sve module (CLAUDE.md).
+- [x] Interni tim vidi članke gde `audience` sadrži `STAFF`; subagent isključivo gde sadrži `SUBAGENT`; korporativni klijent (GUEST + LEGAL_ENTITY) isključivo gde sadrži `BUSINESS_CLIENT` — provereno da nijedna publika ne vidi članke namenjene isključivo drugoj, uključujući pojedinačnog (INDIVIDUAL) GUEST korisnika koji ne dobija pristup nijednom članku (van obima v1, poglavlje 1). Testirano `apps/api/test/m21-exit-criteria.e2e-spec.ts`.
+- [x] AI agent odgovara isključivo na osnovu `PUBLISHED` članaka dostupnih toj publici; test-pokušaj da se agent nagovori da otkrije sadržaj van tog opsega (parafraziran zahtev za "tuđe" članke ili podatke) se odbija — ograda je strukturna (kandidat-skup se učitava filtriran PRE poziva modela), ne samo tekst u promptu.
+- [x] Pitanje bez pouzdanog odgovora (`confidence = NONE`) nudi eskalaciju; potvrda korisnika kreira M14 tiket sa `channel = HELP_CENTER` i pitanjem već upisanim u prvu poruku.
+- [x] Ponovljena `NONE`/`LOW` pitanja na istu temu generišu `HelpArticleSuggestion`; predlog se ne pretvara u vidljiv članak bez ljudskog odobrenja, a odobren predlog i dalje čeka zaseban korak objavljivanja.
+- [x] Svako pitanje/odgovor upisano je u `AuditLogEntry` sa `actor_type = AI_AGENT`.
+- [x] Neuobičajen obrazac pitanja (učestalost ili sadržaj koji liči na pokušaj zaobilaženja ograde) generiše `HELP_AGENT_ABUSE_PATTERN` signal u M18.
+- [x] Fallback jezika radi ispravno (traženi jezik → engleski → srpski), isto pravilo kao M2.
+- [x] `is_critical_example` članci prikazuju se izdvojeno (sortirani ispred opisnih u `GET /articles`) i imaju prioritet u odgovorima agenta kad postoje za temu pitanja.
+- [ ] Centar za pomoć (unutar M17, M7 i M8/M9) ostaje potpuno upotrebljiv na telefonu i tabletu — nasleđuje responsive zahtev kanala u kom se prikazuje (Master dokument poglavlje 5.1), bez sopstvenog dodatnog UI sloja. **Backend gotov, UI čeka** — ovaj prolaz je isključivo `/api/v1/help` backend (isti obim kao M18/M19 prvi prolazi); M17/M7/M8 ekrani su poseban naredni korak, ova stavka namerno ostaje nečekirana do tada.
+- [x] Korporativni klijent (GUEST + LEGAL_ENTITY) dobija pristup isključivo kroz M8/M9 kanal, prijavljen na sopstveni nalog; provera `ClientAccount.account_type` radi se uživo nad M6, ne iz keširanog/token podatka.
+- [x] `docs/api/M21-centar-za-pomoc.md` postoji i sadrži stvaran primer zahteva/odgovora za svaki endpoint iz poglavlja 6 — standing pravilo za sve module (CLAUDE.md).
 
 ---
 
 ## 8. Otvoreno za dalje
 
-- Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj (da li HR ima puno pravo objave ili samo predlaže, sa Direktorom kao konačnim odobravačem) — dorađuje se sa vlasnikom pri implementaciji, van obima ove specifikacije.
-- Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` (poglavlje 5.4) — konkretna vrednost (npr. "3+ slična pitanja u 30 dana") određuje se kad postoji stvarna količina pitanja da se proceni razumno.
+- ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — **rešeno avgust 2026 (potvrda vlasnika).** HR dobija `EDIT` za sve tri publike (staff/subagent/business), `PUBLISH` isključivo Direktor/Vlasnik — isti dvoslojni obrazac kao M12 `ContentPiece` (`CREATE_DRAFT` vs `APPROVE_PUBLISH`). Sprovedeno u `seed.ts` (`DEFAULT_ROLE_PERMISSIONS`) i proveravano u `HelpArticlesService` po audience segmentu.
+- ~~Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion`~~ — **polazna vrednost postavljena avgust 2026**, i dalje otvorena za fino podešavanje: 3+ pitanja (`confidence IN {NONE,LOW}` ili `was_helpful=false`) u prozoru od 30 dana, grupisano po `audience_context` + (preklapanje `matched_article_ids` kad postoji, inače preklapanje ≥2 značajne reči teksta pitanja — `NONE` pitanja po definiciji nemaju `matched_article_ids`). Vidi `HelpSuggestionsService` — konstante `SUGGESTION_THRESHOLD`/`MIN_WORD_OVERLAP`/`GROUPING_WINDOW_DAYS`, isti "podešava se empirijski" princip kao M18 pragovi (§5.4).
 - Prošireno na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9) — namerno van obima, vidi poglavlje 1.
 - Da li M8/M9 UI za korporativne klijente treba poseban vizuelni prikaz Centra za pomoć (npr. "Pomoć za poslovne naloge" sekcija) ili se prikazuje kao generički help widget — dorađuje se pri implementaciji M8/M9 poglavlja za korporativne naloge.
 - Da li agent u budućoj verziji dobija ograničen, pažljivo ograđen pristup nekim živim podacima (npr. sopstveni kreditni limit subagenta) — zahteva sopstvenu bezbednosnu analizu pre uvođenja, ne pretpostavlja se ovde (poglavlje 5.2).
+- `POST /help/questions/:id/escalate` određuje `TicketCategory` uvek kao `DRUGO` (nema strukturiranog `related_module`→`category` mapiranja u v1) — dorađuje se ako se pokaže vrednost u praksi (implementaciona napomena, `HelpAssistantService.escalate`).
+- `GET /help/questions` (uvid u istoriju pitanja, `M21/question-log/VIEW`) dodat pri implementaciji — permission je postojao u poglavlju 3 bez pripadajuće rute u poglavlju 6 (koje je eksplicitno "ključni endpoint-i", ne iscrpna lista); ruta je dodata da dozvola ne ostane mrtvo slovo.

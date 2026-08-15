@@ -267,6 +267,25 @@ const M19_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M19', resource: 'supplier-conversation', action: 'GRANT_ACCESS', description: 'Dodela/oduzimanje pristupa zaposlenom EXTERNAL_SUPPLIER razgovoru, pokretanje portal pozivnice dobavljaču' },
 ];
 
+// M21 spec §3 — vidljivost je po tri publike (STAFF/SUBAGENT/BUSINESS_CLIENT), svaka sa
+// sopstvenim VIEW/EDIT/PUBLISH parom. PUBLISH ide isključivo Direktoru/Vlasniku (HR ima EDIT
+// ali ne i PUBLISH — potvrđena vlasnikova odluka, avgust 2026, ista dvoslojna podela kao M12
+// ContentPiece EDIT vs PUBLISH). question-log/VIEW je bezbednosni/kvalitetni uvid (HR/Direktor/
+// Vlasnik), suggestion/APPROVE prevodi AI nacrt u stvaran (i dalje neobjavljen) HelpArticle.
+const M21_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M21', resource: 'article:staff', action: 'VIEW', description: 'Uvid u objavljene članke namenjene internom timu' },
+  { module: 'M21', resource: 'article:subagent', action: 'VIEW', description: 'Uvid u objavljene članke namenjene B2B subagentima' },
+  { module: 'M21', resource: 'article:business', action: 'VIEW', description: 'Uvid u objavljene članke namenjene korporativnim self-service klijentima' },
+  { module: 'M21', resource: 'article:staff', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za interni tim' },
+  { module: 'M21', resource: 'article:staff', action: 'PUBLISH', description: 'Objava članka za interni tim (isključivo Direktor/Vlasnik)' },
+  { module: 'M21', resource: 'article:subagent', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za B2B subagente' },
+  { module: 'M21', resource: 'article:subagent', action: 'PUBLISH', description: 'Objava članka za B2B subagente (isključivo Direktor/Vlasnik)' },
+  { module: 'M21', resource: 'article:business', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za korporativne klijente' },
+  { module: 'M21', resource: 'article:business', action: 'PUBLISH', description: 'Objava članka za korporativne klijente (isključivo Direktor/Vlasnik)' },
+  { module: 'M21', resource: 'suggestion', action: 'APPROVE', description: 'Odobrenje/odbijanje AI predloga novog članka baze znanja' },
+  { module: 'M21', resource: 'question-log', action: 'VIEW', description: 'Uvid u istoriju pitanja AI asistentu radi kvaliteta sadržaja i bezbednosnog pregleda' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -288,6 +307,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -307,6 +327,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M15_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -319,6 +340,15 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M19', resource: 'conversation', action: 'CREATE' },
     { module: 'M19', resource: 'conversation', action: 'VIEW' },
     { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
+    // M21 spec §3/poglavlje 8 (potvrđena vlasnikova odluka, avgust 2026) — HR piše/menja nacrte
+    // za sve tri publike (EDIT) i odobrava AI predloge, ali NEMA PUBLISH (samo Direktor/Vlasnik
+    // objavljuju) — isti dvoslojni obrazac kao M12 ContentPiece CREATE_DRAFT vs APPROVE_PUBLISH.
+    { module: 'M21', resource: 'article:staff', action: 'VIEW' },
+    { module: 'M21', resource: 'article:staff', action: 'EDIT' },
+    { module: 'M21', resource: 'article:subagent', action: 'EDIT' },
+    { module: 'M21', resource: 'article:business', action: 'EDIT' },
+    { module: 'M21', resource: 'suggestion', action: 'APPROVE' },
+    { module: 'M21', resource: 'question-log', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.SALES_MANAGER]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -382,6 +412,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M19', resource: 'supplier-conversation', action: 'VIEW' },
     { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE' },
     { module: 'M19', resource: 'supplier-conversation', action: 'GRANT_ACCESS' },
+    // M21 spec §3 — Sales Manager je interni tim, čita objavljene STAFF članke kao svaki drugi
+    // zaposleni (nema EDIT/PUBLISH — to je uže na HR/Direktor/Vlasnik krug).
+    { module: 'M21', resource: 'article:staff', action: 'VIEW' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -436,6 +469,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
     { module: 'M19', resource: 'supplier-conversation', action: 'VIEW' },
     { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE' },
+    // M21 spec §3 — Prodajni agent je interni tim, čita objavljene STAFF članke.
+    { module: 'M21', resource: 'article:staff', action: 'VIEW' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -474,6 +509,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M19', resource: 'conversation', action: 'CREATE' },
     { module: 'M19', resource: 'conversation', action: 'VIEW' },
     { module: 'M19', resource: 'conversation', action: 'SEND_MESSAGE' },
+    // M21 spec §3 — Računovođa je interni tim, čita objavljene STAFF članke.
+    { module: 'M21', resource: 'article:staff', action: 'VIEW' },
   ],
   // M5 spec §10 tabela ("Gost — samo sopstvene") i M6 spec §7 ("Uloga Gost ima pristup
   // isključivo sopstvenom ClientAccount/GuestProfile") — dozvole same po sebi ne razlikuju
@@ -504,6 +541,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // poseban ključ dozvole); nema RESPOND (ne može menjati status/prioritet ni slati STAFF poruke).
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
+    // M21 spec §1/§3 — dodeljeno celoj GOST roli (i INDIVIDUAL i LEGAL_ENTITY nalozima), ali
+    // efektivno korisno samo LEGAL_ENTITY (BUSINESS_CLIENT) nalozima — resolveHelpAudience
+    // vraća null za INDIVIDUAL bez obzira na ovu dozvolu (izlazni kriterijum §7, prva stavka).
+    { module: 'M21', resource: 'article:business', action: 'VIEW' },
   ],
   // M7 spec §8/§10 — SUBAGENT_ADMIN: sopstveni Subagent/ClientAccount profil, sopstvene
   // rezervacije preko M5 (§5 provizija se primenjuje automatski), upravljanje sopstvenom mrežom.
@@ -528,6 +569,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // Subagent.client_account_id u TicketsService); nema RESPOND, isti krug kao Gost.
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
+    // M21 spec §1/§3 — SUBAGENT_ADMIN čita objavljene SUBAGENT članke (portal, M7).
+    { module: 'M21', resource: 'article:subagent', action: 'VIEW' },
   ],
   // M9 spec §6 — VODIC dobija isključivo svoje tri M9 dozvole; ownership (sopstveni
   // assigned_guide_id) se sprovodi u FieldStaffService, ne ovde.
@@ -558,6 +601,7 @@ async function main() {
     ...M15_PERMISSIONS,
     ...M18_PERMISSIONS,
     ...M19_PERMISSIONS,
+    ...M21_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -590,9 +634,10 @@ async function main() {
   await seedM15ActionRegistry();
   await seedM19SupplierDraftAgent();
   await seedM19SystemNotificationUser();
+  await seedM21HelpCenterAgent();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola.`,
   );
 }
 
@@ -745,6 +790,37 @@ async function seedM19SupplierDraftAgent() {
       userId: agentUser.id,
       agentRole: 'SUPPLIER_DRAFT_AGENT',
       moduleCode: 'M19',
+      status: 'ACTIVE',
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
+}
+
+// M21 spec §5.1 — HelpCenterAgent, isti obrazac kao seedM19SupplierDraftAgent (formalni M1 nalog
+// + AIAgent zapis da AuditLogEntry/AgentInvocationLog imaju actor_type=AI_AGENT). modelTier LIGHT
+// je eksplicitna spec vrednost (§5.1 — "čisto pretraživanje/sažimanje objavljenog teksta, niska
+// složenost/osetljivost"). Bez ModuleAgentActivation gate-a — ograda je strukturna (§5.2, ne
+// zavisi od aktivacionog prekidača kao OmnisearchAgent).
+async function seedM21HelpCenterAgent() {
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'help-center-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'help-center-agent@sistem.terminal-travel.local',
+      fullName: 'HelpCenterAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'HELP_CENTER_AGENT',
+      moduleCode: 'M21',
       status: 'ACTIVE',
       modelTier: 'LIGHT',
       modelIdentifier: 'claude-haiku-4-5-20251001',

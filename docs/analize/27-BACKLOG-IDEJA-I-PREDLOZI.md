@@ -191,9 +191,10 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Ownership-scoping za `GET /client-contracts` (Prodajni agent/Gost "sopstveno") nije implementiran na nivou servisa, samo kao dozvola po ulozi.
 
 ## M21 — Centar za pomoć (baza znanja + AI asistent)
-*(§8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
-- Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj.
-- Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion`.
+*(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
+- ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve tri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
+- Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` — polazna vrednost postavljena (3+ u 30 dana, `HelpSuggestionsService`), fino podešavanje čeka stvarnu količinu pitanja u produkciji.
+- M17/M7/M8 UI ekrani za Centar za pomoć — poseban naredni korak (backend gotov, izlazni kriterijum §7 predzadnja stavka namerno nečekirana do UI prolaza).
 - Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9) — namerno van obima.
 - Da li M8/M9 UI za korporativne klijente treba poseban vizuelni prikaz Centra za pomoć ili generički help widget.
 - Da li agent dobija ograničen pristup živim podacima (npr. kreditni limit subagenta) u budućoj verziji.

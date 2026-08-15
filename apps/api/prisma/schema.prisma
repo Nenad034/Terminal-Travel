@@ -2277,6 +2277,7 @@ enum AgentRole {
   DOMENSKI_AGENT
   OMNISEARCH_AGENT
   SUPPLIER_DRAFT_AGENT // M19 spec §9.5, dodato avgust 2026
+  HELP_CENTER_AGENT // M21 spec §5.1, dodato avgust 2026
 }
 
 enum AgentStatus {
@@ -2657,4 +2658,114 @@ model SupplierConversationAccess {
 
   @@unique([conversationId, userId])
   @@map("supplier_conversation_accesses")
+}
+
+// ============================================================================
+// M21 — Centar za pomoć (baza znanja + AI asistent)
+// Izvor: docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md
+// poglavlje 2. Prvi prolaz implementacije (avgust 2026) — tri publike (STAFF/SUBAGENT/
+// BUSINESS_CLIENT), AI asistent ograđen isključivo na PUBLISHED sadržaj (§5.2), eskalacija
+// ka M14 (§5.3, weak-ref escalated_ticket_id — isti obrazac kao ostale cross-modularne
+// slabe reference u repou, npr. Ticket.related_booking_id).
+// ============================================================================
+
+enum HelpAudience {
+  STAFF
+  SUBAGENT
+  BUSINESS_CLIENT
+}
+
+enum HelpArticleStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  ARCHIVED
+}
+
+// §2.1 `HelpArticle` — jedan članak baze znanja. `generatedBy` reupotrebljava M12
+// `ContentGeneratedBy` (AI/HUMAN) — identičan skup vrednosti, nema razloga za paralelan enum.
+model HelpArticle {
+  id                String             @id @default(uuid())
+  slug              String             @unique
+  audience          HelpAudience[]     @map("audience") // native Postgres niz, isti obrazac kao M12 ContentPiece.targetChannels
+  relatedModule     String?            @map("related_module") // npr. "M5", "M10" — filtriranje/pretraga
+  isCriticalExample Boolean            @default(false) @map("is_critical_example") // §4 — korak-po-korak radni scenario, prioritet u odgovorima agenta
+  status            HelpArticleStatus  @default(DRAFT)
+  generatedBy       ContentGeneratedBy @map("generated_by")
+  approvedBy        String?            @map("approved_by") // weak ref → M1 User; obavezno pre PUBLISHED, nikad AI (§2.1)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  publishedAt       DateTime?          @map("published_at")
+
+  translations HelpArticleTranslation[]
+
+  @@map("help_articles")
+}
+
+// §2.2 `HelpArticleTranslation` — isti obrazac kao M2 ProductTranslation/M12 ContentTranslation
+// (red po jeziku, isti LanguageCode enum, isti fallback traženi→en→sr).
+model HelpArticleTranslation {
+  id            String       @id @default(uuid())
+  helpArticleId String       @map("help_article_id")
+  languageCode  LanguageCode @map("language_code")
+  title         String
+  body          String // markdown; za is_critical_example=true numerisana lista koraka, obična markdown lista
+
+  helpArticle HelpArticle @relation(fields: [helpArticleId], references: [id], onDelete: Cascade)
+
+  @@unique([helpArticleId, languageCode])
+  @@map("help_article_translations")
+}
+
+enum HelpAudienceContext {
+  STAFF
+  SUBAGENT
+  BUSINESS_CLIENT
+}
+
+enum HelpConfidence {
+  HIGH
+  LOW
+  NONE
+}
+
+// §2.3 `HelpQuestion` — svako pitanje postavljeno AI asistentu (log). escalated_ticket_id je
+// weak ref → M14 Ticket (isti princip kao Ticket.related_booking_id — cross-modularne veze
+// ne dobijaju hard FK, poglavlje 3 princip #2 CLAUDE.md).
+model HelpQuestion {
+  id                String              @id @default(uuid())
+  askedBy           String              @map("asked_by") // FK → M1 User
+  audienceContext   HelpAudienceContext @map("audience_context")
+  questionText      String              @map("question_text")
+  answerText        String?             @map("answer_text")
+  matchedArticleIds String[]            @map("matched_article_ids")
+  confidence        HelpConfidence
+  wasHelpful        Boolean?            @map("was_helpful")
+  escalatedTicketId String?             @map("escalated_ticket_id") // weak ref → M14 Ticket
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  @@map("help_questions")
+}
+
+enum HelpArticleSuggestionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+// §2.4 `HelpArticleSuggestion` — predlog novog članka iz stvarne upotrebe (§5.4 — ponovljena
+// NONE/LOW pitanja na istu temu). APPROVED kreira stvaran HelpArticle(status=PENDING_APPROVAL),
+// koji i dalje čeka sopstveni korak objavljivanja (dva odvojena koraka odobrenja).
+model HelpArticleSuggestion {
+  id                 String                      @id @default(uuid())
+  basedOnQuestionIds String[]                    @map("based_on_question_ids")
+  draftTitle         String                      @map("draft_title")
+  draftBody          String                      @map("draft_body")
+  status             HelpArticleSuggestionStatus @default(DRAFT)
+  reviewedBy         String?                     @map("reviewed_by") // weak ref → M1 User
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  reviewedAt         DateTime?                   @map("reviewed_at")
+
+  @@map("help_article_suggestions")
 }
