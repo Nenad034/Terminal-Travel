@@ -21,6 +21,7 @@ interface Booking {
   voucherUrl: string | null;
   totalPrice?: number;
   currency?: string;
+  clientAccountId?: string | null;
   items: BookingItem[];
 }
 
@@ -37,6 +38,13 @@ interface ClientContract {
   documentUrl: string | null;
 }
 
+interface ClientAccountSummary {
+  id: string;
+  accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
+  fullName: string | null;
+  companyName: string | null;
+}
+
 // M17 spec §4 (Faza 1), M5 §6 GET /bookings/:id — poziv iz internog panela vraća
 // pun (nemaskiran) prikaz, uključujući supplier_reference (M5 spec §6.2).
 // M17 spec §2 — ova stranica je direktan primer "kompozicije na nivou prikaza": pored M5
@@ -47,6 +55,7 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
   const canPrepareFiscal = hasPermission(me, 'M10', 'fiscal-document', 'CREATE_DRAFT');
   const canViewRegistrations = hasPermission(me, 'M11', 'travel-guarantee-registration', 'VIEW');
   const canViewContracts = hasPermission(me, 'M20', 'client-contract', 'VIEW');
+  const canViewClientAccount = hasPermission(me, 'M6', 'client-account', 'VIEW');
 
   let booking: Booking | null = null;
   let error: string | null = null;
@@ -56,11 +65,14 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
     error = err instanceof ApiError && err.status === 404 ? 'Rezervacija nije pronađena.' : 'Rezervacija trenutno nije dostupna.';
   }
 
-  const [registrations, contracts] = await Promise.all([
+  const [registrations, contracts, clientAccount] = await Promise.all([
     booking && canViewRegistrations
       ? apiFetch<TravelGuaranteeRegistration[]>(`/compliance/travel-guarantee-registrations?bookingId=${booking.id}`).catch(() => [])
       : Promise.resolve([]),
     booking && canViewContracts ? apiFetch<ClientContract[]>(`/client-contracts?bookingId=${booking.id}`).catch(() => []) : Promise.resolve([]),
+    booking?.clientAccountId && canViewClientAccount
+      ? apiFetch<ClientAccountSummary>(`/crm/client-accounts/${booking.clientAccountId}`).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   return (
@@ -103,8 +115,23 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
             ))}
           </div>
 
-          {(canPrepareFiscal || canViewRegistrations || canViewContracts) && (
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {(canPrepareFiscal || canViewRegistrations || canViewContracts || canViewClientAccount) && (
+            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {canViewClientAccount && (
+                <CompositionCard icon="organization" title="M6 — nalogodavac">
+                  {clientAccount ? (
+                    <div className="text-xs text-ink-dim">
+                      <p>{clientAccount.accountType === 'LEGAL_ENTITY' ? clientAccount.companyName : clientAccount.fullName}</p>
+                      <Link href={`/crm/${clientAccount.id}`} className="mt-2 inline-block text-accent hover:underline">
+                        otvori profil →
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-ink-faint">Nalogodavac nije povezan ili nije dostupan.</p>
+                  )}
+                </CompositionCard>
+              )}
+
               {canPrepareFiscal && (
                 <CompositionCard icon="credit-card" title="M10 — fiskalni dokument">
                   <p className="mb-2 text-xs text-ink-faint">Nacrt se priprema automatski pri potvrdi rezervacije; kliknite da ga prikažete i, po potrebi, pošaljete.</p>

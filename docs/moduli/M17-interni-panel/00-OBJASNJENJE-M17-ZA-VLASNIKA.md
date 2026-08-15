@@ -42,6 +42,15 @@ Sledeći sloj ekrana: ono što je bilo "gotovo iza kulisa" u M10 (Finansije), M1
 
 **Jedna stvar koju smo usput otkrili i popravili (M11):** ekran koji prikazuje "koliko je garancije potrošeno" je do sada vraćao grešku umesto podataka, u svakom trenutku kad je u bazi postojala makar jedna rezervacija u stranoj valuti za koju nije bio unet kurs dinara. Jedna takva rezervacija je rušila *ceo* prikaz za sve, ne samo za tu jednu stavku — kao da bi jedan pogrešno upisan red u tabeli obarao ceo izveštaj. Ispravili smo da sistem tu jednu rezervaciju sad samo preskoči (uz zabeležen trag u dnevniku), a ostatak prikaže normalno. Usput smo primetili da isti tip greške postoji i na mestu koje **blokira** potvrdu rezervacije (ne samo prikaz) — to namerno nismo sami ispravili, jer bi pogrešan izbor tu mogao da propusti rezervaciju kroz zakonsku proveru bez stvarne provere; to čeka Vašu odluku (zapisano u specifikaciji M11, poglavlje "Otvoreno za dalje").
 
+## Faza 3 — Gosti i nalogodavci, CRM (avgust 2026)
+
+Do sada je svaki gost/nalogodavac postojao samo kao ime uz rezervaciju — nije bilo mesta gde tim vidi *ko je ta osoba* kroz vreme: da li je već putovala sa nama, kakva je istorija komunikacije, da li ima poseban status lojalnosti. Novi ekran "CRM" (skraćenica za upravljanje odnosima sa klijentima) to menja.
+
+- **Nalogodavci** (ko plaća — može biti osoba ili firma) — lista sa pretragom po email-u ili PIB-u, detalj sa kontakt podacima, statusom lojalnosti (i mogućnošću da se ručno koriguje, npr. za dugogodišnjeg klijenta), svim njihovim putovanjima na jednom mestu, i istorijom poruka razmenjenih sa agencijom.
+- **Gosti** (ko stvarno putuje — nekad ista osoba kao nalogodavac, nekad ne, npr. roditelj plaća za celu porodicu) — lista i detalj sa podacima o dokumentu, državljanstvu, datumu rođenja.
+- **Ankete posle putovanja** — pregled onoga što gosti odgovore nakon povratka.
+- Na stranici svake rezervacije sad postoji i direktan link ka nalogodavcu — isti princip kao veze ka fakturi/garanciji/ugovoru iz Faze 2, sve na jednom mestu umesto skakanja između ekrana.
+
 ## Šta još nije gotovo (namerno)
 
 - **Ostatak modula** (CRM, B2B partneri, izveštaji, podrška, marketing) — dolaze u narednim koracima, jedan po jedan, istim tempom kao što su i sami ti moduli rađeni.

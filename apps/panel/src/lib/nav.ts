@@ -114,7 +114,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/crm',
     permission: { module: 'M6', resource: 'client-account', action: 'VIEW' },
     phase: 3,
-    implemented: false,
+    implemented: true,
   },
   {
     id: 'b2b',
