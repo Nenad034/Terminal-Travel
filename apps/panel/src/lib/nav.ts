@@ -8,7 +8,7 @@ export interface NavItem {
   /** null = uvek vidljivo kad je implementirano (npr. dashboard); inače M1 model prava (§3). */
   permission: { module: string; resource: string; action: string } | null;
   /** M17 spec §4 tabela — faza kad sekcija dolazi na red. */
-  phase: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  phase: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
   /** Ovaj prolaz implementira samo Fazu 0/1 — ostalo je "zaključano" u bočnoj traci (§7). */
   implemented: boolean;
 }
@@ -151,6 +151,51 @@ export const NAV_ITEMS: NavItem[] = [
     permission: { module: 'M12', resource: 'content', action: 'VIEW' },
     phase: 6,
     implemented: true,
+  },
+  {
+    id: 'nadzor',
+    label: 'Operativni nadzor',
+    icon: 'pulse',
+    href: '/nadzor',
+    permission: { module: 'M18', resource: 'health-signal', action: 'VIEW' },
+    phase: 7,
+    implemented: true,
+  },
+  {
+    id: 'chat',
+    label: 'Razgovori (tim/dobavljači)',
+    icon: 'comment',
+    href: '/chat',
+    permission: { module: 'M19', resource: 'conversation', action: 'VIEW' },
+    phase: 7,
+    implemented: false, // M17 Faza 7 — u izradi
+  },
+  {
+    id: 'pomoc',
+    label: 'Centar za pomoć',
+    icon: 'question',
+    href: '/pomoc',
+    permission: { module: 'M21', resource: 'article:staff', action: 'VIEW' },
+    phase: 7,
+    implemented: false, // M17 Faza 7 — u izradi
+  },
+  {
+    id: 'email',
+    label: 'Email/Inbox',
+    icon: 'mail',
+    href: '/email',
+    permission: { module: 'M22', resource: 'email-thread', action: 'VIEW' },
+    phase: 7,
+    implemented: false, // M17 Faza 7 — u izradi
+  },
+  {
+    id: 'znanje',
+    label: 'Znanje (destinacije/proizvodi)',
+    icon: 'book',
+    href: '/znanje',
+    permission: { module: 'M23', resource: 'article', action: 'VIEW' },
+    phase: 7,
+    implemented: false, // M17 Faza 7 — u izradi
   },
 ];
 
