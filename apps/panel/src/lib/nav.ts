@@ -168,7 +168,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/chat',
     permission: { module: 'M19', resource: 'conversation', action: 'VIEW' },
     phase: 7,
-    implemented: false, // M17 Faza 7 — u izradi
+    implemented: true,
   },
   {
     id: 'pomoc',
