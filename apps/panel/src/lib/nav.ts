@@ -195,7 +195,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/znanje',
     permission: { module: 'M23', resource: 'article', action: 'VIEW' },
     phase: 7,
-    implemented: false, // M17 Faza 7 — u izradi
+    implemented: true,
   },
 ];
 
