@@ -2,9 +2,9 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M23), poglavlje 7 (model upravljanja AI agentima) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21/M22)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.1 — dodato poglavlje 4d: istraživanje za proizvode direktno predlaže dopunu M2 kataloga kroz postojeći `ProductContentImport` mehanizam, na zahtev vlasnika (avgust 2026); v1.0 prvobitna specifikacija, na direktan zahtev vlasnika (avgust 2026)
-**Zavisi od:** M1 (identitet, RBAC, audit log), M2 (proizvod kao predmet članka; poglavlje 4d, predlog dopune kataloga), M7 (kanal za subagente), M8 (javna stranica deljenog članka), M15 (AI agent okvir, glasovni modalitet), M17 (kanal za interni tim)
+**Status:** Implementirano (backend) — prvi prolaz avgust 2026, isti obim kao M18/M19/M21/M22 (backend gotov, M17 ekran za interni tim i M7 portal prikaz za subagente ostaju poseban naredni korak, van obima ovog prolaza)
+**Verzija:** 1.2 — implementacija backend-a (avgust 2026): istraživanje u v1 radi ISKLJUČIVO nad tekstom koji zaposleni ručno dostavi (nema žive web pretrage/scraping-a), potvrđeno sa vlasnikom (poglavlje 10); ispravljena greška iz v1.1 — glasovni STT/TTS omotač za `/omnisearch` NE postoji u repou (bio pogrešno pretpostavljen kao već gotov u poglavlju 3.2/7), ostaje otvorena stavka i za M23 i za M15 §6.6 dok se ne izabere STT/TTS tehnologija; v1.1 dodato poglavlje 4d: istraživanje za proizvode direktno predlaže dopunu M2 kataloga kroz postojeći `ProductContentImport` mehanizam, na zahtev vlasnika (avgust 2026); v1.0 prvobitna specifikacija, na direktan zahtev vlasnika (avgust 2026)
+**Zavisi od:** M1 (identitet, RBAC, audit log), M2 (proizvod kao predmet članka; poglavlje 4d, predlog dopune kataloga), M7 (kanal za subagente, van obima ovog prolaza), M8 (javna stranica deljenog članka — API gotov, stranica van obima ovog prolaza), M15 (AI agent okvir; glasovni modalitet ostaje otvorena stavka), M17 (kanal za interni tim, van obima ovog prolaza)
 
 ---
 
@@ -112,19 +112,23 @@ Isti obrazac kao M21 `HelpQuestion`.
 
 Interni tim (M17) i subagenti (`SUBAGENT_ADMIN`, M7 portal) pretražuju/čitaju `Article` direktno — nema treće, javno pretražive publike u v1 (poglavlje 1.3). Za razliku od M21 (koji ima `audience` po članku jer STAFF i SUBAGENT sadržaj treba da ostane odvojen), M23 sadržaj je **isti za obe publike** — putnička činjenica o hotelu ne zavisi od toga ko pita — pa `Article` nema polje ekvivalentno `audience`.
 
-### 3.2 AI agent — tekst i glas, samo interni tim u v1
+### 3.2 AI agent — tekst (implementirano), glas (otvorena stavka)
 
-Isti dvostepeni obrazac kao M21 poglavlje 5:
-- Agent (registrovan u M15, `model_tier = LIGHT` za odgovaranje na pitanje — čisto pretraživanje već objavljenog teksta) odgovara isključivo iz `ArticleTranslation` gde `Article.status = PUBLISHED`.
-- **Glasovni modalitet** (dopuna M15 poglavlje 6.6, u istom prolazu) — isti STT/TTS omotač koji već postoji za `POST /omnisearch`, proširen da pokriva i `POST /api/v1/knowledge/ask` (poglavlje 8 ovog dokumenta). Isto ograničenje: samo M17 kanal u v1, audio se ne čuva posle transkripcije, glasom se nikad ne izvršava radnja (ovde: nikad se ne pokreće istraživanje/objava bez eksplicitne potvrde na ekranu).
+Agent (registrovan u M15 kao `KNOWLEDGE_AGENT`, `model_tier = LIGHT` za odgovaranje na pitanje — čisto pretraživanje već objavljenog teksta preko `POST /api/v1/knowledge/ask`) odgovara isključivo iz `ArticleTranslation` gde `Article.status = PUBLISHED`.
+
+**Glasovni modalitet — ISPRAVKA (avgust 2026, implementacija).** Istraživanjem pri implementaciji utvrđeno je da STT/TTS omotač za `POST /omnisearch` (na koji je v1.0/v1.1 ovog poglavlja i M15 poglavlje 6.6 upućivalo kao na "već postojeći") **ne postoji nigde u repozitorijumu** — nula pogodaka. Ovaj prolaz gradi isključivo tekstualni `POST /ask`; glasovni deo (za omnisearch i za M23 podjednako) ostaje otvorena stavka koja čeka izbor STT/TTS tehnologije (potvrđeno sa vlasnikom, poglavlje 10) — vidi i ispravljeno M15 poglavlje 6.6.
 
 ### 3.3 Kad agent ne zna — predlog istraživanja, ne tiketing
 
-Za razliku od M21 (eskalira ka M14 tiketu), ovde nedostatak odgovora znači da **sam sadržaj** nedostaje, ne da je nešto pokvareno. Ako `confidence = NONE`, agent nudi: *"Nemam pouzdan odgovor iz objavljenih članaka — da pokrenem istraživanje iz odobrenih izvora?"* Potvrda korisnika kreira `ArticleRevision` (`trigger = QUESTION_GAP`, `status = PENDING_REVIEW` posle koraka 4a–4b) — isti nivo autonomije kao M21 eskalacija (`AUTONOMOUS`, jer korisnik potvrđuje sopstveni zahtev, ne tuđu akciju), ali cilj je novi/dopunjen `Article`, ne `Ticket`.
+Za razliku od M21 (eskalira ka M14 tiketu), ovde nedostatak odgovora znači da **sam sadržaj** nedostaje, ne da je nešto pokvareno. Ako `confidence = NONE`, agent nudi: *"Nemam pouzdan odgovor iz objavljenih članaka — da pokrenem istraživanje iz odobrenih izvora?"* Potvrda korisnika (`POST /questions/:id/request-research`) je nivo autonomije `AUTONOMOUS` (korisnik potvrđuje sopstveni zahtev, ne tuđu akciju).
+
+**Implementacija v1 (avgust 2026).** `ArticleRevision.article_id` je obavezan FK (poglavlje 2.4) — pitanje bez ijednog pogotka po definiciji nema ciljni `Article` da se revizija na njega veže. V1 zato NE kreira `ArticleRevision` automatski ovde (što bi zahtevalo izmišljanje nepostojeće veze) — samo upisuje audit trag zahteva; uređivač ručno kreira novi `Article` (`POST /articles` sa istraživačkim poljem) na osnovu tog traga. Isto "dorađuje se" ograničenje kao M21 §5.4 grupisanje (poglavlje 10).
 
 ---
 
 ## 4. Izvori sadržaja — AI istraživanje, striktna ograda porekla (potvrđeno sa vlasnikom, avgust 2026)
+
+**Mehanizam istraživanja u v1 (implementacija, avgust 2026, potvrđeno sa vlasnikom).** Ovaj prolaz gradi ceo tok (članci/izvori/revizije/osvežavanje/M2-most/deljeni link) **bez žive web pretrage/scraping-a sadržaja**. AI istraživanje radi nad tekstom koji zaposleni ručno dostavi (npr. nalepi sadržaj kopiran sa sajta hotela) — `KnowledgeResearchService.researchFromProvidedText(article_id, source_url, source_type, raw_text)` strukturira taj tekst i predlaže ga kao `ArticleSource` (poglavlje 2.3) + nacrt `ArticleRevision` (poglavlje 2.4). Isti oprez kao M18 trend-agent — nema nove zavisnosti/ToS rizika bez potvrde. Tačan mehanizam kojim AI eventualno u budućnosti sam "poseti" izvor (scraping vs. zvaničan API) ostaje otvoreno pitanje (poglavlje 10), van obima ove verzije.
 
 ### 4a. Dozvoljeni izvori — bez izuzetka
 
@@ -136,6 +140,8 @@ Za razliku od M21 (eskalira ka M14 tiketu), ovde nedostatak odgovora znači da *
 Kad AI istraživanje (početna izrada ili osvežavanje) pronađe **više od jednog** validnog kandidata izvora za isti predmet (npr. i zvaničan sajt hotela i njegov Instagram nalog, ili dva različita državna portala), svaki kandidat se upisuje kao `ArticleSource` sa `status = CANDIDATE` — **nijedan se ne koristi za sadržaj dok čovek eksplicitno ne odobri** koji/koje (`status → APPROVED`, poglavlje 2.3). Ovo je nivo **"Predloži pa čovek odobri"** — sprovedeno na nivou koda: `ArticleRevision` ne može preći u `PENDING_REVIEW` sa referencom na `ArticleSource` koji nije `APPROVED`.
 
 ### 4c. Automatsko osvežavanje na 30 dana — nacrt, nikad tiha zamena (potvrđeno sa vlasnikom, avgust 2026)
+
+**Implementacija v1 (avgust 2026).** Pošto v1 nema živu web pretragu (poglavlje 4, iznad), koraci 1-2 ispod ostvaruju se kao **prazan "za pregled" placeholder** `ArticleRevision(trigger=SCHEDULED_REFRESH, status=PENDING_REVIEW, proposed_translations=[])` koji čeka da zaposleni ručno dostavi ažuriran tekst (preko istog `researchFromProvidedText` ulaza, pokrenut naknadno) — `KnowledgeRefreshService.runDueRefreshes()`, dnevni posao (`EVERY_DAY_AT_6AM`). Ne dupliraju se placeholderi dok postojeći čeka odluku.
 
 Periodičan posao proverava `Article.next_refresh_due_at ≤ now()` za svaki `PUBLISHED` članak. Kad dospe:
 1. AI ponovo poseti već `APPROVED` izvore (poglavlje 2.3) za taj članak; ako se pojavi nov kandidat izvor (npr. hotel pokrenuo nov zvaničan nalog), ide kroz isto odobrenje kao poglavlje 4b pre upotrebe.
@@ -177,8 +183,8 @@ Napomena: kao i M21, nema posebne uloge — koristi postojećih sedam osnovnih (
 
 ## 7. Dopuna drugih specifikacija (u istom prolazu)
 
-- **M8** (`10-SPECIFIKACIJA-M8-SAJT-B2C.md`, poglavlje 2): nova javna ruta `/znanje/:share_token` — prikazuje jedan `Article` preko M23 API-ja, van standardne M8 navigacije (nema linka ka njoj sa sajta, dostupna samo direktnim linkom, poglavlje 5 ovog dokumenta).
-- **M15** (`18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`, poglavlje 4 i 6.6): dva nova registra: `knowledge_question.answer` (`AUTONOMOUS`) i `knowledge_article.research_draft` (`AUTONOMOUS`, `model_tier` predlog `STANDARD` — sinteza više izvora je složeniji zadatak od čistog pretraživanja); glasovni omotač iz poglavlja 6.6 proširen da pokriva i `POST /api/v1/knowledge/ask`, ne samo `POST /omnisearch`.
+- **M8** (`10-SPECIFIKACIJA-M8-SAJT-B2C.md`, poglavlje 2): nova javna ruta `/znanje/:share_token` — prikazuje jedan `Article` preko M23 API-ja (`GET /public/:share_token`, gotov), van standardne M8 navigacije (nema linka ka njoj sa sajta, dostupna samo direktnim linkom, poglavlje 5 ovog dokumenta). Sama frontend stranica ostaje van obima ovog prolaza (poglavlje 10).
+- **M15** (`18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`, poglavlje 4 i 6.6): dva nova registra: `knowledge_question.answer` (`AUTONOMOUS`) i `knowledge_article.research_draft` (`AUTONOMOUS`, `model_tier` predlog `STANDARD` — sinteza više izvora je složeniji zadatak od čistog pretraživanja); dodat i `knowledge_article.publish` (`NEVER_AUTONOMOUS`, isto važi za `article-source.approve`/`article-revision.approve`). Poglavlje 6.6 **ispravljeno** (ne prošireno) — vidi ispravka niže: STT/TTS omotač za `/omnisearch` ne postoji, pa ni proširenje na `POST /api/v1/knowledge/ask` nije urađeno u ovom prolazu.
 
 ---
 
@@ -188,43 +194,51 @@ Prefiks: `/api/v1/knowledge`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/articles` | GET | lista/pretraga, dostupno internom timu i subagentima (poglavlje 3.1) |
-| `/articles` | POST | pokreće AI istraživanje (`ArticleRevision`, `trigger = INITIAL_CREATION`) za novi predmet, ili ručan unos |
+| `/articles` | GET | puna lista (uređivač) ili samo `PUBLISHED` (ostali), dostupno internom timu i subagentima (poglavlje 3.1) |
+| `/articles` | POST | telo sa `research{source_url, source_type, raw_text}` pokreće AI istraživanje (`ArticleRevision`, `trigger=INITIAL_CREATION`); telo sa `translations[]` je ručan unos; oba su opciona (prazan `DRAFT` je takođe validan) |
 | `/articles/:id` | GET / PATCH | |
-| `/articles/:id/publish` | POST | zahteva `M23/article/PUBLISH` |
+| `/articles/:id/publish` | POST | zahteva `M23/article/PUBLISH`, nikad `actor_type=AI_AGENT` |
 | `/articles/:id/sources` | GET / POST | pregled kandidata / ručno predlaganje izvora |
-| `/articles/:id/sources/:sourceId/approve` | POST | zahteva `M23/article-source/APPROVE` (poglavlje 4b) |
-| `/articles/:id/revisions/:revisionId/approve` | POST | zahteva `M23/article-revision/APPROVE` (poglavlje 2.4) |
-| `/articles/:id/revisions/:revisionId/reject` | POST | |
-| `/ask` | POST | `{question}` → `{answer, matched_article_ids, confidence}` (poglavlje 3.2) |
+| `/articles/:id/sources/:sourceId/approve` | POST | zahteva `M23/article-source/APPROVE` (poglavlje 4b), nikad AI |
+| `/articles/:id/sources/:sourceId/reject` | POST | zahteva `M23/article-source/APPROVE`, nikad AI |
+| `/articles/:id/revisions` | GET | pregled revizija (nacrta) za članak |
+| `/articles/:id/revisions/:revisionId/approve` | POST | zahteva `M23/article-revision/APPROVE` (poglavlje 2.4), nikad AI |
+| `/articles/:id/revisions/:revisionId/reject` | POST | zahteva `M23/article-revision/APPROVE`, nikad AI, ne menja `Article` |
+| `/ask` | POST | `{question}` → `{answer, matchedArticleIds, confidence, offerResearch}` (poglavlje 3.2) |
 | `/questions/:id/feedback` | POST | 👍/👎 |
-| `/questions/:id/request-research` | POST | korisnikova potvrda istraživanja posle `confidence = NONE` (poglavlje 3.3) |
-| `/public/:share_token` | GET | javno, neautentifikovano — jedan objavljen članak (poglavlje 5); poziva ga M8 ruta iz poglavlja 7 |
+| `/questions/:id/request-research` | POST | korisnikova potvrda istraživanja posle `confidence = NONE` (poglavlje 3.3, v1: samo audit trag, vidi implementaciona napomena) |
+| `/questions` | GET | zahteva `M23/question-log/VIEW` (poglavlje 6) |
+| `/public/:share_token` | GET | javno, neautentifikovano — jedan objavljen članak (poglavlje 5); poziva ga M8 ruta iz poglavlja 7 (van obima ovog prolaza) |
 
 ---
 
 ## 9. Izlazni kriterijum (M23)
 
-- [ ] Interni tim i subagenti vide istu, punu listu `PUBLISHED` članaka — bez razdvajanja publike (za razliku od M21).
-- [ ] Gost/subagent van internog naloga ne može da pretraži/izlista članke — jedini pristup je direktan `share_token` link.
-- [ ] `ArticleSource.source_type` ne dozvoljava vrednost van `HOTEL_OFFICIAL_WEBSITE`/`HOTEL_SOCIAL_MEDIA`/`GOVERNMENT_OR_TOURISM_BOARD` — pokušaj upisa drugog tipa se odbija na nivou modela.
-- [ ] Kad istraživanje pronađe više od jednog kandidata izvora, `ArticleRevision` se ne može odobriti dok bar jedan referencirani `ArticleSource` nije `APPROVED` ljudskim nalogom.
-- [ ] `Article.next_refresh_due_at` se ispravno postavlja na `last_refreshed_at + 30 dana`, i ne pomera unapred dok odgovarajuća `ArticleRevision` ne bude `APPROVED`.
-- [ ] Test: dospeo rok osvežavanja generiše `ArticleRevision` (`PENDING_REVIEW`) bez ijedne izmene na živom, objavljenom sadržaju dok revizija čeka.
-- [ ] Istraživanje za `subject_type = PRODUCT` sa poklapajućim poljima ispravno kreira M2 `ProductContentImport` (`origin = M23_RESEARCH`, `status = EXTRACTED`) sa `source_article_revision_id` popunjenim na svakom polju; nijedno polje se ne upisuje u M2 `Product` bez ljudskog pregleda kroz M2 tok (M23 nema sopstvenu prečicu za odobrenje kataloga).
-- [ ] AI agent (`POST /ask`) odgovara isključivo iz `PUBLISHED` sadržaja; `confidence = NONE` nudi pokretanje istraživanja, ne tiho ćutanje.
-- [ ] `POST /articles/:id/publish` i odobrenje revizije/izvora se ne mogu izvršiti nalogom `actor_type = AI_AGENT` — provereno na nivou koda (M15 poglavlje 5).
-- [ ] Javna stranica `/znanje/:share_token` (M8) prikazuje tačno jedan članak, bez navigacije ka ostatku baze znanja ili sajta van tog članka.
-- [ ] Glasovni upit kroz M17 (dopuna M15 poglavlje 6.6) ispravno poziva `POST /ask` i pročita odgovor naglas, bez čuvanja audio zapisa.
-- [ ] Svako pitanje/odgovor i svaka `ArticleRevision`/`ArticleSource` odluka upisani su u M1 `AuditLogEntry`.
+Backend-testabilne stavke potvrđene avgust 2026 (jedinični testovi `apps/api/src/modules/m23-znanje/**/*.spec.ts` + e2e `apps/api/test/m23-exit-criteria.e2e-spec.ts`):
+
+- [x] Interni tim i subagenti vide istu, punu listu `PUBLISHED` članaka — bez razdvajanja publike (za razliku od M21).
+- [x] Gost/subagent van internog naloga ne može da pretraži/izlista članke — jedini pristup je direktan `share_token` link (`GET /public/:share_token`, bez guard-a, samo `PUBLISHED`).
+- [x] `ArticleSource.source_type` ne dozvoljava vrednost van `HOTEL_OFFICIAL_WEBSITE`/`HOTEL_SOCIAL_MEDIA`/`GOVERNMENT_OR_TOURISM_BOARD` — pokušaj upisa drugog tipa se odbija na nivou modela (Prisma enum + DTO validacija).
+- [x] Kad istraživanje pronađe više od jednog kandidata izvora, `ArticleRevision` se ne može odobriti dok bar jedan referencirani `ArticleSource` nije `APPROVED` ljudskim nalogom.
+- [x] `Article.next_refresh_due_at` se ispravno postavlja na `last_refreshed_at + 30 dana`, i ne pomera unapred dok odgovarajuća `ArticleRevision` ne bude `APPROVED`.
+- [x] Test: dospeo rok osvežavanja generiše `ArticleRevision` (`PENDING_REVIEW`) bez ijedne izmene na živom, objavljenom sadržaju dok revizija čeka.
+- [x] Istraživanje za `subject_type = PRODUCT` sa poklapajućim poljima ispravno kreira M2 `ProductContentImport` (`origin = M23_RESEARCH`, `status = EXTRACTED`) sa `source_article_revision_id` popunjenim na svakom polju; nijedno polje se ne upisuje u M2 `Product` bez ljudskog pregleda kroz M2 tok (M23 nema sopstvenu prečicu za odobrenje kataloga).
+- [x] AI agent (`POST /ask`) odgovara isključivo iz `PUBLISHED` sadržaja; `confidence = NONE` nudi pokretanje istraživanja, ne tiho ćutanje.
+- [x] `POST /articles/:id/publish` i odobrenje revizije/izvora se ne mogu izvršiti nalogom `actor_type = AI_AGENT` — provereno na nivou koda (`assertHumanActor`, `apps/api/src/modules/m23-znanje/ai-agent-guard.ts`).
+- [x] Javna stranica preko API-ja (`GET /public/:share_token`) prikazuje tačno jedan članak, bez navigacije ka ostatku baze znanja ili sajta van tog članka. Sama M8 stranica (`/znanje/:share_token`) ostaje van obima ovog prolaza (M8/M17 UI korak — vidi status na vrhu dokumenta).
+- [ ] Glasovni upit kroz M17 (dopuna M15 poglavlje 6.6) ispravno poziva `POST /ask` i pročita odgovor naglas, bez čuvanja audio zapisa. **Nečekirano namerno** — STT/TTS omotač ne postoji nigde u repozitorijumu (ispravka poglavlja 3.2, avgust 2026); čeka izbor tehnologije, potvrđeno sa vlasnikom da ostaje van obima ovog prolaza.
+- [x] Svako pitanje/odgovor i svaka `ArticleRevision`/`ArticleSource` odluka upisani su u M1 `AuditLogEntry`.
 
 ---
 
 ## 10. Otvoreno za dalje
 
-- Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka — namerno van obima v1 (poglavlje 1.3), dodaje se ako se pokaže potreba.
-- AI Q&A/glas za subagente (M7) — v1 daje subagentima samo čitanje već objavljenih članaka (poglavlje 3.1), AI agent dobija taj kanal u sledećem koraku kad se pokaže pouzdanim kod internog tima.
+- **M17 ekran (interni tim) i M7 portal prikaz (subagenti)** — poseban naredni korak; backend (ovaj dokument) je gotov i čeka.
+- **Frontend `/znanje/:share_token` stranica** (M8) — `apps/web/src/app/[locale]/znanje/[shareToken]/page.tsx` postoji kao placeholder; `GET /public/:share_token` API koji joj treba je gotov (poglavlje 8), zamena placeholdera ostaje M8/M17 UI korak.
+- **Živa web pretraga/scraping izvora** — v1 radi isključivo nad ručno dostavljenim tekstom (poglavlje 4), potvrđeno sa vlasnikom avgust 2026. Tačan mehanizam kojim AI eventualno sam "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API gde postoji, npr. Instagram Graph API) ostaje otvorena tehnička odluka; scraping društvenih mreža može zahtevati proveru uslova korišćenja platforme pre implementacije.
+- **Glasovni STT/TTS modalitet** (i za M23 `/ask` i za M15 §6.6 omnisearch) — ne postoji nigde u repozitorijumu (ispravka avgust 2026, vidi poglavlje 3.2/9); čeka izbor tehnologije, potvrđeno sa vlasnikom.
+- AI Q&A za subagente (M7) — v1 daje subagentima samo čitanje već objavljenih članaka preko M1 dozvole (poglavlje 3.1/6), AI Q&A kanal dobijaju u sledećem koraku kad se pokaže pouzdanim kod internog tima.
 - Prava integracija sa Viber/WhatsApp/Telegram/email API-jima za slanje umesto ručnog kopiranja linka (poglavlje 5) — isto obrazloženje kao M18 poglavlje 3 (odobrenje poslovnog naloga, mogući trošak po poruci); dodaje se ako se pokaže stvarna potreba.
-- Tačan prag/algoritam za prepoznavanje kad ponovljena `QUESTION_GAP` pitanja na istu temu treba grupisati u jedno istraživanje (isto pitanje kao M21 poglavlje 8, `HelpArticleSuggestion` grupisanje) — dorađuje se pri implementaciji.
+- Tačan prag/algoritam za prepoznavanje kad ponovljena `QUESTION_GAP` pitanja na istu temu treba grupisati u jedno istraživanje (isto pitanje kao M21 poglavlje 8, `HelpArticleSuggestion` grupisanje) — v1 namerno NE kreira `ArticleRevision` automatski iz `request-research` (poglavlje 3.3, implementacija), samo upisuje audit trag; grupisanje/auto-kreiranje ostaje za dorađivanje.
 - Da li `Article` za `subject_type = DESTINATION`/`COUNTRY` treba hijerarhiju (država sadrži destinacije) radi lakše navigacije, ili ravna lista sa filterom je dovoljna — dizajnersko pitanje, van obima ove verzije.
-- Tačan mehanizam kojim AI "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API gde postoji, npr. Instagram Graph API) — tehnička odluka pri implementaciji, van obima ove specifikacije; scraping društvenih mreža može zahtevati proveru uslova korišćenja platforme pre implementacije.
+- Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka — namerno van obima v1 (poglavlje 1.3), dodaje se ako se pokaže potreba.

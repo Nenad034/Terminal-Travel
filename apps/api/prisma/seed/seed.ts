@@ -303,6 +303,21 @@ const M22_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET', description: 'Konverzija niti u M14 tiket — isti krug kao REPLY' },
 ];
 
+// M23 spec §6 — 6 dozvola. article/VIEW dobija interne uloge + SUBAGENT_ADMIN (§3.1 — ista puna
+// lista za obe publike, za razliku od M21 koje ima audience segmentaciju po dozvoli).
+// EDIT/PUBLISH/article-source APPROVE/article-revision APPROVE idu Vlasniku/Direktoru/Sales
+// Manageru (spec §6 kaže "Vlasnik, Direktor, Sales Manager" za sve četiri — nikad AI agent,
+// sprovedeno i na nivou koda preko assertHumanActor). question-log/VIEW ostaje uže
+// (Vlasnik/Direktor), isti krug kao M21 question-log.
+const M23_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M23', resource: 'article', action: 'VIEW', description: 'Uvid u punu listu objavljenih članaka baze znanja (interni tim i SUBAGENT_ADMIN, bez razdvajanja publike)' },
+  { module: 'M23', resource: 'article', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka, pokretanje AI istraživanja' },
+  { module: 'M23', resource: 'article', action: 'PUBLISH', description: 'Objava članka — nikad AI agent (M23 spec §6/§9)' },
+  { module: 'M23', resource: 'article-source', action: 'APPROVE', description: 'Odobrenje/odbijanje kandidata izvora — nikad AI agent (§4b)' },
+  { module: 'M23', resource: 'article-revision', action: 'APPROVE', description: 'Odobrenje/odbijanje predložene revizije sadržaja — nikad AI agent (§2.4/§4c)' },
+  { module: 'M23', resource: 'question-log', action: 'VIEW', description: 'Uvid u istoriju pitanja AI asistentu radi kvaliteta sadržaja' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -326,6 +341,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M23_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -347,6 +363,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M23_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -440,6 +457,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M22', resource: 'email-thread', action: 'VIEW' },
     { module: 'M22', resource: 'email-thread', action: 'REPLY' },
     { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET' },
+    // M23 spec §6 — Sales Manager je u punom krugu (EDIT/PUBLISH/APPROVE), isto kao
+    // Vlasnik/Direktor, ali bez question-log/VIEW (uže na Vlasnik/Direktor).
+    { module: 'M23', resource: 'article', action: 'VIEW' },
+    { module: 'M23', resource: 'article', action: 'EDIT' },
+    { module: 'M23', resource: 'article', action: 'PUBLISH' },
+    { module: 'M23', resource: 'article-source', action: 'APPROVE' },
+    { module: 'M23', resource: 'article-revision', action: 'APPROVE' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -501,6 +525,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M22', resource: 'email-thread', action: 'VIEW' },
     { module: 'M22', resource: 'email-thread', action: 'REPLY' },
     { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET' },
+    // M23 spec §6 — Prodajni agent je interni tim, čita punu listu objavljenih članaka (§3.1 —
+    // nema audience razdvajanja), ali nema EDIT/PUBLISH/APPROVE (uže na Vlasnik/Direktor/Sales Manager).
+    { module: 'M23', resource: 'article', action: 'VIEW' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -601,6 +628,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     // M21 spec §1/§3 — SUBAGENT_ADMIN čita objavljene SUBAGENT članke (portal, M7).
     { module: 'M21', resource: 'article:subagent', action: 'VIEW' },
+    // M23 spec §3.1/§6 — SUBAGENT_ADMIN čita PUNU listu objavljenih M23 članaka, isti sadržaj
+    // kao interni tim (za razliku od M21, nema audience segmentaciju).
+    { module: 'M23', resource: 'article', action: 'VIEW' },
   ],
   // M9 spec §6 — VODIC dobija isključivo svoje tri M9 dozvole; ownership (sopstveni
   // assigned_guide_id) se sprovodi u FieldStaffService, ne ovde.
@@ -633,6 +663,7 @@ async function main() {
     ...M19_PERMISSIONS,
     ...M21_PERMISSIONS,
     ...M22_PERMISSIONS,
+    ...M23_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -667,9 +698,10 @@ async function main() {
   await seedM19SystemNotificationUser();
   await seedM21HelpCenterAgent();
   await seedM22EmailInboxAgent();
+  await seedM23KnowledgeAgent();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola.`,
   );
 }
 
@@ -902,6 +934,38 @@ async function seedM22EmailInboxAgent() {
       userId: agentUser.id,
       agentRole: 'EMAIL_INBOX_AGENT',
       moduleCode: 'M22',
+      status: 'ACTIVE',
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
+}
+
+// M23 spec §3.2/§4/§7 — KnowledgeAgent, isti obrazac kao seedM21HelpCenterAgent/
+// seedM22EmailInboxAgent. modelTier na AIAgent redu je LIGHT (agent ima DVA action-a sa
+// različitim tier-ovima — knowledge_question.answer=LIGHT čisto pretraživanje, i
+// knowledge_article.research_draft=STANDARD sinteza; AgentInvocationLogService rešava
+// per-poziv tier preko requestedTier parametra u svakom pojedinačnom record() pozivu, ne mora
+// agent-level polje da bude tačno za oba — isti obrazac kao ostali dvo-akcioni agenti).
+async function seedM23KnowledgeAgent() {
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'knowledge-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'knowledge-agent@sistem.terminal-travel.local',
+      fullName: 'KnowledgeAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'KNOWLEDGE_AGENT',
+      moduleCode: 'M23',
       status: 'ACTIVE',
       modelTier: 'LIGHT',
       modelIdentifier: 'claude-haiku-4-5-20251001',

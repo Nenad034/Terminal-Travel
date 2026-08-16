@@ -323,7 +323,7 @@ model ProductContentImport {
   status        ImportStatus @default(PENDING)
   extractedAt   DateTime?    @map("extracted_at")
   failureReason String?      @map("failure_reason")
-  createdBy     String?      @map("created_by") // M1 User ili M23 agent — plain UUID, bez FK
+  createdBy     String?      @map("created_by") // M1 User ili M23 KnowledgeAgent — plain UUID, bez FK
   createdAt     DateTime     @default(now()) @map("created_at")
 
   product Product?                    @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -356,7 +356,9 @@ model ProductContentImportField {
   reviewedBy              String?         @map("reviewed_by") // M1 User — nikad AI agent (§3.3)
   reviewedAt              DateTime?       @map("reviewed_at")
   appliedAt               DateTime?       @map("applied_at")
-  // §3.3a — FK ka M23 ArticleRevision; M23 nije implementiran, plain UUID bez relacije (isti obrazac kao Product.sourceContractId)
+  // §3.3a — FK ka M23 ArticleRevision (id, tabela article_revisions) — plain UUID bez Prisma
+  // relacije, isti obrazac kao Product.sourceContractId (poglavlje 3, princip #2, moduli
+  // pristupaju jedni drugima preko API-ja, ne preko cross-modularnog FK-a).
   sourceArticleRevisionId String?         @map("source_article_revision_id")
 
   import ProductContentImport @relation(fields: [importId], references: [id], onDelete: Cascade)
@@ -2279,6 +2281,7 @@ enum AgentRole {
   SUPPLIER_DRAFT_AGENT // M19 spec §9.5, dodato avgust 2026
   HELP_CENTER_AGENT // M21 spec §5.1, dodato avgust 2026
   EMAIL_INBOX_AGENT // M22 spec §4, dodato avgust 2026
+  KNOWLEDGE_AGENT // M23 spec §3.2/§4, dodato avgust 2026
 }
 
 enum AgentStatus {
@@ -2904,4 +2907,157 @@ model EmailMessage {
   thread EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
   @@map("email_messages")
+}
+
+// ============================================================================
+// M23 — Znanje
+// Izvor: docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md poglavlje 2.
+// Model podataka namerno prati M21 (Article/ArticleTranslation/Question ~ HelpArticle/
+// HelpArticleTranslation/HelpQuestion) — razlika je u izvoru sadržaja (poglavlje 4,
+// ArticleSource/ArticleRevision su NOVI u odnosu na M21) i u tome što M23 nema `audience`
+// polje (§3.1 — ista publika za interni tim i subagente, za razliku od M21).
+// ============================================================================
+
+enum ArticleSubjectType {
+  PRODUCT
+  DESTINATION
+  COUNTRY
+}
+
+enum ArticleStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  ARCHIVED
+}
+
+// §2.1 `Article` — jedan članak baze znanja. generatedBy reupotrebljava M21/M12
+// ContentGeneratedBy (AI/HUMAN) — identičan skup vrednosti.
+model Article {
+  id                 String             @id @default(uuid())
+  subjectType        ArticleSubjectType @map("subject_type")
+  productId          String?            @map("product_id") // weak ref -> M2 Product, samo za subject_type=PRODUCT (poglavlje 3, princip #2 — nema hard FK preko modula)
+  destinationCountry String?            @map("destination_country")
+  destinationCity    String?            @map("destination_city") // prazno za subject_type=COUNTRY
+  status             ArticleStatus      @default(DRAFT)
+  generatedBy        ContentGeneratedBy @map("generated_by")
+  approvedBy         String?            @map("approved_by") // weak ref -> M1 User; obavezno pre PUBLISHED, nikad AI (§2.1/§9)
+  shareToken         String?            @unique @map("share_token") // generiše se pri prvom prelasku u PUBLISHED (poglavlje 5)
+  lastRefreshedAt    DateTime?          @map("last_refreshed_at")
+  nextRefreshDueAt   DateTime?          @map("next_refresh_due_at") // last_refreshed_at + 30 dana, izračunato u servisu (poglavlje 4c)
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  publishedAt        DateTime?          @map("published_at")
+
+  translations ArticleTranslation[]
+  sources      ArticleSource[]
+  revisions    ArticleRevision[]
+
+  @@map("articles")
+}
+
+enum ArticleTranslationSource {
+  MANUAL
+  AI_GENERATED
+}
+
+// §2.2 `ArticleTranslation` — isti obrazac kao M21 HelpArticleTranslation (isti LanguageCode
+// enum, isti fallback traženi->en->sr).
+model ArticleTranslation {
+  id                String                   @id @default(uuid())
+  articleId         String                   @map("article_id")
+  languageCode      LanguageCode             @map("language_code")
+  title             String
+  body              String // markdown
+  translationSource ArticleTranslationSource @default(MANUAL) @map("translation_source")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, languageCode])
+  @@map("article_translations")
+}
+
+// §2.3/§4a — jedini dozvoljeni tipovi izvora, sprovedeno na nivou enuma (nema OTHER/OTA/
+// REVIEW_SITE vrednosti da se izabere).
+enum ArticleSourceType {
+  HOTEL_OFFICIAL_WEBSITE
+  HOTEL_SOCIAL_MEDIA
+  GOVERNMENT_OR_TOURISM_BOARD
+}
+
+enum ArticleSourceStatus {
+  CANDIDATE
+  APPROVED
+  REJECTED
+}
+
+// §2.3 `ArticleSource` — odobren izvor korišćen za sadržaj (poglavlje 4b — CANDIDATE dok čovek
+// eksplicitno ne odobri).
+model ArticleSource {
+  id         String               @id @default(uuid())
+  articleId  String               @map("article_id")
+  url        String
+  sourceType ArticleSourceType    @map("source_type")
+  status     ArticleSourceStatus  @default(CANDIDATE)
+  approvedBy String?              @map("approved_by") // weak ref -> M1 User, nikad AI (§4b)
+  approvedAt DateTime?            @map("approved_at")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_sources")
+}
+
+enum ArticleRevisionTrigger {
+  INITIAL_CREATION
+  SCHEDULED_REFRESH
+  QUESTION_GAP
+}
+
+enum ArticleRevisionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+// §2.4 `ArticleRevision` — predložena izmena (početna izrada ili 30-dnevno osvežavanje).
+// Odobrenje upisuje proposed_translations kao stvarne ArticleTranslation redove (zamenjuje
+// postojeće po jeziku), postavlja Article.last_refreshed_at=now() i ponovo računa
+// next_refresh_due_at. Odbijanje ne menja ništa na Article (poglavlje 2.4/4c).
+model ArticleRevision {
+  id                   String                 @id @default(uuid())
+  articleId            String                 @map("article_id")
+  trigger              ArticleRevisionTrigger
+  proposedTranslations Json                    @map("proposed_translations") // nacrt po jeziku, isti oblik kao ArticleTranslation
+  sourceIds            String[]               @map("source_ids") // FK niz -> ArticleSource, svi moraju biti APPROVED — validacija u servisu, ne DB constraint
+  status               ArticleRevisionStatus  @default(PENDING_REVIEW)
+  reviewedBy           String?                @map("reviewed_by") // weak ref -> M1 User, nikad AI
+  reviewedAt           DateTime?              @map("reviewed_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_revisions")
+}
+
+enum ArticleConfidence {
+  HIGH
+  LOW
+  NONE
+}
+
+// §2.5 `Question` — svako pitanje postavljeno AI agentu (log), isti obrazac kao M21 HelpQuestion.
+// triggeredRevisionId je weak ref (isti princip kao HelpQuestion.escalatedTicketId).
+model Question {
+  id                  String            @id @default(uuid())
+  askedBy             String            @map("asked_by") // FK -> M1 User
+  questionText        String            @map("question_text")
+  answerText          String?           @map("answer_text")
+  matchedArticleIds   String[]          @map("matched_article_ids")
+  confidence          ArticleConfidence
+  wasHelpful          Boolean?          @map("was_helpful")
+  triggeredRevisionId String?           @map("triggered_revision_id") // weak ref -> ArticleRevision (trigger=QUESTION_GAP)
+  createdAt           DateTime          @default(now()) @map("created_at")
+
+  @@map("questions")
 }

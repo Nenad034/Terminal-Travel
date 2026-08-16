@@ -209,13 +209,15 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - M17 ekran (interni panel prikaz inbox-a) — sledeći poseban korak, backend čeka na to.
 
 ## M23 — Znanje
-*(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md`)*
+*(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend implementiran avgust 2026)*
+- M17 ekran (interni tim) i M7 portal prikaz (subagenti) — poseban naredni korak, backend čeka na to.
+- Frontend `/znanje/:share_token` stranica (M8) — API gotov, sama stranica (zamena placeholdera) van obima.
+- Živa web pretraga/scraping izvora, umesto ručno dostavljenog teksta — v1 potvrđeno bez toga (može zahtevati proveru uslova korišćenja platforme).
 - Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka.
 - AI Q&A/glas za subagente (M7) — v1 daje im samo čitanje već objavljenih članaka.
 - Prava integracija sa Viber/WhatsApp/Telegram/email API-jima za deljenje, umesto ručnog kopiranja linka.
-- Tačan prag/algoritam za grupisanje ponovljenih `QUESTION_GAP` pitanja na istu temu.
+- Tačan prag/algoritam za grupisanje ponovljenih `QUESTION_GAP` pitanja na istu temu — v1 namerno ne kreira `ArticleRevision` automatski iz zahteva, samo audit trag.
 - Da li `Article` za destinaciju/zemlju treba hijerarhiju (država sadrži destinacije) ili ravna lista sa filterom je dovoljna.
-- Tačan mehanizam kojim AI "poseti" zvaničan sajt/društvenu mrežu (scraping vs. zvaničan API) — može zahtevati proveru uslova korišćenja platforme.
 
 ## Dizajn sistem UI (cross-modularno)
 *(§8, `docs/analize/29-DIZAJN-SISTEM-UI.md`)*
