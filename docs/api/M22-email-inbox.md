@@ -69,6 +69,8 @@ Lista niti, ograničena isključivo na sandučad za koja pozivalac ima bilo koji
 
 **Query parametri (opciono):** `mailboxId`, `status` (`OPEN`/`AWAITING_REPLY`/`CLOSED`), `correspondentType` (`GUEST`/`SUBAGENT`/`SUPPLIER`/`OTHER`).
 
+Odgovor uključuje `mailbox: { address, displayName }` (dodato M17 Faza 7/16.8.2026) — čisto proširenje payload-a već autorizovanog upita, bez potrebe za širom `M22/mailbox/VIEW` dozvolom: pozivalac već ima `MailboxAccess` na svako sanduče koje vidi u ovoj listi.
+
 **Odgovor `200`:**
 ```json
 [
@@ -79,14 +81,15 @@ Lista niti, ograničena isključivo na sandučad za koja pozivalac ima bilo koji
     "correspondentType": "GUEST",
     "correspondentClientAccountId": "ca-1",
     "status": "AWAITING_REPLY",
-    "lastMessageAt": "2026-08-16T02:14:00.000Z"
+    "lastMessageAt": "2026-08-16T02:14:00.000Z",
+    "mailbox": { "address": "rezervacije@terminal-travel.rs", "displayName": "Rezervacije" }
   }
 ]
 ```
 
 ### GET /email/threads/:id
 
-Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `MailboxAccess` (bilo koji nivo) na sanduče niti.
+Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `MailboxAccess` (bilo koji nivo) na sanduče niti. Odgovor uključuje isto `mailbox: { address, displayName }` polje.
 
 **Odgovor `200`:**
 ```json
@@ -96,6 +99,7 @@ Detalj niti sa svim porukama, hronološki. Zahteva `M22/email-thread/VIEW` + `Ma
   "subject": "Upit o rezervaciji TT-000123",
   "correspondentType": "GUEST",
   "status": "AWAITING_REPLY",
+  "mailbox": { "address": "rezervacije@terminal-travel.rs", "displayName": "Rezervacije" },
   "messages": [
     {
       "id": "m-1",

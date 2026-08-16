@@ -341,4 +341,55 @@ describe('M21 — izlazni kriterijum (e2e)', () => {
     const srArticle = srRes.body.find((a: any) => a.id === articleId);
     expect(srArticle.translation.languageCode).toBe('sr');
   });
+
+  // ==========================================================================
+  // Nedostatak 1 (M17 Faza 7, rešeno) — GET /help/articles?status= i GET /help/articles/:id
+  // vraćaju translations.
+  it('Nedostatak 1 — status parametar otključava DRAFT za EDIT nosioca, ignoriše se bez EDIT dozvole; findOne vraća translations', async () => {
+    const direktor = await createUser(SYSTEM_ROLES.DIREKTOR, 'STAFF');
+    const staffViewerNoEdit = await createUser(SYSTEM_ROLES.SALES_MANAGER, 'STAFF');
+
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/help/articles')
+      .set(authed(direktor.accessToken))
+      .send({ slug: `draft-nedostatak1-${testRunId}`, audience: ['STAFF'] });
+    expect(createRes.status).toBe(201);
+    const articleId = createRes.body.id;
+    createdArticleIds.push(articleId);
+    expect(createRes.body.status).toBe('DRAFT');
+
+    await request(app.getHttpServer())
+      .put(`/api/v1/help/articles/${articleId}/translations`)
+      .set(authed(direktor.accessToken))
+      .send({ languageCode: 'sr', title: 'Nacrt naslov', body: 'Nacrt telo.' });
+    await request(app.getHttpServer())
+      .put(`/api/v1/help/articles/${articleId}/translations`)
+      .set(authed(direktor.accessToken))
+      .send({ languageCode: 'en', title: 'Draft title', body: 'Draft body.' });
+
+    // Direktor ima EDIT za STAFF — status=DRAFT vraća nacrt.
+    const draftListAsEditor = await request(app.getHttpServer())
+      .get('/api/v1/help/articles')
+      .query({ status: 'DRAFT' })
+      .set(authed(direktor.accessToken));
+    expect(draftListAsEditor.status).toBe(200);
+    expect(draftListAsEditor.body.map((a: any) => a.id)).toContain(articleId);
+
+    // SalesManager nema EDIT — status parametar se tiho ignoriše, DRAFT se ne pojavljuje
+    // (podrazumevano ponašanje: samo PUBLISHED, negativan test).
+    const draftListNoEdit = await request(app.getHttpServer())
+      .get('/api/v1/help/articles')
+      .query({ status: 'DRAFT' })
+      .set(authed(staffViewerNoEdit.accessToken));
+    expect(draftListNoEdit.status).toBe(200);
+    expect(draftListNoEdit.body.map((a: any) => a.id)).not.toContain(articleId);
+
+    // findOne vraća pun niz translations pored translation (rešen fallback).
+    const detailRes = await request(app.getHttpServer())
+      .get(`/api/v1/help/articles/${articleId}`)
+      .set(authed(direktor.accessToken));
+    expect(detailRes.status).toBe(200);
+    expect(detailRes.body.translations).toHaveLength(2);
+    expect(detailRes.body.translations.map((t: any) => t.languageCode).sort()).toEqual(['en', 'sr']);
+  });
 });

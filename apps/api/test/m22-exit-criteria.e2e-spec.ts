@@ -378,4 +378,43 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
     const threadAfter = await prisma.emailThread.findUniqueOrThrow({ where: { id: thread.id } });
     expect(threadAfter.convertedToTicketId).toBe(ticketId);
   });
+
+  // ==========================================================================
+  // Nedostatak 2 (M17 Faza 7, rešeno) — GET /email/threads i GET /email/threads/:id vraćaju
+  // mailbox.address/displayName BEZ šire M22/mailbox/VIEW dozvole, samo na osnovu MailboxAccess.
+  it('Nedostatak 2 — nit nosi mailbox.address/displayName i za nosioca MailboxAccess bez mailbox/VIEW dozvole', async () => {
+    const vlasnik = await createUser(SYSTEM_ROLES.VLASNIK);
+    const staff = await createUser(SYSTEM_ROLES.SALES_MANAGER); // nema M22/mailbox/VIEW (Vlasnik/Direktor only)
+
+    const mailbox = await createMailbox(vlasnik.accessToken, {
+      address: `naziv-vidljiv-${testRunId}@tt.rs`,
+      displayName: 'Naziv Vidljiv Test',
+      mailboxType: 'SHARED',
+      providerConnectionRef: 'mock',
+    });
+    await request(app.getHttpServer())
+      .post(`/api/v1/email/mailboxes/${mailbox.id}/access`)
+      .set(authed(vlasnik.accessToken))
+      .send({ userId: staff.user.id, accessLevel: 'VIEW' });
+
+    const thread = await prisma.emailThread.create({
+      data: { mailboxId: mailbox.id, subject: `Nedostatak2 ${testRunId}`, status: 'OPEN' },
+    });
+    createdThreadIds.push(thread.id);
+
+    // Sales Manager NEMA M22/mailbox/VIEW — GET /email/mailboxes bi mu vratio 403 — ali GET
+    // /email/threads mu i dalje mora pokazati naziv sandučeta na koje ima MailboxAccess.
+    const mailboxesForbidden = await request(app.getHttpServer()).get('/api/v1/email/mailboxes').set(authed(staff.accessToken));
+    expect(mailboxesForbidden.status).toBe(403);
+
+    const listRes = await request(app.getHttpServer()).get('/api/v1/email/threads').set(authed(staff.accessToken));
+    expect(listRes.status).toBe(200);
+    const found = listRes.body.find((t: any) => t.id === thread.id);
+    expect(found).toBeDefined();
+    expect(found.mailbox).toEqual({ address: mailbox.address, displayName: mailbox.displayName });
+
+    const detailRes = await request(app.getHttpServer()).get(`/api/v1/email/threads/${thread.id}`).set(authed(staff.accessToken));
+    expect(detailRes.status).toBe(200);
+    expect(detailRes.body.mailbox).toEqual({ address: mailbox.address, displayName: mailbox.displayName });
+  });
 });

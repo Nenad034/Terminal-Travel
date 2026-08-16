@@ -61,6 +61,23 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       expect(result).toEqual([]);
       expect(prisma.emailThread.findMany).not.toHaveBeenCalled();
     });
+
+    // Nedostatak 2 (M17 Faza 7, rešeno) — payload uključuje naziv/adresu sandučeta na koje
+    // pozivalac već ima MailboxAccess, bez dodatne M22/mailbox/VIEW dozvole.
+    it('uključuje mailbox.address/displayName u upit — isti scoping, prošireni payload', async () => {
+      const { service, prisma } = makeService();
+      prisma.mailboxAccess.findMany.mockResolvedValue([{ mailboxId: 'mb-1' }]);
+      prisma.emailThread.findMany.mockResolvedValue([
+        { id: 't1', mailboxId: 'mb-1', mailbox: { address: 'rezervacije@tt.rs', displayName: 'Rezervacije' } },
+      ]);
+
+      const result = await service.findMany('user-1', {});
+
+      expect(prisma.emailThread.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ include: { mailbox: { select: { address: true, displayName: true } } } }),
+      );
+      expect(result[0].mailbox).toEqual({ address: 'rezervacije@tt.rs', displayName: 'Rezervacije' });
+    });
   });
 
   describe('findOne — pristup (§2.2)', () => {
@@ -77,6 +94,24 @@ describe('EmailThreadsService (M22 spec §2.2/§8)', () => {
       prisma.emailThread.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('nepostojeci', 'user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    // Nedostatak 2 (M17 Faza 7, rešeno)
+    it('uključuje mailbox.address/displayName u findUnique upit i vraća ih u odgovoru', async () => {
+      const { service, prisma, mailboxes } = makeService();
+      prisma.emailThread.findUnique.mockResolvedValue({
+        id: 't1',
+        mailboxId: 'mb-1',
+        mailbox: { address: 'gosti@tt.rs', displayName: 'Gosti' },
+      });
+      mailboxes.findAccess.mockResolvedValue({ accessLevel: 'VIEW' });
+
+      const result = await service.findOne('t1', 'user-1');
+
+      expect(prisma.emailThread.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ include: expect.objectContaining({ mailbox: { select: { address: true, displayName: true } } }) }),
+      );
+      expect(result.mailbox).toEqual({ address: 'gosti@tt.rs', displayName: 'Gosti' });
     });
   });
 

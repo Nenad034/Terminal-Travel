@@ -72,6 +72,39 @@ Zahteva `M23/article/EDIT`. Kreira `Article(status=DRAFT)`. Telo je grana na dva
 
 Isti obrazac kao lista iznad za `GET`. `PATCH` (zahteva `M23/article/EDIT`) menja `status` (osim ka `PUBLISHED` — to ide isključivo preko `POST .../publish`), `destinationCountry`/`destinationCity`.
 
+### POST /knowledge/articles/:id/research
+
+Istraživanje nad POSTOJEĆIM člankom (dodato M17 Faza 7/16.8.2026 — ranije `researchFromProvidedText` bio dostupan samo pri kreiranju preko `POST /knowledge/articles`). Zahteva `M23/article/EDIT`.
+
+Bez `revisionId` pravi novu `ArticleRevision(status=PENDING_REVIEW)` (isto ponašanje kao istraživanje pri kreiranju). Sa `revisionId` popunjava POSTOJEĆI `PENDING_REVIEW` red umesto da pravi nov — tipičan slučaj je prazan `SCHEDULED_REFRESH` placeholder koji `KnowledgeRefreshService` (dnevni posao) kreira kad dospe rok osvežavanja (spec poglavlje 4c); status revizije nikad izlazi iz `PENDING_REVIEW` na ovom putu. `404` ako `revisionId` ne pripada članku, `400` ako revizija više nije `PENDING_REVIEW` (npr. već `APPROVED`).
+
+**Zahtev (nova revizija):**
+```json
+{
+  "sourceUrl": "https://hotel-x.example.com",
+  "sourceType": "HOTEL_OFFICIAL_WEBSITE",
+  "rawText": "Hotel X ima besplatan Wi-Fi, bazen i parking. Doručak je uključen."
+}
+```
+
+**Zahtev (popuni postojeći SCHEDULED_REFRESH placeholder):**
+```json
+{
+  "sourceUrl": "https://hotel-x.example.com/news",
+  "sourceType": "HOTEL_OFFICIAL_WEBSITE",
+  "rawText": "Ažuriran opis — hotel je dodao novi spa centar u 2026.",
+  "revisionId": "rev-placeholder-1"
+}
+```
+
+**Odgovor `201`:**
+```json
+{
+  "source": { "id": "src-2", "articleId": "a1b2...", "status": "CANDIDATE" },
+  "revision": { "id": "rev-placeholder-1", "articleId": "a1b2...", "status": "PENDING_REVIEW", "trigger": "SCHEDULED_REFRESH" }
+}
+```
+
 ### POST /knowledge/articles/:id/publish
 
 Zahteva `M23/article/PUBLISH`. **Nikad `actor_type=AI_AGENT`** — provereno na nivou koda (`assertHumanActor`), ne samo dozvolom. Generiše `shareToken` pri PRVOM prelasku u `PUBLISHED` (ista vrednost posle toga, spec poglavlje 5). Vraća `400` ako članak nema nijedan `ArticleTranslation`.

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { LanguageCode } from '@prisma/client';
+import { HelpArticleStatus, LanguageCode } from '@prisma/client';
 import { HelpArticlesService } from './help-articles.service';
 import { CreateHelpArticleDto } from './dto/create-help-article.dto';
 import { UpdateHelpArticleDto } from './dto/update-help-article.dto';
@@ -26,11 +26,16 @@ export class HelpArticlesController {
     @Query('relatedModule') relatedModule?: string,
     @Query('isCriticalExample') isCriticalExample?: string,
     @Query('lang') lang?: LanguageCode,
+    // Opciono — vidi HelpArticlesService.findVisibleToCaller: bez EDIT dozvole za bar jedan
+    // audience segment, ovaj parametar ne menja ponašanje (i dalje samo PUBLISHED, sopstvena
+    // publika), potpuno bezbedno za AI asistenta koji ga nikad ne šalje.
+    @Query('status') status?: HelpArticleStatus,
   ) {
     return this.articles.findVisibleToCaller(actor.userId, {
       relatedModule,
       isCriticalExample: isCriticalExample === undefined ? undefined : isCriticalExample === 'true',
       lang,
+      status,
     });
   }
 

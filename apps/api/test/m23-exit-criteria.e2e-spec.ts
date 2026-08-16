@@ -370,4 +370,79 @@ describe('M23 — izlazni kriterijum (e2e)', () => {
       .send({});
     expect(requestResearchRes.status).toBe(201);
   });
+
+  // ==========================================================================
+  // Nedostatak 3 (M17 Faza 7, rešeno) — POST /knowledge/articles/:id/research nad POSTOJEĆIM
+  // člankom, sa i bez revisionId; popunjavanje SCHEDULED_REFRESH placeholder-a ne diže status
+  // mimo PENDING_REVIEW.
+  it('Nedostatak 3 — istraživanje nad postojećim člankom bez revisionId pravi novu reviziju', async () => {
+    const vlasnik = await createUser(SYSTEM_ROLES.VLASNIK);
+
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/knowledge/articles')
+      .set(authed(vlasnik.accessToken))
+      .send({ subjectType: 'COUNTRY', destinationCountry: `Nedostatak3-${testRunId}` });
+    const articleId = createRes.body.id;
+    createdArticleIds.push(articleId);
+
+    const researchRes = await request(app.getHttpServer())
+      .post(`/api/v1/knowledge/articles/${articleId}/research`)
+      .set(authed(vlasnik.accessToken))
+      .send({
+        sourceUrl: 'https://tourism-board.example.gov/x',
+        sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
+        rawText: `Novi istraženi tekst za postojeći članak ${testRunId}. Ima dovoljno reči da se strukturira.`,
+      });
+    expect(researchRes.status).toBe(201);
+    expect(researchRes.body.revision.status).toBe('PENDING_REVIEW');
+
+    const revisions = await prisma.articleRevision.findMany({ where: { articleId } });
+    expect(revisions).toHaveLength(1);
+  });
+
+  it('Nedostatak 3 — sa revisionId popunjava POSTOJEĆI SCHEDULED_REFRESH placeholder umesto da pravi novu reviziju, status ostaje PENDING_REVIEW', async () => {
+    const vlasnik = await createUser(SYSTEM_ROLES.VLASNIK);
+
+    const createRes = await request(app.getHttpServer())
+      .post('/api/v1/knowledge/articles')
+      .set(authed(vlasnik.accessToken))
+      .send({
+        subjectType: 'COUNTRY',
+        destinationCountry: `Nedostatak3Placeholder-${testRunId}`,
+        translations: [{ languageCode: 'sr', title: 'Pre osvežavanja', body: 'Star sadržaj.' }],
+      });
+    const articleId = createRes.body.id;
+    createdArticleIds.push(articleId);
+
+    await request(app.getHttpServer()).post(`/api/v1/knowledge/articles/${articleId}/publish`).set(authed(vlasnik.accessToken)).send({});
+    await prisma.article.update({ where: { id: articleId }, data: { nextRefreshDueAt: new Date('2000-01-01') } });
+    await refreshService.runDueRefreshes();
+
+    const placeholder = await prisma.articleRevision.findFirstOrThrow({ where: { articleId, trigger: 'SCHEDULED_REFRESH' } });
+    expect(placeholder.status).toBe('PENDING_REVIEW');
+    expect((placeholder.proposedTranslations as unknown as unknown[]).length).toBe(0);
+
+    const researchRes = await request(app.getHttpServer())
+      .post(`/api/v1/knowledge/articles/${articleId}/research`)
+      .set(authed(vlasnik.accessToken))
+      .send({
+        sourceUrl: 'https://tourism-board.example.gov/y',
+        sourceType: 'GOVERNMENT_OR_TOURISM_BOARD',
+        rawText: `Ažuriran tekst za dospelo osvežavanje ${testRunId}. Grad je i dalje popularna destinacija.`,
+        revisionId: placeholder.id,
+      });
+    expect(researchRes.status).toBe(201);
+    expect(researchRes.body.revision.id).toBe(placeholder.id);
+    expect(researchRes.body.revision.status).toBe('PENDING_REVIEW');
+
+    // I dalje TAČNO jedna SCHEDULED_REFRESH revizija — popunjena je postojeća, ne kreirana nova.
+    const revisionsAfter = await prisma.articleRevision.findMany({ where: { articleId, trigger: 'SCHEDULED_REFRESH' } });
+    expect(revisionsAfter).toHaveLength(1);
+    expect(revisionsAfter[0].id).toBe(placeholder.id);
+    expect((revisionsAfter[0].proposedTranslations as unknown as unknown[]).length).toBeGreaterThan(0);
+
+    // Objavljen sadržaj ostaje netaknut dok revizija čeka odobrenje.
+    const translation = await prisma.articleTranslation.findFirst({ where: { articleId, languageCode: 'sr' } });
+    expect(translation!.title).toBe('Pre osvežavanja');
+  });
 });

@@ -6,6 +6,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import ArticleTabs from '../ArticleTabs';
 import RevisionActions from './RevisionActions';
+import ResearchForm from './ResearchForm';
 
 interface ProposedTranslation {
   languageCode: string;
@@ -43,6 +44,7 @@ interface ArticleSummary {
 export default async function RevizijePage({ params }: { params: { id: string } }) {
   const me = await getMe();
   const canApprove = hasPermission(me, 'M23', 'article-revision', 'APPROVE');
+  const canEdit = hasPermission(me, 'M23', 'article', 'EDIT');
 
   let article: ArticleSummary;
   let revisions: ArticleRevision[] = [];
@@ -75,14 +77,11 @@ export default async function RevizijePage({ params }: { params: { id: string } 
 
       <ArticleTabs id={params.id} active="revizije" />
 
-      <div className="mb-4 rounded-lg border border-border bg-panel2 p-3 text-[11px] text-ink-faint">
-        <strong className="text-ink-dim">Napomena o istraživanju za postojeći članak:</strong> u v1 backend izlaže AI istraživanje (nalepljen tekst →
-        strukturiran nacrt) isključivo pri kreiranju novog članka (<code>POST /knowledge/articles</code> sa <code>research{'{}'}</code>). Za ovaj postojeći
-        članak nema API endpoint-a da se novo nalepljeno istraživanje pretvori u reviziju sa ovog ekrana — placeholder revizije za dospelo osvežavanje
-        (<code>SCHEDULED_REFRESH</code>) priprema isključivo dnevni posao (<code>KnowledgeRefreshService</code>) sa praznim nacrtom koji čeka ručnu dopunu
-        van ovog panela. Dokumentovano kao poznato ograničenje trenutnog API ugovora (M23 spec §10) — predlog: dodati{' '}
-        <code>POST /knowledge/articles/:id/research</code> u sledećem potvrđenom prolazu.
-      </div>
+      {canEdit && (
+        <div className="mb-4">
+          <ResearchForm articleId={params.id} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-3">
         {revisions.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema revizija.</p>}
@@ -100,9 +99,12 @@ export default async function RevizijePage({ params }: { params: { id: string } 
               </div>
 
               {r.proposedTranslations.length === 0 ? (
-                <p className="mb-2 text-xs italic text-ink-faint">
-                  Prazan placeholder — čeka da neko dostavi ažuriran tekst istraživanja (§4c, nema žive pretrage u v1).
-                </p>
+                <div className="mb-2">
+                  <p className="mb-1.5 text-xs italic text-ink-faint">
+                    Prazan placeholder — čeka da neko dostavi ažuriran tekst istraživanja (§4c, nema žive pretrage u v1).
+                  </p>
+                  {canEdit && r.status === 'PENDING_REVIEW' && <ResearchForm articleId={params.id} revisionId={r.id} />}
+                </div>
               ) : (
                 <div className="mb-2 flex flex-col gap-2">
                   {r.proposedTranslations.map((t) => (

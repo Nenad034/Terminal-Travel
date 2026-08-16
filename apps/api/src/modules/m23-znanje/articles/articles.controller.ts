@@ -9,6 +9,8 @@ import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
+import { KnowledgeResearchService } from '../knowledge-research/knowledge-research.service';
+import { ResearchArticleDto } from '../knowledge-research/dto/research-article.dto';
 
 // M23 spec §8, prefiks /api/v1/knowledge. VIEW dozvola je jedini gate za GET rute (§3.1 — ista
 // puna lista za interni tim i SUBAGENT_ADMIN, bez audience razdvajanja poput M21); EDIT dozvola
@@ -21,6 +23,7 @@ export class ArticlesController {
   constructor(
     private readonly articles: ArticlesService,
     private readonly permissions: PermissionsService,
+    private readonly research: KnowledgeResearchService,
   ) {}
 
   @Get()
@@ -53,5 +56,27 @@ export class ArticlesController {
   @RequirePermission('M23', 'article', 'PUBLISH')
   publish(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.articles.publish(id, actor.userId);
+  }
+
+  // Nedostatak 3 (M17 Faza 7) — istraživanje nad VEĆ POSTOJEĆIM člankom, dozvola ista kao ostale
+  // uredničke radnje (M23/article/EDIT). Bez `revisionId` ponaša se kao istraživanje pri kreiranju
+  // (nova ArticleRevision, trigger=QUESTION_GAP — ručna dopuna van zakazanog osvežavanja/početne
+  // izrade); sa `revisionId` popunjava POSTOJEĆI PENDING_REVIEW red (npr. prazan SCHEDULED_REFRESH
+  // placeholder koji KnowledgeRefreshService kreira svakog dana). Nikad ne menja objavljen sadržaj
+  // direktno — samo priprema/dopunjuje nacrt za odobrenje preko POST .../revisions/:revisionId/approve.
+  @Post(':id/research')
+  @RequirePermission('M23', 'article', 'EDIT')
+  researchExisting(@Param('id') id: string, @Body() dto: ResearchArticleDto, @CurrentUser() actor: { userId: string }) {
+    return this.research.researchFromProvidedText(
+      {
+        articleId: id,
+        sourceUrl: dto.sourceUrl,
+        sourceType: dto.sourceType,
+        rawText: dto.rawText,
+        trigger: 'QUESTION_GAP',
+        revisionId: dto.revisionId,
+      },
+      actor.userId,
+    );
   }
 }

@@ -30,12 +30,15 @@ interface EmailThreadDetail {
   convertedToTicketId: string | null;
   lastMessageAt: string;
   messages: EmailMessage[];
+  mailbox: { address: string; displayName: string };
 }
 
-// M17 spec §4/§7 (Faza 7), M22 spec §2.3/§2.4/§8 — detalj niti sa svim porukama. Vidljivost je
-// GET /email/threads/:id, gejtovana MailboxAccess (bilo koji nivo) na sanduče niti u servisnom
-// sloju (dvoslojna kontrola, spec §2.2/§7) — 404 ako nit ne postoji, 403 ako pozivalac nema
-// MailboxAccess za sanduče (bez obzira na ulogu, isti obrazac kao M19 SupplierConversationAccess).
+// M17 spec §4/§7 (Faza 7, rešeno M17 Faza 7 zatvaranje nedostataka), M22 spec §2.3/§2.4/§8 —
+// detalj niti sa svim porukama. Vidljivost je GET /email/threads/:id, gejtovana MailboxAccess
+// (bilo koji nivo) na sanduče niti u servisnom sloju (dvoslojna kontrola, spec §2.2/§7) — 404 ako
+// nit ne postoji, 403 ako pozivalac nema MailboxAccess za sanduče (bez obzira na ulogu, isti
+// obrazac kao M19 SupplierConversationAccess). Odgovor sada uključuje `mailbox.address`/
+// `mailbox.displayName` (isti proširen payload kao lista niti).
 export default async function EmailThreadDetailPage({ params }: { params: { threadId: string } }) {
   const me = await getMe();
   const canReply = hasPermission(me, 'M22', 'email-thread', 'REPLY');
@@ -73,7 +76,8 @@ export default async function EmailThreadDetailPage({ params }: { params: { thre
           </h1>
           <p className="mt-1 text-sm text-ink">{thread.subject}</p>
           <p className="text-xs text-ink-faint">
-            {thread.correspondentType} · poslednja poruka {new Date(thread.lastMessageAt).toLocaleString('sr-RS')}
+            {thread.mailbox.displayName || thread.mailbox.address} · {thread.correspondentType} · poslednja poruka{' '}
+            {new Date(thread.lastMessageAt).toLocaleString('sr-RS')}
           </p>
         </div>
         <StatusBadge status={thread.status} />

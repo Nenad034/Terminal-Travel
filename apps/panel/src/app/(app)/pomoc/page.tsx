@@ -21,18 +21,24 @@ interface HelpArticleRow {
 const SEGMENTS: { segment: 'staff' | 'subagent' | 'business' }[] = [{ segment: 'staff' }, { segment: 'subagent' }, { segment: 'business' }];
 const LANGUAGES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'];
 
-// M17 spec §4/§7 (Faza 7) — M21 §6 GET /help/articles: publika je UVEK izvedena uživo iz naloga
-// koji poziva (nema audience query parametra, §3) — za interni panel to znači da se ovde uvek
-// vidi isključivo STAFF publika pozivaoca, i uvek isključivo status=PUBLISHED (§6/findVisibleToCaller
-// u HelpArticlesService). Nacrti/PENDING_APPROVAL/ARCHIVED članci nisu deo ove liste — dostupni su
-// direktno preko /pomoc/[id] (npr. odmah po kreiranju, §7 detalj stranica podržava bilo koji status
-// za EDIT nosioca). Ovo je poznato ograničenje trenutnog API ugovora (spec §6 je namerno projektovan
-// oko automatske publike, ne administrativnog pregleda svih statusa) — vidi izveštaj sesije.
-export default async function PomocPage({ searchParams }: { searchParams: { relatedModule?: string; isCriticalExample?: string; lang?: string } }) {
+const STATUS_OPTIONS = ['PUBLISHED', 'DRAFT', 'PENDING_APPROVAL', 'ARCHIVED'];
+
+// M17 spec §4/§7 (Faza 7, rešeno M17 Faza 7 zatvaranje nedostataka) — M21 §6 GET /help/articles:
+// publika je UVEK izvedena uživo iz naloga koji poziva (nema audience query parametra, §3), ali
+// `status` je opcion query parametar — za nekog sa EDIT dozvolom (bar jedan audience segment) sme
+// da traži i DRAFT/PENDING_APPROVAL/ARCHIVED, ograničeno na segmente za koje ima EDIT (ne tuđe
+// DRAFT-ove); bez EDIT dozvole parametar se tiho ignoriše (HelpArticlesService.findVisibleToCaller).
+// Podrazumevani filter ostaje PUBLISHED za sve — status selektor se prikazuje samo uređivačima.
+export default async function PomocPage({
+  searchParams,
+}: {
+  searchParams: { relatedModule?: string; isCriticalExample?: string; lang?: string; status?: string };
+}) {
   const me = await getMe();
   const canCreate = SEGMENTS.some((s) => hasPermission(me, 'M21', `article:${s.segment}`, 'EDIT'));
   const showSuggestions = hasPermission(me, 'M21', 'suggestion', 'APPROVE');
   const showQuestions = hasPermission(me, 'M21', 'question-log', 'VIEW');
+  const status = searchParams?.status && STATUS_OPTIONS.includes(searchParams.status) ? searchParams.status : undefined;
 
   let articles: HelpArticleRow[] = [];
   let error: string | null = null;
@@ -41,6 +47,7 @@ export default async function PomocPage({ searchParams }: { searchParams: { rela
     if (searchParams?.relatedModule) params.set('relatedModule', searchParams.relatedModule);
     if (searchParams?.isCriticalExample) params.set('isCriticalExample', searchParams.isCriticalExample);
     if (searchParams?.lang) params.set('lang', searchParams.lang);
+    if (canCreate && status) params.set('status', status);
     const qs = params.toString() ? `?${params.toString()}` : '';
     articles = await apiFetch<HelpArticleRow[]>(`/help/articles${qs}`);
   } catch {
@@ -80,6 +87,16 @@ export default async function PomocPage({ searchParams }: { searchParams: { rela
               </option>
             ))}
           </select>
+          {canCreate && (
+            <select name="status" defaultValue={status ?? ''} className="input" title="Nacrte/na čekanju vidite samo za publiku za koju imate EDIT dozvolu (M21 §3).">
+              <option value="">objavljeno</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s.toLowerCase()}
+                </option>
+              ))}
+            </select>
+          )}
           <label className="flex items-center gap-1.5 text-ink-dim">
             <input type="checkbox" name="isCriticalExample" value="true" defaultChecked={searchParams?.isCriticalExample === 'true'} className="h-3.5 w-3.5" />
             samo kritični primeri
@@ -87,7 +104,7 @@ export default async function PomocPage({ searchParams }: { searchParams: { rela
           <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
             filtriraj
           </button>
-          {(searchParams?.relatedModule || searchParams?.lang || searchParams?.isCriticalExample) && (
+          {(searchParams?.relatedModule || searchParams?.lang || searchParams?.isCriticalExample || status) && (
             <Link href="/pomoc" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
               obriši filter
             </Link>

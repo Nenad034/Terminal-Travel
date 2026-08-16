@@ -1,3 +1,4 @@
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { KnowledgeResearchService } from './knowledge-research.service';
 
 // M23 spec §4/§4d/§9 — izlazni kriterijum: istraživanje za subject_type=PRODUCT sa poklapajućim
@@ -8,7 +9,7 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
     const prisma = {
       article: { findUnique: jest.fn() },
       articleSource: { create: jest.fn() },
-      articleRevision: { create: jest.fn() },
+      articleRevision: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
       aIAgent: { findFirst: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
@@ -96,5 +97,99 @@ describe('KnowledgeResearchService.researchFromProvidedText (M23 spec §4/§4d/�
     );
 
     expect(productContentImports.create).not.toHaveBeenCalled();
+  });
+
+  // Nedostatak 3 (M17 Faza 7, rešeno) — POST /knowledge/articles/:id/research sa i bez revisionId.
+  describe('researchFromProvidedText — revisionId (Nedostatak 3)', () => {
+    it('bez revisionId pravi novu reviziju (isto ponašanje kao pri kreiranju)', async () => {
+      const { service, prisma } = makeService();
+      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.articleSource.create.mockResolvedValue({ id: 's1' });
+      prisma.articleRevision.create.mockResolvedValue({ id: 'r-new', articleId: 'a1', status: 'PENDING_REVIEW' });
+      prisma.aIAgent.findFirst.mockResolvedValue(null);
+
+      const result = await service.researchFromProvidedText(
+        { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'GOVERNMENT_OR_TOURISM_BOARD', rawText: 'Tekst.', trigger: 'QUESTION_GAP' },
+        'human-1',
+      );
+
+      expect(prisma.articleRevision.findUnique).not.toHaveBeenCalled();
+      expect(prisma.articleRevision.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ articleId: 'a1', trigger: 'QUESTION_GAP', status: 'PENDING_REVIEW' }) }),
+      );
+      expect(prisma.articleRevision.update).not.toHaveBeenCalled();
+      expect(result.revision.id).toBe('r-new');
+    });
+
+    it('sa revisionId popunjava POSTOJEĆU PENDING_REVIEW reviziju (npr. prazan SCHEDULED_REFRESH placeholder) umesto da pravi novu', async () => {
+      const { service, prisma } = makeService();
+      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.articleRevision.findUnique.mockResolvedValue({
+        id: 'r-placeholder',
+        articleId: 'a1',
+        trigger: 'SCHEDULED_REFRESH',
+        status: 'PENDING_REVIEW',
+        sourceIds: ['approved-src-1'],
+      });
+      prisma.articleSource.create.mockResolvedValue({ id: 's-new' });
+      prisma.articleRevision.update.mockResolvedValue({
+        id: 'r-placeholder',
+        articleId: 'a1',
+        trigger: 'SCHEDULED_REFRESH',
+        status: 'PENDING_REVIEW',
+      });
+      prisma.aIAgent.findFirst.mockResolvedValue(null);
+
+      const result = await service.researchFromProvidedText(
+        {
+          articleId: 'a1',
+          sourceUrl: 'https://x.example',
+          sourceType: 'HOTEL_OFFICIAL_WEBSITE',
+          rawText: 'Ažuriran tekst.',
+          trigger: 'QUESTION_GAP', // ignorisano kad revisionId postoji
+          revisionId: 'r-placeholder',
+        },
+        'human-1',
+      );
+
+      expect(prisma.articleRevision.create).not.toHaveBeenCalled();
+      expect(prisma.articleRevision.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'r-placeholder' },
+          data: expect.objectContaining({ sourceIds: ['approved-src-1', 's-new'] }),
+        }),
+      );
+      // Status nikad eksplicitno postavljen mimo PENDING_REVIEW u update pozivu.
+      const updateCallData = prisma.articleRevision.update.mock.calls[0][0].data;
+      expect(updateCallData.status).toBeUndefined();
+      expect(result.revision.id).toBe('r-placeholder');
+      expect(result.revision.status).toBe('PENDING_REVIEW');
+    });
+
+    it('baca NotFoundException kad revisionId ne pripada članku', async () => {
+      const { service, prisma } = makeService();
+      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r-x', articleId: 'DRUGI_CLANAK', status: 'PENDING_REVIEW' });
+
+      await expect(
+        service.researchFromProvidedText(
+          { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'HOTEL_OFFICIAL_WEBSITE', rawText: 'T', trigger: 'QUESTION_GAP', revisionId: 'r-x' },
+          'human-1',
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('baca BadRequestException kad revisionId više nije PENDING_REVIEW (npr. već APPROVED)', async () => {
+      const { service, prisma } = makeService();
+      prisma.article.findUnique.mockResolvedValue({ id: 'a1', subjectType: 'DESTINATION', productId: null });
+      prisma.articleRevision.findUnique.mockResolvedValue({ id: 'r-x', articleId: 'a1', status: 'APPROVED' });
+
+      await expect(
+        service.researchFromProvidedText(
+          { articleId: 'a1', sourceUrl: 'https://x.example', sourceType: 'HOTEL_OFFICIAL_WEBSITE', rawText: 'T', trigger: 'QUESTION_GAP', revisionId: 'r-x' },
+          'human-1',
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });

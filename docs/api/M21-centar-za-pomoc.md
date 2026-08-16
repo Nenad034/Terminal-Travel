@@ -13,7 +13,14 @@
 
 Lista objavljenih (`status=PUBLISHED`) članaka vidljivih pozivaocu. Filtriranje po publici je automatsko, izvedeno iz naloga — nema `audience` query parametra. `is_critical_example` članci se vraćaju prvi (spec poglavlje 4).
 
-**Query parametri (opciono):** `relatedModule` (npr. `M5`), `isCriticalExample` (`true`/`false`), `lang` (`sr`/`en`/`hr`/`sl`/`es`/`de`/`ru`/`fr` — fallback traženi→en→sr).
+**Query parametri (opciono):** `relatedModule` (npr. `M5`), `isCriticalExample` (`true`/`false`), `lang` (`sr`/`en`/`hr`/`sl`/`es`/`de`/`ru`/`fr` — fallback traženi→en→sr), `status` (`DRAFT`/`PENDING_APPROVAL`/`PUBLISHED`/`ARCHIVED`, dodato M17 Faza 7/16.8.2026).
+
+`status` je namenjen uredniku (npr. panel `/pomoc`): kad pozivalac ima `M21/article:<segment>/EDIT` za bar jedan audience segment, vraća članke traženog statusa ograničene na segmente za koje ima `EDIT` (ne tuđe `DRAFT`-ove). Bez `EDIT` dozvole ni za jedan segment, parametar se tiho ignoriše — ponašanje ostaje identično kao bez njega (samo `PUBLISHED`, izvedena publika), bezbedno za AI asistenta koji ga nikad ne šalje.
+
+**Zahtev (uređivač traži sopstvene nacrte):**
+```
+GET /api/v1/help/articles?status=DRAFT
+```
 
 **Odgovor `200`:**
 ```json
@@ -49,6 +56,23 @@ Kreira nacrt (`status=DRAFT`, `generatedBy=HUMAN`). Zahteva `M21/article:<segmen
 ### GET /help/articles/:id
 
 Uređivač (ima `EDIT` za bar jedan audience segment članka) vidi članak u bilo kom statusu. Ostali vide samo ako je `PUBLISHED` i njihova publika se poklapa — inače `404` (ne `403`, isto načelo kao M19 razgovori: nevidljivo, ne samo zabranjeno).
+
+Odgovor uz `translation` (rešen fallback — traženi jezik→en→sr) uključuje i `translations`: pun niz svih postojećih `ArticleTranslation` redova za članak (dodato M17 Faza 7/16.8.2026 — jedan poziv umesto ranijeg poziva po jeziku).
+
+**Odgovor `200`:**
+```json
+{
+  "id": "a1b2...",
+  "slug": "kako-obraditi-otkazivanje",
+  "audience": ["STAFF"],
+  "status": "DRAFT",
+  "translation": { "languageCode": "sr", "title": "Kako obraditi otkazivanje", "body": "..." },
+  "translations": [
+    { "languageCode": "sr", "title": "Kako obraditi otkazivanje", "body": "..." },
+    { "languageCode": "en", "title": "How to handle a cancellation", "body": "..." }
+  ]
+}
+```
 
 ### PATCH /help/articles/:id
 

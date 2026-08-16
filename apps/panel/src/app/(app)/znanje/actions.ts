@@ -122,6 +122,33 @@ export async function reviewSource(
   return { error: null };
 }
 
+// Nedostatak 3 (M17 Faza 7, rešeno) — POST /knowledge/articles/:id/research. Zahteva
+// M23/article/EDIT (ista dozvola kao ostale uredničke radnje). Bez `revisionId` pravi novu
+// ArticleRevision(PENDING_REVIEW); sa `revisionId` popunjava POSTOJEĆI red (npr. prazan
+// SCHEDULED_REFRESH placeholder koji KnowledgeRefreshService kreira svakog dana, §4c).
+export async function researchArticle(
+  articleId: string,
+  revisionId: string | null,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  try {
+    await apiFetch(`/knowledge/articles/${articleId}/research`, {
+      method: 'POST',
+      body: {
+        sourceUrl: strOrUndef(formData, 'sourceUrl'),
+        sourceType: strOrUndef(formData, 'sourceType'),
+        rawText: strOrUndef(formData, 'rawText'),
+        revisionId: revisionId ?? undefined,
+      },
+    });
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Istraživanje nije uspelo.' };
+  }
+  revalidatePath(`/znanje/${articleId}/revizije`);
+  return { error: null };
+}
+
 // M23 spec §2.4/§4c/§9 — POST .../revisions/:revisionId/approve|reject. approve zahteva da su
 // SVI referencirani ArticleSource-ovi APPROVED (backend proverava, ne samo UI); nikad AI.
 export async function reviewRevision(

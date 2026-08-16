@@ -18,6 +18,10 @@ export interface FindThreadsFilter {
   correspondentType?: string;
 }
 
+// Nedostatak 2 (M17 Faza 7) — čist dodatak na EmailThread payload, samo adresa/naziv sandučeta na
+// koje pozivalac već ima MailboxAccess (nema novih polja u bazi, nema promene autorizacije).
+type EmailThreadWithMailbox = EmailThread & { mailbox: { address: string; displayName: string } };
+
 // M22 spec §2.3/§2.4/§3.1/§3.1a/§8 — vidljivost/pisanje niti se NIKAD ne izvodi iz opšte M1
 // uloge, isključivo iz MailboxAccess po sandučetu (isti dvoslojni obrazac kao M19
 // SupplierConversationAccess): @RequirePermission na kontroleru je gruba kapija ("ova vrsta
@@ -51,7 +55,13 @@ export class EmailThreadsService {
 
   // §8 GET /threads — SAMO sandučad za koje pozivalac ima MailboxAccess (bilo koji nivo), bez
   // obzira na ulogu (čak ni Vlasnik/Direktor ne vide tuđe sanduče bez eksplicitne dodele, §2.2).
-  async findMany(actorUserId: string, filter: FindThreadsFilter): Promise<EmailThread[]> {
+  //
+  // Nedostatak 2 (M17 Faza 7) — odgovor uključuje `mailbox: { address, displayName }` (čisto
+  // proširenje payload-a već autorizovanog upita — isti scoping kao pre, pozivalac već ima
+  // MailboxAccess na svako sanduče koje vidi u ovom nizu). Ranije je bilo dostupno samo preko
+  // GET /email/mailboxes koji zahteva M22/mailbox/VIEW (Vlasnik/Direktor) — obična osoba sa
+  // MailboxAccess bez tog admin prava nije mogla da vidi naziv sandučeta na koje sama gleda.
+  async findMany(actorUserId: string, filter: FindThreadsFilter): Promise<EmailThreadWithMailbox[]> {
     const accessible = await this.accessibleMailboxIds(actorUserId);
     if (accessible.length === 0) return [];
 
@@ -67,12 +77,19 @@ export class EmailThreadsService {
         status: filter.status as never,
         correspondentType: filter.correspondentType as never,
       },
+      include: { mailbox: { select: { address: true, displayName: true } } },
       orderBy: { lastMessageAt: 'desc' },
     });
   }
 
-  async findOne(id: string, actorUserId: string): Promise<EmailThread & { messages: unknown[] }> {
-    const thread = await this.prisma.emailThread.findUnique({ where: { id }, include: { messages: { orderBy: { createdAt: 'asc' } } } });
+  async findOne(id: string, actorUserId: string): Promise<EmailThreadWithMailbox & { messages: unknown[] }> {
+    const thread = await this.prisma.emailThread.findUnique({
+      where: { id },
+      include: {
+        messages: { orderBy: { createdAt: 'asc' } },
+        mailbox: { select: { address: true, displayName: true } },
+      },
+    });
     if (!thread) throw new NotFoundException(`EmailThread ${id} nije pronađen.`);
     await this.requireAccess(thread.mailboxId, actorUserId, 'VIEW');
     return thread;

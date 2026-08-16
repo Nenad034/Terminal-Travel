@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { HelpArticleTranslation, LanguageCode } from '@prisma/client';
+import { HelpArticleStatus, HelpArticleTranslation, HelpAudience, LanguageCode } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
@@ -100,10 +100,40 @@ export class HelpArticlesService {
   // §6 — GET /help/articles: filtrirano po publici IZVEDENOJ iz pozivaoca (ne po parametru).
   // Pojedinačni (INDIVIDUAL) GUEST i svaki drugi nalog bez rešive publike dobija praznu listu —
   // izlazni kriterijum §7, prva stavka.
+  //
+  // Nedostatak 1 (M17 Faza 7) — opcioni `status` parametar: kad pozivalac traži status različit
+  // od PUBLISHED (DRAFT/PENDING_APPROVAL/ARCHIVED) I ima EDIT dozvolu za bar jedan audience
+  // segment, vraća članke tog statusa ograničene na segmente za koje ima EDIT (ne tuđe DRAFT-ove).
+  // Bez EDIT dozvole ni za jedan segment, parametar se tiho ignoriše — ponašanje ostaje identično
+  // podrazumevanom (samo PUBLISHED, samo izvedena sopstvena publika), bezbedno za AI asistenta
+  // koji ovaj parametar nikad ne šalje.
   async findVisibleToCaller(
     actorId: string,
-    filters: { relatedModule?: string; isCriticalExample?: boolean; lang?: LanguageCode },
+    filters: { relatedModule?: string; isCriticalExample?: boolean; lang?: LanguageCode; status?: HelpArticleStatus },
   ) {
+    if (filters.status && filters.status !== 'PUBLISHED') {
+      const editableAudiences: HelpAudience[] = [];
+      for (const a of ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT'] as HelpAudience[]) {
+        if (await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(a)}`, 'EDIT')) {
+          editableAudiences.push(a);
+        }
+      }
+      if (editableAudiences.length > 0) {
+        const articles = await this.prisma.helpArticle.findMany({
+          where: {
+            status: filters.status,
+            audience: { hasSome: editableAudiences },
+            relatedModule: filters.relatedModule,
+            isCriticalExample: filters.isCriticalExample,
+          },
+          include: { translations: true },
+          orderBy: [{ isCriticalExample: 'desc' }, { createdAt: 'desc' }],
+        });
+        return articles.map((a) => this.withResolvedTranslation(a, filters.lang));
+      }
+      // nema EDIT ni za jedan segment — pada kroz na podrazumevano ponašanje ispod (negativan test).
+    }
+
     const audience = await resolveHelpAudience(this.prisma, actorId);
     if (!audience) return [];
     // §3 — filtriranje ide kroz M1 Permission zapise, ne samo kroz izvedenu publiku: nalog čija
@@ -138,6 +168,11 @@ export class HelpArticlesService {
   // §6 — GET /help/articles/:id. Uređivač (EDIT dozvola za bar jedan audience segment) vidi
   // članak u BILO KOM statusu (nacrt uključeno); ostali samo ako je PUBLISHED i publika pozivaoca
   // se poklapa sa audience nizom članka.
+  //
+  // Nedostatak 1 (M17 Faza 7) — odgovor sada uz postojeće `translation` (rešen fallback, ostaje
+  // radi kompatibilnosti sa AI asistentom) uključuje i `translations`: pun niz svih postojećih
+  // ArticleTranslation redova za ovaj članak, ista autorizacija kao pre (panel detalj više ne mora
+  // da upućuje poziv po jeziku da rekonstruiše listu).
   async findOne(id: string, actorId: string, lang?: LanguageCode) {
     const article = await this.prisma.helpArticle.findUnique({ where: { id }, include: { translations: true } });
     if (!article) throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
@@ -149,7 +184,7 @@ export class HelpArticlesService {
         break;
       }
     }
-    if (canSeeAsEditor) return this.withResolvedTranslation(article, lang);
+    if (canSeeAsEditor) return { ...this.withResolvedTranslation(article, lang), translations: article.translations };
 
     if (article.status !== 'PUBLISHED') throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
     const audience = await resolveHelpAudience(this.prisma, actorId);
@@ -159,7 +194,7 @@ export class HelpArticlesService {
     if (!(await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
       throw new NotFoundException(`HelpArticle ${id} nije pronađen.`);
     }
-    return this.withResolvedTranslation(article, lang);
+    return { ...this.withResolvedTranslation(article, lang), translations: article.translations };
   }
 
   // ==========================================================================

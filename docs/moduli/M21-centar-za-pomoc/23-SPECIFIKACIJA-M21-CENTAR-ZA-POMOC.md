@@ -135,9 +135,9 @@ Prefiks: `/api/v1/help`
 
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
-| `/articles` | GET | lista članaka, filtrirano po `audience` (prema pozivaocu), `related_module`, jeziku, `is_critical_example` |
+| `/articles` | GET | lista članaka, filtrirano po `audience` (prema pozivaocu), `related_module`, jeziku, `is_critical_example`. Opcioni `status` (M17 Faza 7, rešeno 16.8.2026) — kad pozivalac ima `EDIT` za bar jedan audience segment, otključava DRAFT/PENDING_APPROVAL/ARCHIVED za te segmente; bez `EDIT` dozvole se tiho ignoriše (bezbedno za AI asistenta, koji ga nikad ne šalje) |
 | `/articles` | POST | novi nacrt članka (samo uloge sa `EDIT` dozvolom za odgovarajuću publiku) |
-| `/articles/:id` | GET / PATCH | izmena; prelazak u `PUBLISHED` zahteva `PUBLISH` dozvolu i popunjen `approved_by` |
+| `/articles/:id` | GET / PATCH | GET vraća `translation` (rešen fallback) i `translations` (pun niz svih postojećih prevoda, M17 Faza 7, rešeno 16.8.2026); PATCH izmena — prelazak u `PUBLISHED` zahteva `PUBLISH` dozvolu i popunjen `approved_by` |
 | `/ask` | POST | glavno pitanje ka AI agentu — `{question, }` (publika se izvodi iz naloga koji pita — za `GUEST` nalog uključuje proveru M6 `ClientAccount.account_type`, poglavlje 2.3); vraća `{answer, matched_article_ids, confidence}` |
 | `/questions/:id/feedback` | POST | 👍/👎 — upisuje `was_helpful` |
 | `/questions/:id/escalate` | POST | korisnikova potvrda eskalacije → kreira M14 `Ticket`, upisuje `escalated_ticket_id` |

@@ -25,6 +25,7 @@ interface HelpArticleDetail {
   approvedBy: string | null;
   publishedAt: string | null;
   translation: Translation | null;
+  translations: Translation[];
 }
 
 const AUDIENCE_TO_SEGMENT: Record<string, 'staff' | 'subagent' | 'business'> = {
@@ -32,38 +33,20 @@ const AUDIENCE_TO_SEGMENT: Record<string, 'staff' | 'subagent' | 'business'> = {
   SUBAGENT: 'subagent',
   BUSINESS_CLIENT: 'business',
 };
-const LANGUAGES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'];
 
-// M17 spec §4/§7 (Faza 7) — M21 §6 GET /help/articles/:id. Uređivač (EDIT za bar jedan audience
-// segment) vidi članak u BILO KOM statusu; ostali samo ako je PUBLISHED i publika se poklapa —
-// inače 404, ne 403 (isto načelo kao M19 razgovori — nevidljivo, ne samo zabranjeno).
-//
-// NAPOMENA (implementaciona, ne menja backend): HelpArticlesService.findOne (za razliku od M12
-// ContentService.findOne) vraća JEDAN rešeni prevod (`translation`), ne punu listu svih prevoda
-// članka — isti fallback-kolaps kao GET /help/articles lista (spec §2.2). Da bi ekran mogao da
-// prikaže/uređuje SVAKI postojeći jezik posebno (isti UI princip kao M12 TranslationsPanel), ova
-// stranica poziva findOne jednom po svakom podržanom jezičkom kodu i zadržava samo one odgovore
-// gde se `translation.languageCode` tačno poklapa sa traženim (rezultat fallback-a se prepoznaje
-// po tome što vraća DRUGI jezik od traženog) — otkriva stvaran skup postojećih prevoda bez ijedne
-// izmene backend ugovora. Vidi izveštaj sesije za predlog da se ovo doda kao pravi backend
-// endpoint (GET /help/articles/:id/translations, isti obrazac kao M12) u budućem potvrđenom prolazu.
+// M17 spec §4/§7 (Faza 7, rešeno M17 Faza 7 zatvaranje nedostataka) — M21 §6 GET
+// /help/articles/:id. Uređivač (EDIT za bar jedan audience segment) vidi članak u BILO KOM
+// statusu; ostali samo ako je PUBLISHED i publika se poklapa — inače 404, ne 403 (isto načelo
+// kao M19 razgovori — nevidljivo, ne samo zabranjeno). Odgovor sada uz `translation` (rešen
+// fallback) nosi i `translations` (pun niz svih postojećih prevoda) — jedan poziv, bez ranijeg
+// zaobilaženja (poziv po jeziku da se rekonstruiše lista).
 export default async function HelpArticleDetailPage({ params }: { params: { id: string } }) {
   const me = await getMe();
 
-  const perLang = await Promise.all(
-    LANGUAGES.map((lang) =>
-      apiFetch<HelpArticleDetail>(`/help/articles/${params.id}?lang=${lang}`).catch(() => null),
-    ),
-  );
-
-  const article = perLang.find((r) => r !== null);
+  const article = await apiFetch<HelpArticleDetail>(`/help/articles/${params.id}`).catch(() => null);
   if (!article) notFound();
 
-  // Zadržava prevod za jezik `lang` SAMO ako je vraćeni `translation.languageCode` tačno taj
-  // jezik (znak da je zaista nađen, ne fallback rezultat) — vidi napomenu iznad.
-  const realTranslations: Translation[] = LANGUAGES.map((lang, i) =>
-    perLang[i]?.translation?.languageCode === lang ? perLang[i]!.translation! : null,
-  ).filter((t): t is Translation => !!t);
+  const realTranslations = article.translations;
 
   const canEdit = article.audience.some((a) => hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'EDIT'));
   const canPublish = article.audience.some((a) => hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'PUBLISH'));

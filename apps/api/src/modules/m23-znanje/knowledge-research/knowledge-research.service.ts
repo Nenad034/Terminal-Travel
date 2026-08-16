@@ -1,5 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ArticleRevisionTrigger, ArticleSourceType, ImportFieldType } from '@prisma/client';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ArticleRevision, ArticleRevisionTrigger, ArticleSourceType, ImportFieldType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
@@ -13,6 +13,10 @@ export interface ResearchFromTextParams {
   sourceType: ArticleSourceType;
   rawText: string;
   trigger: ArticleRevisionTrigger;
+  // Nedostatak 3 (M17 Faza 7) — kad je prosleđen, popunjava POSTOJEĆU PENDING_REVIEW reviziju
+  // (npr. prazan SCHEDULED_REFRESH placeholder koji KnowledgeRefreshService kreira) umesto da
+  // pravi novu. `trigger` se u tom slučaju ignoriše — revizija zadržava sopstveni trigger.
+  revisionId?: string;
 }
 
 // Heuristička ekstrakcija AMENITY reči — v1 bez žive pretrage (potvrđeno sa vlasnikom, M23 spec
@@ -53,6 +57,20 @@ export class KnowledgeResearchService {
     const article = await this.prisma.article.findUnique({ where: { id: params.articleId } });
     if (!article) throw new NotFoundException(`Article ${params.articleId} nije pronađen.`);
 
+    // Nedostatak 3 (M17 Faza 7) — ako je revisionId prosleđen, mora biti PENDING_REVIEW revizija
+    // OVOG članka (npr. SCHEDULED_REFRESH placeholder); nikad ne dozvoljava popunjavanje tuđe ili
+    // već odlučene (APPROVED/REJECTED) revizije.
+    let existingRevision: ArticleRevision | null = null;
+    if (params.revisionId) {
+      existingRevision = await this.prisma.articleRevision.findUnique({ where: { id: params.revisionId } });
+      if (!existingRevision || existingRevision.articleId !== article.id) {
+        throw new NotFoundException(`ArticleRevision ${params.revisionId} nije pronađena za članak ${article.id}.`);
+      }
+      if (existingRevision.status !== 'PENDING_REVIEW') {
+        throw new BadRequestException(`Revizija je već ${existingRevision.status} — ne može se ponovo popuniti (M23 spec §4c).`);
+      }
+    }
+
     const source = await this.prisma.articleSource.create({
       data: {
         articleId: article.id,
@@ -64,17 +82,29 @@ export class KnowledgeResearchService {
 
     const structured = await this.structureText(params.rawText);
 
-    const revision = await this.prisma.articleRevision.create({
-      data: {
-        articleId: article.id,
-        trigger: params.trigger,
-        proposedTranslations: [
-          { languageCode: 'en', title: structured.title, body: structured.body, translationSource: 'AI_GENERATED' },
-        ],
-        sourceIds: [source.id],
-        status: 'PENDING_REVIEW',
-      },
-    });
+    const proposedTranslations = [
+      { languageCode: 'en', title: structured.title, body: structured.body, translationSource: 'AI_GENERATED' },
+    ];
+
+    // Status ostaje PENDING_REVIEW u oba slučaja — popunjavanje placeholder revizije nikad ne
+    // menja status mimo PENDING_REVIEW (izlazni kriterijum, ista provera kao create put).
+    const revision = existingRevision
+      ? await this.prisma.articleRevision.update({
+          where: { id: existingRevision.id },
+          data: {
+            proposedTranslations,
+            sourceIds: Array.from(new Set([...existingRevision.sourceIds, source.id])),
+          },
+        })
+      : await this.prisma.articleRevision.create({
+          data: {
+            articleId: article.id,
+            trigger: params.trigger,
+            proposedTranslations,
+            sourceIds: [source.id],
+            status: 'PENDING_REVIEW',
+          },
+        });
 
     const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'KNOWLEDGE_AGENT' } });
     if (structured.usedAnthropic && agent) {

@@ -4,16 +4,6 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 
-interface Mailbox {
-  id: string;
-  address: string;
-  displayName: string;
-  mailboxType: 'SHARED' | 'PERSONAL';
-  ownerUserId: string | null;
-  isSupplierUnifiedInbox: boolean;
-  status: string;
-}
-
 interface EmailThread {
   id: string;
   mailboxId: string;
@@ -22,25 +12,19 @@ interface EmailThread {
   status: 'OPEN' | 'AWAITING_REPLY' | 'CLOSED';
   convertedToTicketId: string | null;
   lastMessageAt: string;
+  mailbox: { address: string; displayName: string };
 }
 
 const STATUSES = ['OPEN', 'AWAITING_REPLY', 'CLOSED'];
 const CORRESPONDENT_TYPES = ['GUEST', 'SUBAGENT', 'SUPPLIER', 'OTHER'];
 
-// M17 spec §4/§7 (Faza 7), M22 spec §8 — GET /email/threads vraća SAMO niti iz sandučadi na koje
-// pozivalac ima MailboxAccess (bilo koji nivo, §2.2) — ova stranica ne dodaje sopstveni filter
-// pristupa, samo prikazuje šta API vrati (isti princip kao M19 chat/dobavljaci/page.tsx).
-//
-// Napomena o obimu API-ja (avgust 2026, otkriveno pri izradi ovog ekrana): GET /email/threads
-// vraća samo `mailboxId` (bez adrese/naziva sandučeta), a puna lista sandučadi (GET
-// /email/mailboxes) je gejtovana užom M22/mailbox/VIEW dozvolom (Vlasnik/Direktor, spec §7) — pa
-// zaposleni koji ima REPLY/VIEW MailboxAccess na konkretno sanduče, ali nema tu širu dozvolu, ne
-// može preko API-ja da sazna naziv/adresu tog sandučeta. Ovaj ekran to premošćava best-effort:
-// GET /mailboxes se poziva samo ako pozivalac ima dozvolu (canManageMailboxes), inače se pada na
-// skraćeni ID sandučeta u filteru i redu niti. Backend se NE menja bez potvrde vlasnika (CLAUDE.md
-// tvrdo pravilo) — predlog za sledeći prolaz kroz spec: ili GET /threads uključi
-// mailbox.address/displayName preko Prisma include (bez uticaja na kontrolu pristupa, samo
-// prikaz), ili se doda uzak "moja sandučad" endpoint bez M22/mailbox/VIEW ograde.
+// M17 spec §4/§7 (Faza 7, rešeno M17 Faza 7 zatvaranje nedostataka), M22 spec §8 — GET
+// /email/threads vraća SAMO niti iz sandučadi na koje pozivalac ima MailboxAccess (bilo koji
+// nivo, §2.2) — ova stranica ne dodaje sopstveni filter pristupa, samo prikazuje šta API vrati
+// (isti princip kao M19 chat/dobavljaci/page.tsx). Odgovor sada uključuje `mailbox.address` i
+// `mailbox.displayName` (čisto proširenje payload-a već autorizovanog upita — pozivalac već ima
+// MailboxAccess na svako sanduče koje ovde vidi), pa se GET /email/mailboxes (M22/mailbox/VIEW,
+// Vlasnik/Direktor) više ne mora pozivati samo da bi se ime sandučeta prikazalo.
 export default async function EmailInboxPage({
   searchParams,
 }: {
@@ -48,16 +32,6 @@ export default async function EmailInboxPage({
 }) {
   const me = await getMe();
   const canManageMailboxes = hasPermission(me, 'M22', 'mailbox', 'VIEW');
-
-  let mailboxes: Mailbox[] = [];
-  if (canManageMailboxes) {
-    try {
-      mailboxes = await apiFetch<Mailbox[]>('/email/mailboxes');
-    } catch {
-      mailboxes = [];
-    }
-  }
-  const mailboxMap = new Map(mailboxes.map((m) => [m.id, m]));
 
   let threads: EmailThread[] = [];
   let error: string | null = null;
@@ -67,6 +41,7 @@ export default async function EmailInboxPage({
     error = 'Nemate pristup nijednoj niti (M22/email-thread/VIEW, ili nemate MailboxAccess ni za jedno sanduče — spec §2.2).';
   }
 
+  const mailboxMap = new Map(threads.map((t) => [t.mailboxId, t.mailbox]));
   function mailboxLabel(id: string): string {
     const mb = mailboxMap.get(id);
     return mb ? mb.displayName || mb.address : `sanduče ${id.slice(0, 8)}…`;
