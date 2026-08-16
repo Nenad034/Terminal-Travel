@@ -2,8 +2,8 @@
 
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M22) i poglavlje 8 (poprečan modul, ne vezan za jednu fazu — isti slučaj kao M17/M18/M19/M21)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj, uz izuzetak tačno navedenih mesta gde je potrebna IT/pravna potvrda pre implementacije (poglavlje 10)
-**Status:** Nacrt za usvajanje
-**Verzija:** 1.2 — na zahtev vlasnika (avgust 2026), rešava problem #11: `EmailThread` dobija `related_supplier_manifest_id`/`related_supplier_change_notice_id`, novo poglavlje 3.1a (poklapanje po referentnom kodu `[REF: TT-NNNNNN]` za jedinstveno sanduče dobavljača, M5 poglavlje 8.8); v1.1 — dodat eksplicitan kanal prikaza (poglavlje 1, M17) — ranija verzija je opisivala modul kao "poprečan kao M17/M18/M19/M21" u zaglavlju, ali nikad nije rekla kroz koji UI tim stvarno vidi svoj inbox, za razliku od M19/M21 koji to eksplicitno navode; nalaz iz revizije Master dokumenta (avgust 2026). v1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
+**Status:** Implementirano (backend) — `apps/api/src/modules/m22-email-inbox/`
+**Verzija:** 1.3 — prvi prolaz implementacije backend-a (avgust 2026): generički `EmailProviderAdapter` sa mock implementacijom (poglavlje 10, prva otvorena stavka rešena za ovaj prolaz — mock, bez žive konekcije), `MailboxAccess` dvoslojna kontrola pristupa, `CorrespondentMatcherService`/`ReferenceMatcherService` (deterministički, bez poziva jezičkom modelu), `EmailAiAssistantService` (sažetak/nacrt sa strukturnom ogradom u kodu, ne samo prompt-om), konverzija u M14 `Ticket`. Pristup ličnim van-agencijskim mejl nalozima (poglavlje 10, druga stavka) ostaje otvoren, čeka IT/pravnu potvrdu. v1.2 — na zahtev vlasnika (avgust 2026), rešava problem #11: `EmailThread` dobija `related_supplier_manifest_id`/`related_supplier_change_notice_id`, novo poglavlje 3.1a (poklapanje po referentnom kodu `[REF: TT-NNNNNN]` za jedinstveno sanduče dobavljača, M5 poglavlje 8.8); v1.1 — dodat eksplicitan kanal prikaza (poglavlje 1, M17) — ranija verzija je opisivala modul kao "poprečan kao M17/M18/M19/M21" u zaglavlju, ali nikad nije rekla kroz koji UI tim stvarno vidi svoj inbox, za razliku od M19/M21 koji to eksplicitno navode; nalaz iz revizije Master dokumenta (avgust 2026). v1.0 — prvobitna specifikacija, zatvara problem #7 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika)
 **Zavisi od:** M1 (identitet, RBAC, audit log), M14 (konverzija u tiket), M6 (prepoznavanje gosta/nalogodavca), M7 (prepoznavanje subagenta), M3 (prepoznavanje dobavljača), M15 (AI agent okvir za sažimanje/nacrt odgovora), M17 (kanal — vidi poglavlje 1); od avgusta 2026 i M5 (poglavlje 3.1a, `SupplierManifest`/`SupplierChangeNotice` reference)
 
 ---
@@ -166,16 +166,17 @@ Prefiks: `/api/v1/email`
 
 ## 9. Izlazni kriterijum (M22)
 
-- [ ] Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu, čak i ako ima široku ulogu (Direktor/Vlasnik izuzetak samo ako je eksplicitno tako dodeljen).
-- [ ] Vlasnik `PERSONAL` sandučeta automatski ima `REPLY` pristup sopstvenom sandučetu bez ručne dodele.
-- [ ] `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se ispravno određuju tačnim poklapanjem mejl adrese, bez fuzzy-match rizika pogrešnog poklapanja.
-- [ ] AI sažetak i nacrt odgovora se automatski generišu za svaku novu `INBOUND` poruku, bez ljudske intervencije.
-- [ ] Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom.
-- [ ] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat.
-- [ ] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno.
-- [ ] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit.
-- [ ] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog.
-- [ ] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga.
+- [x] Zaposleni bez `MailboxAccess` zapisa za dato sanduče ne može ni da vidi ni da odgovori na niti u tom sandučetu, čak i ako ima široku ulogu (Direktor/Vlasnik izuzetak samo ako je eksplicitno tako dodeljen). *(e2e `m22-exit-criteria.e2e-spec.ts`)*
+- [x] Vlasnik `PERSONAL` sandučeta automatski ima `REPLY` pristup sopstvenom sandučetu bez ručne dodele. *(unit + e2e)*
+- [x] `EmailThread.correspondent_type`/`correspondent_client_account_id`/`correspondent_supplier_id` se ispravno određuju tačnim poklapanjem mejl adrese, bez fuzzy-match rizika pogrešnog poklapanja. *(unit `correspondent-matcher.service.spec.ts` — sve četiri putanje: GuestProfile/ClientAccount+Subagent/Supplier/SupplierContact/OTHER)*
+- [x] AI sažetak i nacrt odgovora se automatski generišu za svaku novu `INBOUND` poruku, bez ljudske intervencije (kad je `ANTHROPIC_API_KEY` podešen — graceful degradation bez ključa, isti obrazac kao M21). *(unit `email-ai-assistant.service.spec.ts` + poziv na svaku `receiveInboundMessage`)*
+- [x] Nacrt koji pominje cenu/obavezu/promenu rezervacije se ne može poslati bez `sent_by` popunjenog ljudskim nalogom — sprovedeno nezavisno u kodu (keyword-heuristika), ne samo prompt-om. *(unit — nacrt ostaje `AI_DRAFT`/`sentBy=null` čak i kad model "misli" da je gotov za slanje)*
+- [x] Konverzija u `Ticket` ispravno popunjava `Ticket.source_email_thread_id`/`EmailThread.converted_to_ticket_id` recipročno, i `requester_client_account_id` na tiketu kad je poznat. *(e2e)*
+- [x] AI agent nikad ne konvertuje nit u tiket niti menja `MailboxAccess` samostalno — samo predlaže, gde je predviđeno. *(statička provera koda — `EmailAiAssistantService` nema zavisnost na `TicketConversionService`/`MailboxAccess` upis)*
+- [x] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit. *(e2e)*
+- [x] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog. *(unit `reference-matcher.service.spec.ts` + e2e)*
+- [x] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga. *(e2e — grep-provera koda kroz `src/modules/m22-email-inbox`, nula pojava `confirmSupplier`/`supplierConfirmedAt`/`supplierConfirmedBy` van komentara)*
+- [ ] M17 ekran (poglavlje 1) — namerno van obima ovog prolaza, sledeći poseban korak (isti obrazac kao M18/M19/M21 pre svog M17 prolaza).
 
 ---
 

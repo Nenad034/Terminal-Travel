@@ -286,6 +286,23 @@ const M21_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M21', resource: 'question-log', action: 'VIEW', description: 'Uvid u istoriju pitanja AI asistentu radi kvaliteta sadržaja i bezbednosnog pregleda' },
 ];
 
+// M22 spec §2.1/§2.2/§7 — mailbox/* i mailbox-access/GRANT su uže (Vlasnik/Direktor —
+// upravljanje konekcijama sandučadi i ko sme da dodeljuje pristup). email-thread/VIEW/REPLY/
+// CONVERT_TO_TICKET su katalog nivo (gruba kapija — "ova vrsta naloga uopšte sme da pokuša"),
+// dodeljene istom krugu kao M19 supplier-conversation VIEW/SEND_MESSAGE (Sales Manager/Prodajni
+// agent) jer je prepiska sa gostima/subagentima/dobavljačima deo iste svakodnevne uloge — STVARNA
+// vidljivost pojedinačne niti je i dalje isključivo preko MailboxAccess po sandučetu (§2.2), ova
+// dozvola nikad sama po sebi ne otvara nijedno sanduče.
+const M22_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
+  { module: 'M22', resource: 'mailbox', action: 'VIEW', description: 'Uvid u listu sandučadi (bez pristupa sadržaju niti bez MailboxAccess)' },
+  { module: 'M22', resource: 'mailbox', action: 'CREATE', description: 'Kreiranje novog sandučeta (SHARED/PERSONAL) i konekcije provajdera' },
+  { module: 'M22', resource: 'mailbox', action: 'EDIT', description: 'Izmena podešavanja sandučeta' },
+  { module: 'M22', resource: 'mailbox-access', action: 'GRANT', description: 'Pojedinačna dodela/oduzimanje pristupa (VIEW/REPLY) sandučetu' },
+  { module: 'M22', resource: 'email-thread', action: 'VIEW', description: 'Uvid u niti — samo za sandučad za koja postoji MailboxAccess (§2.2)' },
+  { module: 'M22', resource: 'email-thread', action: 'REPLY', description: 'Odgovaranje/slanje/povezivanje niti — samo uz REPLY MailboxAccess (§2.2)' },
+  { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET', description: 'Konverzija niti u M14 tiket — isti krug kao REPLY' },
+];
+
 // Podrazumevana dodela — Vlasnik/Direktor dobijaju sve M1+M2+M3+M4 dozvole; HR upravlja korisnicima;
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
@@ -308,6 +325,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -328,6 +346,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M18_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M19_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.HR]: [
     { module: 'M1', resource: 'user', action: 'VIEW' },
@@ -415,6 +434,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M21 spec §3 — Sales Manager je interni tim, čita objavljene STAFF članke kao svaki drugi
     // zaposleni (nema EDIT/PUBLISH — to je uže na HR/Direktor/Vlasnik krug).
     { module: 'M21', resource: 'article:staff', action: 'VIEW' },
+    // M22 spec §2.2/§7 — Sales Manager dobija katalog (grubu) dozvolu za prepisku, isti krug kao
+    // supplier-conversation iznad; stvarna vidljivost pojedinačne niti i dalje zavisi isključivo
+    // od MailboxAccess dodeljenog tom korisniku po sandučetu.
+    { module: 'M22', resource: 'email-thread', action: 'VIEW' },
+    { module: 'M22', resource: 'email-thread', action: 'REPLY' },
+    { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET' },
   ],
   [SYSTEM_ROLES.PRODAJNI_AGENT]: [
     { module: 'M2', resource: 'product', action: 'VIEW' },
@@ -471,6 +496,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M19', resource: 'supplier-conversation', action: 'SEND_MESSAGE' },
     // M21 spec §3 — Prodajni agent je interni tim, čita objavljene STAFF članke.
     { module: 'M21', resource: 'article:staff', action: 'VIEW' },
+    // M22 spec §2.2/§7 — isti krug kao supplier-conversation iznad; MailboxAccess po sandučetu
+    // ostaje jedina stvarna kapija ka sadržaju niti.
+    { module: 'M22', resource: 'email-thread', action: 'VIEW' },
+    { module: 'M22', resource: 'email-thread', action: 'REPLY' },
+    { module: 'M22', resource: 'email-thread', action: 'CONVERT_TO_TICKET' },
   ],
   // M10 spec §9 — Računovođa dobija sve VIEW/CREATE_DRAFT/RECORD/APPROVE/REVIEW dozvole, ali
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
@@ -602,6 +632,7 @@ async function main() {
     ...M18_PERMISSIONS,
     ...M19_PERMISSIONS,
     ...M21_PERMISSIONS,
+    ...M22_PERMISSIONS,
   ]) {
     await prisma.permission.upsert({
       where: { module_resource_action: { module: entry.module, resource: entry.resource, action: entry.action } },
@@ -635,9 +666,10 @@ async function main() {
   await seedM19SupplierDraftAgent();
   await seedM19SystemNotificationUser();
   await seedM21HelpCenterAgent();
+  await seedM22EmailInboxAgent();
 
   console.log(
-    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola.`,
+    `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola.`,
   );
 }
 
@@ -760,6 +792,7 @@ async function seedM15ActionRegistry() {
     { moduleCode: 'M23', actionCode: 'knowledge_article.publish', tier: 'NEVER_AUTONOMOUS', sourceNote: 'M23 poglavlje 6 — isto tako article-source.approve/article-revision.approve, nikad AI' },
     { moduleCode: null, actionCode: 'omnisearch.external_review_lookup', tier: 'AUTONOMOUS', sourceNote: 'poglavlje 6.5.6 — čisto informativno, ograničeno na whitelist ExternalReviewSource' },
     { moduleCode: 'M19', actionCode: 'supplier_draft.generate', tier: 'AUTONOMOUS', sourceNote: 'M19 poglavlje 9.5 — isključivo sažimanje/nacrt, nikad slanje (message.send ostaje ljudska radnja)' },
+    { moduleCode: 'M22', actionCode: 'email.summarize-draft', tier: 'AUTONOMOUS', sourceNote: 'M22 poglavlje 4 — sažetak/nacrt na svaku INBOUND poruku, nikad slanje (jedini put ka sent_by je ljudski klik na /messages/:messageId/send)' },
   ];
 
   for (const row of rows) {
@@ -841,6 +874,37 @@ async function seedM19SystemNotificationUser() {
       fullName: 'Terminal Travel — sistemska obaveštenja',
       accountType: 'STAFF',
       status: 'ACTIVE',
+    },
+  });
+}
+
+// M22 spec §4 — EmailInboxAgent, isti obrazac kao seedM19SupplierDraftAgent/seedM21HelpCenterAgent
+// (formalni M1 nalog + AIAgent zapis da AuditLogEntry/AgentInvocationLog imaju actor_type=
+// AI_AGENT). modelTier LIGHT je eksplicitna spec vrednost (§4 — sažimanje/nacrt jedne dolazne
+// poruke, niska složenost, strukturna ograda je već sprovedena u EmailAiAssistantService, ne u
+// tieringu). Bez ModuleAgentActivation gate-a — isti razlog kao HelpCenterAgent (§10, prvi prolaz).
+async function seedM22EmailInboxAgent() {
+  const agentUser = await prisma.user.upsert({
+    where: { email: 'email-inbox-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'email-inbox-agent@sistem.terminal-travel.local',
+      fullName: 'EmailInboxAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: agentUser.id },
+    update: {},
+    create: {
+      userId: agentUser.id,
+      agentRole: 'EMAIL_INBOX_AGENT',
+      moduleCode: 'M22',
+      status: 'ACTIVE',
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
 }

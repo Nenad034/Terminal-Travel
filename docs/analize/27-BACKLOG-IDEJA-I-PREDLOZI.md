@@ -200,12 +200,13 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li agent dobija ograničen pristup živim podacima (npr. kreditni limit subagenta) u budućoj verziji.
 
 ## M22 — Email/Inbox platforma
-*(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)*
-- Izbor konkretnog email provajdera/API-ja (Gmail, Microsoft Graph, IMAP/SMTP).
-- Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih — zahteva IT/pravnu potvrdu.
+*(§10, `docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md`)* — backend implementiran avgust 2026 (`apps/api/src/modules/m22-email-inbox/`).
+- ~~Izbor konkretnog email provajdera/API-ja~~ — rešeno za ovaj prolaz: generički `EmailProviderAdapter` sa mock implementacijom (isti obrazac kao M4), bez žive konekcije. Kad vlasnik izabere pravog provajdera (Gmail API/Microsoft Graph/IMAP-SMTP), samo nova adapter klasa.
+- Pristup ličnim (van-agencijskim) mejl nalozima zaposlenih — zahteva IT/pravnu potvrdu, i dalje otvoreno.
 - Real-time chat sa dobavljačima ostaje potpuno odvojen otvoren gap.
 - Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
 - Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
+- M17 ekran (interni panel prikaz inbox-a) — sledeći poseban korak, backend čeka na to.
 
 ## M23 — Znanje
 *(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md`)*

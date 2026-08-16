@@ -1106,7 +1106,7 @@ model SupplierManifest {
   sentBy                    String?                  @map("sent_by")
   sentToEmail               String?                  @map("sent_to_email")
   referenceCode             String?                  @unique @map("reference_code")
-  confirmationEmailThreadId String?                  @map("confirmation_email_thread_id") // buduće M22 EmailThread, bez FK (M22 ne postoji)
+  confirmationEmailThreadId String?                  @map("confirmation_email_thread_id") // weak ref -> M22 EmailThread (§3.1a), popunjeno kao predlog preko ReferenceMatcherService
   supersedesManifestId      String?                  @map("supersedes_manifest_id")
 
   supplier       Supplier               @relation(fields: [supplierId], references: [id])
@@ -1152,7 +1152,7 @@ model SupplierChangeNotice {
   sentBy                    String?                    @map("sent_by")
   supplierConfirmedAt       DateTime?                  @map("supplier_confirmed_at")
   supplierConfirmedBy       String?                    @map("supplier_confirmed_by")
-  confirmationEmailThreadId String?                    @map("confirmation_email_thread_id") // buduće M22 EmailThread
+  confirmationEmailThreadId String?                    @map("confirmation_email_thread_id") // weak ref -> M22 EmailThread (§3.1a), popunjeno kao predlog preko ReferenceMatcherService
   createdAt                 DateTime                   @default(now()) @map("created_at")
 
   bookingItem BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
@@ -1979,7 +1979,7 @@ model Ticket {
   priority                 TicketPriority      @default(NORMAL)
   status                   TicketStatus        @default(OPEN)
   channel                  TicketChannel
-  sourceEmailThreadId      String?             @map("source_email_thread_id") // weak ref → M22 EmailThread (modul ne postoji još)
+  sourceEmailThreadId      String?             @map("source_email_thread_id") // weak ref → M22 EmailThread, popunjeno preko EmailTicketConversionService
   assignedTo               String?             @map("assigned_to") // weak ref → M1 User, isti obrazac kao CommunicationLog.sent_by
   zzpResponseDeadline      DateTime?           @map("zzp_response_deadline") // §3.1 — samo REKLAMACIJA, created_at + 8 dana
   zzpEscalatedAt           DateTime?           @map("zzp_escalated_at") // §3.1 — popunjeno ako 5 dana bez STAFF odgovora
@@ -2278,6 +2278,7 @@ enum AgentRole {
   OMNISEARCH_AGENT
   SUPPLIER_DRAFT_AGENT // M19 spec §9.5, dodato avgust 2026
   HELP_CENTER_AGENT // M21 spec §5.1, dodato avgust 2026
+  EMAIL_INBOX_AGENT // M22 spec §4, dodato avgust 2026
 }
 
 enum AgentStatus {
@@ -2768,4 +2769,139 @@ model HelpArticleSuggestion {
   reviewedAt         DateTime?                   @map("reviewed_at")
 
   @@map("help_article_suggestions")
+}
+
+// ============================================================================
+// M22 — Email/Inbox platforma
+// Izvor: docs/moduli/M22-email-inbox/25-SPECIFIKACIJA-M22-EMAIL-INBOX.md poglavlje 2.
+// Prvi prolaz implementacije (avgust 2026) — generički EmailProviderAdapter (isti obrazac
+// kao M4 ProviderAdapter) sa mock implementacijom, eksplicitna pojedinačna dodela pristupa
+// po sandučetu (MailboxAccess, ne opšta uloga), AI sažetak/nacrt na svaku INBOUND poruku
+// (§4), i poklapanje po referentnom kodu za jedinstveno sanduče dobavljača (§3.1a, M5 §8.8).
+// ============================================================================
+
+enum MailboxType {
+  SHARED
+  PERSONAL
+}
+
+enum MailboxStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// §2.1 `Mailbox`. `isSupplierUnifiedInbox` — pojednostavljenje pri implementaciji (dokumentovano
+// u M22 spec §10): M5 §8.8 traži "tačno jedan Mailbox koji pokriva svaku komunikaciju ka
+// dobavljačima", sistemska konfiguracija, ne po dobavljaču/timu. Umesto posebnog konfiguracionog
+// modela za jedan red, obeleženo je direktno na Mailbox-u ovim boolean poljem — servisni sloj
+// (MailboxesService.create) garantuje najviše jedan `true` red u isto vreme (nema DB constraint
+// za "najviše jedan true" u Postgres bez parcijalnog unique indeksa, koji nije uveden u ovom
+// prolazu — dovoljno za obim v1, jasno mesto za pooštravanje ako zatreba).
+model Mailbox {
+  id                    String        @id @default(uuid())
+  address               String        @unique
+  displayName           String        @map("display_name")
+  mailboxType           MailboxType   @map("mailbox_type")
+  ownerUserId           String?       @map("owner_user_id") // FK -> M1 User, samo za PERSONAL
+  providerConnectionRef String        @map("provider_connection_ref") // isti princip kao M4 ProviderConfig.authConfigEncrypted
+  isSupplierUnifiedInbox Boolean      @default(false) @map("is_supplier_unified_inbox") // M5 §8.8
+  status                MailboxStatus @default(ACTIVE)
+  createdAt             DateTime      @default(now()) @map("created_at")
+
+  access  MailboxAccess[]
+  threads EmailThread[]
+
+  @@map("mailboxes")
+}
+
+enum MailboxAccessLevel {
+  VIEW
+  REPLY
+}
+
+// §2.2 `MailboxAccess` — pristup se NIKAD ne izvodi iz opšte M1 uloge, isti dvoslojni obrazac
+// kao M19 SupplierConversationAccess. Vlasnik PERSONAL sandučeta dobija REPLY automatski
+// (MailboxesService.create), upisano servisnim slojem, ne DB trigerom.
+model MailboxAccess {
+  id          String             @id @default(uuid())
+  mailboxId   String             @map("mailbox_id")
+  userId      String             @map("user_id") // FK -> M1 User
+  accessLevel MailboxAccessLevel @map("access_level")
+  grantedBy   String             @map("granted_by") // FK -> M1 User
+  grantedAt   DateTime           @default(now()) @map("granted_at")
+
+  mailbox Mailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, userId])
+  @@map("mailbox_access")
+}
+
+enum EmailCorrespondentType {
+  GUEST
+  SUBAGENT
+  SUPPLIER
+  OTHER
+}
+
+enum EmailThreadStatus {
+  OPEN
+  AWAITING_REPLY
+  CLOSED
+}
+
+// §2.3 `EmailThread`. correspondent_* i related_* polja su weak-ref (plain String, bez Prisma
+// @relation) — isti obrazac kao ostali cross-modularni pokazivači u repou (npr. Ticket.
+// related_booking_id, HelpQuestion.escalated_ticket_id) — M22 ne pravi hard DB constraint
+// preko granice modula (princip #2 Master dokumenta).
+model EmailThread {
+  id                             String                  @id @default(uuid())
+  mailboxId                      String                  @map("mailbox_id")
+  subject                        String
+  correspondentType              EmailCorrespondentType  @default(OTHER) @map("correspondent_type")
+  correspondentClientAccountId   String?                 @map("correspondent_client_account_id") // weak ref -> M6 ClientAccount
+  correspondentSupplierId        String?                 @map("correspondent_supplier_id") // weak ref -> M3 Supplier
+  relatedBookingId               String?                 @map("related_booking_id") // weak ref -> M5 Booking
+  relatedSupplierManifestId      String?                 @map("related_supplier_manifest_id") // weak ref -> M5 SupplierManifest (§3.1a)
+  relatedSupplierChangeNoticeId  String?                 @map("related_supplier_change_notice_id") // weak ref -> M5 SupplierChangeNotice (§3.1a)
+  status                         EmailThreadStatus       @default(OPEN)
+  convertedToTicketId            String?                 @map("converted_to_ticket_id") // weak ref -> M14 Ticket
+  lastMessageAt                  DateTime                @default(now()) @map("last_message_at")
+  createdAt                      DateTime                @default(now()) @map("created_at")
+
+  mailbox  Mailbox        @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  messages EmailMessage[]
+
+  @@map("email_threads")
+}
+
+enum EmailDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum EmailSenderType {
+  CORRESPONDENT
+  STAFF
+  AI_DRAFT
+}
+
+// §2.4 `EmailMessage`. `sentBy` popunjeno kad je STAFF/AI_DRAFT poruka stvarno poslata — isti
+// mehanizam kao M14 TicketMessage.sent_by (AI_DRAFT nikad dobija sent_by pri kreiranju).
+model EmailMessage {
+  id                String          @id @default(uuid())
+  threadId          String          @map("thread_id")
+  direction         EmailDirection
+  senderType        EmailSenderType @map("sender_type")
+  fromAddress       String          @map("from_address")
+  toAddresses       String[]        @map("to_addresses")
+  body              String
+  aiSummary         String?         @map("ai_summary")
+  sentBy            String?         @map("sent_by") // FK -> M1 User
+  providerMessageId String?         @unique @map("provider_message_id") // Message-ID header — threading/idempotentnost pri ponovnom uvozu
+  receivedAt        DateTime        @default(now()) @map("received_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  thread EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@map("email_messages")
 }

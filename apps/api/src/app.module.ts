@@ -23,6 +23,7 @@ import { M15AiOrkestracijaModule } from './modules/m15-ai-orkestracija/m15-ai-or
 import { M18OperativniNadzorModule } from './modules/m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { M19KomunikacionaPlatformaModule } from './modules/m19-komunikaciona-platforma/m19-komunikaciona-platforma.module';
 import { M21CentarZaPomocModule } from './modules/m21-centar-za-pomoc/m21-centar-za-pomoc.module';
+import { M22EmailInboxModule } from './modules/m22-email-inbox/m22-email-inbox.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { M21CentarZaPomocModule } from './modules/m21-centar-za-pomoc/m21-centar
     M18OperativniNadzorModule,
     M19KomunikacionaPlatformaModule,
     M21CentarZaPomocModule,
+    M22EmailInboxModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
