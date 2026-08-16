@@ -186,7 +186,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/email',
     permission: { module: 'M22', resource: 'email-thread', action: 'VIEW' },
     phase: 7,
-    implemented: false, // M17 Faza 7 — u izradi
+    implemented: true,
   },
   {
     id: 'znanje',

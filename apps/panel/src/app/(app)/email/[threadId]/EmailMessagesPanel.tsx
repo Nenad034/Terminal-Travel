@@ -1,0 +1,123 @@
+'use client';
+
+import { useFormState, useFormStatus } from 'react-dom';
+import Icon from '@/components/Icon';
+import { createEmailMessage, sendEmailDraft, FormState } from '../actions';
+
+const initialState: FormState = { error: null };
+
+interface EmailMessage {
+  id: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  senderType: 'CORRESPONDENT' | 'STAFF' | 'AI_DRAFT';
+  fromAddress: string;
+  body: string;
+  aiSummary: string | null;
+  sentBy: string | null;
+  receivedAt: string;
+}
+
+// M22 spec §2.4/§4/§8 — nit poruka, isti obrazac kao M14 TicketMessagesPanel. AI_DRAFT/STAFF
+// nacrt nikad nema `sentBy` pri kreiranju (§4) — jedini put je "pošalji" dugme ovde (POST
+// .../messages/:messageId/send, ljudska potvrda). `aiSummary` se prikazuje samo za INBOUND
+// poruke (§2.4 — popunjeno kad AI sažme sadržaj dolazne poruke).
+export default function EmailMessagesPanel({ threadId, messages, canReply }: { threadId: string; messages: EmailMessage[]; canReply: boolean }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel p-4">
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
+        <Icon name="mail" className="text-accent" /> Poruke
+      </div>
+
+      {messages.length === 0 ? (
+        <p className="mb-3 text-xs text-ink-faint">Nema poruka.</p>
+      ) : (
+        <div className="mb-3 flex flex-col gap-2">
+          {messages.map((m) => (
+            <div key={m.id} className="rounded border border-border bg-panel2 p-2 text-xs">
+              <div className="flex items-center justify-between text-[11px] text-ink-faint">
+                <span>
+                  {senderLabel(m.senderType)} ({m.fromAddress}) · {new Date(m.receivedAt).toLocaleString('sr-RS')}
+                </span>
+                {m.senderType === 'AI_DRAFT' && <span className="rounded bg-accent-soft px-1.5 py-0.5 text-accent">AI nacrt</span>}
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-ink-dim">{m.body}</p>
+              {m.direction === 'INBOUND' && m.aiSummary && (
+                <p className="mt-1 rounded bg-accent-soft px-1.5 py-1 text-[11px] text-accent">
+                  <Icon name="sparkle" /> AI sažetak: {m.aiSummary}
+                </p>
+              )}
+              {m.direction === 'OUTBOUND' && !m.sentBy && canReply && (
+                <div className="mt-1">
+                  <SendDraftButton threadId={threadId} messageId={m.id} />
+                </div>
+              )}
+              {m.sentBy && <p className="mt-1 text-[10px] text-ink-faint">poslao: {m.sentBy}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canReply && <NewMessageForm threadId={threadId} />}
+    </div>
+  );
+}
+
+function senderLabel(type: EmailMessage['senderType']): string {
+  if (type === 'CORRESPONDENT') return 'korespondent';
+  if (type === 'STAFF') return 'tim';
+  return 'AI nacrt';
+}
+
+function NewMessageForm({ threadId }: { threadId: string }) {
+  const boundAction = createEmailMessage.bind(null, threadId);
+  const [state, formAction] = useFormState(boundAction, initialState);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
+      {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
+      <textarea name="body" required rows={3} placeholder="odgovor korespondentu" className="input" />
+      <label className="flex items-center gap-2 text-[11px] text-ink-dim">
+        <input type="checkbox" name="send" className="h-3.5 w-3.5" />
+        pošalji odmah (bez ovoga ostaje nacrt do potvrde)
+      </label>
+      <SubmitButton />
+    </form>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+    >
+      {pending ? 'Šaljem…' : 'Dodaj poruku'}
+    </button>
+  );
+}
+
+function SendDraftButton({ threadId, messageId }: { threadId: string; messageId: string }) {
+  const boundAction = sendEmailDraft.bind(null, threadId, messageId);
+  const [state, formAction] = useFormState(boundAction, initialState);
+  return (
+    <form action={formAction} className="inline-flex items-center gap-2">
+      <SendSubmit />
+      {state.error && <span className="text-[10px] text-danger">{state.error}</span>}
+    </form>
+  );
+}
+
+function SendSubmit() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent-soft disabled:opacity-50"
+    >
+      {pending ? 'Šaljem…' : 'pošalji'}
+    </button>
+  );
+}
