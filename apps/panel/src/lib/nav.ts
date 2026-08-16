@@ -177,7 +177,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/pomoc',
     permission: { module: 'M21', resource: 'article:staff', action: 'VIEW' },
     phase: 7,
-    implemented: false, // M17 Faza 7 — u izradi
+    implemented: true,
   },
   {
     id: 'email',
