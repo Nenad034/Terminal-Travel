@@ -176,7 +176,7 @@ Prefiks: `/api/v1/email`
 - [x] Prepiska sa dobavljačem (`correspondent_type = SUPPLIER`) koristi isti model pristupa/AI sažimanja kao gost/subagent nit. *(e2e)*
 - [x] `INBOUND` poruka sa `[REF: TT-NNNNNN]` u naslovu koji odgovara postojećem `SupplierManifest`/`SupplierChangeNotice` (M5) ispravno popunjava `related_supplier_manifest_id`/`related_supplier_change_notice_id` kao predlog (poglavlje 3.1a); poruka bez prepoznate reference pada na fuzzy-match predlog. *(unit `reference-matcher.service.spec.ts` + e2e)*
 - [x] Test: M22 sam nikad ne piše u M5 `supplier_confirmed_at`/`by` — provereno da ta promena postoji samo kroz M5 endpoint sa `M5/supplier-confirmation/CONFIRM`, bez obzira na pouzdanost M22 predloga. *(e2e — grep-provera koda kroz `src/modules/m22-email-inbox`, nula pojava `confirmSupplier`/`supplierConfirmedAt`/`supplierConfirmedBy` van komentara)*
-- [ ] M17 ekran (poglavlje 1) — namerno van obima ovog prolaza, sledeći poseban korak (isti obrazac kao M18/M19/M21 pre svog M17 prolaza).
+- [x] M17 ekran (poglavlje 1) — `apps/panel/src/app/(app)/email/`, implementiran i ručno provereno uživo protiv prave baze (M17 Faza 7, avgust 2026).
 
 ---
 

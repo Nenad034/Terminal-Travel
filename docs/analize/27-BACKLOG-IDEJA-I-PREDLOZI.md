@@ -207,7 +207,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Obaveštavanje dobavljača o novoj poruci van portala (email/SMS ping).
 - Da li portal dobavljača dobija PWA instalaciju.
 - Zaštita od zloupotrebe/spama na javno dostupnom portalu za spoljne naloge.
-- Panel (M17) chat ekran i mobilni (M9) chat tab — backend/WS gotov (avgust 2026), UI je poseban naredni korak.
+- ~~Panel (M17) chat ekran~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/chat/`, uživo provereno. Mobilni (M9) chat tab ostaje poseban naredni korak (M9 još nema kod).
 - Puna WS e2e integracija u test suite-u (pravi socket.io klijent) — jedinični test sa mock socket-ima za sada.
 - ~~Evidencija AI porekla poruke (§2.3/§9.5)~~ **Rešeno (avgust 2026)** — polja, migracija, tok slanja i prikaz u panelu; potvrđeno e2e testom protiv prave baze.
 
@@ -224,7 +224,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
 - ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve četiri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
 - Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` — polazna vrednost postavljena (3+ u 30 dana, `HelpSuggestionsService`), fino podešavanje čeka stvarnu količinu pitanja u produkciji.
-- M17/M7/M8 UI ekrani za Centar za pomoć — poseban naredni korak (backend gotov, izlazni kriterijum §7 predzadnja stavka namerno nečekirana do UI prolaza).
+- ~~M17 UI ekran za Centar za pomoć~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/pomoc/`, uživo provereno. M7/M8 UI (subagenti/korporativni klijenti) ostaje poseban naredni korak.
 - ~~Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9)~~ — **rešeno avgust 2026 (vlasnikova odluka).** Nova publika `PUBLIC_GUEST` pokriva i anonimne i INDIVIDUAL B2C goste (`resolveHelpAudience` prihvata `userId=null`); omnisearch (`tryHelpCenter`) ne preskače više anonimnog pozivaoca. 4 startna DRAFT FAQ članka seedovana, čekaju objavu kroz `apps/panel/src/app/(app)/pomoc/`.
 - Da li M8/M9 UI za korporativne klijente/PUBLIC_GUEST treba poseban vizuelni prikaz Centra za pomoć ili generički help widget — ostaje otvoreno, ova dopuna pokriva samo backend (M21) i M15 omnisearch poziv.
 - Da li `HelpAudience`/`HelpAudienceContext` (dva odvojena enuma sa istim vrednostima) treba spojiti u jedan — nije potvrđeno da je razdvajanje bilo namerno, dopuna avgust 2026 svesno nije spojila enume.
@@ -237,12 +237,12 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Real-time chat sa dobavljačima ostaje potpuno odvojen otvoren gap.
 - Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
 - Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
-- M17 ekran (interni panel prikaz inbox-a) — sledeći poseban korak, backend čeka na to.
+- ~~M17 ekran (interni panel prikaz inbox-a)~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/email/`, uživo provereno.
 
 ## M23 — Znanje
 *(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend implementiran avgust 2026)*
-- M17 ekran (interni tim) i M7 portal prikaz (subagenti) — poseban naredni korak, backend čeka na to.
-- Frontend `/znanje/:share_token` stranica (M8) — API gotov, sama stranica (zamena placeholdera) van obima.
+- ~~M17 ekran (interni tim)~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/znanje/`, uživo provereno. M7 portal prikaz (subagenti) ostaje poseban naredni korak.
+- ~~Frontend `/znanje/:share_token` stranica (M8)~~ — **rešeno avgust 2026**, `apps/web/src/app/[locale]/znanje/[shareToken]/page.tsx`, uživo provereno.
 - Živa web pretraga/scraping izvora, umesto ručno dostavljenog teksta — v1 potvrđeno bez toga (može zahtevati proveru uslova korišćenja platforme).
 - Prošireno na javnu pretragu za goste (M8/M9), umesto samo deljenog linka.
 - AI Q&A/glas za subagente (M7) — v1 daje im samo čitanje već objavljenih članaka.
