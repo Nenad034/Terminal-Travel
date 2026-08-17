@@ -180,7 +180,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
-- **Obeležavanje autora radnje** (§3.1, izlazni kriterijum) — pravilo i kod urađeni avgusta 2026 (`ActorLabel`, osam ekrana); ostaje **ručna live-provera u pretraživaču** (izgled i WCAG kontrast bedža u tamnom i svetlom modu, dizajn dokument §2a).
+- ~~Obeležavanje autora radnje (§3.1)~~ **Rešeno (17.8.2026)** — `ActorLabel` na osam ekrana, live-provera dovršena u oba moda; usput ispravljen pad kontrasta AI bedža i "Invalid Date" u audit logu.
 
 ## M18 — Operativni nadzor i AI optimizacija
 *(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
@@ -245,6 +245,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li izbor tamnog/svetlog moda treba sinhronizaciju preko uređaja (backend polje) ili ostaje lokalno.
 - Tačna paleta semantičkih boja za isticanje teksta (upozorenje/greška/uspeh) — bira se sa HEX vrednostima.
 - Gornja granica broja istovremeno otvorenih tabova (§5a) i ponašanje kad se dostigne.
+- **`text-accent` na `bg-accent-soft` pada WCAG AA u svetlom modu (3.96:1)** — nalaz iz M17 live-provere (17.8.2026). `ActorLabel` i M19 upozorenje pred slanje ispravljeni na `text-accent-strong` (5.98:1); **ista slabija kombinacija ostaje na ~10 pre-postojećih mesta** u panelu (statusne oznake u `email/page.tsx`, `email/[threadId]/page.tsx`, `marketing/page.tsx`, `marketing/[id]/page.tsx`, `podrska/page.tsx`; AI sažetak u `EmailMessagesPanel.tsx`; oznake u `pomoc/page.tsx`, `pomoc/[id]/page.tsx`, `email/sanducad/page.tsx`, `NadzorSubnav.tsx`). Ispravka je mehanička (jedan token), ali dodiruje ekrane van obima tog zadatka — čeka odluku vlasnika da se uradi kao zaseban prolaz. Ispravan obrazac već postoji u `CommandPalette.tsx`/`Sidebar.tsx`.
 
 ## Infrastruktura / zavisnosti (cross-modularno)
 - Nadogradnja NestJS 10→11, Next.js 14→16 i next-intl 3→4 (sve major) pre produkcije — `npm audit` (13.8.2026, posle dodavanja M8/`apps/web`) pokazuje 30 ranjivosti (12 high/15 moderate/3 low). U pravoj putanji zahteva (ne samo dev-alati poput `@nestjs/cli`/`@angular-devkit`/`eslint-config-next`): `express`/`body-parser`/`multer`/`qs`/`@nestjs/core`/`@nestjs/swagger`/`js-yaml`/`lodash` (API), i `next`/`next-intl`/`postcss` (web — HTTP request smuggling, DoS, open redirect). Sve zakrpe zahtevaju major skok, nema patch/minor rešenja. Trenutno nizak stvaran rizik — nema produkcionog hostinga (EU provajder namerno još nije izabran). Uraditi kao izolovan zadatak (ne usred rada na poslovnim modulima), sa punom e2e regresijom posle — prirodno uz izbor hosting provajdera pred lansiranje.

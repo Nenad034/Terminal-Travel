@@ -10,7 +10,9 @@ interface AuditLogEntry {
   actorId: string;
   resourceType: string;
   resourceId: string;
-  createdAt: string;
+  // M1 `AuditLogEntry.timestamp` (schema.prisma) — ekran je do sad čitao nepostojeći
+  // `createdAt`, pa je svaki red prikazivao "Invalid Date" (nalaz iz live-provere, avgust 2026).
+  timestamp: string;
   beforeState?: unknown;
   afterState?: unknown;
 }
@@ -51,7 +53,7 @@ export default async function AuditLogPage() {
           {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
           {entries.map((e) => (
             <div key={e.id} className="border-b border-border bg-panel px-4 py-2 font-mono text-xs last:border-b-0 hover:bg-panel-2">
-              <span className="text-ink-faint">{new Date(e.createdAt).toLocaleString('sr-RS')}</span>{' '}
+              <span className="text-ink-faint">{new Date(e.timestamp).toLocaleString('sr-RS')}</span>{' '}
               <span className="text-accent2">{e.module}</span> <span className="text-ink">{e.action}</span>{' '}
               <span className="text-ink-dim">
                 {e.resourceType}#{e.resourceId?.slice(0, 8)}

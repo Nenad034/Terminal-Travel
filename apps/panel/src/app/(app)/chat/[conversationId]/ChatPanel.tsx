@@ -284,7 +284,7 @@ export default function ChatPanel({
           {/* 29-DIZAJN-SISTEM-UI.md §6a.2 pravilo 1 — oznaka je vidljiva pre slanja, ne posle:
               zaposleni mora znati da šalje AI tekst dok još može da ga izmeni ili odbaci. */}
           {draftFromAi && (
-            <p className="flex w-full items-center gap-1 rounded bg-accent-soft p-2 text-[11px] text-accent">
+            <p className="flex w-full items-center gap-1 rounded bg-accent-soft p-2 text-[11px] text-accent-strong">
               <Icon name="sparkle" /> Tekst potiče iz AI nacrta — biće tako i zabeležen. Odgovornost za
               poslatu poruku ostaje na vama.
             </p>
