@@ -18,7 +18,16 @@ export default async function SiteLayout({
   return (
     <>
       <Header locale={locale} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      {/* PUNA ŠIRINA (vlasnikova odluka 17.8.2026) — prikaz zauzima celu širinu ekrana, bez
+          gornje granice. Ranije je ovde stajalo `max-w-6xl` (1152px), pa je na širokom monitoru
+          skoro pola ekrana ostajalo prazno. Bočni prostor raste sa ekranom (px-4 → px-10) da
+          tekst nikad ne dodiruje ivicu prozora — puna širina nije isto što i bez margine.
+
+          IZUZETAK: stranice koje se ČITAJU, ne pregledaju, ograničavaju širinu SAME (ne ovde),
+          jer red teksta preko celog širokog ekrana postaje nečitljiv — oko izgubi početak
+          sledećeg reda. To su: pojedinačan hotel/putovanje ([tip]/[slug], izričito izuzeto na
+          vlasnikov zahtev), blog i opšte stranice, tok rezervacije, prijava/registracija. */}
+      <main className="w-full flex-1 px-4 py-8 sm:px-6 lg:px-8 xl:px-10">{children}</main>
       <Footer locale={locale} />
     </>
   );

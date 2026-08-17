@@ -14,7 +14,10 @@ export default async function Header({ locale }: { locale: string }) {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-panel/95 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
+      {/* Puna širina, isti bočni prostor kao main u (site)/layout.tsx — da logotip i navigacija
+          stoje u istoj vertikali kao sadržaj ispod. Da je zaglavlje ostalo ograničeno na 1152px
+          dok sadržaj ide preko celog ekrana, sadržaj bi "izlazio" ispod zaglavlja. */}
+      <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 xl:px-10">
         <Link href={`/${locale}`} className="text-xl font-bold tracking-tight text-accent">
           Terminal <span className="text-ink">Travel</span>
         </Link>

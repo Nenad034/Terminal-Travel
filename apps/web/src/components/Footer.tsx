@@ -8,7 +8,8 @@ export default async function Footer({ locale }: { locale: string }) {
 
   return (
     <footer className="mt-16 border-t border-border bg-panel2">
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-10 text-sm sm:grid-cols-4">
+      {/* Puna širina, isti bočni prostor kao zaglavlje i main — vidi (site)/layout.tsx */}
+      <div className="grid w-full grid-cols-2 gap-6 px-4 py-10 text-sm sm:grid-cols-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="col-span-2 sm:col-span-1">
           <p className="text-lg font-bold text-accent">
             Terminal <span className="text-ink">Travel</span>

@@ -24,11 +24,8 @@ const config: Config = {
           soft: 'var(--accent-soft)',
           ink: 'var(--accent-ink)',
         },
-        accent2: {
-          DEFAULT: 'var(--accent2)',
-          soft: 'var(--accent2-soft)',
-        },
-        // Šljiva — dodata 17.8.2026, uloga još nije odlučena (vidi globals.css komentar).
+        // Šljiva — DRUGA boja identiteta (vlasnikova odluka 17.8.2026); zamenila zelenu
+        // (accent2), koja je ukinuta. Uloga i merenja: vidi komentar u globals.css.
         plum: {
           DEFAULT: 'var(--plum)',
           soft: 'var(--plum-soft)',

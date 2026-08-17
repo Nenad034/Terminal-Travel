@@ -26,7 +26,13 @@ export default async function ProductPage({
   const jsonLd = buildJsonLd(product, locale);
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+    /* IZUZETAK od pune širine (vlasnikova odluka 17.8.2026) — stranica pojedinačnog hotela/
+       putovanja ostaje ograničene širine i centrirana. Ovo je stranica koja se čita: opis
+       objekta razvučen preko celog širokog ekrana daje redove od 200+ znakova, gde oko gubi
+       početak sledećeg reda. Liste i pretraga (koje se pregledaju, ne čitaju) idu punom širinom.
+       Ograničenje stoji OVDE, a ne u (site)/layout.tsx, da izuzetak bude vidljiv na stranici
+       koja ga traži, ne skriven u zajedničkom rasporedu. */
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
       {/* M8 spec §5.1 — schema.org JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 

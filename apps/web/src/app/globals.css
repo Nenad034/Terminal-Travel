@@ -39,21 +39,29 @@
   --accent-strong: #7a4a12;
   --accent-soft: #f5e2bd;
   --accent-ink: #fff8ec;
-  --accent2: #0f7565;
-  --accent2-soft: #dcf2ee;
+  /* Zelena (--accent2) je UKINUTA 17.8.2026, vlasnikovom odlukom — šljiva je sad druga boja
+     (vidi ispod). Zelena je pre toga bila upotrebljena na jednom jedinom mestu (prelaz boja u
+     zaglavlju početne strane), pa nije bila stvarna druga boja identiteta nego ostatak. Time
+     sajt ostaje na DVE boje sa jasnim ulogama i pravilo iz 29-DIZAJN-SISTEM-UI.md §2 ostaje
+     istinito, umesto da tri akcentne boje to pravilo obesmisle. */
   --ok: #187c51;
   --ok-bg: #e3f6ec;
   --warn: #975f10;
   --warn-bg: #f9edd3;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
-  /* Šljiva (modro-plava) — dodata 17.8.2026. na zahtev vlasnika. Vrednosti su
-     izmerene i prolaze AA u oba moda (svetli: 6.05:1 najgori slučaj protiv bg/
-     panel/panel-2; belo na šljivi 7.06:1 za puno dugme; bedž 7.85:1).
-     ULOGA JOŠ NIJE ODLUČENA — token postoji, ništa se njime još ne boji, da se
-     izgled sajta ne menja pre vlasnikove odluke. Vidi 29-DIZAJN-SISTEM-UI.md §2
-     ("namerno samo jedna akcentna boja") — šljiva zahteva odluku šta je njena
-     uloga, jer treća akcentna boja to pravilo obesmišljava. */
+  /* Šljiva (modro-plava) — DRUGA boja identiteta, vlasnikova odluka 17.8.2026.
+     Zamenila je zelenu (--accent2, ukinuta iznad), ne dodala se kao treća.
+
+     Uloga: sve što NIJE glavna radnja — sekundarna dugmad, oznake, akcenti na
+     deljenim stranicama. Glavna radnja ("Rezerviši", "Plati") ostaje amber, jer
+     ona mora da vuče oko; kad bi obe boje vukle jednako, ni jedna ne bi.
+     Topla amber + hladna šljiva se međusobno pojačavaju (amber + zelena su bila
+     dva srednje topla tona koja se blago tuku).
+
+     Kontrast izmeren, prolazi AA u oba moda: svetli 6.05:1 najgori slučaj protiv
+     bg/panel/panel-2, belo na šljivi 7.06:1 (puno dugme), bedž 7.85:1;
+     tamni 6.52:1 i 7.35:1. */
   --plum: #5b4b8a;
   --plum-soft: #e8e3f4;
   --plum-ink: #fff8ec;
@@ -73,8 +81,7 @@
     --accent-strong: #f4c473;
     --accent-soft: #3a2810;
     --accent-ink: #2a1a04;
-    --accent2: #2ba894;
-    --accent2-soft: #0f2e28;
+    /* --accent2 ukinut, vidi komentar u svetlom modu */
     --ok: #3ecf8e;
     --ok-bg: #0f2b21;
     --warn: #e0a542;

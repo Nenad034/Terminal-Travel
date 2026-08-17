@@ -21,7 +21,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   return (
     <div>
-      <section className="relative overflow-hidden rounded-lg bg-gradient-to-br from-accent-soft via-panel to-accent2-soft px-6 py-20 text-center">
+      <section className="relative overflow-hidden rounded-lg bg-gradient-to-br from-accent-soft via-panel to-plum-soft px-6 py-20 text-center">
         <h1 className="text-3xl font-bold text-ink sm:text-5xl">{t('title')}</h1>
         <p className="mx-auto mt-4 max-w-xl text-ink-dim">{t('subtitle')}</p>
 
@@ -61,7 +61,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {products.length > 0 && (
         <section className="mt-14">
           <h2 className="mb-4 text-xl font-semibold text-ink">{t('featured')}</h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {products.slice(0, 9).map((product) => (
               <ProductCard key={product.id} locale={locale} product={product} />
             ))}
