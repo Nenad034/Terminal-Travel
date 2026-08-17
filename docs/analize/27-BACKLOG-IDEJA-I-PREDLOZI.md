@@ -55,6 +55,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li `SERVICE` treba odvojeno polje od `amenities[]` u `attributes`.
 - Kineski jezik u katalogu — odloženo (avgust 2026), dodati tek uz konkretan poslovni razlog (npr. direktan let BEG–PEK, B2B partner).
 - **Zakon o zaštiti potrošača (istraživanje, avgust 2026):** transparentnost online cenovnika (mašinski čitljiv format) i zabrana lažnih recenzija — proveriti primenljivost na M2/M8 sa pravnikom pre implementacije.
+- **Migracija postojećeg slobodnog teksta u `AmenityTag`** (poglavlje 2.3c, 17.8.2026) — ručno mapiranje, obim/redosled nije razrađen (koliko proizvoda, ko radi).
+- **`INSURANCE.attributes.coverage_regions[]`** (M5 poglavlje 3.0d.8, 17.8.2026) — struktura (lista zemalja vs. region-enum) nije razrađena, čeka implementaciju putnog osiguranja.
+- **`attributes.category` vrednosti za `EXCURSION`/`EVENT`/`TICKET`** ("Things to do", M5 poglavlje 3.0d.4, 17.8.2026) — dorađuje se pri stvarnoj izradi ekrana, isti princip kao `AmenityTag`.
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
@@ -86,6 +89,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
+- **Vođena pretraga za 9 vrsta proizvoda** (poglavlja 3.0c/3.0d, 17.8.2026) — polja/API definisani; UI ekrani (levi/centralni/desni panel) ostaju poseban naredni korak kad M17/M7 pretraga dođe na red.
+- Tačan UI izbor datuma polaska sa liste termina za `PACKAGE` (poglavlje 3.0d.6) — dizajnersko pitanje.
 - Format vaučera (sadržaj, izgled) — definiše se kasnije.
 - Tačan izgled/template operativne liste po tipu dobavljača.
 - Da li slanje operativne liste ide samo email prilogom ili i strukturisanim API kanalom.
