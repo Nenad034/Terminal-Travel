@@ -1,9 +1,9 @@
 # Dizajn sistem — vizuelni i interakcioni jezik Terminal-a
 
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
-**Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu), kasnije M7 (B2B portal), M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
+**Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu) i M7 (B2B portal, isti obrazac — poglavlje 7), kasnije M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
-**Verzija:** 1.8 — tri vlasnikove odluke od 17.8.2026: (a) paleta sajta ispravljena po §2a (sedam parova je padalo AA u svetlom modu, dva u tamnom — vidi poglavlje 8), (b) **boja šljive je druga boja sajta**, zamenila zelenu umesto da se doda kao treća (poglavlje 2), (c) **sajt ide punom širinom ekrana**, sa izuzetkom za stranice koje se čitaju (novo poglavlje 6b). Dodato i poglavlje 2.0 — dokument je do sad beležio samo panelovu paletu, što je bio deo razloga zašto paleta sajta nikad nije prošla proveru. v1.7 — pravilo iz 1.6 sprovedeno kroz ceo panel (17 mesta, uključujući pet dugmadi kojima je padao tek hover), pa je stavka zatvorena i u backlogu; v1.6 — poglavlje 2a dopunjeno tvrdim pravilom "tekst na `accent-soft` je `accent-strong`, ne `accent`" (nalaz iz M17 live-provere 17.8.2026: `accent` na `accent-soft` daje 3.96:1 u svetlom modu i pada AA); v1.5 — dodato poglavlje 6a: obeležavanje autora radnje (čovek / AI agent / spoljni nalog) kao jedinstveno pravilo za sve kanale, na zahtev vlasnika (avgust 2026) — zatvara nalaz da je svaki ekran panela do sad izmišljao sopstveni način obeležavanja AI poteza; prati ga dopuna M17 poglavlje 3.1 i M19 poglavlja 2.3/9.5; v1.4 — dodato poglavlje 5a: tabovi za paralelan rad na više otvorenih zapisa/ekrana istovremeno (na zahtev vlasnika); v1.3 — dodato poglavlje 2a: kontrast teksta/ikonica je tvrd zahtev (WCAG AA minimum, AAA cilj gde je lako ostvarivo), proverava se lokalno protiv stvarne pozadine (ne jedne pretpostavljene), identično u oba moda — na izričit zahtev vlasnika; v1.2 — dodato poglavlje 3a (ikonografija — Codicons, rešava ranije otvoreno pitanje) i poglavlje 6 (sadržaj centralnog panela: isticanje pozadinom teksta, kartice, suptilne animacije), proširen opis bočne trake stablo-strukturom (poglavlje 5), sve na zahtev vlasnika (avgust 2026); v1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
+**Verzija:** 1.9 — vlasnikova odluka 17.8.2026 (referenca: snimci ekrana VS Code-a sa Claude Code panelom, priloženi uz odluku): **M7 (B2B portal) dobija identičan vizuelni/interakcioni obrazac kao M17** — razrešava dotad otvoreno pitanje iz poglavlja 8. Dodato: poglavlje 5b (tri-panelni raspored — levi navigator/stablo, centar prikaz, desni panel za izdvajanje detalja sa mogućnošću dva panela jedan pored drugog, isti obrazac kao VS Code split editor grupe), poglavlje 6c (AI razgovor — plutajući kontekst/dozvole iznad polja za unos, ne odvojen banner), dopuna poglavlja 2 (birač teme — VS Code MEHANIZAM biranja, ali sadržaj ostaje Terminal-ova sopstvena tamna/svetla paleta po kanalu, bez dodatnih imenovanih tema). Novo otvoreno pitanje (poglavlje 8): vlasnikov prošireni pregled uživo nad celim poslovanjem (Elastic/Kibana-stila) — namerno odloženo, vlasnik izričito rekao "još ćemo raditi na tome". v1.8 — tri vlasnikove odluke od 17.8.2026: (a) paleta sajta ispravljena po §2a (sedam parova je padalo AA u svetlom modu, dva u tamnom — vidi poglavlje 8), (b) **boja šljive je druga boja sajta**, zamenila zelenu umesto da se doda kao treća (poglavlje 2), (c) **sajt ide punom širinom ekrana**, sa izuzetkom za stranice koje se čitaju (novo poglavlje 6b). Dodato i poglavlje 2.0 — dokument je do sad beležio samo panelovu paletu, što je bio deo razloga zašto paleta sajta nikad nije prošla proveru. v1.7 — pravilo iz 1.6 sprovedeno kroz ceo panel (17 mesta, uključujući pet dugmadi kojima je padao tek hover), pa je stavka zatvorena i u backlogu; v1.6 — poglavlje 2a dopunjeno tvrdim pravilom "tekst na `accent-soft` je `accent-strong`, ne `accent`" (nalaz iz M17 live-provere 17.8.2026: `accent` na `accent-soft` daje 3.96:1 u svetlom modu i pada AA); v1.5 — dodato poglavlje 6a: obeležavanje autora radnje (čovek / AI agent / spoljni nalog) kao jedinstveno pravilo za sve kanale, na zahtev vlasnika (avgust 2026) — zatvara nalaz da je svaki ekran panela do sad izmišljao sopstveni način obeležavanja AI poteza; prati ga dopuna M17 poglavlje 3.1 i M19 poglavlja 2.3/9.5; v1.4 — dodato poglavlje 5a: tabovi za paralelan rad na više otvorenih zapisa/ekrana istovremeno (na zahtev vlasnika); v1.3 — dodato poglavlje 2a: kontrast teksta/ikonica je tvrd zahtev (WCAG AA minimum, AAA cilj gde je lako ostvarivo), proverava se lokalno protiv stvarne pozadine (ne jedne pretpostavljene), identično u oba moda — na izričit zahtev vlasnika; v1.2 — dodato poglavlje 3a (ikonografija — Codicons, rešava ranije otvoreno pitanje) i poglavlje 6 (sadržaj centralnog panela: isticanje pozadinom teksta, kartice, suptilne animacije), proširen opis bočne trake stablo-strukturom (poglavlje 5), sve na zahtev vlasnika (avgust 2026); v1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
 
 ---
 
@@ -40,6 +40,8 @@ Tačne HEX vrednosti nisu fiksirane ovim dokumentom — biraju se/fino podešava
 - **Podrazumevano:** aplikacija prati podešavanje operativnog sistema korisnika (`prefers-color-scheme`) pri prvom otvaranju.
 - **Ručni prekidač:** korisnik može eksplicitno da izabere tamni/svetli mod, nezavisno od sistemskog podešavanja — izbor se pamti (lokalno po uređaju/browseru je dovoljno za v1; sinhronizacija izbora preko više uređaja po nalogu nije pretpostavljena bez stvarne potrebe, vidi poglavlje 8).
 - Prekidač živi u istom minimalnom duhu kao ostatak UI-ja (poglavlje 5) — ne traži poseban ekran podešavanja, dovoljna je jedna ikonica/stavka u komandnoj paleti (poglavlje 4) ili uglu gornje trake.
+
+**Birač teme — VS Code mehanizam, Terminal sadržaj** (vlasnikova odluka 17.8.2026). Isti UX obrazac kao VS Code "Color Theme" birač — otvara se iz komandne palete ili gornje trake, lista opcija sa živim pregledom pri prelasku mišem/tastaturom, potvrda menja temu odmah bez ponovnog učitavanja. **Sadržaj liste NIJE proizvoljan skup tema** (za razliku od VS Code Dark+/Light+/Monokai/itd.) — svaki kanal i dalje ima tačno svoju jednu tamnu i jednu svetlu varijantu (Horizont za M17/M7, Zalazak za M8), obe već provereno WCAG AA (poglavlje 2a). Birač daje poznat, brz način da se između te dve pređe — ne otvara vrata dodatnim, neproverenim paletama. Ako se u budućnosti pokaže stvarna potreba za više od dve varijante po kanalu, to je nova odluka (i nova AA provera za svaku), ne automatska posledica ovog mehanizma.
 
 ---
 
@@ -108,6 +110,20 @@ Traka tabova iznad centralnog panela (ispod gornje trake, poglavlje 5) — isti 
 
 ---
 
+## 5b. Tri-panelni raspored — navigator / prikaz / izdvajanje
+
+*(dodato avgust 2026, na zahtev vlasnika — referenca: VS Code Explorer + editor + peek/split)*
+
+Ceo radni prostor (ispod gornje trake, poglavlje 5; iznad/pored tabova, poglavlje 5a) deli se na tri funkcionalno odvojene zone, isti princip za M17 i M7 (poglavlje 7):
+
+- **Levi panel — navigator.** Sve što se traži ili lista (moduli, zapisi, filteri) živi ovde kao stablo-struktura (poglavlje 5) — isti vizuelni jezik kao VS Code Explorer/Source Control: tanke vertikalne linije, ševroni za sklapanje/rasklapanje. Ovo je jedino mesto za pregledanje/pretragu; klik na stavku puni centralni panel, ne otvara novi prozor.
+- **Centralni panel — prikaz.** Glavni sadržaj trenutno izabrane stavke (poglavlje 6). Ostaje najveći deo ekrana (poglavlje 5, "sadržaj u fokusu").
+- **Desni panel — izdvajanje.** Detalj/kontekst *izveden* iz onoga što je otvoreno u centru (npr. istorija izmena zapisa, AI razgovor vezan za trenutni ekran, povezani zapisi drugog modula) — nikad nezavisna navigacija, uvek zavisi od centralnog panela. **Može se otvoriti drugi desni panel pored prvog** (isti obrazac kao VS Code split editor grupe — prevlačenje ili prečica otvara novu kolonu) — dva desna panela jedan pored drugog, ne jedan preko drugog.
+
+Sve tri zone su sklopive/proširive nezavisno (VS Code obrazac) — zatvaranje levog panela kad tim samo čita jedan zapis, otvaranje drugog desnog panela kad treba paralelno pratiti dva izvedena prikaza.
+
+---
+
 ## 6. Sadržaj centralnog panela — isticanje, kartice, pokret
 
 *(dodato avgust 2026, na zahtev vlasnika)*
@@ -164,9 +180,27 @@ Ovo pravilo se odnosi **samo na M8**; panel (M17) je uvek koristio punu širinu 
 
 ---
 
-## 7. Obim primene — samo M17 za sada
+## 6c. AI razgovor — plutajući kontekst iznad unosa
 
-Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženje za tim koji radi svaki dan, gde command-palette obrazac ima najviše smisla. **Namerno se ne pretpostavlja** da isti obrazac (skrivena komandna paleta, "power-user" interakcija) direktno odgovara i M8 (B2C sajt, gost koji retko koristi aplikaciju) ili M9 (mobilna aplikacija, dodirni ekran bez tastature) — ti kanali dobijaju sopstvenu primenu vizuelnog identiteta (boje, tipografija) kad dođu na red, ali ne nužno isti interakcioni obrazac. Ovo se rešava kad ti moduli dođu na red, ne pretpostavlja se ovde.
+*(dodato avgust 2026, na zahtev vlasnika — referenca: Claude Code panel unutar VS Code)*
+
+Svaki ekran koji vodi razgovor sa AI agentom (M19 chat sa AI nacrtom, M21/M23 AI asistent, M15 omnisearch/komandna paleta) prati isti obrazac unosa kao Claude Code panel:
+
+- **Polje za unos je fiksirano pri dnu desnog panela** (poglavlje 5b) ili centralnog panela kad je razgovor glavni sadržaj ekrana (npr. M21/M23 "pitaj asistenta") — ne plута slobodno u sredini sadržaja.
+- **Kontekst/dozvole/nagoveštaji se pojavljuju kao plutajući blok neposredno IZNAD polja**, ne kao poseban banner na vrhu ekrana ili modal — npr. koji zapis/modul je trenutni kontekst razgovora, kad AI predlaže radnju koja čeka ljudsku potvrdu (poglavlje 6a — bedž "AI" i pravilo da čovek mora da potvrdi pre slanja/objave), kratak predlog sledećeg pitanja. Blok nestaje kad nije relevantan (isti princip "skriveno dok nije potrebno" kao komandna paleta, poglavlje 4).
+- **Traka mogućih režima/dozvola tik uz polje za unos** kad je primenjivo (npr. da li AI predlog čeka odobrenje iznad određenog iznosa, M7 poglavlje 2.0.4) — vidljiva, ne skrivena u meniju.
+
+Ovaj obrazac ne menja pravila iz poglavlja 6a (obeležavanje autora) niti M15 poglavlje 6.5.4 (AI nikad sam ne izvršava radnju) — samo određuje **gde na ekranu** ta pravila postaju vidljiva.
+
+---
+
+## 7. Obim primene — M17 i M7 istim obrascem, M8/M9 zasebno
+
+*(izmenjeno 17.8.2026 — ranije "samo M17 za sada")*
+
+Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženje za tim koji radi svaki dan, gde command-palette obrazac ima najviše smisla. **Vlasnikova odluka (17.8.2026): M7 (B2B portal, subagenti) dobija identičan vizuelni i interakcioni obrazac kao M17** — ista paleta-mehanizam (poglavlje 2), ista komandna paleta (poglavlje 4), isti tri-panelni raspored (poglavlje 5b), isti AI-razgovor obrazac (poglavlje 6c). Razlog: subagenti su redovni, profesionalni korisnici pod istim vremenskim pritiskom kao interni tim, ne povremeni gost — razlikovanje ide kroz **podatke koje vide** (M7 spec poglavlje 2.0, dobavljača-slep + bez marže/nabavne cene), ne kroz pojednostavljen interfejs. M7 zadržava sopstvenu "beli-label" paletu po subagentu (M7 spec poglavlje 2.0.5) umesto fiksnog Horizonta — mehanizam biranja/token-sloj ostaje isti kao M17, samo se boje pune iz `SubagentBranding` umesto iz fiksne palete.
+
+I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt, gost koji retko koristi aplikaciju) ili M9 (mobilna aplikacija, dodirni ekran bez tastature) — ti kanali dobijaju sopstvenu primenu vizuelnog identiteta (boje, tipografija) kad dođu na red, ali ne nužno isti interakcioni obrazac. Ovo se rešava kad ti moduli dođu na red, ne pretpostavlja se ovde.
 
 ---
 
@@ -205,7 +239,8 @@ Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženj
   Nepromenjeni ostaju `--bg`, `--panel`, `--panel-2`, `--text`, `--text-dim`, `--accent-soft`, `--accent-ink`, `--danger` — svi su prolazili. Posledično provereno i ispravljeno: `--accent-ink` na `--accent` (tekst na punom dugmetu "Rezerviši", najvažnija kontrola na sajtu) bio je `3.30:1`, sad je `5.26:1`.
 
   Merenja su rađena protiv **stvarnih** podloga uz koje se svaka boja koristi (`bg`, `panel`, `panel-2`, `accent-soft`, `ok-bg`, `warn-bg`), ne jedne pretpostavljene — po pravilu iz poglavlja 2a.
-- Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17 (subagenti su takođe redovni, profesionalni korisnici) ili prilagođenu, jednostavniju verziju — otvoreno dok M7 UI ne dođe na red.
+- ~~Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 7): identičan obrazac, razlikovanje ide kroz podatke (M7 spec poglavlje 2.0), ne kroz interfejs.
+- **Vlasnikov prošireni pregled uživo nad celim poslovanjem** (npr. Elastic/Kibana-stila dashboard za praćenje svih procesa u realnom vremenu) — vlasnik izričito rekao "još ćemo raditi na tome" (17.8.2026), namerno odloženo. Verovatno dodatan sloj iznad M17 (možda i M13 BI), ne zamena — ne pretpostavlja se ovde ni obim ni tehnologija (uvođenje Elastic-a bilo bi nova zavisnost, zahteva `tt-tech-stack` potvrdu kad dođe na red).
 - Da li izbor tamnog/svetlog moda treba da se sinhronizuje preko više uređaja po nalogu (zahteva backend polje, npr. na M1 `User`) ili ostaje lokalno po uređaju — v1 pretpostavlja lokalno, revidira se ako se pokaže potreba.
 - Tačna paleta semantičkih boja za isticanje teksta (poglavlje 6) — upozorenje/greška/uspeh — bira se zajedno sa HEX vrednostima palete.
 - Da li postoji gornja granica broja istovremeno otvorenih tabova (poglavlje 5a), i šta se dešava kad se dostigne — dorađuje se pri implementaciji ako se pokaže potreba.

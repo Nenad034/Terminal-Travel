@@ -112,6 +112,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Konkretan LLM/tehnički mehanizam AI razgovora sa subagentom (UI/prompt dizajn).
 - Tačan format/podrazumevana vrednost `ai_chat_review_threshold_amount`.
 - **Vizuelni identitet po subagentu (poglavlje 2.0.5, avgust 2026)** — sopstveni domen/poddomen, uklanjanje pomena "Terminal Travel" iz pravnog teksta (čeka pravnika), pun set tokena van dve boje + logo. Ceo mehanizam čeka izgradnju portal frontend-a, koji još ne postoji u kodu.
+- ~~Da li M7 portal dobija isti interakcioni obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 2.0.6): identičan obrazac; obim podataka izričito potvrđen (sve iz prodajnog toka sem marže/nabavne cene/naziva dobavljača, moduli van prodajnog toka potpuno nevidljivi). Portal frontend sam još nije izgrađen.
 
 ## M8 — Sajt agencije (B2C prikaz)
 *(§9a/§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
