@@ -94,6 +94,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **AI prepoznavanje više namera u jednoj rečenici** (poglavlje 3.0e.4, 17.8.2026) — namerno odloženo dok osnovni tok 9 pretraga ne bude uživo proveren.
 - **Kalendar cena/fleksibilni datumi za letove** (Google Flights stila, poglavlje 3.0e.4) — razmatra se kao V2, zahteva infrastrukturu cena unapred za više datuma.
 - **Oblik odgovora za multi-segment let** (poglavlje 3.0d.1) — čeka M4 avio/GDS adapter, namerno neizmišljeno unapred.
+- **Poređenje sa STVARNOM cenom sa tuđeg sajta (scraping)** (poglavlje 13, 17.8.2026) — bezbedan deo (tumačenje nalepljenog URL-a) specificiran u M15 poglavlju 6.5.6a; puno poređenje cena namerno neimplementirano, čeka potvrdu pravnika (uslovi korišćenja OTA sajtova + tehnička nepouzdanost dinamičkih cena).
 - Format vaučera (sadržaj, izgled) — definiše se kasnije.
 - Tačan izgled/template operativne liste po tipu dobavljača.
 - Da li slanje operativne liste ide samo email prilogom ili i strukturisanim API kanalom.
