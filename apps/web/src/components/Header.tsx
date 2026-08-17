@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/session';
 import { locales } from '@/i18n/config';
+import OmnisearchBar from './OmnisearchBar';
 
-// M8 spec poglavlje 3a — omnisearch traka je namerno IZOSTAVLJENA u ovom prolazu
-// (zavisi od M15, koji još nema kod — vidi poglavlje 9a). Zamenjena je običnim
-// linkom ka /pretraga dok M15 ne dobije implementaciju.
+// M8 spec poglavlje 3a, dopuna avgust 2026 (M15 dobio kod) — omnisearch traka je sad
+// povezana na POST /api/omnisearch → M15 POST /ai-orchestration/omnisearch (channel=B2C_SITE).
+// /pretraga ostaje kao zaseban link (napredna pretraga sa filterima datuma/gostiju) — omnisearch
+// je brz ulaz za sve ostalo (proizvodi na prirodnom jeziku, pitanja o platformi), ne zamena.
 export default async function Header({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: 'nav' });
   const session = await getSession();
@@ -16,6 +18,20 @@ export default async function Header({ locale }: { locale: string }) {
         <Link href={`/${locale}`} className="text-xl font-bold tracking-tight text-accent">
           Terminal <span className="text-ink">Travel</span>
         </Link>
+
+        <OmnisearchBar
+          locale={locale}
+          isLoggedIn={Boolean(session)}
+          labels={{
+            placeholder: t('searchPlaceholder'),
+            destinations: t('search'),
+            myBookings: t('myBookings'),
+            help: t('helpHint'),
+            helpHint: t('helpHintQuery'),
+            loading: t('searchLoading'),
+            noResults: t('searchNoResults'),
+          }}
+        />
 
         <nav className="flex flex-wrap items-center gap-5 text-sm text-ink-dim">
           <Link href={`/${locale}/pretraga`} className="hover:text-accent">

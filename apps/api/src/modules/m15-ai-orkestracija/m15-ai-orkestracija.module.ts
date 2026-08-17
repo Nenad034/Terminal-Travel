@@ -14,14 +14,18 @@ import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module'
 import { BookingsModule } from '../m5-rezervacije/bookings/bookings.module';
 import { ProductsModule } from '../m2-katalog-proizvoda/products/products.module';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
+import { M21CentarZaPomocModule } from '../m21-centar-za-pomoc/m21-centar-za-pomoc.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
 // koda (AgentActionGuard, apps/api/src/common/) i Agent Inbox — poglavlje 6/9. Agent Inbox čita
 // direktno iz Prisma (isti "čitanje iz postojećih tabela više modula" princip kao M17 dashboard),
 // zato ne zahteva uvoz M3/M7/M12/M14 modula ovde.
+// Dopuna avgust 2026 (M8 §3a, B2C_SITE kanal) — M21CentarZaPomocModule daje HelpAssistantService
+// (in-process poziv za "pitanje o platformi" tok, M15 spec §6.5.5); M21 modul ne uvozi M15 modul
+// nazad (samo AnthropicClientService klasu direktno), pa nema kružne zavisnosti.
 @Module({
-  imports: [AuthModule, PermissionsModule, AuditLogModule, BookingsModule, ProductsModule, M18OperativniNadzorModule],
+  imports: [AuthModule, PermissionsModule, AuditLogModule, BookingsModule, ProductsModule, M18OperativniNadzorModule, M21CentarZaPomocModule],
   controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController],
   providers: [ModuleActivationService, OmnisearchService, AnthropicClientService, ActionTypesService, AgentInboxService],
   exports: [OmnisearchService],

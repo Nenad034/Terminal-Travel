@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { ForbiddenException } from '@nestjs/common';
 import { OmnisearchService } from './omnisearch.service';
 
 // M15 spec §10 izlazni kriterijum — testovi koji dokazuju: (1) aktivacioni gate blokira dok
@@ -18,12 +19,13 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     const auditLog = { write: jest.fn().mockResolvedValue(undefined) };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
     const bookings = { findAll: jest.fn().mockResolvedValue([]) };
-    const products = { findAll: jest.fn().mockResolvedValue([]) };
+    const products = { findAll: jest.fn().mockResolvedValue([]), findAllPublic: jest.fn().mockResolvedValue([]) };
     const anthropic = {
       isConfigured: jest.fn().mockReturnValue(overrides?.anthropicConfigured ?? false),
       getClient: jest.fn(),
     };
     const invocationLog = { record: jest.fn().mockResolvedValue({ tier: 'LIGHT', estimatedCostEur: 0 }) };
+    const helpAssistant = { ask: jest.fn().mockRejectedValue(new ForbiddenException()) };
 
     const service = new OmnisearchService(
       prisma as any,
@@ -33,8 +35,9 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       products as any,
       anthropic as any,
       invocationLog as any,
+      helpAssistant as any,
     );
-    return { service, prisma, auditLog, permissions, bookings, products, anthropic, invocationLog };
+    return { service, prisma, auditLog, permissions, bookings, products, anthropic, invocationLog, helpAssistant };
   }
 
   it('vraća active:false dok M15_OMNISEARCH nije ACTIVATED (§3 aktivacioni gate)', async () => {
@@ -93,6 +96,45 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(auditLog.write).toHaveBeenCalledWith(
       expect.objectContaining({ actorType: 'AI_AGENT', module: 'M15', action: 'omnisearch.query' }),
     );
+  });
+
+  // M8 §3a — B2C_SITE radi anonimno (actorUserId=null), koristi javni findAllPublic (M2 spec
+  // §5.1, dobavljača-slep serializer), i nikad ne poziva rezervacije bez prijavljenog gosta.
+  it('B2C_SITE anoniman posetilac (actorUserId=null): pretražuje javni katalog, ne poziva bookings.findAll', async () => {
+    const { service, bookings, products } = makeService();
+    (products.findAllPublic as jest.Mock).mockResolvedValue([
+      { id: 'p1', type: 'ACCOMMODATION', translation: { name: 'Hotel Jadran', slug: 'hotel-jadran' }, media: null },
+    ]);
+    const result = await service.search({ query: 'Jadran', channel: 'B2C_SITE', actorUserId: null });
+    expect(bookings.findAll).not.toHaveBeenCalled();
+    expect(products.findAllPublic).toHaveBeenCalledWith('B2C_SITE', undefined);
+    expect(result.entityResults).toHaveLength(1);
+    expect(result.entityResults[0].href).toBe('/smestaj/hotel-jadran');
+  });
+
+  it('B2C_SITE prijavljen gost: pretražuje sopstvene rezervacije preko user-scoped BookingsService.findAll', async () => {
+    const { service, bookings } = makeService();
+    bookings.findAll.mockResolvedValue([{ id: 'b1', bookingNumber: 'TT-2027-000777', buyerName: 'Ana' }]);
+    const result = await service.search({ query: 'TT-2027-000777', channel: 'B2C_SITE', actorUserId: 'gost-1' });
+    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'gost-1' });
+    expect(result.entityResults[0].href).toBe('/nalog/moje-rezervacije');
+  });
+
+  it('B2C_SITE pitanje o platformi: kad M21 nema pristup (ForbiddenException), ne baca grešku korisniku', async () => {
+    const { service, helpAssistant } = makeService({ anthropicConfigured: false });
+    const result = await service.search({
+      query: 'kako otkazujem rezervaciju',
+      channel: 'B2C_SITE',
+      actorUserId: 'gost-individual-1',
+    });
+    expect(helpAssistant.ask).toHaveBeenCalled();
+    expect(result.active).toBe(true); // fallback na §6.5.4.2 objašnjenje, ne izuzetak
+  });
+
+  it('B2C_SITE anoniman posetilac ne poziva M21 (nema actorUserId, isti "isto kao 403" princip)', async () => {
+    const { service, helpAssistant } = makeService();
+    await service.search({ query: 'kako otkazujem rezervaciju', channel: 'B2C_SITE', actorUserId: null });
+    expect(helpAssistant.ask).not.toHaveBeenCalled();
   });
 
   // §6.5.4.3, §10 — "omnisearch nikad ne izvršava radnju sam": statička provera da servis

@@ -91,6 +91,42 @@ export interface PublicContent {
   } | null;
 }
 
+// Oblik odgovora M15 `POST /ai-orchestration/omnisearch` (omnisearch-result.types.ts,
+// M15 spec §9, M8 spec §3a).
+export interface OmnisearchEntityResult {
+  type: 'BOOKING' | 'PRODUCT';
+  id: string;
+  label: string;
+  href: string;
+  media?: { url: string; category: string }[] | null;
+}
+
+export interface OmnisearchMatchedRoute {
+  label: string;
+  href: string;
+}
+
+export interface OmnisearchResult {
+  active: boolean;
+  matchedRoutes: OmnisearchMatchedRoute[];
+  entityResults: OmnisearchEntityResult[];
+  aiAnswer?: string;
+}
+
+// Oblik odgovora M23 `GET /knowledge/public/:shareToken` (public-knowledge.controller.ts,
+// M23 spec §5/§8).
+export interface PublicArticle {
+  id: string;
+  subjectType: string;
+  destinationCountry: string | null;
+  destinationCity: string | null;
+  translation: {
+    languageCode: string;
+    title: string;
+    body: string;
+  } | null;
+}
+
 export interface ClientAccount {
   id: string;
   accountType: string;

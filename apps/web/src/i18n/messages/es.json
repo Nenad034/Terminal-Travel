@@ -7,7 +7,11 @@
     "login": "Log in",
     "register": "Register",
     "logout": "Log out",
-    "searchPlaceholder": "Search destinations, hotels, packages..."
+    "searchPlaceholder": "Search destinations, hotels, packages...",
+    "helpHint": "Help",
+    "helpHintQuery": "how can I get help",
+    "searchLoading": "Searching...",
+    "searchNoResults": "No results — try a more specific search."
   },
   "home": {
     "title": "Find your perfect trip",
@@ -118,6 +122,10 @@
   "comingSoon": {
     "title": "Coming soon",
     "body": "This content is not available yet."
+  },
+  "knowledge": {
+    "notFoundTitle": "Article not found",
+    "notFoundBody": "This link is invalid or the article is no longer published."
   },
   "footer": {
     "categoriesTitle": "Categories",

@@ -7,7 +7,11 @@
     "login": "Prijava",
     "register": "Registracija",
     "logout": "Odjava",
-    "searchPlaceholder": "Pretražite destinacije, hotele, aranžmane..."
+    "searchPlaceholder": "Pretražite destinacije, hotele, aranžmane...",
+    "helpHint": "Pomoć",
+    "helpHintQuery": "kako mogu da pomognem",
+    "searchLoading": "Pretražujem...",
+    "searchNoResults": "Nema rezultata — pokušajte konkretniji upit."
   },
   "home": {
     "title": "Pronađite savršeno putovanje",
@@ -118,6 +122,10 @@
   "comingSoon": {
     "title": "Uskoro",
     "body": "Ovaj sadržaj još nije dostupan."
+  },
+  "knowledge": {
+    "notFoundTitle": "Članak nije pronađen",
+    "notFoundBody": "Ovaj link nije važeći ili članak više nije objavljen."
   },
   "footer": {
     "categoriesTitle": "Kategorije",

@@ -26,5 +26,9 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
   imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, M14HelpdeskModule],
   controllers: [HelpArticlesController, HelpAssistantController, HelpSuggestionsController],
   providers: [HelpArticlesService, HelpAssistantService, HelpSuggestionsService, HelpAbuseDetectorService, AnthropicClientService],
+  // HelpAssistantService dopunjeno avgust 2026 (M8 §3a) — M15 OmnisearchService poziva ga
+  // in-process za B2C_SITE "pitanje o platformi" tok (M15 spec §6.5.5), isti obrazac kao
+  // M14HelpdeskModule.exports (TicketsService) korišćen ovde iznad.
+  exports: [HelpAssistantService],
 })
 export class M21CentarZaPomocModule {}
