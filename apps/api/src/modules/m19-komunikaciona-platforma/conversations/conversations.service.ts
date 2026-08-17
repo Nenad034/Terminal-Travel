@@ -198,8 +198,16 @@ export class ConversationsService {
     const { conversation } = await this.assertParticipant(conversationId, actorUserId);
     await this.assertCanSend(conversation.type, actorUserId);
 
+    const draftedByAgentId = dto.draftedByAi ? await this.resolveDraftAgentUserId(conversation.type) : null;
+
     const message = await this.prisma.message.create({
-      data: { conversationId, senderId: actorUserId, body: dto.body },
+      data: {
+        conversationId,
+        senderId: actorUserId,
+        body: dto.body,
+        draftedByAi: Boolean(dto.draftedByAi),
+        draftedByAgentId,
+      },
     });
     await this.prisma.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId: actorUserId } },
@@ -235,6 +243,20 @@ export class ConversationsService {
     await this.eventBus.emit('M19', 'message.new', { conversationId, messageId: message.id, senderId: actorUserId });
 
     return message;
+  }
+
+  // §2.3/§9.5 — koji agent je napisao nacrt razrešava server, ne klijent (vidi CreateMessageDto).
+  // AI nacrt postoji samo za EXTERNAL_SUPPLIER razgovore (§9.5) — za DIRECT/GROUP nema nijednog
+  // toka koji ga proizvodi, pa je oznaka tamo greška klijenta, ne tiho ignorisana vrednost.
+  private async resolveDraftAgentUserId(conversationType: string): Promise<string | null> {
+    if (conversationType !== 'EXTERNAL_SUPPLIER') {
+      throw new BadRequestException('draftedByAi je moguć isključivo za EXTERNAL_SUPPLIER razgovor (§9.5).');
+    }
+    const agent = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'SUPPLIER_DRAFT_AGENT' } });
+    // Agentski nalog može nedostajati u okruženju bez seeda — poreklo se i dalje beleži
+    // (draftedByAi = true), samo bez pokazivača na konkretan nalog. Bolje nepotpuna istina nego
+    // odbijena poruka koju je zaposleni već napisao.
+    return agent?.userId ?? null;
   }
 
   private async assertCanSend(conversationType: string, actorUserId: string): Promise<void> {

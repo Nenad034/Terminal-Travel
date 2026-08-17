@@ -315,6 +315,64 @@ describe('M19 — izlazni kriterijum (e2e)', () => {
   });
 
   // ==========================================================================
+  it('§2.3/§9.5/§10 — poruka poslata iz AI nacrta nosi drafted_by_ai, otkucana od nule ne nosi', async () => {
+    const owner = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+    const supplier = await prisma.supplier.create({
+      data: {
+        name: `M19 Test Dobavljač 4 ${testRunId}`,
+        type: 'HOTEL',
+        taxId: `TAX4-${testRunId}`,
+        registrationNumber: `REG4-${testRunId}`,
+        country: 'Srbija',
+        contactName: 'Jovana',
+        contactEmail: `dobavljac4-${testRunId}@primer.rs`,
+        contactPhone: '060444444',
+        status: 'ACTIVE',
+      },
+    });
+    createdSupplierIds.push(supplier.id);
+
+    const convoRes = await request(app.getHttpServer())
+      .post('/api/v1/chat/conversations')
+      .set(authed(owner.accessToken))
+      .send({ type: 'EXTERNAL_SUPPLIER', supplierId: supplier.id });
+    const conversationId = convoRes.body.id;
+
+    // Poruka koju je zaposleni otkucao od nule — bez ikakve oznake porekla.
+    const plainRes = await request(app.getHttpServer())
+      .post(`/api/v1/chat/conversations/${conversationId}/messages`)
+      .set(authed(owner.accessToken))
+      .send({ body: 'Dobar dan, molim potvrdu raspoloživosti.' });
+    expect(plainRes.status).toBe(201);
+    const plain = await prisma.message.findUniqueOrThrow({ where: { id: plainRes.body.id } });
+    expect(plain.draftedByAi).toBe(false);
+    expect(plain.draftedByAgentId).toBeNull();
+
+    // Poruka nastala iz AI nacrta koju je čovek pregledao i poslao — senderId ostaje čovek,
+    // ali poreklo teksta je zabeleženo (§2.3).
+    const draftedRes = await request(app.getHttpServer())
+      .post(`/api/v1/chat/conversations/${conversationId}/messages`)
+      .set(authed(owner.accessToken))
+      .send({ body: 'Hvala na brzom odgovoru, potvrđujemo termin.', draftedByAi: true });
+    expect(draftedRes.status).toBe(201);
+    const drafted = await prisma.message.findUniqueOrThrow({ where: { id: draftedRes.body.id } });
+    expect(drafted.draftedByAi).toBe(true);
+    expect(drafted.senderId).toBe(owner.user.id);
+
+    // §9.5 — AI nacrt postoji samo za razgovore sa dobavljačima, ne za interni tim-chat.
+    const colleague = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+    const directRes = await request(app.getHttpServer())
+      .post('/api/v1/chat/conversations')
+      .set(authed(owner.accessToken))
+      .send({ type: 'DIRECT', participantUserIds: [colleague.user.id] });
+    const rejected = await request(app.getHttpServer())
+      .post(`/api/v1/chat/conversations/${directRes.body.id}/messages`)
+      .set(authed(owner.accessToken))
+      .send({ body: 'nacrt u internom chatu', draftedByAi: true });
+    expect(rejected.status).toBe(400);
+  });
+
+  // ==========================================================================
   it('§9.5/§10 — nijedna radnja u M5/M10 se ne pokreće automatski na osnovu chat poruke (nema pretplatnika na M19 evente u tim modulima)', async () => {
     // Statička provera koda (ne runtime) — dokumentovana ovde radi vidljivosti u test izveštaju:
     // grep kroz apps/api/src/modules/m5-rezervacije i m10-finansije ne nalazi nijedan

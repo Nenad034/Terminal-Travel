@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import TranslationsPanel from './TranslationsPanel';
 import ApproveContentButton from './ApproveContentButton';
 
@@ -53,8 +54,15 @@ export default async function ContentDetailPage({ params }: { params: { id: stri
           <h1 className="font-mono text-lg">
             <span className="text-accent">$</span> marketing/sadrzaj/{content.slug ?? content.id.slice(0, 8)}
           </h1>
-          <p className="text-xs text-ink-faint">
-            {content.type} · tracking_code <code>{content.trackingCode}</code> · {content.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
+          {/* 29-DIZAJN-SISTEM-UI.md §6a — autor nacrta kao i svuda drugde; odobrenje objave
+              (approvedBy, §3 korak 4) ostaje isključivo ljudsko i prikazano je posebno ispod. */}
+          <p className="flex flex-wrap items-center gap-1 text-xs text-ink-faint">
+            {content.type} · tracking_code <code>{content.trackingCode}</code> ·{' '}
+            {content.generatedBy === 'AI' ? (
+              <ActorLabel name="AI agent" origin="AI_AGENT" />
+            ) : (
+              <ActorLabel name="ručni unos" origin="STAFF" />
+            )}
           </p>
         </div>
         <StatusBadge status={content.status} />

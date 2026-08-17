@@ -91,13 +91,17 @@ export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconn
   @SubscribeMessage('message.send')
   async handleMessageSend(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() body: { conversationId: string; body: string },
+    @MessageBody() body: { conversationId: string; body: string; draftedByAi?: boolean },
   ): Promise<void> {
     const userId: string | undefined = socket.data?.userId;
     if (!userId) return;
 
     try {
-      const message = await this.conversations.createMessage(body.conversationId, { body: body.body }, userId);
+      const message = await this.conversations.createMessage(
+        body.conversationId,
+        { body: body.body, draftedByAi: body.draftedByAi },
+        userId,
+      );
       this.server.to(body.conversationId).emit('message.new', message);
     } catch (err) {
       socket.emit('message.error', { conversationId: body.conversationId, error: (err as Error).message });

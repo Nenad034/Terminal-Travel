@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
+import ActorLabel from '@/components/ActorLabel';
 import HelpTabs from '../HelpTabs';
 import SuggestionActions from './SuggestionActions';
 
@@ -49,9 +50,14 @@ export default async function PredloziPage() {
           {suggestions.length === 0 && <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema predloga na čekanju.</p>}
           {suggestions.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-panel p-4">
-              <div className="mb-1 flex items-center justify-between">
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-1">
                 <h2 className="text-sm font-semibold text-ink">{s.draftTitle}</h2>
                 <span className="text-[11px] text-ink-faint">{new Date(s.createdAt).toLocaleString('sr-RS')}</span>
+              </div>
+              {/* 29-DIZAJN-SISTEM-UI.md §6a — poreklo stoji uz svaki predlog, ne samo u uvodnom
+                  tekstu stranice: kartica se čita pojedinačno, uvod se preskače. */}
+              <div className="mb-1 text-[11px] text-ink-faint">
+                <ActorLabel name="AI agent" origin="AI_AGENT" />
               </div>
               <p className="mb-2 whitespace-pre-wrap text-xs text-ink-dim">{s.draftBody}</p>
               <p className="mb-3 text-[11px] text-ink-faint">

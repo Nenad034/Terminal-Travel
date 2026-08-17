@@ -14,6 +14,7 @@ describe('ConversationsService', () => {
         update: jest.fn(),
       },
       supplierConversationAccess: { create: jest.fn() },
+      aIAgent: { findFirst: jest.fn() },
       presenceStatus: { findMany: jest.fn() },
       message: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), findUniqueOrThrow: jest.fn(), update: jest.fn() },
       $transaction: jest.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
@@ -131,7 +132,9 @@ describe('ConversationsService', () => {
       await service.createMessage('c1', { body: 'zdravo' }, 'contact-1');
 
       expect(permissions.hasPermission).not.toHaveBeenCalled();
-      expect(prisma.message.create).toHaveBeenCalledWith({ data: { conversationId: 'c1', senderId: 'contact-1', body: 'zdravo' } });
+      expect(prisma.message.create).toHaveBeenCalledWith({
+        data: { conversationId: 'c1', senderId: 'contact-1', body: 'zdravo', draftedByAi: false, draftedByAgentId: null },
+      });
     });
 
     it('STAFF na EXTERNAL_SUPPLIER razgovoru mora imati M19/supplier-conversation/SEND_MESSAGE', async () => {
@@ -164,6 +167,76 @@ describe('ConversationsService', () => {
         expect.objectContaining({ recipientUserId: 'staff-2' }),
       );
       expect(eventBus.emit).toHaveBeenCalledWith('M19', 'message.new', expect.objectContaining({ conversationId: 'c1' }));
+    });
+  });
+
+  describe('createMessage — evidencija AI porekla (M19 spec §2.3/§9.5)', () => {
+    function mockStaffSendOn(type: string) {
+      const ctx = makeService();
+      ctx.prisma.conversation.findUnique.mockResolvedValue({ id: 'c1', type });
+      ctx.prisma.conversationParticipant.findUnique.mockResolvedValue({ conversationId: 'c1', userId: 'staff-1' });
+      ctx.prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF', fullName: 'Marko' });
+      ctx.permissions.hasPermission.mockResolvedValue(true);
+      ctx.prisma.message.create.mockResolvedValue({ id: 'm1' });
+      ctx.prisma.conversationParticipant.findMany.mockResolvedValue([]);
+      ctx.prisma.presenceStatus.findMany.mockResolvedValue([]);
+      return ctx;
+    }
+
+    it('poruka otkucana od nule nema oznaku AI porekla', async () => {
+      const { service, prisma } = mockStaffSendOn('EXTERNAL_SUPPLIER');
+
+      await service.createMessage('c1', { body: 'ručno napisan tekst' }, 'staff-1');
+
+      expect(prisma.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ draftedByAi: false, draftedByAgentId: null }) }),
+      );
+      expect(prisma.aIAgent.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('poruka iz AI nacrta nosi draftedByAi + agentov nalog, a senderId ostaje čovek', async () => {
+      const { service, prisma } = mockStaffSendOn('EXTERNAL_SUPPLIER');
+      prisma.aIAgent.findFirst.mockResolvedValue({ id: 'agent-1', userId: 'agent-user-1' });
+
+      await service.createMessage('c1', { body: 'nacrt koji je čovek pregledao', draftedByAi: true }, 'staff-1');
+
+      expect(prisma.message.create).toHaveBeenCalledWith({
+        data: {
+          conversationId: 'c1',
+          senderId: 'staff-1',
+          body: 'nacrt koji je čovek pregledao',
+          draftedByAi: true,
+          draftedByAgentId: 'agent-user-1',
+        },
+      });
+    });
+
+    it('agent razrešava server preko SUPPLIER_DRAFT_AGENT uloge — klijent ne bira nalog', async () => {
+      const { service, prisma } = mockStaffSendOn('EXTERNAL_SUPPLIER');
+      prisma.aIAgent.findFirst.mockResolvedValue({ id: 'agent-1', userId: 'agent-user-1' });
+
+      await service.createMessage('c1', { body: 'nacrt', draftedByAi: true } as any, 'staff-1');
+
+      expect(prisma.aIAgent.findFirst).toHaveBeenCalledWith({ where: { agentRole: 'SUPPLIER_DRAFT_AGENT' } });
+    });
+
+    it('bez seedovanog agentskog naloga poreklo se i dalje beleži, samo bez pokazivača na nalog', async () => {
+      const { service, prisma } = mockStaffSendOn('EXTERNAL_SUPPLIER');
+      prisma.aIAgent.findFirst.mockResolvedValue(null);
+
+      await service.createMessage('c1', { body: 'nacrt', draftedByAi: true }, 'staff-1');
+
+      expect(prisma.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ draftedByAi: true, draftedByAgentId: null }) }),
+      );
+    });
+
+    it('odbija draftedByAi na DIRECT razgovoru — AI nacrt postoji samo za dobavljače (§9.5)', async () => {
+      const { service } = mockStaffSendOn('DIRECT');
+
+      await expect(service.createMessage('c1', { body: 'nacrt', draftedByAi: true }, 'staff-1')).rejects.toThrow(
+        /EXTERNAL_SUPPLIER/,
+      );
     });
   });
 

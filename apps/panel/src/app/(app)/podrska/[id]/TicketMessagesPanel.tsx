@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import { createTicketMessage, sendTicketMessage, FormState } from '../actions';
 
 const initialState: FormState = { error: null };
@@ -32,12 +33,14 @@ export default function TicketMessagesPanel({ ticketId, messages, canRespond }: 
         <div className="mb-3 flex flex-col gap-2">
           {messages.map((m) => (
             <div key={m.id} className={`rounded border p-2 text-xs ${m.isInternalNote ? 'border-warn bg-warn-bg' : 'border-border bg-panel2'}`}>
-              <div className="flex items-center justify-between text-[11px] text-ink-faint">
+              {/* 29-DIZAJN-SISTEM-UI.md §6a — zajednička komponenta umesto ranijeg lokalnog bedža.
+                  Poslat AI nacrt prikazuje OBA podatka (ko je poslao + da je nacrt AI), §6a.2 pravilo 2. */}
+              <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-ink-faint">
+                <ActorLabel {...actorPropsFor(m)} />
                 <span>
-                  {senderLabel(m.senderType)} · {new Date(m.createdAt).toLocaleString('sr-RS')}
+                  {new Date(m.createdAt).toLocaleString('sr-RS')}
                   {m.isInternalNote && ' · interna beleška'}
                 </span>
-                {m.senderType === 'AI_DRAFT' && <span className="rounded bg-accent-soft px-1.5 py-0.5 text-accent">AI nacrt</span>}
               </div>
               <p className="mt-1 whitespace-pre-wrap text-ink-dim">{m.body}</p>
               {m.senderType === 'AI_DRAFT' && !m.sentBy && canRespond && (
@@ -45,7 +48,6 @@ export default function TicketMessagesPanel({ ticketId, messages, canRespond }: 
                   <SendDraftButton ticketId={ticketId} messageId={m.id} />
                 </div>
               )}
-              {m.sentBy && <p className="mt-1 text-[10px] text-ink-faint">poslao: {m.sentBy}</p>}
             </div>
           ))}
         </div>
@@ -56,10 +58,14 @@ export default function TicketMessagesPanel({ ticketId, messages, canRespond }: 
   );
 }
 
-function senderLabel(type: TicketMessage['senderType']): string {
-  if (type === 'REQUESTER') return 'gost/subagent';
-  if (type === 'STAFF') return 'tim';
-  return 'AI nacrt';
+// 29-DIZAJN-SISTEM-UI.md §6a — prevod M14 senderType-a na jedinstveni prikaz porekla.
+// Nacrt koji je čovek već poslao (AI_DRAFT + sentBy) prestaje da bude "AI poruka" i postaje
+// ljudska poruka sa zabeleženim AI poreklom teksta — tačno kako §6a.2 pravilo 2 traži.
+function actorPropsFor(m: TicketMessage) {
+  if (m.senderType === 'REQUESTER') return { name: 'podnosilac', origin: 'GUEST' as const };
+  if (m.senderType === 'STAFF') return { name: m.sentBy ?? 'tim', origin: 'STAFF' as const };
+  if (m.sentBy) return { name: m.sentBy, origin: 'STAFF' as const, draftedByAi: true };
+  return { name: 'AI agent', origin: 'AI_AGENT' as const };
 }
 
 function NewMessageForm({ ticketId }: { ticketId: string }) {

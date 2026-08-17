@@ -2626,6 +2626,11 @@ model Message {
   sentAt         DateTime  @default(now()) @map("sent_at")
   editedAt       DateTime? @map("edited_at")
   deletedAt      DateTime? @map("deleted_at")
+  // M19 spec §2.3/§9.5 — evidencija AI porekla teksta. NE menja senderId: odgovornost za poruku
+  // nosi čovek koji je pritisnuo "pošalji". Upisuje se u trenutku slanja jer AI nacrt nikad ne
+  // postaje Message sam po sebi (SupplierDraftService vraća samo tekst) — drugog trenutka nema.
+  draftedByAi      Boolean @default(false) @map("drafted_by_ai")
+  draftedByAgentId String? @map("drafted_by_agent_id") // FK -> M1 User, accountType = AI_AGENT
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

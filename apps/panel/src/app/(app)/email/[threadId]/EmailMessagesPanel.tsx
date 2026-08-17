@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import { createEmailMessage, sendEmailDraft, FormState } from '../actions';
 
 const initialState: FormState = { error: null };
@@ -34,11 +35,11 @@ export default function EmailMessagesPanel({ threadId, messages, canReply }: { t
         <div className="mb-3 flex flex-col gap-2">
           {messages.map((m) => (
             <div key={m.id} className="rounded border border-border bg-panel2 p-2 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-ink-faint">
-                <span>
-                  {senderLabel(m.senderType)} ({m.fromAddress}) · {new Date(m.receivedAt).toLocaleString('sr-RS')}
-                </span>
-                {m.senderType === 'AI_DRAFT' && <span className="rounded bg-accent-soft px-1.5 py-0.5 text-accent">AI nacrt</span>}
+              {/* 29-DIZAJN-SISTEM-UI.md §6a — zajednička komponenta umesto ranijeg lokalnog bedža,
+                  isti prevod kao M14 nit tiketa (poslat nacrt = čovek + AI poreklo teksta). */}
+              <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-ink-faint">
+                <ActorLabel {...actorPropsFor(m)} org={m.fromAddress} />
+                <span>{new Date(m.receivedAt).toLocaleString('sr-RS')}</span>
               </div>
               <p className="mt-1 whitespace-pre-wrap text-ink-dim">{m.body}</p>
               {m.direction === 'INBOUND' && m.aiSummary && (
@@ -62,10 +63,12 @@ export default function EmailMessagesPanel({ threadId, messages, canReply }: { t
   );
 }
 
-function senderLabel(type: EmailMessage['senderType']): string {
-  if (type === 'CORRESPONDENT') return 'korespondent';
-  if (type === 'STAFF') return 'tim';
-  return 'AI nacrt';
+// 29-DIZAJN-SISTEM-UI.md §6a — prevod M22 senderType-a na jedinstveni prikaz porekla.
+function actorPropsFor(m: EmailMessage) {
+  if (m.senderType === 'CORRESPONDENT') return { name: 'korespondent', origin: 'GUEST' as const };
+  if (m.senderType === 'STAFF') return { name: m.sentBy ?? 'tim', origin: 'STAFF' as const };
+  if (m.sentBy) return { name: m.sentBy, origin: 'STAFF' as const, draftedByAi: true };
+  return { name: 'AI agent', origin: 'AI_AGENT' as const };
 }
 
 function NewMessageForm({ threadId }: { threadId: string }) {

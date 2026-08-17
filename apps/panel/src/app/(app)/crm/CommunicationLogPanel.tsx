@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import { createCommunicationLog, markCommunicationSent, FormState } from './actions';
 
 const initialState: FormState = { error: null };
@@ -47,11 +48,22 @@ export default function CommunicationLogPanel({
         <div className="mb-3 flex flex-col gap-2">
           {entries.map((e) => (
             <div key={e.id} className="rounded border border-border bg-panel2 p-2 text-xs">
-              <div className="flex items-center justify-between text-[11px] text-ink-faint">
+              {/* 29-DIZAJN-SISTEM-UI.md §6a — zajednička komponenta umesto ranijeg lokalnog bedža.
+                  Dok nacrt nije poslat, autor JE agent; čim ga čovek pošalje, autor je čovek sa
+                  zabeleženim AI poreklom teksta (§6a.2 pravilo 2). */}
+              <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-ink-faint">
+                {e.sentBy || !e.draftedByAi ? (
+                  <ActorLabel
+                    name={e.sentBy ?? (e.direction === 'OUTBOUND' ? 'tim' : 'sagovornik')}
+                    origin={e.direction === 'OUTBOUND' ? 'STAFF' : 'GUEST'}
+                    draftedByAi={e.draftedByAi}
+                  />
+                ) : (
+                  <ActorLabel name="AI agent" origin="AI_AGENT" />
+                )}
                 <span>
                   {e.channel} · {e.direction === 'OUTBOUND' ? 'poslato' : 'primljeno'} · {new Date(e.createdAt).toLocaleString('sr-RS')}
                 </span>
-                {e.draftedByAi && <span className="rounded bg-accent-soft px-1.5 py-0.5 text-accent">AI nacrt</span>}
               </div>
               <p className="mt-1 text-ink-dim">{e.summary}</p>
               {e.draftedByAi && !e.sentBy && (
@@ -59,7 +71,6 @@ export default function CommunicationLogPanel({
                   <MarkSentButton id={e.id} target={target} />
                 </div>
               )}
-              {e.sentBy && <p className="mt-1 text-[10px] text-ink-faint">poslao: {e.sentBy}</p>}
             </div>
           ))}
         </div>

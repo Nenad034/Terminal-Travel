@@ -55,15 +55,38 @@ export async function markConversationRead(conversationId: string): Promise<void
 // povezivanju primaoca). Primarni put je WS `message.send` (§8), koji uživo emituje `message.new`
 // svim povezanim učesnicima — ovaj REST put to NE radi (samo eventBus interno), pa ga koristimo
 // isključivo kao pouzdan fallback, ne kao normalan put slanja.
-export async function sendMessageRestFallback(conversationId: string, body: string): Promise<{ error: string | null; message?: unknown }> {
+export async function sendMessageRestFallback(
+  conversationId: string,
+  body: string,
+  draftedByAi = false,
+): Promise<{ error: string | null; message?: unknown }> {
   try {
     const message = await apiFetch(`/chat/conversations/${conversationId}/messages`, {
       method: 'POST',
-      body: { body },
+      body: { body, draftedByAi: draftedByAi || undefined },
     });
     revalidatePath(`/chat/${conversationId}`);
     return { error: null, message };
   } catch (err) {
     return { error: err instanceof ApiError ? extractMessage(err) : 'Slanje poruke nije uspelo.' };
+  }
+}
+
+// §9.5/§9.7 — POST /chat/supplier-conversations/:id/draft-reply. Vraća ISKLJUČIVO tekst; nijedan
+// put odavde ne šalje poruku (to je sama sprovedba pravila "Predloži pa čovek odobri"). Zaposleni
+// dobijeni tekst pregleda, po potrebi izmeni, i sam pritisne "pošalji" — tek tada se, po §2.3,
+// beleži da je tekst potekao iz AI nacrta.
+export async function draftSupplierReply(
+  conversationId: string,
+  instruction: string,
+): Promise<{ draft: string | null; note?: string; error: string | null }> {
+  try {
+    const result = await apiFetch<{ draft: string | null; note?: string }>(
+      `/chat/supplier-conversations/${conversationId}/draft-reply`,
+      { method: 'POST', body: { instruction: instruction.trim() || undefined } },
+    );
+    return { ...result, error: null };
+  } catch (err) {
+    return { draft: null, error: err instanceof ApiError ? extractMessage(err) : 'AI nacrt nije uspeo.' };
   }
 }

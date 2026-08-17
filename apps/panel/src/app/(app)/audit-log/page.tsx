@@ -1,5 +1,6 @@
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
+import ActorLabel from '@/components/ActorLabel';
 
 interface AuditLogEntry {
   id: string;
@@ -18,6 +19,14 @@ interface AuditLogEntry {
 // (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
 // korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
 // (isti princip kao §3 — panel ne izmišlja dozvole, samo poštuje ono što API vrati).
+// ActorType (HUMAN/AI_AGENT/SYSTEM) preveden u reč koju čovek čita; bedž ("AI") dodaje ActorLabel.
+function actorWord(actorType: string): string {
+  if (actorType === 'HUMAN') return 'korisnik';
+  if (actorType === 'AI_AGENT') return 'AI agent';
+  if (actorType === 'SYSTEM') return 'sistem';
+  return 'nepoznat akter';
+}
+
 export default async function AuditLogPage() {
   let entries: AuditLogEntry[] = [];
   let error: string | null = null;
@@ -47,7 +56,16 @@ export default async function AuditLogPage() {
               <span className="text-ink-dim">
                 {e.resourceType}#{e.resourceId?.slice(0, 8)}
               </span>{' '}
-              <span className="text-ink-faint">[{e.actorType}]</span>
+              {/* §3.1 / 29-DIZAJN-SISTEM-UI.md §6a — ranije je ovde stajala sirova enum vrednost
+                  (`[AI_AGENT]`). Ime aktera audit log API ne vraća (samo actorId), pa se prikazuje
+                  čitljiva reč za poreklo + skraćen ID kao identifikator — ID je ovde legitiman
+                  jer je audit log tehnički prikaz (§3, monospace za ID-jeve), enum nije. */}
+              <ActorLabel
+                origin={e.actorType}
+                name={actorWord(e.actorType)}
+                className="text-ink-faint"
+              />{' '}
+              <span className="text-ink-faint">#{e.actorId?.slice(0, 8) ?? '—'}</span>
             </div>
           ))}
         </div>

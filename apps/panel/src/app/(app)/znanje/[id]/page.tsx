@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import ArticleTabs from './ArticleTabs';
 import PublishButton from './PublishButton';
 import StatusForm from './StatusForm';
@@ -64,12 +65,17 @@ export default async function ZnanjeDetailPage({ params }: { params: { id: strin
           <h1 className="font-mono text-lg">
             <span className="text-accent">$</span> znanje/clanci/{article.id.slice(0, 8)}
           </h1>
-          <p className="text-xs text-ink-faint">
+          <p className="flex flex-wrap items-center gap-1 text-xs text-ink-faint">
             {article.subjectType}
             {article.destinationCountry ? ` · ${article.destinationCountry}${article.destinationCity ? `, ${article.destinationCity}` : ''}` : ''}
             {article.productId ? ` · proizvod ${article.productId.slice(0, 8)}` : ''}
             {' · '}
-            {article.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
+            {/* 29-DIZAJN-SISTEM-UI.md §6a — autor nacrta; ljudsko odobrenje (approvedBy) je zasebno. */}
+            {article.generatedBy === 'AI' ? (
+              <ActorLabel name="AI agent" origin="AI_AGENT" />
+            ) : (
+              <ActorLabel name="ručni unos" origin="STAFF" />
+            )}
           </p>
         </div>
         <StatusBadge status={article.status} />

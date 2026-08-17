@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import Icon from '@/components/Icon';
+import ActorLabel from '@/components/ActorLabel';
 import { PresenceDot } from '../PresenceDot';
-import { markConversationRead, sendMessageRestFallback } from '../actions';
+import { draftSupplierReply, markConversationRead, sendMessageRestFallback } from '../actions';
 
 interface Participant {
   userId: string;
@@ -19,6 +20,9 @@ interface MessageItem {
   sentAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+  // M19 spec §2.3 — evidencija AI porekla; senderId i dalje pokazuje na čoveka koji je poslao.
+  draftedByAi?: boolean;
+  draftedByAgentId?: string | null;
 }
 
 const WS_ORIGIN = process.env.NEXT_PUBLIC_API_WS_ORIGIN ?? 'http://localhost:3000';
@@ -54,6 +58,12 @@ export default function ChatPanel({
   const [draft, setDraft] = useState('');
   const [sendError, setSendError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  // §2.3/§9.5 — pamti da tekst u polju potiče iz AI nacrta. Ostaje `true` i kad ga zaposleni
+  // izmeni pre slanja (spec: beleži se poreklo, ne doslovna istovetnost); gasi se tek kad polje
+  // ostane prazno (novi tekst od nule) ili posle slanja.
+  const [draftFromAi, setDraftFromAi] = useState(false);
+  const [drafting, setDrafting] = useState(false);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const typingTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -151,6 +161,7 @@ export default function ChatPanel({
 
   function handleDraftChange(value: string) {
     setDraft(value);
+    if (value.trim() === '') setDraftFromAi(false);
     const socket = socketRef.current;
     if (!socket?.connected) return;
     const now = Date.now();
@@ -164,6 +175,23 @@ export default function ChatPanel({
     socketRef.current?.emit('typing.stop', { conversationId });
   }
 
+  // §9.5 — traži nacrt od AI agenta. Tekst pada u isto polje za pisanje: zaposleni ga pregleda i
+  // po potrebi izmeni pre slanja, jer nema puta kojim bi ga AI poslao sam.
+  async function handleRequestDraft() {
+    setDrafting(true);
+    setDraftNote(null);
+    const result = await draftSupplierReply(conversationId, draft);
+    if (result.error) {
+      setDraftNote(result.error);
+    } else if (result.draft) {
+      setDraft(result.draft);
+      setDraftFromAi(true);
+    } else {
+      setDraftNote(result.note ?? 'AI nacrt trenutno nije dostupan.');
+    }
+    setDrafting(false);
+  }
+
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
@@ -173,19 +201,21 @@ export default function ChatPanel({
 
     const socket = socketRef.current;
     if (socket?.connected) {
-      socket.emit('message.send', { conversationId, body });
+      socket.emit('message.send', { conversationId, body, draftedByAi: draftFromAi });
       socket.emit('typing.stop', { conversationId });
       setDraft('');
+      setDraftFromAi(false);
       setSending(false);
       return;
     }
 
     // WS nije povezan — REST fallback (§8). Bez WS eha, poruku ubacujemo ručno u lokalni prikaz.
-    const result = await sendMessageRestFallback(conversationId, body);
+    const result = await sendMessageRestFallback(conversationId, body, draftFromAi);
     if (result.error) {
       setSendError(result.error);
     } else {
       setDraft('');
+      setDraftFromAi(false);
       if (result.message) {
         const m = result.message as MessageItem;
         setMessages((prev) => (prev.some((existing) => existing.id === m.id) ? prev : [...prev, m]));
@@ -221,7 +251,16 @@ export default function ChatPanel({
           const sender = userById.get(m.senderId);
           return (
             <div key={m.id} className={`max-w-[75%] rounded border p-2 text-xs ${mine ? 'self-end border-accent bg-accent-soft' : 'self-start border-border bg-panel2'}`}>
-              {!mine && <div className="mb-0.5 text-[10px] font-semibold text-ink-faint">{sender?.fullName ?? 'nepoznat korisnik'}</div>}
+              {/* 29-DIZAJN-SISTEM-UI.md §6a — poreklo je vidljivo na SVAKOJ poruci, i na sopstvenoj:
+                  oznaka AI nacrta (§6a.2 pravilo 2) mora da se vidi i kad je poruku poslao onaj ko
+                  gleda ekran, jer je upravo on odgovoran za tekst koji je AI predložio. */}
+              <div className="mb-0.5 text-[10px] text-ink-faint">
+                <ActorLabel
+                  name={mine ? 'Vi' : sender?.fullName}
+                  origin={sender?.accountType ?? 'STAFF'}
+                  draftedByAi={m.draftedByAi ?? false}
+                />
+              </div>
               <p className="whitespace-pre-wrap text-ink-dim">{m.deletedAt ? '(poruka obrisana)' : m.body}</p>
               <div className="mt-0.5 text-[10px] text-ink-faint">
                 {new Date(m.sentAt).toLocaleString('sr-RS')}
@@ -239,8 +278,17 @@ export default function ChatPanel({
       </div>
 
       {canSend ? (
-        <form onSubmit={handleSend} className="flex gap-2 border-t border-border p-3">
+        <form onSubmit={handleSend} className="flex flex-wrap gap-2 border-t border-border p-3">
           {sendError && <p className="w-full rounded bg-danger-bg p-2 text-[11px] text-danger">{sendError}</p>}
+          {draftNote && <p className="w-full rounded bg-panel2 p-2 text-[11px] text-ink-faint">{draftNote}</p>}
+          {/* 29-DIZAJN-SISTEM-UI.md §6a.2 pravilo 1 — oznaka je vidljiva pre slanja, ne posle:
+              zaposleni mora znati da šalje AI tekst dok još može da ga izmeni ili odbaci. */}
+          {draftFromAi && (
+            <p className="flex w-full items-center gap-1 rounded bg-accent-soft p-2 text-[11px] text-accent">
+              <Icon name="sparkle" /> Tekst potiče iz AI nacrta — biće tako i zabeležen. Odgovornost za
+              poslatu poruku ostaje na vama.
+            </p>
+          )}
           <textarea
             value={draft}
             onChange={(e) => handleDraftChange(e.target.value)}
@@ -255,13 +303,27 @@ export default function ChatPanel({
             placeholder="Napišite poruku… (Enter za slanje, Shift+Enter za novi red)"
             className="input flex-1"
           />
-          <button
-            type="submit"
-            disabled={sending || draft.trim() === ''}
-            className="self-end rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-          >
-            {sending ? 'Šaljem…' : 'pošalji'}
-          </button>
+          <div className="flex flex-col items-end gap-1 self-end">
+            <button
+              type="submit"
+              disabled={sending || draft.trim() === ''}
+              className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+            >
+              {sending ? 'Šaljem…' : 'pošalji'}
+            </button>
+            {/* §9.5 — AI nacrt postoji samo za razgovore sa dobavljačima; interni tim-chat ga
+                nema (namerno uža granica nego M7 chat). */}
+            {conversationType === 'EXTERNAL_SUPPLIER' && (
+              <button
+                type="button"
+                onClick={handleRequestDraft}
+                disabled={drafting}
+                className="rounded border border-border px-2 py-1 text-[11px] text-ink-dim hover:bg-panel2 disabled:opacity-50"
+              >
+                {drafting ? 'Pišem nacrt…' : 'predloži nacrt (AI)'}
+              </button>
+            )}
+          </div>
         </form>
       ) : (
         <p className="border-t border-border p-3 text-[11px] text-ink-faint">Nemate dozvolu za slanje poruka u ovom razgovoru.</p>
