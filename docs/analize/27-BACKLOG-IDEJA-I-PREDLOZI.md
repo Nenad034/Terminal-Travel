@@ -25,6 +25,11 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
   4. Gost/subagent otvara link bez login-a, vidi ponudu (mobilno-prilagođeno), sa CTA "Rezerviši"/"Kontaktiraj nas".
   - Otvoreno pre pisanja spec-a: da li `Offer` živi kao dopuna M6 (najprirodnije, već ima access-token obrazac) ili kao mali novi modul; da li se ekran gradi prvo u M17 (zaposleni) ili čeka i M7 portal (subagent) zajedno.
 
+- **Operativni zadaci vezani za entitet (`Task`)** (nastalo iz poređenja sa cake.com paketom — Clockify/Pumble/Plaky, 17.8.2026; upisano na zahtev vlasnika, čeka odluku pre dopune spec-a) — od tri alata tog paketa, chat (Pumble) je već pokriven modulom M19, evidencija radnog vremena (Clockify) je **svesno odbačena** kao HR alat sa malom koristi i trenjem prema timu (uvid u "koliko košta obrada rezervacije" jeftinije se dobija brojanjem događaja u M5/M14 kroz M13 izveštaj nego merenjem sati), a upravljanje zadacima (Plaky) je jedina stvarna rupa — nijedan od 23 modula nema pojam zadatka sa rokom i vlasnikom.
+  - **Namerno NIJE predlog za generičan "project management" modul sa tablama i Gantt-om.** To je tačno obrazac koji je razgradio PrimeTravel (paralelni sistemi koji rade sličan posao, `docs/analize/22-ANALIZA-PRIMETRAVEL-NALAZI.md`).
+  - Predlog je uži: `Task { assignee, due_date, status, related_entity }` koji uvek visi o već postojećem entitetu drugog modula — npr. rooming lista pred polazak grupe (`Booking`/`SupplierManifest`, M5), obnova ugovora sa hotelom pred istek (M3), poziv nalogodavcu o dospeloj fakturi (M10). Prikaz kao "Moj dan" u M17; podsetnik na rok kroz već postojeće M18 kanale (Telegram/email), bez novog mehanizma obaveštavanja.
+  - Otvoreno pre pisanja spec-a: da li `Task` živi kao dopuna M17 (ali M17 po definiciji nema sopstvenu bazu ni poslovnu logiku — što govori protiv) ili kao mali nov modul M24; odnos prema M14 tiketima (tiket je zahtev spolja, zadatak je interna obaveza — granicu treba eksplicitno zapisati da se ne bi duplirali); da li AI agent sme sam da otvori zadatak ili samo da predloži (M15 registar ovlašćenja, poglavlje 7 master dokumenta).
+
 ---
 
 ## M1 — Core / Identitet i pristup
