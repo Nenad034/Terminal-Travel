@@ -1,9 +1,23 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
+
+// M8 spec §5.1 — SEOMeta, dopuna avgust 2026: naslov po kategoriji/jeziku.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; tip: string }>;
+}): Promise<Metadata> {
+  const { locale, tip } = await params;
+  const type = slugToType(tip);
+  if (!type) return {};
+  const t = await getTranslations({ locale, namespace: 'categories' });
+  return { title: `${t(type)} — Terminal Travel` };
+}
 
 // M8 spec poglavlje 2, dopuna avgust 2026 — "/[tip]" (kategorija): lista svih
 // proizvoda tog tipa. M2 nema poseban endpoint za ovo — filtrira se na strani sajta
@@ -24,8 +38,16 @@ export default async function CategoryPage({
   ).catch(() => []);
   const filtered = products.filter((p) => p.type === type);
 
+  // M8 spec §5.1 — BreadcrumbLD ("sve stranice osim /").
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [{ '@type': 'ListItem', position: 1, name: t(type), item: `/${locale}/${tip}` }],
+  };
+
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <h1 className="mb-6 text-2xl font-semibold text-ink">{t(type)}</h1>
 
       {filtered.length === 0 ? (

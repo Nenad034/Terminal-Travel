@@ -116,7 +116,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M8 — Sajt agencije (B2C prikaz)
 *(§9a/§10, `docs/moduli/M08-sajt-b2c/10-SPECIFIKACIJA-M8-SAJT-B2C.md`)*
 - Detalji cookie/consent banera — potvrditi sa pravnikom pri implementaciji.
-- "Nastavi bez naloga" (anonimni checkout, poglavlje 3 korak 3) odloženo — treba javan, rate-limitovan M6 endpoint za minimalan `ClientAccount`/`GuestProfile` bez prijave; u prvom prolazu M8 traži registraciju pre rezervacije (§9a, avgust 2026).
+- ~~"Nastavi bez naloga" (anonimni checkout, poglavlje 3 korak 3) odloženo~~ — **rešeno avgust 2026** (§9a): `POST /crm/client-accounts/guest-checkout`, javan, rate-limitovan 5/sat po IP.
+- Vizuelna/screenshot provera responsive prikaza (poglavlje 9) — CSS audit urađen (bez fiksnih desktop širina), stvarna vizuelna provera čeka headless browser alat (nova zavisnost, čeka `tt-tech-stack` potvrdu) ili ručnu proveru.
+- `FAQSchemaLD` (poglavlje 5.1) nije emitovan nigde — nema još FAQ sadržaja na stranici proizvoda da bi bio uslovno prikazan.
 
 ## M9 — Mobilna aplikacija
 *(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
@@ -175,7 +177,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Konkretan izbor Speech-to-Text/Text-to-Speech provajdera za glasovni modalitet (poglavlje 6.6) — PrimeTravel analiza je polazna tačka, ne konačna odluka.
 - Glasovni kanal za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR — namerno van obima prve verzije (samo M17/interni tim preko mikrofona), zahteva zasebnu potvrdu vlasnika.
 - **Periodično uzorkovanje `actor_type = AI_AGENT` audit log zapisa radi merenja stope halucinacija/grešaka** jednom kad prvi domenski agenti budu aktivni u produkciji (avgust 2026, analiza rizika povodom spoljnog izvora) — mala dopuna M18 operativnog nadzora, ne hitna. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 2.
-- **"Razgovarate sa AI asistentom" oznaka (transparentnost, EU AI Act)** — ugraditi u UI pre aktivacije prvog gost/subagent-facing AI ekrana (M7 `subagent_chat`, M23 `/znanje/:share_token` stranica kad M8 dobije UI, M15 omnisearch ako ikad proširi obim van M17) — **ažurirano avgust 2026:** M8 omnisearch je sad gost-facing AI ekran (B2C_SITE kanal implementiran), pa je ova stavka aktivna, ne više hipotetička — traka trenutno nema takvu oznaku, dodati pre nego što se `M15_OMNISEARCH` aktivira u produkciji za B2C_SITE. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 4.
+- ~~**"Razgovarate sa AI asistentom" oznaka (transparentnost, EU AI Act)**~~ — **rešeno avgust 2026 za M8 B2C_SITE**: trajno vidljiva oznaka dodata u `apps/web/src/components/OmnisearchBar.tsx` (ne dismissible toast), live potvrđena u renderovanom HTML-u svake stranice sajta. M7 `subagent_chat` i M23 `/znanje/:share_token` (kad M8 dobije stranicu koja poziva AI, van omnisearch trake) i dalje čekaju svoj UI trenutak — ostaje otvoreno za te dve stavke. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 4.
 - ~~M21 v1 ne pokriva anonimne/INDIVIDUAL B2C goste~~ — rešeno avgust 2026, vidi M21 red ispod.
 
 ## M16 — Agentski distribucioni interfejs (MCP)

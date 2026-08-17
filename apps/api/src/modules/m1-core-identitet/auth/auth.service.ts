@@ -66,7 +66,12 @@ export class AuthService {
       resourceId: user.id,
       context: {},
     });
-    await this.eventBus.emit('M1', 'user.registered.guest', { userId: user.id, email: user.email, fullName: user.fullName });
+    await this.eventBus.emit('M1', 'user.registered.guest', {
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+    });
 
     return this.issueTokens(user.id, null, null);
   }

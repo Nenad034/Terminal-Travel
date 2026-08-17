@@ -29,18 +29,29 @@ export class M6EventSubscribersService implements OnModuleInit {
       await this.postTripSurveys.createForBooking(payload.bookingId as string);
     });
     this.eventListener.on('M1', 'user.registered.guest', async (payload) => {
-      await this.createClientAccountForGuest(payload.userId as string, payload.email as string, payload.fullName as string);
+      await this.createClientAccountForGuest(
+        payload.userId as string,
+        payload.email as string,
+        payload.fullName as string,
+        (payload.phone as string | null | undefined) ?? null,
+      );
     });
   }
 
   // M6 spec §6 — GuestProfile se namerno NE pravi ovde (traži podatke o putnom
   // dokumentu koje registracija ne prikuplja); pravi se kasnije, kad gost stvarno
   // unese te podatke (tok rezervacije ili profil naloga).
-  private async createClientAccountForGuest(userId: string, email: string, fullName: string): Promise<void> {
+  // Ispravka avgust 2026 (otkriveno pri M8 poglavlje 3 korak 3 implementaciji) —
+  // `phone` se ranije gubio: RegisterDto ga prikuplja i upisuje na User, ali
+  // event payload/ovaj handler ga nisu prenosili dalje na ClientAccount, pa je
+  // `ClientAccount.phone` ostajao trajno prazan za SVAKOG samostalno registrovanog
+  // gosta (ne samo novi "nastavi bez naloga" tok) — popravljeno u oba fajla.
+  private async createClientAccountForGuest(userId: string, email: string, fullName: string, phone: string | null): Promise<void> {
     const account = await this.clientAccounts.create({
       accountType: 'INDIVIDUAL',
       fullName,
       email,
+      phone: phone ?? undefined,
     });
     await this.prisma.user.update({ where: { id: userId }, data: { linkedProfileId: account.id } });
   }

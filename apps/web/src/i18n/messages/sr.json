@@ -11,7 +11,8 @@
     "helpHint": "Pomoć",
     "helpHintQuery": "kako mogu da pomognem",
     "searchLoading": "Pretražujem...",
-    "searchNoResults": "Nema rezultata — pokušajte konkretniji upit."
+    "searchNoResults": "Nema rezultata — pokušajte konkretniji upit.",
+    "aiDisclosure": "Razgovarate sa AI asistentom kad unesete upit"
   },
   "home": {
     "title": "Pronađite savršeno putovanje",

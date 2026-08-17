@@ -1,10 +1,11 @@
 import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/session';
+import GuestCheckoutForm from './GuestCheckoutForm';
 
-// M8 spec poglavlje 3, korak 3 — podaci gosta. Nalog gosta u ovom prvom prolazu M8
-// implementacije već postoji (registracija je preduslov za rezervaciju, poglavlje 9a) —
-// ovaj korak zato traži samo ime putnika za ugovor/vaučer (M5 ConfirmQuoteDto.buyerName),
-// ne pravi nov nalog. Detaljan GuestProfile (putni dokument) ostaje za /nalog/profil.
+// M8 spec poglavlje 3, korak 3 — podaci gosta. Gost bira: prijava, registracija, ili
+// "nastavi bez naloga" (dopuna avgust 2026 — GuestCheckoutForm, POST /crm/client-accounts/
+// guest-checkout preko M6). Ovaj korak i dalje traži samo ime putnika za ugovor/vaučer
+// (M5 ConfirmQuoteDto.buyerName). Detaljan GuestProfile (putni dokument) ostaje za /nalog/profil.
 export default async function GuestInfoPage({
   params,
   searchParams,
@@ -40,6 +41,18 @@ export default async function GuestInfoPage({
             {t('registerLink')}
           </a>
         </p>
+      )}
+
+      {!session && (
+        <GuestCheckoutForm
+          labels={{
+            continueAsGuest: t('continueAsGuest'),
+            fullName: t('fullName'),
+            email: t('email'),
+            phone: t('phone'),
+            submit: t('submit'),
+          }}
+        />
       )}
 
       <form action={`/${locale}/rezervacija/uslovi`} method="get" className="flex flex-col gap-3">

@@ -74,7 +74,7 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
       expect(result).toEqual({ id: 'pay-1', status: 'RECEIVED', bookingId: 'booking-1' });
     });
 
-    it('kad M5 potvrda ne uspe: VOID + refundOrVoid, gost dobija povraćaj', async () => {
+    it('kad M5 potvrda ne uspe: VOID + refundOrVoid, gost dobija povraćaj, poziv baca grešku (M8 izlazni kriterijum — jasna poruka, ne tiha "uspešna" VOID)', async () => {
       const { service, prisma, bookings, gateway } = makeService();
       prisma.payment.findFirst.mockResolvedValue({ id: 'pay-1', status: 'PENDING', quoteId: 'quote-1', amount: 100000 });
       gateway.getPaymentStatus.mockResolvedValue({ status: 'SUCCESS', capturedAmount: 100000 });
@@ -83,10 +83,27 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
         .mockResolvedValueOnce({ id: 'pay-1', status: 'VOIDED' });
       bookings.confirmQuote.mockRejectedValue(new Error('Nema dovoljno preostalog kapaciteta'));
 
-      const result = await service.handleCardWebhook('mock-txn-1', { buyerName: 'X', buyerType: 'FIZICKO_LICE' } as any);
+      await expect(
+        service.handleCardWebhook('mock-txn-1', { buyerName: 'X', buyerType: 'FIZICKO_LICE' } as any),
+      ).rejects.toThrow('Plaćanje je uspelo, ali potvrda rezervacije nije');
 
       expect(gateway.refundOrVoid).toHaveBeenCalledWith('mock-txn-1', 100000);
-      expect(result).toEqual({ id: 'pay-1', status: 'VOIDED' });
+      // §7.2 — DB stanje i dalje mora biti VOIDED (drugi update poziv), bez obzira što se sad baca greška.
+      expect(prisma.payment.update).toHaveBeenNthCalledWith(2, { where: { id: 'pay-1' }, data: { status: 'VOIDED' } });
+    });
+
+    it('kad provajder odbije naplatu (status !== SUCCESS): FAILED, poziv baca grešku', async () => {
+      const { service, prisma, bookings, gateway } = makeService();
+      prisma.payment.findFirst.mockResolvedValue({ id: 'pay-1', status: 'PENDING', quoteId: 'quote-1', amount: 100000 });
+      gateway.getPaymentStatus.mockResolvedValue({ status: 'DECLINED' });
+      prisma.payment.update.mockResolvedValueOnce({ id: 'pay-1', status: 'FAILED' });
+
+      await expect(
+        service.handleCardWebhook('mock-txn-1', { buyerName: 'X', buyerType: 'FIZICKO_LICE' } as any),
+      ).rejects.toThrow('Kartično plaćanje nije uspelo');
+
+      expect(bookings.confirmQuote).not.toHaveBeenCalled();
+      expect(prisma.payment.update).toHaveBeenCalledWith({ where: { id: 'pay-1' }, data: { status: 'FAILED' } });
     });
 
     it('je idempotentno — ponovljen webhook za već obrađenu uplatu ne dupli logiku', async () => {

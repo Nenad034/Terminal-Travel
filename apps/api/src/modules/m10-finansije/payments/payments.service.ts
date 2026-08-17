@@ -97,6 +97,17 @@ export class PaymentsService {
 
   // §7.2 koraci 2-5 — provajder potvrđuje naplatu; TEK SAD M5 pokreće potvrdu rezervacije
   // (sve ili ništa); ako potvrda ne uspe, automatski VOID + povraćaj, bez rezervacije koja "visi".
+  //
+  // Ispravka avgust 2026 (M8 izlazni kriterijum, otkriveno pri live-proveri neuspelog toka
+  // plaćanja) — obe grane neuspeha su ranije VRAĆALE 200/201 sa ažuriranim Payment zapisom
+  // (FAILED/VOIDED) umesto da bace grešku. `apps/web` (rezervacija/actions.ts payByCardAction)
+  // ima catch(ApiError) koji prikazuje jasnu poruku gostu (`greska=1` na /rezervacija/placanje) —
+  // taj catch se NIKAD nije aktivirao jer apiFetch baca ApiError samo na ne-2xx odgovor. Gost bi
+  // umesto poruke bio preusmeren na /rezervacija/potvrda?bookingId=undefined (Payment nema
+  // booking_id polje u ovom slučaju), prazna/zbunjujuća stranica — suprotno izlaznom kriterijumu
+  // "gost nikad ne ostaje bez jasne poruke". Ispravka: baci BadRequestException posle ažuriranja
+  // Payment statusa — DB stanje ostaje isto (FAILED/VOIDED, refundOrVoid pozvan), samo se
+  // neuspeh sad i signalizira pozivaocu.
   async handleCardWebhook(gatewayTransactionId: string, confirmDto: ConfirmQuoteDto) {
     const payment = await this.prisma.payment.findFirst({ where: { gatewayTransactionId } });
     if (!payment) throw new NotFoundException(`Payment za gatewayTransactionId ${gatewayTransactionId} nije pronađen.`);
@@ -104,8 +115,8 @@ export class PaymentsService {
 
     const status = await this.gateway.getPaymentStatus(gatewayTransactionId);
     if (status.status !== 'SUCCESS') {
-      const failed = await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
-      return failed;
+      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
+      throw new BadRequestException('Kartično plaćanje nije uspelo kod provajdera — rezervacija nije napravljena, iznos nije naplaćen.');
     }
 
     const received = await this.prisma.payment.update({
@@ -125,7 +136,10 @@ export class PaymentsService {
     } catch (err) {
       // §7.2 korak 5 — potvrda rezervacije nije uspela (npr. kapacitet u međuvremenu prodat).
       await this.gateway.refundOrVoid(gatewayTransactionId, payment.amount);
-      return this.prisma.payment.update({ where: { id: received.id }, data: { status: 'VOIDED' } });
+      await this.prisma.payment.update({ where: { id: received.id }, data: { status: 'VOIDED' } });
+      throw new BadRequestException(
+        'Plaćanje je uspelo, ali potvrda rezervacije nije (kapacitet više nije dostupan) — iznos je automatski vraćen.',
+      );
     }
   }
 

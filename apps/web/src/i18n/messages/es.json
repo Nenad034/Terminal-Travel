@@ -11,7 +11,8 @@
     "helpHint": "Help",
     "helpHintQuery": "how can I get help",
     "searchLoading": "Searching...",
-    "searchNoResults": "No results — try a more specific search."
+    "searchNoResults": "No results — try a more specific search.",
+    "aiDisclosure": "You are talking to an AI assistant when you enter a query"
   },
   "home": {
     "title": "Find your perfect trip",

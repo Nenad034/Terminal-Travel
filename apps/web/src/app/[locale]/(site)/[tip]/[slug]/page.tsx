@@ -1,13 +1,42 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
-import { slugToType } from '@/lib/categories';
+import { slugToType, typeToSlug } from '@/lib/categories';
 
 // M8 spec poglavlje 2 — /[tip]/[slug]. M2 public endpoint pretražuje samo po :id, nema
 // slug lookup (dopuna po potrebi, zavedeno u backlogu) — ova stranica zato učita ceo
 // javni katalog za jezik i pronađe proizvod po ProductTranslation.slug, tehnika manje
 // efikasna od direktnog upita, ali tačna dok se ne doda pravi slug endpoint.
+async function findProduct(locale: string, slug: string): Promise<PublicProduct | undefined> {
+  const products = await apiFetch<PublicProduct[]>(
+    `/catalog/public/products?channel=B2C_SITE&lang=${locale}`,
+    { auth: false },
+  ).catch(() => []);
+  return products.find((p) => p.translation?.slug === slug);
+}
+
+// M8 spec §5.1 — SEOMeta ("sve stranice"), dopuna avgust 2026: title/description/OG
+// generisani po proizvodu/jeziku umesto jednog statičnog naslova za ceo sajt (layout.tsx).
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; tip: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const product = await findProduct(locale, slug);
+  if (!product?.translation) return {};
+
+  const title = `${product.translation.name} — Terminal Travel`;
+  const description = product.translation.description?.slice(0, 160);
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: 'website', locale },
+  };
+}
+
 export default async function ProductPage({
   params,
 }: {
@@ -15,15 +44,20 @@ export default async function ProductPage({
 }) {
   const { locale, tip, slug } = await params;
   const t = await getTranslations({ locale, namespace: 'product' });
+  const tc = await getTranslations({ locale, namespace: 'categories' });
 
-  const products = await apiFetch<PublicProduct[]>(
-    `/catalog/public/products?channel=B2C_SITE&lang=${locale}`,
-    { auth: false },
-  ).catch(() => []);
-  const product = products.find((p) => p.translation?.slug === slug);
+  const product = await findProduct(locale, slug);
   if (!product || slugToType(tip) !== product.type) notFound();
 
   const jsonLd = buildJsonLd(product, locale);
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: tc(product.type), item: `/${locale}/${typeToSlug(product.type)}` },
+      { '@type': 'ListItem', position: 2, name: product.translation?.name },
+    ],
+  };
 
   return (
     /* IZUZETAK od pune širine (vlasnikova odluka 17.8.2026) — stranica pojedinačnog hotela/
@@ -35,6 +69,7 @@ export default async function ProductPage({
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 lg:grid-cols-3">
       {/* M8 spec §5.1 — schema.org JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <div className="lg:col-span-2">
         <div className="mb-6 flex h-64 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">

@@ -33,6 +33,7 @@ export default async function Header({ locale }: { locale: string }) {
             helpHint: t('helpHintQuery'),
             loading: t('searchLoading'),
             noResults: t('searchNoResults'),
+            aiDisclosure: t('aiDisclosure'),
           }}
         />
 

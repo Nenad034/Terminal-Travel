@@ -23,6 +23,7 @@ export default function OmnisearchBar({
     helpHint: string;
     loading: string;
     noResults: string;
+    aiDisclosure: string;
   };
 }) {
   const [query, setQuery] = useState('');
@@ -77,6 +78,12 @@ export default function OmnisearchBar({
           className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none"
         />
       </form>
+
+      {/* M8 spec §3a dopuna (avgust 2026, EU AI Act čl. 50 transparentnost — vidi
+          docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md poglavlje 4) —
+          trajno vidljiva oznaka, NE toast/tooltip koji nestaje. Uvek prikazana ispod polja
+          (ne samo kad je otvoren panel rezultata), jer se AI poziva čim gost unese upit. */}
+      <p className="mt-1 text-xs text-ink-faint">{labels.aiDisclosure}</p>
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-30 mt-2 max-h-96 overflow-y-auto rounded-md border border-border bg-panel p-3 shadow-lg">
