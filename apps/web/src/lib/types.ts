@@ -27,12 +27,19 @@ export interface SearchResultOffer {
   [key: string]: unknown;
 }
 
+// M5 spec §3.0 — SearchService vraća RAVAN oblik (`name`, `shortDescription`), već razrešen na
+// traženi jezik; NEMA ugnježdenog `translation` objekta kao M2 javni katalog, i NEMA `slug`.
+// Ranije je ovde stajalo `translation`, pa je stranica pretrage prikazivala sirov UUID umesto
+// naziva — bag nije bio vidljiv jer pretraga nikad nije vraćala rezultate (ni jedan proizvod
+// nije imao B2C_SITE kanal). Otkriveno 17.8.2026, pri uvođenju mock podataka.
 export interface SearchResultProduct {
   productId: string;
   type: string;
-  translation: { name: string; slug: string } | null;
+  name: string;
+  shortDescription: string | null;
   destinationCountry: string | null;
   destinationCity: string | null;
+  thumbnail: { url: string; category: string } | null;
   offers: SearchResultOffer[];
   [key: string]: unknown;
 }

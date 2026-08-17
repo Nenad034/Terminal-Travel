@@ -14,7 +14,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node prisma/seed/seed.ts"
+    "prisma:seed": "ts-node prisma/seed/seed.ts",
+    "seed:mock-b2c": "ts-node prisma/seed/mock-b2c.ts",
+    "seed:mock-b2c:clean": "ts-node prisma/seed/mock-b2c-clean.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

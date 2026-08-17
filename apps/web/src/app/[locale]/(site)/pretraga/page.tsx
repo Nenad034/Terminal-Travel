@@ -58,7 +58,7 @@ export default async function SearchPage({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {results.map((r) => (
           <div key={r.productId} className="rounded-lg border border-border bg-panel p-4">
-            <h3 className="font-medium text-ink">{r.translation?.name ?? r.productId}</h3>
+            <h3 className="font-medium text-ink">{r.name || r.productId}</h3>
             <p className="text-sm text-ink-faint">
               {[r.destinationCity, r.destinationCountry].filter(Boolean).join(', ')}
             </p>
@@ -68,7 +68,7 @@ export default async function SearchPage({
               </p>
             )}
             <Link
-              href={`/${locale}/${typeToSlug(r.type)}/${r.translation?.slug ?? r.productId}`}
+              href={`/${locale}/${typeToSlug(r.type)}/${r.productId}`}
               className="mt-2 inline-block text-sm font-medium text-accent underline"
             >
               {t('viewOffer')}

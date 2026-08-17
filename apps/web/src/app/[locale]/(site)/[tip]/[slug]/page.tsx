@@ -14,7 +14,11 @@ async function findProduct(locale: string, slug: string): Promise<PublicProduct 
     `/catalog/public/products?channel=B2C_SITE&lang=${locale}`,
     { auth: false },
   ).catch(() => []);
-  return products.find((p) => p.translation?.slug === slug);
+  // Prihvata i slug i sam `id`: M5 /search (stranica pretrage) u odgovoru NEMA slug, pa njeni
+  // linkovi nose productId. Bez ovog fallback-a svaki klik "Vidi ponudu" iz pretrage daje 404
+  // (otkriveno 17.8.2026, pri uvođenju mock podataka — pretraga do tada nikad nije vraćala
+  // rezultate, pa se bag nije mogao videti).
+  return products.find((p) => p.translation?.slug === slug || p.id === slug);
 }
 
 // M8 spec §5.1 — SEOMeta ("sve stranice"), dopuna avgust 2026: title/description/OG
