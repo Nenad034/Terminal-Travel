@@ -26,6 +26,7 @@
 | B3 | Da li samostalna prodaja `INSURANCE` proizvoda (bez ikakvog drugog proizvoda u rezervaciji) uopšte treba `ClientContract`, ili se rešava potpuno drugim dokumentom — posredovanje u osiguranju je zasebno regulisano van Zakona o turizmu | `21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md` poglavlje 8 | Nijedan postojeći `contract_type` danas ne pokriva ovaj slučaj. |
 | B4 | Tačan tekst i pravni zahtevi cookie/consent banera na sajtu (M8), u skladu sa Zakonom o zaštiti podataka o ličnosti | `10-SPECIFIKACIJA-M8-SAJT-B2C.md` poglavlje 12 | Standardna GDPR-adjacent stavka, ali tekst mora biti pravno tačan, ne generički. |
 | B5 | **Pristup ličnim (van-agencijskim) email nalozima zaposlenih** u M22 (ako neko koristi lični Gmail/Outlook umesto agencijskog domena) — OAuth pristanak, obim u odnosu na Zakon o zaštiti podataka o ličnosti | `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md` poglavlje 10 | M22 inače pretpostavlja agencijski domen; lični nalozi su svestan izuzetak koji čeka potvrdu pre implementacije. |
+| B6 | **Osiguranje od AI-generisanih grešaka** — provera sa osiguravajućim brokerom da li postojeća/buduća poslovna polisa uopšte pominje/pokriva štetu nastalu iz AI-generisanog sadržaja (od januara 2026. neki osiguravatelji to izričito isključuju iz standardnih polisa) | `31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 3 | Proveriti pre nego što bilo koji M15 domenski agent pređe u `ACTIVATED` status u produkciji, ne posle prvog incidenta. |
 
 ## C. Zajedničko — pravnik + zvanična dokumentacija spoljnog sistema (YUTA/CIS)
 

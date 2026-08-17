@@ -126,6 +126,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li M11 treba da prati i druge licence/dozvole agencije van YUTA garancije.
 - Alarm za rok važenja putne isprave gosta — gde ga vratiti (verovatno M6 `GuestProfile`).
 - `assessForBooking` (§2.2, blokada potvrde ORGANIZATOR rezervacije preko limita garancije) baca grešku umesto sigurnog ponašanja kad booking-ova valuta nema uneti kurs — otkriveno avgust 2026 (M17 Faza 2), zahteva odluku vlasnika (§7 tog dokumenta za detalje).
+- **Osiguranje od AI-generisanih grešaka** (avgust 2026, analiza rizika povodom spoljnog izvora) — proveriti sa brokerom pre nego što bilo koji M15 domenski agent pređe u `ACTIVATED` u produkciji. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 3, i `26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md` stavka B6.
 
 ## M12 — Marketing i sadržajni engine
 *(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
@@ -151,6 +152,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Konkretan izbor LLM provajdera/modela po domenskom agentu.
 - Konkretan izbor Speech-to-Text/Text-to-Speech provajdera za glasovni modalitet (poglavlje 6.6) — PrimeTravel analiza je polazna tačka, ne konačna odluka.
 - Glasovni kanal za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR — namerno van obima prve verzije (samo M17/interni tim preko mikrofona), zahteva zasebnu potvrdu vlasnika.
+- **Periodično uzorkovanje `actor_type = AI_AGENT` audit log zapisa radi merenja stope halucinacija/grešaka** jednom kad prvi domenski agenti budu aktivni u produkciji (avgust 2026, analiza rizika povodom spoljnog izvora) — mala dopuna M18 operativnog nadzora, ne hitna. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 2.
+- **"Razgovarate sa AI asistentom" oznaka (transparentnost, EU AI Act)** — ugraditi u UI pre aktivacije prvog gost/subagent-facing AI ekrana (M7 `subagent_chat`, M23 `/znanje/:share_token` stranica kad M8 dobije UI, M15 omnisearch ako ikad proširi obim van M17) — trenutno nema aktivnog gost-facing AI ekrana, pa nema aktivnog propusta, ali treba dizajnirati unapred, ne naknadno. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 4.
 
 ## M16 — Agentski distribucioni interfejs (MCP)
 *(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
