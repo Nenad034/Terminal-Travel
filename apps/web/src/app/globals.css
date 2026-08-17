@@ -3,27 +3,60 @@
 @tailwind utilities;
 
 /* M8 spec §1a — paleta "Zalazak", ista kao docs/moduli/M01-core-identitet/
-   00-MOCKUP-M1-TERMINAL-STYLE.html (paleta 1, samo boje, ne terminal izgled). */
+   00-MOCKUP-M1-TERMINAL-STYLE.html (paleta 1, samo boje, ne terminal izgled).
+
+   KONTRAST (29-DIZAJN-SISTEM-UI.md §2a — WCAG AA je tvrd zahtev, ne preporuka).
+   Svetli mod je 17.8.2026. izmenjen jer sedam parova nije prolazilo prag; svaka
+   vrednost ispod je izmerena protiv STVARNIH podloga uz koje se koristi (bg,
+   panel, panel-2, accent-soft, ok-bg, warn-bg), ne jedne pretpostavljene.
+   Tonovi su zadržani — vrednosti su samo zatamnjene koliko je bilo nužno.
+   Izmereno pre → posle (najgori par):
+     --border        1.19:1 → 3.02:1  (prag 3:1 za granice; ivice su bile
+                                       praktično nevidljive na svakoj kartici)
+     --text-faint    2.84:1 → 4.50:1
+     --accent        3.17:1 → 5.04:1
+     --accent-strong 4.06:1 → 5.86:1  (i kao tekst na accent-soft i kao
+                                       pozadina pod accent-ink na hover-u)
+     --accent2       3.39:1 → 4.79:1
+     --ok            3.07:1 → 4.62:1
+     --warn          3.82:1 → 4.57:1
+   Posledično provereno: --accent-ink na novom --accent 5.26:1 (puno dugme
+   "Rezerviši" — bilo 3.30:1, najvažnija kontrola na sajtu).
+   Tamni mod je prolazio sve osim --border i --text-faint; ta dva su ispravljena.
+
+   NAPOMENA: paleta se planirano menja (vlasnikova odluka, 17.8.2026 — dodaje se
+   boja šljive). Ove vrednosti su ispravka postojećeg, ne konačan identitet;
+   nova paleta mora proći istu proveru pre uvođenja. */
 :root {
   --bg: #fbf3e6;
   --panel: #ffffff;
   --panel-2: #f3e6d0;
-  --border: #e6d3b0;
+  --border: #8f836d;
   --text: #2a1c0c;
   --text-dim: #6b5636;
-  --text-faint: #9c8663;
-  --accent: #c1791f;
-  --accent-strong: #9c5f14;
+  --text-faint: #77664b;
+  --accent: #935c18;
+  --accent-strong: #7a4a12;
   --accent-soft: #f5e2bd;
   --accent-ink: #fff8ec;
-  --accent2: #12907d;
+  --accent2: #0f7565;
   --accent2-soft: #dcf2ee;
-  --ok: #1f9d67;
+  --ok: #187c51;
   --ok-bg: #e3f6ec;
-  --warn: #a86a12;
+  --warn: #975f10;
   --warn-bg: #f9edd3;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
+  /* Šljiva (modro-plava) — dodata 17.8.2026. na zahtev vlasnika. Vrednosti su
+     izmerene i prolaze AA u oba moda (svetli: 6.05:1 najgori slučaj protiv bg/
+     panel/panel-2; belo na šljivi 7.06:1 za puno dugme; bedž 7.85:1).
+     ULOGA JOŠ NIJE ODLUČENA — token postoji, ništa se njime još ne boji, da se
+     izgled sajta ne menja pre vlasnikove odluke. Vidi 29-DIZAJN-SISTEM-UI.md §2
+     ("namerno samo jedna akcentna boja") — šljiva zahteva odluku šta je njena
+     uloga, jer treća akcentna boja to pravilo obesmišljava. */
+  --plum: #5b4b8a;
+  --plum-soft: #e8e3f4;
+  --plum-ink: #fff8ec;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,10 +64,11 @@
     --bg: #150e08;
     --panel: #1f1610;
     --panel-2: #2a1d13;
-    --border: #3d2a1a;
+    /* §2a — jedina dva para koja tamni mod nije prolazio: 1.20:1 → 3.00:1 i 4.00:1 → 4.58:1 */
+    --border: #8c603c;
     --text: #f5ead9;
     --text-dim: #c9b294;
-    --text-faint: #8f7a62;
+    --text-faint: #9a846a;
     --accent: #e8a63c;
     --accent-strong: #f4c473;
     --accent-soft: #3a2810;
@@ -47,5 +81,9 @@
     --warn-bg: #332508;
     --danger: #e2685a;
     --danger-bg: #3a1712;
+    /* šljiva u tamnom modu — svetlija varijanta istog tona (6.52:1 najgori slučaj) */
+    --plum: #a99bd8;
+    --plum-soft: #221c33;
+    --plum-ink: #1a1428;
   }
 }

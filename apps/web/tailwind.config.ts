@@ -28,6 +28,12 @@ const config: Config = {
           DEFAULT: 'var(--accent2)',
           soft: 'var(--accent2-soft)',
         },
+        // Šljiva — dodata 17.8.2026, uloga još nije odlučena (vidi globals.css komentar).
+        plum: {
+          DEFAULT: 'var(--plum)',
+          soft: 'var(--plum-soft)',
+          ink: 'var(--plum-ink)',
+        },
         ok: 'var(--ok)',
         warn: 'var(--warn)',
         danger: 'var(--danger)',
