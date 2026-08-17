@@ -103,6 +103,8 @@ Umesto da svaki modul samostalno "pamti" svoju podelu na tri nivoa, M15 drži je
 
 Registar se **dopunjuje** kad svaki budući modul (ili izmena postojećeg) uvede novu akciju koju AI agent dodiruje — ne postoji podrazumevani nivo; svaka nova `action_code` mora eksplicitno dobiti `tier` pre nego što se agent pusti na nju.
 
+**Održavanje:** `docs/analize/32-AI-AGENTI-AUTONOMIJA-PREGLED.md` je čitljiva, pregledna verzija ove tabele (grupisana po nivou umesto po modulu) — ažurirati je u istom prolazu kad god se ova tabela promeni.
+
 ---
 
 ## 5. Sprovedba na nivou koda (defense in depth)
