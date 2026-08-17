@@ -124,7 +124,7 @@ export default async function EmailInboxPage({
               <div>
                 <div className="font-medium text-ink">
                   {t.subject}
-                  {t.convertedToTicketId && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent">tiket</span>}
+                  {t.convertedToTicketId && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">tiket</span>}
                 </div>
                 <div className="text-xs text-ink-faint">
                   {mailboxLabel(t.mailboxId)} · {t.correspondentType} · {new Date(t.lastMessageAt).toLocaleString('sr-RS')}
@@ -140,6 +140,6 @@ export default async function EmailInboxPage({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent bg-accent-soft';
+  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent-strong bg-accent-soft';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

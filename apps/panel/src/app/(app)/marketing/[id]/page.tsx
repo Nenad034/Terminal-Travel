@@ -109,6 +109,6 @@ function Info({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent bg-accent-soft' : 'text-warn bg-warn-bg';
+  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

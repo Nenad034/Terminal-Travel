@@ -115,7 +115,7 @@ function SendSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent-soft disabled:opacity-50"
+      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
     >
       {pending ? 'Šaljem…' : 'pošalji nacrt'}
     </button>

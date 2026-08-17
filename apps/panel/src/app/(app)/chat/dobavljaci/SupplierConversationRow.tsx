@@ -139,7 +139,7 @@ function GrantAccessForm({ conversationId }: { conversationId: string }) {
 function GrantSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent hover:bg-accent-soft disabled:opacity-50">
+    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50">
       {pending ? 'Dodeljujem…' : 'dodeli pristup'}
     </button>
   );
@@ -184,7 +184,7 @@ function InviteContactForm({ conversationId, contacts }: { conversationId: strin
 function InviteSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent hover:bg-accent-soft disabled:opacity-50">
+    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50">
       {pending ? 'Šaljem…' : 'pozovi kontakt'}
     </button>
   );

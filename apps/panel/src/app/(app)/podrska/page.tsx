@@ -123,7 +123,7 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'RESOLVED' || status === 'CLOSED' ? 'text-ok bg-ok-bg' : status === 'IN_PROGRESS' ? 'text-accent bg-accent-soft' : 'text-warn bg-warn-bg';
+  const tone = status === 'RESOLVED' || status === 'CLOSED' ? 'text-ok bg-ok-bg' : status === 'IN_PROGRESS' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }
 

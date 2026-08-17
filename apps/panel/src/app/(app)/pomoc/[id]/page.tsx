@@ -65,7 +65,7 @@ export default async function HelpArticleDetailPage({ params }: { params: { id: 
           </h1>
           <p className="text-xs text-ink-faint">
             {article.audience.join(', ')} · {article.relatedModule ?? '(bez modula)'} · {article.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
-            {article.isCriticalExample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent">kritičan primer</span>}
+            {article.isCriticalExample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">kritičan primer</span>}
           </p>
         </div>
         <StatusBadge status={article.status} />

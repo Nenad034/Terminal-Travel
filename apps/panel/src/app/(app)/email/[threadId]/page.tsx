@@ -117,6 +117,6 @@ export default async function EmailThreadDetailPage({ params }: { params: { thre
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent bg-accent-soft';
+  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent-strong bg-accent-soft';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

@@ -17,7 +17,7 @@ export default function NadzorSubnav({ active }: { active: string }) {
           key={t.href}
           href={t.href}
           className={`rounded border px-3 py-1.5 font-medium ${
-            t.href === active ? 'border-accent bg-accent-soft text-accent' : 'border-border bg-panel text-ink-dim hover:border-accent'
+            t.href === active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border bg-panel text-ink-dim hover:border-accent'
           }`}
         >
           {t.label}

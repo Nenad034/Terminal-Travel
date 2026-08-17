@@ -43,7 +43,7 @@ export default function EmailMessagesPanel({ threadId, messages, canReply }: { t
               </div>
               <p className="mt-1 whitespace-pre-wrap text-ink-dim">{m.body}</p>
               {m.direction === 'INBOUND' && m.aiSummary && (
-                <p className="mt-1 rounded bg-accent-soft px-1.5 py-1 text-[11px] text-accent">
+                <p className="mt-1 rounded bg-accent-soft px-1.5 py-1 text-[11px] text-accent-strong">
                   <Icon name="sparkle" /> AI sažetak: {m.aiSummary}
                 </p>
               )}
@@ -118,7 +118,7 @@ function SendSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent hover:bg-accent-soft disabled:opacity-50"
+      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
     >
       {pending ? 'Šaljem…' : 'pošalji'}
     </button>

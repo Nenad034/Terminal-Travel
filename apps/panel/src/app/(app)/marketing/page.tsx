@@ -107,7 +107,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
                 <div>
                   <div className="font-medium text-ink">
                     {title}
-                    {c.generatedBy === 'AI' && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent">AI nacrt</span>}
+                    {c.generatedBy === 'AI' && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">AI nacrt</span>}
                     {c.containsAiGeneratedMedia && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">AI vizual</span>}
                   </div>
                   <div className="text-xs text-ink-faint">
@@ -126,6 +126,6 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent bg-accent-soft' : 'text-warn bg-warn-bg';
+  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }
