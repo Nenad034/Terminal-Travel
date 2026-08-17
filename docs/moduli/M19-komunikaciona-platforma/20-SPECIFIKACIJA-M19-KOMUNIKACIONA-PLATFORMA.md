@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`, `08-SPECIFIKACIJA-M11-COMPLIANCE.md` *(nije relevantno)*, `09-SPECIFIKACIJA-M6-CRM.md`, `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`, `14-SPECIFIKACIJA-M14-HELPDESK.md`, `16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`, `19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (backend) — panel (M17) chat ekran i M9 chat tab čekaju poseban prolaz, vidi poglavlje 10
-**Verzija:** 1.2 — prvi prolaz implementacije (backend + WS gateway, avgust 2026): Prisma šema (`Conversation`/`ConversationParticipant`/`Message`/`PresenceStatus`/`SupplierConversationAccess`), `apps/api/src/modules/m19-komunikaciona-platforma/`, WS gateway na `/ws/chat` (`@nestjs/websockets` + `socket.io`, novo u tehničkom steku — vidi `00-MASTER-ARHITEKTURA.md` poglavlje 6), M18↔M19 IN_APP isporuka, M9 push pretplata. Prethodna verzija (1.1) dodala poglavlje 9 (real-time chat sa dobavljačima), zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); dopunjuje M1 (`account_type = SUPPLIER_CONTACT`) i M3 (`SupplierContact`)
+**Verzija:** 1.3 — dodata evidencija AI porekla poruke (`Message.drafted_by_ai`, `Message.drafted_by_agent_id`, poglavlje 2.3) sa pratećom dopunom poglavlja 9.5 i novom stavkom izlaznog kriterijuma, na zahtev vlasnika (avgust 2026). Nalaz: poglavlje 9.5 je od početka dozvoljavalo da AI napiše nacrt odgovora dobavljaču koji zaposleni pošalje, ali `Message` nije imao nijedno polje koje to beleži — poslata poruka je u bazi izgledala identično kao da ju je zaposleni otkucao od nule. M14 (`TicketMessage.senderType = AI_DRAFT`) je taj podatak imao od početka, M19 ga je propustio. Vizuelni oblik prikaza propisan je u `docs/analize/29-DIZAJN-SISTEM-UI.md` poglavlje 6a, obaveza panela u M17 poglavlje 3.1. Implementacija (Prisma polja + migracija + tok `SupplierDraftService`) čeka poseban prolaz — checkbox ostaje prazan. v1.2 — prvi prolaz implementacije (backend + WS gateway, avgust 2026): Prisma šema (`Conversation`/`ConversationParticipant`/`Message`/`PresenceStatus`/`SupplierConversationAccess`), `apps/api/src/modules/m19-komunikaciona-platforma/`, WS gateway na `/ws/chat` (`@nestjs/websockets` + `socket.io`, novo u tehničkom steku — vidi `00-MASTER-ARHITEKTURA.md` poglavlje 6), M18↔M19 IN_APP isporuka, M9 push pretplata. Prethodna verzija (1.1) dodala poglavlje 9 (real-time chat sa dobavljačima), zatvara problem #9 iz `Problemi koje zelimo da resimo ovom aplikacijom.md` (avgust 2026, na zahtev vlasnika); dopunjuje M1 (`account_type = SUPPLIER_CONTACT`) i M3 (`SupplierContact`)
 **Zavisi od:** M1, M3 (`SupplierContact`, poglavlje 9), M14 (prikaz, ne novi podaci), M17 (kanal), M9 (kanal), M18 (isporuka upozorenja)
 
 ---
@@ -39,6 +39,12 @@ M19 dodaje **interni real-time tim-chat** (zaposleni ↔ zaposleni) — jedina z
 | body | text | |
 | sent_at | timestamp | |
 | edited_at / deleted_at | timestamp, nullable | meko brisanje, ne fizičko |
+| drafted_by_ai | boolean, difolt `false` | `true` ako telo poruke potiče iz AI nacrta (poglavlje 9.5), **i onda kad ga je čovek izmenio** pre slanja — polje beleži poreklo teksta, ne doslovnu istovetnost |
+| drafted_by_agent_id | UUID, nullable (FK → M1 User, `account_type = AI_AGENT`) | koji agent je napisao nacrt; popunjeno isključivo kad je `drafted_by_ai = true` |
+
+**Ova dva polja su samo evidencija porekla — ne menjaju `sender_id`.** `sender_id` ostaje čovek koji je svesno pritisnuo "pošalji" i nosi odgovornost za poruku (poglavlje 9.5); poreklo teksta je zasebna činjenica koja se ljudskim slanjem ne poništava. Prikaz prati pravilo iz `docs/analize/29-DIZAJN-SISTEM-UI.md` poglavlje 6a: vide se **oba** podatka ("poslao: [ime] · nacrt: AI agent"), nikad samo jedan.
+
+Isti podatak M14 ima od početka (`TicketMessage.senderType = AI_DRAFT`) — razlika je što u M14 AI nacrt postoji kao zaseban zapis koji čeka slanje, dok ovde AI nacrt nikad ne postaje `Message` dok ga čovek ne pošalje (poglavlje 9.5), pa se poreklo mora upisati **u trenutku slanja** ili je zauvek izgubljeno.
 
 ### 2.4 `PresenceStatus`
 `user_id` (FK, unique), `status` (enum: `ONLINE`, `AWAY`, `OFFLINE`), `last_seen_at`, `updated_at`. Indikator "kuca poruku..." je efemeran (prenosi se uživo preko WebSocket-a, ne čuva se u bazi).
@@ -133,6 +139,7 @@ Za razliku od M7 poglavlja 2.0.4 (AI agent sa **izvršnim** ovlašćenjem za sub
 
 - AI agent sme (nivo "Autonomno", princip #4 Master dokumenta) da sažima dugu prepisku i priprema nacrt odgovora zaposlenom — isti nivo kao M6 `CommunicationLog`/M22 `EmailMessage`.
 - Ako nacrt pominje cenu ili obavezu, poruka **ne** ide dobavljaču dok je zaposleni sa dodeljenim pristupom (poglavlje 9.4) ne pregleda i pošalje — nivo "Predloži pa čovek odobri", identično pravilo kao M6 poglavlje 4.1.
+- **Poreklo nacrta se upisuje pri slanju (dopuna, avgust 2026).** Kad zaposleni pošalje poruku nastalu iz AI nacrta, `Message.drafted_by_ai = true` i `drafted_by_agent_id` se popunjavaju (poglavlje 2.3) — i onda kad je zaposleni tekst izmenio pre slanja. Ovo je jedini trenutak u kom se taj podatak može sačuvati: nacrt sam po sebi nikad ne postaje `Message` (`SupplierDraftService` vraća isključivo tekst), pa ako se poreklo ne upiše pri slanju, izgubljeno je zauvek. Odgovornost za poruku i dalje nosi čovek — `sender_id` se ne menja.
 - Nijedna radnja u drugom modulu (potvrda dobavljača na `SupplierManifest`, M5 poglavlje 8.6; kreiranje `SupplierObligation`, M10 poglavlje 8) se **nikad** ne pokreće automatski na osnovu sadržaja poruke iz ovog chata — zaposleni i dalje ručno potvrđuje kroz postojeće tokove tih modula, chat je čisto komunikacioni sloj, ne transakcioni. Ovo je namerna, uža granica u odnosu na M7 chat.
 
 ### 9.6 Dozvole (dopuna poglavlja 7)
@@ -172,6 +179,7 @@ postoji, po pravilu iz CLAUDE.md ("nema 'uglavnom radi'").
 - [x] Dobavljač sa dodeljenim portal nalogom (`SUPPLIER_CONTACT`) vidi isključivo sopstveni `EXTERNAL_SUPPLIER` razgovor — bez pristupa katalogu, cenama, drugim dobavljačima ili internom panelu (poglavlje 9.2) — potvrđeno e2e testom (`GET /chat/conversations` vraća tačno jedan razgovor; `GET /contracting/suppliers` vraća 403).
 - [x] Zaposleni bez `SupplierConversationAccess` za dati razgovor ne vidi taj razgovor, uprkos opštoj `M19/supplier-conversation/VIEW` dozvoli (poglavlje 9.4) — potvrđeno e2e testom (404, ne 403, pre granta; vidljivo posle granta).
 - [x] AI-generisan nacrt odgovora dobavljaču koji pominje cenu/obavezu ne može biti poslat bez ljudskog naloga sa dodeljenim pristupom (poglavlje 9.5) — `SupplierDraftService` nema nijednu putanju koja upisuje `Message`, vraća isključivo tekst; potvrđeno jediničnim i e2e testom.
+- [ ] Poruka poslata iz AI nacrta nosi `drafted_by_ai = true` i popunjen `drafted_by_agent_id`, i u panelu se vidi da je nacrt napisao AI (uz ime čoveka koji je poslao) — dok poruka koju je zaposleni otkucao od nule nema tu oznaku (poglavlja 2.3 i 9.5, prikaz po `29-DIZAJN-SISTEM-UI.md` poglavlje 6a). **Čeka poseban prolaz** — spec je dopunjen, Prisma polja/migracija i tok slanja još nisu.
 - [x] Nijedna radnja u M5 (potvrda dobavljača) ili M10 (obaveza prema dobavljaču) se ne pokreće automatski na osnovu poruke iz ovog chata — provereno da sistem to ne radi ni u jednom toku (statička provera koda u e2e test suite-u: nijedan `eventListener.on('M19', ...)` poziv ne postoji u `m5-rezervacije`/`m10-finansije`).
 
 ---

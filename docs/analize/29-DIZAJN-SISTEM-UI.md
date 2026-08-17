@@ -3,7 +3,7 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu), kasnije M7 (B2B portal), M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
-**Verzija:** 1.4 — dodato poglavlje 5a: tabovi za paralelan rad na više otvorenih zapisa/ekrana istovremeno (na zahtev vlasnika); v1.3 — dodato poglavlje 2a: kontrast teksta/ikonica je tvrd zahtev (WCAG AA minimum, AAA cilj gde je lako ostvarivo), proverava se lokalno protiv stvarne pozadine (ne jedne pretpostavljene), identično u oba moda — na izričit zahtev vlasnika; v1.2 — dodato poglavlje 3a (ikonografija — Codicons, rešava ranije otvoreno pitanje) i poglavlje 6 (sadržaj centralnog panela: isticanje pozadinom teksta, kartice, suptilne animacije), proširen opis bočne trake stablo-strukturom (poglavlje 5), sve na zahtev vlasnika (avgust 2026); v1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
+**Verzija:** 1.5 — dodato poglavlje 6a: obeležavanje autora radnje (čovek / AI agent / spoljni nalog) kao jedinstveno pravilo za sve kanale, na zahtev vlasnika (avgust 2026) — zatvara nalaz da je svaki ekran panela do sad izmišljao sopstveni način obeležavanja AI poteza; prati ga dopuna M17 poglavlje 3.1 i M19 poglavlja 2.3/9.5; v1.4 — dodato poglavlje 5a: tabovi za paralelan rad na više otvorenih zapisa/ekrana istovremeno (na zahtev vlasnika); v1.3 — dodato poglavlje 2a: kontrast teksta/ikonica je tvrd zahtev (WCAG AA minimum, AAA cilj gde je lako ostvarivo), proverava se lokalno protiv stvarne pozadine (ne jedne pretpostavljene), identično u oba moda — na izričit zahtev vlasnika; v1.2 — dodato poglavlje 3a (ikonografija — Codicons, rešava ranije otvoreno pitanje) i poglavlje 6 (sadržaj centralnog panela: isticanje pozadinom teksta, kartice, suptilne animacije), proširen opis bočne trake stablo-strukturom (poglavlje 5), sve na zahtev vlasnika (avgust 2026); v1.1 — dodat zahtev za obavezan tamni i svetli mod (poglavlje 2), ne samo tamni (avgust 2026, na zahtev vlasnika).
 
 ---
 
@@ -109,6 +109,36 @@ Centralni panel (glavni radni prostor, ne bočna traka) prati vizuelne konvencij
 - **Bojenje pozadine teksta za isticanje** — isti princip kao highlight rezultata pretrage ili inline dijagnostika u VS Code editoru: deo teksta koji zahteva pažnju (npr. razlog odbijanja, promenjeno polje u pre/posle prikazu audit loga, upozorenje o roku) dobija blagu pozadinsku boju iza samog teksta, ne posebnu ikonicu/banner pored njega. Boja isticanja izvedena iz akcentne (poglavlje 2) ili iz standardnih semantičkih boja (upozorenje/greška/uspeh) — nikad proizvoljna paleta po ekranu.
 - **Kartice za grupisan sadržaj** — blokovi informacija (npr. jedan `UserPermissionOverride` zapis, jedan red audit loga kad se proširi) prikazani kao odvojene kartice sa blago drugačijom pozadinom od okolnog prostora — isti utisak kao VS Code hover/peek prikaz, ne pune tabele sa linijama svuda.
 - **Animacije — suptilne i brze, nikad ukrasne same sebi.** Otvaranje/zatvaranje kartice, prelazak fokusa, pojavljivanje komandne palete (poglavlje 4) — kratki, brzi prelazi (isti utisak kao VS Code editor: momentalno, ne "leprša"). Brzina i nisko kognitivno opterećenje imaju prioritet nad vizuelnim efektom (isti princip kao poglavlje 1) — animacija potvrđuje da se nešto desilo, ne zabavlja korisnika.
+
+---
+
+## 6a. Obeležavanje autora radnje — čovek, AI agent, spoljni nalog
+
+*(dodato avgust 2026, na zahtev vlasnika)*
+
+Terminal je platforma u kojoj AI agent nije pomoćni alat nego **formalan nalog sa sopstvenim pravima** — M15 poglavlje 1 uvodi `User.account_type = AI_AGENT`, a svaka njegova akcija ulazi u isti `AuditLogEntry` sa `actor_type = AI_AGENT` (M1 poglavlje 3.8). Ta razlika mora biti vidljiva **i u interfejsu**, ne samo u bazi — inače tim ne može da proceni koliko da veruje onome što čita, a to je jedino na osnovu čega odlučuje da li da pregleda tekst pre slanja ili da ga prihvati kakav jeste.
+
+Ovo poglavlje je **jedini izvor istine** za taj vizuelni jezik. Modulske specifikacije na njega pokazuju, ne prepisuju ga (M17 poglavlje 3.1, M19 poglavlje 2.3).
+
+### 6a.1 Tri porekla, tri prikaza
+
+| Poreklo | Oznaka | Vizuelno |
+| :---- | :---- | :---- |
+| Zaposleni (`STAFF`) | ime i prezime | bez dodatne oznake — podrazumevano stanje |
+| AI agent (`AI_AGENT`) | ime agenta + bedž **"AI"** | `accent-soft` pozadina bedža, `accent` boja teksta — isti obrazac kao već postojeći "AI nacrt" bedž u M14 prikazu tiketa |
+| Spoljni nalog (`SUPPLIER_CONTACT`, `SUBAGENT_ADMIN`/`SUBAGENT_*`, `GOST`) | ime + naziv firme ili uloge | neutralna oznaka, **bez** `accent` boje — akcentna boja je rezervisana za AI, da se ta jedna razlika ne izgubi u šarenilu |
+
+### 6a.2 Pravila koja se ne krše
+
+1. **Oznaka je uvek vidljiva bez prelaska mišem** — ne tooltip, ne detalj koji se otkriva klikom. Ko god gleda ekran, vidi poreklo istovremeno sa sadržajem.
+2. **Kad je AI napisao tekst, a čovek ga poslao, prikazuju se oba** — "poslao: Marko Petrović · nacrt: AI agent". Nikad samo jedno. Odgovornost nosi čovek koji je pritisnuo "pošalji"; poreklo teksta je zasebna informacija i ne poništava se ljudskim slanjem.
+3. **Nikad se ne prikazuje sirova tehnička vrednost** (`AI_AGENT`, `SUPPLIER_CONTACT`, `AI_DRAFT`) — uvek prevod na srpski. Ovo posebno važi za audit log, koji je do sad ispisivao enum vrednost direktno.
+4. **Bedž "AI" se ne koristi za sadržaj koji je čovek napisao od nule**, čak ni kad je AI predložio temu, otvorio zapis ili pokrenuo tok. Bedž označava **autorstvo teksta/radnje**, ne učešće AI-ja negde u lancu — inače gubi značenje.
+5. **Jedna komponenta, ne obrazac koji se prepisuje.** Kad UI kod dođe na red, ovo je jedna deljena komponenta koju svaki ekran uvozi — ne stil koji se ponavlja po ekranima. Razlog je isti kao za ceo repozitorijum: obrazac koji se prepisuje razilazi se, i posle deset ekrana više nije isti (vidi `22-ANALIZA-PRIMETRAVEL-NALAZI.md`).
+
+### 6a.3 Gde važi
+
+Na **svakom** ekranu bilo kog kanala koji prikazuje autora radnje ili poruke — postojećim i budućim. Trenutno pogođeni ekrani panela: M6 (log komunikacije), M12 (marketinški sadržaj), M14 (nit tiketa — jedini koji ovo već radi ispravno), M17 (audit log), M19 (chat), M21 (predlozi članaka), M22 (email nit), M23 (revizije članaka).
 
 ---
 

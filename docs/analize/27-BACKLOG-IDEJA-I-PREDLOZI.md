@@ -179,6 +179,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
+- **Obeležavanje autora radnje** (§3.1, izlazni kriterijum) — pravilo upisano avgusta 2026, kod čeka poseban prolaz: jedna deljena komponenta umesto obrasca prepisanog po ekranima, plus audit log da prestane da ispisuje sirovu `actor_type` vrednost.
 
 ## M18 — Operativni nadzor i AI optimizacija
 *(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*
@@ -196,6 +197,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Zaštita od zloupotrebe/spama na javno dostupnom portalu za spoljne naloge.
 - Panel (M17) chat ekran i mobilni (M9) chat tab — backend/WS gotov (avgust 2026), UI je poseban naredni korak.
 - Puna WS e2e integracija u test suite-u (pravi socket.io klijent) — jedinični test sa mock socket-ima za sada.
+- **Evidencija AI porekla poruke** (§2.3/§9.5, izlazni kriterijum) — `Message.drafted_by_ai`/`drafted_by_agent_id` upisani u spec avgusta 2026; Prisma polja, migracija i tok slanja iz AI nacrta čekaju poseban prolaz.
 
 ## M20 — Ugovori sa klijentima
 *(§8, `docs/moduli/M20-ugovori-klijenti/21-SPECIFIKACIJA-M20-UGOVORI-KLIJENTI.md`)*
