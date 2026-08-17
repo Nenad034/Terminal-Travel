@@ -49,6 +49,14 @@ Od avgusta 2026. ovo ide kroz Skill strukturu u `.claude/skills/` umesto obavezn
 4. Ako zadatak dotiče **više modula**, učitaj skill svakog i pročitaj svaku odgovarajuću specifikaciju — cross-reference između dokumenata (npr. "M5 poglavlje 4.1") mora ostati tačan; ako menjaš strukturu/numeraciju poglavlja u jednom dokumentu, proveri i ispravi svaku drugu specifikaciju koja na njega upućuje (`grep` po "M<broj> poglavlje" kroz sve `.md` fajlove pod `docs/` pre nego što smatraš zadatak gotovim).
 5. Ceo `docs/00-MASTER-ARHITEKTURA.md` u celini se čita samo retko — kad se menja sam dokument (npr. dodaje nov modul u poglavlje 4) ili kad nijedan skill ne pokriva ono što treba.
 
+## Zamke i obavezne provere — čitati pre i posle rada na kodu
+
+`docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` je lista grešaka u koje se lako ponovo upada — svaka je stvarno napravljena ili pronađena u ovom repozitorijumu, ne pretpostavljena. Nastala 17.8.2026. na izričit zahtev vlasnika ("sve napomene koje ste napisali pribeležite i proveravajte prilikom dodatnog rada").
+
+- **Pre rada** pročitaj odeljak koji odgovara oblasti koju zadatak dotiče (boje/kontrast, prava pristupa, katalog i javni sajt, obeležavanje AI poteza, seed skripte, paralelan rad sa drugim agentom, definicija "gotovo").
+- **Pre nego što zadatak proglasiš gotovim** ponovo prođi kroz taj odeljak — nekoliko zamki (npr. "build prolazi a ekran je pokvaren", "prazan ekran je prazna baza, ne pokvaren kod") postoje upravo zato što su prvi put promašene na kraju posla.
+- **Kad naiđeš na novu zamku, dodaj je u taj fajl u istom prolazu**, u istom obliku (simptom → uzrok → provera). Zamka se ne briše kad se jednom ispravi — samo ako je uzrok strukturno uklonjen.
+
 ## Tvrdo pravilo — nema koda bez oslonca u specifikaciji
 
 - Ako je zadatak već pokriven postojećom Nivo 2 specifikacijom — implementiraj tačno po njoj.
