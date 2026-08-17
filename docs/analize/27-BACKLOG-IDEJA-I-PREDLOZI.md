@@ -91,6 +91,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
 - **Vođena pretraga za 9 vrsta proizvoda** (poglavlja 3.0c/3.0d, 17.8.2026) — polja/API definisani; UI ekrani (levi/centralni/desni panel) ostaju poseban naredni korak kad M17/M7 pretraga dođe na red.
 - Tačan UI izbor datuma polaska sa liste termina za `PACKAGE` (poglavlje 3.0d.6) — dizajnersko pitanje.
+- **AI prepoznavanje više namera u jednoj rečenici** (poglavlje 3.0e.4, 17.8.2026) — namerno odloženo dok osnovni tok 9 pretraga ne bude uživo proveren.
+- **Kalendar cena/fleksibilni datumi za letove** (Google Flights stila, poglavlje 3.0e.4) — razmatra se kao V2, zahteva infrastrukturu cena unapred za više datuma.
+- **Oblik odgovora za multi-segment let** (poglavlje 3.0d.1) — čeka M4 avio/GDS adapter, namerno neizmišljeno unapred.
 - Format vaučera (sadržaj, izgled) — definiše se kasnije.
 - Tačan izgled/template operativne liste po tipu dobavljača.
 - Da li slanje operativne liste ide samo email prilogom ili i strukturisanim API kanalom.
