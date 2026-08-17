@@ -9,6 +9,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
   STAFF: 'STAFF (interni tim)',
   SUBAGENT: 'SUBAGENT (B2B portal)',
   BUSINESS_CLIENT: 'BUSINESS_CLIENT (korporativni self-service)',
+  PUBLIC_GUEST: 'PUBLIC_GUEST (anonimni/pojedinačni B2C gosti)',
 };
 
 // M21 spec §2.1/§6 — polja prate CreateHelpArticleDto. generated_by je uvek HUMAN kroz ovaj

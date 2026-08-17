@@ -3,7 +3,9 @@
 **Namena:** ovaj dokument je za svakoga ko se povezuje sa Terminal-om spolja ili programski, sa stvarnim primerima zahteva/odgovora za svaki endpoint, ne samo šemom. Interni oslonac za implementaciju (poslovna pravila, redosled provera, izlazni kriterijum) ostaje `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md` — ovaj dokument ga ne zamenjuje.
 
 **REST prefiks:** `/api/v1/help`
-**Autentikacija:** `Authorization: Bearer <JWT>` na svakom pozivu. Publika (`audience_context`) se izvodi iz naloga koji poziva (`User.account_type`, i za `GUEST` naloge — uz proveru M6 `ClientAccount.account_type = LEGAL_ENTITY`), nikad iz tela zahteva ili query parametra.
+**Autentikacija:** `Authorization: Bearer <JWT>` na svakom pozivu (sve rute ovog dokumenta idu isključivo kroz `JwtAuthGuard`). Publika (`audience_context`) se izvodi iz naloga koji poziva (`User.account_type`, i za `GUEST` naloge — uz proveru M6 `ClientAccount.account_type = LEGAL_ENTITY`), nikad iz tela zahteva ili query parametra. Publika `PUBLIC_GUEST` (avgust 2026) pokriva i `GUEST` naloge bez `LEGAL_ENTITY` veze (`INDIVIDUAL` ili nepovezan) — svaki od ovih endpoint-a i dalje zahteva stvaran, prijavljen nalog.
+
+**Napomena — potpuno anonimni pozivi:** M15 `OmnisearchService` (B2C_SITE kanal) poziva `HelpAssistantService.ask()` IN-PROCESS, van ovog HTTP kontrolera, sa `userId=null` za potpuno anonimnog posetioca sajta bez ijednog naloga — taj put nema HTTP rutu i nije pokriven `JwtAuthGuard`-om (servis je sam bezbednosna granica, vidi M21 spec poglavlje 5.2). Nema javnog/neautentifikovanog `POST /help/ask` — anoniman pristup Centru za pomoć ide isključivo preko `POST /api/v1/ai-orchestration/omnisearch` (M15, `docs/api/M15-ai-orkestracija.md`), ne direktno kroz ovaj prefiks.
 
 ---
 
@@ -126,7 +128,7 @@ Glavni upit AI asistentu. Publika se izvodi iz naloga; asistent pretražuje iskl
 { "id": "q2...", "answer": null, "matchedArticleIds": [], "confidence": "NONE", "offerEscalation": true }
 ```
 
-`INDIVIDUAL` `GUEST` nalog dobija `403` sa uputstvom da koristi M14 (van obima v1).
+Nalog bez rešive publike uopšte (npr. `SUPPLIER_CONTACT`, `AI_AGENT`) dobija `403` sa uputstvom da koristi M14. `INDIVIDUAL` `GUEST` nalog (i nepovezan `GUEST`) VIŠE ne dobija `403` (avgust 2026) — resolveHelpAudience ga rešava u `PUBLIC_GUEST` i asistent odgovara iz uže FAQ liste za tu publiku.
 
 ### POST /help/questions/:id/feedback
 
@@ -152,7 +154,7 @@ Korisnikova potvrda eskalacije sopstvenog pitanja → kreira M14 `Ticket` (`chan
 
 Istorija pitanja (`M21/question-log/VIEW` — HR/Direktor/Vlasnik), radi kvaliteta sadržaja i bezbednosnog pregleda.
 
-**Query parametri (opciono):** `audienceContext` (`STAFF`/`SUBAGENT`/`BUSINESS_CLIENT`), `confidence` (`HIGH`/`LOW`/`NONE`).
+**Query parametri (opciono):** `audienceContext` (`STAFF`/`SUBAGENT`/`BUSINESS_CLIENT`/`PUBLIC_GUEST`), `confidence` (`HIGH`/`LOW`/`NONE`).
 
 ---
 

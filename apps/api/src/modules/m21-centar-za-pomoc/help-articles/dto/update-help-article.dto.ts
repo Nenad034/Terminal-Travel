@@ -1,6 +1,6 @@
 import { ArrayNotEmpty, IsArray, IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
-const AUDIENCE_VALUES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT'] as const;
+const AUDIENCE_VALUES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as const;
 const STATUS_VALUES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ARCHIVED'] as const;
 
 // M21 spec §2.1/§6 — PATCH /help/articles/:id. Prelazak u status=PUBLISHED zahteva PUBLISH
@@ -11,7 +11,7 @@ export class UpdateHelpArticleDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsIn(AUDIENCE_VALUES, { each: true })
-  audience?: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT')[];
+  audience?: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT' | 'PUBLIC_GUEST')[];
 
   @IsOptional()
   @IsString()

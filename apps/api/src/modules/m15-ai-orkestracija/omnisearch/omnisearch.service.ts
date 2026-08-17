@@ -139,8 +139,9 @@ export class OmnisearchService {
     if (req.channel === 'B2C_SITE' && this.looksLikeHelpQuestion(req.query)) {
       const helpAnswer = await this.tryHelpCenter(req);
       if (helpAnswer) return helpAnswer;
-      // Bez rezultata iz M21 (npr. anoniman/pojedinačni gost — M21 spec §1/§7, van obima v1 za
-      // taj slučaj) nastavlja se na §6.5.4.2 ispod, isti tok kao svako drugo pitanje.
+      // Bez rezultata iz M21 (npr. confidence NONE, ili nalog bez rešive publike) nastavlja se
+      // na §6.5.4.2 ispod, isti tok kao svako drugo pitanje. Anoniman posetilac i INDIVIDUAL
+      // gost VIŠE nisu automatski u ovoj grani (avgust 2026, PUBLIC_GUEST) — pravi M21 pokušaj.
     }
 
     // §6.5.4.2 — jezički model, samo ako korak 1 nije našao ništa i upit liči na pitanje.
@@ -173,13 +174,17 @@ export class OmnisearchService {
 
   /**
    * M8 §3a tačka b — prosleđuje pitanje M21 HelpAssistantService (in-process DI poziv, isti
-   * obrazac kao BookingsService/ProductsService ovde). VRAĆA null (ne grešku) kad M21 nema
-   * pristup za tog aktera (npr. anoniman ili INDIVIDUAL gost — M21 spec §1/§7 eksplicitno van
-   * obima v1) — agent to tretira "isto kao da je API vratio 403" (M15 spec §6.5.2), pa se tok
-   * vraća na opšti (LLM) pokušaj umesto da baci grešku korisniku.
+   * obrazac kao BookingsService/ProductsService ovde). Otkad je M21 dobio PUBLIC_GUEST publiku
+   * (avgust 2026, vlasnikova odluka — M15 spec §11 "B2C_SITE omnisearch dopuna"), `actorUserId`
+   * se prosleđuje KAKAV JESTE, uključujući `null` za potpuno anonimnog B2C posetioca —
+   * `resolveHelpAudience` (M21) taj slučaj rešava direktno u PUBLIC_GUEST, bez ijednog upita
+   * nad bazom. VRAĆA null (ne grešku) kad M21 ipak nema pristup za tog aktera (npr. nalog bez
+   * rešive publike — STAFF/SUBAGENT/GUEST su jedini tipovi koje M21 poznaje) — agent to tretira
+   * "isto kao da je API vratio 403" (M15 spec §6.5.2), pa se tok vraća na opšti (LLM) pokušaj
+   * umesto da baci grešku korisniku.
    */
   private async tryHelpCenter(req: OmnisearchRequest): Promise<OmnisearchResponse | null> {
-    if (!req.actorUserId || req.query.trim().length < 3) return null;
+    if (req.query.trim().length < 3) return null;
     try {
       const result = await this.helpAssistant.ask({ question: req.query, lang: req.lang }, req.actorUserId);
       if (!result.answer) return null;

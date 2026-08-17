@@ -48,19 +48,28 @@ export class HelpAssistantService {
   ) {}
 
   // ==========================================================================
-  // POST /help/ask
+  // POST /help/ask — actorUserId je null za potpuno anonimnog B2C posetioca (avgust 2026,
+  // M15 spec §11 "B2C_SITE omnisearch dopuna"). Kontroler i dalje zahteva JwtAuthGuard (samo
+  // logovan poziv preko HTTP rute), ali M15 OmnisearchService poziva ovaj servis IN-PROCESS,
+  // van kontrolera, sa actorUserId=null za anonimnog posetioca — servis je sam bezbednosna
+  // granica za taj poziv, ne kontroler (nema HTTP rutu koju anonimni poziv ikad pogađa).
   // ==========================================================================
-  async ask(dto: AskQuestionDto, actorUserId: string) {
+  async ask(dto: AskQuestionDto, actorUserId: string | null) {
     const audience = await resolveHelpAudience(this.prisma, actorUserId);
     if (!audience) {
       throw new ForbiddenException(
-        'Centar za pomoć nije dostupan ovom nalogu u v1 (pojedinačni gost) — koristite Podršku (M14) za pitanja.',
+        'Centar za pomoć nije dostupan ovom nalogu u v1 — koristite Podršku (M14) za pitanja.',
       );
     }
     // §3 — filtriranje ide kroz M1 Permission zapise, ne samo kroz izvedenu publiku (isti
-    // princip kao HelpArticlesService.findVisibleToCaller).
-    if (!(await this.permissions.hasPermission(actorUserId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
-      throw new ForbiddenException(`Nema M21/article:${audienceToPermissionSegment(audience)}/VIEW dozvolu.`);
+    // princip kao HelpArticlesService.findVisibleToCaller). Za potpuno anonimnog pozivaoca
+    // (actorUserId=null) NEMA User zapisa, pa nema šta da se proveri kroz M1 Permission —
+    // audience je već strukturno fiksiran na PUBLIC_GUEST (resolveHelpAudience iznad), tako da
+    // provera ovde svesno preskače (ne "propušta" ništa — nema šireg pristupa da se dodeli).
+    if (actorUserId !== null) {
+      if (!(await this.permissions.hasPermission(actorUserId, 'M21', `article:${audienceToPermissionSegment(audience)}`, 'VIEW'))) {
+        throw new ForbiddenException(`Nema M21/article:${audienceToPermissionSegment(audience)}/VIEW dozvolu.`);
+      }
     }
 
     const candidates = await this.loadCandidates(audience, dto.lang);
@@ -359,12 +368,21 @@ export class HelpAssistantService {
     if (question.audienceContext === 'STAFF') {
       return { requesterType: 'STAFF_ON_BEHALF', requesterClientAccountId: null };
     }
+    // askedBy je ovde uvek stvaran userId, nikad null: escalate() je dostupan isključivo kroz
+    // HelpAssistantController (JwtAuthGuard, avgust 2026 komentar uz ask() iznad), a
+    // findOwnQuestion (poziva se pre ove funkcije) već odbija svaki poziv gde
+    // question.askedBy !== actorUserId — anoniman upisan askedBy=null tu proveru nikad ne
+    // prolazi jer actorUserId iz JWT-a ne može biti null.
+    if (!question.askedBy) {
+      throw new ForbiddenException('Anonimno pitanje nema vlasnika koji može da potvrdi eskalaciju.');
+    }
     const user = await this.prisma.user.findUnique({ where: { id: question.askedBy } });
     if (question.audienceContext === 'SUBAGENT') {
       const subagent = user?.linkedProfileId ? await this.prisma.subagent.findUnique({ where: { id: user.linkedProfileId } }) : null;
       return { requesterType: 'SUBAGENT', requesterClientAccountId: subagent?.clientAccountId ?? null };
     }
-    // BUSINESS_CLIENT — User.linked_profile_id je direktno ClientAccount.id (§2.3).
+    // BUSINESS_CLIENT/PUBLIC_GUEST (logovan INDIVIDUAL gost) — User.linked_profile_id je
+    // direktno ClientAccount.id kad postoji (§2.3); anoniman PUBLIC_GUEST nikad ne stiže dovde.
     return { requesterType: 'GUEST', requesterClientAccountId: user?.linkedProfileId ?? null };
   }
 }

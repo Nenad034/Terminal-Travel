@@ -1,6 +1,6 @@
 import { ArrayNotEmpty, IsArray, IsBoolean, IsIn, IsOptional, IsString, Matches } from 'class-validator';
 
-const AUDIENCE_VALUES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT'] as const;
+const AUDIENCE_VALUES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as const;
 
 // M21 spec §2.1/§6 — POST /help/articles. Uvek kreira DRAFT (isti obrazac kao M12
 // ContentPiece.create — nema poseban ljudski korak iz DRAFT, prelazak u PENDING_APPROVAL/
@@ -14,7 +14,7 @@ export class CreateHelpArticleDto {
   @IsArray()
   @ArrayNotEmpty()
   @IsIn(AUDIENCE_VALUES, { each: true })
-  audience!: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT')[];
+  audience!: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT' | 'PUBLIC_GUEST')[];
 
   @IsOptional()
   @IsString()

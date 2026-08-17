@@ -18,16 +18,33 @@ describe('HelpArticlesService (M21 spec §3/§7 — vidljivost po publici)', () 
     return { service, prisma, auditLog, permissions };
   }
 
-  it('INDIVIDUAL GUEST (van obima v1) ne vidi nijedan članak', async () => {
+  it('INDIVIDUAL GUEST dobija PUBLIC_GUEST publiku (avgust 2026 — više nije van obima)', async () => {
     const { service, prisma, permissions } = makeService();
     prisma.user.findUnique.mockResolvedValue({ id: 'u1', accountType: 'GUEST', linkedProfileId: 'ca1' });
     prisma.clientAccount.findUnique.mockResolvedValue({ id: 'ca1', accountType: 'INDIVIDUAL' });
+    permissions.hasPermission.mockResolvedValue(true);
+    prisma.helpArticle.findMany.mockResolvedValue([
+      { id: 'pg1', audience: ['PUBLIC_GUEST'], isCriticalExample: false, translations: [{ languageCode: 'sr', title: 'T', body: 'B' }] },
+    ]);
 
     const result = await service.findVisibleToCaller('u1', {});
 
+    expect(prisma.helpArticle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ status: 'PUBLISHED', audience: { has: 'PUBLIC_GUEST' } }) }),
+    );
+    expect(result).toHaveLength(1);
+  });
+
+  it('INDIVIDUAL GUEST bez article:public/VIEW dozvole ne vidi ništa uprkos rešivoj PUBLIC_GUEST publici', async () => {
+    const { service, prisma, permissions } = makeService();
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1b', accountType: 'GUEST', linkedProfileId: 'ca1b' });
+    prisma.clientAccount.findUnique.mockResolvedValue({ id: 'ca1b', accountType: 'INDIVIDUAL' });
+    permissions.hasPermission.mockResolvedValue(false);
+
+    const result = await service.findVisibleToCaller('u1b', {});
+
     expect(result).toEqual([]);
-    // Provera je i strukturna: audience je null pre nego što se permission uopšte ispita.
-    expect(permissions.hasPermission).not.toHaveBeenCalled();
+    expect(prisma.helpArticle.findMany).not.toHaveBeenCalled();
   });
 
   it('nalog bez rešive publike (npr. SUPPLIER_CONTACT) dobija praznu listu', async () => {

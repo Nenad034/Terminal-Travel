@@ -8,10 +8,16 @@ import { PrismaService } from '../../prisma/prisma.service';
  * kao `resolveCallerIdentity`) sa M6 `ClientAccount.account_type = LEGAL_ENTITY` — provera
  * UŽIVO nad bazom (poglavlje 3, "nikad iz keširanog/token podatka"), nikad keširana.
  *
- * `null` = nema pristup Centru za pomoć u v1 (pojedinačni/INDIVIDUAL GUEST, ili nalog bez
- * account_type koji ovde ima smisla, npr. AI_AGENT/SUPPLIER_CONTACT) — spec poglavlje 1/7.
+ * `userId = null` = potpuno anoniman B2C posetilac (nema User zapis uopšte) — vraća
+ * PUBLIC_GUEST odmah, bez ijednog upita nad bazom (avgust 2026, vlasnikova odluka, M15 spec
+ * §11 "B2C_SITE omnisearch dopuna").
+ *
+ * `null` povratna vrednost i dalje postoji za naloge koji ovde nemaju smisla (npr. AI_AGENT/
+ * SUPPLIER_CONTACT) — ti nemaju pristup Centru za pomoć ni kao PUBLIC_GUEST.
  */
-export async function resolveHelpAudience(prisma: PrismaService, userId: string): Promise<HelpAudience | null> {
+export async function resolveHelpAudience(prisma: PrismaService, userId: string | null): Promise<HelpAudience | null> {
+  if (userId === null) return 'PUBLIC_GUEST';
+
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return null;
 
@@ -19,18 +25,19 @@ export async function resolveHelpAudience(prisma: PrismaService, userId: string)
   if (user.accountType === 'SUBAGENT_CONTACT') return 'SUBAGENT';
 
   if (user.accountType === 'GUEST') {
-    if (!user.linkedProfileId) return null;
+    if (!user.linkedProfileId) return 'PUBLIC_GUEST'; // bez povezanog ClientAccount — tretira se kao pojedinačni gost
     const clientAccount = await prisma.clientAccount.findUnique({ where: { id: user.linkedProfileId } });
     if (clientAccount?.accountType === 'LEGAL_ENTITY') return 'BUSINESS_CLIENT';
-    return null; // INDIVIDUAL — namerno van obima v1 (spec poglavlje 1)
+    return 'PUBLIC_GUEST'; // INDIVIDUAL (avgust 2026) — sopstvena, uža publika umesto potpunog isključenja
   }
 
   return null;
 }
 
 /** Mapira HelpAudience na segment korišćen u permission resource ključu `article:<segment>`. */
-export function audienceToPermissionSegment(audience: HelpAudience): 'staff' | 'subagent' | 'business' {
+export function audienceToPermissionSegment(audience: HelpAudience): 'staff' | 'subagent' | 'business' | 'public' {
   if (audience === 'STAFF') return 'staff';
   if (audience === 'SUBAGENT') return 'subagent';
-  return 'business';
+  if (audience === 'BUSINESS_CLIENT') return 'business';
+  return 'public';
 }

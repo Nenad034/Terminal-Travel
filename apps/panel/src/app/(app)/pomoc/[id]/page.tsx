@@ -17,7 +17,7 @@ interface Translation {
 interface HelpArticleDetail {
   id: string;
   slug: string;
-  audience: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT')[];
+  audience: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT' | 'PUBLIC_GUEST')[];
   relatedModule: string | null;
   isCriticalExample: boolean;
   status: string;
@@ -28,10 +28,11 @@ interface HelpArticleDetail {
   translations: Translation[];
 }
 
-const AUDIENCE_TO_SEGMENT: Record<string, 'staff' | 'subagent' | 'business'> = {
+const AUDIENCE_TO_SEGMENT: Record<string, 'staff' | 'subagent' | 'business' | 'public'> = {
   STAFF: 'staff',
   SUBAGENT: 'subagent',
   BUSINESS_CLIENT: 'business',
+  PUBLIC_GUEST: 'public',
 };
 
 // M17 spec §4/§7 (Faza 7, rešeno M17 Faza 7 zatvaranje nedostataka) — M21 §6 GET

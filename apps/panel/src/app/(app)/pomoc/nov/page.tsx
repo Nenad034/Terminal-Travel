@@ -3,10 +3,11 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import NewArticleForm from './NewArticleForm';
 
-const SEGMENTS: { value: 'STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT'; segment: 'staff' | 'subagent' | 'business'; label: string }[] = [
+const SEGMENTS: { value: 'STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT' | 'PUBLIC_GUEST'; segment: 'staff' | 'subagent' | 'business' | 'public'; label: string }[] = [
   { value: 'STAFF', segment: 'staff', label: 'STAFF (interni tim)' },
   { value: 'SUBAGENT', segment: 'subagent', label: 'SUBAGENT (B2B portal)' },
   { value: 'BUSINESS_CLIENT', segment: 'business', label: 'BUSINESS_CLIENT (korporativni self-service)' },
+  { value: 'PUBLIC_GUEST', segment: 'public', label: 'PUBLIC_GUEST (anonimni/pojedinačni B2C gosti)' },
 ];
 
 // M21 spec §2.1/§6 — POST /help/articles zahteva EDIT dozvolu za SVAKI audience segment koji se

@@ -33,12 +33,67 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
     return { service, prisma, auditLog, permissions, anthropic, invocationLog, abuseDetector, tickets };
   }
 
-  it('odbija pitanje INDIVIDUAL GUEST naloga (van obima v1, spec §1/§7)', async () => {
+  it('INDIVIDUAL GUEST nalog dobija PUBLIC_GUEST publiku (avgust 2026 — više nije van obima)', async () => {
     const { service, prisma } = makeService();
     prisma.user.findUnique.mockResolvedValue({ id: 'g1', accountType: 'GUEST', linkedProfileId: 'ca1' });
     prisma.clientAccount.findUnique.mockResolvedValue({ id: 'ca1', accountType: 'INDIVIDUAL' });
+    prisma.helpArticle.findMany.mockResolvedValue([]);
+    prisma.helpQuestion.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'q1', ...data }));
 
-    await expect(service.ask({ question: 'Kako rezervišem?' } as any, 'g1')).rejects.toThrow(ForbiddenException);
+    await service.ask({ question: 'Kako rezervišem?' } as any, 'g1');
+
+    expect(prisma.helpArticle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ audience: { has: 'PUBLIC_GUEST' } }) }),
+    );
+    expect(prisma.helpQuestion.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ askedBy: 'g1', audienceContext: 'PUBLIC_GUEST' }) }),
+    );
+  });
+
+  it('potpuno anoniman posetilac (actorUserId=null) dobija PUBLIC_GUEST bez ijednog upita nad User/ClientAccount i bez M1 Permission provere', async () => {
+    const { service, prisma, permissions } = makeService();
+    prisma.helpArticle.findMany.mockResolvedValue([]);
+    prisma.helpQuestion.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'q1', ...data }));
+
+    const result = await service.ask({ question: 'Kako otkazujem rezervaciju?' } as any, null);
+
+    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(permissions.hasPermission).not.toHaveBeenCalled();
+    expect(prisma.helpArticle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ audience: { has: 'PUBLIC_GUEST' } }) }),
+    );
+    expect(prisma.helpQuestion.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ askedBy: null, audienceContext: 'PUBLIC_GUEST' }) }),
+    );
+    expect(result.confidence).toBe('NONE');
+  });
+
+  it('GUEST bez povezanog ClientAccount (linkedProfileId=null) takođe dobija PUBLIC_GUEST', async () => {
+    const { service, prisma } = makeService();
+    prisma.user.findUnique.mockResolvedValue({ id: 'g2', accountType: 'GUEST', linkedProfileId: null });
+    prisma.helpArticle.findMany.mockResolvedValue([]);
+    prisma.helpQuestion.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'q1', ...data }));
+
+    await service.ask({ question: 'Kako rezervišem?' } as any, 'g2');
+
+    expect(prisma.clientAccount.findUnique).not.toHaveBeenCalled();
+    expect(prisma.helpArticle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ audience: { has: 'PUBLIC_GUEST' } }) }),
+    );
+  });
+
+  it('GUEST povezan sa LEGAL_ENTITY ClientAccount i dalje dobija BUSINESS_CLIENT (nema regresije)', async () => {
+    const { service, prisma } = makeService();
+    prisma.user.findUnique.mockResolvedValue({ id: 'guest-biz', accountType: 'GUEST', linkedProfileId: 'ca-biz' });
+    prisma.clientAccount.findUnique.mockResolvedValue({ id: 'ca-biz', accountType: 'LEGAL_ENTITY' });
+    prisma.helpArticle.findMany.mockResolvedValue([]);
+    prisma.helpQuestion.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'q1', ...data }));
+
+    await service.ask({ question: 'Kako fakturišem na firmu?' } as any, 'guest-biz');
+
+    expect(prisma.helpArticle.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ audience: { has: 'BUSINESS_CLIENT' } }) }),
+    );
   });
 
   it('odbija kad nedostaje M21/article:<segment>/VIEW dozvola uprkos rešivoj publici', async () => {

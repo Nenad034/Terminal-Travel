@@ -131,10 +131,28 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(result.active).toBe(true); // fallback na §6.5.4.2 objašnjenje, ne izuzetak
   });
 
-  it('B2C_SITE anoniman posetilac ne poziva M21 (nema actorUserId, isti "isto kao 403" princip)', async () => {
-    const { service, helpAssistant } = makeService();
-    await service.search({ query: 'kako otkazujem rezervaciju', channel: 'B2C_SITE', actorUserId: null });
-    expect(helpAssistant.ask).not.toHaveBeenCalled();
+  // avgust 2026 (PUBLIC_GUEST, M15 spec §11 "B2C_SITE omnisearch dopuna") — anoniman posetilac
+  // VIŠE NE preskače M21: prosleđuje se actorUserId=null direktno, resolveHelpAudience (M21) ga
+  // rešava u PUBLIC_GUEST bez ijednog upita nad bazom.
+  it('B2C_SITE anoniman posetilac SADA poziva M21 sa actorUserId=null (PUBLIC_GUEST)', async () => {
+    const { service, helpAssistant } = makeService({ anthropicConfigured: false });
+    (helpAssistant.ask as jest.Mock).mockResolvedValue({ answer: 'Sajt prikazuje procenat povraćaja pre potvrde otkazivanja.' });
+
+    const result = await service.search({ query: 'kako otkazujem rezervaciju', channel: 'B2C_SITE', actorUserId: null });
+
+    expect(helpAssistant.ask).toHaveBeenCalledWith({ question: 'kako otkazujem rezervaciju', lang: undefined }, null);
+    expect(result.aiAnswer).toBe('Sajt prikazuje procenat povraćaja pre potvrde otkazivanja.');
+  });
+
+  it('B2C_SITE anoniman posetilac bez M21 odgovora (npr. confidence NONE) pada na opšti LLM fallback, ne baca grešku', async () => {
+    const { service, helpAssistant } = makeService({ anthropicConfigured: false });
+    (helpAssistant.ask as jest.Mock).mockResolvedValue({ answer: null });
+
+    const result = await service.search({ query: 'kako otkazujem rezervaciju', channel: 'B2C_SITE', actorUserId: null });
+
+    expect(helpAssistant.ask).toHaveBeenCalled();
+    expect(result.active).toBe(true);
+    expect(result.aiAnswer).toMatch(/ANTHROPIC_API_KEY/);
   });
 
   // §6.5.4.3, §10 — "omnisearch nikad ne izvršava radnju sam": statička provera da servis

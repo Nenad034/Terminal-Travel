@@ -267,21 +267,28 @@ const M19_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M19', resource: 'supplier-conversation', action: 'GRANT_ACCESS', description: 'Dodela/oduzimanje pristupa zaposlenom EXTERNAL_SUPPLIER razgovoru, pokretanje portal pozivnice dobavljaču' },
 ];
 
-// M21 spec §3 — vidljivost je po tri publike (STAFF/SUBAGENT/BUSINESS_CLIENT), svaka sa
-// sopstvenim VIEW/EDIT/PUBLISH parom. PUBLISH ide isključivo Direktoru/Vlasniku (HR ima EDIT
-// ali ne i PUBLISH — potvrđena vlasnikova odluka, avgust 2026, ista dvoslojna podela kao M12
-// ContentPiece EDIT vs PUBLISH). question-log/VIEW je bezbednosni/kvalitetni uvid (HR/Direktor/
-// Vlasnik), suggestion/APPROVE prevodi AI nacrt u stvaran (i dalje neobjavljen) HelpArticle.
+// M21 spec §3 — vidljivost je po četiri publike (STAFF/SUBAGENT/BUSINESS_CLIENT/PUBLIC_GUEST,
+// poslednja dodata avgust 2026), svaka sa sopstvenim VIEW/EDIT/PUBLISH parom. PUBLISH ide
+// isključivo Direktoru/Vlasniku (HR ima EDIT ali ne i PUBLISH — potvrđena vlasnikova odluka,
+// avgust 2026, ista dvoslojna podela kao M12 ContentPiece EDIT vs PUBLISH). question-log/VIEW
+// je bezbednosni/kvalitetni uvid (HR/Direktor/Vlasnik), suggestion/APPROVE prevodi AI nacrt u
+// stvaran (i dalje neobjavljen) HelpArticle. article:public/VIEW postoji isključivo radi STAFF
+// uvida u panelu (pregled/odobravanje PUBLIC_GUEST članaka, §6 GET /help/articles?status=) —
+// stvaran anonimni B2C poziv nikad ne prolazi kroz M1 Permission proveru uopšte (nema User
+// zapis da se proveri), vidi HelpAssistantService.ask komentar uz avgust 2026 izmenu.
 const M21_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
   { module: 'M21', resource: 'article:staff', action: 'VIEW', description: 'Uvid u objavljene članke namenjene internom timu' },
   { module: 'M21', resource: 'article:subagent', action: 'VIEW', description: 'Uvid u objavljene članke namenjene B2B subagentima' },
   { module: 'M21', resource: 'article:business', action: 'VIEW', description: 'Uvid u objavljene članke namenjene korporativnim self-service klijentima' },
+  { module: 'M21', resource: 'article:public', action: 'VIEW', description: 'Uvid u objavljene članke namenjene anonimnim/pojedinačnim (INDIVIDUAL) B2C gostima' },
   { module: 'M21', resource: 'article:staff', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za interni tim' },
   { module: 'M21', resource: 'article:staff', action: 'PUBLISH', description: 'Objava članka za interni tim (isključivo Direktor/Vlasnik)' },
   { module: 'M21', resource: 'article:subagent', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za B2B subagente' },
   { module: 'M21', resource: 'article:subagent', action: 'PUBLISH', description: 'Objava članka za B2B subagente (isključivo Direktor/Vlasnik)' },
   { module: 'M21', resource: 'article:business', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za korporativne klijente' },
   { module: 'M21', resource: 'article:business', action: 'PUBLISH', description: 'Objava članka za korporativne klijente (isključivo Direktor/Vlasnik)' },
+  { module: 'M21', resource: 'article:public', action: 'EDIT', description: 'Kreiranje/izmena nacrta članaka za anonimne/pojedinačne B2C goste' },
+  { module: 'M21', resource: 'article:public', action: 'PUBLISH', description: 'Objava članka za anonimne/pojedinačne B2C goste (isključivo Direktor/Vlasnik)' },
   { module: 'M21', resource: 'suggestion', action: 'APPROVE', description: 'Odobrenje/odbijanje AI predloga novog članka baze znanja' },
   { module: 'M21', resource: 'question-log', action: 'VIEW', description: 'Uvid u istoriju pitanja AI asistentu radi kvaliteta sadržaja i bezbednosnog pregleda' },
 ];
@@ -383,6 +390,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M21', resource: 'article:staff', action: 'EDIT' },
     { module: 'M21', resource: 'article:subagent', action: 'EDIT' },
     { module: 'M21', resource: 'article:business', action: 'EDIT' },
+    // avgust 2026 — HR dobija EDIT i za PUBLIC_GUEST publiku, isti krug kao ostale tri.
+    { module: 'M21', resource: 'article:public', action: 'EDIT' },
     { module: 'M21', resource: 'suggestion', action: 'APPROVE' },
     { module: 'M21', resource: 'question-log', action: 'VIEW' },
   ],
@@ -598,10 +607,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // poseban ključ dozvole); nema RESPOND (ne može menjati status/prioritet ni slati STAFF poruke).
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
-    // M21 spec §1/§3 — dodeljeno celoj GOST roli (i INDIVIDUAL i LEGAL_ENTITY nalozima), ali
-    // efektivno korisno samo LEGAL_ENTITY (BUSINESS_CLIENT) nalozima — resolveHelpAudience
-    // vraća null za INDIVIDUAL bez obzira na ovu dozvolu (izlazni kriterijum §7, prva stavka).
+    // M21 spec §1/§3 — dodeljeno celoj GOST roli (i INDIVIDUAL i LEGAL_ENTITY nalozima).
+    // resolveHelpAudience bira TAČNO JEDAN segment po pozivaocu (LEGAL_ENTITY → business,
+    // INDIVIDUAL/nepovezan → public, avgust 2026), pa je bezbedno da nalog ima obe VIEW dozvole
+    // — samo jedna ikad postane relevantna po stvarnom pozivu (izlazni kriterijum §7, prva stavka).
     { module: 'M21', resource: 'article:business', action: 'VIEW' },
+    { module: 'M21', resource: 'article:public', action: 'VIEW' },
   ],
   // M7 spec §8/§10 — SUBAGENT_ADMIN: sopstveni Subagent/ClientAccount profil, sopstvene
   // rezervacije preko M5 (§5 provizija se primenjuje automatski), upravljanje sopstvenom mrežom.
@@ -697,6 +708,7 @@ async function main() {
   await seedM19SupplierDraftAgent();
   await seedM19SystemNotificationUser();
   await seedM21HelpCenterAgent();
+  await seedM21PublicGuestArticles();
   await seedM22EmailInboxAgent();
   await seedM23KnowledgeAgent();
 
@@ -891,6 +903,162 @@ async function seedM21HelpCenterAgent() {
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
+}
+
+// M21 spec §1/§2 (avgust 2026, vlasnikova odluka — M15 spec §11 "B2C_SITE omnisearch dopuna") —
+// 4 starter članka za novu PUBLIC_GUEST publiku (anonimni B2C posetioci i logovani INDIVIDUAL
+// gosti). Idempotentno preko upsert po slug-u, isti obrazac kao ostatak seed.ts. DRAFT +
+// generatedBy=AI, approvedBy=null — nikad se ne objavljuju ovde (M21 pravilo, §2.1: approved_by
+// obavezno pre PUBLISHED, nikad AI). Direktor/Vlasnik pregledaju i objavljuju kroz postojeći
+// M17 ekran (apps/panel/src/app/(app)/pomoc/), isti tok kao svaki drugi nacrt.
+// Sadržaj je namerno kratak, jednostavan jezik, bez pravnih tvrdnji van onoga što je stvarno
+// implementirano/potvrđeno u spec-u (CLAUDE.md — "ne izmišljati tehničke detalje eksternih
+// sistema... gde specifikacija eksplicitno kaže da to zahteva potvrdu").
+const PUBLIC_GUEST_ARTICLES: {
+  slug: string;
+  relatedModule: string;
+  sr: { title: string; body: string };
+  en: { title: string; body: string };
+}[] = [
+  {
+    slug: 'kako-otkazati-rezervaciju-i-povracaj-sredstava',
+    relatedModule: 'M5',
+    sr: {
+      title: 'Kako se otkazuje rezervacija i kako radi povraćaj sredstava',
+      body:
+        'Rezervaciju otkazujete sa stranice "Moje rezervacije" na sajtu, dugmetom za otkazivanje.\n\n' +
+        '**Pre nego što potvrdite otkazivanje, sajt vam unapred prikazuje procenat povraćaja** koji važi za vašu rezervaciju — ' +
+        'taj procenat zavisi od toga koliko dana pre početka putovanja otkazujete i od pravila otkazivanja tog konkretnog ' +
+        'aranžmana/smeštaja (svaki proizvod može imati svoja pravila, definisana u ugovoru sa dobavljačem). Što je otkazivanje ' +
+        'bliže datumu polaska, procenat povraćaja je po pravilu niži.\n\n' +
+        'Povraćaj se obračunava automatski na osnovu tih pravila — nema potrebe da sami računate, sajt vam pokaže tačan iznos ' +
+        'pre nego što potvrdite. Ako niste sigurni šta konkretno pravilo znači za vašu rezervaciju, obratite se timu podrške pre ' +
+        'nego što otkažete.',
+    },
+    en: {
+      title: 'How to cancel a booking and how refunds work',
+      body:
+        'You cancel a booking from the "My bookings" page on the website, using the cancel button.\n\n' +
+        '**Before you confirm the cancellation, the site shows you the exact refund percentage** that applies to your booking — ' +
+        'this depends on how many days before departure you cancel and on the cancellation rules of that specific product ' +
+        '(each product/accommodation can have its own rules, set in the supplier contract). The closer to the departure date, ' +
+        'the lower the refund percentage typically is.\n\n' +
+        'The refund is calculated automatically from those rules — you don\'t need to compute anything yourself, the site shows ' +
+        'the exact amount before you confirm. If you are unsure what a specific rule means for your booking, contact our support ' +
+        'team before cancelling.',
+    },
+  },
+  {
+    slug: 'sta-je-boravisna-taksa-i-ko-je-placa',
+    relatedModule: 'M11',
+    sr: {
+      title: 'Šta je boravišna taksa i ko je plaća',
+      body:
+        'Boravišna taksa je lokalna naknada koju propisuje opština/grad u kojem se nalazi vaš smeštaj — nije deo cene aranžmana ' +
+        'koju plaćate agenciji Terminal Travel.\n\n' +
+        '**Boravišnu taksu naplaćuje i prijavljuje sam smeštajni objekat (hotel, apartman...) direktno gostu**, ne agencija. Terminal ' +
+        'Travel ne obračunava, ne naplaćuje niti prosleđuje ovu taksu — to je zakonska obaveza smeštajnog objekta koji vas ' +
+        'neposredno prima, ne turoperatora koji vam je prodao aranžman.\n\n' +
+        'Tačan iznos i način plaćanja (gotovina na recepciji, uračunato u cenu smeštaja i sl.) zavisi od konkretnog smeštaja i ' +
+        'destinacije — ako niste sigurni, najbolje je proveriti direktno sa smeštajem ili nas kontaktirati pa ćemo proslediti pitanje.',
+    },
+    en: {
+      title: 'What is the local tourist tax and who pays it',
+      body:
+        'The tourist tax (boravišna taksa) is a local fee set by the municipality/city where your accommodation is located — it is ' +
+        'not part of the package price you pay to Terminal Travel.\n\n' +
+        '**The tourist tax is collected and reported by the accommodation itself (hotel, apartment...) directly from the guest**, ' +
+        'not by the agency. Terminal Travel does not calculate, collect, or forward this tax — it is a legal obligation of the ' +
+        'accommodation that hosts you directly, not of the tour operator that sold you the package.\n\n' +
+        'The exact amount and payment method (cash at reception, included in the accommodation price, etc.) depends on the specific ' +
+        'accommodation and destination — if you are unsure, it is best to check directly with the accommodation or contact us and ' +
+        'we will forward the question.',
+    },
+  },
+  {
+    slug: 'kako-se-placa-rezervacija-kartica-ili-prenos',
+    relatedModule: 'M10',
+    sr: {
+      title: 'Kako se plaća rezervacija (kartica ili bankovni prenos)',
+      body:
+        'Na sajtu možete platiti rezervaciju na dva načina:\n\n' +
+        '**Platnom karticom** — plaćanje ide preko sertifikovanog platnog provajdera (Terminal Travel nikad ne vidi niti čuva broj ' +
+        'vaše kartice). Naplata se dešava PRE nego što se rezervacija konačno potvrdi; ako se u međuvremenu ispostavi da termin/' +
+        'kapacitet više nije dostupan, uplata se automatski poništava/vraća i dobijate jasno obaveštenje.\n\n' +
+        '**Bankovnim prenosom** — rezervacija se potvrđuje odmah (bez čekanja na uplatu), a instrukcije za uplatu (račun, poziv na ' +
+        'broj) dobijate na sajtu i u imejlu zajedno sa vaučerom. Uplatu vršite naknadno prema tim instrukcijama.\n\n' +
+        'U zavisnosti od aranžmana, moguće je da se traži samo deo cene unapred (kapara), a ostatak do određenog roka pre putovanja — ' +
+        'ta pravila su ista za oba načina plaćanja i biće vam jasno prikazana pre potvrde.',
+    },
+    en: {
+      title: 'How to pay for a booking (card or bank transfer)',
+      body:
+        'You can pay for a booking on the website in two ways:\n\n' +
+        '**By card** — payment goes through a certified payment provider (Terminal Travel never sees or stores your card number). ' +
+        'The charge happens BEFORE the booking is finally confirmed; if the slot/capacity turns out to be unavailable in the ' +
+        'meantime, the payment is automatically voided/refunded and you receive a clear notice.\n\n' +
+        '**By bank transfer** — the booking is confirmed immediately (without waiting for payment), and payment instructions ' +
+        '(account, reference number) are shown on the site and emailed together with your voucher. You then make the transfer ' +
+        'according to those instructions.\n\n' +
+        'Depending on the package, only part of the price may be required upfront (deposit), with the remainder due by a set ' +
+        'deadline before travel — these rules are the same for both payment methods and will be clearly shown before you confirm.',
+    },
+  },
+  {
+    slug: 'sta-je-garancija-putovanja-yuta',
+    relatedModule: 'M11',
+    sr: {
+      title: 'Šta je garancija putovanja (YUTA) i šta pokriva',
+      body:
+        'Terminal Travel, kao organizator putovanja, po zakonu mora da poseduje važeću godišnju garanciju putovanja (YUTA garancija) — ' +
+        'to je uslov bez kog agencija ne sme da prodaje organizovana putovanja.\n\n' +
+        'Svaka potvrđena rezervacija kod koje je Terminal Travel organizator prijavljuje se u zvaničan sistem koji prati raspoloživi ' +
+        'limit garancije. Garancija služi kao zaštita gostiju u zakonom predviđenim slučajevima (npr. insolventnost organizatora).\n\n' +
+        'Tehnički detalji same prijave i tačan obim pokrića zavise od važećih propisa i ugovora sa YUTA — ako vam je za konkretnu ' +
+        'rezervaciju ili situaciju potrebna preciznija informacija, najbolje je da nas direktno kontaktirate, kako ne bismo dali ' +
+        'nepotpun odgovor na osetljivo pravno pitanje.',
+    },
+    en: {
+      title: 'What is the YUTA travel guarantee and what does it cover',
+      body:
+        'As a tour organizer, Terminal Travel is legally required to hold a valid annual travel guarantee (YUTA guarantee) — this is ' +
+        'a precondition for the agency to be allowed to sell organized trips at all.\n\n' +
+        'Every confirmed booking where Terminal Travel is the organizer is reported into the official system that tracks the ' +
+        'available guarantee limit. The guarantee serves as protection for guests in the cases provided by law (e.g. organizer ' +
+        'insolvency).\n\n' +
+        'The technical details of the reporting itself and the exact scope of coverage depend on applicable regulations and the ' +
+        'contract with YUTA — if you need a more precise answer for a specific booking or situation, it is best to contact us ' +
+        'directly, so we don\'t give you an incomplete answer on a sensitive legal matter.',
+    },
+  },
+];
+
+async function seedM21PublicGuestArticles() {
+  for (const item of PUBLIC_GUEST_ARTICLES) {
+    const article = await prisma.helpArticle.upsert({
+      where: { slug: item.slug },
+      update: {},
+      create: {
+        slug: item.slug,
+        audience: ['PUBLIC_GUEST'],
+        relatedModule: item.relatedModule,
+        isCriticalExample: false,
+        status: 'DRAFT',
+        generatedBy: 'AI',
+      },
+    });
+
+    for (const [languageCode, translation] of [
+      ['sr', item.sr],
+      ['en', item.en],
+    ] as const) {
+      await prisma.helpArticleTranslation.upsert({
+        where: { helpArticleId_languageCode: { helpArticleId: article.id, languageCode } },
+        update: { title: translation.title, body: translation.body },
+        create: { helpArticleId: article.id, languageCode, title: translation.title, body: translation.body },
+      });
+    }
+  }
 }
 
 // M19 spec §5 — sistemski pošiljalac za "Obaveštenja" DIRECT razgovore (InAppNotificationsService,

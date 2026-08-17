@@ -167,7 +167,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Glasovni kanal za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR — namerno van obima prve verzije (samo M17/interni tim preko mikrofona), zahteva zasebnu potvrdu vlasnika.
 - **Periodično uzorkovanje `actor_type = AI_AGENT` audit log zapisa radi merenja stope halucinacija/grešaka** jednom kad prvi domenski agenti budu aktivni u produkciji (avgust 2026, analiza rizika povodom spoljnog izvora) — mala dopuna M18 operativnog nadzora, ne hitna. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 2.
 - **"Razgovarate sa AI asistentom" oznaka (transparentnost, EU AI Act)** — ugraditi u UI pre aktivacije prvog gost/subagent-facing AI ekrana (M7 `subagent_chat`, M23 `/znanje/:share_token` stranica kad M8 dobije UI, M15 omnisearch ako ikad proširi obim van M17) — **ažurirano avgust 2026:** M8 omnisearch je sad gost-facing AI ekran (B2C_SITE kanal implementiran), pa je ova stavka aktivna, ne više hipotetička — traka trenutno nema takvu oznaku, dodati pre nego što se `M15_OMNISEARCH` aktivira u produkciji za B2C_SITE. Detalji: `docs/analize/31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 4.
-- **M21 v1 ne pokriva anonimne/INDIVIDUAL B2C goste** (otkriveno avgust 2026, pri B2C_SITE omnisearch implementaciji) — vidi M21 red ispod, "Proširenje na pojedinačne krajnje goste", za posledicu na omnisearch pitanja o platformi.
+- ~~M21 v1 ne pokriva anonimne/INDIVIDUAL B2C goste~~ — rešeno avgust 2026, vidi M21 red ispod.
 
 ## M16 — Agentski distribucioni interfejs (MCP)
 *(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
@@ -211,11 +211,12 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M21 — Centar za pomoć (baza znanja + AI asistent)
 *(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
-- ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve tri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
+- ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve četiri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
 - Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` — polazna vrednost postavljena (3+ u 30 dana, `HelpSuggestionsService`), fino podešavanje čeka stvarnu količinu pitanja u produkciji.
 - M17/M7/M8 UI ekrani za Centar za pomoć — poseban naredni korak (backend gotov, izlazni kriterijum §7 predzadnja stavka namerno nečekirana do UI prolaza).
-- Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9) — namerno van obima. **Konkretna posledica otkrivena avgust 2026** (M15 §11, M8 §3a omnisearch implementacija): B2C_SITE omnisearch help-pitanja (M8 §3a tačka b) trenutno ne mogu da dobiju M21 odgovor za anonimne/INDIVIDUAL goste — jedino B2C sajt ikad kreira taj tip naloga (M8 spec poglavlje 3 korak 3), pa je ova granica u praksi "help pitanja sa sajta skoro nikad ne rade preko M21".
-- Da li M8/M9 UI za korporativne klijente treba poseban vizuelni prikaz Centra za pomoć ili generički help widget.
+- ~~Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9)~~ — **rešeno avgust 2026 (vlasnikova odluka).** Nova publika `PUBLIC_GUEST` pokriva i anonimne i INDIVIDUAL B2C goste (`resolveHelpAudience` prihvata `userId=null`); omnisearch (`tryHelpCenter`) ne preskače više anonimnog pozivaoca. 4 startna DRAFT FAQ članka seedovana, čekaju objavu kroz `apps/panel/src/app/(app)/pomoc/`.
+- Da li M8/M9 UI za korporativne klijente/PUBLIC_GUEST treba poseban vizuelni prikaz Centra za pomoć ili generički help widget — ostaje otvoreno, ova dopuna pokriva samo backend (M21) i M15 omnisearch poziv.
+- Da li `HelpAudience`/`HelpAudienceContext` (dva odvojena enuma sa istim vrednostima) treba spojiti u jedan — nije potvrđeno da je razdvajanje bilo namerno, dopuna avgust 2026 svesno nije spojila enume.
 - Da li agent dobija ograničen pristup živim podacima (npr. kreditni limit subagenta) u budućoj verziji.
 
 ## M22 — Email/Inbox platforma

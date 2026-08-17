@@ -120,7 +120,7 @@ describe('M21 — izlazni kriterijum (e2e)', () => {
   }
 
   // ==========================================================================
-  it('§7 — svaka publika vidi isključivo sopstvene objavljene članke; INDIVIDUAL GUEST ne vidi nijedan', async () => {
+  it('§7 — svaka publika vidi isključivo sopstvene objavljene članke; INDIVIDUAL GUEST vidi PUBLIC_GUEST publiku (avgust 2026)', async () => {
     const direktor = await createUser(SYSTEM_ROLES.DIREKTOR, 'STAFF');
     const staffViewer = await createUser(SYSTEM_ROLES.SALES_MANAGER, 'STAFF');
     const subagentViewer = await createUser(SYSTEM_ROLES.SUBAGENT_ADMIN, 'SUBAGENT_CONTACT');
@@ -155,6 +155,12 @@ describe('M21 — izlazni kriterijum (e2e)', () => {
       title: 'Grupno rezervisanje za firmu',
       body: 'Uputstvo za korporativne self-service naloge.',
     });
+    const publicArticleId = await publishArticle(direktor.accessToken, {
+      slug: `public-clanak-${testRunId}`,
+      audience: ['PUBLIC_GUEST'],
+      title: 'Kako se otkazuje rezervacija',
+      body: 'Uputstvo za anonimne/pojedinačne B2C goste.',
+    });
 
     const staffList = await request(app.getHttpServer()).get('/api/v1/help/articles').set(authed(staffViewer.accessToken));
     expect(staffList.status).toBe(200);
@@ -173,9 +179,22 @@ describe('M21 — izlazni kriterijum (e2e)', () => {
     expect(businessIds).toContain(businessArticleId);
     expect(businessIds).not.toContain(staffArticleId);
 
+    // avgust 2026 (PUBLIC_GUEST) — INDIVIDUAL gost više ne dobija praznu listu, nego isključivo
+    // PUBLIC_GUEST publiku, ista izolacija kao svaka druga publika (ne vidi STAFF/SUBAGENT/
+    // BUSINESS_CLIENT sadržaj).
     const individualList = await request(app.getHttpServer()).get('/api/v1/help/articles').set(authed(individualViewer.accessToken));
     expect(individualList.status).toBe(200);
-    expect(individualList.body).toEqual([]);
+    const individualIds = individualList.body.map((a: any) => a.id);
+    expect(individualIds).toContain(publicArticleId);
+    expect(individualIds).not.toContain(staffArticleId);
+    expect(individualIds).not.toContain(subagentArticleId);
+    expect(individualIds).not.toContain(businessArticleId);
+
+    // Isti nalog (INDIVIDUAL gost) NE vidi PUBLIC_GUEST sadržaj u tuđoj publici — proverava se
+    // i obrnut smer: druge publike ne vide PUBLIC_GUEST članak.
+    expect(staffIds).not.toContain(publicArticleId);
+    expect(subagentIds).not.toContain(publicArticleId);
+    expect(businessIds).not.toContain(publicArticleId);
 
     // Prompt-injection/vidljivost ograda (§5.2/§7 druga stavka) — subagent koji parafrazirano
     // traži da agent "otkrije" STAFF sadržaj ne dobija ga, jer STAFF članak nikad nije ni

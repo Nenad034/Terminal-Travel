@@ -2678,10 +2678,16 @@ model SupplierConversationAccess {
 // slabe reference u repou, npr. Ticket.related_booking_id).
 // ============================================================================
 
+// PUBLIC_GUEST dodato avgust 2026 (vlasnikova odluka — M15 spec §11 "B2C_SITE omnisearch
+// dopuna") — pokriva I anonimnog B2C posetioca (bez naloga) I prijavljenog GUEST naloga čiji
+// je povezani ClientAccount.account_type=INDIVIDUAL (M21 spec §1 je već objasnio zašto je
+// INDIVIDUAL isključen iz v1; ista logika sad daje toj publici sopstveni uži skup članaka
+// umesto potpunog isključenja).
 enum HelpAudience {
   STAFF
   SUBAGENT
   BUSINESS_CLIENT
+  PUBLIC_GUEST
 }
 
 enum HelpArticleStatus {
@@ -2726,10 +2732,17 @@ model HelpArticleTranslation {
   @@map("help_article_translations")
 }
 
+// Odvojen enum od HelpAudience iako ima iste vrednosti — nema pisanog traga (ni u spec-u ni u
+// komentaru uz originalni v1 upis) da li je razdvajanje bilo namerno (HelpArticle.audience je
+// niz — više publika po članku; HelpQuestion.audienceContext je uvek tačno jedna vrednost po
+// pitanju, pa bi spajanje u zajednički enum načelno bilo bezbedno) ili slučajno. Ova dopuna
+// (avgust 2026, PUBLIC_GUEST) svesno NE spaja ta dva enuma — manja, sigurnija izmena; ako se
+// pokaže da je razdvajanje zaista bilo slučajno, spajanje ostaje otvorena stavka za budući prolaz.
 enum HelpAudienceContext {
   STAFF
   SUBAGENT
   BUSINESS_CLIENT
+  PUBLIC_GUEST
 }
 
 enum HelpConfidence {
@@ -2743,7 +2756,7 @@ enum HelpConfidence {
 // ne dobijaju hard FK, poglavlje 3 princip #2 CLAUDE.md).
 model HelpQuestion {
   id                String              @id @default(uuid())
-  askedBy           String              @map("asked_by") // FK → M1 User
+  askedBy           String?             @map("asked_by") // weak ref → M1 User; NULL = potpuno anoniman B2C posetilac (avgust 2026, PUBLIC_GUEST) — logovani INDIVIDUAL gost i dalje ima stvaran userId ovde
   audienceContext   HelpAudienceContext @map("audience_context")
   questionText      String              @map("question_text")
   answerText        String?             @map("answer_text")

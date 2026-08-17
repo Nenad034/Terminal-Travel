@@ -36,7 +36,7 @@ export class HelpArticlesService {
   /** Baca ForbiddenException ako pozivalac nema `action` dozvolu za BAR JEDAN od audience segmenata. */
   private async assertHasAnySegmentPermission(
     actorId: string,
-    audience: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT')[],
+    audience: HelpAudience[],
     action: 'EDIT' | 'PUBLISH',
   ): Promise<void> {
     for (const a of audience) {
@@ -51,7 +51,7 @@ export class HelpArticlesService {
   /** Baca ForbiddenException ako pozivaocu nedostaje `action` dozvola za BILO KOJI od navedenih segmenata. */
   private async assertHasEverySegmentPermission(
     actorId: string,
-    audience: ('STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT')[],
+    audience: HelpAudience[],
     action: 'EDIT' | 'PUBLISH',
   ): Promise<void> {
     for (const a of audience) {
@@ -113,7 +113,7 @@ export class HelpArticlesService {
   ) {
     if (filters.status && filters.status !== 'PUBLISHED') {
       const editableAudiences: HelpAudience[] = [];
-      for (const a of ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT'] as HelpAudience[]) {
+      for (const a of ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'] as HelpAudience[]) {
         if (await this.permissions.hasPermission(actorId, 'M21', `article:${audienceToPermissionSegment(a)}`, 'EDIT')) {
           editableAudiences.push(a);
         }
@@ -274,7 +274,7 @@ export class HelpArticlesService {
   }
 
   /** Interno — help-assistant/help-suggestions koriste ovo za kandidat-članke po publici. */
-  async findPublishedForAudience(audience: 'STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT') {
+  async findPublishedForAudience(audience: HelpAudience) {
     return this.prisma.helpArticle.findMany({
       where: { status: 'PUBLISHED', audience: { has: audience } },
       include: { translations: true },

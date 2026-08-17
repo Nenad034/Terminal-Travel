@@ -7,7 +7,7 @@ import HelpTabs from '../HelpTabs';
 interface HelpQuestion {
   id: string;
   askedBy: string;
-  audienceContext: 'STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT';
+  audienceContext: 'STAFF' | 'SUBAGENT' | 'BUSINESS_CLIENT' | 'PUBLIC_GUEST';
   questionText: string;
   answerText: string | null;
   matchedArticleIds: string[];
@@ -17,7 +17,7 @@ interface HelpQuestion {
   createdAt: string;
 }
 
-const AUDIENCES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT'];
+const AUDIENCES = ['STAFF', 'SUBAGENT', 'BUSINESS_CLIENT', 'PUBLIC_GUEST'];
 const CONFIDENCES = ['HIGH', 'LOW', 'NONE'];
 
 // M17 spec §4/§7 (Faza 7) — M21 §3/§6 GET /help/questions (M21/question-log/VIEW, HR/Direktor/
