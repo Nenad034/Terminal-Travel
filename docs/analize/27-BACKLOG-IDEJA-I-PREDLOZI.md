@@ -47,6 +47,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M2 — Katalog proizvoda
 *(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`)*
+- Ožičiti `ProductTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — verovatno kroz postojeći `ProductContentImport` tok (`origin` dobija novu vrednost, npr. `AI_TRANSLATION`), isti obrazac kao M23 poglavlje 4e. Čeka da se prvo uživo proveri kroz M23.
 - Pravila za `PACKAGE` proizvode i odnos cene paketa prema zbiru komponenti — čeka M3.
 - Da li treba odobrenje pre prelaska proizvoda iz `DRAFT` u `ACTIVE`.
 - Ograničen kapacitet za `TICKET`/`EVENT` — potvrditi da model M3 pokriva bez izmene.
@@ -164,6 +165,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M12 — Marketing i sadržajni engine
 *(§9, `docs/moduli/M12-marketing/15-SPECIFIKACIJA-M12-MARKETING.md`)*
+- Ožičiti `ContentTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — polje `translation_source=AI_GENERATED` već postoji, mehanizam koji ga stvarno puni za nove jezike još ne. M23 je prvi stvaran potrošač (poglavlje 4e tog dokumenta); M12 čeka da se taj obrazac uživo proveri.
 - Tačan izbor društvenih mreža/kanala za lansiranje — potvrditi pre implementacije adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti.
 - Puna analitika angažovanosti sa platformi (impressions/klikovi, otvaranje mejla) — namerno van obima, samo atribucija ka rezervaciji je pokrivena (poglavlje 3a).
@@ -233,6 +235,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M21 — Centar za pomoć (baza znanja + AI asistent)
 *(backend implementiran avgust 2026 — `apps/api/src/modules/m21-centar-za-pomoc/`; §8, `docs/moduli/M21-centar-za-pomoc/23-SPECIFIKACIJA-M21-CENTAR-ZA-POMOC.md`)*
 - ~~Tačna podela `EDIT`/`PUBLISH` dozvola za help sadržaj~~ — rešeno: HR ima EDIT za sve četiri publike, PUBLISH isključivo Direktor/Vlasnik (seed.ts).
+- Ožičiti `HelpArticleTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — isti obrazac kao M23 poglavlje 4e, ne novi mehanizam. Čeka da se prvo uživo proveri kroz M23.
 - Tačan prag/algoritam grupisanja pitanja za `HelpArticleSuggestion` — polazna vrednost postavljena (3+ u 30 dana, `HelpSuggestionsService`), fino podešavanje čeka stvarnu količinu pitanja u produkciji.
 - ~~M17 UI ekran za Centar za pomoć~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/pomoc/`, uživo provereno. M7/M8 UI (subagenti/korporativni klijenti) ostaje poseban naredni korak.
 - ~~Proširenje na pojedinačne (INDIVIDUAL) krajnje goste (M8/M9)~~ — **rešeno avgust 2026 (vlasnikova odluka).** Nova publika `PUBLIC_GUEST` pokriva i anonimne i INDIVIDUAL B2C goste (`resolveHelpAudience` prihvata `userId=null`); omnisearch (`tryHelpCenter`) ne preskače više anonimnog pozivaoca. 4 startna DRAFT FAQ članka seedovana, čekaju objavu kroz `apps/panel/src/app/(app)/pomoc/`.

@@ -40,6 +40,7 @@
 | M21 | Nacrt predloga za novi help članak |
 | M23 | Odgovor na pitanje iz baze znanja (samo objavljen sadržaj) |
 | M23 | Nacrt istraživanja za reviziju članka |
+| M23 | Nacrt prevoda članka na ostale jezike (deljen AI prevodilac, M15 poglavlje 6.7) |
 | (globalno) | Omnisearch pretraga/navigacija |
 | (globalno) | Pretraga spoljnih recenzija (samo sa odobrenog spiska sajtova) |
 
