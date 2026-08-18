@@ -91,6 +91,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
 - **Vođena pretraga za 9 vrsta proizvoda** (poglavlja 3.0c/3.0d, 17.8.2026) — polja/API definisani; UI ekrani (levi/centralni/desni panel) ostaju poseban naredni korak kad M17/M7 pretraga dođe na red.
+- **`SearchResultOffer.is_refundable` za `API` izvor ostaje `null`** (poglavlje 3.0b.2/3.0c.3a, 18.8.2026) — potvrditi po M4 provajderu (Travelgate/Solvex) da li postoji strukturisano polje za ovo pre nego što se ikad postavi na `true`/`false`; do tada filter "Refundabilno/Nerefundabilno" prikazuje API stavke u oba filtera.
 - Tačan UI izbor datuma polaska sa liste termina za `PACKAGE` (poglavlje 3.0d.6) — dizajnersko pitanje.
 - **AI prepoznavanje više namera u jednoj rečenici** (poglavlje 3.0e.4, 17.8.2026) — namerno odloženo dok osnovni tok 9 pretraga ne bude uživo proveren.
 - **Kalendar cena/fleksibilni datumi za letove** (Google Flights stila, poglavlje 3.0e.4) — razmatra se kao V2, zahteva infrastrukturu cena unapred za više datuma.
