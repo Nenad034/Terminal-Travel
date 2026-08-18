@@ -3,7 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
-**Verzija:** 1.5 — dodat `POST /auth/register` za samostalnu registraciju gosta (poglavlje 5, poglavlje 6), zavisnost M8 (dopuna avgust 2026, priprema za implementaciju M8); v1.4 — automatizovani testovi (avgust 2026): 77 unit testova (`*.spec.ts`, mokovan Prisma — auth login/2FA/lockout/refresh-rotacija/reset lozinke, RBAC evaluacija §3.6 svih pet koraka, guard-ovi, enkripcija/heš) plus 9 e2e testova (`test/m1-exit-criteria.e2e-spec.ts`, prava Postgres baza preko docker-compose) koji direktno dokazuju stavke 1, 2, 3, 4 i 5 izlaznog kriterijuma (poglavlje 8 ovog dokumenta) — uključujući append-only trigger, live efekat `UserPermissionOverride` bez ponovne prijave, i pun login→MFA HTTP tok. Stavka 6 (IaC za produkciju) ostaje otvorena, čeka odluku o hosting provajderu. `npm test` / `npm run test:e2e` u `apps/api`; v1.3 — počela implementacija (avgust 2026, Faza 0): `apps/api/src/modules/m1-core-identitet/` — auth (login/MFA/refresh/lockout/reset), RBAC evaluacija uživo (§3.6), audit log (append-only trigerom, §3.8), users/roles/permission-override CRUD, seed 7 sistemskih uloga. Testirano uživo (login, pogrešna lozinka, RBAC odbijanje, append-only trigger). Ostaje: infrastruktura iz IaC koda (poglavlje 8, trenutno docker-compose je samo za lokalni razvoj), UI ekrani (poglavlje 7); v1.2 dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
+**Verzija:** 1.6 — novo poglavlje 3.9 `UserPreference` (18.8.2026, na zahtev vlasnika): generičko ključ-vrednost skladište ličnih UI podešavanja po korisniku (širina panela, tema, oblik forme Ponuda→Rezervacija) — formalizuje mesto čuvanja koje je dizajn dokument (`29-DIZAJN-SISTEM-UI.md`) do sad samo pretpostavljao bez definisanog modela; novi endpoint-i `GET/PUT /users/me/preferences` (poglavlje 6). v1.5 — dodat `POST /auth/register` za samostalnu registraciju gosta (poglavlje 5, poglavlje 6), zavisnost M8 (dopuna avgust 2026, priprema za implementaciju M8); v1.4 — automatizovani testovi (avgust 2026): 77 unit testova (`*.spec.ts`, mokovan Prisma — auth login/2FA/lockout/refresh-rotacija/reset lozinke, RBAC evaluacija §3.6 svih pet koraka, guard-ovi, enkripcija/heš) plus 9 e2e testova (`test/m1-exit-criteria.e2e-spec.ts`, prava Postgres baza preko docker-compose) koji direktno dokazuju stavke 1, 2, 3, 4 i 5 izlaznog kriterijuma (poglavlje 8 ovog dokumenta) — uključujući append-only trigger, live efekat `UserPermissionOverride` bez ponovne prijave, i pun login→MFA HTTP tok. Stavka 6 (IaC za produkciju) ostaje otvorena, čeka odluku o hosting provajderu. `npm test` / `npm run test:e2e` u `apps/api`; v1.3 — počela implementacija (avgust 2026, Faza 0): `apps/api/src/modules/m1-core-identitet/` — auth (login/MFA/refresh/lockout/reset), RBAC evaluacija uživo (§3.6), audit log (append-only trigerom, §3.8), users/roles/permission-override CRUD, seed 7 sistemskih uloga. Testirano uživo (login, pogrešna lozinka, RBAC odbijanje, append-only trigger). Ostaje: infrastruktura iz IaC koda (poglavlje 8, trenutno docker-compose je samo za lokalni razvoj), UI ekrani (poglavlje 7); v1.2 dodat `account_type = SUPPLIER_CONTACT` i uloga DOBAVLJAC_KONTAKT (poglavlje 4), dopuna M19 specifikacije za problem #9 (real-time chat sa dobavljačima), avgust 2026; v1.1 dodata sekcija UI ekrani (poglavlje 7), potvrđena klikabilnim prototipom `00-MOCKUP-M1-IDENTITET.html`
 **Zavisi od:** — (temelj svih ostalih modula)
 
 ---
@@ -122,6 +122,22 @@ Access token je kratkotrajan JWT (15 min), nosi samo `user_id` i `session_id` �
 
 Tabela je **append-only** — na nivou baze se onemogućava UPDATE/DELETE nad njom (DB rola bez tih prava, ili trigger koji odbija). Ovo je direktna primena principa #5 iz poglavlja 3.
 
+### 3.9 `UserPreference` (dopuna, 18.8.2026, na zahtev vlasnika — formalizuje mesto čuvanja za ponašanja koja dizajn dokument već pretpostavlja)
+
+Generičko, ključ-vrednost skladište ličnih podešavanja panela po korisniku — namerno **ne** poseban model po svakom podešavanju (širina panela, tema, otvoreni tabovi, oblik forme za kreiranje rezervacije, itd.), pošto se broj ovakvih sitnih UI preferenci vremenom prirodno širi i ne zaslužuje svaka sopstvenu tabelu/migraciju.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| user_id | UUID (FK → `User`) | |
+| key | string | npr. `panel_width.left`, `theme`, `open_tabs`, `booking_form_layout` |
+| value | JSONB | oblik slobodan po ključu — modul/ekran koji ga koristi definiše sopstveni oblik, M1 ga ne tumači |
+| updated_at | timestamp | |
+
+Jedinstveno po (`user_id`, `key`). Nema `GET`/`PUT` po pojedinačnom ključu — jedan `GET /users/me/preferences` vraća sve, jedan `PUT /users/me/preferences/:key` upisuje jednu vrednost (poglavlje 6). Ne prolazi kroz RBAC iznad "ovo je moj sopstveni nalog" — svaki korisnik menja isključivo svoje.
+
+Ovo je oslonac za: dizajn dokument (`29-DIZAJN-SISTEM-UI.md`) §5b (širina panela po korisniku), §5a (otvoreni tabovi preko sesija — pamćeno lokalno po sesiji, `UserPreference` je opciono proširenje ako zatreba sinhronizacija preko uređaja, nije obavezno za v1), §2.0a (izbor tamnog/svetlog moda), i M5 poglavlje 4a (oblik forme Ponuda→Rezervacija — stepper naspram jedne strane, na zahtev vlasnika 18.8.2026).
+
 ---
 
 ## 4. Podrazumevane uloge i njihov opseg (polazni šabloni)
@@ -175,6 +191,8 @@ Prefiks: `/api/v1/iam`
 | `/roles` | GET / POST / PATCH | katalog uloga |
 | `/permissions` | GET | katalog svih registrovanih dozvola (svi moduli) |
 | `/audit-log` | GET | filtriranje po korisniku/modulu/datumu — samo za uloge sa `M1/audit-log/VIEW` (podrazumevano: Vlasnik, Direktor) |
+| `/users/me/preferences` | GET | vraća sve `UserPreference` (poglavlje 3.9) trenutno prijavljenog korisnika, kao mapu `key → value` |
+| `/users/me/preferences/:key` | PUT | upisuje/menja jednu vrednost; nema poseban guard osim prijave — korisnik menja isključivo svoje |
 
 Svi endpoint-i dokumentovani OpenAPI šemom pre implementacije — u skladu sa principom iz poglavlja 6 da ugovor mora biti mašinski proverljiv.
 
