@@ -57,6 +57,7 @@
 | M7 | Potvrda rezervacije u chatu sa subagentom (potvrđuje subagent sam, ne osoblje) |
 | M12 | Odobravanje objave marketing sadržaja |
 | M14 | Slanje odgovora na tiket koji sadrži cenu ili obavezu |
+| (globalno) | Opšta pretraga interneta van poznatih izvora (svaki poziv, ne samo aktivacija) |
 | M18 | Primena istraženog trenda na dokumentaciju |
 | M21 | Odobravanje predloženog help članka |
 
