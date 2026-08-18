@@ -161,3 +161,12 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 
 **7.2 Prazan ekran je često prazna baza, ne pokvaren kod**
 - *Provera:* pre traženja greške u prikazu, proveri da podaci uopšte postoje i zadovoljavaju filtere (vidi 3.1 i 3.2).
+
+---
+
+## 8. Poverenje u tvrdnje o potpunosti (dokumenta, registri, sažeci)
+
+**8.1 "Npr. X, Y, Z" se lako pročita kao "ovo je sve", a nije**
+- *Simptom:* M18 §6.2 je do 18.8.2026. tvrdio "dobar deo autonomnih akcija ne treba model" i naveo tri primera (M3, M11, M7) — pri objašnjavanju optimizacije troškova, ta tri primera su prepričana kao da je time tema pokrivena. Tek kad je vlasnik eksplicitno tražio ponovnu proveru **cele** M15 §4 tabele protiv izvorne specifikacije svake stavke, ispostavilo se da još 8 od 25 `AUTONOMOUS` akcija spada u istu kategoriju (M18 spec, v1.10).
+- *Uzrok:* kad se zadatak svede na "objasni/primeni pravilo iz dokumenta X", lako je **prepričati** dokument umesto **revidirati** ga protiv izvora na koje se sam poziva. Primeri u tekstu skoro nikad ne dolaze sa oznakom "ovo JESTE kompletno" — odsustvo te oznake se mora čitati kao "verovatno nepotpuno", ne kao "dovoljno".
+- *Provera:* kad dokument navodi kratku listu primera za neko pravilo koje pokriva širi registar/skup (M15 §4 sa 40+ akcija, M2 kategorije, M6 tipovi komunikacije...), pre nego što se ta lista prenese dalje kao potpuna ili ugradi u kod/spec, proveriti **svaku** stavku šireg skupa protiv njene sopstvene izvorne specifikacije — ne samo protiv primera koje navodi dokument koji se trenutno čita. Ovo posebno važi pre zatvaranja "Izlaznog kriterijuma" i kad korisnik traži objašnjenje "kako/zašto" nečega što zvuči kao gotovo pravilo.
