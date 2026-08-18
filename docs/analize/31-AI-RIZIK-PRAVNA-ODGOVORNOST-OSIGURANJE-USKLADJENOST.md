@@ -76,7 +76,24 @@ Ovo je upisano kao otvorena stavka u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-O
 
 ---
 
-## 5. Zbirna tabela
+## 5. Rizik E — obrada podataka gosta/klijenta kod spoljnog LLM provajdera (bez obzira koji se izabere)
+
+*(dodato 18.8.2026, na zahtev vlasnika, povodom pitanja "da li Anthropic koristi podatke kad se agent poziva preko API-ja")*
+
+**Rizik, ukratko:** Svaki poziv spoljnom jezičkom modelu (Anthropic danas za omnisearch, M15 §6.5.4; bilo koji budući provajder po drugim domenskim agentima — M15 §11 to eksplicitno ostavlja otvorenim po agentu) znači da podaci u tom pozivu **fizički napuštaju infrastrukturu koju Terminal kontroliše** i idu ka serverima trećeg lica. Ovo je nezavisno od toga kog konkretno provajdera biramo — pitanje se mora postaviti za svakog, ne samo za Anthropic:
+
+1. **Da li provajder koristi poslate podatke za treniranje svojih modela?** Kod ozbiljnih komercijalnih API ugovora (uključujući Anthropic-ov) odgovor je po difoltu ne — ali to mora biti **potvrđeno konkretnim ugovorom**, ne pretpostavljeno iz opšte reputacije provajdera.
+2. **Koliko dugo provajder čuva sirove ulaze/izlaze**, i u koju svrhu (npr. otkrivanje zloupotrebe) — tipično kratak period (npr. 30 dana), sa mogućom opcijom "nulto zadržavanje" (zero data retention) kod pojedinih provajdera za kvalifikovane komercijalne klijente.
+3. **Gde se podaci fizički obrađuju** (rezidencija podataka — EU ili van EU) — relevantno jer Terminal namerno još nije izabrao EU hosting provajdera za sopstvenu produkciju (CLAUDE.md, "Struktura repozitorijuma"), a poziv spoljnom LLM-u je nezavisan kanal transfera podataka koji taj izbor ne pokriva.
+4. **Da li treba potpisan DPA (Data Processing Addendum/Agreement)** sa provajderom pre nego što ijedan modul koji dodiruje lične podatke gosta/nalogodavca (M6 komunikacija, M14 tiketi, M7 subagent chat, M23/M21 pitanja) počne da poziva taj API u produkciji — i, ako provajder obrađuje van EU, da li je potreban dodatni pravni mehanizam za prenos (npr. Standardne ugovorne klauzule) u skladu sa Zakonom o zaštiti podataka o ličnosti Srbije/GDPR-om.
+
+**Terminal Travel mitigacija (već postoji, ali rešava drugi deo problema):** M15 registar i princip "grounded-only" (Rizik B iznad) ograničavaju **šta se agent uopšte odluči da pošalje ili uradi** — ali ne rešavaju **pravni osnov za sam prenos** podataka koji legitimno jesu deo poziva (npr. ime gosta u nacrtu poruke, M6 `communication.draft`). To je odvojeno pitanje od halucinacija/autonomije, i ne rešava se kodom.
+
+**Otvoreno — dodato u `26-PRAVNA-I-KNJIGOVODSTVENA-OTVORENA-PITANJA.md` (stavka B7):** pre nego što bilo koji domenski agent koji dodiruje lične podatke gosta/nalogodavca pređe iz `NOT_READY` u `ACTIVATED` u produkciji, proveriti sa pravnikom tačke 1–4 iznad za **tog konkretnog provajdera** — i ponoviti proveru svaki put kad se za novi domenski agent izabere drugačiji provajder (M15 §11), jer se ugovorni uslovi razlikuju po provajderu.
+
+---
+
+## 6. Zbirna tabela
 
 | Rizik | Da li Terminal Travel već ima mitigaciju | Gde | Šta ostaje otvoreno |
 | :---- | :---- | :---- | :---- |
@@ -84,11 +101,12 @@ Ovo je upisano kao otvorena stavka u `docs/analize/26-PRAVNA-I-KNJIGOVODSTVENA-O
 | B. Halucinacije | **Da**, za korisniku-vidljive odgovore (grounded-only) | M21 §5.2, M23 §3.2/§6 | Periodično uzorkovanje audit loga radi merenja stope grešaka (nova, mala ideja) |
 | C. Osiguranje isključuje AI greške | **Ne** — ovo nije pitanje za kod | — | Razgovor sa brokerom pre aktivacije prvog domenskog agenta u produkciji |
 | D. EU AI Act transparentnost | **Delimično** — trenutno nema aktivnog gost-facing AI, pa nema aktivnog kršenja | — | Ugraditi "razgovarate sa AI" oznaku u M7/M8/M23 UI pre nego što se aktivira, ne posle |
+| E. Obrada podataka kod spoljnog LLM provajdera | **Ne** — ovo nije pitanje za kod | — | DPA/retention/rezidencija podataka provera sa pravnikom, po provajderu, pre svake `ACTIVATED` aktivacije agenta koji dodiruje lične podatke |
 
 **Šta NE preporučujem menjati:** M15 registar, gate mehanizam (`ModuleAgentActivation`), i princip "grounded-only" odgovor za M21/M23 — sve to je već tačno u skladu sa pravcem koji video opisuje kao ono što je "preživelo hype fazu" kod velikih kompanija. Ovo nije poziv na novu arhitekturu, samo potvrda da postojeća drži.
 
 ---
 
-## 6. Napomena o tehno-ekonomskom delu videa (GPU cene, kapitalna ulaganja, DeepSeek)
+## 7. Napomena o tehno-ekonomskom delu videa (GPU cene, kapitalna ulaganja, DeepSeek)
 
 Ekonomski deo videa (pad cena GPU najma sa 7–10$/h na ~2$/h, prezasićenost infrastrukture, poređenje sa dot-com balonom optičkih vlakana) **nema direktnu poveznicu sa Terminal Travel arhitekturom** — nemamo usvojenu strategiju lokalnog hostovanja modela (M15 spec poglavlje 11 eksplicitno ostavlja izbor LLM provajdera otvoren po agentu; za omnisearch je već izabran Anthropic Claude preko API-ja, plati-po-upotrebi, ne sopstveni hardver). Pad cena cloud AI usluga nam samo čini taj već izabrani pravac jeftinijim, ne menja odluku.

@@ -27,6 +27,7 @@
 | B4 | Tačan tekst i pravni zahtevi cookie/consent banera na sajtu (M8), u skladu sa Zakonom o zaštiti podataka o ličnosti | `10-SPECIFIKACIJA-M8-SAJT-B2C.md` poglavlje 12 | Standardna GDPR-adjacent stavka, ali tekst mora biti pravno tačan, ne generički. |
 | B5 | **Pristup ličnim (van-agencijskim) email nalozima zaposlenih** u M22 (ako neko koristi lični Gmail/Outlook umesto agencijskog domena) — OAuth pristanak, obim u odnosu na Zakon o zaštiti podataka o ličnosti | `25-SPECIFIKACIJA-M22-EMAIL-INBOX.md` poglavlje 10 | M22 inače pretpostavlja agencijski domen; lični nalozi su svestan izuzetak koji čeka potvrdu pre implementacije. |
 | B6 | **Osiguranje od AI-generisanih grešaka** — provera sa osiguravajućim brokerom da li postojeća/buduća poslovna polisa uopšte pominje/pokriva štetu nastalu iz AI-generisanog sadržaja (od januara 2026. neki osiguravatelji to izričito isključuju iz standardnih polisa) | `31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 3 | Proveriti pre nego što bilo koji M15 domenski agent pređe u `ACTIVATED` status u produkciji, ne posle prvog incidenta. |
+| B7 | **Obrada ličnih podataka gosta/nalogodavca kod spoljnog LLM provajdera** — da li treba potpisan DPA, da li se podaci koriste za treniranje modela, koliko dugo se čuvaju, gde se fizički obrađuju (rezidencija podataka), i da li treba mehanizam za prenos van EU (npr. Standardne ugovorne klauzule) — pitanje se ponavlja za **svakog** provajdera pojedinačno, ne samo za trenutno izabrani (M15 §11 ostavlja izbor provajdera otvoren po agentu) | `31-AI-RIZIK-PRAVNA-ODGOVORNOST-OSIGURANJE-USKLADJENOST.md` poglavlje 5 | Proveriti pre nego što bilo koji domenski agent koji dodiruje lične podatke gosta/nalogodavca (M6, M7 subagent chat, M14, M21, M23) pređe u `ACTIVATED` status u produkciji. |
 
 ## C. Zajedničko — pravnik + zvanična dokumentacija spoljnog sistema (YUTA/CIS)
 
@@ -47,7 +48,7 @@
 ## Predlog redosleda za sastanak sa stručnjakom
 
 1. **Knjigovođa, jedan sastanak:** A1–A6 zajedno — sve se tiču SEF/ESIR/PDV/kursa, prirodno idu u istom razgovoru.
-2. **Pravnik, jedan sastanak:** B1–B5 — B1 (gotovina/AML) je najurgentnija jer je postojeća zaštita već uklonjena iz sistema.
+2. **Pravnik, jedan sastanak:** B1–B7 — B1 (gotovina/AML) je najurgentnija jer je postojeća zaštita već uklonjena iz sistema; B7 (LLM provajder) treba proveriti pre bilo koje aktivacije agenta koji dodiruje lične podatke, ne samo pri prvom sastanku.
 3. **CIS/YUTA (C1):** može ići uz bilo koji od gornja dva sastanka, ili direktno sa YUTA predstavnikom — zavisi ko od njih dvoje ima postojeći kontakt.
 
 Kad se stavka reši, ažurirati odgovarajuće poglavlje u izvornoj specifikaciji i obrisati red iz ovog dokumenta (ili ga premestiti u "Rešeno" sekciju po istom obrascu kao Master dokument poglavlje 11).
