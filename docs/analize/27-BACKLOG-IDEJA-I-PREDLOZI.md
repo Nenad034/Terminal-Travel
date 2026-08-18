@@ -213,6 +213,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Tačan prag za "neuobičajen skok" po tipu signala — podešava se empirijski u produkciji.
 - Konkretan iznos `budget_limit_eur` (globalno i po agentu) i period — poslovna odluka pri implementaciji (§6.5).
 - Da li bezbednosno kritične akcije treba da imaju sopstveni, odvojeni budžet umesto deljenog (§6.5).
+- **Provera "bez modela" liste (§6.2, 11 akcija) pri aktivaciji svakog domenskog agenta** (18.8.2026, na zahtev vlasnika) — pre nego što M5/M7/M10/M14/M20 domenski agent pređe u `ACTIVATED`, proveriti da kod za tu deterministički-opisanu akciju zaista ne poziva jezički model.
 
 ## M19 — Komunikaciona platforma
 *(§11, `docs/moduli/M19-komunikaciona-platforma/20-SPECIFIKACIJA-M19-KOMUNIKACIONA-PLATFORMA.md`)*
