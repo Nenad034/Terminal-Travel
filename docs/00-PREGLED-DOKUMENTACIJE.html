@@ -5340,9 +5340,9 @@ Kad korisnik pita za recenzije hotela/destinacije ("kakve su recenzije za ovaj h
 
 Poseban `ModuleAgentActivation` kod (`M15_WEB_RESEARCH`), odvojen od `M15_OMNISEARCH` (poglavlje 3) — drugačiji rizični profil zaslužuje sopstvenu, svesnu odluku Vlasnika/Direktora pre uključivanja, ne automatski deo omnisearch aktivacije. Registarska stavka (poglavlje 4): `(globalno) omnisearch.web_research_fetch = PROPOSE_THEN_APPROVE`.
 
-#### Otvoreno pitanje (poglavlje 11)
+#### Odobrenje — po pozivu, sa vidljivom opcijom za sesiju (rešeno, 18.8.2026)
 
-Da li odobrenje ostaje **po pozivu** (predloženo ovde, najbezbednije, ali sporije pri više uzastopnih pretraga u istom razgovoru) ili se uvodi **odobrenje na nivou sesije/razgovora** (korisnik jednom odobri "sme da pretražuje internet za ovaj razgovor", agent nastavlja bez ponovnog pitanja do kraja te sesije) — ostaje otvoreno, čeka odluku vlasnika posle prve uživo provere ovog mehanizma, ne pretpostavlja se ovde.
+Podrazumevano, svaki poziv čeka izričito odobrenje (koraci 2-3 iznad). Uz **prvi** predlog u razgovoru, agent dodatno nudi opciju **"Odobri sve za ovaj razgovor"** (isti obrazac kao dozvole u Claude Code-u, alatu kojim je i sama aplikacija građena) — ako je korisnik izabere, agent ne pita ponovo za dalje pozive **do kraja te iste sesije/taba** (poglavlje 5a dizajn dokumenta — zatvaranje taba poništava odobrenje). Ova opcija je **uvek eksplicitan, vidljiv izbor u tom trenutku**, nikad trajno podešavanje niti globalna vrednost na nalogu — sledeći razgovor (nov tab, poglavlje 5a) ponovo počinje od "po pozivu". Svako korišćenje opcije "za ovaj razgovor" upisuje se u `AuditLogEntry` (isto polje kao svako drugo odobrenje, poglavlje 6.5.6b iznad) da ostane vidljivo koliko je pretraga stvarno urađeno pod jednim odobrenjem.
 
 ### 6.5.7 Praćenje zloupotrebe
 
@@ -5467,7 +5467,7 @@ Prefiks: `/api/v1/ai-orchestration`
 - **Konkretan izbor Speech-to-Text/Text-to-Speech provajdera** (poglavlje 6.6.4) — isto obrazloženje kao LLM provajder iznad; PrimeTravel analiza (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`, poglavlje 12) je polazna tačka, ne konačna odluka.
 - **Glas za M7/M8/M9 (subagenti, gosti) i prava telefonija/IVR** — namerno van obima poglavlja 6.6 (koje pokriva samo M17/interni tim preko mikrofona u pregledaču); ista arhitektura (STT → tekst → postojeći omnisearch tok → TTS) bi se trebalo da generalizuje na te kanale bez redizajna, ali zahteva zasebnu potvrdu vlasnika pre gradnje — pravi telefonski poziv (IVR/PSTN integracija) dodatno nosi i sopstvenu tehničku/troškovnu odluku (izbor telefonskog provajdera) koja nije razmatrana u ovoj verziji.
 - **`GET /ai-orchestration/agents`** (poglavlje 9) — admin prikaz svih `AIAgent` zapisa, nije zatraženo u v1.10 prolazu, dodaje se kasnije po potrebi.
-- **Odobrenje po pozivu vs. po sesiji za opštu pretragu interneta** (poglavlje 6.5.6b, 18.8.2026) — čeka odluku vlasnika posle prve uživo provere mehanizma.
+- ~~Odobrenje po pozivu vs. po sesiji za opštu pretragu interneta~~ — **rešeno 18.8.2026**: po pozivu podrazumevano, uz vidljivu opciju "Odobri sve za ovaj razgovor" ograničenu na tekuću sesiju/tab (poglavlje 6.5.6b).
 - **4 akcije iz registra bez postojećeg endpoint-a** (M3 `contract_period.release_warning`, M6 `communication.send_with_price_or_obligation`, M7 `subagent_chat.*`, globalno `license_data.edit`) — registar ih sadrži kao podatak (poglavlje 4), sprovedba na nivou koda i prikaz u Agent Inbox-u čekaju da taj endpoint uopšte bude izgrađen.
 </script>
 <div class="rendered"></div>
