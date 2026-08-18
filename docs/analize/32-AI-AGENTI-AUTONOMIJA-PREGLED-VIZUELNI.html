@@ -1,0 +1,614 @@
+<title>AI Registar Ovlašćenja</title>
+<style>
+  :root {
+    --bg: #eef1f0;
+    --surface: #ffffff;
+    --surface-sunken: #e4e9e7;
+    --ink: #16221f;
+    --ink-soft: #4b5a56;
+    --ink-faint: #7c8b86;
+    --line: #d3dbd8;
+    --accent: #1b3a4b;
+    --accent-soft: #e4ecf0;
+    --accent-ink: #0f2733;
+    --brass: #a9772f;
+
+    --auto: #2f7d5c;
+    --auto-bg: #e3f1e9;
+    --auto-line: #b9dcc9;
+
+    --approve: #b8760c;
+    --approve-bg: #faf0dc;
+    --approve-line: #eed2a1;
+
+    --never: #ab3327;
+    --never-bg: #f8e6e3;
+    --never-line: #edbdb5;
+
+    --shadow: 0 1px 2px rgba(20, 30, 28, 0.06), 0 8px 24px -12px rgba(20, 30, 28, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10181a;
+      --surface: #16211f;
+      --surface-sunken: #1c2825;
+      --ink: #e7efec;
+      --ink-soft: #aab8b3;
+      --ink-faint: #7e8f89;
+      --line: #2a3835;
+      --accent: #8fb8cc;
+      --accent-soft: #1d3038;
+      --accent-ink: #dceaf0;
+      --brass: #d6a869;
+
+      --auto: #7fcda3;
+      --auto-bg: #172e24;
+      --auto-line: #2c4d3a;
+
+      --approve: #e6b451;
+      --approve-bg: #2e2416;
+      --approve-line: #4f3f22;
+
+      --never: #e88b7d;
+      --never-bg: #2f1c19;
+      --never-line: #55302a;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #10181a;
+    --surface: #16211f;
+    --surface-sunken: #1c2825;
+    --ink: #e7efec;
+    --ink-soft: #aab8b3;
+    --ink-faint: #7e8f89;
+    --line: #2a3835;
+    --accent: #8fb8cc;
+    --accent-soft: #1d3038;
+    --accent-ink: #dceaf0;
+    --brass: #d6a869;
+
+    --auto: #7fcda3;
+    --auto-bg: #172e24;
+    --auto-line: #2c4d3a;
+
+    --approve: #e6b451;
+    --approve-bg: #2e2416;
+    --approve-line: #4f3f22;
+
+    --never: #e88b7d;
+    --never-bg: #2f1c19;
+    --never-line: #55302a;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header.masthead {
+    margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 14px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 16px;
+    height: 1px;
+    background: var(--brass);
+  }
+
+  h1 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-weight: 600;
+    font-size: clamp(28px, 4vw, 38px);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .lede {
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  /* Tier legend */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 32px 0 40px;
+  }
+
+  .legend-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .legend-card .dot-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-card .tier-name {
+    font-weight: 700;
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+  }
+
+  .legend-card .tier-count {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+
+  .legend-card p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .legend-card.t-auto { border-top: 3px solid var(--auto); }
+  .legend-card.t-approve { border-top: 3px solid var(--approve); }
+  .legend-card.t-never { border-top: 3px solid var(--never); }
+  .dot.t-auto { background: var(--auto); }
+  .dot.t-approve { background: var(--approve); }
+  .dot.t-never { background: var(--never); }
+
+  /* Controls */
+  .controls {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+    padding: 14px 0;
+    margin-bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+  }
+
+  #search {
+    flex: 1 1 220px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--ink);
+    outline: none;
+  }
+
+  #search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  #search::placeholder { color: var(--ink-faint); }
+
+  .chip {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 6px 11px;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--ink); }
+
+  .chip[aria-pressed="false"] {
+    opacity: 0.5;
+  }
+
+  .chip.reset {
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+
+  .chip-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  /* Sections */
+  section.tier {
+    margin-top: 34px;
+  }
+
+  .tier-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .tier-head h2 {
+    font-family: Georgia, "Iowan Old Style", serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  .tier-head .n {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  tbody td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  tbody tr:hover { background: var(--surface-sunken); }
+
+  tbody tr.hidden { display: none; }
+
+  .mod-tag {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 5px;
+    padding: 2px 7px;
+    white-space: nowrap;
+  }
+
+  .action-name { font-weight: 500; }
+  .action-note { color: var(--ink-faint); font-size: 12.5px; }
+
+  .empty-state {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13.5px;
+    display: none;
+  }
+
+  footer.source {
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+
+  footer.source code {
+    background: var(--surface-sunken);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .legend { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow">Terminal Travel · M15 AI orkestracija</div>
+    <h1>Ko od AI agenata sme šta, i pod kojim uslovom</h1>
+    <p class="lede">
+      Svaka akcija koju AI agent može da dodirne u Terminal-u ima unapred određen nivo poverenja —
+      <strong>sprovedeno u kodu</strong>, ne samo na papiru. Ovo je živi presek trenutnog registra
+      (<code>AgentActionType</code>), pretraživ i filtriran po modulu.
+    </p>
+  </header>
+
+  <div class="legend">
+    <div class="legend-card t-auto">
+      <div class="dot-row">
+        <span class="dot t-auto"></span>
+        <span class="tier-name" style="color:var(--auto)">Autonomno</span>
+        <span class="tier-count" id="count-auto"></span>
+      </div>
+      <p>Agent radi sam, bez čekanja. Uvek nacrt ili informacija koja još ne izlazi iz sistema — nikad novac, potpis ili obavezujuća poruka.</p>
+    </div>
+    <div class="legend-card t-approve">
+      <div class="dot-row">
+        <span class="dot t-approve"></span>
+        <span class="tier-name" style="color:var(--approve)">Predloži pa čovek odobri</span>
+        <span class="tier-count" id="count-approve"></span>
+      </div>
+      <p>Agent priprema, ali ništa ne postaje stvarno — ne šalje se, ne primenjuje se, ne objavljuje se — dok čovek svesno ne odobri.</p>
+    </div>
+    <div class="legend-card t-never">
+      <div class="dot-row">
+        <span class="dot t-never"></span>
+        <span class="tier-name" style="color:var(--never)">Nikad autonomno</span>
+        <span class="tier-count" id="count-never"></span>
+      </div>
+      <p>Agent to ne sme ni sa formalnom dozvolom u sistemu — odbijeno na nivou koda, dupla brava nezavisna od standardnih prava.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <input id="search" type="text" placeholder="Pretraži akciju ili modul…" autocomplete="off">
+    <div class="chip-group" id="module-chips"></div>
+    <button class="chip reset" id="reset-btn" type="button">Prikaži sve</button>
+  </div>
+
+  <div id="sections"></div>
+
+  <footer class="source">
+    Izvor istine: <code>docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md</code>,
+    poglavlje 4 — ova stranica je izvedena iz <code>docs/analize/32-AI-AGENTI-AUTONOMIJA-PREGLED.md</code>
+    i menja se kad god se taj registar promeni.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var DATA = {
+    auto: {
+      label: "Autonomno",
+      key: "auto",
+      rows: [
+        ["M3", "Izvlačenje podataka iz uvezenog cenovnika"],
+        ["M3", "Upozorenje o niskom kapacitetu", "1–2 jedinice ostalo"],
+        ["M5", "Priprema nacrta manifesta za dobavljača"],
+        ["M6", "Nacrt poruke gostu/nalogodavcu"],
+        ["M7", "Izračun nacrta provizionog rabata"],
+        ["M7", "Pretraga kataloga u chatu sa subagentom"],
+        ["M7", "Nacrt ponude u chatu sa subagentom"],
+        ["M10", "Priprema nacrta fiskalnog dokumenta"],
+        ["M11", "Podsetnik na istek garancije putovanja"],
+        ["M11", "Upozorenje na 80% iskorišćenosti garancije"],
+        ["M12", "Nacrt marketing sadržaja"],
+        ["M13", "Isticanje uočenog trenda u izveštaju"],
+        ["M14", "Nacrt odgovora na tiket podrške"],
+        ["M14", "Eskalacija reklamacije", "zakonski rok, ne izvršenje"],
+        ["M18", "Nacrt istraživanja trenda"],
+        ["M18", "Detekcija i obaveštenje o signalu kvara"],
+        ["M20", "Nacrt ugovora sa klijentom", "iz determinističkih pravila"],
+        ["M21", "Odgovor na pitanje iz Centra za pomoć", "samo objavljen sadržaj"],
+        ["M21", "Kreiranje eskalacije sopstvenog pitanja korisnika"],
+        ["M21", "Nacrt predloga za novi help članak"],
+        ["M23", "Odgovor na pitanje iz baze znanja", "samo objavljen sadržaj"],
+        ["M23", "Nacrt istraživanja za reviziju članka"],
+        ["M23", "Nacrt prevoda članka na ostale jezike"],
+        ["Globalno", "Omnisearch pretraga/navigacija", "nikad izvršenje radnje"],
+        ["Globalno", "Pretraga spoljnih recenzija", "samo sa odobrenog spiska sajtova"]
+      ]
+    },
+    approve: {
+      label: "Predloži pa čovek odobri",
+      key: "approve",
+      rows: [
+        ["M3", "Upozorenje o isteku roka ugovora", "pre slanja"],
+        ["M3", "Odobravanje reda iz uvezenog cenovnika"],
+        ["M5", "Slanje manifesta dobavljaču"],
+        ["M5", "Provera dupliranog zahteva za storno", "pre same akcije"],
+        ["M6", "Slanje poruke gostu koja sadrži cenu ili obavezu"],
+        ["M7", "Primena provizionog rabata"],
+        ["M7", "Potvrda rezervacije u chatu sa subagentom", "potvrđuje subagent sam, ne osoblje"],
+        ["M12", "Odobravanje objave marketing sadržaja"],
+        ["M14", "Slanje odgovora na tiket sa cenom ili obavezom"],
+        ["M18", "Primena istraženog trenda na dokumentaciju"],
+        ["M21", "Odobravanje predloženog help članka"],
+        ["Globalno", "Opšta pretraga interneta van poznatih izvora", "svaki poziv, ne samo aktivacija"],
+        ["Globalno", "Preuzimanje slika sa nalepljenog linka za ručni proizvod"]
+      ]
+    },
+    never: {
+      label: "Nikad autonomno",
+      key: "never",
+      rows: [
+        ["M10", "Slanje fiskalnog dokumenta", "faktura/račun"],
+        ["M11", "Izmena garancije putovanja"],
+        ["M23", "Objavljivanje članka u bazi znanja"],
+        ["Globalno", "Potpisivanje ugovora"],
+        ["Globalno", "Prenos novca"],
+        ["Globalno", "Izmena licenciranih/regulatornih podataka"]
+      ]
+    }
+  };
+
+  var TIERS = ["auto", "approve", "never"];
+  var sectionsEl = document.getElementById("sections");
+  var moduleChipsEl = document.getElementById("module-chips");
+  var searchEl = document.getElementById("search");
+  var resetBtn = document.getElementById("reset-btn");
+
+  var modules = [];
+  TIERS.forEach(function (t) {
+    DATA[t].rows.forEach(function (r) {
+      if (modules.indexOf(r[0]) === -1) modules.push(r[0]);
+    });
+  });
+  modules.sort(function (a, b) {
+    if (a === "Globalno") return 1;
+    if (b === "Globalno") return -1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+
+  var activeModules = {};
+  modules.forEach(function (m) { activeModules[m] = true; });
+
+  modules.forEach(function (m) {
+    var btn = document.createElement("button");
+    btn.className = "chip";
+    btn.type = "button";
+    btn.textContent = m;
+    btn.setAttribute("aria-pressed", "true");
+    btn.addEventListener("click", function () {
+      activeModules[m] = !activeModules[m];
+      btn.setAttribute("aria-pressed", String(activeModules[m]));
+      applyFilter();
+    });
+    moduleChipsEl.appendChild(btn);
+  });
+
+  TIERS.forEach(function (t) {
+    var section = document.createElement("section");
+    section.className = "tier";
+    section.dataset.tier = t;
+
+    var head = document.createElement("div");
+    head.className = "tier-head";
+    var dotColorVar = "--" + t;
+    head.innerHTML =
+      '<span class="dot dot-' + t + '" style="background:var(' + dotColorVar + ')"></span>' +
+      "<h2>" + DATA[t].label + "</h2>" +
+      '<span class="n">' + DATA[t].rows.length + " akcija</span>";
+    section.appendChild(head);
+
+    var wrap = document.createElement("div");
+    wrap.className = "table-wrap";
+    var table = document.createElement("table");
+    table.innerHTML =
+      "<thead><tr><th style='width:110px'>Modul</th><th>Akcija</th></tr></thead>";
+    var tbody = document.createElement("tbody");
+
+    DATA[t].rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.dataset.module = r[0];
+      tr.dataset.text = (r[0] + " " + r[1] + " " + (r[2] || "")).toLowerCase();
+      var noteHtml = r[2] ? '<div class="action-note">' + r[2] + "</div>" : "";
+      tr.innerHTML =
+        "<td><span class='mod-tag'>" + r[0] + "</span></td>" +
+        "<td><div class='action-name'>" + r[1] + "</div>" + noteHtml + "</td>";
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    var empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Nema akcija za trenutni filter u ovom nivou.";
+    wrap.appendChild(empty);
+
+    section.appendChild(wrap);
+    sectionsEl.appendChild(section);
+
+    document.getElementById("count-" + t).textContent = DATA[t].rows.length + " akcija";
+  });
+
+  function applyFilter() {
+    var q = searchEl.value.trim().toLowerCase();
+    TIERS.forEach(function (t) {
+      var section = document.querySelector('section[data-tier="' + t + '"]');
+      var rows = section.querySelectorAll("tbody tr");
+      var visibleCount = 0;
+      rows.forEach(function (tr) {
+        var moduleOk = activeModules[tr.dataset.module];
+        var textOk = !q || tr.dataset.text.indexOf(q) !== -1;
+        var show = moduleOk && textOk;
+        tr.classList.toggle("hidden", !show);
+        if (show) visibleCount++;
+      });
+      section.querySelector(".empty-state").style.display = visibleCount === 0 ? "block" : "none";
+      section.querySelector(".table-wrap").style.display = "block";
+      section.style.display = "block";
+    });
+  }
+
+  searchEl.addEventListener("input", applyFilter);
+  resetBtn.addEventListener("click", function () {
+    modules.forEach(function (m) { activeModules[m] = true; });
+    moduleChipsEl.querySelectorAll(".chip").forEach(function (btn) {
+      btn.setAttribute("aria-pressed", "true");
+    });
+    searchEl.value = "";
+    applyFilter();
+  });
+})();
+</script>

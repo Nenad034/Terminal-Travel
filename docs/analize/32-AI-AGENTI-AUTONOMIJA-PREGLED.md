@@ -3,6 +3,7 @@
 **Status:** Živ dokument — pregledna, čitljiva verzija M15 registra akcija, radi brzog uvida bez čitanja pune specifikacije.
 **Izvor istine:** `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`, poglavlje 4 (`AgentActionType` registar) — ova lista je **izvedena** iz tog registra, ne obrnuto. Kad god se registar u M15 spec-u promeni (nova akcija, promenjen nivo), **ovaj dokument se ažurira u istom prolazu** — isti princip kao svaka druga cross-referenca u projektu (CLAUDE.md, "Održavanje dokumentacije").
 **Nastalo:** avgust 2026, na zahtev vlasnika.
+**Vizuelna verzija:** `32-AI-AGENTI-AUTONOMIJA-PREGLED-VIZUELNI.html` (isti folder) — interaktivna, pretraživa/filtrirana tabela iste sadržine, za brz pregled bez čitanja markdown-a. Ažurirati u istom prolazu kad god se ovaj dokument promeni.
 
 ---
 
