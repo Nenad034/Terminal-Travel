@@ -58,6 +58,7 @@
 | M12 | Odobravanje objave marketing sadržaja |
 | M14 | Slanje odgovora na tiket koji sadrži cenu ili obavezu |
 | (globalno) | Opšta pretraga interneta van poznatih izvora (svaki poziv, ne samo aktivacija) |
+| (globalno) | Preuzimanje slika sa linka koji je čovek nalepio za konkretan ručni proizvod (M5 ručne stavke, M15 §6.5.6c) |
 | M18 | Primena istraženog trenda na dokumentaciju |
 | M21 | Odobravanje predloženog help članka |
 
