@@ -2,24 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const STORAGE_KEY = 'tt-panel-sidebar-width';
-
 /**
  * docs/analize/29-DIZAJN-SISTEM-UI.md §5b — granica između zona je ručno prevlačiva (VS
  * Code obrazac), razuman minimum po zoni, dvoklik vraća podrazumevanu širinu, širina se
  * pamti po korisniku preko sesija. Pravi `UserPreference` (M1 spec §3.9) ne postoji još u
  * kodu — ovaj prolaz koristi isti ad-hoc localStorage obrazac kao tema (ThemeToggle.tsx),
- * ne novi backend poziv (vidi plan, "Van obima").
+ * ne novi backend poziv (vidi plan, "Van obima"). `storageKey` odvaja pamćenje širine po
+ * zoni (leva bočna traka vs desni panel — nezavisne širine); `handleSide` bira na kojoj
+ * ivici je prevlačiva granica ("right" za levu traku, "left" za desni panel).
  */
 export default function ResizablePane({
   defaultWidth,
   minWidth,
   maxWidth,
+  storageKey,
+  handleSide = 'right',
   children,
 }: {
   defaultWidth: number;
   minWidth: number;
   maxWidth: number;
+  storageKey: string;
+  handleSide?: 'left' | 'right';
   children: React.ReactNode;
 }) {
   const [width, setWidth] = useState(defaultWidth);
@@ -29,7 +33,7 @@ export default function ResizablePane({
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey);
       if (raw) {
         const parsed = Number(raw);
         if (Number.isFinite(parsed)) setWidth(clamp(parsed, minWidth, maxWidth));
@@ -38,21 +42,23 @@ export default function ResizablePane({
       // ignoriši oštećen zapis
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [storageKey]);
+
+  const sign = handleSide === 'left' ? -1 : 1;
 
   const onPointerMove = useCallback(
     (e: PointerEvent) => {
-      const next = clamp(startWidth.current + (e.clientX - startX.current), minWidth, maxWidth);
+      const next = clamp(startWidth.current + sign * (e.clientX - startX.current), minWidth, maxWidth);
       setWidth(next);
     },
-    [minWidth, maxWidth],
+    [minWidth, maxWidth, sign],
   );
 
   const onPointerUp = useCallback(() => {
     setDragging(false);
     setWidth((w) => {
       try {
-        localStorage.setItem(STORAGE_KEY, String(w));
+        localStorage.setItem(storageKey, String(w));
       } catch {
         // localStorage nedostupan (npr. privatan mod) — širina i dalje radi za ovu sesiju
       }
@@ -60,7 +66,7 @@ export default function ResizablePane({
     });
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
-  }, [onPointerMove]);
+  }, [onPointerMove, storageKey]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     setDragging(true);
@@ -73,21 +79,28 @@ export default function ResizablePane({
   const resetWidth = () => {
     setWidth(defaultWidth);
     try {
-      localStorage.setItem(STORAGE_KEY, String(defaultWidth));
+      localStorage.setItem(storageKey, String(defaultWidth));
     } catch {
       // localStorage nedostupan — nema šta da se sačuva, ali reset i dalje radi za ovu sesiju
     }
   };
 
+  const handle = (
+    <div
+      onPointerDown={onPointerDown}
+      onDoubleClick={resetWidth}
+      title="Prevuci za promenu širine, dvoklik za podrazumevanu"
+      className={`w-1 flex-shrink-0 cursor-col-resize hover:border-accent ${
+        handleSide === 'left' ? 'border-l' : 'border-r'
+      } border-border ${dragging ? 'border-accent' : ''}`}
+    />
+  );
+
   return (
     <div className="flex flex-shrink-0" style={{ width }}>
+      {handleSide === 'left' && handle}
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
-      <div
-        onPointerDown={onPointerDown}
-        onDoubleClick={resetWidth}
-        title="Prevuci za promenu širine, dvoklik za podrazumevanu"
-        className={`w-1 flex-shrink-0 cursor-col-resize border-r border-border hover:border-accent ${dragging ? 'border-accent' : ''}`}
-      />
+      {handleSide === 'right' && handle}
     </div>
   );
 }

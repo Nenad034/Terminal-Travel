@@ -29,9 +29,9 @@ export default function TabBar() {
                   e.stopPropagation();
                   closeTab(tab.path);
                 }}
-                className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
+                className="flex h-[21px] w-[21px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
               >
-                <Icon name="close" className="text-[10px]" />
+                <Icon name="close" className="text-[13px]" />
               </span>
             )}
           </Link>
@@ -40,9 +40,9 @@ export default function TabBar() {
       <Link
         href="/"
         title="Nov tab — Početna (docs/analize/29-DIZAJN-SISTEM-UI.md §5a)"
-        className="flex h-6 w-6 flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+        className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
       >
-        <Icon name="add" className="text-xs" />
+        <Icon name="add" className="text-[16px]" />
       </Link>
     </div>
   );

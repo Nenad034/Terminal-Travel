@@ -16,12 +16,16 @@ export default function TopBar({
   groups,
   activeGroupId,
   onSelectGroup,
+  rightPanelOpen,
+  onToggleRightPanel,
 }: {
   fullName: string;
   roles: string[];
   groups: NavGroup[];
   activeGroupId: string;
   onSelectGroup: (id: string) => void;
+  rightPanelOpen: boolean;
+  onToggleRightPanel: () => void;
 }) {
   const router = useRouter();
 
@@ -40,7 +44,7 @@ export default function TopBar({
         // Administracija je poslednja stavka u NAV_GROUPS namerno (M17 spec §4a) — ml-auto
         // je razmak, ne preslagivanje redosleda.
         const isLast = idx === groups.length - 1 && groups.length > 1;
-        const className = `flex h-7 w-7 flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
+        const className = `flex h-9 w-9 flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
           active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`;
         if (single) {
@@ -70,9 +74,18 @@ export default function TopBar({
       </span>
       <ThemeToggle />
       <button
+        onClick={onToggleRightPanel}
+        title="AI razgovor (podeli ekran)"
+        className={`flex h-9 w-9 items-center justify-center rounded border ${
+          rightPanelOpen ? 'border-accent text-accent' : 'border-border bg-panel text-ink-faint hover:border-accent hover:text-ink'
+        }`}
+      >
+        <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
+      </button>
+      <button
         onClick={logout}
         title="Odjava"
-        className="flex h-7 w-7 items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-danger hover:text-danger"
+        className="flex h-9 w-9 items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-danger hover:text-danger"
       >
         <Icon name="sign-out" />
       </button>

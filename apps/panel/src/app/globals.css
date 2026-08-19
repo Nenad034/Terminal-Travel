@@ -4,6 +4,14 @@
 
 @import '@vscode/codicons/dist/codicon.css';
 
+/* Ikonice +30% u svim trakama (na zahtev vlasnika, 19.8.2026) — podrazumevana veličina
+   Codicon fonta je 16px, ovo je jedini izvor istine za sve ikonice bez sopstvenog
+   font-size override-a (npr. Sidebar/CommandPalette). Kontejneri fiksne veličine oko
+   pojedinih ikonica (TopBar/StatusBar/TabBar dugmad) skalirani su posebno, u istoj meri. */
+.codicon {
+  font-size: 21px;
+}
+
 /* M17 zadatak (avgust 2026) — paleta "Horizont v2" (docs/analize/29-DIZAJN-SISTEM-UI.md §2.0a/§2.0b).
    Tamni mod: Material Theme High Contrast (equinusocio.vsc-material-theme), izvučeno direktno iz
    instalirane teme, ne iz sećanja. Svetli mod: VS Code ugrađena "Light 2026". Akcentna boja je

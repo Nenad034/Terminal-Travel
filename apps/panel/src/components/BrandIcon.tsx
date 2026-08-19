@@ -13,7 +13,7 @@ const PATHS: Record<string, string> = {
 
 export default function BrandIcon({ name, className = '' }: { name: 'whatsapp' | 'viber' | 'telegram'; className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" width="16" height="16" fill="currentColor" className={className} aria-hidden="true">
+    <svg viewBox="0 0 32 32" width="21" height="21" fill="currentColor" className={className} aria-hidden="true">
       <path d={PATHS[name]} />
     </svg>
   );

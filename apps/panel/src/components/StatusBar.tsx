@@ -113,7 +113,7 @@ export default function StatusBar({
         <button
           onClick={() => openTab(email.href, email.label)}
           title="Otvori Mejl"
-          className="flex h-5 w-5 items-center justify-center rounded hover:bg-panel hover:text-ink"
+          className="flex h-[26px] w-[26px] items-center justify-center rounded hover:bg-panel hover:text-ink"
         >
           <Icon name="mail" />
         </button>
@@ -122,7 +122,7 @@ export default function StatusBar({
         <button
           onClick={() => openTab(chat.href, chat.label)}
           title="Otvori interni chat"
-          className="flex h-5 w-5 items-center justify-center rounded hover:bg-panel hover:text-ink"
+          className="flex h-[26px] w-[26px] items-center justify-center rounded hover:bg-panel hover:text-ink"
         >
           <Icon name="comment-discussion" />
         </button>

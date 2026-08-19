@@ -68,7 +68,7 @@ export default function Sidebar({
                   title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
                   className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-ink-faint opacity-40"
                 >
-                  <span className="flex w-5 items-center justify-center">
+                  <span className="flex w-6 items-center justify-center">
                     <Icon name="lock" />
                   </span>
                   <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">
@@ -85,7 +85,7 @@ export default function Sidebar({
                 title={item.label}
                 className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-sm text-ink-dim hover:bg-panel hover:text-ink"
               >
-                <span className="flex w-5 items-center justify-center">
+                <span className="flex w-6 items-center justify-center">
                   <Icon name={item.icon} />
                 </span>
                 <span className="truncate">{item.label}</span>
