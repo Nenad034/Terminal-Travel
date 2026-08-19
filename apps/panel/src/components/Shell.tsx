@@ -7,8 +7,9 @@ import TopBar from './TopBar';
 import TabBar from './TabBar';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
+import StatusBar from './StatusBar';
 import { TabsProvider } from './TabsContext';
-import { NAV_GROUPS, groupForHref, type NavItem } from '@/lib/nav';
+import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 export default function Shell({
   fullName,
@@ -44,6 +45,7 @@ export default function Shell({
             <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
         </div>
+        <StatusBar fullName={fullName} roleLabel={roles.join(', ')} moduleCode={moduleCodeForHref(pathname)} />
       </div>
       <CommandPalette items={items} />
     </TabsProvider>

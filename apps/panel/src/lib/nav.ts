@@ -226,9 +226,19 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log'] },
 ];
 
+function itemForHref(href: string): NavItem | null {
+  return NAV_ITEMS.find((i) => i.href === href || (i.href !== '/' && href.startsWith(i.href))) ?? null;
+}
+
 /** Grupa kojoj pripada data ruta — koristi se za podrazumevanu aktivnu grupu pri učitavanju. */
 export function groupForHref(href: string): NavGroup | null {
-  const item = NAV_ITEMS.find((i) => i.href === href || (i.href !== '/' && href.startsWith(i.href)));
+  const item = itemForHref(href);
   if (!item) return null;
   return NAV_GROUPS.find((g) => g.itemIds.includes(item.id)) ?? null;
+}
+
+/** M15 module_code trenutne sekcije (npr. "M5") — null za sekcije bez modula (Početna) ili
+ * bez poklapanja. Koristi donja traka (dizajn dok. §5d, "AI status po trenutnom modulu"). */
+export function moduleCodeForHref(href: string): string | null {
+  return itemForHref(href)?.permission?.module ?? null;
 }
