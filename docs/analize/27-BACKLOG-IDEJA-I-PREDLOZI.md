@@ -87,6 +87,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Rate limit se trenutno samo čita (`capabilities_profile`), nema stvaran mehanizam sprovođenja (red čekanja/throttling).
 - Nema definisanog mock/test režima za simulaciju timeout-a/pada provajdera (izlazni kriterijum §8 to pretpostavlja).
 - Test/produkcija nije eksplicitno modelovano u `ProviderConfig` (jedan red sa promenjenim poljima vs. dva odvojena).
+- **Atlas Flight Booking Skill kao moguća referenca za budući avio adapter** (nalaz iz vesti, 19.8.2026) — Atlas (Singapur) je open-source-ovao (Apache 2.0, GitHub/PyPI) alat koji AI agentu daje search/cene/dostupnost/booking preko 140+ niskobudžetnih avio-kompanija, sa 4 obavezne tačke ljudske potvrde (autorizacija, promena cene, izbor sedišta, plaćanje) — isti obrazac koji M15 registar ovlašćenja (poglavlje 7 master dokumenta) već zahteva za akcije koje pominju cenu. Nije neutralan GDS standard nego Atlas-ov komercijalni sloj (zahteva ATRIP nalog, pretplata/transakciona naknada) — vezuje na jednog provajdera, ne zamenjuje odluku o GDS-u. Razmotriti tek kad avio/GDS adapter stvarno dođe na red u faznom planu, ne pre.
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
