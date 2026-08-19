@@ -137,6 +137,17 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* pokrenut API/watch proces drži native engine.
 - *Provera:* **ne gasi tuđe procese.** Proveri da li su TypeScript tipovi ipak regenerisani (`grep` novog polja u `node_modules/.prisma/client/index.d.ts`) — ako jesu, rad može da se nastavi; engine je isti fajl.
 
+**5.6 Privremena skripta unutar `apps/api` ruši nodemon usred provere**
+- *Simptom:* `POST /api/session/login` vraća 500 sa `ECONNREFUSED`/`fetch failed` baš u trenutku dok se test skripta pokreće ili briše, iako je API server bio zdrav trenutak ranije.
+- *Uzrok:* `nest start --watch` (nema eksplicitan `include`/`exclude` u `tsconfig.json`, pa prati sve `.ts` fajlove u `apps/api`, ne samo `src/`) vidi svaku novu/obrisanu privremenu skriptu u korenu `apps/api` kao izmenu i pokreće rebuild — API je nekoliko sekundi nedostupan baš dok skripta pokušava da mu se obrati.
+- *Provera:* privremene skripte za proveru (login/MFA tok, provera podataka i sl.) piši **van** `apps/api` (npr. scratchpad direktorijum), sa apsolutnim `require()` putanjama i ručno pročitanim `.env` umesto uvoza iz `src/` — ako baš mora unutra, sačekaj par sekundi posle kreiranja/brisanja fajla pre poziva.
+- *Povezano:* ne meša se sa 8.3 (izgubljen pozadinski zadatak) — ovde je API i dalje živ, samo je privremeno u rebuild-u.
+
+**5.7 `npm run build` (produkcioni) preko iste `.next` fascikle dok `next dev` radi je kvari**
+- *Simptom:* posle build-a, dev server i dalje vraća HTTP 200 na stranice, ali API rute (`route.ts`) unutar `app/api/**` pucaju sa `Cannot find module './XXXX.js'` — ID modula iz produkcionog build-a se sudaraju sa dev webpack keš-om.
+- *Uzrok:* oba procesa pišu u `apps/panel/.next`; pokretanje `npm run build` dok `next dev` radi nije bezbedno, čak i kad se ne prekida dev proces.
+- *Provera:* nikad ne pokretati `npm run build` kao "brzu proveru tipova" dok dev server radi na istom `apps/panel`. Ako se to desi, ugasiti dev proces, obrisati `.next`, ponovo pokrenuti `npm run dev` — postojeća sesija/kolačić i dalje važe posle restarta (ključ za enkripciju kolačića dolazi iz `.env`, ne menja se restartom).
+
 ---
 
 ## 6. Rad paralelno sa drugim agentom
