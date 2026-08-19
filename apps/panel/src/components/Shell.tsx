@@ -9,8 +9,12 @@ import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
 import AiChatBox from './AiChatBox';
+import RightPanel from './RightPanel';
+import Icon from './Icon';
 import { TabsProvider } from './TabsContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
+
+const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
 
 export default function Shell({
   fullName,
@@ -30,32 +34,79 @@ export default function Shell({
   const groups = useMemo(() => NAV_GROUPS.filter((g) => g.itemIds.some((id) => items.some((i) => i.id === id))), [items]);
 
   const [activeGroupId, setActiveGroupId] = useState(() => groupForHref(pathname)?.id ?? groups[0]?.id ?? 'pocetna');
+  // VS Code obrazac — leva traka se skuplja na tanku traku, ne nestaje (na zahtev vlasnika,
+  // 19.8.2026). `useState(() => ...)` čita localStorage samo pri prvom renderu (isti obrazac
+  // kao ResizablePane).
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const setCollapsed = (v: boolean) => {
+    setSidebarCollapsed(v);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, v ? '1' : '0');
+    } catch {
+      // localStorage nedostupan — i dalje radi za ovu sesiju
+    }
+  };
+  // Desni panel se pojavljuje prema potrebi (dizajn dok. §5b — sažetak reda/"Povezano" traka),
+  // ne podrazumevano otvoren (ispravka 19.8.2026 — AI chat je premešten u centralni panel,
+  // ovaj panel čeka prvi ekran koji ga stvarno popuni sadržajem).
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
 
   return (
     <TabsProvider homeLabel="Početna">
       <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-        <TopBar fullName={fullName} roles={roles} groups={groups} activeGroupId={activeGroup?.id ?? ''} onSelectGroup={setActiveGroupId} />
+        <TopBar
+          fullName={fullName}
+          roles={roles}
+          groups={groups}
+          activeGroupId={activeGroup?.id ?? ''}
+          onSelectGroup={setActiveGroupId}
+          rightPanelOpen={rightPanelOpen}
+          onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
+        />
         <div className="flex flex-1 overflow-hidden">
-          <ResizablePane storageKey="tt-panel-sidebar-width" defaultWidth={224} minWidth={180} maxWidth={420}>
-            <Sidebar items={items} activeGroup={activeGroup} mePresent />
-          </ResizablePane>
+          {sidebarCollapsed ? (
+            <button
+              onClick={() => setCollapsed(false)}
+              title="Proširi levu traku"
+              className="flex w-6 flex-shrink-0 flex-col items-center border-r border-border bg-panel-2 pt-3 text-ink-faint hover:text-ink"
+            >
+              <Icon name="chevron-right" />
+            </button>
+          ) : (
+            <ResizablePane storageKey="tt-panel-sidebar-width" defaultWidth={224} minWidth={180} maxWidth={420}>
+              <Sidebar items={items} activeGroup={activeGroup} mePresent onCollapse={() => setCollapsed(true)} />
+            </ResizablePane>
+          )}
           <div className="flex flex-1 flex-col overflow-hidden">
             <TabBar />
-            {/* Sadržaj bilo kog modula na 70% širine centralnog panela, CENTRIRAN (na zahtev
-                vlasnika, 19.8.2026 — ispravka istog dana: uz levu ivicu je ostavljalo praznu
-                trećinu ekrana bez razloga otkad desni panel ne postoji, delovalo polomljeno,
-                ne namerno) — jedno mesto, ne po ekranu, da važi dosledno za sve module odjednom. */}
-            <main className="flex-1 overflow-y-auto">
-              <div className="mx-auto w-[70%]">{children}</div>
-            </main>
-            {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
-                koji modul je aktivan, ista centrirana širina kao sadržaj iznad. */}
-            <div className="mx-auto w-[70%] flex-shrink-0 border-t border-border bg-panel px-0 pb-0">
-              <AiChatBox />
+            {/* Sadržaj i AI chat dele TAČNO istu širinu — jedan zajednički omotač (na zahtev
+                vlasnika, 19.8.2026: "prikaz na širinu chata"), ne dva odvojena w-[70%] div-a
+                koja bi mogla vremenom da se razjednače. Centrirano (mx-auto) da prazan prostor
+                ne padne samo na jednu stranu (ispravka istog dana). */}
+            <div className="mx-auto flex w-[70%] flex-1 flex-col overflow-hidden">
+              <main className="flex-1 overflow-y-auto">{children}</main>
+              {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
+                  koji modul je aktivan. Pun okvir (border sa sve četiri strane + senka), ne
+                  samo gornja linija — ispravka 19.8.2026, prethodni border-t se nije video. */}
+              <div className="my-2 flex-shrink-0 rounded-lg border-2 border-border bg-panel shadow-sm">
+                <AiChatBox />
+              </div>
             </div>
           </div>
+          {rightPanelOpen && (
+            <ResizablePane storageKey="tt-panel-right-width" defaultWidth={320} minWidth={260} maxWidth={560} handleSide="left">
+              <RightPanel onClose={() => setRightPanelOpen(false)} />
+            </ResizablePane>
+          )}
         </div>
         <StatusBar fullName={fullName} roleLabel={roles.join(', ')} moduleCode={moduleCodeForHref(pathname)} />
       </div>

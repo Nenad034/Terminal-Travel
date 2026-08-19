@@ -21,6 +21,8 @@ interface TabsContextValue {
    */
   navigateInTab: (path: string, label: string) => void;
   closeTab: (path: string) => void;
+  /** Zatvara sve tabove osim Početne (na zahtev vlasnika, 19.8.2026 — "previše otvorenih"). */
+  closeAllTabs: () => void;
   markDirty: (path: string, dirty: boolean) => void;
 }
 
@@ -105,8 +107,13 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     setTabs((prev) => prev.map((t) => (t.path === path ? { ...t, dirty } : t)));
   }, []);
 
+  const closeAllTabs = useCallback(() => {
+    setTabs([{ path: '/', label: homeLabel }]);
+    if (pathname !== '/') router.push('/');
+  }, [homeLabel, pathname, router]);
+
   return (
-    <TabsCtx.Provider value={{ tabs, activePath: pathname, openTab, navigateInTab, closeTab, markDirty }}>
+    <TabsCtx.Provider value={{ tabs, activePath: pathname, openTab, navigateInTab, closeTab, closeAllTabs, markDirty }}>
       {children}
     </TabsCtx.Provider>
   );

@@ -6,7 +6,7 @@ import Icon from './Icon';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5a — traka tabova (VS Code/browser stil).
 export default function TabBar() {
-  const { tabs, activePath, closeTab } = useTabs();
+  const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
 
   return (
     <div className="flex h-9 flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-border bg-bg px-1.5">
@@ -44,6 +44,16 @@ export default function TabBar() {
       >
         <Icon name="add" className="text-[16px]" />
       </Link>
+      {/* Na zahtev vlasnika, 19.8.2026 — vidljivo tek kad ima "previše" otvorenih tabova. */}
+      {tabs.length > 3 && (
+        <button
+          onClick={closeAllTabs}
+          title="Zatvori sve tabove"
+          className="ml-auto flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger"
+        >
+          <Icon name="close-all" className="text-[16px]" />
+        </button>
+      )}
     </div>
   );
 }

@@ -16,12 +16,16 @@ export default function TopBar({
   groups,
   activeGroupId,
   onSelectGroup,
+  rightPanelOpen,
+  onToggleRightPanel,
 }: {
   fullName: string;
   roles: string[];
   groups: NavGroup[];
   activeGroupId: string;
   onSelectGroup: (id: string) => void;
+  rightPanelOpen: boolean;
+  onToggleRightPanel: () => void;
 }) {
   const router = useRouter();
 
@@ -69,6 +73,15 @@ export default function TopBar({
         {fullName} <span className="text-ink-faint">· {roles.join(', ')}</span>
       </span>
       <ThemeToggle />
+      <button
+        onClick={onToggleRightPanel}
+        title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
+        className={`flex h-9 w-9 items-center justify-center rounded border ${
+          rightPanelOpen ? 'border-accent text-accent' : 'border-border bg-panel text-ink-faint hover:border-accent hover:text-ink'
+        }`}
+      >
+        <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
+      </button>
       <button
         onClick={logout}
         title="Odjava"

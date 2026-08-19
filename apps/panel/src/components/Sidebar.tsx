@@ -15,10 +15,12 @@ export default function Sidebar({
   items,
   activeGroup,
   mePresent,
+  onCollapse,
 }: {
   items: NavItem[];
   activeGroup: NavGroup | null;
   mePresent: boolean;
+  onCollapse: () => void;
 }) {
   const pathname = usePathname();
   const [forceShowList, setForceShowList] = useState(false);
@@ -39,6 +41,13 @@ export default function Sidebar({
 
   return (
     <nav className="flex h-full flex-col gap-0.5 bg-panel-2 py-3">
+      <button
+        onClick={onCollapse}
+        title="Skupi levu traku"
+        className="mx-2 mb-1 flex h-6 w-6 flex-shrink-0 items-center justify-center self-end rounded text-ink-faint hover:bg-panel hover:text-ink"
+      >
+        <Icon name="chevron-left" />
+      </button>
       {selected ? (
         <>
           <button
