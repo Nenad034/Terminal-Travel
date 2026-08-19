@@ -16,11 +16,15 @@ export default function Sidebar({
   activeGroup,
   mePresent,
   onCollapse,
+  collapsed,
+  onExpand,
 }: {
   items: NavItem[];
   activeGroup: NavGroup | null;
   mePresent: boolean;
   onCollapse: () => void;
+  collapsed?: boolean;
+  onExpand?: () => void;
 }) {
   const pathname = usePathname();
   const [forceShowList, setForceShowList] = useState(false);
@@ -38,6 +42,31 @@ export default function Sidebar({
   const selected = !forceShowList
     ? sectionItems.find((i) => pathname === i.href || (i.href !== '/' && pathname.startsWith(i.href)))
     : undefined;
+
+  // Kolabovano — tanka traka, ali ikonice TRENUTNO AKTIVNE sekcije ostaju vidljive (na
+  // zahtev vlasnika, 19.8.2026), ne prazna traka. Ostale sekcije grupe se ne prikazuju
+  // ovde — proširi traku za pun spisak.
+  if (collapsed) {
+    return (
+      <nav className="flex h-full flex-col items-center gap-1 bg-panel-2 py-3">
+        <button onClick={onExpand} title="Proširi levu traku" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink">
+          <Icon name="chevron-right" />
+        </button>
+        {(selected ? [selected] : sectionItems).map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            title={item.label}
+            className={`flex h-7 w-7 items-center justify-center rounded ${
+              item.id === selected?.id ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+            }`}
+          >
+            <Icon name={item.icon} />
+          </Link>
+        ))}
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex h-full flex-col gap-0.5 bg-panel-2 py-3">

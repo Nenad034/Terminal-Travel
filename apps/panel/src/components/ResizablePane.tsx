@@ -17,6 +17,8 @@ export default function ResizablePane({
   maxWidth,
   storageKey,
   handleSide = 'right',
+  collapsed = false,
+  collapsedWidth = 24,
   children,
 }: {
   defaultWidth: number;
@@ -24,6 +26,10 @@ export default function ResizablePane({
   maxWidth: number;
   storageKey: string;
   handleSide?: 'left' | 'right';
+  /** VS Code obrazac — kolabovano na tanku traku umesto potpunog nestajanja (na zahtev
+   * vlasnika, 19.8.2026). Prevlačenje se isključuje u ovom stanju, prethodna širina se pamti. */
+  collapsed?: boolean;
+  collapsedWidth?: number;
   children: React.ReactNode;
 }) {
   const [width, setWidth] = useState(defaultWidth);
@@ -97,10 +103,10 @@ export default function ResizablePane({
   );
 
   return (
-    <div className="flex flex-shrink-0" style={{ width }}>
-      {handleSide === 'left' && handle}
+    <div className="flex flex-shrink-0" style={{ width: collapsed ? collapsedWidth : width }}>
+      {!collapsed && handleSide === 'left' && handle}
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
-      {handleSide === 'right' && handle}
+      {!collapsed && handleSide === 'right' && handle}
     </div>
   );
 }

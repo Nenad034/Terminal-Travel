@@ -10,7 +10,6 @@ import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
 import AiChatBox from './AiChatBox';
 import RightPanel from './RightPanel';
-import Icon from './Icon';
 import { TabsProvider } from './TabsContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
@@ -73,26 +72,30 @@ export default function Shell({
           onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
         />
         <div className="flex flex-1 overflow-hidden">
-          {sidebarCollapsed ? (
-            <button
-              onClick={() => setCollapsed(false)}
-              title="Proširi levu traku"
-              className="flex w-6 flex-shrink-0 flex-col items-center border-r border-border bg-panel-2 pt-3 text-ink-faint hover:text-ink"
-            >
-              <Icon name="chevron-right" />
-            </button>
-          ) : (
-            <ResizablePane storageKey="tt-panel-sidebar-width" defaultWidth={224} minWidth={180} maxWidth={420}>
-              <Sidebar items={items} activeGroup={activeGroup} mePresent onCollapse={() => setCollapsed(true)} />
-            </ResizablePane>
-          )}
+          <ResizablePane
+            storageKey="tt-panel-sidebar-width"
+            defaultWidth={224}
+            minWidth={180}
+            maxWidth={420}
+            collapsed={sidebarCollapsed}
+            collapsedWidth={40}
+          >
+            <Sidebar
+              items={items}
+              activeGroup={activeGroup}
+              mePresent
+              collapsed={sidebarCollapsed}
+              onCollapse={() => setCollapsed(true)}
+              onExpand={() => setCollapsed(false)}
+            />
+          </ResizablePane>
           <div className="flex flex-1 flex-col overflow-hidden">
             <TabBar />
             {/* Sadržaj i AI chat dele TAČNO istu širinu — jedan zajednički omotač (na zahtev
-                vlasnika, 19.8.2026: "prikaz na širinu chata"), ne dva odvojena w-[70%] div-a
+                vlasnika, 19.8.2026: "prikaz na širinu chata"), ne dva odvojena w-[56%] div-a
                 koja bi mogla vremenom da se razjednače. Centrirano (mx-auto) da prazan prostor
                 ne padne samo na jednu stranu (ispravka istog dana). */}
-            <div className="mx-auto flex w-[70%] flex-1 flex-col overflow-hidden">
+            <div className="mx-auto flex w-[56%] flex-1 flex-col overflow-hidden">
               <main className="flex-1 overflow-y-auto">{children}</main>
               {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
                   koji modul je aktivan. Pun okvir (border sa sve četiri strane + senka), ne

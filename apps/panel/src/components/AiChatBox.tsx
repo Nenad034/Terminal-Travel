@@ -1,10 +1,35 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
 import { NAV_ITEMS } from '@/lib/nav';
+
+// Ispisivanje reč-po-reč (na zahtev vlasnika, 19.8.2026 — "kao u AI pretrazi u Chrome ili u
+// VS Code"). Odgovor i dalje stiže u JEDNOM odgovoru sa servera (M15 omnisearch nema pravi
+// streaming, poglavlje 6c.3 ostaje van obima) — ovo je čisto vizuelna animacija otkrivanja
+// već primljenog teksta, ne prava postepena generacija. Poštuje `prefers-reduced-motion`
+// (dizajn dok. poglavlje 6 — animacija nikad ne sme biti jedini nosilac informacije).
+function TypewriterText({ text }: { text: string }) {
+  const [shown, setShown] = useState('');
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setShown(text);
+      return;
+    }
+    const words = text.split(' ');
+    let i = 0;
+    setShown('');
+    const t = setInterval(() => {
+      i += 1;
+      setShown(words.slice(0, i).join(' '));
+      if (i >= words.length) clearInterval(t);
+    }, 35);
+    return () => clearInterval(t);
+  }, [text]);
+  return <p>{shown}</p>;
+}
 
 interface OmnisearchResponse {
   active: boolean;
@@ -100,7 +125,7 @@ export default function AiChatBox() {
                 </div>
               ) : (
                 <div className="rounded-lg border border-border bg-panel-2 px-3 py-2 text-xs text-ink">
-                  {t.answer && <p>{t.answer}</p>}
+                  {t.answer && <TypewriterText text={t.answer} />}
                   {t.links.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {t.links.map((l) => (
