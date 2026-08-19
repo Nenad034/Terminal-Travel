@@ -62,6 +62,12 @@ const HELP_INTENT_WORDS = [
   'nalog', 'račun', 'racun', 'plaćanj', 'placanj', 'refundacij', 'povraćaj', 'povracaj', 'garancij',
 ];
 
+// Kratke fraze (npr. "dobro veče", "ćao") su prekratke da prođu looksLikeQuestion prag (§6.5.4.2)
+// pa bez ovoga dobijaju prazan "nema rezultata" umesto ljubaznog odgovora — deterministički
+// odgovor, BEZ poziva jezičkom modelu (isti duh kao §6.5.4.1 direktno poklapanje).
+const GREETING_PATTERN = /^(zdravo|ćao|cao|hej|hi|hello|dobro\s?jutro|dobar\s?dan|dobro\s?ve[cč]e|pozdrav)[!.?\s]*$/i;
+const GREETING_REPLY = 'Zdravo! Kako mogu da pomognem — pitajte me o rezervaciji, gostu ili proizvodu iz kataloga.';
+
 @Injectable()
 export class OmnisearchService {
   private readonly logger = new Logger(OmnisearchService.name);
@@ -130,6 +136,9 @@ export class OmnisearchService {
     }
 
     if (!looksLikeQuestion) {
+      if (GREETING_PATTERN.test(req.query.trim())) {
+        return { active: true, matchedRoutes: [], entityResults: [], aiAnswer: GREETING_REPLY };
+      }
       return { active: true, matchedRoutes: [], entityResults: [] };
     }
 

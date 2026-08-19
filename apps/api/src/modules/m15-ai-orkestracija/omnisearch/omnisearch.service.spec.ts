@@ -53,6 +53,13 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'prodajni-agent-42' });
   });
 
+  it('kratak pozdrav ("dobro veče") dobija ljubazan odgovor bez poziva jezičkom modelu, ne "nema rezultata"', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const result = await service.search({ query: 'dobro veče', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+    expect(result.aiAnswer).toMatch(/zdravo/i);
+    expect(anthropic.getClient).not.toHaveBeenCalled();
+  });
+
   it('vidljivost — različiti akteri dobijaju tačno ono što njihov identitet vraća, omnisearch ne proširuje rezultat', async () => {
     const { service, bookings } = makeService();
     bookings.findAll.mockImplementation((_filters: unknown, actor: { userId: string }) =>
