@@ -82,7 +82,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
   const rowResults = results.filter((r) => !CARD_TYPES.has(r.type));
 
   return (
-    <div className="w-[70%] p-6">
+    <div className="p-6">
       <RegisterTab label="Pretraga" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> pretraga

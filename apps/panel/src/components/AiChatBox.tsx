@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Icon from './Icon';
 import Link from 'next/link';
+import { useTabs } from './TabsContext';
+import { NAV_ITEMS } from '@/lib/nav';
 
 interface OmnisearchResponse {
   active: boolean;
@@ -13,35 +15,51 @@ interface OmnisearchResponse {
 
 interface Turn {
   question: string;
+  contextLabel?: string;
   answer?: string;
   links: { label: string; href: string }[];
   loading: boolean;
   inactive: boolean;
 }
 
-// Dizajn dok. §6c — polje za AI razgovor fiksirano pri dnu (centralnog panela kad je
-// razgovor glavni sadržaj ekrana, ili desnog panela). Ovaj prvi prolaz namerno NE
-// implementira §6c.1 (`+`/`@` prilaganje konteksta), §6c.2 (slash komande, dugme "Zaustavi",
-// istorija po zapisu, traka mode/dozvola) ni §6c.3 (pravi streaming, izvori kao pilule,
-// predložena sledeća pitanja) — svaki upit ide preko postojećeg POST /api/omnisearch
-// (jednokratan poziv, M15 spec §9), bez memorije prethodnih poruka na serveru (backend
-// prima samo `query`, ne istoriju) — istorija ispod je čisto prikazna, ne pravi razgovor sa
-// kontekstom. Sve gore navedeno ostaje van obima, upisano u M17 spec.
-export default function AiChatBox({ variant = 'inline' }: { variant?: 'inline' | 'panel' }) {
+// Prečice ispod polja za unos (dizajn dok. §6c — "šta još"), na zahtev vlasnika 19.8.2026.
+const QUICK_LINK_IDS = ['pretraga', 'crm', 'katalog', 'podrska'];
+
+// Dizajn dok. §6c/§6c.1 — polje za AI razgovor fiksirano pri dnu centralnog panela, na SVAKOM
+// ekranu bez obzira koji modul je aktivan (ispravka 19.8.2026, na zahtev vlasnika — prvi
+// pokušaj ga je stavio u poseban desni panel, vlasnik je tražio centralni). `+` prilaže
+// kontekst (trenutno otvoren zapis / rezultati trenutne pretrage) kao čip iznad polja —
+// jedino dvoje od §6c.1 stvarno izvodljivo bez dodatnog backend rada (prilog fajla i
+// pretraga interneta zahtevaju M15 alate koji još ne postoje za ovaj kanal, van obima).
+// Svaki upit i dalje ide preko postojećeg POST /api/omnisearch (jednokratan poziv, M15 spec
+// §9), bez memorije prethodnih poruka na serveru — istorija ispod je čisto prikazna.
+// Slash komande, dugme "Zaustavi", istorija po zapisu, traka mode/dozvola (§6c.2), pravi
+// streaming/izvori-kao-pilule-sa-tipom/predložena pitanja (§6c.3) ostaju van obima.
+export default function AiChatBox() {
+  const { tabs, activePath, openTab } = useTabs();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
+  const [context, setContext] = useState<string | null>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const plusRef = useRef<HTMLDivElement>(null);
+
+  const activeTab = tabs.find((t) => t.path === activePath);
+  const isSearchTab = activePath.startsWith('/rezervacije/pretraga') && activePath.includes('?');
 
   async function send() {
     const question = input.trim();
     if (!question) return;
+    const sentContext = context ?? undefined;
     setInput('');
-    setTurns((t) => [...t, { question, links: [], loading: true, inactive: false }]);
+    setContext(null);
+    setTurns((t) => [...t, { question, contextLabel: sentContext, links: [], loading: true, inactive: false }]);
 
+    const query = sentContext ? `[Kontekst: ${sentContext}] ${question}` : question;
     try {
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question }),
+        body: JSON.stringify({ query }),
       });
       const data: OmnisearchResponse = await res.json();
       setTurns((t) => {
@@ -51,12 +69,7 @@ export default function AiChatBox({ variant = 'inline' }: { variant?: 'inline' |
           next[next.length - 1] = { ...last, loading: false, inactive: true };
           return next;
         }
-        next[next.length - 1] = {
-          ...last,
-          loading: false,
-          answer: data.aiAnswer,
-          links: [...data.matchedRoutes],
-        };
+        next[next.length - 1] = { ...last, loading: false, answer: data.aiAnswer, links: [...data.matchedRoutes] };
         return next;
       });
     } catch {
@@ -68,12 +81,14 @@ export default function AiChatBox({ variant = 'inline' }: { variant?: 'inline' |
     }
   }
 
+  const quickLinks = QUICK_LINK_IDS.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i));
+
   return (
-    <div className={`flex flex-col ${variant === 'panel' ? 'h-full' : ''}`}>
-      {turns.length > 0 && (
-        <div className={`flex flex-col gap-3 overflow-y-auto ${variant === 'panel' ? 'flex-1 p-3' : 'max-h-64 py-2'}`}>
+    <div className="flex flex-col">
+      {turns.length > 0 && <div className="flex max-h-64 flex-col gap-3 overflow-y-auto py-2">
           {turns.map((t, i) => (
             <div key={i} className="flex flex-col gap-1.5">
+              {t.contextLabel && <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
               <div className="self-end rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">{t.question}</div>
               {t.loading ? (
                 <div className="flex items-center gap-2 text-xs text-ink-faint">
@@ -105,9 +120,52 @@ export default function AiChatBox({ variant = 'inline' }: { variant?: 'inline' |
               )}
             </div>
           ))}
+        </div>}
+
+      {context && (
+        <div className="mx-2 mt-2 flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
+          <Icon name="link" />
+          {context}
+          <button onClick={() => setContext(null)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+            <Icon name="close" />
+          </button>
         </div>
       )}
+
       <div className="flex flex-shrink-0 items-center gap-2 border-t border-border px-2 py-2">
+        <div ref={plusRef} className="relative">
+          <button
+            onClick={() => setPlusOpen((v) => !v)}
+            title="Priloži kontekst"
+            className={`flex h-[26px] w-[26px] items-center justify-center rounded ${plusOpen ? 'bg-panel-2 text-accent' : 'hover:bg-panel-2 hover:text-ink'}`}
+          >
+            <Icon name="add" />
+          </button>
+          {plusOpen && (
+            <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
+              <button
+                disabled={!activeTab || activeTab.path === '/'}
+                onClick={() => {
+                  if (activeTab) setContext(activeTab.label);
+                  setPlusOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <Icon name="file" /> Trenutno otvoren zapis{activeTab && activeTab.path !== '/' ? ` — ${activeTab.label}` : ''}
+              </button>
+              <button
+                disabled={!isSearchTab}
+                onClick={() => {
+                  setContext('rezultati trenutne pretrage');
+                  setPlusOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                <Icon name="search" /> Rezultati trenutne pretrage
+              </button>
+            </div>
+          )}
+        </div>
         <Icon name="sparkle" className="text-accent" />
         <input
           value={input}
@@ -125,6 +183,19 @@ export default function AiChatBox({ variant = 'inline' }: { variant?: 'inline' |
         >
           <Icon name="send" />
         </button>
+      </div>
+
+      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-border px-2 py-1.5">
+        {quickLinks.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => openTab(item.href, item.label)}
+            className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+          >
+            <Icon name={item.icon} />
+            {item.label}
+          </button>
+        ))}
       </div>
     </div>
   );
