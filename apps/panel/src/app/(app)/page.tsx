@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getMe, hasPermission } from '@/lib/me';
 import { apiFetch } from '@/lib/api-client';
 import Icon from '@/components/Icon';
+import AiChatBox from '@/components/AiChatBox';
 
 interface AuditLogEntry {
   id: string;
@@ -149,6 +150,12 @@ export default async function DashboardPage() {
       {!canAudit && !canContractPeriods && !canTravelGuarantee && !canAgentInbox && (
         <p className="mt-6 text-xs text-ink-faint">Nema dodatnih upozorenja za vašu ulogu.</p>
       )}
+
+      {/* Dizajn dok. §5a/§6c — Početna je ekran čiji je AI razgovor glavni sadržaj, polje
+          fiksirano pri dnu centralnog panela (sticky prati main iz Shell.tsx). */}
+      <div className="sticky bottom-0 -mx-6 mt-6 border-t border-border bg-bg px-6 py-3">
+        <AiChatBox variant="inline" />
+      </div>
     </div>
   );
 }
