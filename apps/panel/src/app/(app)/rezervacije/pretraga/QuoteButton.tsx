@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createQuoteFromOffer, CreateQuoteState } from './actions';
+import { useTabs } from '@/components/TabsContext';
 
 const initialState: CreateQuoteState = { error: null };
 
@@ -15,6 +17,12 @@ export default function QuoteButton(props: {
   children: number;
 }) {
   const [state, formAction] = useFormState(createQuoteFromOffer, initialState);
+  const { navigateInTab } = useTabs();
+
+  useEffect(() => {
+    if (state.quoteId) navigateInTab(`/rezervacije/ponude/${state.quoteId}`, 'Ponuda');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.quoteId]);
 
   return (
     <form action={formAction} className="flex flex-col items-end gap-1">

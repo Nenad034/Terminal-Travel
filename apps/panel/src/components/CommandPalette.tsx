@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
+import { useTabs } from './TabsContext';
 import type { NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §4, M17 spec §5.5, M15 spec §6.5 — Ctrl+K/Cmd+K overlay.
@@ -15,6 +16,7 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
   const [selected, setSelected] = useState(0);
   const [aiState, setAiState] = useState<AiSearchState>({ status: 'idle' });
   const router = useRouter();
+  const { tabs, activePath } = useTabs();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -40,6 +42,11 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
     const q = query.toLowerCase();
     return implemented.filter((i) => i.label.toLowerCase().includes(q));
   }, [items, query]);
+
+  // docs/analize/29-DIZAJN-SISTEM-UI.md §4 — prazan upit prikazuje i nedavno otvorene
+  // zapise/tabove iznad pune nav liste (isti obrazac kao Linear/Spotlight), brz povratak na
+  // ono na čemu se upravo radilo.
+  const recentTabs = useMemo(() => tabs.filter((t) => t.path !== activePath).slice(-5).reverse(), [tabs, activePath]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -120,6 +127,21 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
 
         {!showAiPanel && (
           <div className="max-h-[50vh] overflow-y-auto p-2">
+            {!query.trim() && recentTabs.length > 0 && (
+              <div className="mb-2 border-b border-border pb-2">
+                <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-ink-faint">Nedavno otvoreno</p>
+                {recentTabs.map((tab) => (
+                  <div
+                    key={tab.path}
+                    onClick={() => go(tab.path)}
+                    className="flex cursor-pointer items-center gap-3 rounded px-3 py-2 text-sm text-ink hover:bg-panel-2"
+                  >
+                    <Icon name="history" />
+                    <span className="flex-1 truncate">{tab.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {navResults.length === 0 && (
               <p className="p-4 text-center text-xs text-ink-faint">Nema rezultata u navigaciji.</p>
             )}

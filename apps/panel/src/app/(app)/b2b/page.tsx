@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface Subagent {
   id: string;
@@ -84,9 +85,10 @@ export default async function B2bPage() {
             const account = accountsById.get(s.clientAccountId);
             const name = account ? (account.accountType === 'LEGAL_ENTITY' ? account.companyName : account.fullName) : s.clientAccountId.slice(0, 8);
             return (
-              <Link
+              <TabLink
                 key={s.id}
                 href={`/b2b/${s.id}`}
+                label={name ?? 'Subagent'}
                 className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
               >
                 <div>
@@ -102,7 +104,7 @@ export default async function B2bPage() {
                   </div>
                 </div>
                 <StatusBadge status={s.status} />
-              </Link>
+              </TabLink>
             );
           })}
         </div>

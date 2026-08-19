@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface ClientAccount {
   id: string;
@@ -87,33 +88,37 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
           {accounts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema nalogodavaca.</p>}
-          {accounts.map((a) => (
-            <Link
-              key={a.id}
-              href={`/crm/${a.id}`}
-              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
-            >
-              <div>
-                <div className="font-medium text-ink">
-                  {a.accountType === 'LEGAL_ENTITY' ? a.companyName : a.fullName}
-                  {a.accountType === 'LEGAL_ENTITY' && <span className="ml-2 text-[10px] text-ink-faint">PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}</span>}
-                </div>
-                <div className="text-xs text-ink-faint">
-                  {a.email ?? '—'} {a.phone ? `· ${a.phone}` : ''}
-                </div>
-                {a.tags && a.tags.length > 0 && (
-                  <div className="mt-1 flex gap-1">
-                    {a.tags.map((t) => (
-                      <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-ink-faint">
-                        {t}
-                      </span>
-                    ))}
+          {accounts.map((a) => {
+            const name = (a.accountType === 'LEGAL_ENTITY' ? a.companyName : a.fullName) || 'Nalogodavac';
+            return (
+              <TabLink
+                key={a.id}
+                href={`/crm/${a.id}`}
+                label={name}
+                className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
+              >
+                <div>
+                  <div className="font-medium text-ink">
+                    {name}
+                    {a.accountType === 'LEGAL_ENTITY' && <span className="ml-2 text-[10px] text-ink-faint">PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}</span>}
                   </div>
-                )}
-              </div>
-              {!a.marketingConsent && <span className="text-[10px] text-ink-faint">bez marketing saglasnosti</span>}
-            </Link>
-          ))}
+                  <div className="text-xs text-ink-faint">
+                    {a.email ?? '—'} {a.phone ? `· ${a.phone}` : ''}
+                  </div>
+                  {a.tags && a.tags.length > 0 && (
+                    <div className="mt-1 flex gap-1">
+                      {a.tags.map((t) => (
+                        <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-ink-faint">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {!a.marketingConsent && <span className="text-[10px] text-ink-faint">bez marketing saglasnosti</span>}
+              </TabLink>
+            );
+          })}
         </div>
       )}
     </div>

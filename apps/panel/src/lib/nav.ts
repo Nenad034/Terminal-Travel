@@ -1,4 +1,6 @@
-import { Me, hasPermission } from './me';
+// Namerno BEZ importa iz './me' — ovaj fajl je i klijentski (Shell/Sidebar/TopBar/
+// CommandPalette čitaju NAV_ITEMS/NAV_GROUPS), a './me' uvozi 'server-only'. Filtriranje po
+// dozvolama (visibleNavItems) živi u './nav-visible' (server-only), ne ovde.
 
 export interface NavItem {
   id: string;
@@ -47,7 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'katalog',
     label: 'Katalog proizvoda',
-    icon: 'library',
+    icon: 'package',
     href: '/katalog',
     permission: { module: 'M2', resource: 'product', action: 'VIEW' },
     phase: 1,
@@ -56,7 +58,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'dobavljaci',
     label: 'Dobavljači i ugovori',
-    icon: 'file-text',
+    icon: 'briefcase',
     href: '/dobavljaci',
     permission: { module: 'M3', resource: 'supplier', action: 'VIEW' },
     phase: 1,
@@ -92,7 +94,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'compliance',
     label: 'Compliance (garancija putovanja)',
-    icon: 'law',
+    icon: 'shield',
     href: '/compliance',
     permission: { module: 'M11', resource: 'travel-guarantee', action: 'VIEW' },
     phase: 2,
@@ -101,7 +103,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'ugovori-klijenti',
     label: 'Ugovori sa klijentima',
-    icon: 'checklist',
+    icon: 'file-text',
     href: '/ugovori-klijenti',
     permission: { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     phase: 2,
@@ -119,7 +121,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'b2b',
     label: 'B2B partneri',
-    icon: 'globe',
+    icon: 'plug',
     href: '/b2b',
     permission: { module: 'M7', resource: 'subagent', action: 'VIEW' },
     phase: 4,
@@ -137,7 +139,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'podrska',
     label: 'Podrška',
-    icon: 'comment-discussion',
+    icon: 'question',
     href: '/podrska',
     permission: { module: 'M14', resource: 'ticket', action: 'VIEW' },
     phase: 5,
@@ -164,7 +166,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'chat',
     label: 'Razgovori (tim/dobavljači)',
-    icon: 'comment',
+    icon: 'comment-discussion',
     href: '/chat',
     permission: { module: 'M19', resource: 'conversation', action: 'VIEW' },
     phase: 7,
@@ -173,7 +175,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'pomoc',
     label: 'Centar za pomoć',
-    icon: 'question',
+    icon: 'mortar-board',
     href: '/pomoc',
     permission: { module: 'M21', resource: 'article:staff', action: 'VIEW' },
     phase: 7,
@@ -191,7 +193,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'znanje',
     label: 'Znanje (destinacije/proizvodi)',
-    icon: 'book',
+    icon: 'compass',
     href: '/znanje',
     permission: { module: 'M23', resource: 'article', action: 'VIEW' },
     phase: 7,
@@ -199,14 +201,34 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
+export interface NavGroup {
+  id: string;
+  label: string;
+  icon: string; // Codicon naziv, docs/analize/29-DIZAJN-SISTEM-UI.md §3a.1
+  itemIds: string[];
+}
+
 /**
- * Navigacija filtrirana na ulogu (M17 spec §3, §5.5) — koristi je i bočna traka i
- * komandna paleta (prazan upit + Enter, docs/analize/29-DIZAJN-SISTEM-UI.md §4) iz istog
- * izvora, kako spec §5.5 zahteva ("isti filter kao levi meni"). Stavke bez implementacije
- * ostaju u listi (zaključane), stavke bez dozvole se u potpunosti uklanjaju (§3 — "ne samo
- * da je onemogućen", da interfejs ne otkrije postojanje podataka kojima korisnik ne sme
- * da pristupi).
+ * M17 spec §4a — 17 sekcija grupisano u 8 kategorija + samostalna Početna, da gornja
+ * traka nosi 9 ikona umesto 17 (docs/analize/29-DIZAJN-SISTEM-UI.md §5c). Administracija je
+ * namerno na suprotnom kraju trake od ostalih (isti princip kao VS Code zupčanik za
+ * podešavanja) — ovaj niz ostaje u tom redosledu, `TopBar` je ne sme sam preslagivati.
  */
-export function visibleNavItems(me: Me | null): NavItem[] {
-  return NAV_ITEMS.filter((item) => item.permission === null || hasPermission(me, item.permission.module, item.permission.resource, item.permission.action));
+export const NAV_GROUPS: NavGroup[] = [
+  { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
+  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar'] },
+  { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'dobavljaci'] },
+  { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
+  { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },
+  { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
+  { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
+  { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },
+  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log'] },
+];
+
+/** Grupa kojoj pripada data ruta — koristi se za podrazumevanu aktivnu grupu pri učitavanju. */
+export function groupForHref(href: string): NavGroup | null {
+  const item = NAV_ITEMS.find((i) => i.href === href || (i.href !== '/' && href.startsWith(i.href)));
+  if (!item) return null;
+  return NAV_GROUPS.find((g) => g.itemIds.includes(item.id)) ?? null;
 }

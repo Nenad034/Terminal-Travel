@@ -1,10 +1,10 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api-client';
 
 export interface CreateQuoteState {
   error: string | null;
+  quoteId?: string;
 }
 
 // M5 spec §3.0b.3/§3.1 — polja stavke se prepisuju iz izabranog SearchResultOffer,
@@ -41,7 +41,11 @@ export async function createQuoteFromOffer(_prev: CreateQuoteState, formData: Fo
   } catch (err) {
     return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ponude nije uspelo.' };
   }
-  redirect(`/rezervacije/ponude/${quoteId}`);
+  // docs/analize/29-DIZAJN-SISTEM-UI.md §5a — kreiranje ponude iz pretrage je drill-down,
+  // ostaje u istom tabu. Server Action se ne redirektuje sam (to bi otvorilo nov tab preko
+  // RegisterTab efekta) — vraća quoteId, klijentska komponenta (QuoteButton) navigira kroz
+  // navigateInTab.
+  return { error: null, quoteId };
 }
 
 function extractMessage(err: ApiError): string {

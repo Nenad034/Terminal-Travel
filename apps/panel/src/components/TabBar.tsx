@@ -37,6 +37,13 @@ export default function TabBar() {
           </Link>
         );
       })}
+      <Link
+        href="/"
+        title="Nov tab — Početna (docs/analize/29-DIZAJN-SISTEM-UI.md §5a)"
+        className="flex h-6 w-6 flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+      >
+        <Icon name="add" className="text-xs" />
+      </Link>
     </div>
   );
 }

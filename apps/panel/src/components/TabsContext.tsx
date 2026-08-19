@@ -13,6 +13,13 @@ interface TabsContextValue {
   tabs: OpenTab[];
   activePath: string;
   openTab: (path: string, label: string) => void;
+  /**
+   * docs/analize/29-DIZAJN-SISTEM-UI.md §5a — "izmena unutar već otvorenog tab-a ne otvara
+   * nov tab, samo osvežava tekući". Menja putanju/naslov AKTIVNOG taba na mestu (bez novog
+   * elementa u nizu) — koristi se za drill-down linkove (lista → zapis), ne za namerne nove
+   * radnje (klik na sekciju u levoj traci, izbor iz komandne palete — te ostaju na `openTab`).
+   */
+  navigateInTab: (path: string, label: string) => void;
   closeTab: (path: string) => void;
   markDirty: (path: string, dirty: boolean) => void;
 }
@@ -47,8 +54,36 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   }, [tabs, hydrated]);
 
   const openTab = useCallback((path: string, label: string) => {
-    setTabs((prev) => (prev.some((t) => t.path === path) ? prev : [...prev, { path, label }]));
+    setTabs((prev) => {
+      const idx = prev.findIndex((t) => t.path === path);
+      if (idx === -1) return [...prev, { path, label }];
+      // Tab već postoji (npr. otvoren kroz navigateInTab pre nego što je ciljna stranica
+      // stigla do svog sopstvenog useRegisterTab poziva) — osveži naslov ako se razlikuje,
+      // nikad ne dupliraj.
+      if (prev[idx].label === label) return prev;
+      const next = [...prev];
+      next[idx] = { ...next[idx], label };
+      return next;
+    });
   }, []);
+
+  const navigateInTab = useCallback(
+    (path: string, label: string) => {
+      setTabs((prev) => {
+        const activeIdx = prev.findIndex((t) => t.path === pathname);
+        if (activeIdx === -1) {
+          // Bezbednosna mreža — aktivan tab se ne poklapa ni sa jednim zapisom, ponašaj se
+          // kao openTab umesto da tiho ne uradiš ništa.
+          return prev.some((t) => t.path === path) ? prev : [...prev, { path, label }];
+        }
+        const next = [...prev];
+        next[activeIdx] = { path, label };
+        return next;
+      });
+      router.push(path);
+    },
+    [pathname, router],
+  );
 
   const closeTab = useCallback(
     (path: string) => {
@@ -71,7 +106,7 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   }, []);
 
   return (
-    <TabsCtx.Provider value={{ tabs, activePath: pathname, openTab, closeTab, markDirty }}>
+    <TabsCtx.Provider value={{ tabs, activePath: pathname, openTab, navigateInTab, closeTab, markDirty }}>
       {children}
     </TabsCtx.Provider>
   );

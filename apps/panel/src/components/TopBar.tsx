@@ -1,12 +1,28 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
 
-// docs/analize/29-DIZAJN-SISTEM-UI.md §5 — "gornja traka minimalna, jedna tanka linija —
-// bez gomile vidljivih dugmića; sve teško ide kroz komandnu paletu".
-export default function TopBar({ fullName, roles }: { fullName: string; roles: string[] }) {
+// docs/analize/29-DIZAJN-SISTEM-UI.md §5c — gornja traka nosi grupe modula kao ikonice
+// (9 umesto 17 pojedinačnih sekcija). Administracija namerno na suprotnom kraju trake od
+// radnih grupa (isti princip kao VS Code zupčanik za podešavanja) — vidljivo kroz
+// `ml-auto` na toj jednoj ikonici, ne poseban niz.
+export default function TopBar({
+  fullName,
+  roles,
+  groups,
+  activeGroupId,
+  onSelectGroup,
+}: {
+  fullName: string;
+  roles: string[];
+  groups: NavGroup[];
+  activeGroupId: string;
+  onSelectGroup: (id: string) => void;
+}) {
   const router = useRouter();
 
   async function logout() {
@@ -16,8 +32,30 @@ export default function TopBar({ fullName, roles }: { fullName: string; roles: s
   }
 
   return (
-    <header className="flex h-9 flex-shrink-0 items-center gap-3 border-b border-border bg-panel-2 px-3 text-xs">
-      <span className="font-mono font-bold tracking-wide text-accent">TERMINAL</span>
+    <header className="flex h-9 flex-shrink-0 items-center gap-1 border-b border-border bg-panel-2 px-2 text-xs">
+      <span className="mr-1 font-mono font-bold tracking-wide text-accent">TERMINAL</span>
+      {groups.map((group, idx) => {
+        const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
+        const active = group.id === activeGroupId;
+        // Administracija je poslednja stavka u NAV_GROUPS namerno (M17 spec §4a) — ml-auto
+        // je razmak, ne preslagivanje redosleda.
+        const isLast = idx === groups.length - 1 && groups.length > 1;
+        const className = `flex h-7 w-7 flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
+          active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+        }`;
+        if (single) {
+          return (
+            <Link key={group.id} href={single.href} title={group.label} className={className}>
+              <Icon name={group.icon} />
+            </Link>
+          );
+        }
+        return (
+          <button key={group.id} title={group.label} onClick={() => onSelectGroup(group.id)} className={className}>
+            <Icon name={group.icon} />
+          </button>
+        );
+      })}
       <div className="flex-1" />
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}

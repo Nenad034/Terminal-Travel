@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface Product {
   id: string;
@@ -53,9 +54,10 @@ export default async function KatalogPage() {
           {products.map((p) => {
             const name = p.translations?.find((t) => t.languageCode === 'sr')?.name ?? '(bez naziva)';
             return (
-              <Link
+              <TabLink
                 key={p.id}
                 href={`/katalog/${p.id}`}
+                label={name}
                 className="rounded-lg border border-border bg-panel p-4 hover:border-accent"
               >
                 <div className="mb-1 flex items-center justify-between">
@@ -72,7 +74,7 @@ export default async function KatalogPage() {
                 <div className="text-xs text-ink-faint">
                   {p.destinationCity}, {p.destinationCountry}
                 </div>
-              </Link>
+              </TabLink>
             );
           })}
         </div>

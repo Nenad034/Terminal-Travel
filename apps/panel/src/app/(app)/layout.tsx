@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getMe } from '@/lib/me';
-import { visibleNavItems } from '@/lib/nav';
+import { visibleNavItems } from '@/lib/nav-visible';
 import Shell from '@/components/Shell';
 
 // M17 spec §3 — "Navigacija i vidljivost akcija na svakom ekranu potpuno prate M1 model
