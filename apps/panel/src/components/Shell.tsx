@@ -43,15 +43,16 @@ export default function Shell({
           </ResizablePane>
           <div className="flex flex-1 flex-col overflow-hidden">
             <TabBar />
-            {/* Sadržaj bilo kog modula na 70% širine centralnog panela (na zahtev vlasnika,
-                19.8.2026) — jedno mesto, ne po ekranu, da važi dosledno za sve module odjednom. */}
+            {/* Sadržaj bilo kog modula na 70% širine centralnog panela, CENTRIRAN (na zahtev
+                vlasnika, 19.8.2026 — ispravka istog dana: uz levu ivicu je ostavljalo praznu
+                trećinu ekrana bez razloga otkad desni panel ne postoji, delovalo polomljeno,
+                ne namerno) — jedno mesto, ne po ekranu, da važi dosledno za sve module odjednom. */}
             <main className="flex-1 overflow-y-auto">
-              <div className="w-[70%]">{children}</div>
+              <div className="mx-auto w-[70%]">{children}</div>
             </main>
             {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
-                koji modul je aktivan (na zahtev vlasnika, 19.8.2026 — ispravka posle prve
-                probe: chat ide OVDE, ne u poseban desni panel). */}
-            <div className="w-[70%] flex-shrink-0 border-t border-border bg-panel px-0 pb-0">
+                koji modul je aktivan, ista centrirana širina kao sadržaj iznad. */}
+            <div className="mx-auto w-[70%] flex-shrink-0 border-t border-border bg-panel px-0 pb-0">
               <AiChatBox />
             </div>
           </div>
