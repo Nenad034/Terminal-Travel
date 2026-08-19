@@ -58,7 +58,8 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="flex h-full flex-col">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col overflow-y-auto p-6">
       <div className="mb-6">
         <h1 className="font-mono text-lg">
           <span className="text-accent">$</span> dobrodošli, {me.fullName}
@@ -150,11 +151,16 @@ export default async function DashboardPage() {
       {!canAudit && !canContractPeriods && !canTravelGuarantee && !canAgentInbox && (
         <p className="mt-6 text-xs text-ink-faint">Nema dodatnih upozorenja za vašu ulogu.</p>
       )}
+    </div>
 
       {/* Dizajn dok. §5a/§6c — Početna je ekran čiji je AI razgovor glavni sadržaj, polje
-          fiksirano pri dnu centralnog panela (sticky prati main iz Shell.tsx). */}
-      <div className="sticky bottom-0 -mx-6 mt-6 border-t border-border bg-bg px-6 py-3">
-        <AiChatBox variant="inline" />
+          fiksirano pri dnu centralnog panela. Sopstveni scroll-kontejner iznad (a ne main iz
+          Shell.tsx) da ova traka ostane na dnu VIDLJIVOG panela čak i kad ima malo kartica,
+          ne tek posle njih. */}
+      <div className="mx-auto w-full max-w-5xl flex-shrink-0 px-6 pb-4">
+        <div className="rounded-xl border border-border bg-panel shadow-sm">
+          <AiChatBox variant="inline" />
+        </div>
       </div>
     </div>
   );

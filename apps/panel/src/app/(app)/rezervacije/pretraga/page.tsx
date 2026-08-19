@@ -24,10 +24,13 @@ interface SearchResult {
   destinationCountry: string;
   destinationCity: string;
   shortDescription?: string;
+  thumbnail?: { url: string; category: string } | null;
   offers: SearchOffer[];
 }
 
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT'];
+// Dizajn dok. §6d — tipovi sa bogatim vizuelnim sadržajem dobijaju kartice, ostatak
+// kompaktne redove (kompanija/vozilo, vreme, cena, isti utisak kao Google Flights lista).
+const CARD_TYPES = new Set(['ACCOMMODATION', 'PACKAGE', 'EXCURSION', 'EVENT', 'TICKET']);
 
 // M17 spec §4 (Faza 1) — "Pretraga i rezervacije", M5 §11 GET /search + §3.1 POST /quotes.
 export default async function SearchPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
@@ -55,91 +58,133 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
     }
   }
 
+  // Filteri (Sidebar, SearchSidebarPanel.tsx) — GET /search ne podržava cenu/dostupnost kao
+  // upitne parametre (M5 spec §11), pa se primenjuju ovde, nad već dobijenim rezultatima.
+  const priceMin = searchParams.priceMin ? Number(searchParams.priceMin) * 100 : null;
+  const priceMax = searchParams.priceMax ? Number(searchParams.priceMax) * 100 : null;
+  const availability = searchParams.availability || null;
+
+  if (priceMin !== null || priceMax !== null || availability) {
+    results = results
+      .map((r) => ({
+        ...r,
+        offers: r.offers.filter((o) => {
+          if (priceMin !== null && o.finalPrice < priceMin) return false;
+          if (priceMax !== null && o.finalPrice > priceMax) return false;
+          if (availability && o.availabilityStatus !== availability) return false;
+          return true;
+        }),
+      }))
+      .filter((r) => r.offers.length > 0);
+  }
+
+  const cardResults = results.filter((r) => CARD_TYPES.has(r.type));
+  const rowResults = results.filter((r) => !CARD_TYPES.has(r.type));
+
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="w-[70%] p-6">
       <RegisterTab label="Pretraga" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> pretraga
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4).</p>
 
-      <form className="mb-6 grid grid-cols-2 gap-3 rounded-lg border border-border bg-panel p-4 sm:grid-cols-3">
-        <label className="text-xs text-ink-faint">
-          tip
-          <select name="type" defaultValue={searchParams.type ?? ''} className="input mt-1">
-            <option value="">— sve —</option>
-            {PRODUCT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs text-ink-faint">
-          država odredišta
-          <input name="destinationCountry" defaultValue={searchParams.destinationCountry} className="input mt-1" placeholder="Grčka" />
-        </label>
-        <label className="text-xs text-ink-faint">
-          grad odredišta
-          <input name="destinationCity" defaultValue={searchParams.destinationCity} className="input mt-1" />
-        </label>
-        <label className="text-xs text-ink-faint">
-          od
-          <input type="date" name="stayFrom" defaultValue={searchParams.stayFrom} className="input mt-1" />
-        </label>
-        <label className="text-xs text-ink-faint">
-          do
-          <input type="date" name="stayTo" defaultValue={searchParams.stayTo} className="input mt-1" />
-        </label>
-        <label className="text-xs text-ink-faint">
-          odrasli / deca
-          <div className="mt-1 flex gap-1">
-            <input type="number" name="adults" min={1} defaultValue={searchParams.adults ?? '2'} className="input w-1/2" />
-            <input type="number" name="children" min={0} defaultValue={searchParams.children ?? '0'} className="input w-1/2" />
-          </div>
-        </label>
-        <button type="submit" className="col-span-2 mt-1 flex items-center justify-center gap-1.5 rounded bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent-strong sm:col-span-3">
-          <Icon name="search" /> pretraži
-        </button>
-      </form>
-
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {hasQuery && !error && results.length === 0 && <p className="text-center text-xs text-ink-faint">Nema rezultata za zadate kriterijume.</p>}
+      {!hasQuery && <p className="text-center text-xs text-ink-faint">Podesite kriterijume u levom panelu.</p>}
 
-      <div className="flex flex-col gap-3">
-        {results.map((r) => (
-          <div key={r.productId} className="rounded-lg border border-border bg-panel p-4">
-            <div className="mb-2">
-              <div className="font-medium text-ink">{r.name}</div>
-              <div className="text-xs text-ink-faint">
-                {r.destinationCity}, {r.destinationCountry} · {r.type} · {r.sourceType}
+      {cardResults.length > 0 && (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cardResults.map((r) => (
+            <ResultCard key={r.productId} result={r} searchParams={searchParams} />
+          ))}
+        </div>
+      )}
+
+      {rowResults.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {rowResults.map((r) => (
+            <ResultRowGroup key={r.productId} result={r} searchParams={searchParams} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultCard({ result: r, searchParams }: { result: SearchResult; searchParams: Record<string, string | undefined> }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-panel">
+      <div className="flex aspect-[16/10] items-center justify-center bg-panel-2 text-ink-faint">
+        {r.thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={r.thumbnail.url} alt={r.name} className="h-full w-full object-cover" />
+        ) : (
+          <Icon name="device-camera" className="text-2xl" />
+        )}
+      </div>
+      <div className="p-3">
+        <div className="font-medium text-ink">{r.name}</div>
+        <div className="mb-2 text-xs text-ink-faint">
+          {r.destinationCity}, {r.destinationCountry} · {r.type}
+        </div>
+        <div className="flex flex-col gap-2">
+          {r.offers.slice(0, 3).map((o, i) => (
+            <div key={i} className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs">
+              <span className="text-ink-dim">{o.roomTypeName ?? o.roomTypeCode ?? r.type}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-semibold text-ink">
+                  {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
+                </span>
+                <QuoteButton
+                  productId={r.productId}
+                  rateLineId={o.rateLineId}
+                  providerQuoteReference={o.providerQuoteReference}
+                  stayFrom={searchParams.stayFrom}
+                  stayTo={searchParams.stayTo}
+                  adults={Number(searchParams.adults ?? '2')}
+                  children={Number(searchParams.children ?? '0')}
+                />
               </div>
             </div>
-            <div className="flex flex-col gap-2">
-              {r.offers.map((o, i) => (
-                <div key={i} className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm">
-                  <div>
-                    <div className="text-ink">
-                      {o.roomTypeName ?? o.roomTypeCode} {o.boardType ? `· ${o.boardType}` : ''}
-                    </div>
-                    <div className="text-xs text-ink-faint">{o.cancellationPolicySummary}</div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-semibold text-ink">
-                      {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
-                    </span>
-                    <QuoteButton
-                      productId={r.productId}
-                      rateLineId={o.rateLineId}
-                      providerQuoteReference={o.providerQuoteReference}
-                      stayFrom={searchParams.stayFrom}
-                      stayTo={searchParams.stayTo}
-                      adults={Number(searchParams.adults ?? '2')}
-                      children={Number(searchParams.children ?? '0')}
-                    />
-                  </div>
-                </div>
-              ))}
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultRowGroup({ result: r, searchParams }: { result: SearchResult; searchParams: Record<string, string | undefined> }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel p-4">
+      <div className="mb-2">
+        <div className="font-medium text-ink">{r.name}</div>
+        <div className="text-xs text-ink-faint">
+          {r.destinationCity}, {r.destinationCountry} · {r.type} · {r.sourceType}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        {r.offers.map((o, i) => (
+          <div key={i} className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm">
+            <div>
+              <div className="text-ink">
+                {o.roomTypeName ?? o.roomTypeCode} {o.boardType ? `· ${o.boardType}` : ''}
+              </div>
+              <div className="text-xs text-ink-faint">{o.cancellationPolicySummary}</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-sm font-semibold text-ink">
+                {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
+              </span>
+              <QuoteButton
+                productId={r.productId}
+                rateLineId={o.rateLineId}
+                providerQuoteReference={o.providerQuoteReference}
+                stayFrom={searchParams.stayFrom}
+                stayTo={searchParams.stayTo}
+                adults={Number(searchParams.adults ?? '2')}
+                children={Number(searchParams.children ?? '0')}
+              />
             </div>
           </div>
         ))}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
+import SearchSidebarPanel from './SearchSidebarPanel';
 import type { NavGroup, NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — leva traka prikazuje spisak sekcija AKTIVNE
@@ -51,8 +52,9 @@ export default function Sidebar({
             <Icon name={selected.icon} />
             <span className="truncate">{selected.label}</span>
           </div>
-          {/* Polja za pretragu/filtriranje po sekciji (M17 spec §4a) — van obima ovog prolaza,
-              ostaje sledeći korak po sekciji. */}
+          {/* M5 pretraga — vođena pretraga + filteri u levom panelu (dizajn dok. §5b/§6d),
+              van obima za ostatak sekcija (M17 spec §4a), ostaje sledeći korak po sekciji. */}
+          {selected.id === 'pretraga' && <SearchSidebarPanel />}
         </>
       ) : (
         <>
