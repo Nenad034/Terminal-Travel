@@ -32,22 +32,38 @@ interface SearchResult {
 // kompaktne redove (kompanija/vozilo, vreme, cena, isti utisak kao Google Flights lista).
 const CARD_TYPES = new Set(['ACCOMMODATION', 'PACKAGE', 'EXCURSION', 'EVENT', 'TICKET']);
 
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+function normalizeTypes(v: string | string[] | undefined): string[] {
+  if (!v) return [];
+  return Array.isArray(v) ? v : [v];
+}
+
 // M17 spec §4 (Faza 1) — "Pretraga i rezervacije", M5 §11 GET /search + §3.1 POST /quotes.
-export default async function SearchPage({ searchParams }: { searchParams: Record<string, string | undefined> }) {
-  const hasQuery = Boolean(searchParams.destinationCountry || searchParams.type);
+export default async function SearchPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+  const types = normalizeTypes(searchParams.type);
+  const hasQuery = Boolean(searchParams.destinationCountry || types.length > 0);
 
   let results: SearchResult[] = [];
   let error: string | null = null;
 
   if (hasQuery) {
     const params = new URLSearchParams();
-    if (searchParams.type) params.set('type', searchParams.type);
-    if (searchParams.destinationCountry) params.set('destinationCountry', searchParams.destinationCountry);
-    if (searchParams.destinationCity) params.set('destinationCity', searchParams.destinationCity);
-    if (searchParams.stayFrom) params.set('stayFrom', searchParams.stayFrom);
-    if (searchParams.stayTo) params.set('stayTo', searchParams.stayTo);
-    const adults = Number(searchParams.adults ?? '2');
-    const children = Number(searchParams.children ?? '0');
+    // M5 spec §11 — `type` je niz (multi-select, dopuna avgust 2026), koristi ga "Things to
+    // do" ikonica u levom panelu (EXCURSION+EVENT+TICKET spojeno u jedan poziv, dizajn dok.
+    // §5b tabela) — bez ovoga bi trebalo tri odvojena poziva ili post-filter na klijentu.
+    for (const t of types) params.append('type', t);
+    if (searchParams.destinationCountry) params.set('destinationCountry', String(searchParams.destinationCountry));
+    const destinationCity = first(searchParams.destinationCity);
+    const stayFrom = first(searchParams.stayFrom);
+    const stayTo = first(searchParams.stayTo);
+    if (destinationCity) params.set('destinationCity', destinationCity);
+    if (stayFrom) params.set('stayFrom', stayFrom);
+    if (stayTo) params.set('stayTo', stayTo);
+    const adults = Number(first(searchParams.adults) ?? '2');
+    const children = Number(first(searchParams.children) ?? '0');
     params.set('occupancy', JSON.stringify({ adults, children, roomConfig: [{ adults, children, childrenAges: [] }] }));
     params.set('channel', 'INTERNAL_PANEL');
 
@@ -60,9 +76,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
 
   // Filteri (Sidebar, SearchSidebarPanel.tsx) — GET /search ne podržava cenu/dostupnost kao
   // upitne parametre (M5 spec §11), pa se primenjuju ovde, nad već dobijenim rezultatima.
-  const priceMin = searchParams.priceMin ? Number(searchParams.priceMin) * 100 : null;
-  const priceMax = searchParams.priceMax ? Number(searchParams.priceMax) * 100 : null;
-  const availability = searchParams.availability || null;
+  const priceMinRaw = first(searchParams.priceMin);
+  const priceMaxRaw = first(searchParams.priceMax);
+  const priceMin = priceMinRaw ? Number(priceMinRaw) * 100 : null;
+  const priceMax = priceMaxRaw ? Number(priceMaxRaw) * 100 : null;
+  const availability = first(searchParams.availability) || null;
 
   if (priceMin !== null || priceMax !== null || availability) {
     results = results
@@ -81,6 +99,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
   const cardResults = results.filter((r) => CARD_TYPES.has(r.type));
   const rowResults = results.filter((r) => !CARD_TYPES.has(r.type));
 
+  const quoteDefaults = {
+    stayFrom: first(searchParams.stayFrom),
+    stayTo: first(searchParams.stayTo),
+    adults: Number(first(searchParams.adults) ?? '2'),
+    children: Number(first(searchParams.children) ?? '0'),
+  };
+
   return (
     <div className="p-6">
       <RegisterTab label="Pretraga" />
@@ -96,7 +121,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
       {cardResults.length > 0 && (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cardResults.map((r) => (
-            <ResultCard key={r.productId} result={r} searchParams={searchParams} />
+            <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
           ))}
         </div>
       )}
@@ -104,7 +129,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
       {rowResults.length > 0 && (
         <div className="flex flex-col gap-3">
           {rowResults.map((r) => (
-            <ResultRowGroup key={r.productId} result={r} searchParams={searchParams} />
+            <ResultRowGroup key={r.productId} result={r} quoteDefaults={quoteDefaults} />
           ))}
         </div>
       )}
@@ -112,7 +137,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
   );
 }
 
-function ResultCard({ result: r, searchParams }: { result: SearchResult; searchParams: Record<string, string | undefined> }) {
+interface QuoteDefaults {
+  stayFrom?: string;
+  stayTo?: string;
+  adults: number;
+  children: number;
+}
+
+function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-panel">
       <div className="flex aspect-[16/10] items-center justify-center bg-panel-2 text-ink-faint">
@@ -140,10 +172,10 @@ function ResultCard({ result: r, searchParams }: { result: SearchResult; searchP
                   productId={r.productId}
                   rateLineId={o.rateLineId}
                   providerQuoteReference={o.providerQuoteReference}
-                  stayFrom={searchParams.stayFrom}
-                  stayTo={searchParams.stayTo}
-                  adults={Number(searchParams.adults ?? '2')}
-                  children={Number(searchParams.children ?? '0')}
+                  stayFrom={quoteDefaults.stayFrom}
+                  stayTo={quoteDefaults.stayTo}
+                  adults={quoteDefaults.adults}
+                  children={quoteDefaults.children}
                 />
               </div>
             </div>
@@ -154,7 +186,7 @@ function ResultCard({ result: r, searchParams }: { result: SearchResult; searchP
   );
 }
 
-function ResultRowGroup({ result: r, searchParams }: { result: SearchResult; searchParams: Record<string, string | undefined> }) {
+function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-2">
@@ -180,10 +212,10 @@ function ResultRowGroup({ result: r, searchParams }: { result: SearchResult; sea
                 productId={r.productId}
                 rateLineId={o.rateLineId}
                 providerQuoteReference={o.providerQuoteReference}
-                stayFrom={searchParams.stayFrom}
-                stayTo={searchParams.stayTo}
-                adults={Number(searchParams.adults ?? '2')}
-                children={Number(searchParams.children ?? '0')}
+                stayFrom={quoteDefaults.stayFrom}
+                stayTo={quoteDefaults.stayTo}
+                adults={quoteDefaults.adults}
+                children={quoteDefaults.children}
               />
             </div>
           </div>

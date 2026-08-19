@@ -2,9 +2,28 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Icon from './Icon';
 
 const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT'];
+
+// Dizajn dok. §5b tabela — devet ikonica po vrsti turističkog proizvoda, "stablo-grana"
+// unutar "Pretraga i rezervacije". `types` prazan niz = "Individualni paketi" (locked, čeka
+// Itinerary tok — M5 spec §3.0d.5, nije još izgrađen) nema svoj Product.type. "Krstarenja"
+// je locked jer `CRUISE` ne postoji u `ProductType` enumu (schema.prisma) iako ga dizajn dok.
+// pominje kao "dodat 17.8.2026" — nesklad otkriven pri implementaciji, upisan u M5 spec, ne
+// prećutan; dodavanje bi bila šema migracija, van obima ove ikonice-samo izmene.
+const PRODUCT_ICONS: { label: string; icon: string; types: string[]; locked?: string }[] = [
+  { label: 'Smeštaj', icon: 'home', types: ['ACCOMMODATION'] },
+  { label: 'Letovi', icon: 'rocket', types: ['FLIGHT'] },
+  { label: 'Transferi', icon: 'arrow-swap', types: ['TRANSFER'] },
+  { label: 'Rent-a-car', icon: 'milestone', types: ['TRANSPORT'] },
+  { label: 'Things to do', icon: 'compass', types: ['EXCURSION', 'EVENT', 'TICKET'] },
+  { label: 'Individualni paketi', icon: 'map', types: [], locked: 'Itinerar builder još nije izgrađen (M5 spec §3.0d.5)' },
+  { label: 'Grupni paketi', icon: 'gift', types: ['PACKAGE'] },
+  { label: 'Krstarenja', icon: 'globe', types: [], locked: 'CRUISE tip proizvoda još ne postoji u šemi (nesklad sa dizajn dokumentom, upisano u M5 spec)' },
+  { label: 'Putno osiguranje', icon: 'shield', types: ['INSURANCE'] },
+];
 
 // Dizajn dok. §5b/§6d — vođena pretraga i filteri žive u levom panelu, ne u centru (centar
 // ostaje isključivo prikaz rezultata). Prvi, uzak rez (19.8.2026, na zahtev vlasnika):
@@ -22,8 +41,47 @@ export default function SearchSidebarPanel() {
   const [searchOpen, setSearchOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
 
+  const currentTypes = sp.getAll('type');
+  function hrefForTypes(types: string[]) {
+    const next = new URLSearchParams(sp.toString());
+    next.delete('type');
+    for (const t of types) next.append('type', t);
+    return `/rezervacije/pretraga?${next.toString()}`;
+  }
+
   return (
     <form className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
+      <div className="grid grid-cols-3 gap-1 border-b border-border pb-2">
+        {PRODUCT_ICONS.map((p) => {
+          const active = p.types.length > 0 && p.types.length === currentTypes.length && p.types.every((t) => currentTypes.includes(t));
+          if (p.locked) {
+            return (
+              <span
+                key={p.label}
+                title={`${p.label} — ${p.locked}`}
+                className="flex h-9 flex-col items-center justify-center gap-0.5 rounded text-ink-faint opacity-40"
+              >
+                <Icon name={p.icon} />
+                <span className="truncate text-[9px] leading-none">{p.label}</span>
+              </span>
+            );
+          }
+          return (
+            <Link
+              key={p.label}
+              href={hrefForTypes(p.types)}
+              title={p.label}
+              className={`flex h-9 flex-col items-center justify-center gap-0.5 rounded ${
+                active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+              }`}
+            >
+              <Icon name={p.icon} />
+              <span className="truncate text-[9px] leading-none">{p.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+
       <Section title="Pretraga" open={searchOpen} onToggle={() => setSearchOpen((v) => !v)}>
         <label className="text-ink-faint">
           tip
