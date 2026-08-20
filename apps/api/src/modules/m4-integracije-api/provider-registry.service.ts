@@ -4,9 +4,11 @@ import { decryptSecret } from '../../common/crypto/secret-box';
 import { DictionaryCacheService } from './dictionary-cache.service';
 import { ProviderAdapter } from './provider-adapter.interface';
 import { ApiKeyStrategy } from './auth-strategies/api-key.strategy';
+import { BasicAuthStrategy } from './auth-strategies/basic.strategy';
 import { MockProviderAdapter } from './adapters/mock-provider.adapter';
 import { TravelgateAdapter } from './adapters/travelgate.adapter';
 import { SolvexAdapter } from './adapters/solvex.adapter';
+import { WebHotelierAdapter } from './adapters/webhotelier.adapter';
 
 interface TravelgateAuthConfig {
   endpoint: string;
@@ -16,6 +18,12 @@ interface TravelgateAuthConfig {
 interface SolvexAuthConfig {
   endpoint: string;
   login: string;
+  password: string;
+}
+
+interface WebHotelierAuthConfig {
+  endpoint: string;
+  username: string;
   password: string;
 }
 
@@ -68,6 +76,10 @@ export class ProviderRegistryService {
       case 'solvex': {
         const cfg = authConfig as unknown as SolvexAuthConfig;
         return new SolvexAdapter(config.providerCode, cfg.endpoint, cfg.login, cfg.password, timeoutMs, this.dictionaryCache);
+      }
+      case 'webhotelier': {
+        const cfg = authConfig as unknown as WebHotelierAuthConfig;
+        return new WebHotelierAdapter(config.providerCode, cfg.endpoint, new BasicAuthStrategy(cfg.username, cfg.password), timeoutMs);
       }
       default:
         throw new Error(`Nema registrovanog adaptera za provider_code=${config.providerCode} (M4 spec §9)`);

@@ -3,6 +3,7 @@ import { DictionaryCacheService } from './dictionary-cache.service';
 import { MockProviderAdapter } from './adapters/mock-provider.adapter';
 import { TravelgateAdapter } from './adapters/travelgate.adapter';
 import { SolvexAdapter } from './adapters/solvex.adapter';
+import { WebHotelierAdapter } from './adapters/webhotelier.adapter';
 import { ProviderRegistryService } from './provider-registry.service';
 
 describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)', () => {
@@ -67,6 +68,24 @@ describe('ProviderRegistryService (M4 spec §2/§9 — use_mock formalizacija)',
     } as any);
 
     expect(adapter).toBeInstanceOf(SolvexAdapter);
+  });
+
+  it('vraća WebHotelierAdapter za provider_code=webhotelier kad useMock=false', () => {
+    const registry = makeRegistry();
+    const authConfig = encryptSecret(
+      JSON.stringify({ endpoint: 'https://rest.reserve-online.net', username: 'agent', password: 'x' }),
+    );
+    const adapter = registry.getAdapter({
+      providerCode: 'webhotelier',
+      category: 'HOTEL',
+      useMock: false,
+      authConfigEncrypted: authConfig,
+      timeoutSearchMs: 8000,
+      timeoutBookingMs: 15000,
+      capabilitiesProfile: {},
+    } as any);
+
+    expect(adapter).toBeInstanceOf(WebHotelierAdapter);
   });
 
   it('baca grešku za nepoznat provider_code', () => {
