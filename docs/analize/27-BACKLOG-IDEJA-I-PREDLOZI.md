@@ -133,6 +133,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - ~~"Nastavi bez naloga" (anonimni checkout, poglavlje 3 korak 3) odloženo~~ — **rešeno avgust 2026** (§9a): `POST /crm/client-accounts/guest-checkout`, javan, rate-limitovan 5/sat po IP.
 - Vizuelna/screenshot provera responsive prikaza (poglavlje 9) — CSS audit urađen (bez fiksnih desktop širina), stvarna vizuelna provera čeka headless browser alat (nova zavisnost, čeka `tt-tech-stack` potvrdu) ili ručnu proveru.
 - `FAQSchemaLD` (poglavlje 5.1) nije emitovan nigde — nema još FAQ sadržaja na stranici proizvoda da bi bio uslovno prikazan.
+- **"Jasnoća pre estetike" smernica za buduću vizuelnu doradu** (20.8.2026, zapaženo iz spoljnog izvora, vlasnik potvrdio) — 4 merljiva kriterijuma (5s test jasnoće, mobilni budžet ~1.5s, izbegavati scrolljacking, F-obrazac raspored), različit standard od M17 (M8 cilja konverziju, M17 funkcionalnost). Nije spec, čeka narednu UX doradu M8.
 
 ## M9 — Mobilna aplikacija
 *(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
