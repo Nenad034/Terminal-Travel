@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { getMe, hasPermission } from '@/lib/me';
 import { apiFetch } from '@/lib/api-client';
 import Icon from '@/components/Icon';
+import ContentCard from '@/components/ContentCard';
 
 interface AuditLogEntry {
   id: string;
@@ -119,12 +119,12 @@ export default async function DashboardPage() {
         )}
 
         {canAudit && (
-          <Card icon="history" title="Audit log" href="/audit-log">
-            <p className="text-xs text-ink-dim">Pun, append-only zapis svake izmene u sistemu — dostupan Vlasniku/Direktoru.</p>
-            <Link href="/audit-log" className="mt-2 inline-block text-xs font-medium text-accent hover:underline">
-              Otvori audit log →
-            </Link>
-          </Card>
+          // Dizajn dok. §6e, podforma "naslovni red akcija" — deljena komponenta.
+          <ContentCard
+            title="Audit log"
+            description="Pun, append-only zapis svake izmene u sistemu — dostupan Vlasniku/Direktoru."
+            actions={[{ label: 'Otvori audit log', href: '/audit-log' }]}
+          />
         )}
 
         {canAgentInbox && (
