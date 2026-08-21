@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import NewConversationForm from './NewConversationForm';
 import { PresenceDot } from './PresenceDot';
 
@@ -126,9 +127,10 @@ export default async function ChatPage() {
             const otherStatus = c.type === 'DIRECT' ? presenceByUser.get(others[0]?.userId ?? '') : null;
 
             return (
-              <Link
+              <TabLink
                 key={c.id}
                 href={`/chat/${c.id}`}
+                label={title}
                 className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
               >
                 <div className="min-w-0">
@@ -145,7 +147,7 @@ export default async function ChatPage() {
                 {c.lastMessage && (
                   <div className="ml-3 shrink-0 text-[11px] text-ink-faint">{new Date(c.lastMessage.sentAt).toLocaleString('sr-RS')}</div>
                 )}
-              </Link>
+              </TabLink>
             );
           })}
         </div>

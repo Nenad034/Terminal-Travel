@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface EmailThread {
   id: string;
@@ -116,9 +117,10 @@ export default async function EmailInboxPage({
         <div className="overflow-hidden rounded-lg border border-border">
           {filtered.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema niti.</p>}
           {filtered.map((t) => (
-            <Link
+            <TabLink
               key={t.id}
               href={`/email/${t.id}`}
+              label={t.subject}
               className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
             >
               <div>
@@ -131,7 +133,7 @@ export default async function EmailInboxPage({
                 </div>
               </div>
               <StatusBadge status={t.status} />
-            </Link>
+            </TabLink>
           ))}
         </div>
       )}

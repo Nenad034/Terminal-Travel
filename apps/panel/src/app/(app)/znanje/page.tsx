@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface ArticleRow {
   id: string;
@@ -97,9 +98,10 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
         <div className="overflow-hidden rounded-lg border border-border">
           {filtered.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema članaka za izabrani filter.</p>}
           {filtered.map((a) => (
-            <Link
+            <TabLink
               key={a.id}
               href={`/znanje/${a.id}`}
+              label={a.translation?.title ?? `(bez prevoda) ${a.subjectType}`}
               className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
             >
               <div>
@@ -118,7 +120,7 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
                 {a.nextRefreshDueAt && <RefreshBadge dueAt={a.nextRefreshDueAt} />}
                 <StatusBadge status={a.status} />
               </div>
-            </Link>
+            </TabLink>
           ))}
         </div>
       )}

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
+import TabLink from '@/components/TabLink';
 
 interface ClientContract {
   id: string;
@@ -59,9 +60,10 @@ export default async function ClientContractsPage({ searchParams }: { searchPara
         <div className="overflow-hidden rounded-lg border border-border">
           {contracts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>}
           {contracts.map((c) => (
-            <Link
+            <TabLink
               key={c.id}
               href={`/ugovori-klijenti/${c.id}`}
+              label={`${c.contractType} — rezervacija ${c.bookingId.slice(0, 8)}…`}
               className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
             >
               <div>
@@ -74,7 +76,7 @@ export default async function ClientContractsPage({ searchParams }: { searchPara
                 </div>
               </div>
               <StatusBadge status={c.status} />
-            </Link>
+            </TabLink>
           ))}
         </div>
       )}

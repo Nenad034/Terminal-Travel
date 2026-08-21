@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
+import TabLink from '@/components/TabLink';
 
 interface DaySummary {
   date: string;
@@ -137,9 +138,14 @@ function DaySection({ title, entries }: { title: string; entries: DayDetailEntry
       <h3 className="mb-1 text-xs font-medium text-ink-faint">{title}</h3>
       <div className="flex flex-col gap-1">
         {entries.map((e) => (
-          <Link key={e.bookingItemId} href={`/rezervacije/${e.bookingId}`} className="rounded bg-panel2 px-2 py-1 text-xs text-ink hover:border hover:border-accent">
+          <TabLink
+            key={e.bookingItemId}
+            href={`/rezervacije/${e.bookingId}`}
+            label={e.bookingNumber}
+            className="rounded bg-panel2 px-2 py-1 text-xs text-ink hover:border hover:border-accent"
+          >
             {e.bookingNumber} — {e.guests.join(', ') || 'bez imena gosta'}
-          </Link>
+          </TabLink>
         ))}
       </div>
     </div>

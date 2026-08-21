@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import HelpTabs from './HelpTabs';
 
 interface HelpArticleRow {
@@ -152,9 +153,10 @@ function ArticleGroup({
       <div className="overflow-hidden rounded-lg border border-border">
         {articles.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">{emptyText}</p>}
         {articles.map((a) => (
-          <Link
+          <TabLink
             key={a.id}
             href={`/pomoc/${a.id}`}
+            label={a.translation?.title ?? a.slug}
             className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
           >
             <div>
@@ -168,7 +170,7 @@ function ArticleGroup({
               </div>
             </div>
             <StatusBadge status={a.status} />
-          </Link>
+          </TabLink>
         ))}
       </div>
     </div>

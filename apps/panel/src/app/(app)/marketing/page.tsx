@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface ContentPiece {
   id: string;
@@ -99,9 +100,10 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
           {content.map((c) => {
             const title = c.translations.find((t) => t.languageCode === 'sr')?.title ?? c.translations[0]?.title ?? c.slug ?? '(bez naslova)';
             return (
-              <Link
+              <TabLink
                 key={c.id}
                 href={`/marketing/${c.id}`}
+                label={title}
                 className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
               >
                 <div>
@@ -116,7 +118,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
                   </div>
                 </div>
                 <StatusBadge status={c.status} />
-              </Link>
+              </TabLink>
             );
           })}
         </div>

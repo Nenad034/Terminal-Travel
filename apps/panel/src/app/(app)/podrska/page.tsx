@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 
 interface Ticket {
   id: string;
@@ -93,9 +94,10 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
           {filtered.map((t) => {
             const zzpOverdue = t.category === 'REKLAMACIJA' && t.zzpResponseDeadline && new Date(t.zzpResponseDeadline) < new Date() && t.status !== 'RESOLVED' && t.status !== 'CLOSED';
             return (
-              <Link
+              <TabLink
                 key={t.id}
                 href={`/podrska/${t.id}`}
+                label={`${t.ticketNumber} — ${t.subject}`}
                 className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
               >
                 <div>
@@ -113,7 +115,7 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
                   <PriorityBadge priority={t.priority} />
                   <StatusBadge status={t.status} />
                 </div>
-              </Link>
+              </TabLink>
             );
           })}
         </div>

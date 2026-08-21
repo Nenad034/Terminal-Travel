@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import { ApproveButton, PayButton } from './SupplierObligationActions';
 
 interface Mismatch {
@@ -73,16 +73,17 @@ export default async function FinansijePage() {
           ) : (
             <div className="overflow-hidden rounded-lg border border-border">
               {mismatches.map((m) => (
-                <Link
+                <TabLink
                   key={m.bookingId}
                   href={`/rezervacije/${m.bookingId}`}
+                  label={`rezervacija ${m.bookingId.slice(0, 8)}…`}
                   className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                 >
                   <span className="font-medium text-ink">rezervacija {m.bookingId.slice(0, 8)}…</span>
                   <span className="rounded bg-warn-bg px-2 py-0.5 text-[11px] font-medium text-warn">
                     {m.reason === 'MISSING_FISCAL_DOCUMENT' ? 'nedostaje fiskalni dokument' : 'delimično plaćeno, predugo'}
                   </span>
-                </Link>
+                </TabLink>
               ))}
             </div>
           )}
@@ -134,16 +135,17 @@ export default async function FinansijePage() {
               {schedules
                 .filter((s) => s.depositStatus === 'OVERDUE' || s.balanceStatus === 'OVERDUE')
                 .map((s) => (
-                  <Link
+                  <TabLink
                     key={s.bookingId}
                     href={`/rezervacije/${s.bookingId}`}
+                    label={`rezervacija ${s.bookingId.slice(0, 8)}…`}
                     className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                   >
                     <span className="font-medium text-ink">rezervacija {s.bookingId.slice(0, 8)}…</span>
                     <span className="rounded bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger">
                       {s.depositStatus === 'OVERDUE' ? 'akontacija probijena' : 'balans probijen'}
                     </span>
-                  </Link>
+                  </TabLink>
                 ))}
               {schedules.every((s) => s.depositStatus !== 'OVERDUE' && s.balanceStatus !== 'OVERDUE') && (
                 <p className="p-4 text-center text-xs text-ink-faint">Nema probijenih rokova naplate.</p>
