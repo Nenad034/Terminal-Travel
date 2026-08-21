@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
-import TabBar from './TabBar';
 import { useTabs } from './TabsContext';
 import NotificationBell from './NotificationBell';
 
@@ -86,21 +85,16 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      {/* Naziv na 95% visine trake (43px×0.95≈41px), kurziv, `font-tech` (JetBrains Mono,
-          `layout.tsx`) — na zahtev vlasnika, 21.8.2026: "naziv TERMINAL povećajte na 95%
-          visine trake, italik i da bude neki font koji aludira na IT tehnologiju". */}
-      <span className="mr-1 flex-shrink-0 font-tech text-[41px] italic leading-none tracking-tight text-accent">
-        TERMINAL
+      {/* Naziv smanjen za 20% (41px→33px) i prepisan kao "TT  Terminal Travel" — inicijali kao
+          istaknuta oznaka + pun naziv kao manji, tiši dodatak (na zahtev vlasnika, 21.8.2026).
+          `font-tech` (JetBrains Mono, `layout.tsx`) ostaje. Traka tabova preseljena na početak
+          centralnog panela (isti zahtev, "prvi tab postavite na pocetku centralnog panela") —
+          vidi `Shell.tsx`, TopBar više ne nosi TabBar. */}
+      <span className="mr-1 flex flex-shrink-0 items-baseline gap-1.5 font-tech italic">
+        <span className="text-[33px] leading-none tracking-tight text-accent">TT</span>
+        <span className="text-xs leading-none tracking-wide text-ink-faint">Terminal Travel</span>
       </span>
-      {/* Traka tabova preseljena ovde (21.8.2026, na zahtev vlasnika: "Tabove stavite i gornju
-          traku izmedju ikona i pretrage i neka budu sirine trake") — ranije prazan `flex-1`
-          razmak između grupnih ikonica i dugmeta za pretragu, sad ga popunjava `TabBar`
-          (poseban red ispod je ukinut, vidi Shell.tsx). `min-w-0` je nužan da `overflow-x-auto`
-          unutar `TabBar` stvarno radi kao fleksibilna stavka (bez njega flex stavka nikad ne
-          skuplja ispod sadržaja, scroll se ne bi pojavio kad ima puno tabova). */}
-      <div className="flex h-full min-w-0 flex-1">
-        <TabBar />
-      </div>
+      <div className="flex-1" />
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
         className="flex items-center gap-2 rounded border border-border bg-panel px-2 py-1 font-mono text-ink-faint hover:border-accent"
