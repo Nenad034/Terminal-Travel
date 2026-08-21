@@ -133,7 +133,9 @@ export default function Shell({
                     za unos (unutrašnjost panela), što nije bilo traženo. Okvir sad crta sam
                     `AiChatBox.tsx`, samo oko reda za unos + reda brzih prečica (donja dva reda),
                     ne oko istorije razgovora iznad njih — vidi tamo. */}
-                <div className="mx-auto my-2 w-[72%] flex-shrink-0 bg-panel shadow-sm">
+                {/* Suženo za 30% (21.8.2026, na zahtev vlasnika: "sada suzite ceo chat za
+                    30%") — bilo `w-[72%]`, 72%×0.7≈50%. */}
+                <div className="mx-auto my-2 w-[50%] flex-shrink-0 bg-panel shadow-sm">
                   <AiChatBox />
                 </div>
               </div>

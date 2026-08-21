@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M17), poglavlje 5 (referentna arhitektura) i poglavlje 8 (Faza 0/1 — panel se pretpostavlja gotovim od tada)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.59 — Chat blok sužen za 30% (21.8.2026, na zahtev vlasnika: "sada suzite ceo chat za 30%"). `Shell.tsx` omotač oko `AiChatBox` — bilo `w-[72%]`, sad `w-[50%]` (72%×0.7≈50%). **Provera:** `tsc --noEmit` čist; uživo kroz pravi login — `/` vraća HTTP 200; HTML potvrđuje `w-[50%]`. Vizuelni izgled i dalje nije potvrđen u pravom browser-u.
+
 **Verzija:** 1.58 — Tag-pilule minimalno zaobljene (21.8.2026, na zahtev vlasnika: "tagovi u donjem delu - treba da imaju manje zaobljen tag - minimalno zaobljen"). `AiChatBox.tsx` brze prečice — `rounded-full` (potpuno ovalan/pilula oblik) zamenjen sa `rounded` (standardni minimalan radijus, isti kao ostatak interfejsa, npr. dugmad u trakama). **Provera:** `tsc --noEmit` čist; uživo kroz pravi login — `/` vraća HTTP 200; HTML potvrđuje `rounded` klasu (bez `-full`). Vizuelni izgled i dalje nije potvrđen u pravom browser-u.
 
 **Verzija:** 1.57 — Okvir donjeg reda sveden na samo gornju liniju (21.8.2026, četvrti zahtev o chat okviru istog dana: "ostavite samo gornju liniju donjeg dela ostale linuije uklonite"). v1.56 pun okvir (`border`, sve četiri strane) oko reda brzih prečica zamenjen sa `border-t` (samo linija koja razdvaja red prečica od reda za unos iznad). **Provera:** `tsc --noEmit` čist; uživo kroz pravi login — `/` vraća HTTP 200; HTML potvrđuje `border-t border-ink-faint` (bez `border` na sve četiri strane). Vizuelni izgled i dalje nije potvrđen u pravom browser-u.
