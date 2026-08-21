@@ -163,8 +163,18 @@ export default function AiChatBox() {
           nevidljiv na belu/skoro-belu pozadinu u svetlom modu. Zamenjeno postojećim
           `ink.faint` tokenom (već prolazi 4.5:1 tekst-kontrast, dakle daleko iznad 3:1 praga
           za granice — §2a) — u svetlom modu tamniji/vidljiviji, a u tamnom modu SVETLIJI od
-          `--border` (isti smer koji je vlasnik tražio), bez novog CSS tokena. */}
-      <div className="flex flex-shrink-0 items-center gap-2 border-t border-ink-faint px-2 py-2">
+          `--border` (isti smer koji je vlasnik tražio), bez novog CSS tokena.
+
+          Okvir OKO ovog dela (21.8.2026, drugi zahtev istog dana, uz snimak ekrana: "ovako
+          treba da bude oivicen chat... Linija ne treba da ide u unutrasnjost panela") — ranije
+          probano na `Shell.tsx` omotaču (`border-x`) je razvlačilo liniju kroz CEO
+          `AiChatBox`, uključujući istoriju razgovora iznad (unutrašnjost panela) — POVUČENO.
+          Umesto toga, pun okvir (`border border-ink-faint`) ide OVDE, samo oko reda za unos +
+          reda brzih prečica (donja dva reda, tačno kao na snimku), ne oko istorije razgovora
+          iznad njih. Unutrašnja linija između ova dva reda ostaje `border-t` (razdvaja unos od
+          prečica), ne dupli spoljni okvir. */}
+      <div className="flex-shrink-0 border border-ink-faint">
+        <div className="flex items-center gap-2 px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
             onClick={() => setPlusOpen((v) => !v)}
@@ -215,19 +225,20 @@ export default function AiChatBox() {
         >
           <Icon name="send" />
         </button>
-      </div>
+        </div>
 
-      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-ink-faint px-2 py-1.5">
-        {quickLinks.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => openTab(item.href, item.label)}
-            className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
-          >
-            <Icon name={item.icon} />
-            {item.label}
-          </button>
-        ))}
+        <div className="flex flex-wrap gap-1.5 border-t border-ink-faint px-2 py-1.5">
+          {quickLinks.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => openTab(item.href, item.label)}
+              className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            >
+              <Icon name={item.icon} />
+              {item.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

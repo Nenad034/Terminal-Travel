@@ -129,13 +129,13 @@ export default function Shell({
               <div className="flex flex-1 flex-col overflow-hidden">
                 <main className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
-                    koji modul je aktivan. Bočne linije dodate (21.8.2026, na zahtev vlasnika:
-                    "nema bocnih linija chata", posle v1.47 koji je pojačao samo `border-t`
-                    linije unutar `AiChatBox.tsx`) — isti `border-ink-faint` ton kao te linije,
-                    da ceo chat blok bude vidljivo uokviren sa sve četiri strane (gornje dve
-                    linije već postoje unutar `AiChatBox.tsx`, donja ivica nije posebno
-                    naglašena jer se blok završava na dnu panela). */}
-                <div className="mx-auto my-2 w-[72%] flex-shrink-0 border-x border-ink-faint bg-panel shadow-sm">
+                    koji modul je aktivan. POVUČENO (21.8.2026, na zahtev vlasnika uz snimak:
+                    "Linija ne treba da ide u unutrasnjost panela") — `border-x` ovde je
+                    razvlačio liniju kroz CEO blok, uključujući istoriju razgovora iznad polja
+                    za unos (unutrašnjost panela), što nije bilo traženo. Okvir sad crta sam
+                    `AiChatBox.tsx`, samo oko reda za unos + reda brzih prečica (donja dva reda),
+                    ne oko istorije razgovora iznad njih — vidi tamo. */}
+                <div className="mx-auto my-2 w-[72%] flex-shrink-0 bg-panel shadow-sm">
                   <AiChatBox />
                 </div>
               </div>
