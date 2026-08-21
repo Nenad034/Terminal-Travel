@@ -57,7 +57,7 @@ export default async function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="p-6">
       <div className="mb-6">
         <h1 className="font-mono text-lg">
           <span className="text-accent">$</span> dobrodošli, {me.fullName}

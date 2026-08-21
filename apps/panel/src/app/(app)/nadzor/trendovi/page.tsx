@@ -32,7 +32,7 @@ export default async function NadzorTrendoviPage() {
   const sorted = [...suggestions].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nadzor — trendovi" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">

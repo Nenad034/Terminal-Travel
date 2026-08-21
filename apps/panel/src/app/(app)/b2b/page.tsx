@@ -53,7 +53,7 @@ export default async function B2bPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="B2B partneri" />
       <div className="mb-4 flex items-center justify-between">
         <div>

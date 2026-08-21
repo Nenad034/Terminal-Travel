@@ -5,7 +5,7 @@ import NewContentForm from './NewContentForm';
 // M12 spec §7 napomena u DTO-u). AI nacrti nastaju automatski kroz M2 product.published (§3).
 export default function NoviSadrzajPage() {
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nov sadržaj" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> marketing/sadrzaj/nov

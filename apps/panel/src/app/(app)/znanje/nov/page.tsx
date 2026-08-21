@@ -9,7 +9,7 @@ export default async function NoviClanakPage() {
   if (!hasPermission(me, 'M23', 'article', 'EDIT')) redirect('/znanje');
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nov članak" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> znanje/clanci/nov

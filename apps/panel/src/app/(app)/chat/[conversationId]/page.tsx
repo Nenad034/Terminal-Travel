@@ -64,7 +64,7 @@ export default async function ConversationPage({ params }: { params: { conversat
   const backHref = conversation.type === 'EXTERNAL_SUPPLIER' ? '/chat/dobavljaci' : '/chat';
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={title} />
       <Link href={backHref} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na listu

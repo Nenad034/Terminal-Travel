@@ -88,7 +88,7 @@ export default async function ChatPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Razgovori" />
       <div className="mb-4 flex items-center justify-between">
         <div>

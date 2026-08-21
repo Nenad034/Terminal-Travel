@@ -54,7 +54,7 @@ export default async function ZnanjeDetailPage({ params }: { params: { id: strin
   const canPublish = hasPermission(me, 'M23', 'article', 'PUBLISH');
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={article.translation?.title ?? article.subjectType} />
       <Link href="/znanje" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na listu

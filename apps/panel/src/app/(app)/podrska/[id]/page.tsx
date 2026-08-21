@@ -56,7 +56,7 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
     ticket.status !== 'CLOSED';
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={ticket.ticketNumber} />
       <Link href="/podrska" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na listu

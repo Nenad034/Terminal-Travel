@@ -70,7 +70,7 @@ export default async function GuestProfileDetailPage({ params }: { params: { id:
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label={guest ? guest.fullName : params.id.slice(0, 8)} />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

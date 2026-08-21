@@ -53,7 +53,7 @@ export default async function HelpArticleDetailPage({ params }: { params: { id: 
   const canPublish = article.audience.some((a) => hasPermission(me, 'M21', `article:${AUDIENCE_TO_SEGMENT[a]}`, 'PUBLISH'));
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={article.slug} />
       <Link href="/pomoc" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na listu

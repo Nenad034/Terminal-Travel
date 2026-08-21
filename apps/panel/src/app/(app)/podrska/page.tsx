@@ -41,7 +41,7 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
   );
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Podrška" />
       <div className="mb-4 flex items-center justify-between">
         <div>

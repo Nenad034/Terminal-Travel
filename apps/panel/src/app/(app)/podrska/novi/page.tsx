@@ -5,7 +5,7 @@ import NewTicketForm from './NewTicketForm';
 // vidi actions.ts createTicket.
 export default function NoviTicketPage() {
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Novi tiket" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> podrska/tiketi/novi

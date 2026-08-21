@@ -33,7 +33,7 @@ export default async function NewSubagentPage({ searchParams }: { searchParams: 
   }
 
   return (
-    <div className="mx-auto max-w-lg p-6">
+    <div className="p-6">
       <RegisterTab label="Novi subagent" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> novi_subagent

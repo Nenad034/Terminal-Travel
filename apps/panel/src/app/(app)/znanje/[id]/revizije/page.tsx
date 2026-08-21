@@ -61,7 +61,7 @@ export default async function RevizijePage({ params }: { params: { id: string } 
   const sourceById = new Map(sources.map((s) => [s.id, s]));
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={`Revizije — ${article.translation?.title ?? params.id.slice(0, 8)}`} />
       <Link href={`/znanje/${params.id}`} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na članak

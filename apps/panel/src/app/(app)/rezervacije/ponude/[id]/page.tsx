@@ -28,7 +28,7 @@ export default async function QuoteDetailPage({ params }: { params: { id: string
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label={`Ponuda ${params.id.slice(0, 8)}`} />
       <h1 className="mb-4 font-mono text-lg">
         <span className="text-accent">$</span> ponuda/{params.id.slice(0, 8)}

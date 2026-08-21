@@ -67,7 +67,7 @@ export default async function CommissionRebatesPage({ searchParams }: { searchPa
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Rabati provizije" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">

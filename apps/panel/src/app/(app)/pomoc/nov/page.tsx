@@ -19,7 +19,7 @@ export default async function NoviClanakPage() {
   if (allowedSegments.length === 0) redirect('/pomoc');
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nov članak" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> pomoc/clanci/nov

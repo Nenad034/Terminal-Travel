@@ -109,7 +109,7 @@ export default async function IzvestajiPage({ searchParams }: { searchParams: Se
 
   if (availableTabs.length === 0) {
     return (
-      <div className="mx-auto max-w-5xl p-6">
+      <div className="p-6">
         <RegisterTab label="Izveštaji" />
         <p className="rounded bg-danger-bg p-3 text-sm text-danger">Nemate dozvolu za uvid ni u jedan izveštaj (M13/report:*/VIEW).</p>
       </div>
@@ -159,7 +159,7 @@ export default async function IzvestajiPage({ searchParams }: { searchParams: Se
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="p-6">
       <RegisterTab label="Izveštaji" />
       <div className="mb-4 flex items-center justify-between">
         <div>

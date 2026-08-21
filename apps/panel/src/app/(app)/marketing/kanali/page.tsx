@@ -28,7 +28,7 @@ export default async function KanaliPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Marketing kanali" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> marketing/kanali/

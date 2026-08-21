@@ -39,7 +39,7 @@ export default async function AuditLogPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Audit log" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> tail -f audit.log

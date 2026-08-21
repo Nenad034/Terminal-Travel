@@ -76,7 +76,7 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label={booking?.bookingNumber ?? params.id.slice(0, 8)} />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

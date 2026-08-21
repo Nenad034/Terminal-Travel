@@ -30,7 +30,7 @@ export default async function PostTripSurveysPage({ searchParams }: { searchPara
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-6">
       <RegisterTab label="Ankete posle putovanja" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">

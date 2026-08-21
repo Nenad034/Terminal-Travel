@@ -18,7 +18,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   const name = sr?.name ?? '(bez naziva)';
 
   return (
-    <div className="mx-auto max-w-lg p-6">
+    <div className="p-6">
       <RegisterTab label={name} />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> {name}

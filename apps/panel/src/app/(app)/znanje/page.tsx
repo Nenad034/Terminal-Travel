@@ -45,7 +45,7 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
   });
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Znanje" />
       <div className="mb-2 flex items-center justify-between">
         <div>

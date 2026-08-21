@@ -66,7 +66,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Rec
   const nextMonth = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-6">
       <RegisterTab label="Kalendar rezervacija" />
       <div className="mb-4 flex items-center justify-between">
         <h1 className="font-mono text-lg">

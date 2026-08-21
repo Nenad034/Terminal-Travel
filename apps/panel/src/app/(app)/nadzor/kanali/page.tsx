@@ -30,7 +30,7 @@ export default async function NadzorKanaliPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nadzor — kanali" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">

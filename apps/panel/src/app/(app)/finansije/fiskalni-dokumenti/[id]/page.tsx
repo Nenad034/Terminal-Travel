@@ -58,7 +58,7 @@ export default async function FiscalDocumentDetailPage({ params }: { params: { i
       : [];
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
+    <div className="p-6">
       <RegisterTab label={doc ? doc.documentType : params.id.slice(0, 8)} />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

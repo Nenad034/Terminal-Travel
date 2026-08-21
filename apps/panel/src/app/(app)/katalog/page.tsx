@@ -30,7 +30,7 @@ export default async function KatalogPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="p-6">
       <RegisterTab label="Katalog proizvoda" />
       <div className="mb-4 flex items-center justify-between">
         <div>

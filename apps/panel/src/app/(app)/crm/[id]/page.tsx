@@ -97,7 +97,7 @@ export default async function ClientAccountDetailPage({ params }: { params: { id
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="p-6">
       <RegisterTab label={account ? (account.accountType === 'LEGAL_ENTITY' ? account.companyName ?? '' : account.fullName ?? '') : params.id.slice(0, 8)} />
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

@@ -227,7 +227,9 @@ export default function AiChatBox() {
         </button>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 border-t border-ink-faint px-2 py-1.5">
+        {/* Centrirano (21.8.2026, na zahtev vlasnika: "centrirajte tagove na sredinu donje
+            polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`. */}
+        <div className="flex flex-wrap justify-center gap-1.5 border-t border-ink-faint px-2 py-1.5">
           {quickLinks.map((item) => (
             <button
               key={item.id}

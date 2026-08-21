@@ -107,7 +107,7 @@ export default async function SupplierChatPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Razgovori sa dobavljačima" />
       <Link href="/chat" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na razgovore tima

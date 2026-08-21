@@ -50,7 +50,7 @@ export default async function EmailThreadDetailPage({ params }: { params: { thre
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) notFound();
     return (
-      <div className="mx-auto max-w-4xl p-6">
+      <div className="p-6">
         <RegisterTab label="Email nit" />
         <Link href="/email" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
           <Icon name="arrow-left" /> nazad na inbox
@@ -63,7 +63,7 @@ export default async function EmailThreadDetailPage({ params }: { params: { thre
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label={thread.subject} />
       <Link href="/email" className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na inbox

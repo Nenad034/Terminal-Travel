@@ -59,7 +59,7 @@ export default async function NadzorAiTroskoviPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Nadzor — AI troškovi" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">

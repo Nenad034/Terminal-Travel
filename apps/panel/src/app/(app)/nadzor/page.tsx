@@ -75,7 +75,7 @@ export default async function NadzorPage({ searchParams }: { searchParams: { mod
   const sorted = [...signals].sort((a, b) => new Date(b.detectedAt).getTime() - new Date(a.detectedAt).getTime());
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="p-6">
       <RegisterTab label="Operativni nadzor" />
       <div className="mb-4">
         <h1 className="font-mono text-lg">
