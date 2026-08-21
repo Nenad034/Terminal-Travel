@@ -91,22 +91,25 @@ export default function TopBar({
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
       {/* Naziv — omotač je širok tačno koliko ActivityBar+Sidebar (leftRailWidth), da tabovi
-          posle njega počnu iznad leve ivice centralnog panela (na zahtev vlasnika, 21.8.2026:
-          "tabovi... se pojavljuju od levog pocetka centralnog panela"). `Math.max(..., 140)`
-          čuva minimalnu širinu da se "TT   TERMINAL TRAVEL" ne preklopi sa tabovima kad je
-          Sidebar kolabovan (leftRailWidth pada na 83px, uže od samog naziva). "TT" boldirano
-          i "svetli" (text-shadow sjaj u akcentnoj boji); "TERMINAL TRAVEL" velikim slovima,
-          ISTE visine kao TT (ne više manje/tiše kako je bilo), razmaknuto za 3 slovna mesta
-          (`ml-[3ch]` — CSS `ch` jedinica = širina jednog karaktera trenutnog fonta, tačno
-          "3 prazna slovna mesta" iz zahteva, radi jer je `font-tech` monospace). */}
-      <div className="flex flex-shrink-0 items-baseline gap-0 font-tech italic" style={{ width: Math.max(leftRailWidth, 140) }}>
+          posle njega počnu iznad leve ivice centralnog panela. ISPRAVKA (21.8.2026, peti krug
+          istog dana, na zahtev vlasnika: "tabovi i dalje ne pocinju odakle treba") — prethodni
+          pokušaj je zaboravio da header ima sopstveni `px-2` (8px) i `gap-1` (4px) između svoje
+          dece, pa je omotač oko naziva zauzimao PUNO `leftRailWidth`, gurajući tabove 12px
+          udesno od stvarne ivice centralnog panela. `- 12` ovde poništava tačno tu razliku
+          (8px header padding + 4px gap pre TabBar omotača). `Math.max(..., 140)` i dalje čuva
+          minimalnu širinu da se naziv ne preklopi sa tabovima kad je Sidebar kolabovan
+          (leftRailWidth tad pada ispod širine samog naziva — poravnanje u tom jednom stanju
+          svesno nije piksel-tačno, isti kompromis kao ranije). "TT" boldirano i "svetli"
+          (text-shadow sjaj u akcentnoj boji); "TERMINAL TRAVEL" velikim slovima, smanjeno za
+          20% u odnosu na TT (33px→26px), razmaknuto za 3 slovna mesta (`ml-[3ch]`). */}
+      <div className="flex flex-shrink-0 items-baseline gap-0 font-tech italic" style={{ width: Math.max(leftRailWidth - 12, 140) }}>
         <span
           className="text-[33px] font-bold leading-none tracking-tight text-accent"
           style={{ textShadow: '0 0 6px var(--accent), 0 0 16px var(--accent)' }}
         >
           TT
         </span>
-        <span className="ml-[3ch] text-[33px] uppercase leading-none tracking-tight text-ink">Terminal Travel</span>
+        <span className="ml-[3ch] text-[26px] uppercase leading-none tracking-tight text-ink">Terminal Travel</span>
       </div>
       {/* Traka tabova VRAĆENA u gornji red (21.8.2026, treći krug istog dana, na zahtev
           vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj (v1.62,
