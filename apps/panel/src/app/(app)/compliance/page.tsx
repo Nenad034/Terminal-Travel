@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import RetryRegistrationButton from './RetryRegistrationButton';
 
 interface TravelGuarantee {
@@ -165,9 +166,9 @@ export default async function CompliancePage({ searchParams }: { searchParams: {
             {registrations.map((r) => (
               <div key={r.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
                 <div>
-                  <Link href={`/rezervacije/${r.bookingId}`} className="font-medium text-ink hover:text-accent">
+                  <TabLink href={`/rezervacije/${r.bookingId}`} label={`rezervacija ${r.bookingId.slice(0, 8)}…`} className="font-medium text-ink hover:text-accent">
                     rezervacija {r.bookingId.slice(0, 8)}…
-                  </Link>
+                  </TabLink>
                   {r.cisRegistrationNumber && <div className="text-xs text-ink-faint">CIS broj: {r.cisRegistrationNumber}</div>}
                   {r.failureReason && <div className="text-xs text-danger">{r.failureReason}</div>}
                 </div>

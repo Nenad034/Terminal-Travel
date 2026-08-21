@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
+import TabLink from '@/components/TabLink';
 
 interface PostTripSurvey {
   id: string;
@@ -61,12 +62,12 @@ export default async function PostTripSurveysPage({ searchParams }: { searchPara
             <div key={s.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
               <div>
                 <div className="font-medium text-ink">
-                  <Link href={`/rezervacije/${s.bookingId}`} className="hover:underline">
+                  <TabLink href={`/rezervacije/${s.bookingId}`} label={`rezervacija ${s.bookingId.slice(0, 8)}…`} className="hover:underline">
                     rezervacija {s.bookingId.slice(0, 8)}…
-                  </Link>{' '}
-                  <Link href={`/crm/${s.clientAccountId}`} className="text-accent hover:underline">
+                  </TabLink>{' '}
+                  <TabLink href={`/crm/${s.clientAccountId}`} label={`nalogodavac ${s.clientAccountId.slice(0, 8)}…`} className="text-accent hover:underline">
                     nalogodavac {s.clientAccountId.slice(0, 8)}…
-                  </Link>
+                  </TabLink>
                 </div>
                 <div className="text-xs text-ink-faint">
                   {s.overallRating != null ? `ocena ${s.overallRating}/5` : 'nije popunjena'}

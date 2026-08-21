@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import RebateActions from '../RebateActions';
 
 interface Subagent {
@@ -99,9 +100,9 @@ export default async function CommissionRebatesPage({ searchParams }: { searchPa
             {rebates.map((r) => (
               <div key={r.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
                 <div>
-                  <Link href={`/b2b/${r.subagentId}`} className="font-medium text-ink hover:text-accent">
+                  <TabLink href={`/b2b/${r.subagentId}`} label={r.accountName} className="font-medium text-ink hover:text-accent">
                     {r.accountName}
-                  </Link>
+                  </TabLink>
                   <div className="text-xs text-ink-faint">
                     {r.calculatedAmount.toLocaleString('sr-RS')} {r.currency} · period {new Date(r.periodStart).toLocaleDateString('sr-RS')} –{' '}
                     {new Date(r.periodEnd).toLocaleDateString('sr-RS')}

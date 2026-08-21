@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
+import TabLink from '@/components/TabLink';
 import { grantSupplierAccess, inviteSupplierContact, revokeSupplierAccess, FormState } from './actions';
 
 const initialGrantState: FormState = { error: null };
@@ -62,9 +62,9 @@ export default function SupplierConversationRow({
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center justify-between">
         <div>
-          <Link href={`/chat/${conversation.id}`} className="flex items-center gap-1.5 text-sm font-medium text-ink hover:text-accent">
+          <TabLink href={`/chat/${conversation.id}`} label={supplierName} className="flex items-center gap-1.5 text-sm font-medium text-ink hover:text-accent">
             <Icon name="globe" /> {supplierName}
-          </Link>
+          </TabLink>
           <p className="mt-0.5 text-xs text-ink-faint">
             {conversation.lastMessage ? (conversation.lastMessage.body ?? '(poruka obrisana)') : 'Nema poruka.'}
             {conversation.lastMessage && ` · ${new Date(conversation.lastMessage.sentAt).toLocaleString('sr-RS')}`}
