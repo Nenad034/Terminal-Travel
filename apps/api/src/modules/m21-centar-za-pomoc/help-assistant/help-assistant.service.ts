@@ -4,7 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
-import { OpenAiEmbeddingService } from '../../m15-ai-orkestracija/openai/openai-embedding.service';
+import { GeminiEmbeddingService } from '../../m15-ai-orkestracija/gemini/gemini-embedding.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { TicketsService } from '../../m14-helpdesk/tickets/tickets.service';
 import { HelpAbuseDetectorService } from '../abuse-detection/help-abuse-detector.service';
@@ -45,7 +45,7 @@ export class HelpAssistantService {
     private readonly auditLog: AuditLogService,
     private readonly permissions: PermissionsService,
     private readonly anthropic: AnthropicClientService,
-    private readonly openAiEmbedding: OpenAiEmbeddingService,
+    private readonly geminiEmbedding: GeminiEmbeddingService,
     private readonly invocationLog: AgentInvocationLogService,
     private readonly abuseDetector: HelpAbuseDetectorService,
     private readonly tickets: TicketsService,
@@ -161,7 +161,7 @@ export class HelpAssistantService {
   private async selectCandidatesByEmbedding(question: string, candidates: CandidateArticle[]): Promise<CandidateArticle[]> {
     try {
       await this.ensureEmbeddings(candidates);
-      const [questionVector] = await this.openAiEmbedding.embed([question]);
+      const [questionVector] = await this.geminiEmbedding.embed([question]);
       const ids = candidates.map((c) => c.translation.id);
       const ranked = await this.prisma.$queryRaw<{ id: string; distance: number }[]>(
         Prisma.sql`SELECT id, embedding <=> ${toVectorLiteral(questionVector)}::vector AS distance
@@ -193,7 +193,7 @@ export class HelpAssistantService {
     if (missing.length === 0) return;
     const missingIds = new Set(missing.map((m) => m.id));
     const toEmbed = candidates.filter((c) => missingIds.has(c.translation.id));
-    const vectors = await this.openAiEmbedding.embed(toEmbed.map((c) => embedText(c.translation)));
+    const vectors = await this.geminiEmbedding.embed(toEmbed.map((c) => embedText(c.translation)));
     await Promise.all(
       toEmbed.map((c, i) =>
         this.prisma.$executeRaw(Prisma.sql`UPDATE help_article_translations SET embedding = ${toVectorLiteral(vectors[i])}::vector WHERE id = ${c.translation.id}`),
@@ -228,7 +228,7 @@ export class HelpAssistantService {
       return { answerText: null, matchedArticleIds: [], confidence: 'NONE', usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
     }
 
-    const relevant = this.openAiEmbedding.isConfigured()
+    const relevant = this.geminiEmbedding.isConfigured()
       ? await this.selectCandidatesByEmbedding(question, candidates)
       : this.selectCandidatesByKeywords(question, candidates);
 

@@ -18,7 +18,7 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
     const auditLog = { write: jest.fn() };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
     const anthropic = { isConfigured: jest.fn(), getClient: jest.fn() };
-    const openAiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
+    const geminiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
     const invocationLog = { record: jest.fn() };
     const abuseDetector = { checkAfterQuestion: jest.fn() };
     const tickets = { create: jest.fn(), createMessage: jest.fn() };
@@ -27,12 +27,12 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
       auditLog as any,
       permissions as any,
       anthropic as any,
-      openAiEmbedding as any,
+      geminiEmbedding as any,
       invocationLog as any,
       abuseDetector as any,
       tickets as any,
     );
-    return { service, prisma, auditLog, permissions, anthropic, openAiEmbedding, invocationLog, abuseDetector, tickets };
+    return { service, prisma, auditLog, permissions, anthropic, geminiEmbedding, invocationLog, abuseDetector, tickets };
   }
 
   it('INDIVIDUAL GUEST nalog dobija PUBLIC_GUEST publiku (avgust 2026 — više nije van obima)', async () => {
@@ -158,9 +158,9 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
   });
 
   it('kad je OpenAI podešen, koristi embedding rangiranje i isCriticalExample zadržava prioritet', async () => {
-    const { service, prisma, openAiEmbedding } = makeService();
-    openAiEmbedding.isConfigured.mockReturnValue(true);
-    openAiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
+    const { service, prisma, geminiEmbedding } = makeService();
+    geminiEmbedding.isConfigured.mockReturnValue(true);
+    geminiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
     prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF', linkedProfileId: null });
     prisma.helpArticle.findMany.mockResolvedValue([
       { id: 'a1', isCriticalExample: false, translations: [{ id: 't1', languageCode: 'sr', title: 'Nesrodno', body: 'nesrodan tekst' }] },
@@ -175,7 +175,7 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
 
     const result = await service.ask({ question: 'Pitanje' } as any, 'staff-1');
 
-    expect(openAiEmbedding.embed).toHaveBeenCalled();
+    expect(geminiEmbedding.embed).toHaveBeenCalled();
     // isCriticalExample (a2) uključen iako ga rangiranje nije vratilo.
     expect(result.matchedArticleIds).toEqual(expect.arrayContaining(['a2']));
   });

@@ -12,10 +12,10 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
     };
     const auditLog = { write: jest.fn() };
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
-    const openAiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
+    const geminiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
     const invocationLog = { record: jest.fn() };
-    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, anthropic as any, openAiEmbedding as any, invocationLog as any);
-    return { service, prisma, auditLog, openAiEmbedding };
+    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, anthropic as any, geminiEmbedding as any, invocationLog as any);
+    return { service, prisma, auditLog, geminiEmbedding };
   }
 
   it('vraća confidence=NONE i offerResearch=true kad nema objavljenih članaka', async () => {
@@ -54,9 +54,9 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
   });
 
   it('kad je OpenAI podešen, koristi embedding rangiranje umesto ključnih reči', async () => {
-    const { service, prisma, openAiEmbedding } = makeService();
-    openAiEmbedding.isConfigured.mockReturnValue(true);
-    openAiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
+    const { service, prisma, geminiEmbedding } = makeService();
+    geminiEmbedding.isConfigured.mockReturnValue(true);
+    geminiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
     prisma.article.findMany.mockResolvedValue([
       { id: 'a1', translations: [{ id: 't1', languageCode: 'sr', title: 'Nesrodan naslov', body: 'nesrodan sadržaj' }] },
     ]);
@@ -70,7 +70,7 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
 
     const result = await service.ask({ question: 'Pitanje bez preklapanja ključnih reči' }, 'staff-1');
 
-    expect(openAiEmbedding.embed).toHaveBeenCalled();
+    expect(geminiEmbedding.embed).toHaveBeenCalled();
     expect((prisma as any).$executeRaw).toHaveBeenCalled(); // upisan embedding za t1
     expect(result.matchedArticleIds).toContain('a1');
   });
