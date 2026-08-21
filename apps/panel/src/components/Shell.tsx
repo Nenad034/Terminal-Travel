@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import ActivityBar from './ActivityBar';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
@@ -81,14 +82,9 @@ export default function Shell({
             namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-          <TopBar
-            groups={groups}
-            activeGroupId={activeGroup?.id ?? ''}
-            onSelectGroup={setActiveGroupId}
-            rightPanelOpen={rightPanelOpen}
-            onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
-          />
+          <TopBar rightPanelOpen={rightPanelOpen} onToggleRightPanel={() => setRightPanelOpen((v) => !v)} />
           <div className="flex flex-1 overflow-hidden">
+            <ActivityBar groups={groups} activeGroupId={activeGroup?.id ?? ''} onSelectGroup={setActiveGroupId} />
             <ResizablePane
               storageKey="tt-panel-sidebar-width"
               defaultWidth={224}

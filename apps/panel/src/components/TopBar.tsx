@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
@@ -8,7 +7,6 @@ import ThemeToggle from './ThemeToggle';
 import TabBar from './TabBar';
 import { useTabs } from './TabsContext';
 import NotificationBell from './NotificationBell';
-import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
 
 interface AgentInboxSource {
   moduleCode: string;
@@ -68,20 +66,13 @@ function InboxButton() {
   );
 }
 
-// docs/analize/29-DIZAJN-SISTEM-UI.md §5c — gornja traka nosi grupe modula kao ikonice
-// (9 umesto 17 pojedinačnih sekcija). Administracija namerno na suprotnom kraju trake od
-// radnih grupa (isti princip kao VS Code zupčanik za podešavanja) — vidljivo kroz
-// `ml-auto` na toj jednoj ikonici, ne poseban niz.
+// docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice preseljene u ActivityBar.tsx
+// (vertikalna traka, 21.8.2026) — gornja traka sad nosi samo naziv, tabove, pretragu i
+// desni klaster dugmadi.
 export default function TopBar({
-  groups,
-  activeGroupId,
-  onSelectGroup,
   rightPanelOpen,
   onToggleRightPanel,
 }: {
-  groups: NavGroup[];
-  activeGroupId: string;
-  onSelectGroup: (id: string) => void;
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
 }) {
@@ -95,29 +86,12 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      <span className="mr-1 font-mono font-bold tracking-wide text-accent">TERMINAL</span>
-      {groups.map((group, idx) => {
-        const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
-        const active = group.id === activeGroupId;
-        // Administracija je poslednja stavka u NAV_GROUPS namerno (M17 spec §4a) — ml-auto
-        // je razmak, ne preslagivanje redosleda.
-        const isLast = idx === groups.length - 1 && groups.length > 1;
-        const className = `flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
-          active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
-        }`;
-        if (single) {
-          return (
-            <Link key={group.id} href={single.href} title={group.label} className={className}>
-              <Icon name={group.icon} />
-            </Link>
-          );
-        }
-        return (
-          <button key={group.id} title={group.label} onClick={() => onSelectGroup(group.id)} className={className}>
-            <Icon name={group.icon} />
-          </button>
-        );
-      })}
+      {/* Naziv na 95% visine trake (43px×0.95≈41px), kurziv, `font-tech` (JetBrains Mono,
+          `layout.tsx`) — na zahtev vlasnika, 21.8.2026: "naziv TERMINAL povećajte na 95%
+          visine trake, italik i da bude neki font koji aludira na IT tehnologiju". */}
+      <span className="mr-1 flex-shrink-0 font-tech text-[41px] italic leading-none tracking-tight text-accent">
+        TERMINAL
+      </span>
       {/* Traka tabova preseljena ovde (21.8.2026, na zahtev vlasnika: "Tabove stavite i gornju
           traku izmedju ikona i pretrage i neka budu sirine trake") — ranije prazan `flex-1`
           razmak između grupnih ikonica i dugmeta za pretragu, sad ga popunjava `TabBar`

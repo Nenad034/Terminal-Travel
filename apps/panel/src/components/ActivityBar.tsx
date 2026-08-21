@@ -1,0 +1,46 @@
+'use client';
+
+import Link from 'next/link';
+import Icon from './Icon';
+import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
+
+// docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice premeštene iz gornje (horizontalne)
+// trake u levu vertikalnu traku (21.8.2026, na zahtev vlasnika: "premestite ikone u vertikalnu
+// levu traku") — pravi VS Code Activity Bar obrazac (uska vertikalna traka uz levu ivicu,
+// odvojena od Sidebar sadržaja, ne deo gornje trake). Ista logika/podaci kao pre (TopBar.tsx je
+// nosio ovo do v1.60), samo preseljena i vertikalno složena. Administracija ostaje poslednja
+// (sad `mt-auto` — vertikalni ekvivalent ranijeg `ml-auto`).
+export default function ActivityBar({
+  groups,
+  activeGroupId,
+  onSelectGroup,
+}: {
+  groups: NavGroup[];
+  activeGroupId: string;
+  onSelectGroup: (id: string) => void;
+}) {
+  return (
+    <nav className="flex w-[43px] flex-shrink-0 flex-col items-center gap-1 bg-panel-2 py-1">
+      {groups.map((group, idx) => {
+        const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
+        const active = group.id === activeGroupId;
+        const isLast = idx === groups.length - 1 && groups.length > 1;
+        const className = `flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${isLast ? 'mt-auto' : ''} ${
+          active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+        }`;
+        if (single) {
+          return (
+            <Link key={group.id} href={single.href} title={group.label} className={className}>
+              <Icon name={group.icon} />
+            </Link>
+          );
+        }
+        return (
+          <button key={group.id} title={group.label} onClick={() => onSelectGroup(group.id)} className={className}>
+            <Icon name={group.icon} />
+          </button>
+        );
+      })}
+    </nav>
+  );
+}

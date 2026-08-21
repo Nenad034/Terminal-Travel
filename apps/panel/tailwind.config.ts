@@ -42,6 +42,9 @@ const config: Config = {
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['ui-monospace', '"Cascadia Code"', '"Cascadia Mono"', '"SFMono-Regular"', 'Menlo', 'Consolas', 'monospace'],
+        // "TERMINAL" naziv (TopBar.tsx) — JetBrains Mono preko next/font/google (layout.tsx,
+        // --font-tech CSS varijabla), na zahtev vlasnika (21.8.2026).
+        tech: ['var(--font-tech)', 'ui-monospace', 'monospace'],
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
