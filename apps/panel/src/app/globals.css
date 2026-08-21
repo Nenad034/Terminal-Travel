@@ -12,6 +12,16 @@
    skalirani su posebno, u istoj meri +20%, na mestu gde su definisani (Tailwind arbitrary
    vrednosti u JSX, ne ovde).
 
+   BAG ispravljen (21.8.2026, prijavio vlasnik uživo: "vidim da se uvećao prazan prostor
+   između njih", ne same ikonice) — ovo pravilo NIKAD nije stvarno radilo, ni u prethodnom
+   +30% prolazu (19.8.2026). Uzrok: `@vscode/codicons/dist/codicon.css` postavlja font-size na
+   selektoru `.codicon[class*='codicon-']` (specifičnost 0,2,0), koji je specifičniji od običnog
+   `.codicon` (0,1,0) ovde — pobeđuje bez obzira na redosled u fajlu/cascade layer. Ikonice su
+   se cele sesije renderovale na vendor-ovih 16px; samo su kontejneri oko njih rasli (otud
+   "veći razmak, ista veličina"). Ispravljeno sa `!important` — namerno pragmatično rešenje
+   (override tuđe biblioteke), ne kopiranje vendor selektora (krhko ako vendor promeni
+   selektor u budućoj verziji paketa).
+
    Debljina linije +10% (21.8.2026, na zahtev vlasnika) — Codicon je jednotežinski font (nema
    bold varijantu), pa "deblja linija" nije podesiva kao kod SVG stroke-based setova (npr.
    Lucide/Feather). `text-stroke` je najbliža dostupna aproksimacija (dodaje tanku konturu
@@ -20,7 +30,7 @@
    Codicons drugim, stroke-based setom (nov izbor van poglavlja 6 tehničkog steka — zahteva
    potvrdu vlasnika, CLAUDE.md tvrdo pravilo). */
 .codicon {
-  font-size: 25px;
+  font-size: 25px !important;
   -webkit-text-stroke: 0.35px currentColor;
   text-stroke: 0.35px currentColor;
 }

@@ -42,6 +42,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* dovoljan kontrast teksta ne znači da se sam bedž razlikuje od okoline.
 - *Provera:* bedž koji može stajati nad podlogom svoje boje mora imati ivicu.
 
+**1.5 CSS override tuđe biblioteke tiho ne radi zbog specifičnosti selektora, ne redosleda u fajlu**
+- *Simptom:* izmena veličine/stila ikonica (npr. `.codicon { font-size: ... }` u `globals.css`, posle `@import` codicon paketa) je "primenjena" u kodu i prošla `tsc`, ali se u browseru ništa nije promenilo osim razmaka oko ikonica — otkriveno tek kad je vlasnik uživo prijavio da se "uvećao prazan prostor, ne ikonice" (21.8.2026). Ispostavilo se da ni raniji, sličan pokušaj (19.8.2026) nikad nije stvarno radio — nije primećeno jer je promena bila manja.
+- *Uzrok:* CSS pobednik pravila se određuje po **specifičnosti selektora**, ne po tome koje pravilo je poslednje u fajlu. `@vscode/codicons/dist/codicon.css` postavlja font-size na `.codicon[class*='codicon-']` (specifičnost 0,2,0) — specifičnije od prostog `.codicon` (0,1,0), pa vendor pravilo pobeđuje bez obzira na redosled/`@import` poziciju.
+- *Provera:* override nad tuđom bibliotekom (ne sopstvenim komponentama) se ne smatra potvrđenim dok se stvarno **iskompajlirano** CSS pravilo ne pročita direktno iz isporučenog bundle-a (`/_next/static/css/...`) i potvrdi da pobeđuje — ne samo da je izvorni fajl izmenjen i da `tsc`/build prolazi. Ako selektor vendor biblioteke ima veću specifičnost, ili se koristi `!important`/istom-ili-većom specifičnošću, ili se selektor cilja tačnije.
+
 ---
 
 ## 2. Prava pristupa i identitet (M1, M5, M6)

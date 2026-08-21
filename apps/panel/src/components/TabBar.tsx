@@ -31,7 +31,7 @@ export default function TabBar() {
                 }}
                 className="flex h-[25px] w-[25px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
               >
-                <Icon name="close" className="text-[16px]" />
+                <Icon name="close" className="!text-[16px]" />
               </span>
             )}
           </Link>
@@ -42,7 +42,7 @@ export default function TabBar() {
         title="Nov tab — Početna (docs/analize/29-DIZAJN-SISTEM-UI.md §5a)"
         className="flex h-[37px] w-[37px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
       >
-        <Icon name="add" className="text-[19px]" />
+        <Icon name="add" className="!text-[19px]" />
       </Link>
       {/* Na zahtev vlasnika, 19.8.2026 — vidljivo tek kad ima "previše" otvorenih tabova. */}
       {tabs.length > 3 && (
@@ -51,7 +51,7 @@ export default function TabBar() {
           title="Zatvori sve tabove"
           className="ml-auto flex h-[37px] w-[37px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger"
         >
-          <Icon name="close-all" className="text-[19px]" />
+          <Icon name="close-all" className="!text-[19px]" />
         </button>
       )}
     </div>
