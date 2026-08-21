@@ -97,7 +97,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="flex h-[43px] flex-shrink-0 items-center gap-1 border-b border-frame bg-panel-2 px-2 text-xs">
+    <header className="flex h-[43px] flex-shrink-0 items-center gap-1 rounded-lg border border-frame bg-panel-2 px-2 text-xs">
       <span className="mr-1 font-mono font-bold tracking-wide text-accent">TERMINAL</span>
       {groups.map((group, idx) => {
         const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;

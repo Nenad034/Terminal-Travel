@@ -9,7 +9,7 @@ export default function TabBar() {
   const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
 
   return (
-    <div className="flex h-[43px] flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-frame bg-bg px-1.5">
+    <div className="flex h-[43px] flex-shrink-0 items-end gap-0.5 overflow-x-auto rounded-lg border border-frame bg-panel-2 px-1.5">
       {tabs.map((tab) => {
         const active = tab.path === activePath;
         return (

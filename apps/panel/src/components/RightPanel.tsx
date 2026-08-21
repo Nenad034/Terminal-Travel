@@ -44,7 +44,7 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-panel-2">
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-frame bg-panel-2">
       <div className="flex h-[43px] flex-shrink-0 items-center justify-between border-b border-frame px-2 text-xs font-medium text-ink-faint">
         <span>{items.length > 0 ? `Selekcija (${items.length})` : 'Izdvajanje'}</span>
         <button onClick={onClose} title="Zatvori panel" className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink">

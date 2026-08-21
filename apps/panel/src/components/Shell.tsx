@@ -68,7 +68,14 @@ export default function Shell({
   return (
     <TabsProvider homeLabel="Početna">
       <SelectionProvider onFirstAdd={() => setRightPanelOpen(true)}>
-        <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
+        {/* VS Code obrazac (21.8.2026, na zahtev vlasnika: "svaka traka i svaki panel imaju
+            svoje linije, ne dele je... postoji milimetarski prazan prostor između, ivice su
+            blago zaobljene") — svaka strukturna zona (TopBar/Sidebar/TabBar/sadržaj/AiChatBox/
+            RightPanel/StatusBar) je sad sopstvena `rounded-lg border border-frame` kutija,
+            umesto ranijih deljenih ivica (border-b na jednoj, border-t na susednoj). Razmak
+            između njih je `gap-1.5`/`p-1.5` (isti mali razmak svuda), pozadina `bg-bg` se vidi
+            kroz njega — otud "milimetarski prazan prostor" umesto jedne zajedničke linije. */}
+        <div className="flex h-screen flex-col gap-1.5 overflow-hidden bg-bg p-1.5 text-ink">
           <TopBar
             fullName={fullName}
             roles={roles}
@@ -78,7 +85,7 @@ export default function Shell({
             rightPanelOpen={rightPanelOpen}
             onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
           />
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 gap-1.5 overflow-hidden">
             <ResizablePane
               storageKey="tt-panel-sidebar-width"
               defaultWidth={224}
@@ -96,20 +103,20 @@ export default function Shell({
                 onExpand={() => setCollapsed(false)}
               />
             </ResizablePane>
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
               <TabBar />
               {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
                   sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
                   od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").
                   Svaki deo se centrira nezavisno (mx-auto). */}
-              <div className="flex flex-1 flex-col overflow-hidden">
-                <main className="mx-auto w-[90%] flex-1 overflow-y-auto">{children}</main>
+              <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
+                <main className="mx-auto w-[90%] flex-1 overflow-y-auto rounded-lg border border-frame bg-panel">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
                     koji modul je aktivan. Pun okvir (border sa sve četiri strane + senka), ne
                     samo gornja linija — ispravka 19.8.2026, prethodni border-t se nije video.
                     Boja okvira "navy teget" u svetlom modu (21.8.2026, na zahtev vlasnika) —
                     `border-frame`, vidi globals.css --frame-border. */}
-                <div className="mx-auto my-2 w-[72%] flex-shrink-0 rounded-lg border-2 border-frame bg-panel shadow-sm">
+                <div className="mx-auto w-[72%] flex-shrink-0 rounded-lg border-2 border-frame bg-panel shadow-sm">
                   <AiChatBox />
                 </div>
               </div>

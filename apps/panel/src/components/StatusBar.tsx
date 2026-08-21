@@ -92,7 +92,7 @@ export default function StatusBar({
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
-    <footer className="flex h-[29px] flex-shrink-0 items-center gap-3 border-t border-frame bg-panel-2 px-2 text-[11px] text-ink-faint">
+    <footer className="flex h-[29px] flex-shrink-0 items-center gap-3 rounded-lg border border-frame bg-panel-2 px-2 text-[11px] text-ink-faint">
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>
       </span>

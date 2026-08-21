@@ -96,9 +96,9 @@ export default function ResizablePane({
       onPointerDown={onPointerDown}
       onDoubleClick={resetWidth}
       title="Prevuci za promenu širine, dvoklik za podrazumevanu"
-      className={`w-1 flex-shrink-0 cursor-col-resize hover:border-accent ${
+      className={`w-1.5 flex-shrink-0 cursor-col-resize border-transparent hover:border-accent ${
         handleSide === 'left' ? 'border-l' : 'border-r'
-      } border-frame ${dragging ? 'border-accent' : ''}`}
+      } ${dragging ? 'border-accent' : ''}`}
     />
   );
 
