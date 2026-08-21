@@ -109,12 +109,19 @@ export default function Shell({
                 onExpand={() => setCollapsed(false)}
               />
             </ResizablePane>
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex flex-1 flex-col overflow-hidden bg-panel-2">
               <TabBar />
               {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
                   sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
                   od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").
-                  Svaki deo se centrira nezavisno (mx-auto). */}
+                  Svaki deo se centrira nezavisno (mx-auto). BAG (21.8.2026, prijavio vlasnik uživo
+                  uz snimak ekrana: "Prikaz u centralnom panelu nije na 90%") — `--bg` i `--panel`
+                  su NAMERNO ista boja u oba moda (§ komentar globals.css), pa je margina oko
+                  `w-[90%]` sadržaja bila nevidljiva kad je ovaj omotač nasleđivao `bg-bg` sa
+                  spoljašnjeg wrapper-a — 90% je stvarno bilo primenjeno, samo se nije videlo.
+                  Ispravljeno dodavanjem `bg-panel-2` baš na ovaj omotač: margine oko `main`
+                  sad se vide kao traka drugog tona (ista `panel-2` porodica kao TabBar iznad),
+                  isti princip kao razdvajanje trake/sadržaja svuda drugde u školjci. */}
               <div className="flex flex-1 flex-col overflow-hidden">
                 <main className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
