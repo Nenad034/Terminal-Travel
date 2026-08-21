@@ -85,6 +85,19 @@ Razlika u aktivnoj ivici taba (akcent u tamnom, crna u svetlom) i providno-crno/
 
 Ova tabela je konkretna polazna vrednost ("Horizont v2") — ne menja pravilo ispod da paleta ostaje promenljiva, ne novo zaključavanje.
 
+### 2.0c Semantička "upozorenje" (warn) boja ispravljena (21.8.2026, na zahtev vlasnika)
+
+`--warn`/`--warn-bg` (`globals.css`) nisu izvučeni iz VS Code tema (poglavlje 2.0a) kao ostatak palete — birani su nezavisno kao standardan amber semantički par, uz `--ok`/`--danger`. Vlasnik je, uz snimak ekrana (dashboard kartice sa upozorenjima o rokovima), prijavio da svetla verzija (`#a86a12` na `#f9edd3`) "ne uklapaju se ni u jedan mod" — previše zasićena/"kandi žuta" naspram ostatka hladne palete. Pri proveri je usput otkriven i **stvaran WCAG propust**: tekst na sopstvenoj pill pozadini (`#a86a12` na `#f9edd3`) davao je samo `3.82:1`, ispod 4.5:1 praga iz poglavlja 2a — nije bilo uočeno pri ranijem prolazu jer je tada mereno samo protiv `bg`/`panel` pozadine, ne i protiv `warn-bg` pill pozadine na kojoj se tekst stvarno prikazuje.
+
+Nova vrednost, prigušeniji zlatno-braon ton (bliži ostatku palete), PROVERENA WCAG 2.1 formulom (relativna luminansa) protiv obe stvarne pozadine na kojima se koristi:
+
+| Mod | Bilo (tekst na `warn-bg`) | Sad (tekst na `warn-bg`) | Tekst na `bg`/`panel` |
+| :---- | :---- | :---- | :---- |
+| Svetli | `#a86a12` na `#f9edd3` — **3.82:1 ❌** | `#7a5a12` na `#f3ecd9` — **5.40:1** | `#7a5a12` na `#ffffff` — 6.37:1 |
+| Tamni | `#e0a542` na `#332508` — 6.84:1 (prolazio) | `#e0ac52` na `#33240c` — **7.29:1** | `#e0ac52` na `#263238` — 6.39:1 |
+
+Tamni mod je ranije prolazio kontrast, ali je ipak blago prilagođen (isti pravac, malo svetlije/manje narandžasto) da ostane u istoj porodici tona kao ispravljen svetli mod — jedinstven ton umesto "svetli menjan, tamni slučajno ostao drugačiji". Ovo je deljen token — primenjeno svuda gde se `--warn`/`--warn-bg` koriste u panelu (51 mesto kroz 34 ekrana, ne samo dashboard kartice sa snimka), jedan izvor istine (`globals.css`), nema lokalnih izuzetaka po ekranu.
+
 **Paleta ostaje promenljiva, ne zaključana jednom zauvek** (potvrđeno 17.8.2026, na izričit zahtev vlasnika). Tehnički mehanizam ovo već obezbeđuje bez dodatnog rada — boje žive isključivo kao centralni sloj CSS promenljivih (isti sloj koji poglavlje 2 birač teme i M7 poglavlje 2.0.5 `SubagentBranding` već koriste), nikad utkane direktno u komponente. Promena tona/nijanse "Horizont"/"Zalazak" palete je u svakom trenutku izmena vrednosti tog sloja, ne prepravka UI koda — uz jedini uslov da svaka nova vrednost ponovo prođe proveru iz poglavlja 2a pre nego što se smatra gotovom.
 
 **Tamni i svetli mod — oba se prave, na zahtev vlasnika (avgust 2026).** Tamni ostaje podrazumevani (prvi koji se implementira, prvi koji se testira), ali svetli mod nije opcioni "ako ikad zatreba" — obavezan je od starta.
