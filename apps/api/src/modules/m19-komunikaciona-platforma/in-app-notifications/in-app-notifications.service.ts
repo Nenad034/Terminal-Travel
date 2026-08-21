@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { EventListenerService } from '../../../common/events/event-listener.service';
 import { SYSTEM_ROLES } from '../../m1-core-identitet/roles/system-roles.constants';
+import { ChatGatewayService } from '../chat-gateway/chat-gateway.service';
 
 // M19 spec §5 — "M18 upozorenja... dobijaju channel_type = IN_APP — sistemska poruka se ubacuje
 // u posebnu 'Obaveštenja' konverzaciju svakog relevantnog korisnika". Implementaciona odluka
@@ -22,6 +23,7 @@ export class InAppNotificationsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventListener: EventListenerService,
+    private readonly chatGateway: ChatGatewayService,
   ) {}
 
   onModuleInit(): void {
@@ -54,7 +56,10 @@ export class InAppNotificationsService implements OnModuleInit {
     await Promise.all(
       userRoles.map(async ({ userId }) => {
         const conversationId = await this.ensureNotificationsConversation(userId, systemUser.id);
-        await this.prisma.message.create({ data: { conversationId, senderId: systemUser.id, body: text } });
+        const message = await this.prisma.message.create({ data: { conversationId, senderId: systemUser.id, body: text } });
+        // M17 dizajn dok. §5e (iskačuća obaveštenja) — bez ovoga poruka postoji samo u bazi,
+        // panel je vidi tek kad korisnik ručno otvori "Obaveštenja" razgovor.
+        this.chatGateway.emitToUser(userId, 'message.new', message);
       }),
     );
   }

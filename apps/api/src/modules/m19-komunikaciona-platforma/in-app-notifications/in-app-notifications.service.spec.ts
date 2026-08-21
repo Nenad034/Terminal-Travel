@@ -11,8 +11,9 @@ describe('InAppNotificationsService (M19 spec §5 — M18 CRITICAL → IN_APP)',
       message: { create: jest.fn() },
     };
     const eventListener = { on: jest.fn() };
-    const service = new InAppNotificationsService(prisma as any, eventListener as any);
-    return { service, prisma, eventListener };
+    const chatGateway = { emitToUser: jest.fn() };
+    const service = new InAppNotificationsService(prisma as any, eventListener as any, chatGateway as any);
+    return { service, prisma, eventListener, chatGateway };
   }
 
   it('se pretplaćuje na M18/health-signal.critical pri onModuleInit', () => {
@@ -21,13 +22,14 @@ describe('InAppNotificationsService (M19 spec §5 — M18 CRITICAL → IN_APP)',
     expect(eventListener.on).toHaveBeenCalledWith('M18', 'health-signal.critical', expect.any(Function));
   });
 
-  it('ubacuje sistemsku poruku u "Obaveštenja" DIRECT razgovor svakog Vlasnik/Direktor korisnika', async () => {
-    const { service, prisma, eventListener } = makeService();
+  it('ubacuje sistemsku poruku u "Obaveštenja" DIRECT razgovor svakog Vlasnik/Direktor korisnika i emituje uživo preko WS', async () => {
+    const { service, prisma, eventListener, chatGateway } = makeService();
     prisma.user.findUnique.mockResolvedValue({ id: 'system-user-1', email: InAppNotificationsService.SYSTEM_USER_EMAIL });
     prisma.role.findMany.mockResolvedValue([{ id: 'role-vlasnik' }, { id: 'role-direktor' }]);
     prisma.userRole.findMany.mockResolvedValue([{ userId: 'owner-1' }]);
     prisma.conversation.findMany.mockResolvedValue([]); // nema postojeći "Obaveštenja" razgovor
     prisma.conversation.create.mockResolvedValue({ id: 'conv-notif-1' });
+    prisma.message.create.mockResolvedValue({ id: 'msg-1', conversationId: 'conv-notif-1', senderId: 'system-user-1' });
 
     service.onModuleInit();
     const handler = eventListener.on.mock.calls[0][2];
@@ -50,6 +52,7 @@ describe('InAppNotificationsService (M19 spec §5 — M18 CRITICAL → IN_APP)',
     const bodyArg = prisma.message.create.mock.calls[0][0].data.body;
     expect(bodyArg).toContain('CRITICAL');
     expect(bodyArg).toContain('M4');
+    expect(chatGateway.emitToUser).toHaveBeenCalledWith('owner-1', 'message.new', expect.objectContaining({ id: 'msg-1' }));
   });
 
   it('ponovo koristi postojeći "Obaveštenja" razgovor umesto duplikata', async () => {

@@ -10,6 +10,7 @@ import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
 import AiChatBox from './AiChatBox';
 import RightPanel from './RightPanel';
+import NotificationStack from './NotificationStack';
 import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
@@ -117,6 +118,7 @@ export default function Shell({
           <StatusBar fullName={fullName} roleLabel={roles.join(', ')} moduleCode={moduleCodeForHref(pathname)} />
         </div>
         <CommandPalette items={items} />
+        <NotificationStack />
       </SelectionProvider>
     </TabsProvider>
   );

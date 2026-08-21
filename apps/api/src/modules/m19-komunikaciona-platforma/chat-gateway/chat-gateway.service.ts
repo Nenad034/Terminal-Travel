@@ -140,6 +140,19 @@ export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconn
     this.server.emit('presence.updated', { userId, status: 'ONLINE' });
   }
 
+  // M19 §5 (in-app-notifications.service.ts) — šalje direktno na korisnikove aktivne sokete,
+  // ne preko `server.to(conversationId)`. Razlog: soba se pridružuje SAMO u handleConnection
+  // (memberships u trenutku konekcije) — "Obaveštenja" razgovor za tog korisnika često nastaje
+  // TEK sad (prvi CRITICAL signal ikad za njega), pa bi soba-pristup propustio baš prvu poruku
+  // dok se klijent ne rekonektuje. `to(socketId)` pogađa taj konkretan soket bez obzira na sobe.
+  emitToUser(userId: string, event: string, payload: unknown): void {
+    const socketIds = this.connectionsByUser.get(userId);
+    if (!socketIds) return;
+    for (const socketId of socketIds) {
+      this.server.to(socketId).emit(event, payload);
+    }
+  }
+
   private extractToken(socket: Socket): string | null {
     const authToken = socket.handshake.auth?.token as string | undefined;
     if (authToken) return authToken;
