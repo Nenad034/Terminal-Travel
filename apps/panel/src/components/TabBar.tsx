@@ -16,16 +16,25 @@ export default function TabBar() {
           <Link
             key={tab.path}
             href={tab.path}
-            className={`group flex max-w-[200px] items-center gap-2 rounded-t border-t-2 px-3 py-2 text-xs ${
-              // VS Code obrazac (21.8.2026, na zahtev vlasnika: "obeležiti kao u VS Code da
-              // znamo koji je aktivan") — obojena traka na vrhu AKTIVNOG taba (border-t-2
-              // border-t-accent) + pozadina koja se stapa sa sadržajem ispod (bg-panel), za
-              // razliku od trake tabova (bg-bg). Neaktivni tabovi zadržavaju isti border-t-2
-              // razmak sa providnom bojom (border-t-transparent) da se visina ne pomera kad
-              // se aktivni tab menja.
+            className={`group flex max-w-[200px] items-center gap-2 rounded-t-md border-t-2 px-3 py-2 text-xs transition-colors ${
+              // Tag-oblik kao u VS Code (21.8.2026, na zahtev vlasnika: "tabovi treba da
+              // izgledaju kao tagovi isto kao u VS Code i onaj aktivan da bude blago
+              // osenčen") — bez punog okvira oko taba (prethodni border+border-frame prolaz
+              // je izgledao previše "uokvireno", ne kao plosnati VS Code tab); aktivan tab se
+              // razlikuje SAMO blagom senkom pozadine (bg-panel, u odnosu na bg-panel-2 trake
+              // ispod) + tanka obojena traka na vrhu (border-t-2 border-t-accent), ne debela
+              // ivica sa sve tri strane. Neaktivni tabovi zadržavaju isti border-t-2 razmak sa
+              // providnom bojom da se visina ne pomera kad se aktivni tab menja; blaga senka
+              // na hover (hover:bg-panel) je isti "osenčen" princip primenjen na privremeno
+              // stanje, ne samo na aktivno — NAPOMENA: `bg-panel/60` (opacity modifikator)
+              // je isprobano prvo, ali Tailwind ne ume da izračuna providnost nad CSS
+              // promenljivom bojom (`var(--panel)`, ne `rgb(var(...) / <alpha>)` oblik) —
+              // klasa se tiho NIJE generisala (provereno u iskompajliranom CSS-u), zato
+              // puna neprovidna `bg-panel` boja (ista kao aktivan tab; accent traka na vrhu
+              // i dalje razlikuje stvarno aktivan tab od samo-hoverovanog).
               active
-                ? 'border border-b-0 border-frame border-t-accent bg-panel text-ink'
-                : 'border-t-transparent text-ink-faint hover:text-ink-dim'
+                ? 'border-t-accent bg-panel text-ink'
+                : 'border-t-transparent text-ink-faint hover:bg-panel hover:text-ink-dim'
             }`}
           >
             {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
