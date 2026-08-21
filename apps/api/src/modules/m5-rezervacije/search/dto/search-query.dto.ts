@@ -23,6 +23,7 @@ const PRODUCT_TYPES: ProductType[] = [
   'TRANSPORT',
   'TICKET',
   'EVENT',
+  'CRUISE',
 ];
 
 // M5 spec §11, GET /search. `type` je niz (multi-select, dopuna avgust 2026).

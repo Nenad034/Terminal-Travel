@@ -5,14 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Icon from './Icon';
 
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT'];
+const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'];
 
 // Dizajn dok. §5b tabela — devet ikonica po vrsti turističkog proizvoda, "stablo-grana"
 // unutar "Pretraga i rezervacije". `types` prazan niz = "Individualni paketi" (locked, čeka
 // Itinerary tok — M5 spec §3.0d.5, nije još izgrađen) nema svoj Product.type. "Krstarenja"
-// je locked jer `CRUISE` ne postoji u `ProductType` enumu (schema.prisma) iako ga dizajn dok.
-// pominje kao "dodat 17.8.2026" — nesklad otkriven pri implementaciji, upisan u M5 spec, ne
-// prećutan; dodavanje bi bila šema migracija, van obima ove ikonice-samo izmene.
+// je otključano 21.8.2026 (Prisma migracija `add_cruise_product_type`, vlasnikova potvrda) —
+// ranije locked zbog nesklada šema/spec, sad usklađeno.
 const PRODUCT_ICONS: { label: string; icon: string; types: string[]; locked?: string }[] = [
   { label: 'Smeštaj', icon: 'home', types: ['ACCOMMODATION'] },
   { label: 'Letovi', icon: 'rocket', types: ['FLIGHT'] },
@@ -21,7 +20,7 @@ const PRODUCT_ICONS: { label: string; icon: string; types: string[]; locked?: st
   { label: 'Things to do', icon: 'compass', types: ['EXCURSION', 'EVENT', 'TICKET'] },
   { label: 'Individualni paketi', icon: 'map', types: [], locked: 'Itinerar builder još nije izgrađen (M5 spec §3.0d.5)' },
   { label: 'Grupni paketi', icon: 'gift', types: ['PACKAGE'] },
-  { label: 'Krstarenja', icon: 'globe', types: [], locked: 'CRUISE tip proizvoda još ne postoji u šemi (nesklad sa dizajn dokumentom, upisano u M5 spec)' },
+  { label: 'Krstarenja', icon: 'globe', types: ['CRUISE'] },
   { label: 'Putno osiguranje', icon: 'shield', types: ['INSURANCE'] },
 ];
 

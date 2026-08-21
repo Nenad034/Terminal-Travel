@@ -250,6 +250,7 @@ enum ProductType {
   TRANSPORT
   TICKET
   EVENT
+  CRUISE
 }
 
 enum ProductSourceType {

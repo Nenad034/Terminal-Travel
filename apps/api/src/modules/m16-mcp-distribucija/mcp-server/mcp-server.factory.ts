@@ -15,6 +15,7 @@ const productTypeEnum = z.enum([
   'TRANSPORT',
   'TICKET',
   'EVENT',
+  'CRUISE',
 ]);
 
 const occupancySchema = z.object({ adults: z.number().int().min(0), children: z.number().int().min(0) });
