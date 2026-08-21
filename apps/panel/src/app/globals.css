@@ -4,35 +4,30 @@
 
 @import '@vscode/codicons/dist/codicon.css';
 
-/* Ikonice +30% u svim trakama (19.8.2026), pa dodatnih +20% (21.8.2026, na zahtev vlasnika)
-   — podrazumevana veličina Codicon fonta je 16px, ovo je jedini izvor istine za sve ikonice
-   bez sopstvenog font-size override-a (npr. Sidebar/CommandPalette nemaju override — provereno
-   21.8.2026 pri poslednjoj izmeni). 16px → 21px → 25px (21×1.2, zaokruženo). Kontejneri fiksne
-   veličine oko pojedinih ikonica (TopBar/StatusBar/AiChatBox/Sidebar/RightPanel dugmad)
-   skalirani su posebno, u istoj meri +20%, na mestu gde su definisani (Tailwind arbitrary
-   vrednosti u JSX, ne ovde).
+/* Istorija veličine: 16px (podrazumevano) → 21px (+30%, 19.8.2026) → 25px (+20%, 21.8.2026,
+   BAG — vidi ispod, nikad nije stvarno primenjeno do popravke istog dana) → 21px (-15%,
+   21.8.2026, na zahtev vlasnika: "sada je ovo preveliko, smanjte za 15%"). Jedini izvor
+   istine za sve ikonice bez sopstvenog font-size override-a (Sidebar/CommandPalette nemaju
+   override; `TabBar.tsx` ima tri namerno manja override-a, skalirana istim -15% korakom,
+   vidi tamo). Kontejneri fiksne veličine oko pojedinih ikonica (TopBar/StatusBar/AiChatBox/
+   Sidebar/RightPanel dugmad) NISU umanjeni u ovom prolazu — vlasnik je tražio manje ikonice,
+   ne manje trake; ako se pokaže da kontejneri sad izgledaju prevelikо u odnosu na ikonicu,
+   to je sledeći, odvojen zahtev.
 
-   BAG ispravljen (21.8.2026, prijavio vlasnik uživo: "vidim da se uvećao prazan prostor
-   između njih", ne same ikonice) — ovo pravilo NIKAD nije stvarno radilo, ni u prethodnom
-   +30% prolazu (19.8.2026). Uzrok: `@vscode/codicons/dist/codicon.css` postavlja font-size na
-   selektoru `.codicon[class*='codicon-']` (specifičnost 0,2,0), koji je specifičniji od običnog
-   `.codicon` (0,1,0) ovde — pobeđuje bez obzira na redosled u fajlu/cascade layer. Ikonice su
-   se cele sesije renderovale na vendor-ovih 16px; samo su kontejneri oko njih rasli (otud
-   "veći razmak, ista veličina"). Ispravljeno sa `!important` — namerno pragmatično rešenje
-   (override tuđe biblioteke), ne kopiranje vendor selektora (krhko ako vendor promeni
-   selektor u budućoj verziji paketa).
+   BAG (21.8.2026, prijavio vlasnik uživo: "vidim da se uvećao prazan prostor između njih",
+   ne same ikonice) — obično `.codicon` pravilo ovde nikad nije pobeđivalo vendor-ovo
+   `.codicon[class*='codicon-']` (specifičnost 0,2,0 > 0,1,0) — ispravljeno sa `!important`
+   (namerno pragmatično rešenje, override tuđe biblioteke, ne kopiranje vendor selektora).
 
-   Debljina linije +10% (21.8.2026, na zahtev vlasnika) — Codicon je jednotežinski font (nema
-   bold varijantu), pa "deblja linija" nije podesiva kao kod SVG stroke-based setova (npr.
-   Lucide/Feather). `text-stroke` je najbliža dostupna aproksimacija (dodaje tanku konturu
-   preko postojećeg oblika glifa) — nije egzaktnih +10%, samo vizuelno najbliže bez zamene
-   celog ikonskog seta. Ako rezultat ne zadovoljava, jedina prava alternativa je zameniti
-   Codicons drugim, stroke-based setom (nov izbor van poglavlja 6 tehničkog steka — zahteva
-   potvrdu vlasnika, CLAUDE.md tvrdo pravilo). */
+   Debljina linije: +10% (21.8.2026) pa -15% od TE vrednosti (21.8.2026, na zahtev vlasnika:
+   "stanjite za 15% širinu linija") — 0.35px × 0.85 = 0.2975, zaokruženo na 0.3px. I dalje
+   aproksimacija preko `text-stroke` (Codicon je jednotežinski font, nema pravu promenljivu
+   debljinu linije kao stroke-based setovi tipa Lucide/Feather) — prava alternativa bi bila
+   zamena celog ikonskog seta (nova tehnologija van poglavlja 6, zahteva potvrdu vlasnika). */
 .codicon {
-  font-size: 25px !important;
-  -webkit-text-stroke: 0.35px currentColor;
-  text-stroke: 0.35px currentColor;
+  font-size: 21px !important;
+  -webkit-text-stroke: 0.3px currentColor;
+  text-stroke: 0.3px currentColor;
 }
 
 /* M17 zadatak (avgust 2026) — paleta "Horizont v2" (docs/analize/29-DIZAJN-SISTEM-UI.md §2.0a/§2.0b).
