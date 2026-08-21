@@ -1,10 +1,70 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import { useTabs } from './TabsContext';
 import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
+
+interface AgentInboxSource {
+  moduleCode: string;
+  actionCode: string;
+  label: string;
+  count: number;
+}
+
+// Dizajn dok. §5c / M15 spec poglavlje 6 — "stalno vidljiva ikonica sa brojem na kraju gornje
+// trake", ne stavka menija. Agent Inbox nema sopstvenu rutu — isti agregovan prikaz kao
+// kontrolna tabla (Početna, M17 spec §5, kartica "Agent Inbox — čeka odobrenje") — klik zato
+// otvara Početnu kao nov tab, ne novu stranicu. Nema M15/agent-inbox/VIEW dozvolu → 403 →
+// ikonica se ne prikazuje (isti princip ćutljivog izostavljanja kao StatusBar AI status).
+function InboxButton() {
+  const { openTab } = useTabs();
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const res = await fetch('/api/ai-orchestration/inbox', { cache: 'no-store' });
+        if (cancelled) return;
+        if (!res.ok) {
+          setCount(null);
+          return;
+        }
+        const sources: AgentInboxSource[] = await res.json();
+        setCount(sources.reduce((sum, s) => sum + s.count, 0));
+      } catch {
+        if (!cancelled) setCount(null);
+      }
+    }
+    poll();
+    const t = setInterval(poll, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+
+  if (count === null) return null;
+
+  return (
+    <button
+      onClick={() => openTab('/', 'Agent Inbox')}
+      title="Agent Inbox — čeka odobrenje"
+      className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+    >
+      <Icon name="inbox" />
+      {count > 0 && (
+        <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-0.5 text-[9px] font-semibold leading-none text-accent-ink">
+          {count > 99 ? '99+' : count}
+        </span>
+      )}
+    </button>
+  );
+}
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — gornja traka nosi grupe modula kao ikonice
 // (9 umesto 17 pojedinačnih sekcija). Administracija namerno na suprotnom kraju trake od
@@ -73,6 +133,7 @@ export default function TopBar({
         {fullName} <span className="text-ink-faint">· {roles.join(', ')}</span>
       </span>
       <ThemeToggle />
+      <InboxButton />
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
