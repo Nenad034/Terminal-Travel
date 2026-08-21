@@ -157,8 +157,14 @@ export class HelpAssistantService {
   // M21 spec §5.2a — semantička selekcija preko pgvector kosinusne distance (isti mehanizam kao
   // M23 KnowledgeAssistantService). `isCriticalExample` zadržava prioritet NEZAVISNO od distance
   // (isti princip kao ranije scoreCandidates sortiranje) — uvek uključen, ostali ulaze samo unutar
-  // praga. Pada nazad na ključne reči ako embedding poziv/upit ne uspe.
-  private async selectCandidatesByEmbedding(question: string, candidates: CandidateArticle[]): Promise<CandidateArticle[]> {
+  // praga. `applyDistanceThreshold=false` (kad je Anthropic podešen) namerno vraća top-N BEZ
+  // praga za ne-kritične kandidate — jezički model sam prepoznaje irelevantnost preko
+  // NO_ANSWER_MARKER. Pada nazad na ključne reči ako embedding poziv/upit ne uspe.
+  private async selectCandidatesByEmbedding(
+    question: string,
+    candidates: CandidateArticle[],
+    applyDistanceThreshold: boolean,
+  ): Promise<CandidateArticle[]> {
     try {
       await this.ensureEmbeddings(candidates);
       const [questionVector] = await this.geminiEmbedding.embed([question]);
@@ -173,7 +179,7 @@ export class HelpAssistantService {
 
       const critical = candidates.filter((c) => c.isCriticalExample);
       const semantic = ranked
-        .filter((r) => r.distance <= MAX_EMBEDDING_DISTANCE && !byId.get(r.id)?.isCriticalExample)
+        .filter((r) => (!applyDistanceThreshold || r.distance <= MAX_EMBEDDING_DISTANCE) && !byId.get(r.id)?.isCriticalExample)
         .map((r) => byId.get(r.id))
         .filter((c): c is CandidateArticle => Boolean(c));
 
@@ -229,7 +235,7 @@ export class HelpAssistantService {
     }
 
     const relevant = this.geminiEmbedding.isConfigured()
-      ? await this.selectCandidatesByEmbedding(question, candidates)
+      ? await this.selectCandidatesByEmbedding(question, candidates, !this.anthropic.isConfigured())
       : this.selectCandidatesByKeywords(question, candidates);
 
     if (relevant.length === 0) {

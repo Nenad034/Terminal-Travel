@@ -115,8 +115,14 @@ export class KnowledgeAssistantService {
   // M23 spec §3.2a — semantička selekcija preko pgvector kosinusne distance. Pada nazad na
   // ključne reči ako embedding poziv/upit ne uspe (isti "ne sme da obori odgovor" princip kao
   // askAnthropic() try/catch ispod) — semantička pretraga je poboljšanje kvaliteta, ne novi
-  // uslov za rad asistenta.
-  private async selectCandidatesByEmbedding(question: string, candidates: CandidateArticle[]): Promise<CandidateArticle[]> {
+  // uslov za rad asistenta. `applyDistanceThreshold=false` (kad je Anthropic podešen) namerno
+  // vraća top-N BEZ praga — jezički model sam prepoznaje irelevantnost preko NO_ANSWER_MARKER,
+  // pa dodatni prag ovde može samo da odbaci nešto što bi model ipak ispravno iskoristio.
+  private async selectCandidatesByEmbedding(
+    question: string,
+    candidates: CandidateArticle[],
+    applyDistanceThreshold: boolean,
+  ): Promise<CandidateArticle[]> {
     try {
       await this.ensureEmbeddings(candidates);
       const [questionVector] = await this.geminiEmbedding.embed([question]);
@@ -130,7 +136,7 @@ export class KnowledgeAssistantService {
       );
       const byId = new Map(candidates.map((c) => [c.translation.id, c]));
       return ranked
-        .filter((r) => r.distance <= MAX_EMBEDDING_DISTANCE)
+        .filter((r) => !applyDistanceThreshold || r.distance <= MAX_EMBEDDING_DISTANCE)
         .map((r) => byId.get(r.id))
         .filter((c): c is CandidateArticle => Boolean(c));
     } catch (err) {
@@ -184,7 +190,7 @@ export class KnowledgeAssistantService {
     }
 
     const relevant = this.geminiEmbedding.isConfigured()
-      ? await this.selectCandidatesByEmbedding(question, candidates)
+      ? await this.selectCandidatesByEmbedding(question, candidates, !this.anthropic.isConfigured())
       : this.selectCandidatesByKeywords(question, candidates);
 
     if (relevant.length === 0) {
