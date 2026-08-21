@@ -33,6 +33,9 @@ Način na koji moduli međusobno razgovaraju, i kojim sajt/aplikacija razgovaraj
 ### Event Bus — obaveštenja između modula
 Sistem obaveštenja za stvari koje se dešavaju asinhrono, van glavnog toka. Primer: kad gost otkaže rezervaciju, M5 (Rezervacije) ne treba direktno da zove M12 (Marketing) da prestane da mu šalje ponude — M5 samo "objavi" događaj "rezervacija otkazana", a M12 (i bilo koji drugi zainteresovan modul) to sam pokupi kad mu odgovara. Ovo drži module nezavisnim jedne od drugih.
 
+### pgvector + OpenAI embeddings — pretraga po značenju, ne po tačnim rečima (M21/M23)
+Kad tim ili subagent postavi pitanje AI asistentu (Centar za pomoć ili Znanje o destinacijama), do sad se odgovor tražio preko preklapanja tačnih reči — ako je pitanje "kako da resetujem lozinku" a članak kaže "promena akreditiva naloga", sistem ih ne bi povezao iako znače isto. `pgvector` je dodatak postojećoj bazi podataka (ne nova baza) koji ume da pretražuje po **značenju** teksta, ne po tačnim rečima — kao da razume šta pitanje znači, ne samo šta piše. Da bi to radio, svaki tekst (pitanje i članak) se prvo pretvori u niz brojeva ("otisak značenja") preko OpenAI servisa, pa se ti otisci porede. Bez OpenAI ključa sistem i dalje radi kao pre (staro poređenje reči) — ovo je nadogradnja, ne zamena koja bi nešto pokvarila ako izostane.
+
 ### Next.js (React) — ono što se vidi na ekranu (frontend)
 Okvir za sve što gost, tim ili subagent *vidi na ekranu*: javni sajt, interni radni panel, B2B portal. Uzima podatke iz modula (preko REST API-ja) i prikazuje ih kao veb stranicu. Isti okvir se koristi za sva tri prikaza da se ne bi gradilo troje odvojenih sistema.
 

@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { ArticleConfidence, ArticleTranslation, LanguageCode } from '@prisma/client';
+import { ArticleConfidence, ArticleTranslation, LanguageCode, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
+import { OpenAiEmbeddingService } from '../../m15-ai-orkestracija/openai/openai-embedding.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { AskQuestionDto } from './dto/ask-question.dto';
 
@@ -11,6 +12,11 @@ const CANDIDATE_LIMIT = 5;
 // Isti heuristički prag kao M21 HelpAssistantService (§5.2 obrazac) — fallback kad
 // ANTHROPIC_API_KEY nije podešen, ne primarni put.
 const MIN_HEURISTIC_OVERLAP = 2;
+// M23 spec §3.2a — pgvector kosinusna distanca (0 = identično, 2 = suprotno). Prag određuje
+// kad se embedding kandidat smatra "dovoljno blizak da uopšte uđe u razmatranje" u putanji BEZ
+// Anthropic-a (koji inače sam prepoznaje irelevantnost preko NO_ANSWER_MARKER) — empirijski
+// izabrana vrednost za `text-embedding-3-small`, doraditi ako se pokaže previše/premalo strogo.
+const MAX_EMBEDDING_DISTANCE = 0.6;
 const NO_ANSWER_MARKER = 'NEMA_ODGOVORA_U_ČLANCIMA';
 
 interface CandidateArticle {
@@ -31,6 +37,7 @@ export class KnowledgeAssistantService {
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
     private readonly anthropic: AnthropicClientService,
+    private readonly openAiEmbedding: OpenAiEmbeddingService,
     private readonly invocationLog: AgentInvocationLogService,
   ) {}
 
@@ -99,6 +106,56 @@ export class KnowledgeAssistantService {
     return out.map((c) => ({ ...c, score: 0 }));
   }
 
+  private selectCandidatesByKeywords(question: string, candidates: CandidateArticle[]): CandidateArticle[] {
+    return this.scoreCandidates(question, candidates)
+      .filter((c) => c.score >= MIN_HEURISTIC_OVERLAP)
+      .slice(0, CANDIDATE_LIMIT);
+  }
+
+  // M23 spec §3.2a — semantička selekcija preko pgvector kosinusne distance. Pada nazad na
+  // ključne reči ako embedding poziv/upit ne uspe (isti "ne sme da obori odgovor" princip kao
+  // askAnthropic() try/catch ispod) — semantička pretraga je poboljšanje kvaliteta, ne novi
+  // uslov za rad asistenta.
+  private async selectCandidatesByEmbedding(question: string, candidates: CandidateArticle[]): Promise<CandidateArticle[]> {
+    try {
+      await this.ensureEmbeddings(candidates);
+      const [questionVector] = await this.openAiEmbedding.embed([question]);
+      const ids = candidates.map((c) => c.translation.id);
+      const ranked = await this.prisma.$queryRaw<{ id: string; distance: number }[]>(
+        Prisma.sql`SELECT id, embedding <=> ${toVectorLiteral(questionVector)}::vector AS distance
+                    FROM article_translations
+                    WHERE id IN (${Prisma.join(ids)}) AND embedding IS NOT NULL
+                    ORDER BY distance ASC
+                    LIMIT ${CANDIDATE_LIMIT}`,
+      );
+      const byId = new Map(candidates.map((c) => [c.translation.id, c]));
+      return ranked
+        .filter((r) => r.distance <= MAX_EMBEDDING_DISTANCE)
+        .map((r) => byId.get(r.id))
+        .filter((c): c is CandidateArticle => Boolean(c));
+    } catch (err) {
+      this.logger.warn(`Embedding pretraga nije uspela, prelazim na ključne reči: ${(err as Error).message}`);
+      return this.selectCandidatesByKeywords(question, candidates);
+    }
+  }
+
+  private async ensureEmbeddings(candidates: CandidateArticle[]): Promise<void> {
+    const ids = candidates.map((c) => c.translation.id);
+    if (ids.length === 0) return;
+    const missing = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT id FROM article_translations WHERE id IN (${Prisma.join(ids)}) AND embedding IS NULL`,
+    );
+    if (missing.length === 0) return;
+    const missingIds = new Set(missing.map((m) => m.id));
+    const toEmbed = candidates.filter((c) => missingIds.has(c.translation.id));
+    const vectors = await this.openAiEmbedding.embed(toEmbed.map((c) => embedText(c.translation)));
+    await Promise.all(
+      toEmbed.map((c, i) =>
+        this.prisma.$executeRaw(Prisma.sql`UPDATE article_translations SET embedding = ${toVectorLiteral(vectors[i])}::vector WHERE id = ${c.translation.id}`),
+      ),
+    );
+  }
+
   private scoreCandidates(question: string, candidates: CandidateArticle[]): CandidateArticle[] {
     const questionWords = significantWords(question);
     return candidates
@@ -126,8 +183,9 @@ export class KnowledgeAssistantService {
       return { answerText: null, matchedArticleIds: [], confidence: 'NONE', usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
     }
 
-    const scored = this.scoreCandidates(question, candidates);
-    const relevant = scored.filter((c) => c.score >= MIN_HEURISTIC_OVERLAP).slice(0, CANDIDATE_LIMIT);
+    const relevant = this.openAiEmbedding.isConfigured()
+      ? await this.selectCandidatesByEmbedding(question, candidates)
+      : this.selectCandidatesByKeywords(question, candidates);
 
     if (relevant.length === 0) {
       return { answerText: null, matchedArticleIds: [], confidence: 'NONE', usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
@@ -272,6 +330,17 @@ export class KnowledgeAssistantService {
 
 function significantWords(text: string): string[] {
   return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter((w, i, arr) => arr.indexOf(w) === i);
+}
+
+// text-embedding-3-small ima ograničenje ulaza (~8191 tokena) — konzervativno sečenje na
+// karaktere umesto uvoza tokenizatora samo za ovu proveru (isti "ne dodavati zavisnost bez
+// potrebe" princip kao ostatak koda).
+function embedText(t: { title: string; body: string }): string {
+  return `${t.title}\n\n${t.body}`.slice(0, 6000);
+}
+
+function toVectorLiteral(vector: number[]): string {
+  return `[${vector.join(',')}]`;
 }
 
 function resolveTranslation<T extends { languageCode: LanguageCode }>(translations: T[], requestedLang: LanguageCode): T | null {

@@ -18,6 +18,7 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
     const auditLog = { write: jest.fn() };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
     const anthropic = { isConfigured: jest.fn(), getClient: jest.fn() };
+    const openAiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
     const invocationLog = { record: jest.fn() };
     const abuseDetector = { checkAfterQuestion: jest.fn() };
     const tickets = { create: jest.fn(), createMessage: jest.fn() };
@@ -26,11 +27,12 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
       auditLog as any,
       permissions as any,
       anthropic as any,
+      openAiEmbedding as any,
       invocationLog as any,
       abuseDetector as any,
       tickets as any,
     );
-    return { service, prisma, auditLog, permissions, anthropic, invocationLog, abuseDetector, tickets };
+    return { service, prisma, auditLog, permissions, anthropic, openAiEmbedding, invocationLog, abuseDetector, tickets };
   }
 
   it('INDIVIDUAL GUEST nalog dobija PUBLIC_GUEST publiku (avgust 2026 — više nije van obima)', async () => {
@@ -153,6 +155,29 @@ describe('HelpAssistantService (M21 spec §5/§7)', () => {
     expect(result.confidence).toBe('LOW');
     expect(result.matchedArticleIds).toEqual(['a1']);
     expect(anthropic.getClient).not.toHaveBeenCalled();
+  });
+
+  it('kad je OpenAI podešen, koristi embedding rangiranje i isCriticalExample zadržava prioritet', async () => {
+    const { service, prisma, openAiEmbedding } = makeService();
+    openAiEmbedding.isConfigured.mockReturnValue(true);
+    openAiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
+    prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF', linkedProfileId: null });
+    prisma.helpArticle.findMany.mockResolvedValue([
+      { id: 'a1', isCriticalExample: false, translations: [{ id: 't1', languageCode: 'sr', title: 'Nesrodno', body: 'nesrodan tekst' }] },
+      { id: 'a2', isCriticalExample: true, translations: [{ id: 't2', languageCode: 'sr', title: 'Kritičan primer', body: 'uvek prisutan' }] },
+    ]);
+    prisma.helpQuestion.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'q1', ...data }));
+    (prisma as any).$queryRaw = jest
+      .fn()
+      .mockResolvedValueOnce([{ id: 't1' }, { id: 't2' }]) // ensureEmbeddings: oba nedostaju
+      .mockResolvedValueOnce([{ id: 't1', distance: 0.1 }]); // rangiranje: samo t1 vraćen
+    (prisma as any).$executeRaw = jest.fn().mockResolvedValue(1);
+
+    const result = await service.ask({ question: 'Pitanje' } as any, 'staff-1');
+
+    expect(openAiEmbedding.embed).toHaveBeenCalled();
+    // isCriticalExample (a2) uključen iako ga rangiranje nije vratilo.
+    expect(result.matchedArticleIds).toEqual(expect.arrayContaining(['a2']));
   });
 
   it('sa ANTHROPIC_API_KEY i stvarnim odgovorom modela vraća HIGH i loguje AgentInvocationLog', async () => {

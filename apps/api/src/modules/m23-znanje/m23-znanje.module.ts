@@ -14,6 +14,7 @@ import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { AnthropicClientService } from '../m15-ai-orkestracija/anthropic/anthropic-client.service';
+import { OpenAiEmbeddingService } from '../m15-ai-orkestracija/openai/openai-embedding.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-content-imports/product-content-imports.module';
 
@@ -35,6 +36,7 @@ import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-con
     KnowledgeRefreshService,
     KnowledgeAssistantService,
     AnthropicClientService,
+    OpenAiEmbeddingService,
   ],
 })
 export class M23ZnanjeModule {}

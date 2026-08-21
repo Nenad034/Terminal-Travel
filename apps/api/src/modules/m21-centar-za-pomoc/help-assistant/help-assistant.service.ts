@@ -1,9 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { HelpArticleTranslation, HelpAudience, HelpConfidence, HelpQuestion, LanguageCode, TicketRequesterType } from '@prisma/client';
+import { HelpArticleTranslation, HelpAudience, HelpConfidence, HelpQuestion, LanguageCode, Prisma, TicketRequesterType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anthropic-client.service';
+import { OpenAiEmbeddingService } from '../../m15-ai-orkestracija/openai/openai-embedding.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { TicketsService } from '../../m14-helpdesk/tickets/tickets.service';
 import { HelpAbuseDetectorService } from '../abuse-detection/help-abuse-detector.service';
@@ -16,6 +17,8 @@ const CANDIDATE_LIMIT = 5;
 // isti "podešava se empirijski" princip kao M18/M21 abuse pragovi. Konzervativno nizak (2 reči)
 // jer je ovo samo fallback kad ANTHROPIC_API_KEY nije podešen, ne primarni put.
 const MIN_HEURISTIC_OVERLAP = 2;
+// M21 spec §5.2a — isti mehanizam/prag kao M23 KnowledgeAssistantService (vidi komentar tamo).
+const MAX_EMBEDDING_DISTANCE = 0.6;
 // §5.3 — model treba da odgovori TAČNO ovim markerom kad prosleđeni članci ne pokrivaju pitanje,
 // da bismo pouzdano razlikovali "odgovorio je" od "nije mogao da odgovori" bez slobodnog
 // parsiranja prirodnog jezika.
@@ -42,6 +45,7 @@ export class HelpAssistantService {
     private readonly auditLog: AuditLogService,
     private readonly permissions: PermissionsService,
     private readonly anthropic: AnthropicClientService,
+    private readonly openAiEmbedding: OpenAiEmbeddingService,
     private readonly invocationLog: AgentInvocationLogService,
     private readonly abuseDetector: HelpAbuseDetectorService,
     private readonly tickets: TicketsService,
@@ -144,6 +148,59 @@ export class HelpAssistantService {
     return out.map((c) => ({ ...c, score: 0 }));
   }
 
+  private selectCandidatesByKeywords(question: string, candidates: CandidateArticle[]): CandidateArticle[] {
+    return this.scoreCandidates(question, candidates)
+      .filter((c) => c.score >= MIN_HEURISTIC_OVERLAP || c.isCriticalExample)
+      .slice(0, CANDIDATE_LIMIT);
+  }
+
+  // M21 spec §5.2a — semantička selekcija preko pgvector kosinusne distance (isti mehanizam kao
+  // M23 KnowledgeAssistantService). `isCriticalExample` zadržava prioritet NEZAVISNO od distance
+  // (isti princip kao ranije scoreCandidates sortiranje) — uvek uključen, ostali ulaze samo unutar
+  // praga. Pada nazad na ključne reči ako embedding poziv/upit ne uspe.
+  private async selectCandidatesByEmbedding(question: string, candidates: CandidateArticle[]): Promise<CandidateArticle[]> {
+    try {
+      await this.ensureEmbeddings(candidates);
+      const [questionVector] = await this.openAiEmbedding.embed([question]);
+      const ids = candidates.map((c) => c.translation.id);
+      const ranked = await this.prisma.$queryRaw<{ id: string; distance: number }[]>(
+        Prisma.sql`SELECT id, embedding <=> ${toVectorLiteral(questionVector)}::vector AS distance
+                    FROM help_article_translations
+                    WHERE id IN (${Prisma.join(ids)}) AND embedding IS NOT NULL
+                    ORDER BY distance ASC`,
+      );
+      const byId = new Map(candidates.map((c) => [c.translation.id, c]));
+
+      const critical = candidates.filter((c) => c.isCriticalExample);
+      const semantic = ranked
+        .filter((r) => r.distance <= MAX_EMBEDDING_DISTANCE && !byId.get(r.id)?.isCriticalExample)
+        .map((r) => byId.get(r.id))
+        .filter((c): c is CandidateArticle => Boolean(c));
+
+      return [...critical, ...semantic].slice(0, CANDIDATE_LIMIT);
+    } catch (err) {
+      this.logger.warn(`Embedding pretraga nije uspela, prelazim na ključne reči: ${(err as Error).message}`);
+      return this.selectCandidatesByKeywords(question, candidates);
+    }
+  }
+
+  private async ensureEmbeddings(candidates: CandidateArticle[]): Promise<void> {
+    const ids = candidates.map((c) => c.translation.id);
+    if (ids.length === 0) return;
+    const missing = await this.prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT id FROM help_article_translations WHERE id IN (${Prisma.join(ids)}) AND embedding IS NULL`,
+    );
+    if (missing.length === 0) return;
+    const missingIds = new Set(missing.map((m) => m.id));
+    const toEmbed = candidates.filter((c) => missingIds.has(c.translation.id));
+    const vectors = await this.openAiEmbedding.embed(toEmbed.map((c) => embedText(c.translation)));
+    await Promise.all(
+      toEmbed.map((c, i) =>
+        this.prisma.$executeRaw(Prisma.sql`UPDATE help_article_translations SET embedding = ${toVectorLiteral(vectors[i])}::vector WHERE id = ${c.translation.id}`),
+      ),
+    );
+  }
+
   private scoreCandidates(question: string, candidates: CandidateArticle[]): CandidateArticle[] {
     const questionWords = significantWords(question);
     const scored = candidates.map((c) => {
@@ -171,8 +228,9 @@ export class HelpAssistantService {
       return { answerText: null, matchedArticleIds: [], confidence: 'NONE', usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
     }
 
-    const scored = this.scoreCandidates(question, candidates);
-    const relevant = scored.filter((c) => c.score >= MIN_HEURISTIC_OVERLAP || c.isCriticalExample).slice(0, CANDIDATE_LIMIT);
+    const relevant = this.openAiEmbedding.isConfigured()
+      ? await this.selectCandidatesByEmbedding(question, candidates)
+      : this.selectCandidatesByKeywords(question, candidates);
 
     if (relevant.length === 0) {
       return { answerText: null, matchedArticleIds: [], confidence: 'NONE', usedAnthropic: false, inputTokens: 0, outputTokens: 0, latencyMs: 0 };
@@ -389,6 +447,15 @@ export class HelpAssistantService {
 
 function significantWords(text: string): string[] {
   return (text.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? []).filter((w, i, arr) => arr.indexOf(w) === i);
+}
+
+// Isti razlog/princip kao M23 KnowledgeAssistantService (embedText/toVectorLiteral tamo).
+function embedText(t: { title: string; body: string }): string {
+  return `${t.title}\n\n${t.body}`.slice(0, 6000);
+}
+
+function toVectorLiteral(vector: number[]): string {
+  return `[${vector.join(',')}]`;
 }
 
 function resolveTranslation<T extends { languageCode: LanguageCode }>(translations: T[], requestedLang: LanguageCode): T | null {

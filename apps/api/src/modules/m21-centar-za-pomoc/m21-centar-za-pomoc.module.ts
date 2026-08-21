@@ -10,6 +10,7 @@ import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { AnthropicClientService } from '../m15-ai-orkestracija/anthropic/anthropic-client.service';
+import { OpenAiEmbeddingService } from '../m15-ai-orkestracija/openai/openai-embedding.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
 
@@ -25,7 +26,7 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
 @Module({
   imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, M14HelpdeskModule],
   controllers: [HelpArticlesController, HelpAssistantController, HelpSuggestionsController],
-  providers: [HelpArticlesService, HelpAssistantService, HelpSuggestionsService, HelpAbuseDetectorService, AnthropicClientService],
+  providers: [HelpArticlesService, HelpAssistantService, HelpSuggestionsService, HelpAbuseDetectorService, AnthropicClientService, OpenAiEmbeddingService],
   // HelpAssistantService dopunjeno avgust 2026 (M8 §3a) — M15 OmnisearchService poziva ga
   // in-process za B2C_SITE "pitanje o platformi" tok (M15 spec §6.5.5), isti obrazac kao
   // M14HelpdeskModule.exports (TicketsService) korišćen ovde iznad.

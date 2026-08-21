@@ -3,7 +3,11 @@
 # što se bilo šta hostuje van ove lokalne mašine (vidi CLAUDE.md).
 services:
   postgres:
-    image: postgres:16-alpine
+    # pgvector/pgvector:pg16 — zvanično pgvector-održavana slika, drop-in zamena za
+    # postgres:16-alpine (isti Postgres 16, samo sa ugrađenom `vector` ekstenzijom).
+    # Uvedeno 21.8.2026, na zahtev vlasnika — semantička pretraga nad M21/M23 člancima
+    # (docs/analize/29-DIZAJN-SISTEM-UI.md nema poglavlje o ovome; vidi M23/M21 spec).
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: terminal

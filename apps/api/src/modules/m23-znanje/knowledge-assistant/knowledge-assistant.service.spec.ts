@@ -12,9 +12,10 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
     };
     const auditLog = { write: jest.fn() };
     const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
+    const openAiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
     const invocationLog = { record: jest.fn() };
-    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, anthropic as any, invocationLog as any);
-    return { service, prisma, auditLog };
+    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, anthropic as any, openAiEmbedding as any, invocationLog as any);
+    return { service, prisma, auditLog, openAiEmbedding };
   }
 
   it('vraća confidence=NONE i offerResearch=true kad nema objavljenih članaka', async () => {
@@ -50,6 +51,28 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
     // resolveTranslation, testirano indirektno kroz matchedArticleIds kad postoji poklapanje).
     expect(prisma.article.findMany).toHaveBeenCalled();
     expect(result).toBeDefined();
+  });
+
+  it('kad je OpenAI podešen, koristi embedding rangiranje umesto ključnih reči', async () => {
+    const { service, prisma, openAiEmbedding } = makeService();
+    openAiEmbedding.isConfigured.mockReturnValue(true);
+    openAiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
+    prisma.article.findMany.mockResolvedValue([
+      { id: 'a1', translations: [{ id: 't1', languageCode: 'sr', title: 'Nesrodan naslov', body: 'nesrodan sadržaj' }] },
+    ]);
+    prisma.question.create.mockImplementation(({ data }: any) => ({ id: 'q1', ...data }));
+    prisma.aIAgent.findFirst.mockResolvedValue(null);
+    (prisma as any).$queryRaw = jest
+      .fn()
+      .mockResolvedValueOnce([{ id: 't1' }]) // ensureEmbeddings: nedostaje embedding
+      .mockResolvedValueOnce([{ id: 't1', distance: 0.1 }]); // rangiranje: blizak kandidat
+    (prisma as any).$executeRaw = jest.fn().mockResolvedValue(1);
+
+    const result = await service.ask({ question: 'Pitanje bez preklapanja ključnih reči' }, 'staff-1');
+
+    expect(openAiEmbedding.embed).toHaveBeenCalled();
+    expect((prisma as any).$executeRaw).toHaveBeenCalled(); // upisan embedding za t1
+    expect(result.matchedArticleIds).toContain('a1');
   });
 
   it('requestResearch odbija ako pitanje nije confidence=NONE', async () => {

@@ -2726,6 +2726,11 @@ model HelpArticleTranslation {
   languageCode  LanguageCode @map("language_code")
   title         String
   body          String // markdown; za is_critical_example=true numerisana lista koraka, obična markdown lista
+  // M21 spec §5.2a — semantička pretraga (pgvector, OpenAI text-embedding-3-small, 1536 dim).
+  // Prisma nema izvornu podršku za `vector` tip — čita/piše se isključivo preko $queryRaw/
+  // $executeRaw (HelpAssistantService), NULL dok se lenjo ne izračuna pri prvom ask() pozivu
+  // koji naiđe na tu stavku (nema eager backfill pri objavi u ovom prolazu).
+  embedding Unsupported("vector(1536)")?
 
   helpArticle HelpArticle @relation(fields: [helpArticleId], references: [id], onDelete: Cascade)
 
@@ -2989,6 +2994,9 @@ model ArticleTranslation {
   title             String
   body              String // markdown
   translationSource ArticleTranslationSource @default(MANUAL) @map("translation_source")
+  // M23 spec §3.2a — semantička pretraga, isti mehanizam/model kao HelpArticleTranslation
+  // (M21 spec §5.2a) — vidi komentar tamo.
+  embedding Unsupported("vector(1536)")?
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 

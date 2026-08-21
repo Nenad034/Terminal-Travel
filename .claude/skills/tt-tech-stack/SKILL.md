@@ -15,7 +15,7 @@ Pointer-skill — pravi sadržaj je u `docs/00-MASTER-ARHITEKTURA.md` poglavlje 
 
 ## Tekući izbori (detalji i obrazloženje u poglavlju 6)
 
-TypeScript svuda · NestJS (backend) · PostgreSQL · Prisma (potvrđeno nad Drizzle-om, jul 2026) · REST + OpenAPI između modula i kanala · Event Bus (LISTEN/NOTIFY ili Redis Pub/Sub, kasnije RabbitMQ/Kafka) · Next.js (svi kanali, self-hosted Node.js na EU cloud infrastrukturi — namerno bez Vercel-ekskluzivnih funkcija zbog US CLOUD Act / EU-U.S. Data Privacy Framework) · self-hosted IAM (Keycloak ili Auth.js) za RBAC · EU cloud regija, infrastruktura kao kod · Turborepo/Nx monorepo · obavezni automatski testovi + CI koji ne pušta kod bez prolaska testova.
+TypeScript svuda · NestJS (backend) · PostgreSQL · Prisma (potvrđeno nad Drizzle-om, jul 2026) · REST + OpenAPI između modula i kanala · Event Bus (LISTEN/NOTIFY ili Redis Pub/Sub, kasnije RabbitMQ/Kafka) · Next.js (svi kanali, self-hosted Node.js na EU cloud infrastrukturi — namerno bez Vercel-ekskluzivnih funkcija zbog US CLOUD Act / EU-U.S. Data Privacy Framework) · self-hosted IAM (Keycloak ili Auth.js) za RBAC · pgvector + OpenAI text-embedding-3-small za semantičku pretragu (M21/M23, avgust 2026 — odvojeno od odloženog M-25 "semantički sloj" predloga za poslovne metrike, `docs/analize/30-PREDLOG-AI-SEMANTICKI-SLOJ.md`) · EU cloud regija, infrastruktura kao kod · Turborepo/Nx monorepo · obavezni automatski testovi + CI koji ne pušta kod bez prolaska testova.
 
 ## Tvrdo pravilo (iz CLAUDE.md)
 
