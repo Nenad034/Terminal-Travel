@@ -63,6 +63,14 @@ export default function Shell({
   // `onFirstAdd` kad prva stavka uđe u selekciju, isto ponašanje kao klik na dugme.
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
 
+  // Poravnanje TabBar-a sa levom ivicom centralnog panela (21.8.2026, na zahtev vlasnika:
+  // "tabovi... se pojavljuju od levog pocetka centralnog panela") — ActivityBar (43px, fiksno)
+  // + stvarna širina Sidebar-a (menja se prevlačenjem/kolapsom, `ResizablePane.onWidthChange`).
+  // Inicijalna vrednost odgovara `defaultWidth` prosleđenom ispod (224), da nema skoka pre nego
+  // što `ResizablePane` prijavi stvarnu (localStorage) širinu. Vidi TopBar.tsx `leftRailWidth`.
+  const [sidebarWidth, setSidebarWidth] = useState(224);
+  const leftRailWidth = 43 + (sidebarCollapsed ? 40 : sidebarWidth);
+
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
 
   return (
@@ -82,7 +90,11 @@ export default function Shell({
             namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-          <TopBar rightPanelOpen={rightPanelOpen} onToggleRightPanel={() => setRightPanelOpen((v) => !v)} />
+          <TopBar
+            rightPanelOpen={rightPanelOpen}
+            onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
+            leftRailWidth={leftRailWidth}
+          />
           <div className="flex flex-1 overflow-hidden">
             <ActivityBar groups={groups} activeGroupId={activeGroup?.id ?? ''} onSelectGroup={setActiveGroupId} />
             <ResizablePane
@@ -92,6 +104,11 @@ export default function Shell({
               maxWidth={420}
               collapsed={sidebarCollapsed}
               collapsedWidth={40}
+              onWidthChange={(w) => {
+                // `ResizablePane` prijavljuje `collapsedWidth` (40) dok je kolabovano — ignoriši
+                // te vrednosti, čuvaj samo stvarnu (razmotanu) širinu za kad se ponovo otvori.
+                if (!sidebarCollapsed) setSidebarWidth(w);
+              }}
             >
               <Sidebar
                 items={items}

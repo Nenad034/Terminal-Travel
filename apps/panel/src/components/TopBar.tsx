@@ -72,9 +72,13 @@ function InboxButton() {
 export default function TopBar({
   rightPanelOpen,
   onToggleRightPanel,
+  leftRailWidth,
 }: {
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
+  /** ActivityBar (43px) + stvarna širina Sidebar-a — širina omotača oko naziva, tako da tabovi
+   * odmah posle njega počinju tačno iznad leve ivice centralnog panela (Shell.tsx). */
+  leftRailWidth: number;
 }) {
   const router = useRouter();
 
@@ -86,13 +90,24 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      {/* Naziv smanjen za 20% (41px→33px) i prepisan kao "TT  Terminal Travel" — inicijali kao
-          istaknuta oznaka + pun naziv kao manji, tiši dodatak (na zahtev vlasnika, 21.8.2026).
-          `font-tech` (JetBrains Mono, `layout.tsx`) ostaje. */}
-      <span className="mr-1 flex flex-shrink-0 items-baseline gap-1.5 font-tech italic">
-        <span className="text-[33px] leading-none tracking-tight text-accent">TT</span>
-        <span className="text-xs leading-none tracking-wide text-ink-faint">Terminal Travel</span>
-      </span>
+      {/* Naziv — omotač je širok tačno koliko ActivityBar+Sidebar (leftRailWidth), da tabovi
+          posle njega počnu iznad leve ivice centralnog panela (na zahtev vlasnika, 21.8.2026:
+          "tabovi... se pojavljuju od levog pocetka centralnog panela"). `Math.max(..., 140)`
+          čuva minimalnu širinu da se "TT   TERMINAL TRAVEL" ne preklopi sa tabovima kad je
+          Sidebar kolabovan (leftRailWidth pada na 83px, uže od samog naziva). "TT" boldirano
+          i "svetli" (text-shadow sjaj u akcentnoj boji); "TERMINAL TRAVEL" velikim slovima,
+          ISTE visine kao TT (ne više manje/tiše kako je bilo), razmaknuto za 3 slovna mesta
+          (`ml-[3ch]` — CSS `ch` jedinica = širina jednog karaktera trenutnog fonta, tačno
+          "3 prazna slovna mesta" iz zahteva, radi jer je `font-tech` monospace). */}
+      <div className="flex flex-shrink-0 items-baseline gap-0 font-tech italic" style={{ width: Math.max(leftRailWidth, 140) }}>
+        <span
+          className="text-[33px] font-bold leading-none tracking-tight text-accent"
+          style={{ textShadow: '0 0 6px var(--accent), 0 0 16px var(--accent)' }}
+        >
+          TT
+        </span>
+        <span className="ml-[3ch] text-[33px] uppercase leading-none tracking-tight text-ink">Terminal Travel</span>
+      </div>
       {/* Traka tabova VRAĆENA u gornji red (21.8.2026, treći krug istog dana, na zahtev
           vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj (v1.62,
           premeštanje na početak centralnog panela). */}

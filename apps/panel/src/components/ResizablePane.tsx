@@ -19,6 +19,7 @@ export default function ResizablePane({
   handleSide = 'right',
   collapsed = false,
   collapsedWidth = 24,
+  onWidthChange,
   children,
 }: {
   defaultWidth: number;
@@ -30,6 +31,10 @@ export default function ResizablePane({
    * vlasnika, 19.8.2026). Prevlačenje se isključuje u ovom stanju, prethodna širina se pamti. */
   collapsed?: boolean;
   collapsedWidth?: number;
+  /** Opciono — poziva se posle učitavanja iz localStorage, prevlačenja i reseta (ne pri
+   * svakom pointermove, samo na konačnu vrednost). Dodato 21.8.2026 da `Shell.tsx` može da
+   * poravna TabBar sa stvarnom širinom Sidebar-a (vidi TopBar.tsx `leftRailWidth`). */
+  onWidthChange?: (width: number) => void;
   children: React.ReactNode;
 }) {
   const [width, setWidth] = useState(defaultWidth);
@@ -49,6 +54,13 @@ export default function ResizablePane({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
+
+  // Jedan efekat pokriva sve izvore promene (localStorage učitavanje, prevlačenje, reset,
+  // kolaps) — jednostavnije od kačenja na svaki poziv setWidth ponaosob.
+  useEffect(() => {
+    onWidthChange?.(collapsed ? collapsedWidth : width);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [width, collapsed, collapsedWidth]);
 
   const sign = handleSide === 'left' ? -1 : 1;
 
