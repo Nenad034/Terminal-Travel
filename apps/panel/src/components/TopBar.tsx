@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
 import { useTabs } from './TabsContext';
+import NotificationBell from './NotificationBell';
 import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
 
 interface AgentInboxSource {
@@ -133,6 +134,7 @@ export default function TopBar({
         {fullName} <span className="text-ink-faint">· {roles.join(', ')}</span>
       </span>
       <ThemeToggle />
+      <NotificationBell />
       <InboxButton />
       <button
         onClick={onToggleRightPanel}
