@@ -169,12 +169,13 @@ export default function AiChatBox() {
           treba da bude oivicen chat... Linija ne treba da ide u unutrasnjost panela") — ranije
           probano na `Shell.tsx` omotaču (`border-x`) je razvlačilo liniju kroz CEO
           `AiChatBox`, uključujući istoriju razgovora iznad (unutrašnjost panela) — POVUČENO.
-          Umesto toga, pun okvir (`border border-ink-faint`) ide OVDE, samo oko reda za unos +
-          reda brzih prečica (donja dva reda, tačno kao na snimku), ne oko istorije razgovora
-          iznad njih. Unutrašnja linija između ova dva reda ostaje `border-t` (razdvaja unos od
-          prečica), ne dupli spoljni okvir. */}
-      <div className="flex-shrink-0 border border-ink-faint">
-        <div className="flex items-center gap-2 px-2 py-2">
+
+          TREĆI ZAHTEV (21.8.2026, isti dan): "Uklonite linije gornjeg dela chata ostaje
+          uokviren samo donji deo" — zajednički okvir oko OBA reda (unos + prečice) je i dalje
+          crtao liniju oko gornjeg (unos) reda, što nije bilo traženo. Red za unos sad je bez
+          ikakvog okvira; pun okvir (`border border-ink-faint`) ostaje SAMO oko donjeg reda
+          (brze prečice). */}
+      <div className="flex flex-shrink-0 items-center gap-2 px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
             onClick={() => setPlusOpen((v) => !v)}
@@ -225,22 +226,21 @@ export default function AiChatBox() {
         >
           <Icon name="send" />
         </button>
-        </div>
+      </div>
 
-        {/* Centrirano (21.8.2026, na zahtev vlasnika: "centrirajte tagove na sredinu donje
-            polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`. */}
-        <div className="flex flex-wrap justify-center gap-1.5 border-t border-ink-faint px-2 py-1.5">
-          {quickLinks.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => openTab(item.href, item.label)}
-              className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
-            >
-              <Icon name={item.icon} />
-              {item.label}
-            </button>
-          ))}
-        </div>
+      {/* Centrirano (21.8.2026, na zahtev vlasnika: "centrirajte tagove na sredinu donje
+          polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`. */}
+      <div className="flex flex-wrap justify-center gap-1.5 border border-ink-faint px-2 py-1.5">
+        {quickLinks.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => openTab(item.href, item.label)}
+            className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+          >
+            <Icon name={item.icon} />
+            {item.label}
+          </button>
+        ))}
       </div>
     </div>
   );
