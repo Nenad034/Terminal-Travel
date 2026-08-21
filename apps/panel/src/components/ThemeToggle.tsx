@@ -27,7 +27,7 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       title={theme === 'dark' ? 'Prebaci na svetli mod' : 'Prebaci na tamni mod'}
-      className="flex h-9 w-9 items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-accent hover:text-ink"
+      className="flex h-[43px] w-[43px] items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-accent hover:text-ink"
     >
       <Icon name={theme === 'dark' ? 'color-mode' : 'circle-filled'} />
     </button>

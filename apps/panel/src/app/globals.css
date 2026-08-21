@@ -4,12 +4,25 @@
 
 @import '@vscode/codicons/dist/codicon.css';
 
-/* Ikonice +30% u svim trakama (na zahtev vlasnika, 19.8.2026) — podrazumevana veličina
-   Codicon fonta je 16px, ovo je jedini izvor istine za sve ikonice bez sopstvenog
-   font-size override-a (npr. Sidebar/CommandPalette). Kontejneri fiksne veličine oko
-   pojedinih ikonica (TopBar/StatusBar/TabBar dugmad) skalirani su posebno, u istoj meri. */
+/* Ikonice +30% u svim trakama (19.8.2026), pa dodatnih +20% (21.8.2026, na zahtev vlasnika)
+   — podrazumevana veličina Codicon fonta je 16px, ovo je jedini izvor istine za sve ikonice
+   bez sopstvenog font-size override-a (npr. Sidebar/CommandPalette nemaju override — provereno
+   21.8.2026 pri poslednjoj izmeni). 16px → 21px → 25px (21×1.2, zaokruženo). Kontejneri fiksne
+   veličine oko pojedinih ikonica (TopBar/StatusBar/AiChatBox/Sidebar/RightPanel dugmad)
+   skalirani su posebno, u istoj meri +20%, na mestu gde su definisani (Tailwind arbitrary
+   vrednosti u JSX, ne ovde).
+
+   Debljina linije +10% (21.8.2026, na zahtev vlasnika) — Codicon je jednotežinski font (nema
+   bold varijantu), pa "deblja linija" nije podesiva kao kod SVG stroke-based setova (npr.
+   Lucide/Feather). `text-stroke` je najbliža dostupna aproksimacija (dodaje tanku konturu
+   preko postojećeg oblika glifa) — nije egzaktnih +10%, samo vizuelno najbliže bez zamene
+   celog ikonskog seta. Ako rezultat ne zadovoljava, jedina prava alternativa je zameniti
+   Codicons drugim, stroke-based setom (nov izbor van poglavlja 6 tehničkog steka — zahteva
+   potvrdu vlasnika, CLAUDE.md tvrdo pravilo). */
 .codicon {
-  font-size: 21px;
+  font-size: 25px;
+  -webkit-text-stroke: 0.35px currentColor;
+  text-stroke: 0.35px currentColor;
 }
 
 /* M17 zadatak (avgust 2026) — paleta "Horizont v2" (docs/analize/29-DIZAJN-SISTEM-UI.md §2.0a/§2.0b).

@@ -55,7 +55,7 @@ function InboxButton() {
     <button
       onClick={() => openTab('/', 'Agent Inbox')}
       title="Agent Inbox — čeka odobrenje"
-      className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+      className="relative flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
     >
       <Icon name="inbox" />
       {count > 0 && (
@@ -97,7 +97,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="flex h-9 flex-shrink-0 items-center gap-1 border-b border-border bg-panel-2 px-2 text-xs">
+    <header className="flex h-[43px] flex-shrink-0 items-center gap-1 border-b border-border bg-panel-2 px-2 text-xs">
       <span className="mr-1 font-mono font-bold tracking-wide text-accent">TERMINAL</span>
       {groups.map((group, idx) => {
         const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
@@ -105,7 +105,7 @@ export default function TopBar({
         // Administracija je poslednja stavka u NAV_GROUPS namerno (M17 spec §4a) — ml-auto
         // je razmak, ne preslagivanje redosleda.
         const isLast = idx === groups.length - 1 && groups.length > 1;
-        const className = `flex h-9 w-9 flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
+        const className = `flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${isLast ? 'ml-auto' : ''} ${
           active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`;
         if (single) {
@@ -139,7 +139,7 @@ export default function TopBar({
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
-        className={`flex h-9 w-9 items-center justify-center rounded border ${
+        className={`flex h-[43px] w-[43px] items-center justify-center rounded border ${
           rightPanelOpen ? 'border-accent text-accent' : 'border-border bg-panel text-ink-faint hover:border-accent hover:text-ink'
         }`}
       >
@@ -148,7 +148,7 @@ export default function TopBar({
       <button
         onClick={logout}
         title="Odjava"
-        className="flex h-9 w-9 items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-danger hover:text-danger"
+        className="flex h-[43px] w-[43px] items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-danger hover:text-danger"
       >
         <Icon name="sign-out" />
       </button>

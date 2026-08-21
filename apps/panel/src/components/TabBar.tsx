@@ -9,7 +9,7 @@ export default function TabBar() {
   const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
 
   return (
-    <div className="flex h-9 flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-border bg-bg px-1.5">
+    <div className="flex h-[43px] flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-border bg-bg px-1.5">
       {tabs.map((tab) => {
         const active = tab.path === activePath;
         return (
@@ -29,9 +29,9 @@ export default function TabBar() {
                   e.stopPropagation();
                   closeTab(tab.path);
                 }}
-                className="flex h-[21px] w-[21px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
+                className="flex h-[25px] w-[25px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
               >
-                <Icon name="close" className="text-[13px]" />
+                <Icon name="close" className="text-[16px]" />
               </span>
             )}
           </Link>
@@ -40,18 +40,18 @@ export default function TabBar() {
       <Link
         href="/"
         title="Nov tab — Početna (docs/analize/29-DIZAJN-SISTEM-UI.md §5a)"
-        className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+        className="flex h-[37px] w-[37px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-panel hover:text-ink"
       >
-        <Icon name="add" className="text-[16px]" />
+        <Icon name="add" className="text-[19px]" />
       </Link>
       {/* Na zahtev vlasnika, 19.8.2026 — vidljivo tek kad ima "previše" otvorenih tabova. */}
       {tabs.length > 3 && (
         <button
           onClick={closeAllTabs}
           title="Zatvori sve tabove"
-          className="ml-auto flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger"
+          className="ml-auto flex h-[37px] w-[37px] flex-shrink-0 items-center justify-center self-center rounded text-ink-faint hover:bg-danger-bg hover:text-danger"
         >
-          <Icon name="close-all" className="text-[16px]" />
+          <Icon name="close-all" className="text-[19px]" />
         </button>
       )}
     </div>

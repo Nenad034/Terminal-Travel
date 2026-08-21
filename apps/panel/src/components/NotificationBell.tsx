@@ -110,7 +110,7 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         title="Obaveštenja — istorija"
-        className={`relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded ${
+        className={`relative flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${
           open ? 'bg-panel text-accent' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`}
       >

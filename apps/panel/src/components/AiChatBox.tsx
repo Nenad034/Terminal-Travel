@@ -162,7 +162,7 @@ export default function AiChatBox() {
           <button
             onClick={() => setPlusOpen((v) => !v)}
             title="Priloži kontekst"
-            className={`flex h-[26px] w-[26px] items-center justify-center rounded ${plusOpen ? 'bg-panel-2 text-accent' : 'hover:bg-panel-2 hover:text-ink'}`}
+            className={`flex h-[31px] w-[31px] items-center justify-center rounded ${plusOpen ? 'bg-panel-2 text-accent' : 'hover:bg-panel-2 hover:text-ink'}`}
           >
             <Icon name="add" />
           </button>
@@ -204,7 +204,7 @@ export default function AiChatBox() {
         <button
           onClick={send}
           title="Pošalji"
-          className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded hover:bg-panel-2 hover:text-accent"
+          className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded hover:bg-panel-2 hover:text-accent"
         >
           <Icon name="send" />
         </button>

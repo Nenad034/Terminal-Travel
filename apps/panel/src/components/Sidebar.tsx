@@ -49,7 +49,7 @@ export default function Sidebar({
   if (collapsed) {
     return (
       <nav className="flex h-full flex-col items-center gap-1 bg-panel-2 py-3">
-        <button onClick={onExpand} title="Proširi levu traku" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink">
+        <button onClick={onExpand} title="Proširi levu traku" className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink">
           <Icon name="chevron-right" />
         </button>
         {(selected ? [selected] : sectionItems).map((item) => (
@@ -57,7 +57,7 @@ export default function Sidebar({
             key={item.id}
             href={item.href}
             title={item.label}
-            className={`flex h-7 w-7 items-center justify-center rounded ${
+            className={`flex h-[34px] w-[34px] items-center justify-center rounded ${
               item.id === selected?.id ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
             }`}
           >
@@ -73,7 +73,7 @@ export default function Sidebar({
       <button
         onClick={onCollapse}
         title="Skupi levu traku"
-        className="mx-2 mb-1 flex h-6 w-6 flex-shrink-0 items-center justify-center self-end rounded text-ink-faint hover:bg-panel hover:text-ink"
+        className="mx-2 mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center self-end rounded text-ink-faint hover:bg-panel hover:text-ink"
       >
         <Icon name="chevron-left" />
       </button>
@@ -108,7 +108,7 @@ export default function Sidebar({
                   title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
                   className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-ink-faint opacity-40"
                 >
-                  <span className="flex w-6 items-center justify-center">
+                  <span className="flex w-[29px] items-center justify-center">
                     <Icon name="lock" />
                   </span>
                   <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">

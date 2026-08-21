@@ -92,7 +92,7 @@ export default function StatusBar({
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
-    <footer className="flex h-6 flex-shrink-0 items-center gap-3 border-t border-border bg-panel-2 px-2 text-[11px] text-ink-faint">
+    <footer className="flex h-[29px] flex-shrink-0 items-center gap-3 border-t border-border bg-panel-2 px-2 text-[11px] text-ink-faint">
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>
       </span>
@@ -124,7 +124,7 @@ export default function StatusBar({
         <button
           onClick={() => setMessagesOpen((v) => !v)}
           title="Poruke — Mejl, Interni chat, WhatsApp, Viber, Telegram"
-          className={`flex h-[26px] w-[26px] items-center justify-center rounded ${
+          className={`flex h-[31px] w-[31px] items-center justify-center rounded ${
             messagesOpen ? 'bg-panel text-accent' : 'hover:bg-panel hover:text-ink'
           }`}
         >
