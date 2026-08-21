@@ -98,6 +98,15 @@ Nova vrednost, prigušeniji zlatno-braon ton (bliži ostatku palete), PROVERENA 
 
 Tamni mod je ranije prolazio kontrast, ali je ipak blago prilagođen (isti pravac, malo svetlije/manje narandžasto) da ostane u istoj porodici tona kao ispravljen svetli mod — jedinstven ton umesto "svetli menjan, tamni slučajno ostao drugačiji". Ovo je deljen token — primenjeno svuda gde se `--warn`/`--warn-bg` koriste u panelu (51 mesto kroz 34 ekrana, ne samo dashboard kartice sa snimka), jedan izvor istine (`globals.css`), nema lokalnih izuzetaka po ekranu.
 
+**Drugi pokušaj (21.8.2026, isti dan)** — posle osvežavanja, vlasnik je snimkom potvrdio da prigušeniji zlatno-braon amber (tabela iznad) i dalje vizuelno čita kao "žuto", ista pritužba kao pre. Umesto dalje suptilne kalibracije unutar iste amber porodice, promenjena je **porodica boje** — ponuđene tri opcije kroz `AskUserQuestion` (narandžasto-riđa/bakarna dalje od crvenog kraja, maslinasto-zlatna bliža `--accent` porodici, ili potpuno neutralna bez obojene pozadine), vlasnik izabrao **maslinasto-zlatnu**: ista porodica kao jedinstvena akcentna boja (`#8A8A5E`, poglavlje 2.0b), samo tamnija/zasićenija nijansa — deluje kao deo iste palete umesto stranog tela. Finalne vrednosti, PROVERENE WCAG 2.1 formulom:
+
+| Mod | Tekst na `warn-bg` | Tekst na `bg`/`panel` |
+| :---- | :---- | :---- |
+| Svetli | `#6b6b1f` na `#eeeedc` — 4.78:1 | `#6b6b1f` na `#ffffff` — 5.60:1 |
+| Tamni | `#c2c26a` na `#2a2a12` — 7.80:1 | `#c2c26a` na `#263238` — 7.03:1 |
+
+Ovo su finalne vrednosti u `globals.css` (zamenjuju tabelu iznad, koja ostaje kao zapis prvog, odbačenog pokušaja).
+
 **Paleta ostaje promenljiva, ne zaključana jednom zauvek** (potvrđeno 17.8.2026, na izričit zahtev vlasnika). Tehnički mehanizam ovo već obezbeđuje bez dodatnog rada — boje žive isključivo kao centralni sloj CSS promenljivih (isti sloj koji poglavlje 2 birač teme i M7 poglavlje 2.0.5 `SubagentBranding` već koriste), nikad utkane direktno u komponente. Promena tona/nijanse "Horizont"/"Zalazak" palete je u svakom trenutku izmena vrednosti tog sloja, ne prepravka UI koda — uz jedini uslov da svaka nova vrednost ponovo prođe proveru iz poglavlja 2a pre nego što se smatra gotovom.
 
 **Tamni i svetli mod — oba se prave, na zahtev vlasnika (avgust 2026).** Tamni ostaje podrazumevani (prvi koji se implementira, prvi koji se testira), ali svetli mod nije opcioni "ako ikad zatreba" — obavezan je od starta.

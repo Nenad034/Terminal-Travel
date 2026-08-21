@@ -87,15 +87,15 @@
   --accent2-soft: #0069cc1a;
   --ok: #1f9d67;
   --ok-bg: #e3f6ec;
-  /* `--warn`/`--warn-bg` ISPRAVLJENI (21.8.2026, na zahtev vlasnika uz snimak: "ukloniti ove
-     zute boje... ne uklapaju se ni u jedan mod") — ranije `#a86a12`/`#f9edd3` je bilo previše
-     saturisano/"kandi žuto" naspram ostatka palete i, uzgred otkriveno pri proveri, tekst na
-     sopstvenoj pill pozadini je pao ISPOD AA praga (3.82:1, §2a traži 4.5:1 za tekst) — stvaran
-     bag, ne samo estetika. Novi par je prigušeniji zlatno-braon ton (bliži paleti nego čisto
-     žuta), PROVEREN WCAG 2.1 kalkulacijom (node skripta, ista metoda kao ostatak §2a): tekst na
-     belu 6.37:1, tekst na sopstvenu pill pozadinu 5.40:1 — oba iznad 4.5:1 praga sa rezervom. */
-  --warn: #7a5a12;
-  --warn-bg: #f3ecd9;
+  /* `--warn`/`--warn-bg` ISPRAVLJENI DRUGI PUT (21.8.2026, na zahtev vlasnika — prvi
+     pokušaj, prigušeniji zlatno-braon amber, i dalje je "žuto" na oko, snimak posle osvežavanja
+     nije pokazao vidljivu razliku). Umesto tuning-a iste amber porodice, promenjena PORODICA —
+     maslinasto-zlatna, ista porodica kao `--accent` (#8A8A5E), samo tamnija/zasićenija nijansa
+     (potvrđeno kroz `AskUserQuestion`, opcija "bliža accent boji") — deluje kao deo iste palete,
+     ne strano telo. PROVERENO WCAG 2.1 kalkulacijom: tekst na belu 5.60:1, na sopstvenu pill
+     pozadinu 4.78:1 — oba iznad 4.5:1 praga (§2a). */
+  --warn: #6b6b1f;
+  --warn-bg: #eeeedc;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
   /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod, boja ikonica (§ komentar
@@ -121,8 +121,11 @@
     --accent2-soft: #80cbc41a;
     --ok: #3ecf8e;
     --ok-bg: #0f2b21;
-    --warn: #e0ac52;
-    --warn-bg: #33240c;
+    /* Maslinasto-zlatna porodica (21.8.2026, drugi pokušaj — vidi § komentar u :root iznad),
+       ista porodica kao `--accent` (#8A8A5E), svetlija/zasićenija nijansa za tamnu pozadinu.
+       Provereno: tekst na `--bg` 7.03:1, na sopstvenu pill pozadinu 7.80:1. */
+    --warn: #c2c26a;
+    --warn-bg: #2a2a12;
     --danger: #e2685a;
     --danger-bg: #3a1712;
     /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
@@ -147,8 +150,8 @@
   --accent2-soft: #80cbc41a;
   --ok: #3ecf8e;
   --ok-bg: #0f2b21;
-  --warn: #e0ac52;
-  --warn-bg: #33240c;
+  --warn: #c2c26a;
+  --warn-bg: #2a2a12;
   --danger: #e2685a;
   --danger-bg: #3a1712;
   --icon-line: currentColor;
@@ -170,8 +173,8 @@
   --accent2-soft: #0069cc1a;
   --ok: #1f9d67;
   --ok-bg: #e3f6ec;
-  --warn: #7a5a12;
-  --warn-bg: #f3ecd9;
+  --warn: #6b6b1f;
+  --warn-bg: #eeeedc;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
   --icon-line: #1f3a5f;
