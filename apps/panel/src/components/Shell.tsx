@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import ActivityBar from './ActivityBar';
-import TabBar from './TabBar';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
@@ -104,12 +103,9 @@ export default function Shell({
               />
             </ResizablePane>
             <div className="flex flex-1 flex-col overflow-hidden">
-              {/* Traka tabova VRAĆENA na početak centralnog panela (21.8.2026, drugi put isti
-                  dan, na zahtev vlasnika: "prvi tab postavite na pocetku centralnog panela") —
-                  prethodni pokušaj ju je selio u TopBar (v1.59, između grupnih ikonica i
-                  pretrage); sad prvi red centralne kolone, levo poravnata, širine te kolone
-                  (ne cele gornje trake). Vidi TopBar.tsx za uklanjanje. */}
-              <TabBar />
+              {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
+                  vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj
+                  (v1.62, prvi red centralne kolone). Vidi TopBar.tsx. */}
               {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
                   sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
                   od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").

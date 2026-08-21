@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import TabBar from './TabBar';
 import { useTabs } from './TabsContext';
 import NotificationBell from './NotificationBell';
 
@@ -87,14 +88,17 @@ export default function TopBar({
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
       {/* Naziv smanjen za 20% (41px→33px) i prepisan kao "TT  Terminal Travel" — inicijali kao
           istaknuta oznaka + pun naziv kao manji, tiši dodatak (na zahtev vlasnika, 21.8.2026).
-          `font-tech` (JetBrains Mono, `layout.tsx`) ostaje. Traka tabova preseljena na početak
-          centralnog panela (isti zahtev, "prvi tab postavite na pocetku centralnog panela") —
-          vidi `Shell.tsx`, TopBar više ne nosi TabBar. */}
+          `font-tech` (JetBrains Mono, `layout.tsx`) ostaje. */}
       <span className="mr-1 flex flex-shrink-0 items-baseline gap-1.5 font-tech italic">
         <span className="text-[33px] leading-none tracking-tight text-accent">TT</span>
         <span className="text-xs leading-none tracking-wide text-ink-faint">Terminal Travel</span>
       </span>
-      <div className="flex-1" />
+      {/* Traka tabova VRAĆENA u gornji red (21.8.2026, treći krug istog dana, na zahtev
+          vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj (v1.62,
+          premeštanje na početak centralnog panela). */}
+      <div className="flex h-full min-w-0 flex-1">
+        <TabBar />
+      </div>
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
         className="flex items-center gap-2 rounded border border-border bg-panel px-2 py-1 font-mono text-ink-faint hover:border-accent"
