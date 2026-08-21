@@ -100,11 +100,16 @@ export default function TopBar({
           minimalnu širinu da se naziv ne preklopi sa tabovima kad je Sidebar kolabovan
           (leftRailWidth tad pada ispod širine samog naziva — poravnanje u tom jednom stanju
           svesno nije piksel-tačno, isti kompromis kao ranije). "TT" boldirano i "svetli"
-          (text-shadow sjaj u akcentnoj boji); "TERMINAL TRAVEL" velikim slovima, smanjeno za
-          20% u odnosu na TT (33px→26px), razmaknuto za 3 slovna mesta (`ml-[3ch]`). */}
+          (text-shadow sjaj u akcentnoj boji), boja `text-wordmark` (nov CSS token, globals.css
+          — belo u tamnom modu, navy teget u svetlom; na zahtev vlasnika, 21.8.2026: "TT neka
+          bude u beloj boji", posle upozorenja da čisto belo na skoro-beloj pozadini svetlog
+          moda ne bi bilo čitljivo, vlasnik je izabrao "belo u dark a navy teget u light" —
+          isti navy ton koji već postoji za ikonice, §komentar `.codicon` u globals.css).
+          "TERMINAL TRAVEL" velikim slovima, smanjeno za 20% u odnosu na TT (33px→26px),
+          razmaknuto za 3 slovna mesta (`ml-[3ch]`). */}
       <div className="flex flex-shrink-0 items-baseline gap-0 font-tech italic" style={{ width: Math.max(leftRailWidth - 12, 140) }}>
         <span
-          className="text-[33px] font-bold leading-none tracking-tight text-accent"
+          className="text-[33px] font-bold leading-none tracking-tight text-wordmark"
           style={{ textShadow: '0 0 6px var(--accent), 0 0 16px var(--accent)' }}
         >
           TT

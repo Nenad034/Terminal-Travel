@@ -34,6 +34,9 @@ const config: Config = {
         ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
         warn: { DEFAULT: 'var(--warn)', bg: 'var(--warn-bg)' },
         danger: { DEFAULT: 'var(--danger)', bg: 'var(--danger-bg)' },
+        // "TT" naziv (TopBar.tsx) — belo u tamnom modu, navy teget u svetlom (21.8.2026, na
+        // zahtev vlasnika, globals.css --wordmark).
+        wordmark: 'var(--wordmark)',
       },
       borderRadius: {
         DEFAULT: '8px',
