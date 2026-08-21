@@ -1,21 +1,19 @@
 'use server';
 
 import { apiFetch, ApiError } from '@/lib/api-client';
+import type { SelectionItem } from '@/components/SelectionContext';
 
 export interface CreateQuoteState {
   error: string | null;
   quoteId?: string;
 }
 
-// M5 spec §3.0b.3/§3.1 — polja stavke se prepisuju iz izabranog SearchResultOffer,
-// korisnik ih ne unosi ručno (docs/api/M5-rezervacije.md, POST /quotes).
-export async function createQuoteFromOffer(_prev: CreateQuoteState, formData: FormData): Promise<CreateQuoteState> {
-  const adults = Number(formData.get('adults'));
-  const children = Number(formData.get('children'));
-  const stayFrom = formData.get('stayFrom') as string;
-  const stayTo = formData.get('stayTo') as string;
-
-  if (!stayFrom || !stayTo) {
+// M5 spec §3.0e.3 — desni panel skuplja stavke iz pretrage pre nego što se stvarno napravi
+// Ponuda; ovaj poziv je trenutak kad selekcija konačno postaje pravi POST /quotes zapis,
+// sa svim stavkama u jednom pozivu (isti endpoint kao pojedinačan slučaj, samo duži niz).
+export async function createQuoteFromSelection(items: SelectionItem[]): Promise<CreateQuoteState> {
+  if (items.length === 0) return { error: 'Selekcija je prazna.' };
+  if (items.some((i) => !i.stayFrom || !i.stayTo)) {
     return { error: 'Izaberite period boravka (od/do) pre kreiranja ponude.' };
   }
 
@@ -25,26 +23,20 @@ export async function createQuoteFromOffer(_prev: CreateQuoteState, formData: Fo
       method: 'POST',
       body: {
         channel: 'INTERNAL_PANEL',
-        items: [
-          {
-            productId: formData.get('productId'),
-            rateLineId: formData.get('rateLineId') || undefined,
-            providerQuoteReference: formData.get('providerQuoteReference') || undefined,
-            stayFrom,
-            stayTo,
-            occupancy: { adults, children, roomConfig: [{ adults, children, childrenAges: [] }] },
-          },
-        ],
+        items: items.map((i) => ({
+          productId: i.productId,
+          rateLineId: i.rateLineId || undefined,
+          providerQuoteReference: i.providerQuoteReference || undefined,
+          stayFrom: i.stayFrom,
+          stayTo: i.stayTo,
+          occupancy: { adults: i.adults, children: i.children, roomConfig: [{ adults: i.adults, children: i.children, childrenAges: [] }] },
+        })),
       },
     });
     quoteId = quote.id;
   } catch (err) {
     return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje ponude nije uspelo.' };
   }
-  // docs/analize/29-DIZAJN-SISTEM-UI.md §5a — kreiranje ponude iz pretrage je drill-down,
-  // ostaje u istom tabu. Server Action se ne redirektuje sam (to bi otvorilo nov tab preko
-  // RegisterTab efekta) — vraća quoteId, klijentska komponenta (QuoteButton) navigira kroz
-  // navigateInTab.
   return { error: null, quoteId };
 }
 

@@ -1,53 +1,55 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
-import { createQuoteFromOffer, CreateQuoteState } from './actions';
-import { useTabs } from '@/components/TabsContext';
+import { useSelection } from '@/components/SelectionContext';
 
-const initialState: CreateQuoteState = { error: null };
-
+// M5 spec §3.0e.3 — "Dodaj" stavlja stavku u selekciju (desni panel), ne kreira Ponudu
+// odmah (ranije ponašanje, do 21.8.2026). Kreiranje Ponude je sad jedan zajednički korak
+// za celu selekciju (RightPanel.tsx, "Napravi ponudu") — čisto klijentsko stanje, bez
+// poziva serveru dok se selekcija ne pretvori u pravu Ponudu.
 export default function QuoteButton(props: {
   productId: string;
+  productName: string;
+  productType: string;
+  sourceType: string;
   rateLineId?: string;
   providerQuoteReference?: string;
   stayFrom?: string;
   stayTo?: string;
   adults: number;
   children: number;
+  finalPrice: number;
+  finalPriceCurrency: string;
+  quoteExpiresAt?: string;
 }) {
-  const [state, formAction] = useFormState(createQuoteFromOffer, initialState);
-  const { navigateInTab } = useTabs();
+  const { items, addItem } = useSelection();
+  const key = `${props.productId}:${props.rateLineId ?? props.providerQuoteReference ?? 'na'}`;
+  const added = items.some((i) => i.key === key);
 
-  useEffect(() => {
-    if (state.quoteId) navigateInTab(`/rezervacije/ponude/${state.quoteId}`, 'Ponuda');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.quoteId]);
-
-  return (
-    <form action={formAction} className="flex flex-col items-end gap-1">
-      <input type="hidden" name="productId" value={props.productId} />
-      <input type="hidden" name="rateLineId" value={props.rateLineId ?? ''} />
-      <input type="hidden" name="providerQuoteReference" value={props.providerQuoteReference ?? ''} />
-      <input type="hidden" name="stayFrom" value={props.stayFrom ?? ''} />
-      <input type="hidden" name="stayTo" value={props.stayTo ?? ''} />
-      <input type="hidden" name="adults" value={props.adults} />
-      <input type="hidden" name="children" value={props.children} />
-      <SubmitButton />
-      {state.error && <span className="text-[11px] text-danger">{state.error}</span>}
-    </form>
-  );
-}
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
   return (
     <button
-      type="submit"
-      disabled={pending}
+      type="button"
+      disabled={added}
+      onClick={() =>
+        addItem({
+          key,
+          productId: props.productId,
+          productName: props.productName,
+          productType: props.productType,
+          sourceType: props.sourceType,
+          rateLineId: props.rateLineId,
+          providerQuoteReference: props.providerQuoteReference,
+          stayFrom: props.stayFrom,
+          stayTo: props.stayTo,
+          adults: props.adults,
+          children: props.children,
+          finalPrice: props.finalPrice,
+          finalPriceCurrency: props.finalPriceCurrency,
+          quoteExpiresAt: props.quoteExpiresAt,
+        })
+      }
       className="rounded bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
     >
-      {pending ? '…' : 'kreiraj ponudu'}
+      {added ? 'dodato' : 'dodaj'}
     </button>
   );
 }

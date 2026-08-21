@@ -170,12 +170,18 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
                 </span>
                 <QuoteButton
                   productId={r.productId}
+                  productName={r.name}
+                  productType={r.type}
+                  sourceType={r.sourceType}
                   rateLineId={o.rateLineId}
                   providerQuoteReference={o.providerQuoteReference}
                   stayFrom={quoteDefaults.stayFrom}
                   stayTo={quoteDefaults.stayTo}
                   adults={quoteDefaults.adults}
                   children={quoteDefaults.children}
+                  finalPrice={o.finalPrice}
+                  finalPriceCurrency={o.finalPriceCurrency}
+                  quoteExpiresAt={o.quoteExpiresAt}
                 />
               </div>
             </div>
@@ -210,12 +216,18 @@ function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; qu
               </span>
               <QuoteButton
                 productId={r.productId}
+                productName={r.name}
+                productType={r.type}
+                sourceType={r.sourceType}
                 rateLineId={o.rateLineId}
                 providerQuoteReference={o.providerQuoteReference}
                 stayFrom={quoteDefaults.stayFrom}
                 stayTo={quoteDefaults.stayTo}
                 adults={quoteDefaults.adults}
                 children={quoteDefaults.children}
+                finalPrice={o.finalPrice}
+                finalPriceCurrency={o.finalPriceCurrency}
+                quoteExpiresAt={o.quoteExpiresAt}
               />
             </div>
           </div>
