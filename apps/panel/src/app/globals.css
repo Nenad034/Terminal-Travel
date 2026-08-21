@@ -75,7 +75,14 @@
   --bg: #ffffff;
   --panel: #ffffff;
   --panel-2: #fafafd;
-  --border: #f0f1f2;
+  /* `--border` POTAMNJEN (21.8.2026, na zahtev vlasnika uz snimak kartica u centralnom delu:
+     "jedva se vide okvirne linije... potamnite ih za 15%") — bilo je `#f0f1f2`, samo 1.13:1
+     na belu pozadinu, DALEKO ispod 3:1 praga za granice (§2a) — doslovnih -15% na vrednost
+     ovoliko blizu bele (240→204) i dalje bi dalo samo 1.57:1, praktično nepromenjeno, jer
+     postotak od skoro-bele vrednosti ne pomera kontrast dovoljno. Umesto doslovnog izračuna,
+     izabrana vrednost koja stvarno prolazi 3:1 prag (isti standard kao svaka druga granica u
+     ovom dokumentu) — `#858c92`, 3.41:1 na belu, ista hladno-siva porodica kao original. */
+  --border: #858c92;
   --text: #202020;
   --text-dim: #404040;
   --text-faint: #606060;
@@ -109,7 +116,10 @@
     --bg: #263238;
     --panel: #263238;
     --panel-2: #192227;
-    --border: #3b4a51;
+    /* `--border` posvetljen isti prolaz (21.8.2026) — bilo je `#3b4a51`, samo 1.43:1 na tamnu
+       pozadinu, ispod 3:1 praga (§2a); vlasnikova pritužba je bila za svetli mod, ali tamni je
+       imao isti stvaran propust pri proveri, ista logika kao svaki drugi token ovog dana. */
+    --border: #748088;
     --text: #eeffff;
     --text-dim: #c9d6db;
     --text-faint: #9bb0bd;
@@ -138,7 +148,7 @@
   --bg: #263238;
   --panel: #263238;
   --panel-2: #192227;
-  --border: #3b4a51;
+  --border: #748088;
   --text: #eeffff;
   --text-dim: #c9d6db;
   --text-faint: #9bb0bd;
@@ -161,7 +171,7 @@
   --bg: #ffffff;
   --panel: #ffffff;
   --panel-2: #fafafd;
-  --border: #f0f1f2;
+  --border: #858c92;
   --text: #202020;
   --text-dim: #404040;
   --text-faint: #606060;
