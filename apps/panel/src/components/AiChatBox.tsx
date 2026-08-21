@@ -157,7 +157,14 @@ export default function AiChatBox() {
         </div>
       )}
 
-      <div className="flex flex-shrink-0 items-center gap-2 border-t border-border px-2 py-2">
+      {/* Linije chata pojačane (21.8.2026, na zahtev vlasnika: "pojacajte boji linija chata
+          jedva se vide u light modu, u dark modu neka budu jos svetlije") — `border-border`
+          (§komentar globals.css, misli se za blage unutrašnje razdelnike) je bio praktično
+          nevidljiv na belu/skoro-belu pozadinu u svetlom modu. Zamenjeno postojećim
+          `ink.faint` tokenom (već prolazi 4.5:1 tekst-kontrast, dakle daleko iznad 3:1 praga
+          za granice — §2a) — u svetlom modu tamniji/vidljiviji, a u tamnom modu SVETLIJI od
+          `--border` (isti smer koji je vlasnik tražio), bez novog CSS tokena. */}
+      <div className="flex flex-shrink-0 items-center gap-2 border-t border-ink-faint px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
             onClick={() => setPlusOpen((v) => !v)}
@@ -210,12 +217,12 @@ export default function AiChatBox() {
         </button>
       </div>
 
-      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-border px-2 py-1.5">
+      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-ink-faint px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}
             onClick={() => openTab(item.href, item.label)}
-            className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
           >
             <Icon name={item.icon} />
             {item.label}
