@@ -229,8 +229,11 @@ export default function AiChatBox() {
       </div>
 
       {/* Centrirano (21.8.2026, na zahtev vlasnika: "centrirajte tagove na sredinu donje
-          polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`. */}
-      <div className="flex flex-wrap justify-center gap-1.5 border border-ink-faint px-2 py-1.5">
+          polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`.
+          Okvir sveden na samo gornju liniju (21.8.2026, sledeći zahtev istog dana: "ostavite
+          samo gornju liniju donjeg dela ostale linuije uklonite") — pun okvir (v1.56, sve četiri
+          strane) zamenjen sa `border-t` (samo linija koja razdvaja od reda za unos iznad). */}
+      <div className="flex flex-wrap justify-center gap-1.5 border-t border-ink-faint px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}
