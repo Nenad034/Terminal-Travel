@@ -238,7 +238,7 @@ export default function AiChatBox() {
           <button
             key={item.id}
             onClick={() => openTab(item.href, item.label)}
-            className="flex items-center gap-1 rounded-full border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            className="flex items-center gap-1 rounded border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
           >
             <Icon name={item.icon} />
             {item.label}
