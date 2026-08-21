@@ -9,15 +9,23 @@ export default function TabBar() {
   const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
 
   return (
-    <div className="flex h-[43px] flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-border bg-bg px-1.5">
+    <div className="flex h-[43px] flex-shrink-0 items-end gap-0.5 overflow-x-auto border-b border-frame bg-bg px-1.5">
       {tabs.map((tab) => {
         const active = tab.path === activePath;
         return (
           <Link
             key={tab.path}
             href={tab.path}
-            className={`group flex max-w-[200px] items-center gap-2 rounded-t px-3 py-2 text-xs ${
-              active ? 'border border-b-0 border-border bg-panel text-ink' : 'text-ink-faint hover:text-ink-dim'
+            className={`group flex max-w-[200px] items-center gap-2 rounded-t border-t-2 px-3 py-2 text-xs ${
+              // VS Code obrazac (21.8.2026, na zahtev vlasnika: "obeležiti kao u VS Code da
+              // znamo koji je aktivan") — obojena traka na vrhu AKTIVNOG taba (border-t-2
+              // border-t-accent) + pozadina koja se stapa sa sadržajem ispod (bg-panel), za
+              // razliku od trake tabova (bg-bg). Neaktivni tabovi zadržavaju isti border-t-2
+              // razmak sa providnom bojom (border-t-transparent) da se visina ne pomera kad
+              // se aktivni tab menja.
+              active
+                ? 'border border-b-0 border-frame border-t-accent bg-panel text-ink'
+                : 'border-t-transparent text-ink-faint hover:text-ink-dim'
             }`}
           >
             {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}

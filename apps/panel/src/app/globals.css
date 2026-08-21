@@ -19,15 +19,41 @@
    `.codicon[class*='codicon-']` (specifičnost 0,2,0 > 0,1,0) — ispravljeno sa `!important`
    (namerno pragmatično rešenje, override tuđe biblioteke, ne kopiranje vendor selektora).
 
-   Debljina linije: +10% (21.8.2026) pa -15% od TE vrednosti (21.8.2026, na zahtev vlasnika:
-   "stanjite za 15% širinu linija") — 0.35px × 0.85 = 0.2975, zaokruženo na 0.3px. I dalje
-   aproksimacija preko `text-stroke` (Codicon je jednotežinski font, nema pravu promenljivu
-   debljinu linije kao stroke-based setovi tipa Lucide/Feather) — prava alternativa bi bila
-   zamena celog ikonskog seta (nova tehnologija van poglavlja 6, zahteva potvrdu vlasnika). */
+   Debljina linije: +10% → -15% → -10% od te vrednosti (21.8.2026, tri uzastopna zahteva
+   vlasnika istog dana) — 0.3px × 0.9 = 0.27px. I dalje aproksimacija preko `text-stroke`
+   (Codicon je jednotežinski font, nema pravu promenljivu debljinu linije kao stroke-based
+   setovi tipa Lucide/Feather) — prava alternativa bi bila zamena celog ikonskog seta (nova
+   tehnologija van poglavlja 6, zahteva potvrdu vlasnika).
+
+   Boja ikonica u svetlom modu — "navy teget" (21.8.2026, na zahtev vlasnika). `--icon-line`
+   je nov token: u svetlom modu (`:root`) je stvaran navy heks; u oba tamna bloka je
+   `currentColor`, što se u `color` svojstvu po CSS specifikaciji računa kao `inherit` —
+   dakle u tamnom modu se ništa ne menja (identično ponašanje kao pre ove izmene). Ovo NE
+   sme prosto da postavi `color: navy` bez uslova, jer bi to trajno prekinulo postojeće
+   hover/aktivno/semantičko bojenje ikonica (npr. `text-accent-strong` na aktivnoj grupi u
+   TopBar-u, `text-danger` na hover brisanja) — dete (`.codicon`) sa sopstvenom eksplicitnom
+   `color` vrednošću više ne nasleđuje boju roditelja bez obzira na specifičnost. Rešenje:
+   kompenzacioni selektori ispod, jedan po svakoj boji koja se stvarno koristi u trakama
+   (TopBar/Sidebar/StatusBar/TabBar/RightPanel/ThemeToggle/NotificationBell/AiChatBox,
+   provereno grep-om 21.8.2026) — vraćaju `inherit` tačno tamo gde je namerna promena boje
+   već postojala, ostatak (podrazumevano `text-ink-faint` stanje) postaje navy. */
 .codicon {
   font-size: 21px !important;
-  -webkit-text-stroke: 0.3px currentColor;
-  text-stroke: 0.3px currentColor;
+  -webkit-text-stroke: 0.27px currentColor;
+  text-stroke: 0.27px currentColor;
+  color: var(--icon-line);
+}
+.text-accent .codicon,
+.text-accent-strong .codicon,
+.text-danger .codicon,
+.text-ink .codicon,
+.text-ink-dim .codicon,
+.hover\:text-accent:hover .codicon,
+.hover\:text-accent-strong:hover .codicon,
+.hover\:text-danger:hover .codicon,
+.hover\:text-ink:hover .codicon,
+.hover\:text-ink-dim:hover .codicon {
+  color: inherit;
 }
 
 /* M17 zadatak (avgust 2026) — paleta "Horizont v2" (docs/analize/29-DIZAJN-SISTEM-UI.md §2.0a/§2.0b).
@@ -65,6 +91,12 @@
   --warn-bg: #f9edd3;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
+  /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod; ikonice u trakama i
+     linije koje uokviruju panele (§ komentar iznad .codicon, i ResizablePane/TopBar/
+     StatusBar/TabBar/RightPanel/AiChatBox). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1,
+     daleko iznad 3:1 praga za ikonice/granice (§2a). */
+  --icon-line: #1f3a5f;
+  --frame-border: #1f3a5f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -88,6 +120,10 @@
     --warn-bg: #332508;
     --danger: #e2685a;
     --danger-bg: #3a1712;
+    /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
+       se po specifikaciji računa kao `inherit`. */
+    --icon-line: currentColor;
+    --frame-border: var(--border);
   }
 }
 
@@ -111,6 +147,8 @@
   --warn-bg: #332508;
   --danger: #e2685a;
   --danger-bg: #3a1712;
+  --icon-line: currentColor;
+  --frame-border: var(--border);
 }
 
 :root[data-theme='light'] {
@@ -133,6 +171,8 @@
   --warn-bg: #f9edd3;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
+  --icon-line: #1f3a5f;
+  --frame-border: #1f3a5f;
 }
 
 * {

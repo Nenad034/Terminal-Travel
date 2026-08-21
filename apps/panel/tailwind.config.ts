@@ -16,6 +16,11 @@ const config: Config = {
         panel2: 'var(--panel-2)',
         'panel-2': 'var(--panel-2)', // alias — koristi se naizmenično sa `panel2` kroz komponente
         border: 'var(--border)',
+        // "Navy teget" linije koje uokviruju panele/trake (21.8.2026, na zahtev vlasnika) —
+        // odvojeno od generičkog `border` (koji ostaje nepromenjen za tabele/kartice/liste u
+        // sadržaju); `frame` je namerno uže, samo za TopBar/StatusBar/TabBar/ResizablePane/
+        // AiChatBox/RightPanel — vidi globals.css --frame-border komentar.
+        frame: 'var(--frame-border)',
         ink: {
           DEFAULT: 'var(--text)',
           dim: 'var(--text-dim)',

@@ -98,16 +98,18 @@ export default function Shell({
             </ResizablePane>
             <div className="flex flex-1 flex-col overflow-hidden">
               <TabBar />
-              {/* Sadržaj i AI chat dele TAČNO istu širinu — jedan zajednički omotač (na zahtev
-                  vlasnika, 19.8.2026: "prikaz na širinu chata"), ne dva odvojena w-[56%] div-a
-                  koja bi mogla vremenom da se razjednače. Centrirano (mx-auto) da prazan prostor
-                  ne padne samo na jednu stranu (ispravka istog dana). */}
-              <div className="mx-auto flex w-[56%] flex-1 flex-col overflow-hidden">
-                <main className="flex-1 overflow-y-auto">{children}</main>
+              {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
+                  sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
+                  od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").
+                  Svaki deo se centrira nezavisno (mx-auto). */}
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <main className="mx-auto w-[90%] flex-1 overflow-y-auto">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
                     koji modul je aktivan. Pun okvir (border sa sve četiri strane + senka), ne
-                    samo gornja linija — ispravka 19.8.2026, prethodni border-t se nije video. */}
-                <div className="my-2 flex-shrink-0 rounded-lg border-2 border-border bg-panel shadow-sm">
+                    samo gornja linija — ispravka 19.8.2026, prethodni border-t se nije video.
+                    Boja okvira "navy teget" u svetlom modu (21.8.2026, na zahtev vlasnika) —
+                    `border-frame`, vidi globals.css --frame-border. */}
+                <div className="mx-auto my-2 w-[72%] flex-shrink-0 rounded-lg border-2 border-frame bg-panel shadow-sm">
                   <AiChatBox />
                 </div>
               </div>

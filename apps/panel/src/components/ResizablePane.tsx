@@ -98,7 +98,7 @@ export default function ResizablePane({
       title="Prevuci za promenu širine, dvoklik za podrazumevanu"
       className={`w-1 flex-shrink-0 cursor-col-resize hover:border-accent ${
         handleSide === 'left' ? 'border-l' : 'border-r'
-      } border-border ${dragging ? 'border-accent' : ''}`}
+      } border-frame ${dragging ? 'border-accent' : ''}`}
     />
   );
 

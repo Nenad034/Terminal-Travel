@@ -45,7 +45,7 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="flex h-full flex-col bg-panel-2">
-      <div className="flex h-[43px] flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
+      <div className="flex h-[43px] flex-shrink-0 items-center justify-between border-b border-frame px-2 text-xs font-medium text-ink-faint">
         <span>{items.length > 0 ? `Selekcija (${items.length})` : 'Izdvajanje'}</span>
         <button onClick={onClose} title="Zatvori panel" className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink">
           <Icon name="close" />
@@ -67,7 +67,7 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="flex-shrink-0 border-t border-border p-2">
+          <div className="flex-shrink-0 border-t border-frame p-2">
             {currencies.length > 1 && (
               <p className="mb-2 rounded bg-warn-bg px-2 py-1 text-[11px] text-warn">
                 Selekcija sadrži više valuta — zbir po valuti ispod, konverzija se rešava pri fakturisanju (M10).
