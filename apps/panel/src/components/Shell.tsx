@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -36,16 +36,19 @@ export default function Shell({
 
   const [activeGroupId, setActiveGroupId] = useState(() => groupForHref(pathname)?.id ?? groups[0]?.id ?? 'pocetna');
   // VS Code obrazac — leva traka se skuplja na tanku traku, ne nestaje (na zahtev vlasnika,
-  // 19.8.2026). `useState(() => ...)` čita localStorage samo pri prvom renderu (isti obrazac
-  // kao ResizablePane).
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
+  // 19.8.2026). Podrazumevano `false` na SERVERU I na prvom klijentskom renderu (moraju biti
+  // identični zbog hidratacije) — localStorage se čita tek u useEffect POSLE hidratacije, isti
+  // bezbedan obrazac kao ResizablePane.tsx. Ranija verzija je čitala localStorage direktno u
+  // useState inicijalizatoru, što je pravilo neusklađenost server/klijent prvog rendera kad god
+  // je sačuvana vrednost bila "1" — uzrok prijavljene "Hydration failed" greške (21.8.2026).
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  useEffect(() => {
     try {
-      return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+      if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') setSidebarCollapsed(true);
     } catch {
-      return false;
+      // localStorage nedostupan — ostaje podrazumevano prošireno
     }
-  });
+  }, []);
   const setCollapsed = (v: boolean) => {
     setSidebarCollapsed(v);
     try {

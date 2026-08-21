@@ -148,6 +148,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* oba procesa pišu u `apps/panel/.next`; pokretanje `npm run build` dok `next dev` radi nije bezbedno, čak i kad se ne prekida dev proces.
 - *Provera:* nikad ne pokretati `npm run build` kao "brzu proveru tipova" dok dev server radi na istom `apps/panel`. Ako se to desi, ugasiti dev proces, obrisati `.next`, ponovo pokrenuti `npm run dev` — postojeća sesija/kolačić i dalje važe posle restarta (ključ za enkripciju kolačića dolazi iz `.env`, ne menja se restartom).
 
+**5.8 `useState(() => ...)` koji čita `localStorage`/`window` direktno u inicijalizatoru puca hidrataciju**
+- *Simptom:* "Hydration failed because the initial UI does not match what was rendered on the server" u browser-u, `tsc --noEmit` i server-render (curl) ostaju čisti — ne hvata se ni tipovima ni HTTP proverom, samo stvarnim browser-om.
+- *Uzrok:* obrazac `useState(() => { if (typeof window === 'undefined') return X; return localStorage.getItem(...); })` vraća `X` na SERVERU (nema `window`), ali na KLIJENTOVOM PRVOM renderu (koji React mora da poredi sa server HTML-om) `window` već postoji, pa se odmah čita sačuvana vrednost — ako se ona razlikuje od `X` (npr. korisnik je ranije sačuvao suprotno stanje), prvi klijentski render se ne slaže sa server HTML-om.
+- *Provera:* stanje koje zavisi od `localStorage`/`window` UVEK počinje od iste, fiksne podrazumevane vrednosti u `useState` (bez grananja po `typeof window`), a stvarna sačuvana vrednost se čita tek u `useEffect` (izvršava se samo na klijentu, POSLE hidratacije) — isti obrazac kao `ResizablePane.tsx`. Pre nego što se novo lično/lokalno stanje doda (tema, širina panela, skupljena traka, filteri koji se pamte), proveriti da prati ovaj obrazac, ne prečicu sa `typeof window` u inicijalizatoru.
+
 ---
 
 ## 6. Rad paralelno sa drugim agentom
