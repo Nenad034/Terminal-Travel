@@ -136,6 +136,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Vizuelna/screenshot provera responsive prikaza (poglavlje 9) — CSS audit urađen (bez fiksnih desktop širina), stvarna vizuelna provera čeka headless browser alat (nova zavisnost, čeka `tt-tech-stack` potvrdu) ili ručnu proveru.
 - `FAQSchemaLD` (poglavlje 5.1) nije emitovan nigde — nema još FAQ sadržaja na stranici proizvoda da bi bio uslovno prikazan.
 - **"Jasnoća pre estetike" smernica za buduću vizuelnu doradu** (20.8.2026, zapaženo iz spoljnog izvora, vlasnik potvrdio) — 4 merljiva kriterijuma (5s test jasnoće, mobilni budžet ~1.5s, izbegavati scrolljacking, F-obrazac raspored), različit standard od M17 (M8 cilja konverziju, M17 funkcionalnost). Nije spec, čeka narednu UX doradu M8.
+- **SEO/GEO — Google AI Overviews/AI Mode i "Preferred Sources" (21.8.2026, zapaženo iz spoljnog izvora)** — Google sve više sažima odgovore direktno u pretrazi (AI Overviews/AI Mode), pa organski klik na sajt opada; relevantno za M8 sadržaj (destinacije/proizvodi) tek kad sajt dobije svoju SEO dorаdu — sadržaj treba strukturirati mašinski čitljivo (schema.org markup, jasni FAQ blokovi/odgovori na pitanja) da bi AI Overviews mogao da ga citira (GEO — Generative Engine Optimization), ne samo klasičan SEO. Dugme "Preferred Sources" je namenjeno izdavačima/medijima, nije primenjivo na komercijalni prodajni sajt kao M8. Čeka narednu SEO/UX rundu M8, nije spec.
 
 ## M9 — Mobilna aplikacija
 *(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
