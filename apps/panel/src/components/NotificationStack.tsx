@@ -64,19 +64,24 @@ export default function NotificationStack() {
     let cancelled = false;
     let socket: Socket | null = null;
 
-    async function connect() {
-      let conversationId: string | null = null;
+    // Nezavisno traži conversationId — NE sme da uslovi otvaranje soketa. "Obaveštenja"
+    // razgovor nastaje LENJO, tek pri prvom ikad CRITICAL signalu za tog korisnika (M19
+    // in-app-notifications.service.ts) — ako panel nema taj razgovor pri učitavanju (najčešći
+    // slučaj, pre prve ikad notifikacije), rani izlazak bi ostavio komponentu bez soketa
+    // zauvek, ćutke, bez greške (tačno ovaj nalaz, 21.8.2026, prijavljen od vlasnika uživo).
+    async function findNotificationsConversationId(): Promise<string | null> {
       try {
         const res = await fetch('/api/chat/conversations', { cache: 'no-store' });
-        if (res.ok) {
-          const conversations: { id: string; name: string | null }[] = await res.json();
-          conversationId = conversations.find((c) => c.name === 'Obaveštenja')?.id ?? null;
-        }
+        if (!res.ok) return null;
+        const conversations: { id: string; name: string | null }[] = await res.json();
+        return conversations.find((c) => c.name === 'Obaveštenja')?.id ?? null;
       } catch {
-        // bez liste razgovora — nema šta da se filtrira, ne otvaramo konekciju uzalud
+        return null;
       }
-      if (cancelled || !conversationId) return;
-      notificationsConversationId.current = conversationId;
+    }
+
+    async function connect() {
+      notificationsConversationId.current = await findNotificationsConversationId();
 
       let token: string | null = null;
       try {
@@ -88,9 +93,14 @@ export default function NotificationStack() {
       if (cancelled || !token) return;
 
       socket = io(`${WS_ORIGIN}/ws/chat`, { auth: { token }, transports: ['websocket', 'polling'] });
-      socket.on('message.new', (message: MessageItem) => {
-        if (message.conversationId !== notificationsConversationId.current) return;
+      socket.on('message.new', async (message: MessageItem) => {
         if (seenIds.current.has(message.id)) return;
+        // Ako još ne znamo id "Obaveštenja" razgovora (nije postojao pri konekciji), ponovo
+        // proveri — upravo je mogao nastati OVOM porukom (prva ikad notifikacija).
+        if (notificationsConversationId.current === null) {
+          notificationsConversationId.current = await findNotificationsConversationId();
+        }
+        if (message.conversationId !== notificationsConversationId.current) return;
         seenIds.current.add(message.id);
         setItems((prev) => [...prev, parseSystemMessage(message)]);
       });
