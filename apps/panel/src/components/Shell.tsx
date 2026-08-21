@@ -68,14 +68,20 @@ export default function Shell({
   return (
     <TabsProvider homeLabel="Početna">
       <SelectionProvider onFirstAdd={() => setRightPanelOpen(true)}>
-        {/* VS Code obrazac (21.8.2026, na zahtev vlasnika: "svaka traka i svaki panel imaju
-            svoje linije, ne dele je... postoji milimetarski prazan prostor između, ivice su
-            blago zaobljene") — svaka strukturna zona (TopBar/Sidebar/TabBar/sadržaj/AiChatBox/
-            RightPanel/StatusBar) je sad sopstvena `rounded-lg border border-frame` kutija,
-            umesto ranijih deljenih ivica (border-b na jednoj, border-t na susednoj). Razmak
-            između njih je `gap-1.5`/`p-1.5` (isti mali razmak svuda), pozadina `bg-bg` se vidi
-            kroz njega — otud "milimetarski prazan prostor" umesto jedne zajedničke linije. */}
-        <div className="flex h-screen flex-col gap-1.5 overflow-hidden bg-bg p-1.5 text-ink">
+        {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
+            snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
+            razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
+            tonovima boje"). Prethodni prolaz (v1.42) je uveo `border-frame` liniju + `gap-1.5`
+            razmak + `rounded-lg` oko svake trake — vizuelno je ispalo kao "plutajuće kartice",
+            ne kao pravi VS Code (koji nema linije NI razmak između susednih zona, samo tonsku
+            razliku pozadine, potpuno pripijene ivice, bez zaobljenosti). Ispravljeno: nema
+            više `border-frame`/`gap`/`rounded-lg` ovde — razdvajanje ide isključivo preko
+            DVA tona koja se ponavljaju kroz trake: `bg-panel-2` (hrom — TopBar/Sidebar/
+            TabBar/StatusBar/RightPanel) naspram `bg-panel` (sadržaj — glavni panel, aktivan
+            tab, AiChatBox). Kad su dve susedne zone istog tona (npr. TopBar iznad TabBar-a),
+            namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
+            u pravom VS Code-u. */}
+        <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
           <TopBar
             fullName={fullName}
             roles={roles}
@@ -85,7 +91,7 @@ export default function Shell({
             rightPanelOpen={rightPanelOpen}
             onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
           />
-          <div className="flex flex-1 gap-1.5 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
             <ResizablePane
               storageKey="tt-panel-sidebar-width"
               defaultWidth={224}
@@ -103,20 +109,19 @@ export default function Shell({
                 onExpand={() => setCollapsed(false)}
               />
             </ResizablePane>
-            <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
+            <div className="flex flex-1 flex-col overflow-hidden">
               <TabBar />
               {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
                   sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
                   od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").
                   Svaki deo se centrira nezavisno (mx-auto). */}
-              <div className="flex flex-1 flex-col gap-1.5 overflow-hidden">
-                <main className="mx-auto w-[90%] flex-1 overflow-y-auto rounded-lg border border-frame bg-panel">{children}</main>
+              <div className="flex flex-1 flex-col overflow-hidden">
+                <main className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
-                    koji modul je aktivan. Pun okvir (border sa sve četiri strane + senka), ne
-                    samo gornja linija — ispravka 19.8.2026, prethodni border-t se nije video.
-                    Boja okvira "navy teget" u svetlom modu (21.8.2026, na zahtev vlasnika) —
-                    `border-frame`, vidi globals.css --frame-border. */}
-                <div className="mx-auto w-[72%] flex-shrink-0 rounded-lg border-2 border-frame bg-panel shadow-sm">
+                    koji modul je aktivan. Bez linije/okvira (21.8.2026) — razdvaja se od
+                    sadržaja iznad samo blagom senkom (shadow-sm), ista `bg-panel` tonska
+                    porodica kao glavni sadržaj. */}
+                <div className="mx-auto my-2 w-[72%] flex-shrink-0 bg-panel shadow-sm">
                   <AiChatBox />
                 </div>
               </div>

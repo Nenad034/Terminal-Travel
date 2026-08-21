@@ -48,7 +48,7 @@ export default function Sidebar({
   // ovde — proširi traku za pun spisak.
   if (collapsed) {
     return (
-      <nav className="flex h-full flex-col items-center gap-1 overflow-y-auto rounded-lg border border-frame bg-panel-2 py-3">
+      <nav className="flex h-full flex-col items-center gap-1 overflow-y-auto bg-panel-2 py-3">
         <button onClick={onExpand} title="Proširi levu traku" className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink">
           <Icon name="chevron-right" />
         </button>
@@ -69,7 +69,7 @@ export default function Sidebar({
   }
 
   return (
-    <nav className="flex h-full flex-col gap-0.5 overflow-y-auto rounded-lg border border-frame bg-panel-2 py-3">
+    <nav className="flex h-full flex-col gap-0.5 overflow-y-auto bg-panel-2 py-3">
       <button
         onClick={onCollapse}
         title="Skupi levu traku"

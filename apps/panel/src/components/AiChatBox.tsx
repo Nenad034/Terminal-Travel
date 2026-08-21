@@ -157,7 +157,7 @@ export default function AiChatBox() {
         </div>
       )}
 
-      <div className="flex flex-shrink-0 items-center gap-2 border-t border-frame px-2 py-2">
+      <div className="flex flex-shrink-0 items-center gap-2 border-t border-border px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
             onClick={() => setPlusOpen((v) => !v)}
@@ -210,7 +210,7 @@ export default function AiChatBox() {
         </button>
       </div>
 
-      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-frame px-2 py-1.5">
+      <div className="flex flex-shrink-0 flex-wrap gap-1.5 border-t border-border px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}

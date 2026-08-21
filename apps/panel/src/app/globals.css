@@ -91,12 +91,10 @@
   --warn-bg: #f9edd3;
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
-  /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod; ikonice u trakama i
-     linije koje uokviruju panele (§ komentar iznad .codicon, i ResizablePane/TopBar/
-     StatusBar/TabBar/RightPanel/AiChatBox). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1,
-     daleko iznad 3:1 praga za ikonice/granice (§2a). */
+  /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod, boja ikonica (§ komentar
+     iznad .codicon). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1, daleko iznad 3:1 praga
+     za ikonice (§2a). */
   --icon-line: #1f3a5f;
-  --frame-border: #1f3a5f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -123,7 +121,6 @@
     /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
        se po specifikaciji računa kao `inherit`. */
     --icon-line: currentColor;
-    --frame-border: var(--border);
   }
 }
 
@@ -148,7 +145,6 @@
   --danger: #e2685a;
   --danger-bg: #3a1712;
   --icon-line: currentColor;
-  --frame-border: var(--border);
 }
 
 :root[data-theme='light'] {
@@ -172,7 +168,6 @@
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
   --icon-line: #1f3a5f;
-  --frame-border: #1f3a5f;
 }
 
 * {
