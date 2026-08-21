@@ -141,8 +141,8 @@ export default function TopBar({
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
-        className={`flex h-[43px] w-[43px] items-center justify-center rounded border ${
-          rightPanelOpen ? 'border-accent text-accent' : 'border-border bg-panel text-ink-faint hover:border-accent hover:text-ink'
+        className={`flex h-[43px] w-[43px] items-center justify-center rounded ${
+          rightPanelOpen ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`}
       >
         <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
@@ -150,7 +150,7 @@ export default function TopBar({
       <button
         onClick={logout}
         title="Odjava"
-        className="flex h-[43px] w-[43px] items-center justify-center rounded border border-border bg-panel text-ink-faint hover:border-danger hover:text-danger"
+        className="flex h-[43px] w-[43px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-danger"
       >
         <Icon name="sign-out" />
       </button>
