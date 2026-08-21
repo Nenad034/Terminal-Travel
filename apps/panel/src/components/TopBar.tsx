@@ -73,16 +73,12 @@ function InboxButton() {
 // radnih grupa (isti princip kao VS Code zupčanik za podešavanja) — vidljivo kroz
 // `ml-auto` na toj jednoj ikonici, ne poseban niz.
 export default function TopBar({
-  fullName,
-  roles,
   groups,
   activeGroupId,
   onSelectGroup,
   rightPanelOpen,
   onToggleRightPanel,
 }: {
-  fullName: string;
-  roles: string[];
   groups: NavGroup[];
   activeGroupId: string;
   onSelectGroup: (id: string) => void;
@@ -139,9 +135,6 @@ export default function TopBar({
         traži ili izvrši
         <kbd className="rounded border border-border bg-panel-2 px-1 text-[10px]">Ctrl K</kbd>
       </button>
-      <span className="text-ink-dim">
-        {fullName} <span className="text-ink-faint">· {roles.join(', ')}</span>
-      </span>
       <ThemeToggle />
       <NotificationBell />
       <InboxButton />

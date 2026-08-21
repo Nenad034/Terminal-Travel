@@ -82,8 +82,6 @@ export default function Shell({
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
           <TopBar
-            fullName={fullName}
-            roles={roles}
             groups={groups}
             activeGroupId={activeGroup?.id ?? ''}
             onSelectGroup={setActiveGroupId}
