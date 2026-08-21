@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
+import TabBar from './TabBar';
 import { useTabs } from './TabsContext';
 import NotificationBell from './NotificationBell';
 import { NAV_ITEMS, type NavGroup } from '@/lib/nav';
@@ -121,7 +122,15 @@ export default function TopBar({
           </button>
         );
       })}
-      <div className="flex-1" />
+      {/* Traka tabova preseljena ovde (21.8.2026, na zahtev vlasnika: "Tabove stavite i gornju
+          traku izmedju ikona i pretrage i neka budu sirine trake") — ranije prazan `flex-1`
+          razmak između grupnih ikonica i dugmeta za pretragu, sad ga popunjava `TabBar`
+          (poseban red ispod je ukinut, vidi Shell.tsx). `min-w-0` je nužan da `overflow-x-auto`
+          unutar `TabBar` stvarno radi kao fleksibilna stavka (bez njega flex stavka nikad ne
+          skuplja ispod sadržaja, scroll se ne bi pojavio kad ima puno tabova). */}
+      <div className="flex h-full min-w-0 flex-1">
+        <TabBar />
+      </div>
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
         className="flex items-center gap-2 rounded border border-border bg-panel px-2 py-1 font-mono text-ink-faint hover:border-accent"
