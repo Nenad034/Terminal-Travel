@@ -1,28 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
-
-const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'];
-
-// Dizajn dok. §5b tabela — devet ikonica po vrsti turističkog proizvoda, "stablo-grana"
-// unutar "Pretraga i rezervacije". `types` prazan niz = "Individualni paketi" (locked, čeka
-// Itinerary tok — M5 spec §3.0d.5, nije još izgrađen) nema svoj Product.type. "Krstarenja"
-// je otključano 21.8.2026 (Prisma migracija `add_cruise_product_type`, vlasnikova potvrda) —
-// ranije locked zbog nesklada šema/spec, sad usklađeno.
-const PRODUCT_ICONS: { label: string; icon: string; types: string[]; locked?: string }[] = [
-  { label: 'Smeštaj', icon: 'home', types: ['ACCOMMODATION'] },
-  { label: 'Letovi', icon: 'rocket', types: ['FLIGHT'] },
-  { label: 'Transferi', icon: 'arrow-swap', types: ['TRANSFER'] },
-  { label: 'Rent-a-car', icon: 'milestone', types: ['TRANSPORT'] },
-  { label: 'Things to do', icon: 'compass', types: ['EXCURSION', 'EVENT', 'TICKET'] },
-  { label: 'Individualni paketi', icon: 'map', types: [], locked: 'Itinerar builder još nije izgrađen (M5 spec §3.0d.5)' },
-  { label: 'Grupni paketi', icon: 'gift', types: ['PACKAGE'] },
-  { label: 'Krstarenja', icon: 'globe', types: ['CRUISE'] },
-  { label: 'Putno osiguranje', icon: 'shield', types: ['INSURANCE'] },
-];
+import SearchCriteriaPopup, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaPopup';
+import { PRODUCT_ICONS, type ProductIconDef } from '@/lib/search-product-types';
 
 // Dizajn dok. §5b/§6d — vođena pretraga i filteri žive u levom panelu, ne u centru (centar
 // ostaje isključivo prikaz rezultata). Prvi, uzak rez (19.8.2026, na zahtev vlasnika):
@@ -36,20 +18,19 @@ const PRODUCT_ICONS: { label: string; icon: string; types: string[]; locked?: st
 // dobijenim rezultatima (klijentski/server-side filter, ne novi API parametar — GET /search
 // ne podržava cenu/dostupnost kao upitne parametre, M5 spec §11).
 export default function SearchSidebarPanel() {
+  const router = useRouter();
   const sp = useSearchParams();
-  const [searchOpen, setSearchOpen] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  // Popup po tipu (22.8.2026, na zahtev vlasnika) — zamenjuje raniji "Pretraga" formular koji
+  // je uvek stajao otvoren u traci; polja se sad unose u modalu, aktivna pretraga se prikazuje
+  // kao chip na vrhu centralnog panela (SearchCriteriaChip.tsx u page.tsx), sa dugmetom "izmeni"
+  // koje ponovo otvara ISTI ovaj popup, samo iz drugog mesta (isti obrazac, deljena komponenta).
+  const [popup, setPopup] = useState<ProductIconDef | null>(null);
 
   const currentTypes = sp.getAll('type');
-  function hrefForTypes(types: string[]) {
-    const next = new URLSearchParams(sp.toString());
-    next.delete('type');
-    for (const t of types) next.append('type', t);
-    return `/rezervacije/pretraga?${next.toString()}`;
-  }
 
   return (
-    <form className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
+    <div className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
       <div className="grid grid-cols-3 gap-1 border-b border-border pb-2">
         {PRODUCT_ICONS.map((p) => {
           const active = p.types.length > 0 && p.types.length === currentTypes.length && p.types.every((t) => currentTypes.includes(t));
@@ -66,9 +47,10 @@ export default function SearchSidebarPanel() {
             );
           }
           return (
-            <Link
+            <button
               key={p.label}
-              href={hrefForTypes(p.types)}
+              type="button"
+              onClick={() => setPopup(p)}
               title={p.label}
               className={`flex h-9 flex-col items-center justify-center gap-0.5 rounded ${
                 active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
@@ -76,72 +58,72 @@ export default function SearchSidebarPanel() {
             >
               <Icon name={p.icon} />
               <span className="truncate text-[9px] leading-none">{p.label}</span>
-            </Link>
+            </button>
           );
         })}
       </div>
 
-      <Section title="Pretraga" open={searchOpen} onToggle={() => setSearchOpen((v) => !v)}>
-        <label className="text-ink-faint">
-          tip
-          <select name="type" defaultValue={sp.get('type') ?? ''} className="input mt-1 w-full">
-            <option value="">— sve —</option>
-            {PRODUCT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-ink-faint">
-          država odredišta
-          <input name="destinationCountry" defaultValue={sp.get('destinationCountry') ?? ''} className="input mt-1 w-full" placeholder="Grčka" />
-        </label>
-        <label className="text-ink-faint">
-          grad odredišta
-          <input name="destinationCity" defaultValue={sp.get('destinationCity') ?? ''} className="input mt-1 w-full" />
-        </label>
-        <div className="flex gap-2">
-          <label className="flex-1 text-ink-faint">
-            od
-            <input type="date" name="stayFrom" defaultValue={sp.get('stayFrom') ?? ''} className="input mt-1 w-full" />
-          </label>
-          <label className="flex-1 text-ink-faint">
-            do
-            <input type="date" name="stayTo" defaultValue={sp.get('stayTo') ?? ''} className="input mt-1 w-full" />
-          </label>
-        </div>
-        <label className="text-ink-faint">
-          odrasli / deca
-          <div className="mt-1 flex gap-1">
-            <input type="number" name="adults" min={1} defaultValue={sp.get('adults') ?? '2'} className="input w-1/2" />
-            <input type="number" name="children" min={0} defaultValue={sp.get('children') ?? '0'} className="input w-1/2" />
-          </div>
-        </label>
-        <button type="submit" className="mt-1 flex items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 font-semibold text-accent-ink hover:bg-accent-strong">
-          <Icon name="search" /> pretraži
-        </button>
-      </Section>
+      {popup && (
+        <SearchCriteriaPopup
+          label={popup.label}
+          types={popup.types}
+          initialValues={active(popup, currentTypes) ? valuesFromSearchParams(sp) : emptyValues()}
+          onClose={() => setPopup(null)}
+        />
+      )}
 
-      <Section title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)}>
-        <label className="text-ink-faint">
-          cena od / do
-          <div className="mt-1 flex gap-1">
-            <input type="number" name="priceMin" min={0} defaultValue={sp.get('priceMin') ?? ''} className="input w-1/2" placeholder="0" />
-            <input type="number" name="priceMax" min={0} defaultValue={sp.get('priceMax') ?? ''} className="input w-1/2" placeholder="∞" />
-          </div>
-        </label>
-        <label className="text-ink-faint">
-          dostupnost
-          <select name="availability" defaultValue={sp.get('availability') ?? ''} className="input mt-1 w-full">
-            <option value="">— sve —</option>
-            <option value="AVAILABLE">Odmah potvrda</option>
-            <option value="ON_REQUEST">Upit</option>
-          </select>
-        </label>
-      </Section>
-    </form>
+      <form
+        className="contents"
+        onSubmit={(e) => {
+          // Nativan GET submit bi ZAMENIO ceo query string samo poljima ove forme, brišući
+          // type/destinaciju/datume iz popup-a — ovde spajamo sa postojećim parametrima umesto
+          // toga (isti razlog zašto je ranije bio JEDAN deljeni <form> — sad su odvojeni, ali
+          // moraju i dalje da se spajaju, ne zamenjuju).
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          const next = new URLSearchParams(sp.toString());
+          for (const key of ['priceMin', 'priceMax', 'availability']) {
+            const val = String(data.get(key) ?? '');
+            if (val) next.set(key, val);
+            else next.delete(key);
+          }
+          router.push(`/rezervacije/pretraga?${next.toString()}`);
+        }}
+      >
+        <Section title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)}>
+          <label className="text-ink-faint">
+            cena od / do
+            <div className="mt-1 flex gap-1">
+              <input type="number" name="priceMin" min={0} defaultValue={sp.get('priceMin') ?? ''} className="input w-1/2" placeholder="0" />
+              <input type="number" name="priceMax" min={0} defaultValue={sp.get('priceMax') ?? ''} className="input w-1/2" placeholder="∞" />
+            </div>
+          </label>
+          <label className="text-ink-faint">
+            dostupnost
+            <select name="availability" defaultValue={sp.get('availability') ?? ''} className="input mt-1 w-full">
+              <option value="">— sve —</option>
+              <option value="AVAILABLE">Odmah potvrda</option>
+              <option value="ON_REQUEST">Upit</option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="mt-1 flex items-center justify-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 font-semibold text-ink-dim hover:border-accent hover:text-ink"
+          >
+            <Icon name="filter" /> primeni filtere
+          </button>
+        </Section>
+      </form>
+    </div>
   );
+}
+
+function active(p: ProductIconDef, currentTypes: string[]): boolean {
+  return p.types.length > 0 && p.types.length === currentTypes.length && p.types.every((t) => currentTypes.includes(t));
+}
+
+function emptyValues(): SearchCriteriaValues {
+  return { destinationCountry: '', destinationCity: '', stayFrom: '', stayTo: '', adults: '2', children: '0' };
 }
 
 function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {

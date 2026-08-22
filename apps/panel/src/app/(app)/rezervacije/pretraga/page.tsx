@@ -1,6 +1,7 @@
 import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import SearchCriteriaChip from '@/components/SearchCriteriaChip';
 import QuoteButton from './QuoteButton';
 
 interface SearchOffer {
@@ -113,6 +114,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
         <span className="text-accent">$</span> pretraga
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4).</p>
+
+      <SearchCriteriaChip />
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {hasQuery && !error && results.length === 0 && <p className="text-center text-xs text-ink-faint">Nema rezultata za zadate kriterijume.</p>}
