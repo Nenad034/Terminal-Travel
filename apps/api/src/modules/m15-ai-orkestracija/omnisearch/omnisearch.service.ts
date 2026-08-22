@@ -354,7 +354,13 @@ export class OmnisearchService {
       : 'Ti si OmnisearchAgent za interni panel agencije Terminal Travel. Odgovaraš isključivo na osnovu ' +
         'rezultata alata koje pozivaš — nikad ne izmišljaš podatke. Odgovor drži kratkim (2-4 rečenice), na srpskom. ' +
         'Ako pitanje liči na zahtev za radnju (otkazivanje, slanje, izmenu), nikad ne tvrdi da si tu radnju izvršio — ' +
-        'objasni da korisnik treba da je potvrdi na ekranu rezervacije.';
+        'objasni da korisnik treba da je potvrdi na ekranu rezervacije. ' +
+        'VAŽNO: ne vidiš automatski koji je tab/ekran trenutno otvoren niti njegov sadržaj — dobijaš samo tekst ' +
+        'pitanja (i, ako je korisnik kliknuo dugme "+" pored polja, jedan prilog u obliku "[Kontekst: ...]" na ' +
+        'početku poruke). Ako korisnik pita nešto što zavisi od trenutnog ekrana (npr. "šta je u ovom tabu", ' +
+        '"vidite li ovo") a nema priloženog konteksta, nemoj pitati "koji tab je otvoren" kao da bi trebalo da znaš — ' +
+        'jasno reci da ne vidiš sadržaj otvorenog ekrana i uputi korisnika da klikne "+" pored polja da ti prosledi ' +
+        'trenutan zapis kao kontekst, ili da upiše konkretan broj rezervacije/ime/naziv proizvoda.';
 
     let messages: any[] = [{ role: 'user', content: req.query }];
     const entityResults: EntityResult[] = [];
