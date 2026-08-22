@@ -211,6 +211,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom.
 - Automatsko obaveštavanje tima o neuobičajenom obrascu poziva (rate limiter trenutno samo blokira, ne alarmira).
 - **`MCPClientRegistration` vezan za konkretnog subagenta (M7 cenovnik/kreditni limit umesto B2C cene)** (22.8.2026, na zahtev vlasnika — strateško: subagenti mogu graditi sopstvene AI aplikacije koje "razgovaraju" sa TT preko MCP-a umesto ručnog korišćenja M7 portala) — nedostaje `sub_agent_id` polje i grananje ka M7 pravilima u `McpToolsService`. Ne zamenjuje M7 portal, dodatni kanal za tehnički napredne subagente. Detalji: M16 spec poglavlje 10.
+- **Buduće labavljenje/ukidanje ručnog `READ_WRITE` odobrenja (Vlasnik/Direktor), po MCP alatu i po klijentu** (22.8.2026, vlasnikova odluka: tvrdo pravilo važi za početak dok se ne stekne poverenje, kasnije olabaviti) — `create_quote`/čitanje pre `confirm_booking`/`cancel_booking` (potonja dva nikad bez ljudske potvrde, isto pravilo kao M15 registar ovlašćenja). Detalji: M16 spec poglavlje 3.1/10.
 
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
