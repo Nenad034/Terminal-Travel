@@ -18,7 +18,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     };
     const auditLog = { write: jest.fn().mockResolvedValue(undefined) };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
-    const bookings = { findAll: jest.fn().mockResolvedValue([]) };
+    const bookings = { findAll: jest.fn().mockResolvedValue([]), calendarDay: jest.fn().mockResolvedValue({ ARRIVAL: [], DEPARTURE: [], STAYOVER: [], SINGLE_DAY: [] }) };
     const products = { findAll: jest.fn().mockResolvedValue([]), findAllPublic: jest.fn().mockResolvedValue([]) };
     const anthropic = {
       isConfigured: jest.fn().mockReturnValue(overrides?.anthropicConfigured ?? false),
@@ -220,6 +220,52 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
 
     const sentMessages = create.mock.calls[0][0].messages;
     expect(sentMessages[0].content).toBe('analiziraj nešto opšte');
+  });
+
+  // M5 spec §6.1 / M15 spec §6.5.1 dopuna (22.8.2026, na zahtev vlasnika — "nabavite alate koji
+  // ovo omogucavaju", posle uživo nalaza da AI nije mogao da izlista rezervacije po datumu).
+  // Novi alat `list_bookings_by_date` poziva ISTI `BookingsService.calendarDay` koji koristi
+  // M17 kalendar ekran, in-process — dokazuje da (1) model stvarno dobija podatak nazad kroz
+  // drugi krug poziva, (2) ista dozvola (`M5/booking/VIEW`) se proverava kao na pravom endpoint-u.
+  it('list_bookings_by_date poziva BookingsService.calendarDay i vraća rezultat modelu', async () => {
+    const { service, anthropic, bookings } = makeService({ anthropicConfigured: true });
+    (bookings.calendarDay as jest.Mock).mockResolvedValue({
+      ARRIVAL: [{ bookingItemId: 'bi1', bookingId: 'b1', bookingNumber: 'TT-2027-000900', productId: 'p1', status: 'CONFIRMED', guests: ['Ana Anić'] }],
+      DEPARTURE: [],
+      STAYOVER: [],
+      SINGLE_DAY: [],
+    });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'list_bookings_by_date', input: { date: '2026-08-28' } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: 'Na 28.8.2026. dolazi Ana Anić (TT-2027-000900).' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({ query: 'koje rezervacije su na 28.08.2026', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(bookings.calendarDay).toHaveBeenCalledWith(new Date('2026-08-28'));
+    expect(result.aiAnswer).toMatch(/Ana Anić/);
+    expect(result.matchedRoutes.some((m) => m.label.includes('TT-2027-000900'))).toBe(true);
+  });
+
+  it('list_bookings_by_date odbija bez M5/booking/VIEW dozvole, isto kao pravi endpoint', async () => {
+    const { service, anthropic, permissions } = makeService({ anthropicConfigured: true });
+    (permissions.hasPermission as jest.Mock).mockResolvedValue(false);
+    const create = jest.fn().mockResolvedValueOnce({
+      content: [{ type: 'tool_use', id: 'tu1', name: 'list_bookings_by_date', input: { date: '2026-08-28' } }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'koje rezervacije su na 28.08.2026', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M5', 'booking', 'VIEW');
   });
 
   // §6.5.4.3, §10 — "omnisearch nikad ne izvršava radnju sam": statička provera da servis

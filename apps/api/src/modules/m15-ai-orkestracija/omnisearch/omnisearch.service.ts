@@ -270,6 +270,22 @@ export class OmnisearchService {
     }));
   }
 
+  /**
+   * Isti BookingsService.calendarDay koji koristi M5 BookingsController (`GET /bookings/calendar/:date`,
+   * M17 kalendar ekran) — poziva se in-process, ista provera dozvole kao taj endpoint
+   * (`M5/booking/VIEW`, kontroler nivo, nema dodatnog per-actor filtriranja jer je kalendar
+   * agencijski operativni pregled, ne "moje rezervacije").
+   */
+  private async listBookingsByDate(actorUserId: string, date: string): Promise<Record<string, unknown>> {
+    const hasPermission = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW');
+    if (!hasPermission) return { error: 'Nemate dozvolu za uvid u kalendar rezervacija.' };
+
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return { error: 'Neispravan datum — očekivan format YYYY-MM-DD.' };
+
+    return this.bookings.calendarDay(parsed) as unknown as Record<string, unknown>;
+  }
+
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
     const all = await this.products.findAll({});
     const lowerQuery = query.toLowerCase();
@@ -349,6 +365,20 @@ export class OmnisearchService {
               required: ['query'],
             },
           },
+          {
+            // M5 spec §6.1 kalendar (isti obrazac kao M17 /rezervacije/kalendar ekran,
+            // BookingsService.calendarDay) — dodato 22.8.2026 na zahtev vlasnika, posle uživo
+            // nalaza da omnisearch nije imao nijedan alat za filtriranje po DATUMU (samo po
+            // broju/imenu). Deljen in-process poziv, isti servis kao M5 BookingsController.
+            name: 'list_bookings_by_date',
+            description:
+              'Vrati sve rezervacije za tačan datum, razvrstane na dolaske, odlaske, u toku (stayover) i jednodnevne. Koristi kad korisnik pita šta se dešava/koje rezervacije su na konkretan datum (kalendar), ne kad traži po broju rezervacije ili imenu.',
+            input_schema: {
+              type: 'object' as const,
+              properties: { date: { type: 'string' as const, description: 'Datum u formatu YYYY-MM-DD' } },
+              required: ['date'],
+            },
+          },
         ];
 
     const systemPrompt = isB2C
@@ -425,6 +455,23 @@ export class OmnisearchService {
       messages.push({ role: 'assistant', content: response.content });
       const toolResults: any[] = [];
       for (const use of toolUses as any[]) {
+        if (use.name === 'list_bookings_by_date') {
+          const date = String((use.input as any)?.date ?? '');
+          const dayResult = await this.listBookingsByDate(req.actorUserId!, date);
+          toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(dayResult) });
+          if (!('error' in dayResult)) {
+            for (const category of Object.values(dayResult)) {
+              for (const item of category as any[]) {
+                const href = bookingHref(req.channel, item.bookingId);
+                if (!matchedRoutes.find((m) => m.href === href)) {
+                  matchedRoutes.push({ label: `Rezervacija ${item.bookingNumber}`, href });
+                }
+              }
+            }
+          }
+          continue;
+        }
+
         const q = String((use.input as any)?.query ?? req.query);
         let results: EntityResult[] = [];
         if (use.name === 'search_bookings') results = await this.searchBookings(req.channel, req.actorUserId!, q);

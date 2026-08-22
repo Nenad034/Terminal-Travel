@@ -31,6 +31,23 @@ function TypewriterText({ text }: { text: string }) {
   return <p>{shown}</p>;
 }
 
+// M15 spec §6.6 (glasovni modalitet) — prvi kanal je M17/interni tim preko mikrofona, glasom se
+// nikad ne izvršava radnja direktno (transkribovan tekst prolazi kroz IDENTIČAN `send()` tok kao
+// kucanje, koji sam po sebi već nikad ne izvršava radnju — OmnisearchAgent samo analizira/
+// predlaže), audio se ne čuva posle transkripcije. Implementirano preko ugrađenog browser Web
+// Speech API-ja (22.8.2026, na zahtev vlasnika: "omogucite i razgovor sa ai agentom, dodajte
+// ikonu mikrofona") — NAMERNO bez spoljnog STT provajdera/nove zavisnosti (M15 backlog je to
+// ostavio otvoreno): audio se transkribuje LOKALNO u pregledaču i nikad ne napušta uređaj kao
+// zvučni zapis, na server ide isključivo tekst, identično kao ručno kucanje. Podržano u Chrome/
+// Edge (Chromium `webkitSpeechRecognition`); dugme se ne prikazuje uopšte u pregledačima bez
+// podrške (Firefox/stariji Safari) — nema polovičnog/pokvarenog stanja.
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => any;
+    webkitSpeechRecognition?: new () => any;
+  }
+}
+
 interface OmnisearchResponse {
   active: boolean;
   matchedRoutes: { label: string; href: string }[];
@@ -100,6 +117,9 @@ export default function AiChatBox() {
   const [dismissedForPath, setDismissedForPath] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const plusRef = useRef<HTMLDivElement>(null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const speechSupported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const activeTab = tabs.find((t) => t.path === activePath);
   const isSearchTab = activePath.startsWith('/rezervacije/pretraga') && activePath.includes('?');
@@ -131,8 +151,8 @@ export default function AiChatBox() {
     return text ? text.slice(0, 8000) : undefined;
   }
 
-  async function send() {
-    const question = input.trim();
+  async function send(overrideText?: string) {
+    const question = (overrideText ?? input).trim();
     if (!question) return;
     const sentContext = effectiveContext ?? undefined;
     const pageContent = readPageContent();
@@ -165,6 +185,30 @@ export default function AiChatBox() {
         return next;
       });
     }
+  }
+
+  // Auto-šalje čim prepoznavanje govora završi (vlasnikova odluka preko AskUserQuestion,
+  // 22.8.2026 — "automatski se šalje čim prestanete da govorite", ne popuni pa čeka klik).
+  function toggleListening() {
+    if (!speechSupported) return;
+    if (listening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+    const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition!;
+    const recognition = new Ctor();
+    recognition.lang = 'sr-RS';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim();
+      if (transcript) send(transcript);
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognitionRef.current = recognition;
+    setListening(true);
+    recognition.start();
   }
 
   const quickLinks = QUICK_LINK_IDS.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i));
@@ -286,17 +330,28 @@ export default function AiChatBox() {
           )}
         </div>
         <Icon name="sparkle" className="text-accent" />
+        {speechSupported && (
+          <button
+            onClick={toggleListening}
+            title={listening ? 'Zaustavi snimanje' : 'Pitaj glasom'}
+            className={`flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded ${
+              listening ? 'animate-pulse bg-danger-bg text-danger' : 'hover:bg-panel-2 hover:text-ink'
+            }`}
+          >
+            <Icon name="mic" />
+          </button>
+        )}
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') send();
           }}
-          placeholder="Pitaj AI ili traži rezervaciju/proizvod..."
+          placeholder={listening ? 'Slušam...' : 'Pitaj AI ili traži rezervaciju/proizvod...'}
           className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
         />
         <button
-          onClick={send}
+          onClick={() => send()}
           title="Pošalji"
           className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded hover:bg-panel-2 hover:text-accent"
         >
