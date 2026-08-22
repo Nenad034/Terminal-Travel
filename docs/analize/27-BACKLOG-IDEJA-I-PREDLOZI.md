@@ -119,6 +119,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
 - Tačan period čuvanja/anonimizacije ličnih podataka gosta (pravo na zaborav) — utvrditi sa pravnikom.
+- **EU Digital Identity Wallet (EUDI) kao izvor podataka gosta** (22.8.2026, Phocuswright izveštaj 2026) — eIDAS 2.0 obavezuje EU platforme na prihvatanje do kraja 2027; TT nije u obavezanom krugu, ali gost sa novčanikom bi mogao njime popuniti `GuestProfile` umesto ručnog unosa. Čeka stvarnu potražnju iz EU tržišta, ne pre.
 
 ## M7 — B2B modul (Subagenti)
 *(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)*
@@ -204,7 +205,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§10, `docs/moduli/M16-mcp-distribucija/17-SPECIFIKACIJA-M16-MCP-DISTRIBUCIJA.md`)*
 - **Rešeno (avgust 2026):** MCP wire-protokol implementiran (2026-07-28 spec). Oblik odgovora ostao pljosnat (isti DTO kao M5), poruke o greškama za write-alate su akcione.
 - Pun OAuth 2.1 authorization server (dinamička registracija, PKCE, discovery) — prvi prolaz koristi jednostavan unapred-deljen ključ, potvrđeno vlasnikom kao svesna odluka.
-- Mehanizam agentskog plaćanja — proveriti stanje standarda pre uvođenja (trenutno `confirm_booking` potvrđuje bez naplate, `UNPAID`).
+- Mehanizam agentskog plaćanja — proveriti stanje standarda pre uvođenja (trenutno `confirm_booking` potvrđuje bez naplate, `UNPAID`). Dopuna 22.8.2026 (Phocuswright izveštaj 2026): razmotriti granularne novčane limite po MCP klijentu (`max_transaction_amount_eur`), ne samo binarni READ_ONLY/READ_WRITE, po uzoru na M18 `budget_limit_eur`.
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom.
 - Automatsko obaveštavanje tima o neuobičajenom obrascu poziva (rate limiter trenutno samo blokira, ne alarmira).
 
