@@ -65,16 +65,30 @@ export default function AiChatBox() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [context, setContext] = useState<string | null>(null);
+  // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
+  // zahtev vlasnika, posle uživo zabune — AI je pitao "koji tab je otvoren" umesto da to zna).
+  // Isti podatak koji je ranije zahtevao ručan klik na "+" (poglavlje 6c) — AI i dalje ne vidi
+  // sadržaj ekrana, samo naziv zapisa, i sam ga pretražuje svojim alatima kad je relevantno.
+  // `dismissedForPath` pamti da je korisnik svesno uklonio kontekst za TRENUTNI tab (X na čipu)
+  // — ne vraća se dok se tab ne promeni, da uklanjanje stvarno nešto znači.
+  const [dismissedForPath, setDismissedForPath] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const plusRef = useRef<HTMLDivElement>(null);
 
   const activeTab = tabs.find((t) => t.path === activePath);
   const isSearchTab = activePath.startsWith('/rezervacije/pretraga') && activePath.includes('?');
+  const autoContext = activeTab && activePath !== '/' && dismissedForPath !== activePath ? activeTab.label : null;
+  const effectiveContext = context ?? autoContext;
+
+  useEffect(() => {
+    setContext(null);
+    setDismissedForPath(null);
+  }, [activePath]);
 
   async function send() {
     const question = input.trim();
     if (!question) return;
-    const sentContext = context ?? undefined;
+    const sentContext = effectiveContext ?? undefined;
     setInput('');
     setContext(null);
     setTurns((t) => [...t, { question, contextLabel: sentContext, links: [], loading: true, inactive: false }]);
@@ -147,11 +161,18 @@ export default function AiChatBox() {
           ))}
         </div>}
 
-      {context && (
+      {effectiveContext && (
         <div className="mx-2 mt-2 flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
           <Icon name="link" />
-          {context}
-          <button onClick={() => setContext(null)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+          {effectiveContext}
+          <button
+            onClick={() => {
+              setContext(null);
+              setDismissedForPath(activePath);
+            }}
+            title="Ukloni kontekst"
+            className="ml-0.5 hover:text-danger"
+          >
             <Icon name="close" />
           </button>
         </div>
