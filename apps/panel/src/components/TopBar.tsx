@@ -124,7 +124,9 @@ export default function TopBar({
       </div>
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-        className="flex items-center gap-2 rounded border border-border bg-panel px-2 py-1 font-mono text-ink-faint hover:border-accent"
+        // Visina izjednačena sa tabovima (22.8.2026, na zahtev vlasnika: "tabovi neka budu
+        // visine kao i polje pretrage" — obe strane usklađene na h-[29px], TabBar.tsx).
+        className="flex h-[29px] items-center gap-2 rounded border border-border bg-panel px-2 font-mono text-ink-faint hover:border-accent"
       >
         <Icon name="search" />
         traži ili izvrši

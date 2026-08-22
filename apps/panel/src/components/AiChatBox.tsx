@@ -234,20 +234,21 @@ export default function AiChatBox() {
           (21.8.2026, noviji zahtev: "uklonite srednju liniju chata") — poništava prethodni
           "ostavite samo gornju liniju" pokušaj; oba reda sad bez razdelne linije između sebe.
           ISKOŠENE IVICE (22.8.2026, na zahtev vlasnika, isti zahtev/tehnika kao TabBar.tsx —
-          vidi komentar tamo) — `rounded` uklonjen, spoljašnji `skewX(-20deg)`, unutrašnji
-          sadržaj kontra-transformisan `skewX(20deg)` da ostane uspravan. */}
-      <div className="flex flex-wrap justify-center gap-1.5 px-2 py-1.5">
+          vidi komentar tamo) — `rounded` uklonjen, `skewX(-20deg)`. ISPRAVKA (22.8.2026, isti
+          dan: "tekst da prati kosi ugao... ostre ivice zameniti vrlo blagim zaokruzenjem") —
+          kontra-transform na sadržaju UKLONJEN (tekst sad prati isti ugao kao kutija, ne
+          ostaje uspravan — vidi TabBar.tsx za puno obrazloženje), `rounded-sm` (blago
+          zaobljenje) umesto potpuno oštrih uglova. */}
+      <div className="flex flex-wrap justify-center gap-3 px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}
             onClick={() => openTab(item.href, item.label)}
             style={{ transform: 'skewX(-20deg)' }}
-            className="border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            className="flex items-center gap-1 rounded-sm border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
           >
-            <span className="flex items-center gap-1" style={{ transform: 'skewX(20deg)' }}>
-              <Icon name={item.icon} />
-              {item.label}
-            </span>
+            <Icon name={item.icon} />
+            {item.label}
           </button>
         ))}
       </div>

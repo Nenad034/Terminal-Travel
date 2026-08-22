@@ -11,15 +11,22 @@ import Icon from './Icon';
 // px-2 py-0.5 text-[11px]`) radi vizuelne doslednosti dva reda koja su blizu jedan drugom.
 // ISKOŠENE IVICE (22.8.2026, na zahtev vlasnika: "leva i desna strana tabova i tagova budu
 // iskošene pod 20%", potvrđeno preko AskUserQuestion — "paralelogram" oblik) — spoljašnji
-// element `skewX(-20deg)`, unutrašnji sadržaj kontra-transformiše `skewX(20deg)` da tekst/
-// ikonice ostanu uspravni (standardna tehnika za koso-obeleženi tab/tag oblik, npr. Chrome
-// tabovi). `rounded` klasa uklonjena — oštri dijagonalni uglovi, ne zaobljeni (pravi
-// paralelogram). Ista tehnika primenjena i u AiChatBox.tsx (dugmad brzih prečica).
+// element `skewX(-20deg)`. `rounded` klasa uklonjena — oštri dijagonalni uglovi, ne zaobljeni.
+// ISPRAVKA (22.8.2026, isti dan, uz snimak ekrana: "nije bas najbolje stao tekst u tabovima...
+// Tekst u tabovima i tagovima da prati kosi ugao. i ostre ivice zameniti vrlo blagim
+// zaokruzenjem") — prvi pokušaj je kontra-transformisao SAMO sadržaj (`skewX(20deg)` na
+// unutrašnjem span-u) da tekst ostane uspravan; to je pravilo da uspravan tekst vizuelno
+// "izlazi" iz kosih ivica kutije u uglovima (tačno ono što je vlasnik video na snimku) —
+// UKLONJEN kontra-transform, tekst/ikonice sad nasleđuju isti `skewX(-20deg)` kao kutija
+// (bez dodatnog `style` na unutrašnjem span-u), prati ugao ivica. Uglovi dobijaju vrlo blago
+// zaobljenje (`rounded-sm`, 2px) umesto potpuno oštrih. Visina izjednačena sa poljem za
+// pretragu u `TopBar.tsx` (obe `h-[29px]`, ranije tabovi nisu imali eksplicitnu visinu nego
+// su je nasleđivali od `<header>` reda preko `items-center`/padding-a).
 export default function TabBar() {
   const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
 
   return (
-    <div className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
+    <div className="flex h-full min-w-0 flex-1 items-center gap-3 overflow-x-auto">
       {tabs.map((tab) => {
         const active = tab.path === activePath;
         return (
@@ -27,26 +34,24 @@ export default function TabBar() {
             key={tab.path}
             href={tab.path}
             style={{ transform: 'skewX(-20deg)' }}
-            className={`group flex max-w-[200px] flex-shrink-0 border px-2 py-0.5 text-[11px] transition-colors ${
+            className={`group flex h-[29px] max-w-[200px] flex-shrink-0 items-center gap-1.5 rounded-sm border px-3 text-[11px] transition-colors ${
               active ? 'border-accent bg-accent-soft text-ink' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
             }`}
           >
-            <span className="flex items-center gap-1.5" style={{ transform: 'skewX(20deg)' }}>
-              {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
-              <span className="truncate">{tab.label}</span>
-              {tabs.length > 1 && (
-                <span
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    closeTab(tab.path);
-                  }}
-                  className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
-                >
-                  <Icon name="close" className="!text-[12px]" />
-                </span>
-              )}
-            </span>
+            {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
+            <span className="truncate">{tab.label}</span>
+            {tabs.length > 1 && (
+              <span
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  closeTab(tab.path);
+                }}
+                className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
+              >
+                <Icon name="close" className="!text-[12px]" />
+              </span>
+            )}
           </Link>
         );
       })}
