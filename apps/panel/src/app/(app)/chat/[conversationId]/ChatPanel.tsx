@@ -12,6 +12,13 @@ interface Participant {
   user: { id: string; fullName: string; accountType: string } | null;
 }
 
+interface AttachmentItem {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 interface MessageItem {
   id: string;
   conversationId: string;
@@ -23,6 +30,14 @@ interface MessageItem {
   // M19 spec §2.3 — evidencija AI porekla; senderId i dalje pokazuje na čoveka koji je poslao.
   draftedByAi?: boolean;
   draftedByAgentId?: string | null;
+  // §2.5 (v1.6) — prilog(zi) uz poruku, opciono.
+  attachments?: AttachmentItem[];
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const WS_ORIGIN = process.env.NEXT_PUBLIC_API_WS_ORIGIN ?? 'http://localhost:3000';
@@ -64,6 +79,9 @@ export default function ChatPanel({
   const [draftFromAi, setDraftFromAi] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [draftNote, setDraftNote] = useState<string | null>(null);
+  // §2.5 (v1.6) — fajl izabran za slanje uz sledeću poruku; čisti se posle slanja/otkazivanja.
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const socketRef = useRef<Socket | null>(null);
   const typingTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
@@ -195,12 +213,14 @@ export default function ChatPanel({
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
-    if (!body) return;
+    if (!body && !pendingFile) return;
     setSendError(null);
     setSending(true);
 
+    // Prilog UVEK ide preko REST fallback-a, čak i kad je WS povezan — socket.io payload je
+    // JSON, ne nosi binarni fajl (obrazloženje u actions.ts, sendMessageRestFallback).
     const socket = socketRef.current;
-    if (socket?.connected) {
+    if (!pendingFile && socket?.connected) {
       socket.emit('message.send', { conversationId, body, draftedByAi: draftFromAi });
       socket.emit('typing.stop', { conversationId });
       setDraft('');
@@ -209,13 +229,14 @@ export default function ChatPanel({
       return;
     }
 
-    // WS nije povezan — REST fallback (§8). Bez WS eha, poruku ubacujemo ručno u lokalni prikaz.
-    const result = await sendMessageRestFallback(conversationId, body, draftFromAi);
+    const result = await sendMessageRestFallback(conversationId, body, draftFromAi, pendingFile ?? undefined);
     if (result.error) {
       setSendError(result.error);
     } else {
       setDraft('');
       setDraftFromAi(false);
+      setPendingFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       if (result.message) {
         const m = result.message as MessageItem;
         setMessages((prev) => (prev.some((existing) => existing.id === m.id) ? prev : [...prev, m]));
@@ -261,7 +282,21 @@ export default function ChatPanel({
                   draftedByAi={m.draftedByAi ?? false}
                 />
               </div>
-              <p className="whitespace-pre-wrap text-ink-dim">{m.deletedAt ? '(poruka obrisana)' : m.body}</p>
+              {!m.deletedAt && m.body && <p className="whitespace-pre-wrap text-ink-dim">{m.body}</p>}
+              {m.deletedAt && <p className="whitespace-pre-wrap text-ink-dim">(poruka obrisana)</p>}
+              {!m.deletedAt && m.attachments && m.attachments.length > 0 && (
+                <div className="mt-1 flex flex-col gap-1">
+                  {m.attachments.map((a) => (
+                    <a
+                      key={a.id}
+                      href={`/api/chat/attachments/${a.id}`}
+                      className="flex items-center gap-1.5 rounded border border-border bg-panel px-2 py-1 text-[11px] text-ink-dim hover:border-accent hover:text-ink"
+                    >
+                      <Icon name="file" /> {a.fileName} <span className="text-ink-faint">({formatFileSize(a.sizeBytes)})</span>
+                    </a>
+                  ))}
+                </div>
+              )}
               <div className="mt-0.5 text-[10px] text-ink-faint">
                 {new Date(m.sentAt).toLocaleString('sr-RS')}
                 {m.editedAt && !m.deletedAt && ' · izmenjeno'}
@@ -289,6 +324,31 @@ export default function ChatPanel({
               poslatu poruku ostaje na vama.
             </p>
           )}
+          {/* §2.5 (v1.6) — prilog fajla; skriveni <input type=file>, vidljivo dugme sa spajalicom
+              pokreće ga preko ref-a (isti obrazac kao svaki drugi prilagođen file-picker). */}
+          {pendingFile && (
+            <p className="flex w-full items-center gap-1.5 rounded bg-panel2 px-2 py-1 text-[11px] text-ink-dim">
+              <Icon name="file" /> {pendingFile.name} <span className="text-ink-faint">({formatFileSize(pendingFile.size)})</span>
+              <button type="button" onClick={() => { setPendingFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="ml-auto text-ink-faint hover:text-danger">
+                <Icon name="close" />
+              </button>
+            </p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Priloži fajl"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center self-end rounded border border-border text-ink-faint hover:border-accent hover:text-ink"
+          >
+            {/* Codicon set nema "paperclip"/"attach" — "file-add" je najbliži postojeći. */}
+            <Icon name="file-add" />
+          </button>
           <textarea
             value={draft}
             onChange={(e) => handleDraftChange(e.target.value)}
@@ -306,7 +366,7 @@ export default function ChatPanel({
           <div className="flex flex-col items-end gap-1 self-end">
             <button
               type="submit"
-              disabled={sending || draft.trim() === ''}
+              disabled={sending || (draft.trim() === '' && !pendingFile)}
               className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
             >
               {sending ? 'Šaljem…' : 'pošalji'}

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { apiFetch, ApiError } from '@/lib/api-client';
+import { apiFetch, apiFetchMultipart, ApiError } from '@/lib/api-client';
 
 export interface FormState {
   error: string | null;
@@ -55,16 +55,30 @@ export async function markConversationRead(conversationId: string): Promise<void
 // povezivanju primaoca). Primarni put je WS `message.send` (§8), koji uživo emituje `message.new`
 // svim povezanim učesnicima — ovaj REST put to NE radi (samo eventBus interno), pa ga koristimo
 // isključivo kao pouzdan fallback, ne kao normalan put slanja.
+//
+// `file` (§2.5, v1.6) — prilog uz poruku UVEK ide ovim putem, čak i kad je WS povezan: socket.io
+// payload je JSON, ne nosi binarni fajl, a dodavanje posebnog binarnog WS kanala je van obima
+// ovog prolaza (postojeći REST endpoint već prima `multipart/form-data`, poglavlje 8 M19 spec).
 export async function sendMessageRestFallback(
   conversationId: string,
   body: string,
   draftedByAi = false,
+  file?: File,
 ): Promise<{ error: string | null; message?: unknown }> {
   try {
-    const message = await apiFetch(`/chat/conversations/${conversationId}/messages`, {
-      method: 'POST',
-      body: { body, draftedByAi: draftedByAi || undefined },
-    });
+    let message: unknown;
+    if (file) {
+      const formData = new FormData();
+      if (body) formData.set('body', body);
+      if (draftedByAi) formData.set('draftedByAi', 'true');
+      formData.set('file', file);
+      message = await apiFetchMultipart(`/chat/conversations/${conversationId}/messages`, formData);
+    } else {
+      message = await apiFetch(`/chat/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        body: { body, draftedByAi: draftedByAi || undefined },
+      });
+    }
     revalidatePath(`/chat/${conversationId}`);
     return { error: null, message };
   } catch (err) {

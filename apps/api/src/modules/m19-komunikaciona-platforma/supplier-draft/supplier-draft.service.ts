@@ -57,7 +57,7 @@ export class SupplierDraftService {
 
   private async generateDraft(
     conversationId: string,
-    history: { senderId: string; body: string }[],
+    history: { senderId: string; body: string | null }[],
     instruction: string | undefined,
     actorUserId: string,
   ): Promise<{ draft: string }> {
@@ -67,7 +67,9 @@ export class SupplierDraftService {
     const transcript = history
       .map((m) => {
         const sender = senders.find((s) => s.id === m.senderId);
-        return `${sender?.fullName ?? m.senderId}: ${m.body}`;
+        // Poruka može biti čist prilog bez teksta (§2.5 M19 v1.6) — AI dobija napomenu umesto
+        // prazne/undefined vrednosti u transkriptu.
+        return `${sender?.fullName ?? m.senderId}: ${m.body ?? '[poslat prilog bez teksta]'}`;
       })
       .join('\n');
 

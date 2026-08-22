@@ -28,6 +28,7 @@ interface MessageItem {
   sentAt: string;
   editedAt: string | null;
   deletedAt: string | null;
+  attachments?: { id: string; fileName: string; mimeType: string; sizeBytes: number }[];
 }
 
 // M17 spec §4/§7 (Faza 7), M19 spec §2/§3/§8 — otvoren razgovor: istorija poruka učitana preko

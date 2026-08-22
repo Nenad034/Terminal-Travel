@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { relative } from 'path';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
@@ -7,6 +8,7 @@ import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-ident
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
+import { ATTACHMENT_UPLOAD_ROOT } from './attachment-storage';
 
 // M19 spec §2/§8/§9.3/§9.7 — REST prefiks /chat, primarni izvor istine za razgovore/poruke.
 // WS ChatGateway poziva iste metode (createMessage) da ne duplira logiku slanja — WS je samo
@@ -186,17 +188,28 @@ export class ConversationsService {
 
   async findMessages(conversationId: string, actorUserId: string) {
     await this.assertParticipant(conversationId, actorUserId);
-    const messages = await this.prisma.message.findMany({ where: { conversationId }, orderBy: { sentAt: 'asc' } });
-    return messages.map((m) => ({ ...m, body: m.deletedAt ? null : m.body }));
+    const messages = await this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { sentAt: 'asc' },
+      include: { attachments: true },
+    });
+    // Obrisana poruka sakriva i telo i priloge — isti princip meke brisanja kao `body: null`.
+    return messages.map((m) => ({ ...m, body: m.deletedAt ? null : m.body, attachments: m.deletedAt ? [] : m.attachments }));
   }
 
   // §3/§8 — zajednička ulazna tačka za slanje poruke, koriste je i REST fallback kontroler i
   // ChatGateway (`message.send`). Vraća i listu učesnika koji NISU trenutno ONLINE (§3 —
   // "primalac trenutno nije povezan"), koje pozivalac (gateway ili ovaj servis sam) koristi da
   // odluči da li treba emitovati M9 push (spec §3 zadnja rečenica).
-  async createMessage(conversationId: string, dto: CreateMessageDto, actorUserId: string) {
+  // `file` — prilog uz poruku (§2.5, v1.6), opcion. Poruka mora imati bar tekst ILI prilog —
+  // klijent koji ne pošalje ni jedno ni drugo dobija 400, ne tihu praznu poruku.
+  async createMessage(conversationId: string, dto: CreateMessageDto, actorUserId: string, file?: Express.Multer.File) {
     const { conversation } = await this.assertParticipant(conversationId, actorUserId);
     await this.assertCanSend(conversation.type, actorUserId);
+
+    if (!dto.body?.trim() && !file) {
+      throw new BadRequestException('Poruka mora sadržati tekst ili prilog.');
+    }
 
     const draftedByAgentId = dto.draftedByAi ? await this.resolveDraftAgentUserId(conversation.type) : null;
 
@@ -204,11 +217,23 @@ export class ConversationsService {
       data: {
         conversationId,
         senderId: actorUserId,
-        body: dto.body,
+        body: dto.body?.trim() || null,
         draftedByAi: Boolean(dto.draftedByAi),
         draftedByAgentId,
       },
     });
+
+    if (file) {
+      await this.prisma.messageAttachment.create({
+        data: {
+          messageId: message.id,
+          fileName: file.originalname,
+          mimeType: file.mimetype,
+          sizeBytes: file.size,
+          storagePath: relative(ATTACHMENT_UPLOAD_ROOT, file.path),
+        },
+      });
+    }
     await this.prisma.conversationParticipant.update({
       where: { conversationId_userId: { conversationId, userId: actorUserId } },
       data: { lastReadAt: new Date() },
@@ -235,14 +260,29 @@ export class ConversationsService {
           messageId: message.id,
           recipientUserId: participant.userId,
           senderName: sender?.fullName ?? 'Terminal Travel',
-          bodyPreview: dto.body.slice(0, 120),
+          bodyPreview: dto.body?.slice(0, 120) ?? (file ? `[prilog] ${file.originalname}` : ''),
         });
       }
     }
 
     await this.eventBus.emit('M19', 'message.new', { conversationId, messageId: message.id, senderId: actorUserId });
 
-    return message;
+    return this.prisma.message.findUniqueOrThrow({ where: { id: message.id }, include: { attachments: true } });
+  }
+
+  // §2.5 — pristup prilogu je vezan za učešće u razgovoru poruke kojoj pripada (isti
+  // `assertParticipant` kao ostatak modula, isti razlog 404-umesto-403 — nevidljivost, ne samo
+  // zabrana). Meko obrisana poruka sakriva i prilog (isti princip kao `findMessages`).
+  async getAttachmentForDownload(attachmentId: string, actorUserId: string) {
+    const attachment = await this.prisma.messageAttachment.findUnique({
+      where: { id: attachmentId },
+      include: { message: true },
+    });
+    if (!attachment || attachment.message.deletedAt) {
+      throw new NotFoundException(`Prilog ${attachmentId} nije pronađen.`);
+    }
+    await this.assertParticipant(attachment.message.conversationId, actorUserId);
+    return attachment;
   }
 
   // §2.3/§9.5 — koji agent je napisao nacrt razrešava server, ne klijent (vidi CreateMessageDto).

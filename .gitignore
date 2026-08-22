@@ -12,3 +12,4 @@ coverage/
 .nx/
 apps/web/.next/
 apps/panel/.next/
+apps/api/uploads/

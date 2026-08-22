@@ -71,25 +71,40 @@ export default function Shell({
   // sakriven, njegovo `turns` stanje (istorija razgovora) se time nikad ne gubi.
   const [chatOpen, setChatOpen] = useState(true);
   const chatPanelRef = useRef<HTMLDivElement>(null);
+  // Prevlačenje bilo gde po centralnom panelu (23.8.2026, na zahtev vlasnika — "omogućite
+  // pomeranje chata gde god želimo da bude", eksplicitno KAO ZAMENA za "klik van chata ga
+  // zatvara" iz prethodnog prolaza istog dana: "ovim pomeranjem ćemo rešiti problem" — kad chat
+  // zaklanja nešto, korisnik ga sam odvuče u stranu umesto da nestane na slučajan klik). `null`
+  // = podrazumevana pozicija (CSS `bottom-[38px] right-4`, isto kao pre); posle prvog prevlačenja
+  // prelazi na apsolutno pozicioniranje preko `top`/`left` u pikselima.
+  const [chatPos, setChatPos] = useState<{ top: number; left: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; startTop: number; startLeft: number } | null>(null);
 
-  // Klik van plutajućeg chata ga zatvara (22.8.2026, na zahtev vlasnika — "kada se klikne na
-  // bilo šta što ga zaklanja chat da se zatvori u stanju u kom je zatečen"), isti obrazac kao
-  // `messagesRef` u StatusBar.tsx. Dugme za otvaranje/zatvaranje (`data-chat-toggle`, u
-  // StatusBar.tsx) je namerno izuzeto iz ove provere — bez izuzetka bi mousedown prvo zatvorio
-  // chat, a potom bi klik (onToggleChat) odmah ponovo otvorio, umesto da običan klik na dugme
-  // radi kao pravi prekidač. Rešava i zaklanjanje menija "Poruke" (donja traka) — klik na tu
-  // ikonu se sad tretira kao "van chata" i zatvara ga PRE nego što se meni otvori.
-  useEffect(() => {
-    if (!chatOpen) return;
-    function onMouseDown(e: MouseEvent) {
-      const target = e.target as Node;
-      if (chatPanelRef.current?.contains(target)) return;
-      if ((target as HTMLElement).closest?.('[data-chat-toggle]')) return;
-      setChatOpen(false);
+  function handleChatDragStart(e: React.MouseEvent) {
+    const rect = chatPanelRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = { startX: e.clientX, startY: e.clientY, startTop: rect.top, startLeft: rect.left };
+
+    function onMove(ev: MouseEvent) {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const nextTop = drag.startTop + (ev.clientY - drag.startY);
+      const nextLeft = drag.startLeft + (ev.clientX - drag.startX);
+      // Ne dozvoljava da zaglavlje potpuno izađe van vidljivog ekrana — uvek ostaje bar 40px
+      // dohvatljivo da se chat može ponovo dovući nazad.
+      setChatPos({
+        top: Math.max(0, Math.min(nextTop, window.innerHeight - 40)),
+        left: Math.max(-520, Math.min(nextLeft, window.innerWidth - 40)),
+      });
     }
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [chatOpen]);
+    function onUp() {
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
 
@@ -163,19 +178,29 @@ export default function Shell({
                 automatski čita sadržaj otvorenog taba (M15 spec §6.5.1) i korisnik treba da može
                 da gleda oboje istovremeno. `hidden` (ne uslovan JSX) čuva `AiChatBox` montiranim —
                 istorija razgovora se ne gubi kad se prozor sakrije. Širina usklađena sa MAKSIMALNOM
-                širinom desnog panela (22.8.2026, drugi krug istog dana, na zahtev vlasnika) —
-                `RightPanel` koristi `ResizablePane maxWidth={560}` (ispod, u ovom fajlu), isto
-                560px ovde umesto ranijeg proizvoljnog 400px. Spoljni okvir (`border border-border`)
-                UKLONJEN na isti zahtev ("nepotreban je") — `shadow-lg` i tonska razlika
-                (`bg-panel` naspram `bg-bg`/`bg-panel-2` iza njega) ostaju dovoljni za odvajanje
-                bez linije. */}
+                širinom desnog panela — `RightPanel` koristi `ResizablePane maxWidth={560}` (ispod,
+                u ovom fajlu). Spoljni okvir (`border border-border`) UKLONJEN na zahtev vlasnika
+                ("nepotreban je") — `shadow-lg` i tonska razlika (`bg-panel` naspram `bg-bg`/
+                `bg-panel-2` iza njega) ostaju dovoljni za odvajanje bez linije.
+
+                Pozicija: `chatPos === null` koristi CSS podrazumevanu (`bottom-[38px] right-4`,
+                donji desni ugao); posle prvog prevlačenja zaglavlja (23.8.2026, na zahtev
+                vlasnika) prelazi na `style={{ top, left }}` u pikselima — `bottom`/`right` klase
+                se tad UKLANJAJU (ne mogu da koegzistiraju sa `top`/`left`, CSS bi ih obe
+                primenio i razvukao element). Ovo ZAMENJUJE "klik van chata ga zatvara" iz
+                prethodnog prolaza istog dana (uklonjeno) — vlasnikova odluka: kad chat nešto
+                zaklanja, sam ga odvuče u stranu, ne nestaje na slučajan klik. */}
             <div
               ref={chatPanelRef}
-              className={`fixed bottom-[38px] right-4 z-40 w-[560px] max-h-[70vh] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
+              className={`fixed z-40 w-[560px] max-h-[70vh] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
                 chatOpen ? 'flex' : 'hidden'
-              }`}
+              } ${chatPos ? '' : 'bottom-[38px] right-4'}`}
+              style={chatPos ? { top: chatPos.top, left: chatPos.left } : undefined}
             >
-              <div className="flex h-[36px] flex-shrink-0 items-center justify-between border-b border-border bg-panel-2 px-3 text-xs font-medium text-ink">
+              <div
+                onMouseDown={handleChatDragStart}
+                className="flex h-[36px] flex-shrink-0 cursor-move items-center justify-between border-b border-border bg-panel-2 px-3 text-xs font-medium text-ink"
+              >
                 <span className="flex items-center gap-1.5">
                   <Icon name="sparkle" className="text-accent" /> AI asistent
                 </span>

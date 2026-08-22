@@ -305,7 +305,14 @@ export default function AiChatBox() {
             <Icon name="add" />
           </button>
           {plusOpen && (
-            <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
+            // Otvara se NADOLE (`top-full`), ne nagore (22.8.2026, na zahtev vlasnika — "kada se
+            // klikne na + u chatu taj modul koji iskače se podvlači i ne vidi se") — dugme "+" je
+            // pri DNU chat-a (red za unos), a kad je razgovor prazan red za unos je odmah ispod
+            // zaglavlja; otvaranje nagore (`bottom-full`) nije imalo prostora unutar plutajućeg
+            // prozora i bivalo je odsečeno njegovim `overflow-hidden` (Shell.tsx). Nadole uvek
+            // ima prostora (red brzih prečica ispod, pa dalje do dna panela). `z-50` isti
+            // odbrambeni razlog kao meni "Poruke" u StatusBar.tsx.
+            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
               <button
                 disabled={isUnlabeledHome}
                 onClick={() => {

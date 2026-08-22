@@ -2623,7 +2623,9 @@ model Message {
   id             String    @id @default(uuid())
   conversationId String    @map("conversation_id")
   senderId       String    @map("sender_id") // FK -> M1 User
-  body           String
+  // Nullable od v1.6 (§2.5) — poruka može biti ČIST prilog bez teksta (npr. samo slika/PDF).
+  // Servis i dalje odbija poruku bez i teksta i priloga (bar jedno mora postojati).
+  body           String?
   sentAt         DateTime  @default(now()) @map("sent_at")
   editedAt       DateTime? @map("edited_at")
   deletedAt      DateTime? @map("deleted_at")
@@ -2633,9 +2635,33 @@ model Message {
   draftedByAi      Boolean @default(false) @map("drafted_by_ai")
   draftedByAgentId String? @map("drafted_by_agent_id") // FK -> M1 User, accountType = AI_AGENT
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments  MessageAttachment[]
 
   @@map("messages")
+}
+
+// §2.5 `MessageAttachment` (v1.6, avgust 2026, na zahtev vlasnika — "omogućite u chatovima i
+// porukama da se šalju i preuzimaju fajlovi") — jedan ili više priloga po poruci. `storagePath`
+// pokazuje na LOKALNI disk API servera (`apps/api/uploads/chat/`, van git-a) — vlasnikova
+// eksplicitna odluka (preko AskUserQuestion) dok se hosting provajder za produkciju ne izabere
+// (CLAUDE.md/docker-compose.yml — namerno neizabran). Kad se hosting izabere, ovo polje svesno
+// prelazi na pravi object storage (S3-kompatibilan) — ista napomena kao i sam hosting, ne
+// propust. Fajl se NIKAD ne servira kao statički javan resurs — isključivo kroz autentifikovan
+// `GET /chat/attachments/:id` koji proverava učešće pozivaoca u razgovoru kom poruka pripada
+// (isti `assertParticipant` kao ostatak modula), da prilog ne postane dostupan van kruga učesnika.
+model MessageAttachment {
+  id          String   @id @default(uuid())
+  messageId   String   @map("message_id")
+  fileName    String   @map("file_name") // originalno ime koje je pošiljalac poslao
+  mimeType    String   @map("mime_type")
+  sizeBytes   Int      @map("size_bytes")
+  storagePath String   @map("storage_path")
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
 }
 
 enum PresenceStatusValue {
