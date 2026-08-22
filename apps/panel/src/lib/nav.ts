@@ -199,6 +199,15 @@ export const NAV_ITEMS: NavItem[] = [
     phase: 7,
     implemented: true,
   },
+  {
+    id: 'mcp',
+    label: 'MCP klijenti (agentski pristup)',
+    icon: 'radio-tower',
+    href: '/mcp',
+    permission: { module: 'M16', resource: 'mcp-client', action: 'VIEW' },
+    phase: 6,
+    implemented: true,
+  },
 ];
 
 export interface NavGroup {
@@ -223,7 +232,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
   { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
   { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },
-  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log'] },
+  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log', 'mcp'] },
 ];
 
 function itemForHref(href: string): NavItem | null {
