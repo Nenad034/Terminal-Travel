@@ -77,7 +77,14 @@ export default function AiChatBox() {
 
   const activeTab = tabs.find((t) => t.path === activePath);
   const isSearchTab = activePath.startsWith('/rezervacije/pretraga') && activePath.includes('?');
-  const autoContext = activeTab && activePath !== '/' && dismissedForPath !== activePath ? activeTab.label : null;
+  // Isključuje samo NEIZMENJENU podrazumevanu Početnu (prazna kontrolna tabla) — ne isključuje
+  // po ruti '/' samog po sebi, jer Agent Inbox nema sopstvenu rutu i otvara se kao tab na '/' sa
+  // drugačijim nazivom (M15 spec §6, "Agent Inbox nema sopstvenu rutu — otvara Početnu kao nov
+  // tab"). Ispravka 22.8.2026, uživo nalaz — automatski kontekst je ćutke izostajao baš na tom
+  // tabu jer je provera bila `activePath !== '/'`, ne naziv taba.
+  const homeLabel = NAV_ITEMS.find((i) => i.id === 'pocetna')?.label;
+  const isUnlabeledHome = !activeTab || activeTab.label === homeLabel;
+  const autoContext = !isUnlabeledHome && dismissedForPath !== activePath ? activeTab!.label : null;
   const effectiveContext = context ?? autoContext;
 
   useEffect(() => {
@@ -208,14 +215,14 @@ export default function AiChatBox() {
           {plusOpen && (
             <div className="absolute bottom-full left-0 mb-1 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
               <button
-                disabled={!activeTab || activeTab.path === '/'}
+                disabled={isUnlabeledHome}
                 onClick={() => {
                   if (activeTab) setContext(activeTab.label);
                   setPlusOpen(false);
                 }}
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
               >
-                <Icon name="file" /> Trenutno otvoren zapis{activeTab && activeTab.path !== '/' ? ` — ${activeTab.label}` : ''}
+                <Icon name="file" /> Trenutno otvoren zapis{!isUnlabeledHome ? ` — ${activeTab!.label}` : ''}
               </button>
               <button
                 disabled={!isSearchTab}
