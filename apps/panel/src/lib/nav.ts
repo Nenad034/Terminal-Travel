@@ -83,6 +83,18 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // MOCK stranica (23.8.2026, na zahtev vlasnika) — vidi apps/panel/.../rezervacije/lista/
+    // mock-data.ts za pun kontekst. Naziv namerno nosi "(mock)" da se ne pobrka sa gotovom
+    // funkcijom dok filteri/prava pretraga ne stignu u sledećem prolazu.
+    id: 'rezervacije-lista',
+    label: 'Lista rezervacija (mock)',
+    icon: 'list-unordered',
+    href: '/rezervacije/lista',
+    permission: { module: 'M5', resource: 'booking', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     id: 'finansije',
     label: 'Finansije',
     icon: 'credit-card',
@@ -225,7 +237,7 @@ export interface NavGroup {
  */
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
-  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar'] },
+  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista'] },
   { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'dobavljaci'] },
   { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
   { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },
