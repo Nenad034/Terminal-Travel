@@ -18,6 +18,16 @@ export interface SearchParamsInput {
   occupancy?: OccupancyInput;
   channel: SearchChannel;
   lang?: LanguageCode;
+  /** M2 spec §2.3 `attributes.cabin_class` — samo FLIGHT. */
+  cabinClass?: string;
+  /** M2 spec §2.3 `attributes.min_driver_age` — samo TRANSPORT/RENT_A_CAR; proizvod prolazi ako nema
+   * ovaj atribut ili ako je tražena starost >= minimalne. */
+  minDriverAge?: number;
+  /** M2 spec §2.3 `attributes.duration_nights` — samo CRUISE, tačno poklapanje. */
+  durationNights?: number;
+  /** M2 spec §2.3 `attributes.cabin_types[].category` — samo CRUISE, proizvod prolazi ako BILO KOJA
+   * stavka niza ima traženu kategoriju. */
+  cabinType?: string;
 }
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
@@ -47,10 +57,34 @@ export class SearchService {
     if (params.destinationCountry) where.destinationCountry = params.destinationCountry;
     if (params.destinationCity) where.destinationCity = params.destinationCity;
 
-    const products = await this.prisma.product.findMany({
+    let products = await this.prisma.product.findMany({
       where,
       include: { translations: true, sourceContract: true },
     });
+
+    // M5 spec §11 v1.28 (17.8.2026) — filteri specifični po tipu proizvoda, ožičeni 22.8.2026
+    // (M17 popup pretraga otkrila da su ovi parametri bili definisani u spec-u ali nikad stigli
+    // u kod). U JS-u nad već dobijenim skupom (mala kolekcija po pretrazi, isti princip kao
+    // SOLD_OUT filtriranje ispod) — bezbednije od Prisma JSON path operatora nad ugnježdenim
+    // nizom (`cabin_types[]`) i izbegava dupliranje `where` grananja za svaki od 4 parametra.
+    if (params.cabinClass) {
+      products = products.filter((p) => (p.attributes as any)?.cabin_class === params.cabinClass);
+    }
+    if (params.minDriverAge) {
+      products = products.filter((p) => {
+        const min = (p.attributes as any)?.min_driver_age;
+        return !min || params.minDriverAge! >= min;
+      });
+    }
+    if (params.durationNights) {
+      products = products.filter((p) => (p.attributes as any)?.duration_nights === params.durationNights);
+    }
+    if (params.cabinType) {
+      products = products.filter((p) => {
+        const cabinTypes = (p.attributes as any)?.cabin_types;
+        return Array.isArray(cabinTypes) && cabinTypes.some((c: any) => c?.category === params.cabinType);
+      });
+    }
 
     const results: SearchResultProduct[] = [];
     for (const product of products) {

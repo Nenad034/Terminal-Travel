@@ -123,7 +123,18 @@ function active(p: ProductIconDef, currentTypes: string[]): boolean {
 }
 
 function emptyValues(): SearchCriteriaValues {
-  return { destinationCountry: '', destinationCity: '', stayFrom: '', stayTo: '', adults: '2', children: '0' };
+  return {
+    destinationCountry: '',
+    destinationCity: '',
+    stayFrom: '',
+    stayTo: '',
+    adults: '2',
+    children: '0',
+    cabinClass: '',
+    minDriverAge: '',
+    durationNights: '',
+    cabinType: '',
+  };
 }
 
 function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {

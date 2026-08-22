@@ -61,6 +61,10 @@ export class SearchController {
       occupancy,
       channel: query.channel,
       lang: query.lang,
+      cabinClass: query.cabinClass,
+      minDriverAge: query.minDriverAge,
+      durationNights: query.durationNights,
+      cabinType: query.cabinType,
     });
   }
 }

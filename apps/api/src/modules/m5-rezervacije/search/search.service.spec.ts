@@ -123,4 +123,85 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     expect(results[0].offers[0].quoteExpiresAt).toBe(expiresAt);
     expect(results[0].offers[0].finalPrice).toBe(6000);
   });
+
+  // M5 spec §11 v1.28 ožičen 22.8.2026 — filteri specifični po tipu (M2 spec §2.3 konvencije).
+  // Dva API-sourced proizvoda koji se razlikuju SAMO po `attributes`, da se izoluje da filter
+  // stvarno bira po tom polju, ne po nečem drugom.
+  describe('filteri specifični po tipu (§11 v1.28)', () => {
+    function apiProduct(id: string, attributes: Record<string, unknown>) {
+      return {
+        ...baseProduct,
+        id,
+        sourceType: 'API',
+        sourceContractId: null,
+        sourceContract: null,
+        sourceProvider: 'travelgate',
+        sourceExternalId: `ext-${id}`,
+        attributes,
+      };
+    }
+
+    function mockAvailable(integrations: any) {
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1',
+        priceAmount: 5000,
+        currency: 'EUR',
+        availableUnits: 3,
+        cancellationPolicy: [],
+        quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+      });
+    }
+
+    it('cabinClass (FLIGHT) — vraća samo proizvod čiji attributes.cabin_class poklapa', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        apiProduct('econ', { cabin_class: 'ECONOMY' }),
+        apiProduct('biz', { cabin_class: 'BUSINESS' }),
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', cabinClass: 'BUSINESS' });
+      expect(results.map((r) => r.productId)).toEqual(['biz']);
+    });
+
+    it('minDriverAge (TRANSPORT/RENT_A_CAR) — isključuje proizvod čiji min_driver_age premašuje traženu starost', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        apiProduct('needs25', { min_driver_age: 25 }),
+        apiProduct('noMin', {}),
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', minDriverAge: 21 });
+      expect(results.map((r) => r.productId)).toEqual(['noMin']); // 21 < 25, needs25 isključen; proizvod bez atributa uvek prolazi
+    });
+
+    it('durationNights (CRUISE) — tačno poklapanje', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        apiProduct('7n', { duration_nights: 7 }),
+        apiProduct('10n', { duration_nights: 10 }),
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', durationNights: 7 });
+      expect(results.map((r) => r.productId)).toEqual(['7n']);
+    });
+
+    it('cabinType (CRUISE) — poklapa ako BILO KOJA stavka cabin_types[] ima traženu kategoriju', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        apiProduct('withBalcony', { cabin_types: [{ category: 'INTERIOR' }, { category: 'BALCONY' }] }),
+        apiProduct('onlyInterior', { cabin_types: [{ category: 'INTERIOR' }] }),
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', cabinType: 'BALCONY' });
+      expect(results.map((r) => r.productId)).toEqual(['withBalcony']);
+    });
+  });
 });
