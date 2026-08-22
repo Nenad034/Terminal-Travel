@@ -67,18 +67,21 @@ function InboxButton() {
 }
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice preseljene u ActivityBar.tsx
-// (vertikalna traka, 21.8.2026) — gornja traka sad nosi samo naziv, tabove, pretragu i
-// desni klaster dugmadi.
+// (vertikalna traka, 21.8.2026) — gornja traka sad nosi tabove, pretragu i desni klaster
+// dugmadi. "TT Terminal Travel" naziv UKLONJEN (22.8.2026, na zahtev vlasnika, posle dodavanja
+// punog loga na dno Sidebar-a, Sidebar.tsx v1.71 — postao je suvišan/dupliran). ISPRAVKA (isti
+// dan, odmah zatim: "tabove ostavite gde su i bili ne treba da idu skroz u levo") — uklanjanje
+// naziva je pomerilo tabove skroz do leve ivice trake, što nije bilo traženo; dodat prazan
+// razmak fiksne širine (`w-[255px]`, ista vrednost koju je zauzimao naziv u podrazumevanom
+// stanju Sidebar-a) da tabovi ostanu vizuelno na istoj poziciji kao pre — bez teksta/sadržaja,
+// i bez dinamičkog praćenja širine Sidebar-a (ta računica je uklonjena zajedno sa nazivom,
+// namerno pojednostavljeno na fiksnu vrednost).
 export default function TopBar({
   rightPanelOpen,
   onToggleRightPanel,
-  leftRailWidth,
 }: {
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
-  /** ActivityBar (43px) + stvarna širina Sidebar-a — širina omotača oko naziva, tako da tabovi
-   * odmah posle njega počinju tačno iznad leve ivice centralnog panela (Shell.tsx). */
-  leftRailWidth: number;
 }) {
   const router = useRouter();
 
@@ -90,35 +93,7 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      {/* Naziv — omotač je širok tačno koliko ActivityBar+Sidebar (leftRailWidth), da tabovi
-          posle njega počnu iznad leve ivice centralnog panela. ISPRAVKA (21.8.2026, peti krug
-          istog dana, na zahtev vlasnika: "tabovi i dalje ne pocinju odakle treba") — prethodni
-          pokušaj je zaboravio da header ima sopstveni `px-2` (8px) i `gap-1` (4px) između svoje
-          dece, pa je omotač oko naziva zauzimao PUNO `leftRailWidth`, gurajući tabove 12px
-          udesno od stvarne ivice centralnog panela. `- 12` ovde poništava tačno tu razliku
-          (8px header padding + 4px gap pre TabBar omotača). `Math.max(..., 140)` i dalje čuva
-          minimalnu širinu da se naziv ne preklopi sa tabovima kad je Sidebar kolabovan
-          (leftRailWidth tad pada ispod širine samog naziva — poravnanje u tom jednom stanju
-          svesno nije piksel-tačno, isti kompromis kao ranije). "TT" boldirano i "svetli"
-          (text-shadow sjaj u akcentnoj boji), boja `text-wordmark` (nov CSS token, globals.css
-          — belo u tamnom modu, navy teget u svetlom; na zahtev vlasnika, 21.8.2026: "TT neka
-          bude u beloj boji", posle upozorenja da čisto belo na skoro-beloj pozadini svetlog
-          moda ne bi bilo čitljivo, vlasnik je izabrao "belo u dark a navy teget u light" —
-          isti navy ton koji već postoji za ikonice, §komentar `.codicon` u globals.css).
-          "TERMINAL TRAVEL" velikim slovima, smanjeno za 20% u odnosu na TT (33px→26px),
-          razmaknuto za 3 slovna mesta (`ml-[3ch]`). */}
-      <div className="flex flex-shrink-0 items-baseline gap-0 font-tech italic" style={{ width: Math.max(leftRailWidth - 12, 140) }}>
-        <span
-          className="text-[33px] font-bold leading-none tracking-tight text-wordmark"
-          style={{ textShadow: '0 0 6px var(--accent), 0 0 16px var(--accent)' }}
-        >
-          TT
-        </span>
-        <span className="ml-[3ch] text-[26px] uppercase leading-none tracking-tight text-ink">Terminal Travel</span>
-      </div>
-      {/* Traka tabova VRAĆENA u gornji red (21.8.2026, treći krug istog dana, na zahtev
-          vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj (v1.62,
-          premeštanje na početak centralnog panela). */}
+      <div className="w-[255px] flex-shrink-0" />
       <div className="flex h-full min-w-0 flex-1">
         <TabBar />
       </div>

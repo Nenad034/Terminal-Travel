@@ -109,11 +109,6 @@
      iznad .codicon). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1, daleko iznad 3:1 praga
      za ikonice (§2a). */
   --icon-line: #1f3a5f;
-  /* "TT" naziv (TopBar.tsx) — na zahtev vlasnika (21.8.2026): "TT neka bude u beloj boji",
-     posle upozorenja da je belo na skoro-beloj pozadini gornje trake nečitljivo u svetlom
-     modu, vlasnik je izabrao "belo u dark, navy teget u light" — isti navy ton kao --icon-line
-     (ista logika, ista podloga). #1f3a5f na --panel-2 (#fafafd) ~7.5:1. */
-  --wordmark: #1f3a5f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -146,9 +141,6 @@
     /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
        se po specifikaciji računa kao `inherit`. */
     --icon-line: currentColor;
-    /* Belo u tamnom modu (na zahtev vlasnika, § komentar u :root iznad). #FFFFFF na --panel-2
-       (#192227) ~14.9:1. */
-    --wordmark: #ffffff;
   }
 }
 
@@ -173,7 +165,6 @@
   --danger: #e2685a;
   --danger-bg: #3a1712;
   --icon-line: currentColor;
-  --wordmark: #ffffff;
 }
 
 :root[data-theme='light'] {
@@ -197,7 +188,6 @@
   --danger: #b3392a;
   --danger-bg: #fbe4e1;
   --icon-line: #1f3a5f;
-  --wordmark: #1f3a5f;
 }
 
 * {
