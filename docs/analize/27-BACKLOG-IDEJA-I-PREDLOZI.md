@@ -41,6 +41,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
   - Ostalo otvoreno pre spec-a: da li se menja §1.2 (danas izričito zabranjuje da M23 bude izvor istine za M12 — sadržaj se ručno prekopira; most "napravi `ContentPiece` iz ovog skupa izvora" bi to pravilo svesno menjao); autorska prava nad sintezom više izvora (već otvoreno u M2 sekciji ovog fajla, skup izvora tu izloženost umnožava); i merenje troška — sinteza više dugih dokumenata je skupa operacija i mora ući u M18 budžet kao akcija sa sopstvenim tierom.
   - **Namerno van predloga:** Audio Overview (podkast iz izvora) — STT/TTS tehnologija još nije izabrana (otvorena stavka u M23 §10 i M15 §6.6), a korist za agenciju je mala u odnosu na gore navedeno.
 
+- **Post-booking reshopping/rebooking (inspiracija: Mize.tech "Hotelfare Optimization")** (22.8.2026, poređenje sa konkurentskom platformom) — Mize.tech kontinuirano ponovo proverava cenu posle potvrde rezervacije i predlaže "hotel rebooking" kad cena padne, da se zadrži/poveća marža. Kod TTA bi se prirodno naslonilo na **M4** (adapter sloj koji već zna da pita dobavljača za dostupnost/cenu) i **M5** (tok potvrđene rezervacije) — periodičan job koji ponovo upita M4 za istu jedinicu i, ako je cena niža, otvori predlog. Nije čisto tehnička optimizacija: nosi realan rizik oko dobavljačeve politike otkazivanja/rebooking-a, YUTA garancije putovanja vezane za konkretnu rezervaciju (M11) i ugovora sa gostom (M20) — pre bilo kakve implementacije zahteva prolazak kroz M11/M20 pravila, verovatno početno samo kao alarm komercijali, ne automatski rebooking. Nije prošlo kroz `tt-architecture-core` proveru niti dobilo obim od vlasnika.
+
 ---
 
 ## M1 — Core / Identitet i pristup
