@@ -210,6 +210,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Mehanizam agentskog plaćanja — proveriti stanje standarda pre uvođenja (trenutno `confirm_booking` potvrđuje bez naplate, `UNPAID`). Dopuna 22.8.2026 (Phocuswright izveštaj 2026): razmotriti granularne novčane limite po MCP klijentu (`max_transaction_amount_eur`), ne samo binarni READ_ONLY/READ_WRITE, po uzoru na M18 `budget_limit_eur`.
 - Da li je potreban poseban ugovor/uslovi korišćenja sa svakom eksternom platformom.
 - Automatsko obaveštavanje tima o neuobičajenom obrascu poziva (rate limiter trenutno samo blokira, ne alarmira).
+- **`MCPClientRegistration` vezan za konkretnog subagenta (M7 cenovnik/kreditni limit umesto B2C cene)** (22.8.2026, na zahtev vlasnika — strateško: subagenti mogu graditi sopstvene AI aplikacije koje "razgovaraju" sa TT preko MCP-a umesto ručnog korišćenja M7 portala) — nedostaje `sub_agent_id` polje i grananje ka M7 pravilima u `McpToolsService`. Ne zamenjuje M7 portal, dodatni kanal za tehnički napredne subagente. Detalji: M16 spec poglavlje 10.
 
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
