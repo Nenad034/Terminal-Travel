@@ -232,16 +232,22 @@ export default function AiChatBox() {
           polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`.
           Srednja linija (border-t koji je razdvajao ovaj red od reda za unos iznad) UKLONJENA
           (21.8.2026, noviji zahtev: "uklonite srednju liniju chata") — poništava prethodni
-          "ostavite samo gornju liniju" pokušaj; oba reda sad bez razdelne linije između sebe. */}
+          "ostavite samo gornju liniju" pokušaj; oba reda sad bez razdelne linije između sebe.
+          ISKOŠENE IVICE (22.8.2026, na zahtev vlasnika, isti zahtev/tehnika kao TabBar.tsx —
+          vidi komentar tamo) — `rounded` uklonjen, spoljašnji `skewX(-20deg)`, unutrašnji
+          sadržaj kontra-transformisan `skewX(20deg)` da ostane uspravan. */}
       <div className="flex flex-wrap justify-center gap-1.5 px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}
             onClick={() => openTab(item.href, item.label)}
-            className="flex items-center gap-1 rounded border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            style={{ transform: 'skewX(-20deg)' }}
+            className="border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
           >
-            <Icon name={item.icon} />
-            {item.label}
+            <span className="flex items-center gap-1" style={{ transform: 'skewX(20deg)' }}>
+              <Icon name={item.icon} />
+              {item.label}
+            </span>
           </button>
         ))}
       </div>
