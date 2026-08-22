@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import Sidebar from './Sidebar';
@@ -70,6 +70,26 @@ export default function Shell({
   // VIDLJIVOST (CSS `hidden`, ne uslovan JSX render) — `AiChatBox` ostaje montiran i kad je
   // sakriven, njegovo `turns` stanje (istorija razgovora) se time nikad ne gubi.
   const [chatOpen, setChatOpen] = useState(true);
+  const chatPanelRef = useRef<HTMLDivElement>(null);
+
+  // Klik van plutajućeg chata ga zatvara (22.8.2026, na zahtev vlasnika — "kada se klikne na
+  // bilo šta što ga zaklanja chat da se zatvori u stanju u kom je zatečen"), isti obrazac kao
+  // `messagesRef` u StatusBar.tsx. Dugme za otvaranje/zatvaranje (`data-chat-toggle`, u
+  // StatusBar.tsx) je namerno izuzeto iz ove provere — bez izuzetka bi mousedown prvo zatvorio
+  // chat, a potom bi klik (onToggleChat) odmah ponovo otvorio, umesto da običan klik na dugme
+  // radi kao pravi prekidač. Rešava i zaklanjanje menija "Poruke" (donja traka) — klik na tu
+  // ikonu se sad tretira kao "van chata" i zatvara ga PRE nego što se meni otvori.
+  useEffect(() => {
+    if (!chatOpen) return;
+    function onMouseDown(e: MouseEvent) {
+      const target = e.target as Node;
+      if (chatPanelRef.current?.contains(target)) return;
+      if ((target as HTMLElement).closest?.('[data-chat-toggle]')) return;
+      setChatOpen(false);
+    }
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [chatOpen]);
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
 
@@ -142,9 +162,16 @@ export default function Shell({
                 ne pun modal) — sadržaj ispod ostaje vidljiv/klikabilan dok je chat otvoren, jer AI
                 automatski čita sadržaj otvorenog taba (M15 spec §6.5.1) i korisnik treba da može
                 da gleda oboje istovremeno. `hidden` (ne uslovan JSX) čuva `AiChatBox` montiranim —
-                istorija razgovora se ne gubi kad se prozor sakrije. */}
+                istorija razgovora se ne gubi kad se prozor sakrije. Širina usklađena sa MAKSIMALNOM
+                širinom desnog panela (22.8.2026, drugi krug istog dana, na zahtev vlasnika) —
+                `RightPanel` koristi `ResizablePane maxWidth={560}` (ispod, u ovom fajlu), isto
+                560px ovde umesto ranijeg proizvoljnog 400px. Spoljni okvir (`border border-border`)
+                UKLONJEN na isti zahtev ("nepotreban je") — `shadow-lg` i tonska razlika
+                (`bg-panel` naspram `bg-bg`/`bg-panel-2` iza njega) ostaju dovoljni za odvajanje
+                bez linije. */}
             <div
-              className={`fixed bottom-[38px] right-4 z-40 w-[400px] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-lg ${
+              ref={chatPanelRef}
+              className={`fixed bottom-[38px] right-4 z-40 w-[560px] max-h-[70vh] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
                 chatOpen ? 'flex' : 'hidden'
               }`}
             >

@@ -55,19 +55,33 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
   }, [tabs, hydrated]);
 
-  const openTab = useCallback((path: string, label: string) => {
-    setTabs((prev) => {
-      const idx = prev.findIndex((t) => t.path === path);
-      if (idx === -1) return [...prev, { path, label }];
-      // Tab već postoji (npr. otvoren kroz navigateInTab pre nego što je ciljna stranica
-      // stigla do svog sopstvenog useRegisterTab poziva) — osveži naslov ako se razlikuje,
-      // nikad ne dupliraj.
-      if (prev[idx].label === label) return prev;
-      const next = [...prev];
-      next[idx] = { ...next[idx], label };
-      return next;
-    });
-  }, []);
+  // ISPRAVKA (22.8.2026, na zahtev vlasnika — "kada se klikne na ikonu čime se otvara novi tab,
+  // ne otvara se taj tab već se ostaje u prethodnom") — `openTab` je ranije SAMO upisivao zapis
+  // u niz tabova, nikad stvarno ne menjajući rutu. Radilo je slučajno tamo gde poziv dolazi sa
+  // pravog `<Link href>` elementa (bočna traka) — sam `<Link>` je navigirao, a `openTab` je
+  // samo registrovao tab preko `useRegisterTab` na odredišnoj stranici. Svuda gde se `openTab`
+  // poziva direktno iz `onClick` bez `<Link>` (AI chat prečice, meni "Poruke", "Agent Inbox"
+  // dugme, klik na obaveštenje) navigacija se nikad nije desila. `path !== pathname` provera
+  // sprečava nepotreban `router.push` kad `useRegisterTab` sam sebe poziva sa VEĆ aktivnom
+  // rutom (linija ispod, `openTab(pathname, label)`) — tamo bi push na istu putanju samo
+  // dodao suvišan zapis u istoriju pregledača.
+  const openTab = useCallback(
+    (path: string, label: string) => {
+      setTabs((prev) => {
+        const idx = prev.findIndex((t) => t.path === path);
+        if (idx === -1) return [...prev, { path, label }];
+        // Tab već postoji (npr. otvoren kroz navigateInTab pre nego što je ciljna stranica
+        // stigla do svog sopstvenog useRegisterTab poziva) — osveži naslov ako se razlikuje,
+        // nikad ne dupliraj.
+        if (prev[idx].label === label) return prev;
+        const next = [...prev];
+        next[idx] = { ...next[idx], label };
+        return next;
+      });
+      if (path !== pathname) router.push(path);
+    },
+    [pathname, router],
+  );
 
   const navigateInTab = useCallback(
     (path: string, label: string) => {

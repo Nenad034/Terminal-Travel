@@ -101,6 +101,7 @@ export default function StatusBar({
           trake") — apsolutno centrirano u odnosu na CELU traku, ne u odnosu na flex tok teksta
           oko njega (jedina stavka ovde koja odstupa od levo/desno poravnanja ostatka trake). */}
       <button
+        data-chat-toggle
         onClick={onToggleChat}
         title={chatOpen ? 'Sakrij AI chat (istorija se čuva)' : 'Prikaži AI chat'}
         className={`absolute left-1/2 top-0 flex h-[29px] w-[29px] -translate-x-1/2 items-center justify-center rounded ${
@@ -147,7 +148,7 @@ export default function StatusBar({
           <Icon name="comment" />
         </button>
         {messagesOpen && (
-          <div className="absolute bottom-full right-0 mb-1 w-52 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
+          <div className="absolute bottom-full right-0 z-50 mb-1 w-52 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
             {email && (
               <button
                 onClick={() => {
