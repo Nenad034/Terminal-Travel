@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
@@ -117,6 +118,14 @@ export default function AiChatBox() {
   const [dismissedForPath, setDismissedForPath] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const plusRef = useRef<HTMLDivElement>(null);
+  // Pozicija menija u pikselima, računa se pri OTVARANJU iz stvarnog položaja dugmeta na ekranu
+  // (23.8.2026, na zahtev vlasnika, uz snimak ekrana — meni se i dalje sekao na donjoj ivici
+  // plutajućeg prozora i posle v1.83 "otvara nadole" ispravke). Uzrok: `overflow-hidden` na
+  // plutajućem prozoru (Shell.tsx) seče SVAKI apsolutno pozicioniran element koji izađe van
+  // NJEGOVIH stvarnih (sadržajem određenih) granica — smer otvaranja menija (gore/dole) tu ništa
+  // ne menja, jer panel nije fiksne visine, samo se uklapa oko sadržaja. Jedino pravo rešenje je
+  // da meni izađe iz tog roditelja preko portala (ispod), umesto da bude njegovo dete.
+  const [plusMenuPos, setPlusMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   const speechSupported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -298,43 +307,53 @@ export default function AiChatBox() {
       <div className="flex flex-shrink-0 items-center gap-2 px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
-            onClick={() => setPlusOpen((v) => !v)}
+            onClick={() => {
+              if (!plusOpen && plusRef.current) {
+                const rect = plusRef.current.getBoundingClientRect();
+                setPlusMenuPos({ top: rect.bottom + 4, left: rect.left });
+              }
+              setPlusOpen((v) => !v);
+            }}
             title="Priloži kontekst"
             className={`flex h-[31px] w-[31px] items-center justify-center rounded ${plusOpen ? 'bg-panel-2 text-accent' : 'hover:bg-panel-2 hover:text-ink'}`}
           >
             <Icon name="add" />
           </button>
-          {plusOpen && (
-            // Otvara se NADOLE (`top-full`), ne nagore (22.8.2026, na zahtev vlasnika — "kada se
-            // klikne na + u chatu taj modul koji iskače se podvlači i ne vidi se") — dugme "+" je
-            // pri DNU chat-a (red za unos), a kad je razgovor prazan red za unos je odmah ispod
-            // zaglavlja; otvaranje nagore (`bottom-full`) nije imalo prostora unutar plutajućeg
-            // prozora i bivalo je odsečeno njegovim `overflow-hidden` (Shell.tsx). Nadole uvek
-            // ima prostora (red brzih prečica ispod, pa dalje do dna panela). `z-50` isti
-            // odbrambeni razlog kao meni "Poruke" u StatusBar.tsx.
-            <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg">
-              <button
-                disabled={isUnlabeledHome}
-                onClick={() => {
-                  if (activeTab) setContext(activeTab.label);
-                  setPlusOpen(false);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+          {/* Portal ka document.body (23.8.2026) — vidi komentar uz `plusMenuPos` iznad za razlog.
+              Pozicioniran preko `position: fixed` + izračunatih piksela, ne preko Tailwind
+              `absolute`/`top-full` klasa (te su relativne u odnosu na roditelja, tačno ono što
+              je izlagalo meni sečenju). `z-50` ovde je odbrana u dubinu — portal na kraju
+              `<body>` već prirodno crta iznad ostatka stranice bez toga. */}
+          {plusOpen &&
+            plusMenuPos &&
+            createPortal(
+              <div
+                style={{ top: plusMenuPos.top, left: plusMenuPos.left }}
+                className="fixed z-50 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
               >
-                <Icon name="file" /> Trenutno otvoren zapis{!isUnlabeledHome ? ` — ${activeTab!.label}` : ''}
-              </button>
-              <button
-                disabled={!isSearchTab}
-                onClick={() => {
-                  setContext('rezultati trenutne pretrage');
-                  setPlusOpen(false);
-                }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
-              >
-                <Icon name="search" /> Rezultati trenutne pretrage
-              </button>
-            </div>
-          )}
+                <button
+                  disabled={isUnlabeledHome}
+                  onClick={() => {
+                    if (activeTab) setContext(activeTab.label);
+                    setPlusOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Icon name="file" /> Trenutno otvoren zapis{!isUnlabeledHome ? ` — ${activeTab!.label}` : ''}
+                </button>
+                <button
+                  disabled={!isSearchTab}
+                  onClick={() => {
+                    setContext('rezultati trenutne pretrage');
+                    setPlusOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Icon name="search" /> Rezultati trenutne pretrage
+                </button>
+              </div>,
+              document.body,
+            )}
         </div>
         <Icon name="sparkle" className="text-accent" />
         {speechSupported && (
