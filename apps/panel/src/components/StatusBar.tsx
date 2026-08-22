@@ -22,10 +22,14 @@ export default function StatusBar({
   fullName,
   roleLabel,
   moduleCode,
+  chatOpen,
+  onToggleChat,
 }: {
   fullName: string;
   roleLabel: string;
   moduleCode: string | null;
+  chatOpen: boolean;
+  onToggleChat: () => void;
 }) {
   const { openTab } = useTabs();
   const [connection, setConnection] = useState<'checking' | 'ok' | 'down'>('checking');
@@ -92,7 +96,19 @@ export default function StatusBar({
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
-    <footer className="flex h-[29px] flex-shrink-0 items-center gap-3 bg-panel-2 px-2 text-[11px] text-ink-faint">
+    <footer className="relative flex h-[29px] flex-shrink-0 items-center gap-3 bg-panel-2 px-2 text-[11px] text-ink-faint">
+      {/* Na sredini trake (22.8.2026, na zahtev vlasnika: "ikonu za AI... na sredinu donje
+          trake") — apsolutno centrirano u odnosu na CELU traku, ne u odnosu na flex tok teksta
+          oko njega (jedina stavka ovde koja odstupa od levo/desno poravnanja ostatka trake). */}
+      <button
+        onClick={onToggleChat}
+        title={chatOpen ? 'Sakrij AI chat (istorija se čuva)' : 'Prikaži AI chat'}
+        className={`absolute left-1/2 top-0 flex h-[29px] w-[29px] -translate-x-1/2 items-center justify-center rounded ${
+          chatOpen ? 'text-accent-strong' : 'text-ink-faint hover:text-ink'
+        }`}
+      >
+        <Icon name="sparkle" />
+      </button>
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>
       </span>

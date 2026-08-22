@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Icon from './Icon';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import ActivityBar from './ActivityBar';
@@ -62,6 +63,13 @@ export default function Shell({
   // §6d "predlog... pojavljuje se odmah po dodavanju stavke") — SelectionProvider poziva
   // `onFirstAdd` kad prva stavka uđe u selekciju, isto ponašanje kao klik na dugme.
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  // AI chat kao plutajući prozor umesto trajno usidrenog dela centralnog panela (22.8.2026, na
+  // zahtev vlasnika — "chat treba da se pojavljuje na klik na ikonu... drugi klik se uklanja iz
+  // vidokruga, ne briše se ono što je chatovano"). Poništava raniji princip "uvek deo centralnog
+  // panela" (dizajn dok. §6c, 19.8.2026) — svesna izmena, ne previd. `chatOpen` samo kontroliše
+  // VIDLJIVOST (CSS `hidden`, ne uslovan JSX render) — `AiChatBox` ostaje montiran i kad je
+  // sakriven, njegovo `turns` stanje (istorija razgovora) se time nikad ne gubi.
+  const [chatOpen, setChatOpen] = useState(true);
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
 
@@ -122,20 +130,34 @@ export default function Shell({
                 {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
                     svaku poruku (M15 spec §6.5.1 dopuna, 22.8.2026, na zahtev vlasnika) — bez
                     ovog `id`-ja nema drugog opšteg mesta da se "trenutan sadržaj ekrana" pročita
-                    bez posebnog ožičenja svakog od 18 ekrana ponaosob. */}
+                    bez posebnog ožičenja svakog od 18 ekrana ponaosob. AiChatBox se preselio u
+                    plutajući prozor (ispod) — `<main>` sad sam zauzima celu visinu centralne
+                    kolone, uvek, bez obzira da li je chat otvoren (plutajući prozor se nadovezuje
+                    PREKO sadržaja, ne gura ga). */}
                 <main id="tt-main-content" className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
-                {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
-                    koji modul je aktivan. POVUČENO (21.8.2026, na zahtev vlasnika uz snimak:
-                    "Linija ne treba da ide u unutrasnjost panela") — `border-x` ovde je
-                    razvlačio liniju kroz CEO blok, uključujući istoriju razgovora iznad polja
-                    za unos (unutrašnjost panela), što nije bilo traženo. Okvir sad crta sam
-                    `AiChatBox.tsx`, samo oko reda za unos + reda brzih prečica (donja dva reda),
-                    ne oko istorije razgovora iznad njih — vidi tamo. */}
-                {/* Suženo za 30% (21.8.2026, na zahtev vlasnika: "sada suzite ceo chat za
-                    30%") — bilo `w-[72%]`, 72%×0.7≈50%. */}
-                <div className="mx-auto my-2 w-[50%] flex-shrink-0 bg-panel shadow-sm">
-                  <AiChatBox />
-                </div>
+              </div>
+            </div>
+            {/* Plutajući AI chat (22.8.2026, na zahtev vlasnika) — bez zatamnjenja pozadine
+                (vlasnikova eksplicitna odluka preko AskUserQuestion: "plutajući prozor u uglu",
+                ne pun modal) — sadržaj ispod ostaje vidljiv/klikabilan dok je chat otvoren, jer AI
+                automatski čita sadržaj otvorenog taba (M15 spec §6.5.1) i korisnik treba da može
+                da gleda oboje istovremeno. `hidden` (ne uslovan JSX) čuva `AiChatBox` montiranim —
+                istorija razgovora se ne gubi kad se prozor sakrije. */}
+            <div
+              className={`fixed bottom-[38px] right-4 z-40 w-[400px] max-h-[70vh] flex-col overflow-hidden rounded-lg border border-border bg-panel shadow-lg ${
+                chatOpen ? 'flex' : 'hidden'
+              }`}
+            >
+              <div className="flex h-[36px] flex-shrink-0 items-center justify-between border-b border-border bg-panel-2 px-3 text-xs font-medium text-ink">
+                <span className="flex items-center gap-1.5">
+                  <Icon name="sparkle" className="text-accent" /> AI asistent
+                </span>
+                <button onClick={() => setChatOpen(false)} title="Zatvori (istorija se čuva)" className="text-ink-faint hover:text-ink">
+                  <Icon name="close" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <AiChatBox />
               </div>
             </div>
             {rightPanelOpen && (
@@ -144,7 +166,13 @@ export default function Shell({
               </ResizablePane>
             )}
           </div>
-          <StatusBar fullName={fullName} roleLabel={roles.join(', ')} moduleCode={moduleCodeForHref(pathname)} />
+          <StatusBar
+            fullName={fullName}
+            roleLabel={roles.join(', ')}
+            moduleCode={moduleCodeForHref(pathname)}
+            chatOpen={chatOpen}
+            onToggleChat={() => setChatOpen((v) => !v)}
+          />
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
