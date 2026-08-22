@@ -231,6 +231,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Obaveštavanje dobavljača o novoj poruci van portala (email/SMS ping).
 - Da li portal dobavljača dobija PWA instalaciju.
 - Zaštita od zloupotrebe/spama na javno dostupnom portalu za spoljne naloge.
+- **Brisanje/izmena poruke ima API, nema UI dugme** (22.8.2026) — `DELETE`/`PATCH messages/:id` postoje, panel `/chat` ih ne poziva; arhiviranje konverzacije ne postoji ni u API-ju.
 - ~~Panel (M17) chat ekran~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/chat/`, uživo provereno. Mobilni (M9) chat tab ostaje poseban naredni korak (M9 još nema kod).
 - Puna WS e2e integracija u test suite-u (pravi socket.io klijent) — jedinični test sa mock socket-ima za sada.
 - ~~Evidencija AI porekla poruke (§2.3/§9.5)~~ **Rešeno (avgust 2026)** — polja, migracija, tok slanja i prikaz u panelu; potvrđeno e2e testom protiv prave baze.

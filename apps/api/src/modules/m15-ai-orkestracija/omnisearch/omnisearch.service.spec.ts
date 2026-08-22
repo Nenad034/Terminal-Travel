@@ -162,6 +162,66 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(result.aiAnswer).toMatch(/ANTHROPIC_API_KEY/);
   });
 
+  // M15 spec §6.5.1 dopuna (22.8.2026) — vlasnik potvrdio preko AskUserQuestion da AI treba da
+  // vidi sadržaj otvorenog ekrana automatski (ne samo naziv), da bi mogao da analizira/predlaže
+  // (bez izvršavanja radnji, isti postojeći OmnisearchAgent limit). Dva zahteva na server-side:
+  // (1) sadržaj stvarno stiže do modela, (2) predugačak sadržaj se seče na PAGE_CONTENT_MAX_CHARS
+  // bez obzira šta klijent pošalje (odbrana u dubinu).
+  it('pageContent (sadržaj otvorenog ekrana) se prosleđuje modelu u user poruci', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Odgovor na osnovu ekrana.' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'šta vidiš u ovom tabu',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      pageContent: 'Gost: Marko Marković, državljanstvo RS, pasoš AB1234567.',
+    });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    expect(sentMessages[0].content).toContain('Sadržaj trenutnog ekrana');
+    expect(sentMessages[0].content).toContain('Marko Marković');
+    expect(sentMessages[0].content).toContain('šta vidiš u ovom tabu');
+  });
+
+  it('predugačak pageContent se seče na server-side granicu (odbrana u dubinu)', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'analiziraj sadržaj ovog ekrana',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      pageContent: 'A'.repeat(50_000),
+    });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    const contentBlockLength = (sentMessages[0].content as string).length;
+    expect(contentBlockLength).toBeLessThan(9000); // 8000 + omotač teksta, daleko ispod 50000
+  });
+
+  it('bez pageContent-a, poruka modelu ne sadrži "Sadržaj trenutnog ekrana" blok', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'analiziraj nešto opšte', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    expect(sentMessages[0].content).toBe('analiziraj nešto opšte');
+  });
+
   // §6.5.4.3, §10 — "omnisearch nikad ne izvršava radnju sam": statička provera da servis
   // nema u SOPSTVENOM izvornom kodu nijedan poziv mutirajuće metode M5/M2 servisa (CREATE/
   // EDIT/SUBMIT/APPROVE/CANCEL). BookingsService/ProductsService imaju takve metode (cancel,

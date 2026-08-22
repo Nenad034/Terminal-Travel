@@ -92,10 +92,24 @@ export default function AiChatBox() {
     setDismissedForPath(null);
   }, [activePath]);
 
+  // Vidljiv tekst trenutnog taba, automatski prilagan na svaku poruku (22.8.2026, na zahtev
+  // vlasnika, posle uživo razjašnjenja — "AI treba da može da vidi sadržaj u centralnom panelu").
+  // `#tt-main-content` (Shell.tsx) obuhvata samo sadržaj taba, NE i sam AiChatBox (odvojen
+  // sibling element) — nema rizika da razgovor pročita sopstvenu istoriju. Isto pravilo
+  // uklanjanja kao naziv taba: X na čipu (`dismissedForPath`) prekida i ovo za taj tab, ne samo
+  // labelu. Klijentsko sečenje je pogodnost (manji payload) — server ionako ponovo seče
+  // (`PAGE_CONTENT_MAX_CHARS`, omnisearch.service.ts), odbrana u dubinu.
+  function readPageContent(): string | undefined {
+    if (dismissedForPath === activePath) return undefined;
+    const text = document.getElementById('tt-main-content')?.innerText?.trim();
+    return text ? text.slice(0, 8000) : undefined;
+  }
+
   async function send() {
     const question = input.trim();
     if (!question) return;
     const sentContext = effectiveContext ?? undefined;
+    const pageContent = readPageContent();
     setInput('');
     setContext(null);
     setTurns((t) => [...t, { question, contextLabel: sentContext, links: [], loading: true, inactive: false }]);
@@ -105,7 +119,7 @@ export default function AiChatBox() {
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, pageContent }),
       });
       const data: OmnisearchResponse = await res.json();
       setTurns((t) => {

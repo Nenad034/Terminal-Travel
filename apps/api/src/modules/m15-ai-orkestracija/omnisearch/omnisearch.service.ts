@@ -18,8 +18,14 @@ export interface OmnisearchRequest {
   /** null = anoniman posetilac — dozvoljeno SAMO za channel = B2C_SITE (M8 §3a, "radi anonimno"). */
   actorUserId: string | null;
   lang?: LanguageCode;
+  /** M15 spec §6.5.1 dopuna (22.8.2026) — vidljiv tekst otvorenog taba, samo INTERNAL_PANEL. */
+  pageContent?: string;
   ipAddress?: string | null;
 }
+
+// Server-side gornja granica dužine priloženog sadržaja ekrana (odbrana u dubinu, ne oslanja
+// se samo na klijentsko sečenje) — ~2000 tokena, drži trošak po poruci predvidivim (M18 §6.5).
+const PAGE_CONTENT_MAX_CHARS = 8000;
 
 const OMNISEARCH_AGENT_MODULE_CODE = 'M15_OMNISEARCH';
 const BOOKING_REFERENCE_PATTERN = /TT-\d{4}-\d+/i;
@@ -352,17 +358,23 @@ export class OmnisearchService {
         'zahtev za radnju (otkazivanje, izmenu), nikad ne tvrdi da si tu radnju izvršio — uputi korisnika na ' +
         '"Moje rezervacije" gde radnju ručno potvrđuje.'
       : 'Ti si OmnisearchAgent za interni panel agencije Terminal Travel. Odgovaraš isključivo na osnovu ' +
-        'rezultata alata koje pozivaš — nikad ne izmišljaš podatke. Odgovor drži kratkim (2-4 rečenice), na srpskom. ' +
-        'Ako pitanje liči na zahtev za radnju (otkazivanje, slanje, izmenu), nikad ne tvrdi da si tu radnju izvršio — ' +
-        'objasni da korisnik treba da je potvrdi na ekranu rezervacije. ' +
-        'VAŽNO: ne vidiš automatski koji je tab/ekran trenutno otvoren niti njegov sadržaj — dobijaš samo tekst ' +
-        'pitanja (i, ako je korisnik kliknuo dugme "+" pored polja, jedan prilog u obliku "[Kontekst: ...]" na ' +
-        'početku poruke). Ako korisnik pita nešto što zavisi od trenutnog ekrana (npr. "šta je u ovom tabu", ' +
-        '"vidite li ovo") a nema priloženog konteksta, nemoj pitati "koji tab je otvoren" kao da bi trebalo da znaš — ' +
-        'jasno reci da ne vidiš sadržaj otvorenog ekrana i uputi korisnika da klikne "+" pored polja da ti prosledi ' +
-        'trenutan zapis kao kontekst, ili da upiše konkretan broj rezervacije/ime/naziv proizvoda.';
+        'rezultata alata koje pozivaš i priloženog sadržaja ekrana (ako postoji) — nikad ne izmišljaš podatke. ' +
+        'Odgovor drži kratkim (2-4 rečenice), na srpskom. Ako pitanje liči na zahtev za radnju (otkazivanje, ' +
+        'slanje, izmenu), nikad ne tvrdi da si tu radnju izvršio i nikad je sam ne pokušavaj — ti nemaš i nikad ' +
+        'nećeš imati mogućnost da menjaš podatke, samo analiziraš i predlažeš; objasni da korisnik treba sam da ' +
+        'potvrdi radnju na ekranu. ' +
+        'VAŽNO: svaka poruka može (ne mora) nositi blok "Sadržaj trenutnog ekrana" — to je vidljiv tekst taba koji ' +
+        'je korisnik trenutno otvorio u panelu, priložen automatski. Kad taj blok postoji, koristi ga direktno da ' +
+        'odgovoriš na pitanja o tom ekranu ("šta vidiš", "koje je stanje", "šta bi trebalo uraditi") — nemaš potrebu ' +
+        'da pitaš korisnika šta se prikazuje, već je tu. Kad blok NE postoji (npr. prazna Početna, ili je korisnik ' +
+        'svesno uklonio kontekst), a pitanje zavisi od ekrana, jasno reci da ne vidiš sadržaj i uputi korisnika da ' +
+        'upiše konkretan broj rezervacije/ime/naziv proizvoda.';
 
-    let messages: any[] = [{ role: 'user', content: req.query }];
+    const pageContent = req.pageContent?.slice(0, PAGE_CONTENT_MAX_CHARS).trim();
+    const userContent = pageContent
+      ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""\n\nPitanje: ${req.query}`
+      : req.query;
+    let messages: any[] = [{ role: 'user', content: userContent }];
     const entityResults: EntityResult[] = [];
     const matchedRoutes: MatchedRoute[] = [];
     const startedAt = Date.now();

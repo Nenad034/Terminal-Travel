@@ -119,7 +119,11 @@ export default function Shell({
                   §komentar globals.css) — 90% širina i dalje stvarno postoji u layout-u (grep
                   potvrđen u v1.45), samo se više NE ističe bojom, na eksplicitan zahtev. */}
               <div className="flex flex-1 flex-col overflow-hidden">
-                <main className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
+                {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
+                    svaku poruku (M15 spec §6.5.1 dopuna, 22.8.2026, na zahtev vlasnika) — bez
+                    ovog `id`-ja nema drugog opšteg mesta da se "trenutan sadržaj ekrana" pročita
+                    bez posebnog ožičenja svakog od 18 ekrana ponaosob. */}
+                <main id="tt-main-content" className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Dizajn dok. §6c — AI razgovor pratilac, uvek deo centralnog panela bez obzira
                     koji modul je aktivan. POVUČENO (21.8.2026, na zahtev vlasnika uz snimak:
                     "Linija ne treba da ide u unutrasnjost panela") — `border-x` ovde je

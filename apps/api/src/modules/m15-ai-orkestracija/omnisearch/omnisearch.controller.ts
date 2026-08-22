@@ -31,6 +31,7 @@ export class OmnisearchController {
       channel: dto.channel,
       actorUserId,
       lang: dto.lang,
+      pageContent: dto.pageContent,
       ipAddress: req.ip ?? null,
     });
   }

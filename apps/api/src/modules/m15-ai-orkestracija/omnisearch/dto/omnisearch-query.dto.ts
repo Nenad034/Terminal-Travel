@@ -20,6 +20,14 @@ export class OmnisearchQueryDto {
   @IsObject()
   context?: Record<string, unknown>;
 
+  // M15 spec §6.5.1 dopuna (22.8.2026, na zahtev vlasnika) — vidljiv tekst trenutno otvorenog
+  // taba u M17 panelu (INTERNAL_PANEL kanal), automatski prilagan na svaku poruku. Server-side
+  // ograničen na PAGE_CONTENT_MAX_CHARS (vidi omnisearch.service.ts) bez obzira šta klijent
+  // pošalje — odbrana u dubinu, ne oslanja se samo na klijentsko sečenje.
+  @IsOptional()
+  @IsString()
+  pageContent?: string;
+
   @IsOptional()
   @IsIn(LANGUAGE_CODES)
   lang?: (typeof LANGUAGE_CODES)[number];
