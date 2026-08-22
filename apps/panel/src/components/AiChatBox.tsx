@@ -233,19 +233,14 @@ export default function AiChatBox() {
           Srednja linija (border-t koji je razdvajao ovaj red od reda za unos iznad) UKLONJENA
           (21.8.2026, noviji zahtev: "uklonite srednju liniju chata") — poništava prethodni
           "ostavite samo gornju liniju" pokušaj; oba reda sad bez razdelne linije između sebe.
-          ISKOŠENE IVICE (22.8.2026, na zahtev vlasnika, isti zahtev/tehnika kao TabBar.tsx —
-          vidi komentar tamo) — `rounded` uklonjen, `skewX(-20deg)`. ISPRAVKA (22.8.2026, isti
-          dan: "tekst da prati kosi ugao... ostre ivice zameniti vrlo blagim zaokruzenjem") —
-          kontra-transform na sadržaju UKLONJEN (tekst sad prati isti ugao kao kutija, ne
-          ostaje uspravan — vidi TabBar.tsx za puno obrazloženje), `rounded-sm` (blago
-          zaobljenje) umesto potpuno oštrih uglova. */}
-      <div className="flex flex-wrap justify-center gap-3 px-2 py-1.5">
+          ISKOŠENE IVICE — probano pa POVUČENO (22.8.2026, isti dan, "ne sviđa mi se, vratite
+          kako je bilo") — nazad na običan pravougaon tag/pilula oblik, bez skewX transform-a. */}
+      <div className="flex flex-wrap justify-center gap-1.5 px-2 py-1.5">
         {quickLinks.map((item) => (
           <button
             key={item.id}
             onClick={() => openTab(item.href, item.label)}
-            style={{ transform: 'skewX(-20deg)' }}
-            className="flex items-center gap-1 rounded-sm border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
+            className="flex items-center gap-1 rounded border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-accent hover:text-ink"
           >
             <Icon name={item.icon} />
             {item.label}
