@@ -38,6 +38,32 @@ interface OmnisearchResponse {
   aiAnswer?: string;
 }
 
+// Kopiranje pojedinačne poruke (22.8.2026, na zahtev vlasnika: "omogućite kopiranje svake
+// poruke") — dugme se pojavljuje na hover preko cele grupe (`group`/`group-hover`), izbegava
+// da svaka poruka trajno nosi vidljivu ikonicu. `navigator.clipboard` zahteva siguran kontekst
+// (https/localhost) — panel već radi isključivo tako (dev na localhost, produkcija bez izbora
+// hosting provajdera i dalje čeka HTTPS po planu).
+function CopyButton({ text, className = '' }: { text: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // clipboard nedostupan (npr. nesiguran kontekst) — nema šta da se uradi, dugme ostaje tiho
+        }
+      }}
+      title={copied ? 'Kopirano' : 'Kopiraj poruku'}
+      className={`opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 ${copied ? 'text-ok' : 'text-ink-faint hover:text-ink'} ${className}`}
+    >
+      <Icon name={copied ? 'check' : 'copy'} />
+    </button>
+  );
+}
+
 interface Turn {
   question: string;
   contextLabel?: string;
@@ -149,7 +175,10 @@ export default function AiChatBox() {
           {turns.map((t, i) => (
             <div key={i} className="flex flex-col gap-1.5">
               {t.contextLabel && <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
-              <div className="self-end rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">{t.question}</div>
+              <div className="group flex items-center gap-1 self-end">
+                <CopyButton text={t.question} />
+                <div className="rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">{t.question}</div>
+              </div>
               {t.loading ? (
                 <div className="flex items-center gap-2 text-xs text-ink-faint">
                   <Icon name="loading" className="animate-spin" /> razmišljam...
@@ -159,8 +188,13 @@ export default function AiChatBox() {
                   AI pretraga još nije uključena za ovaj panel.
                 </div>
               ) : (
-                <div className="rounded-lg border border-border bg-panel-2 px-3 py-2 text-xs text-ink">
-                  {t.answer && <TypewriterText text={t.answer} />}
+                <div className="group relative rounded-lg border border-border bg-panel-2 px-3 py-2 text-xs text-ink">
+                  {t.answer && (
+                    <>
+                      <CopyButton text={t.answer} className="absolute right-1.5 top-1.5" />
+                      <TypewriterText text={t.answer} />
+                    </>
+                  )}
                   {t.links.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {t.links.map((l) => (
