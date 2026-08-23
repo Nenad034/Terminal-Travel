@@ -603,7 +603,7 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         title="Prevuci za promenu visine, dvoklik za podrazumevanu"
         className={`h-1.5 flex-shrink-0 cursor-row-resize border-t hover:border-accent ${dragging ? 'border-accent' : 'border-transparent'}`}
       />
-      <div className="flex h-[29px] flex-shrink-0 items-center justify-between border-t border-ink-faint bg-panel-2 px-3">
+      <div className="flex h-[29px] flex-shrink-0 items-center justify-between border-t border-ink-faint bg-bar px-3">
         <span className="flex items-center gap-1.5 text-ink-dim">
           <Icon name="terminal" /> TERMINAL
         </span>

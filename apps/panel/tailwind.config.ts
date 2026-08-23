@@ -15,6 +15,10 @@ const config: Config = {
         panel: 'var(--panel)',
         panel2: 'var(--panel-2)',
         'panel-2': 'var(--panel-2)', // alias — koristi se naizmenično sa `panel2` kroz komponente
+        // Treća nijansa (23.8.2026, na zahtev vlasnika — "sve trake neka budu za nijansu
+        // tamnije od svega") — TopBar.tsx/StatusBar.tsx (i ono što je unutar njih, npr.
+        // TabBar.tsx), NIJE isto što i `panel-2` (Sidebar.tsx/RightPanel.tsx), vidi globals.css.
+        bar: 'var(--bar)',
         border: 'var(--border)',
         ink: {
           DEFAULT: 'var(--text)',

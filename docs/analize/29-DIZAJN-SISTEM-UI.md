@@ -3,6 +3,7 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu) i M7 (B2B portal, isti obrazac — poglavlje 7), kasnije M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
+**Verzija:** 1.46 — novo poglavlje 2.0e (23.8.2026): svetli mod dobija treću nijansu (`--bar`, trake tamnije od bočnih panela, centralni sadržaj tamniji od čiste bele ali svetliji od bočnih panela), `apps/panel/tailwind.config.ts` i `TopBar.tsx`/`StatusBar.tsx`/`TerminalPanel.tsx` ožičeni.
 **Verzija:** 1.45 — poglavlje 5f dopunjeno (23.8.2026): podela terminal panela na dva nezavisna panela (VS Code "Split Terminal" obrazac), M17 spec v1.97.
 **Verzija:** 1.44 — poglavlje 5a dopunjeno (23.8.2026): "+" pojednostavljen na prazan tab (ne direktno pretraga), više tabova iste putanje kao opšta sposobnost, M17 spec v1.94. Logo premešten sa dna Sidebar-a u gornju traku (isti M17 spec unos) — ovaj dokument nema poseban logo-odeljak, samo M17 changelog.
 **Verzija:** 1.43 — poglavlje 5f dopunjeno (23.8.2026): kopiranje poruka + segmentacija po turi + kartica odobrenja za web fetch, M15 spec §6.9.6/§6.9.7, M17 spec v1.92. Ostatak poglavlja 5f nepromenjen.
@@ -124,6 +125,18 @@ Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis
 | Tamni | `#3b4a51` (1.43:1 ❌) | `#748088` | 3.25:1 |
 
 Tamni mod nije bio deo pritužbe (snimak je svetli mod), ali je imao isti stvaran propust pri proveri — ispravljen u istom prolazu, ista logika kao svaka druga token-ispravka ovog dana (jedan izvor istine, nema mod koji ostaje slučajno drugačiji). Ovo je deljen token — primenjeno svuda gde se `--border` koristi (kartice, forme, padajući meniji, `kbd` oznake), ne samo dashboard kartice sa snimka.
+
+### 2.0e Svetli mod dobija TREĆU nijansu — trake tamnije od bočnih panela (23.8.2026, na zahtev vlasnika)
+
+Vlasnik je, posle uživo pregleda: "previse je svetla bela pozadina centralnog panela u ligjht modu, zatamnite ga malo a da bide svetlije od levog i desnog panela. sve trake neka budu za nijansu tamnije od svega." Do sada je svetli mod imao samo DVE nijanse — `--panel` čisto bela (`#FFFFFF`, centralni sadržaj) i `--panel-2` (`#FAFAFD`, praktično nerazlučivo od bele) za SVE ostalo, trake I bočne panele zajedno. Sad tri, namerno odstupanje od poglavlja 2.0a glavne tabele (koja i dalje beleži izvorne VS Code "Light 2026" vrednosti kao referentnu tačku, ne kao trenutno stanje ovog tokena):
+
+| Nivo | Token | Vrednost | Koristi ga |
+| :---- | :---- | :---- | :---- |
+| Najsvetliji | `--panel` (= `--bg`, ostaju namerno jednaki, poglavlje 6b/v1.45 razlog) | `#FAFAFD` (preuzeto sa mesta gde je ranije bio `--panel-2`) | Centralni sadržaj (`<main>`, aktivan tab) |
+| Srednji | `--panel-2` | `#F5F5F7` (nova vrednost) | Levi/desni bočni panel (`Sidebar.tsx`, `RightPanel.tsx`, `ActivityBar.tsx`) |
+| Najtamniji | `--bar` (nov token) | `#F0F1F2` (VS Code "Light 2026" vrednost koju je poglavlje 2.0a od početka navodilo kao deo palete, nikad ranije stvarno ožičena ni u jedan token — bila je kratko `--border`, uklonjena odatle u poglavlju 2.0d zbog neproleznog kontrasta kao GRANICA; kao POZADINA ovaj isti problem ne postoji, tamni tekst na njoj i dalje daleko iznad AAA) | Gornja/donja traka (`TopBar.tsx`, `StatusBar.tsx`), unutrašnje zaglavlje terminal panela (`TerminalPanel.tsx`) |
+
+Tamni mod nije tražio treću nijansu — `--bar` tamo dobija istu vrednost kao `--panel-2` (`#192227`), token postoji svuda (nijedna `bg-bar` klasa ne ostaje bez definisane promenljive), ali se ništa vizuelno ne menja. `--bg` menja vrednost zajedno sa `--panel` (isti par, namerno jednaki, v1.45 razlog — margina oko `w-[90%]` glavnog sadržaja ne sme da izgleda kao vidljiva "kutija" drugog tona).
 
 **Paleta ostaje promenljiva, ne zaključana jednom zauvek** (potvrđeno 17.8.2026, na izričit zahtev vlasnika). Tehnički mehanizam ovo već obezbeđuje bez dodatnog rada — boje žive isključivo kao centralni sloj CSS promenljivih (isti sloj koji poglavlje 2 birač teme i M7 poglavlje 2.0.5 `SubagentBranding` već koriste), nikad utkane direktno u komponente. Promena tona/nijanse "Horizont"/"Zalazak" palete je u svakom trenutku izmena vrednosti tog sloja, ne prepravka UI koda — uz jedini uslov da svaka nova vrednost ponovo prođe proveru iz poglavlja 2a pre nego što se smatra gotovom.
 

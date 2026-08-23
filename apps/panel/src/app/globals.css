@@ -72,9 +72,23 @@
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --panel-2: #fafafd;
+  /* Tri nijanse svetlog moda (23.8.2026, na zahtev vlasnika: "previse je svetla bela pozadina
+     centralnog panela... zatamnite ga malo a da bide svetlije od levog i desnog panela. sve
+     trake neka budu za nijansu tamnije od svega") — ranije SAMO dve (`--panel` čisto bela za
+     centralni sadržaj, `--panel-2` za sve ostalo — trake I bočne panele zajedno). Sad tri
+     nivoa, od najsvetlijeg ka najtamnijem: `--panel` (centralni sadržaj) > `--panel-2` (levi/
+     desni bočni panel, Sidebar.tsx/RightPanel.tsx) > `--bar` (gornja/donja traka, TopBar.tsx/
+     StatusBar.tsx). `--panel` PREUZIMA vrednost sa mesta gde je ranije bio `--panel-2`
+     (#fafafd) — centralni sadržaj se pomera JEDAN nivo naniže, ne dobija potpuno novu
+     vrednost; `--panel-2` dobija NOVU, tamniju vrednost (#f5f5f7); `--bar` (#f0f1f2) je
+     vrednost koju je dizajn dokument (§2.0a, VS Code "Light 2026" izvor) OD POČETKA navodio
+     kao deo palete, nikad ranije stvarno ožičena ni u jedan token. `--bg` prati `--panel`
+     (isti par, namerno JEDNAKI — v1.45 razlog: margina oko `w-[90%]` glavnog sadržaja ne sme
+     da izgleda kao vidljiva "kutija" drugog tona, Shell.tsx komentar). */
+  --bg: #fafafd;
+  --panel: #fafafd;
+  --panel-2: #f5f5f7;
+  --bar: #f0f1f2;
   /* `--border` POTAMNJEN (21.8.2026, na zahtev vlasnika uz snimak kartica u centralnom delu:
      "jedva se vide okvirne linije... potamnite ih za 15%") — bilo je `#f0f1f2`, samo 1.13:1
      na belu pozadinu, DALEKO ispod 3:1 praga za granice (§2a) — doslovnih -15% na vrednost
@@ -116,6 +130,9 @@
     --bg: #263238;
     --panel: #263238;
     --panel-2: #192227;
+    /* `--bar` dodat (23.8.2026) samo da bi token postojao svuda gde se koristi (`bg-bar`
+       klasa) — tamni mod NIJE tražio treću nijansu, ista vrednost kao `--panel-2`. */
+    --bar: #192227;
     /* `--border` posvetljen isti prolaz (21.8.2026) — bilo je `#3b4a51`, samo 1.43:1 na tamnu
        pozadinu, ispod 3:1 praga (§2a); vlasnikova pritužba je bila za svetli mod, ali tamni je
        imao isti stvaran propust pri proveri, ista logika kao svaki drugi token ovog dana. */
@@ -148,6 +165,7 @@
   --bg: #263238;
   --panel: #263238;
   --panel-2: #192227;
+  --bar: #192227;
   --border: #748088;
   --text: #eeffff;
   --text-dim: #c9d6db;
@@ -168,9 +186,10 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #ffffff;
-  --panel: #ffffff;
-  --panel-2: #fafafd;
+  --bg: #fafafd;
+  --panel: #fafafd;
+  --panel-2: #f5f5f7;
+  --bar: #f0f1f2;
   --border: #858c92;
   --text: #202020;
   --text-dim: #404040;

@@ -112,7 +112,7 @@ export default function TopBar({
   }
 
   return (
-    <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
+    <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-bar px-2 text-xs">
       <div
         className={`flex flex-shrink-0 items-center gap-2 overflow-hidden ${showLabel ? 'px-2' : 'justify-center px-0'}`}
         style={{ width: spacerWidth }}

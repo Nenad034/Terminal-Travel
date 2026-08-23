@@ -96,7 +96,7 @@ export default function StatusBar({
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
-    <footer className="relative flex h-[29px] flex-shrink-0 items-center gap-3 bg-panel-2 px-2 text-[11px] text-ink-faint">
+    <footer className="relative flex h-[29px] flex-shrink-0 items-center gap-3 bg-bar px-2 text-[11px] text-ink-faint">
       {/* Na sredini trake (22.8.2026, na zahtev vlasnika: "ikonu za AI... na sredinu donje
           trake") — apsolutno centrirano u odnosu na CELU traku, ne u odnosu na flex tok teksta
           oko njega (jedina stavka ovde koja odstupa od levo/desno poravnanja ostatka trake). */}
