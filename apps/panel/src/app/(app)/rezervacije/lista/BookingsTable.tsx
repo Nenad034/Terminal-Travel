@@ -54,13 +54,43 @@ function buildMockTimeline(b: MockBookingRow): TimelineEntry[] {
   return entries;
 }
 
-type ColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
+type TextColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
+type DateColumnKey = 'stayFrom' | 'stayTo' | 'createdAt';
+type ColumnKey = TextColumnKey | DateColumnKey;
+
+const DATE_COLUMNS: DateColumnKey[] = ['stayFrom', 'stayTo', 'createdAt'];
+
+// Dopuna (23.8.2026, na zahtev vlasnika: "01/06/2026...10/06/2026") — opseg datuma, DD/MM/GGGG,
+// razdvojen sa "...". Nepotpun/neispravan unos (dok korisnik još kuca) NE filtrira ništa —
+// bolje prikazati sve nego naglo isprazniti tabelu na svaki otkucan znak.
+function parseDDMMYYYY(s: string): Date | null {
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, d, mo, y] = m;
+  const date = new Date(Number(y), Number(mo) - 1, Number(d));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function matchesDateRange(iso: string, filterText: string): boolean {
+  const raw = filterText.trim();
+  if (!raw) return true;
+  const [fromPart, toPart] = raw.split('...').map((p) => p.trim());
+  const from = parseDDMMYYYY(fromPart);
+  if (!from) return true;
+  const to = toPart !== undefined ? parseDDMMYYYY(toPart) : from;
+  const target = to ?? from;
+  const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
+  const rangeEnd = new Date(target.getFullYear(), target.getMonth(), target.getDate(), 23, 59, 59, 999);
+  const value = new Date(iso);
+  return value >= rangeStart && value <= rangeEnd;
+}
 
 // Dopuna (23.8.2026, na zahtev vlasnika: "Omogucite pretragu po kolonama. Odmah ispod naziva
 // kolone staviti filter za pretragu") — pravo, funkcionalno filtriranje NAD mock nizom (ne
 // mock samo po sebi) — otud zaseban klijentski komponent umesto proširenja server komponente
-// (`page.tsx`), koja ostaje čist wrapper. Filtrira se "sadrži" (case-insensitive) preko svake
-// kolone nezavisno — sve aktivne kolone se AND-uju.
+// (`page.tsx`), koja ostaje čist wrapper. Tekstualne kolone: "sadrži" (case-insensitive).
+// Datumske kolone (Dolazak/Odlazak/Kreirano, isti dan, dopuna): opseg DD/MM/GGGG...DD/MM/GGGG.
+// Sve aktivne kolone se AND-uju.
 export default function BookingsTable({ bookings }: { bookings: MockBookingRow[] }) {
   const [filters, setFilters] = useState<Record<ColumnKey, string>>({
     bookingNumber: '',
@@ -68,15 +98,19 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     channel: '',
     status: '',
     paymentStatus: '',
+    stayFrom: '',
+    stayTo: '',
+    createdAt: '',
   });
   const [timelineFor, setTimelineFor] = useState<MockBookingRow | null>(null);
 
   const filtered = useMemo(() => {
     return bookings.filter((b) =>
       (Object.keys(filters) as ColumnKey[]).every((key) => {
-        const needle = filters[key].trim().toLowerCase();
-        if (!needle) return true;
-        return String(b[key]).toLowerCase().includes(needle);
+        const value = filters[key];
+        if (!value.trim()) return true;
+        if ((DATE_COLUMNS as string[]).includes(key)) return matchesDateRange(b[key as DateColumnKey], value);
+        return String(b[key as TextColumnKey]).toLowerCase().includes(value.trim().toLowerCase());
       }),
     );
   }, [bookings, filters]);
@@ -99,6 +133,12 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 Broj
                 <input value={filters.bookingNumber} onChange={(e) => setFilter('bookingNumber', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
+              {/* "Kreirano" premešteno između "Broj" i "Nosilac rezervacije" (23.8.2026, na
+                  zahtev vlasnika) — poništava raniji redosled (bilo je poslednja kolona). */}
+              <th className="px-3 py-2 font-medium">
+                Kreirano
+                <input value={filters.createdAt} onChange={(e) => setFilter('createdAt', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+              </th>
               <th className="px-3 py-2 font-medium">
                 Nosilac rezervacije
                 <input value={filters.buyerName} onChange={(e) => setFilter('buyerName', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
@@ -115,10 +155,15 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 Uplata
                 <input value={filters.paymentStatus} onChange={(e) => setFilter('paymentStatus', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
-              <th className="px-3 py-2 font-medium">Dolazak</th>
-              <th className="px-3 py-2 font-medium">Odlazak</th>
+              <th className="px-3 py-2 font-medium">
+                Dolazak
+                <input value={filters.stayFrom} onChange={(e) => setFilter('stayFrom', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+              </th>
+              <th className="px-3 py-2 font-medium">
+                Odlazak
+                <input value={filters.stayTo} onChange={(e) => setFilter('stayTo', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
+              </th>
               <th className="px-3 py-2 text-right font-medium">Iznos</th>
-              <th className="px-3 py-2 font-medium">Kreirano</th>
             </tr>
           </thead>
           <tbody>
@@ -134,6 +179,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                   </button>
                 </td>
                 <td className="px-3 py-2 font-mono text-ink">{b.bookingNumber}</td>
+                <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
                 <td className="px-3 py-2 text-ink-dim">{b.buyerName}</td>
                 <td className="px-3 py-2 text-ink-faint">{b.channel}</td>
                 <td className="px-3 py-2">
@@ -145,7 +191,6 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayFrom)}</td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayTo)}</td>
                 <td className="px-3 py-2 text-right font-mono text-ink">{formatMoney(b.totalPrice, b.currency)}</td>
-                <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
               </tr>
             ))}
             {filtered.length === 0 && (
