@@ -250,6 +250,7 @@ Prefiks: `/api/v1/integrations`
 
 ## 9. Otvoreno za dalje
 
+- ~~M17 panel prikaz `GET /integrations/providers`~~ — **rešeno 23.8.2026**, na zahtev vlasnika: `apps/panel/src/app/(app)/integracije/page.tsx`, spaja ovaj endpoint sa M18 `/ops/provider-health` u jedan prikaz ("API konekcije", grupa "Administracija"). M17 spec v2.00.
 - Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) implementiraju se kad ti proizvodi dođu na red — isti `ProviderAdapter` interfejs, bez redizajna M4.
 - Tačni limiti brzine poziva (rate limiting) po provajderu definišu se kad se zna stvarni Travelgate ugovor i njegova ograničenja — za sada M4 samo predviđa mesto (`ProviderConfig`) gde se ti limiti mogu podesiti.
 - Ako se pronađe raniji "Travelgate predlog" pomenut u Master dokumentu, ovaj dokument treba uporediti sa njim i uskladiti razlike, ne pisati dva paralelna izvora istine za M4.

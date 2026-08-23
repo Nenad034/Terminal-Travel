@@ -220,6 +220,20 @@ export const NAV_ITEMS: NavItem[] = [
     phase: 6,
     implemented: true,
   },
+  {
+    // Dopuna (23.8.2026, na zahtev vlasnika: "Kada se klikne na settings dugme u levom panelu
+    // treba da se pojave sve live api konekcije sa nazivom statusom i health check statusom")
+    // — spaja postojeći M4 `GET /integrations/providers` (naziv/konfiguracioni status) sa
+    // postojećim M18 `GET /ops/provider-health` (health-check status/latencija/uptime) u jedan
+    // ekran; oba endpoint-a već postoje, ovo je prvi panel prikaz koji ih objedinjuje.
+    id: 'integracije',
+    label: 'API konekcije',
+    icon: 'pulse',
+    href: '/integracije',
+    permission: { module: 'M18', resource: 'provider-health', action: 'VIEW' },
+    phase: 4,
+    implemented: true,
+  },
 ];
 
 export interface NavGroup {
@@ -244,7 +258,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
   { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
   { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },
-  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log', 'mcp'] },
+  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log', 'mcp', 'integracije'] },
 ];
 
 function itemForHref(href: string): NavItem | null {
