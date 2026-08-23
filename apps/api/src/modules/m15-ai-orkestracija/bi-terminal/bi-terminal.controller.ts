@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { BiTerminalService } from './bi-terminal.service';
 import { BiTerminalQueryDto } from './dto/bi-terminal-query.dto';
 import { SendReportChatDto } from './dto/send-report-chat.dto';
+import { WebFetchDecisionDto } from './dto/web-fetch-decision.dto';
 import { getReport } from './report-store';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -45,5 +46,20 @@ export class BiTerminalController {
   @RequirePermission('M15', 'bi-terminal', 'VIEW')
   sendChat(@Param('id') id: string, @Body() dto: SendReportChatDto, @CurrentUser() actor: { userId: string }) {
     return this.biTerminal.sendReportToChat(id, dto.conversationId, actor.userId);
+  }
+
+  // §6.9.7 — LJUDSKI pokrenut klik na "Odobri" u TerminalPanel.tsx. Tek OVDE se stvarno šalje
+  // zahtev ka spoljnom serveru (safe-web-fetch.ts), nikad iz tool-use petlje u query().
+  @Post('web-fetch/approve')
+  @RequirePermission('M15', 'bi-terminal', 'VIEW')
+  approveWebFetch(@Body() dto: WebFetchDecisionDto, @CurrentUser() actor: { userId: string }) {
+    return this.biTerminal.approveWebFetch(dto.url, dto.reason, dto.originalQuestion, actor.userId);
+  }
+
+  @Post('web-fetch/deny')
+  @RequirePermission('M15', 'bi-terminal', 'VIEW')
+  async denyWebFetch(@Body() dto: WebFetchDecisionDto, @CurrentUser() actor: { userId: string }) {
+    await this.biTerminal.denyWebFetch(dto.url, dto.reason, dto.originalQuestion, actor.userId);
+    return { ok: true };
   }
 }

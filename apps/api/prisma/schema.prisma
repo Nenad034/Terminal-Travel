@@ -2284,6 +2284,7 @@ enum AgentRole {
   EMAIL_INBOX_AGENT // M22 spec §4, dodato avgust 2026
   KNOWLEDGE_AGENT // M23 spec §3.2/§4, dodato avgust 2026
   BI_TERMINAL_AGENT // M15 spec §6.9, dodato avgust 2026 — isključivo read-only, isključivo Vlasnik
+  WEB_CONTENT_SAFETY_AGENT // M15 spec §6.9.7, dodato 23.8.2026 — proverava sadržaj sa interneta PRE prikaza, nezavisan log od BiTerminalAgent-a
 }
 
 enum AgentStatus {

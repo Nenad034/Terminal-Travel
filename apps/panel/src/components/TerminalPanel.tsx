@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Icon from './Icon';
+import CopyButton from './CopyButton';
 
 const HEIGHT_KEY = 'tt-panel-terminal-height';
 const DEFAULT_HEIGHT = 220;
@@ -17,6 +18,9 @@ interface Turn {
   answer?: string;
   links?: { label: string; href: string }[];
   report?: { id: string; format: 'EXCEL' | 'PDF' | 'HTML'; fileName: string };
+  toolsCalled?: string[];
+  pendingWebFetch?: { url: string; reason: string; originalQuestion: string };
+  webFetchDecision?: 'approved' | 'denied';
   loading: boolean;
   inactive: boolean;
   error?: string;
@@ -119,6 +123,81 @@ function ReportCard({ report }: { report: NonNullable<Turn['report']> }) {
   );
 }
 
+// M15 spec §6.9.7 — predlog agenta da poseti konkretan URL. NIŠTA se ne preuzima dok Vlasnik ne
+// klikne "Odobri" — isti "predloži pa čovek odobri" obrazac kao ReportCard iznad, samo za web
+// pristup umesto slanja izveštaja. Vizuelno izdvojeno (warn okvir) da se jasno razlikuje od
+// običnog odgovora, dizajn dok. §5f dopuna.
+function WebFetchApprovalCard({
+  pending,
+  decision,
+  onDecide,
+}: {
+  pending: NonNullable<Turn['pendingWebFetch']>;
+  decision: Turn['webFetchDecision'];
+  onDecide: (decision: 'approved' | 'denied', answer: string, links?: Turn['links']) => void;
+}) {
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function decide(action: 'approve' | 'deny') {
+    setWorking(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bi-terminal/web-fetch/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pending),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error();
+      onDecide(action === 'approve' ? 'approved' : 'denied', data.answer ?? '', data.links);
+    } catch {
+      setError('Zahtev nije uspeo — pokušaj ponovo.');
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  if (decision) {
+    return (
+      <div className="mt-1 flex items-center gap-1.5 text-ink-faint">
+        <Icon name={decision === 'approved' ? 'check' : 'close'} />
+        {decision === 'approved' ? 'Odobreno — sadržaj preuzet i proveren.' : 'Odbijeno — ništa nije preuzeto.'}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-1 flex flex-col gap-1.5 rounded border border-warn bg-warn-bg px-2.5 py-2">
+      <div className="flex items-center gap-2 text-warn">
+        <Icon name="globe" /> Agent predlaže odlazak na internet
+      </div>
+      <div className="text-ink-dim">{pending.reason}</div>
+      <div className="truncate text-ink-faint" title={pending.url}>
+        {pending.url}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          disabled={working}
+          onClick={() => decide('approve')}
+          className="rounded border border-ok px-2 py-0.5 text-[11px] text-ok hover:bg-ok-bg disabled:opacity-40"
+        >
+          Odobri
+        </button>
+        <button
+          disabled={working}
+          onClick={() => decide('deny')}
+          className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-ink-faint hover:border-danger hover:text-danger disabled:opacity-40"
+        >
+          Odbij
+        </button>
+        {working && <Icon name="loading" className="animate-spin text-ink-faint" />}
+      </div>
+      {error && <span className="text-danger">{error}</span>}
+    </div>
+  );
+}
+
 // M15 spec §6.9, dizajn dok. §5f — terminal-stilizovan panel, isključivo Vlasnik (RBAC
 // sprovodi backend, ova komponenta se uopšte ne montira bez `M15/bi-terminal/VIEW`, vidi
 // Shell.tsx). NIJE stvaran shell — svaki unos je pitanje na prirodnom jeziku ka kontrolisanom,
@@ -209,6 +288,8 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         answer?: string;
         links?: { label: string; href: string }[];
         report?: Turn['report'];
+        toolsCalled?: string[];
+        pendingWebFetch?: Turn['pendingWebFetch'];
         message?: string;
       } = await res.json();
       setTurns((t) => {
@@ -222,7 +303,15 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
           next[next.length - 1] = { ...last, loading: false, inactive: true };
           return next;
         }
-        next[next.length - 1] = { ...last, loading: false, answer: data.answer, links: data.links, report: data.report };
+        next[next.length - 1] = {
+          ...last,
+          loading: false,
+          answer: data.answer,
+          links: data.links,
+          report: data.report,
+          toolsCalled: data.toolsCalled,
+          pendingWebFetch: data.pendingWebFetch,
+        };
         return next;
       });
     } catch {
@@ -259,10 +348,11 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
         {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. "šta je danas prodato", "lista nenaplaćenih aranžmana".</p>}
         {turns.map((t, i) => (
-          <div key={i} className="group mb-2 flex flex-col gap-1">
+          <div key={i} className={`group flex flex-col gap-1 py-2 ${i > 0 ? 'border-t border-ink-faint/40' : ''}`}>
             <div className="flex items-start justify-between gap-2">
-              <span className="text-accent">
+              <span className="flex items-center gap-1.5 text-accent">
                 $ <span className="text-ink">{t.question}</span>
+                <CopyButton text={t.question} />
               </span>
               <button
                 onClick={() => hideRow(i)}
@@ -282,22 +372,51 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
               <span className="text-ink-faint">Terminal još nije aktiviran.</span>
             ) : (
               <>
-                <pre className="whitespace-pre-wrap text-ink-dim">{t.answer}</pre>
-                {t.links && t.links.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {t.links.map((l) => (
-                      <Link
-                        key={l.href}
-                        href={l.href}
-                        target="_blank"
-                        className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
-                      >
-                        {l.label}
-                      </Link>
-                    ))}
-                  </div>
+                {t.toolsCalled && t.toolsCalled.length > 0 && (
+                  <div className="text-ink-faint">⟶ {t.toolsCalled.join(', ')}</div>
                 )}
-                {t.report && <ReportCard report={t.report} />}
+                {t.pendingWebFetch && !t.webFetchDecision ? (
+                  <WebFetchApprovalCard
+                    pending={t.pendingWebFetch}
+                    decision={t.webFetchDecision}
+                    onDecide={(decision, answer, links) =>
+                      setTurns((prev) => {
+                        const next = [...prev];
+                        next[i] = { ...next[i], webFetchDecision: decision, answer: answer || next[i].answer, links: links ?? next[i].links };
+                        return next;
+                      })
+                    }
+                  />
+                ) : (
+                  <>
+                    {t.webFetchDecision === 'denied' && (
+                      <div className="flex items-center gap-1.5 text-ink-faint">
+                        <Icon name="close" /> Odbijeno — ništa nije preuzeto sa interneta.
+                      </div>
+                    )}
+                    {t.answer && (
+                      <div className="flex items-start gap-1.5">
+                        <pre className="flex-1 whitespace-pre-wrap text-ink-dim">{t.answer}</pre>
+                        <CopyButton text={t.answer} />
+                      </div>
+                    )}
+                    {t.links && t.links.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {t.links.map((l) => (
+                          <Link
+                            key={l.href}
+                            href={l.href}
+                            target="_blank"
+                            className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+                          >
+                            {l.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    {t.report && <ReportCard report={t.report} />}
+                  </>
+                )}
               </>
             )}
           </div>

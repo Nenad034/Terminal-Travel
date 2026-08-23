@@ -10,6 +10,8 @@ import { AgentInboxController } from './agent-inbox/agent-inbox.controller';
 import { AgentInboxService } from './agent-inbox/agent-inbox.service';
 import { BiTerminalController } from './bi-terminal/bi-terminal.controller';
 import { BiTerminalService } from './bi-terminal/bi-terminal.service';
+import { ReportViewsService } from './bi-terminal/report-views';
+import { WebContentSafetyService } from './bi-terminal/web-content-safety.service';
 import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
@@ -21,6 +23,7 @@ import { ReportsModule } from '../m13-bi/reports/reports.module';
 import { SupplierObligationsModule } from '../m10-finansije/supplier-obligations/supplier-obligations.module';
 import { SubagentsModule } from '../m7-b2b-subagenti/subagents/subagents.module';
 import { M19KomunikacionaPlatformaModule } from '../m19-komunikaciona-platforma/m19-komunikaciona-platforma.module';
+import { SearchModule } from '../m5-rezervacije/search/search.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -43,9 +46,19 @@ import { M19KomunikacionaPlatformaModule } from '../m19-komunikaciona-platforma/
     SupplierObligationsModule,
     SubagentsModule,
     M19KomunikacionaPlatformaModule,
+    SearchModule,
   ],
   controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController, BiTerminalController],
-  providers: [ModuleActivationService, OmnisearchService, AnthropicClientService, ActionTypesService, AgentInboxService, BiTerminalService],
+  providers: [
+    ModuleActivationService,
+    OmnisearchService,
+    AnthropicClientService,
+    ActionTypesService,
+    AgentInboxService,
+    BiTerminalService,
+    ReportViewsService,
+    WebContentSafetyService,
+  ],
   exports: [OmnisearchService],
 })
 export class M15AiOrkestracijaModule {}

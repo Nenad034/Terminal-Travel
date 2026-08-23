@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AgentRole" ADD VALUE 'WEB_CONTENT_SAFETY_AGENT';

@@ -6,6 +6,7 @@ import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
 import { NAV_ITEMS } from '@/lib/nav';
+import CopyButton from './CopyButton';
 
 // Ispisivanje reč-po-reč (na zahtev vlasnika, 19.8.2026 — "kao u AI pretrazi u Chrome ili u
 // VS Code"). Odgovor i dalje stiže u JEDNOM odgovoru sa servera (M15 omnisearch nema pravi
@@ -54,32 +55,6 @@ interface OmnisearchResponse {
   matchedRoutes: { label: string; href: string }[];
   entityResults: { type: string; id: string; label: string; href: string }[];
   aiAnswer?: string;
-}
-
-// Kopiranje pojedinačne poruke (22.8.2026, na zahtev vlasnika: "omogućite kopiranje svake
-// poruke") — dugme se pojavljuje na hover preko cele grupe (`group`/`group-hover`), izbegava
-// da svaka poruka trajno nosi vidljivu ikonicu. `navigator.clipboard` zahteva siguran kontekst
-// (https/localhost) — panel već radi isključivo tako (dev na localhost, produkcija bez izbora
-// hosting provajdera i dalje čeka HTTPS po planu).
-function CopyButton({ text, className = '' }: { text: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        } catch {
-          // clipboard nedostupan (npr. nesiguran kontekst) — nema šta da se uradi, dugme ostaje tiho
-        }
-      }}
-      title={copied ? 'Kopirano' : 'Kopiraj poruku'}
-      className={`opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 ${copied ? 'text-ok' : 'text-ink-faint hover:text-ink'} ${className}`}
-    >
-      <Icon name={copied ? 'check' : 'copy'} />
-    </button>
-  );
 }
 
 interface Turn {

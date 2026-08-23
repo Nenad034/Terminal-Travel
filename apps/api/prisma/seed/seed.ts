@@ -822,6 +822,39 @@ async function seedM15Omnisearch() {
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
+
+  // M15 spec §6.5.6b/§6.9.7 — jedan zajednički gate za "opšta pretraga interneta uz odobrenje
+  // čoveka" bez obzira ko poziva (OmnisearchAgent kasnije, BiTerminalAgent od 23.8.2026) — širi
+  // opseg (bilo koji sajt) zaslužuje sopstvenu, svesnu odluku Vlasnika, odvojenu od M15_BI_TERMINAL.
+  await prisma.moduleAgentActivation.upsert({
+    where: { moduleCode: 'M15_WEB_RESEARCH' },
+    update: {},
+    create: { moduleCode: 'M15_WEB_RESEARCH', status: 'NOT_READY' },
+  });
+
+  const webSafetyAgentUser = await prisma.user.upsert({
+    where: { email: 'web-content-safety-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'web-content-safety-agent@sistem.terminal-travel.local',
+      fullName: 'WebContentSafetyAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: webSafetyAgentUser.id },
+    update: {},
+    create: {
+      userId: webSafetyAgentUser.id,
+      agentRole: 'WEB_CONTENT_SAFETY_AGENT',
+      moduleCode: null,
+      status: 'DISABLED', // §3 ograda na nivou koda — ne može ACTIVE dok M15_WEB_RESEARCH != ACTIVATED
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
 }
 
 // Compound unique (module_code, action_code) ne prihvata `null` u Prisma `where` tipu za
