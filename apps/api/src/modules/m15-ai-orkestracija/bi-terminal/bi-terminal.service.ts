@@ -75,6 +75,7 @@ export class BiTerminalService {
       'query_view koristi kad specifičniji alat iznad ne pokriva pitanje (npr. proizvoljan period, ukupan broj bez filtera, prodaja po zaposlenom, najjeftinija ponuda po destinaciji). ' +
       'propose_web_fetch koristi SAMO kad odgovor stvarno zahteva podatak sa interneta koji ne postoji ni u jednom internom alatu (npr. opšte informacije van kataloga/rezervacija) — nikad za poređenje cena sa konkurencijom. ' +
       'Ako korisnik traži da se iznos/iznosi izraze u drugoj valuti (npr. "izrazite u EUR"), UVEK prvo pozovi query_view(exchange_rates) da dobiješ kurs pre nego što odgovoriš — ne izjavljuj da kurs nije dostupan dok ga ne proveriš tim alatom, i ne predlaži propose_web_fetch za ovo. ' +
+      'Ako korisnik pita koliko je sati u nekom mestu/zoni, UVEK pozovi current_time (prevedi mesto u IANA vremensku zonu) — nikad propose_web_fetch za ovo. ' +
       'FORMAT ODGOVORA — OBAVEZNO PROČITAJ (tekst se prikazuje u terminalu kao OBIČAN tekst, markdown se NE renderuje nego se vidi sirov znak): ' +
       'NIKAD ne stavljaj zvezdice oko reči (**tekst**), NIKAD ne stavljaj # ispred reda, NIKAD ne počinji red znakom "-", "*" ili "•", NIKAD ne koristi emoji. ' +
       'Za nabrajanje piši svaku stavku u svom redu BEZ ikakvog uvodnog znaka, npr:\nProdaja danas: 3 rezervacije, 180.800 RSD\nProsečna vrednost: 60.267 RSD\nKanal: B2C sajt\n' +
@@ -169,6 +170,23 @@ export class BiTerminalService {
             },
           },
           required: ['view'],
+        },
+      },
+      {
+        // Dopuna (23.8.2026, uživo — "koliko je sada sati u Parizu" je pokušalo propose_web_fetch
+        // ka timeanddate.com, sajt vratio 403). Trenutno vreme u bilo kojoj svetskoj zoni je
+        // deterministički izračunljivo sa serverskog sata, nikad ne zahteva internet ni pogađanje —
+        // model samo prevodi grad/zemlju u IANA vremensku zonu (opšte znanje, ne poslovni podatak).
+        name: 'current_time',
+        description:
+          'Vrati tačno trenutno vreme u traženoj vremenskoj zoni, čitano sa serverskog sata. Koristi za "koliko je sati u X" — NIKAD propose_web_fetch za ovo.',
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            timezone: { type: 'string' as const, description: 'IANA identifikator vremenske zone, npr. "Europe/Paris", "Europe/Belgrade", "Asia/Dubai"' },
+            label: { type: 'string' as const, description: 'Naziv mesta/zone kako ga je korisnik naveo, za prikaz u odgovoru (npr. "Pariz")' },
+          },
+          required: ['timezone'],
         },
       },
       {
@@ -427,8 +445,30 @@ export class BiTerminalService {
           filters: input.filters as Record<string, unknown> | undefined,
         });
       }
+      case 'current_time': {
+        return this.currentTime(input.timezone as string, input.label as string | undefined);
+      }
       default:
         return { error: `Nepoznat alat: ${name}` };
+    }
+  }
+
+  // Deterministički, bez baze i bez interneta — čita samo serverski sat preko `Intl` API-ja.
+  // Neispravan/nepoznat IANA identifikator baca grešku koju `Intl` čitljivo opisuje, model tad
+  // prijavljuje da nije prepoznao zonu umesto da izmisli vreme.
+  private currentTime(timezone: string, label?: string): unknown {
+    if (!timezone) return { error: 'Nedostaje vremenska zona.' };
+    try {
+      // 'sr-Latn-RS', ne 'sr-RS' — potonje podrazumeva ćirilicu za pun naziv dana/meseca
+      // (`dateStyle: 'full'`), što odudara od latiničnog pisma u ostatku panela.
+      const formatted = new Intl.DateTimeFormat('sr-Latn-RS', {
+        timeZone: timezone,
+        dateStyle: 'full',
+        timeStyle: 'short',
+      }).format(new Date());
+      return { timezone, label: label ?? timezone, now: formatted };
+    } catch {
+      return { error: `Nepoznata vremenska zona: "${timezone}".` };
     }
   }
 
