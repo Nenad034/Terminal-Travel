@@ -86,3 +86,39 @@ export const MOCK_BOOKINGS: MockBookingRow[] = [
 ];
 
 export { BRANCHES, USERS };
+
+// Izmišljen (ali realan-oblik) tok, samo za MOCK prikaz (23.8.2026) — pravi tok ide preko
+// stvarnog GET /sales/bookings/:id/history (M5 spec §11 dopuna, isti dan) čim ova lista dobije
+// stvarne ID-jeve iz baze umesto izmišljenih brojeva rezervacija. Premešteno ovde (23.8.2026,
+// dopuna "pun zapis") — deljeno između `BookingsTable.tsx` (ikonica u redu) i `[bookingNumber]/
+// page.tsx` (dugme u punom zapisu), jedan izvor umesto dva primerka iste logike.
+export interface TimelineEntry {
+  timestamp: string;
+  action: string;
+  actorType: 'HUMAN' | 'AI_AGENT' | 'SYSTEM';
+  actorName: string;
+}
+
+export function buildMockTimeline(b: MockBookingRow): TimelineEntry[] {
+  const created = new Date(b.createdAt);
+  const plusDays = (d: Date, days: number) => new Date(d.getTime() + days * 86_400_000);
+  const entries: TimelineEntry[] = [
+    { timestamp: created.toISOString(), action: 'booking.pending_supplier_confirmation', actorType: 'HUMAN', actorName: 'Marija Nikolić (prodaja)' },
+  ];
+  if (b.status !== 'PENDING_SUPPLIER_CONFIRMATION') {
+    entries.push({ timestamp: plusDays(created, 1).toISOString(), action: 'booking.confirmed', actorType: 'AI_AGENT', actorName: 'SupplierConfirmationAgent' });
+  }
+  if (b.status === 'MODIFIED') {
+    entries.push({ timestamp: plusDays(created, 3).toISOString(), action: 'booking.modified', actorType: 'HUMAN', actorName: 'Marija Nikolić (prodaja)' });
+  }
+  if (b.status === 'CANCELLED') {
+    entries.push({ timestamp: plusDays(created, 2).toISOString(), action: 'booking.cancelled', actorType: 'HUMAN', actorName: 'Nenad Tomić (vlasnik)' });
+  }
+  if (b.paymentStatus === 'PAID' || b.paymentStatus === 'PARTIALLY_PAID') {
+    entries.push({ timestamp: plusDays(created, 4).toISOString(), action: 'payment.recorded', actorType: 'SYSTEM', actorName: 'sistem (uplata evidentirana)' });
+  }
+  if (b.status === 'COMPLETED') {
+    entries.push({ timestamp: b.stayTo, action: 'booking.completed', actorType: 'SYSTEM', actorName: 'sistem (datum povratka prošao)' });
+  }
+  return entries;
+}

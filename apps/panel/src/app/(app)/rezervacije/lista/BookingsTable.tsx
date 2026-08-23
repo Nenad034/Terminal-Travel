@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
-import BookingTimelineModal, { type TimelineEntry } from '@/components/BookingTimelineModal';
+import BookingTimelineModal from '@/components/BookingTimelineModal';
 import { useRowSummary } from '@/components/RowSummaryContext';
+import { useTabs } from '@/components/TabsContext';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
-import type { MockBookingRow } from './mock-data';
+import { buildMockTimeline, type MockBookingRow } from './mock-data';
 import FiltersModal, { type ExtraFilters } from './FiltersModal';
 import UrgentModal from './UrgentModal';
 import ExportButton from './ExportButton';
@@ -30,33 +31,6 @@ function formatAmount(amount: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('sr-RS');
-}
-
-// Izmišljen (ali realan-oblik) tok, samo za MOCK prikaz (23.8.2026) — pravi tok ide preko
-// stvarnog GET /sales/bookings/:id/history (M5 spec §11 dopuna, isti dan) čim ova lista dobije
-// stvarne ID-jeve iz baze umesto izmišljenih brojeva rezervacija.
-function buildMockTimeline(b: MockBookingRow): TimelineEntry[] {
-  const created = new Date(b.createdAt);
-  const plusDays = (d: Date, days: number) => new Date(d.getTime() + days * 86_400_000);
-  const entries: TimelineEntry[] = [
-    { timestamp: created.toISOString(), action: 'booking.pending_supplier_confirmation', actorType: 'HUMAN', actorName: 'Marija Nikolić (prodaja)' },
-  ];
-  if (b.status !== 'PENDING_SUPPLIER_CONFIRMATION') {
-    entries.push({ timestamp: plusDays(created, 1).toISOString(), action: 'booking.confirmed', actorType: 'AI_AGENT', actorName: 'SupplierConfirmationAgent' });
-  }
-  if (b.status === 'MODIFIED') {
-    entries.push({ timestamp: plusDays(created, 3).toISOString(), action: 'booking.modified', actorType: 'HUMAN', actorName: 'Marija Nikolić (prodaja)' });
-  }
-  if (b.status === 'CANCELLED') {
-    entries.push({ timestamp: plusDays(created, 2).toISOString(), action: 'booking.cancelled', actorType: 'HUMAN', actorName: 'Nenad Tomić (vlasnik)' });
-  }
-  if (b.paymentStatus === 'PAID' || b.paymentStatus === 'PARTIALLY_PAID') {
-    entries.push({ timestamp: plusDays(created, 4).toISOString(), action: 'payment.recorded', actorType: 'SYSTEM', actorName: 'sistem (uplata evidentirana)' });
-  }
-  if (b.status === 'COMPLETED') {
-    entries.push({ timestamp: b.stayTo, action: 'booking.completed', actorType: 'SYSTEM', actorName: 'sistem (datum povratka prošao)' });
-  }
-  return entries;
 }
 
 type TextColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
@@ -124,6 +98,15 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
   const [extraFilters, setExtraFilters] = useState<ExtraFilters>(EMPTY_EXTRA_FILTERS);
 
   const { showSummary } = useRowSummary();
+  const { openTab } = useTabs();
+
+  // "Pun zapis" (23.8.2026, na zahtev vlasnika, dizajn dok. §5b) — klik na broj rezervacije
+  // otvara nov app-tab sa punim zapisom (ne samo sažetak u desnom panelu, koji ostaje na klik
+  // bilo gde drugde na redu). `e.stopPropagation()` sprečava da isti klik i otvori sažetak.
+  function openFullRecord(e: React.MouseEvent, b: MockBookingRow) {
+    e.stopPropagation();
+    openTab(`/rezervacije/lista/${b.bookingNumber}`, b.bookingNumber);
+  }
 
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
@@ -313,7 +296,11 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                     </button>
                   </div>
                 </td>
-                <td className="px-3 py-2 font-mono text-ink">{b.bookingNumber}</td>
+                <td className="px-3 py-2 font-mono">
+                  <button onClick={(e) => openFullRecord(e, b)} title="Otvori pun zapis rezervacije" className="text-ink hover:text-accent hover:underline">
+                    {b.bookingNumber}
+                  </button>
+                </td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
                 <td className="px-3 py-2">
                   <div className="text-ink-dim">{b.buyerName}</div>

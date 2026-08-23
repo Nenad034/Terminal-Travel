@@ -23,7 +23,7 @@ import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actio
 export default function RightPanel({ onClose }: { onClose: () => void }) {
   const { items, removeItem, clear } = useSelection();
   const { summary, clearSummary } = useRowSummary();
-  const { navigateInTab } = useTabs();
+  const { navigateInTab, openTab } = useTabs();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +63,9 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {items.length === 0 && summary && <BookingSummary summary={summary} />}
+      {items.length === 0 && summary && (
+        <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
+      )}
 
       {items.length === 0 && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
@@ -136,7 +138,7 @@ function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
 // Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
 // smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
-function BookingSummary({ summary: s }: { summary: import('./RowSummaryContext').RowSummary }) {
+function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').RowSummary; onOpenFullRecord: () => void }) {
   const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
@@ -144,6 +146,12 @@ function BookingSummary({ summary: s }: { summary: import('./RowSummaryContext')
         <span className="font-mono font-semibold text-ink">{s.bookingNumber}</span>
         <span className="rounded bg-panel px-2 py-0.5 text-[11px] font-medium text-ink-dim">{s.status}</span>
       </div>
+      <button
+        onClick={onOpenFullRecord}
+        className="mb-3 flex w-full items-center justify-center gap-1.5 rounded border border-accent px-2 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft"
+      >
+        <Icon name="link-external" /> Otvori pun zapis
+      </button>
       <SummaryRow label="Nosilac rezervacije" value={s.buyerName} />
       {(s.country || s.destinationCity) && <SummaryRow label="Destinacija" value={[s.destinationCity, s.country].filter(Boolean).join(', ')} />}
       {s.hotelName && <SummaryRow label="Hotel/objekat" value={s.hotelName} />}
