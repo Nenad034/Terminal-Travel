@@ -14,10 +14,17 @@ export default function ActivityBar({
   groups,
   activeGroupId,
   onSelectGroup,
+  collapsed,
+  onToggleCollapse,
 }: {
   groups: NavGroup[];
   activeGroupId: string;
   onSelectGroup: (id: string) => void;
+  // Dopuna (23.8.2026, na zahtev vlasnika — kolabovana leva traka sad ide na 0px, poglavlje
+  // Shell.tsx, pa gubi sopstvenu strelicu za ponovno širenje) — isti VS Code obrazac kao ovde:
+  // klik na VEĆ AKTIVNU grupu prebacuje skupi/proširi umesto da ništa ne uradi.
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }) {
   return (
     <nav className="flex w-[43px] flex-shrink-0 flex-col items-center gap-1 bg-panel-2 py-1">
@@ -28,15 +35,31 @@ export default function ActivityBar({
         const className = `flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${isLast ? 'mt-auto' : ''} ${
           active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
         }`;
+        const title = active ? `${group.label} — klik za ${collapsed ? 'proširivanje' : 'skupljanje'} leve trake` : group.label;
         if (single) {
           return (
-            <Link key={group.id} href={single.href} title={group.label} className={className}>
+            <Link
+              key={group.id}
+              href={single.href}
+              title={title}
+              className={className}
+              onClick={(e) => {
+                if (!active) return;
+                e.preventDefault();
+                onToggleCollapse();
+              }}
+            >
               <Icon name={group.icon} />
             </Link>
           );
         }
         return (
-          <button key={group.id} title={group.label} onClick={() => onSelectGroup(group.id)} className={className}>
+          <button
+            key={group.id}
+            title={title}
+            onClick={() => (active ? onToggleCollapse() : onSelectGroup(group.id))}
+            className={className}
+          >
             <Icon name={group.icon} />
           </button>
         );

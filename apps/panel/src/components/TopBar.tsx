@@ -78,11 +78,27 @@ function InboxButton() {
 // 12px padding/gap header-a = 255px, v1.65 računica), pa popunjavanje logotipom automatski
 // zadovoljava i "iznad levog panela" i "prvi tab počinje od leve ivice centralnog panela" (širina
 // spacer-a nepromenjena, tabovi ostaju na istoj poziciji).
+//
+// ISPRAVKA (23.8.2026, na zahtev vlasnika, uz snimak ekrana — "i dalje prvi tab stoji gde ne
+// treba") — statična `w-[255px]` vrednost je pretpostavljala PROŠIRENU bočnu traku (podrazumevana
+// širina); kad je traka kolabovana (ili potpuno sakrivena preko "Customize Layout"), stvarna leva
+// kolona je uska (samo `ActivityBar`, 43px), pa je razmak ostajao preširok i tabovi su vizuelno
+// "plutali" udesno od stvarne ivice centralne kolone. `sidebarWide` (Shell.tsx, izvedeno iz
+// `layoutVisibility.sidebar && !sidebarCollapsed`) sad bira između te dve poznate vrednosti —
+// 255px (43+224 podrazumevana širina, minus 12px header padding/gap, v1.65 računica) kad je
+// traka puna, ili 31px (43-12, ista formula, Sidebar širina 0) kad nije. Ne prati ručno prevučenu
+// (resize) širinu unutar 180-420px opsega uživo — poznato, prihvaćeno pojednostavljenje (isti
+// kompromis kao v1.65), rešava prijavljen slučaj (kolabovano/sakriveno vs. podrazumevano).
+const SIDEBAR_WIDE_SPACER = 255;
+const SIDEBAR_NARROW_SPACER = 31;
+
 export default function TopBar({
+  sidebarWide,
   rightPanelOpen,
   onToggleRightPanel,
   layoutProps,
 }: {
+  sidebarWide: boolean;
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
   layoutProps: Omit<ComponentProps<typeof CustomizeLayoutButton>, 'rightPanelOpen' | 'onToggleRightPanel'>;
@@ -97,10 +113,13 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      <div className="flex w-[255px] flex-shrink-0 items-center gap-2 px-2">
+      <div
+        className={`flex flex-shrink-0 items-center gap-2 ${sidebarWide ? 'px-2' : 'justify-center px-0'}`}
+        style={{ width: sidebarWide ? SIDEBAR_WIDE_SPACER : SIDEBAR_NARROW_SPACER }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/terminal-travel-icon.png" alt="" className="h-5 w-5 flex-shrink-0" />
-        <span className="truncate text-sm font-semibold tracking-wide text-ink">Terminal Travel</span>
+        <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`flex-shrink-0 ${sidebarWide ? 'h-5 w-5' : 'h-4 w-4'}`} />
+        {sidebarWide && <span className="truncate text-sm font-semibold tracking-wide text-ink">Terminal Travel</span>}
       </div>
       <div className="flex h-full min-w-0 flex-1">
         <TabBar />

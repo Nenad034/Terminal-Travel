@@ -17,14 +17,12 @@ export default function Sidebar({
   mePresent,
   onCollapse,
   collapsed,
-  onExpand,
 }: {
   items: NavItem[];
   activeGroup: NavGroup | null;
   mePresent: boolean;
   onCollapse: () => void;
   collapsed?: boolean;
-  onExpand?: () => void;
 }) {
   const pathname = usePathname();
   const [forceShowList, setForceShowList] = useState(false);
@@ -43,30 +41,14 @@ export default function Sidebar({
     ? sectionItems.find((i) => pathname === i.href || (i.href !== '/' && pathname.startsWith(i.href)))
     : undefined;
 
-  // Kolabovano — tanka traka, ali ikonice TRENUTNO AKTIVNE sekcije ostaju vidljive (na
-  // zahtev vlasnika, 19.8.2026), ne prazna traka. Ostale sekcije grupe se ne prikazuju
-  // ovde — proširi traku za pun spisak.
-  if (collapsed) {
-    return (
-      <nav className="flex h-full flex-col items-center gap-1 overflow-y-auto bg-panel-2 py-3">
-        <button onClick={onExpand} title="Proširi levu traku" className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink">
-          <Icon name="chevron-right" />
-        </button>
-        {(selected ? [selected] : sectionItems).map((item) => (
-          <Link
-            key={item.id}
-            href={item.href}
-            title={item.label}
-            className={`flex h-[34px] w-[34px] items-center justify-center rounded ${
-              item.id === selected?.id ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
-            }`}
-          >
-            <Icon name={item.icon} />
-          </Link>
-        ))}
-      </nav>
-    );
-  }
+  // Kolabovano — TRAKA NESTAJE POTPUNO (23.8.2026, na zahtev vlasnika: "kada uvlacimu levi
+  // panel, treba da ostane samo leva traka [ActivityBar] ne i ova druga kolona"), poništava
+  // v1.x "tanka traka sa ikonicama" obrazac (19.8.2026). `ResizablePane` (Shell.tsx) sad
+  // kolabuje na 0px umesto 40px — ova grana više nema gde da se prikaže (overflow-hidden na
+  // 0-širinom kontejneru), pa se ovde ni ne pokušava renderovati (mrtav kod bi ostao ako bi
+  // se prikazivao samo u markup-u nikad na ekranu). Ponovno širenje ide preko `ActivityBar.tsx`
+  // (klik na već aktivnu grupu), ne preko strelice koja je ranije živela ovde.
+  if (collapsed) return null;
 
   return (
     <nav className="flex h-full flex-col gap-0.5 overflow-y-auto bg-panel-2 py-3">

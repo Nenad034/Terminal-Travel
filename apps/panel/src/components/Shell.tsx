@@ -164,6 +164,7 @@ export default function Shell({
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
           <TopBar
+            sidebarWide={layoutVisibility.sidebar && !sidebarCollapsed}
             rightPanelOpen={rightPanelOpen}
             onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
             layoutProps={{
@@ -179,7 +180,13 @@ export default function Shell({
             }}
           />
           <div className="flex flex-1 overflow-hidden">
-            <ActivityBar groups={groups} activeGroupId={activeGroup?.id ?? ''} onSelectGroup={setActiveGroupId} />
+            <ActivityBar
+              groups={groups}
+              activeGroupId={activeGroup?.id ?? ''}
+              onSelectGroup={setActiveGroupId}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
+            />
             {layoutVisibility.sidebar && (
               <ResizablePane
                 storageKey="tt-panel-sidebar-width"
@@ -187,7 +194,7 @@ export default function Shell({
                 minWidth={180}
                 maxWidth={420}
                 collapsed={sidebarCollapsed}
-                collapsedWidth={40}
+                collapsedWidth={0}
               >
                 <Sidebar
                   items={items}
@@ -195,7 +202,6 @@ export default function Shell({
                   mePresent
                   collapsed={sidebarCollapsed}
                   onCollapse={() => setCollapsed(true)}
-                  onExpand={() => setCollapsed(false)}
                 />
               </ResizablePane>
             )}
