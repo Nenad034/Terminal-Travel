@@ -66,7 +66,11 @@ export default async function ContractsPage() {
         <div className="overflow-hidden rounded-lg border border-border">
           {contracts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>}
           {contracts.map((c) => (
-            <div key={c.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+            // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
+            // obavestava") — nema posebnog ekrana za pojedinačan ugovor, pa je HTML anchor na redu
+            // ovde jedini realan način da dashboard upozorenje ("M3 — rokovi povrata alotmana")
+            // vodi TAČNO na taj ugovor umesto samo na opštu listu (`/ugovori#contract-{id}`).
+            <div key={c.id} id={`contract-${c.id}`} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
               <div>
                 <div className="font-medium text-ink">
                   {c.contractNumber} <span className="text-ink-faint">— {suppliersById.get(c.supplierId) ?? c.supplierId}</span>

@@ -52,7 +52,10 @@ export default async function AuditLogPage() {
         <div className="overflow-hidden rounded-lg border border-border">
           {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
           {entries.map((e) => (
-            <div key={e.id} className="border-b border-border bg-panel px-4 py-2 font-mono text-xs last:border-b-0 hover:bg-panel-2">
+            // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
+            // obavestava") — dashboard "M1 — bezbednosna upozorenja" sad linkuje TAČNO na red
+            // koji ga je prouzrokovao (`/audit-log#audit-{id}`), ne samo na opštu listu.
+            <div key={e.id} id={`audit-${e.id}`} className="border-b border-border bg-panel px-4 py-2 font-mono text-xs last:border-b-0 hover:bg-panel-2">
               <span className="text-ink-faint">{new Date(e.timestamp).toLocaleString('sr-RS')}</span>{' '}
               <span className="text-accent2">{e.module}</span> <span className="text-ink">{e.action}</span>{' '}
               <span className="text-ink-dim">

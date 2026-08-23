@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getMe, hasPermission } from '@/lib/me';
 import { apiFetch } from '@/lib/api-client';
 import Icon from '@/components/Icon';
@@ -8,7 +9,11 @@ interface AuditLogEntry {
   action: string;
   module: string;
   actorType: string;
-  createdAt: string;
+  // Stvarno polje na `AuditLogEntry` (M1 schema.prisma) je `timestamp`, ne `createdAt` — ranije
+  // je ova stranica čitala nepostojeće polje pa je svaki red prikazivao "Invalid Date" (nalaz iz
+  // uživo provere, 23.8.2026). `/audit-log/page.tsx` je istu grešku već ispravio ranije (vidi
+  // komentar tamo) — ovaj ekran ju je jedini još imao.
+  timestamp: string;
   resourceType: string;
   resourceId: string;
 }
@@ -16,7 +21,11 @@ interface AuditLogEntry {
 interface ExpiringRelease {
   id: string;
   contractId: string;
-  releaseDeadline: string;
+  // API (`ContractPeriodsService.expiringReleases`, M3) vraća sirov `ContractPeriod` — ne postoji
+  // polje `releaseDeadline` (ranije pretpostavljeno, uzrok "Invalid Date" u ovoj kartici, nalaz iz
+  // uživo provere 23.8.2026). Stvaran rok se računa: `stayFrom` minus `releaseDaysBefore` dana.
+  stayFrom: string;
+  releaseDaysBefore: number | null;
 }
 
 interface AgentInboxSource {
@@ -56,6 +65,24 @@ export default async function DashboardPage() {
     .filter((e) => e.module === 'M1' && (e.action === 'user.locked' || e.action === 'auth.login_failed'))
     .slice(0, 5);
 
+  // Rok povrata = dan dolaska minus release_days_before (M3 spec §6) — nema odvojenog polja u
+  // bazi, računa se ovde isto kao što bi ga računao svaki drugi potrošač ovog endpoint-a.
+  function releaseDeadline(r: ExpiringRelease): Date {
+    const days = r.releaseDaysBefore ?? 0;
+    return new Date(new Date(r.stayFrom).getTime() - days * 24 * 60 * 60 * 1000);
+  }
+
+  // Ciljevi linkova za Agent Inbox (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka
+  // stavkama na koje obavestava") — samo za module koji STVARNO imaju ekran gde se ta stavka
+  // može videti/odobriti. M3 (uvoz cenovnika) i M5 (operativne liste dobavljaču) nemaju još
+  // sopstveni panel ekran (samo AI-draft prikaz unutar M22 mejl niti) — namerno bez linka umesto
+  // izmišljanja putanje koja ne postoji.
+  const AGENT_INBOX_LINKS: Record<string, string> = {
+    M7: '/b2b/rabati?status=DRAFT',
+    M12: '/marketing?status=PENDING_APPROVAL',
+    M14: '/podrska',
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -75,8 +102,10 @@ export default async function DashboardPage() {
             ) : (
               <ul className="flex flex-col gap-1">
                 {(expiringReleases as ExpiringRelease[]).slice(0, 5).map((r) => (
-                  <li key={r.id} className="rounded bg-warn-bg px-2 py-1 text-xs text-warn">
-                    Ugovor #{r.contractId.slice(0, 8)} — rok povrata {new Date(r.releaseDeadline).toLocaleDateString('sr-RS')}
+                  <li key={r.id}>
+                    <Link href={`/ugovori#contract-${r.contractId}`} className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70">
+                      Ugovor #{r.contractId.slice(0, 8)} — rok povrata {releaseDeadline(r).toLocaleDateString('sr-RS')}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -108,9 +137,11 @@ export default async function DashboardPage() {
             ) : (
               <ul className="flex flex-col gap-1">
                 {securityAlerts.map((e) => (
-                  <li key={e.id} className="rounded bg-danger-bg px-2 py-1 text-xs text-danger">
-                    {e.action === 'user.locked' ? 'Nalog zaključan' : 'Neuspeo pokušaj prijave'} —{' '}
-                    {new Date(e.createdAt).toLocaleString('sr-RS')}
+                  <li key={e.id}>
+                    <Link href={`/audit-log#audit-${e.id}`} className="block rounded bg-danger-bg px-2 py-1 text-xs text-danger hover:bg-danger-bg/70">
+                      {e.action === 'user.locked' ? 'Nalog zaključan' : 'Neuspeo pokušaj prijave'} —{' '}
+                      {new Date(e.timestamp).toLocaleString('sr-RS')}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -135,11 +166,27 @@ export default async function DashboardPage() {
               <ul className="flex flex-col gap-1">
                 {(agentInbox as AgentInboxSource[])
                   .filter((s) => s.count > 0)
-                  .map((s) => (
-                    <li key={`${s.moduleCode}.${s.actionCode}`} className="rounded bg-warn-bg px-2 py-1 text-xs text-warn">
-                      {s.moduleCode} — {s.label}: <b>{s.count}</b>
-                    </li>
-                  ))}
+                  .map((s) => {
+                    const href = AGENT_INBOX_LINKS[s.moduleCode];
+                    const content = (
+                      <>
+                        {s.moduleCode} — {s.label}: <b>{s.count}</b>
+                      </>
+                    );
+                    return (
+                      <li key={`${s.moduleCode}.${s.actionCode}`}>
+                        {href ? (
+                          <Link href={href} className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn hover:bg-warn-bg/70">
+                            {content}
+                          </Link>
+                        ) : (
+                          <span title="Još nema poseban ekran za ovu stavku" className="block rounded bg-warn-bg px-2 py-1 text-xs text-warn">
+                            {content}
+                          </span>
+                        )}
+                      </li>
+                    );
+                  })}
               </ul>
             )}
           </Card>
@@ -153,13 +200,24 @@ export default async function DashboardPage() {
   );
 }
 
-function Card({ icon, title, children }: { icon: string; title: string; href?: string; children: React.ReactNode }) {
+function Card({ icon, title, href, children }: { icon: string; title: string; href?: string; children: React.ReactNode }) {
+  // `href` je ranije bio primljen a nikad iskorišćen — naslov karte se nikad nije mogao kliknuti
+  // ka opštoj listi (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama").
+  const titleRow = (
+    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
+      <Icon name={icon} className="text-accent" />
+      {title}
+    </div>
+  );
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink">
-        <Icon name={icon} className="text-accent" />
-        {title}
-      </div>
+      {href ? (
+        <Link href={href} className="hover:text-accent">
+          {titleRow}
+        </Link>
+      ) : (
+        titleRow
+      )}
       {children}
     </div>
   );
