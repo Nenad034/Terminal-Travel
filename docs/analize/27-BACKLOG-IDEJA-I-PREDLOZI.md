@@ -116,6 +116,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Da li API (M4) stavke ikad zahtevaju sličan operativni dokument.
 - Tačan izgled kalendara i vizuelno razlikovanje kategorija — dizajnersko pitanje.
 - Vizuelni prikaz/UI za sastavljanje putovanja (itinerar) — dizajnersko pitanje.
+- **"Pun zapis" forma za rezervaciju (otvara se klikom na broj/red, dizajn dok. §5b, 23.8.2026)** — vlasnik eksplicitno zatražio predlog ("Jos treba da osmislimo celu formu... dajte neki predlog, da bude intuitivno i sa svim informacijama"), sažetak reda u desnom panelu je već implementiran (M5 spec v1.46) kao prvi, manji korak. Predlog dat u razgovoru 23.8.2026, čeka potvrdu vlasnika pre upisa u spec/implementacije.
 - AI predlozi za popunu praznina u itineraru — čekaju M15.
 - Da li `Itinerary` treba sopstveni rok isteka (ABANDONED).
 - Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT` po pod-tipu.

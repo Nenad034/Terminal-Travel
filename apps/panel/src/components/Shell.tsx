@@ -15,6 +15,7 @@ import NotificationStack from './NotificationStack';
 import TerminalPanel from './TerminalPanel';
 import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
+import { RowSummaryProvider } from './RowSummaryContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
@@ -167,6 +168,7 @@ export default function Shell({
   return (
     <TabsProvider homeLabel="Početna">
       <SelectionProvider onFirstAdd={() => setRightPanelOpen(true)}>
+      <RowSummaryProvider onFirstShow={() => setRightPanelOpen(true)}>
         {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
@@ -324,6 +326,7 @@ export default function Shell({
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
+      </RowSummaryProvider>
       </SelectionProvider>
     </TabsProvider>
   );

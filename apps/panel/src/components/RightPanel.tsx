@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Icon from './Icon';
 import { useSelection } from './SelectionContext';
+import { useRowSummary } from './RowSummaryContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 
@@ -14,11 +15,14 @@ import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actio
 // ovo je odvojena, ranije definisana svrha.
 //
 // Prvi stvaran sadržaj (21.8.2026, na zahtev vlasnika): M5 spec §3.0e.3 selekcija stavki iz
-// pretrage. "Sažetak reda"/"Povezano" varijante (klik na red liste bez otvaranja zapisa) i
-// dalje nemaju izvor — nijedan drugi ekran još ne šalje sadržaj ovamo, placeholder ispod
-// ostaje za taj slučaj, iskren o tome, ne lažno prazno stanje.
+// pretrage. "Sažetak reda" (23.8.2026, na zahtev vlasnika: "Kada otvorimo desni panel i
+// kliknemo na neki red iz liste rezervacija u desnom panelu treba da se prikazu sve
+// najvaznije informacije") dobio izvor — `RowSummaryContext.tsx`, poseban od `SelectionContext`
+// (različita svrha/oblik). Selekcija ima prioritet nad sažetkom reda ako je oboje aktivno
+// (redak slučaj — različiti ekrani), inače sažetak reda, inače prazno stanje.
 export default function RightPanel({ onClose }: { onClose: () => void }) {
   const { items, removeItem, clear } = useSelection();
+  const { summary, clearSummary } = useRowSummary();
   const { navigateInTab } = useTabs();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,18 +50,29 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-panel-2">
       <div className="flex h-[43px] flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
-        <span>{items.length > 0 ? `Selekcija (${items.length})` : 'Izdvajanje'}</span>
-        <button onClick={onClose} title="Zatvori panel" className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink">
+        <span>{items.length > 0 ? `Selekcija (${items.length})` : summary ? 'Sažetak reda' : 'Izdvajanje'}</span>
+        <button
+          onClick={() => {
+            if (items.length === 0) clearSummary();
+            onClose();
+          }}
+          title="Zatvori panel"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink"
+        >
           <Icon name="close" />
         </button>
       </div>
 
-      {items.length === 0 ? (
+      {items.length === 0 && summary && <BookingSummary summary={summary} />}
+
+      {items.length === 0 && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
           <Icon name="inspect" className="text-2xl" />
           <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za "Povezano" prikaz.</p>
         </div>
-      ) : (
+      )}
+
+      {items.length > 0 && (
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-2">
             <div className="flex flex-col gap-2">
@@ -105,6 +120,54 @@ function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
     <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${expired ? 'bg-danger-bg text-danger' : 'bg-warn-bg text-warn'}`}>
       {expired ? 'istekla' : `ističe za ${minutesLeft} min`}
     </span>
+  );
+}
+
+// Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
+// smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
+// izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
+function BookingSummary({ summary: s }: { summary: import('./RowSummaryContext').RowSummary }) {
+  const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
+  return (
+    <div className="flex-1 overflow-y-auto p-3 text-xs">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="font-mono font-semibold text-ink">{s.bookingNumber}</span>
+        <span className="rounded bg-panel px-2 py-0.5 text-[11px] font-medium text-ink-dim">{s.status}</span>
+      </div>
+      <SummaryRow label="Nosilac rezervacije" value={s.buyerName} />
+      {(s.country || s.destinationCity) && <SummaryRow label="Destinacija" value={[s.destinationCity, s.country].filter(Boolean).join(', ')} />}
+      {s.hotelName && <SummaryRow label="Hotel/objekat" value={s.hotelName} />}
+      {s.accommodationType && <SummaryRow label="Tip smeštaja" value={s.accommodationType} />}
+      <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />
+      <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />
+      {s.travelers && s.travelers.length > 0 && (
+        <div className="mt-2 mb-1">
+          <div className="mb-1 text-ink-faint">Putnici ({s.travelers.length})</div>
+          <ul className="flex flex-col gap-0.5">
+            {s.travelers.map((t) => (
+              <li key={t} className="text-ink-dim">
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="mt-3 flex flex-col gap-0.5 rounded-lg border border-border bg-panel p-2">
+        <SummaryRow label="Ukupno" value={money(s.totalPrice)} strong />
+        <SummaryRow label="Uplaćeno" value={s.paidAmount !== undefined ? money(s.paidAmount) : '—'} />
+        <SummaryRow label="Dug" value={s.owedAmount !== undefined ? money(s.owedAmount) : '—'} tone={s.owedAmount ? 'danger' : undefined} />
+        <SummaryRow label="Status uplate" value={s.paymentStatus} />
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, strong, tone }: { label: string; value: string; strong?: boolean; tone?: 'danger' }) {
+  return (
+    <div className="flex items-center justify-between gap-2 py-0.5">
+      <span className="text-ink-faint">{label}</span>
+      <span className={`text-right ${strong ? 'font-semibold text-ink' : tone === 'danger' ? 'font-medium text-danger' : 'text-ink-dim'}`}>{value}</span>
+    </div>
   );
 }
 

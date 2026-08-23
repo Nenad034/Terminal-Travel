@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
 import BookingTimelineModal, { type TimelineEntry } from '@/components/BookingTimelineModal';
+import { useRowSummary } from '@/components/RowSummaryContext';
 import type { MockBookingRow } from './mock-data';
 
 function StatusBadge({ label }: { label: string }) {
@@ -104,19 +105,50 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
   });
   const [timelineFor, setTimelineFor] = useState<MockBookingRow | null>(null);
 
+  const { showSummary } = useRowSummary();
+
   const filtered = useMemo(() => {
     return bookings.filter((b) =>
       (Object.keys(filters) as ColumnKey[]).every((key) => {
         const value = filters[key];
         if (!value.trim()) return true;
         if ((DATE_COLUMNS as string[]).includes(key)) return matchesDateRange(b[key as DateColumnKey], value);
-        return String(b[key as TextColumnKey]).toLowerCase().includes(value.trim().toLowerCase());
+        const needle = value.trim().toLowerCase();
+        // "Nosilac rezervacije" pretraga sad TAKOĐE pokriva državu/destinaciju/hotel (23.8.2026,
+        // na zahtev vlasnika: "Omogucite u pretrazi po kolonama da se i po ovim pojmovima
+        // pretrazuje") — prikazani su kao pod-red ispod naziva nosioca, ne kao sopstvena kolona,
+        // pa isti filter obuhvata sve što se tu vidi umesto da se doda još jedno polje.
+        if (key === 'buyerName') {
+          return [b.buyerName, b.country, b.destinationCity, b.hotelName].some((v) => v.toLowerCase().includes(needle));
+        }
+        return String(b[key as TextColumnKey]).toLowerCase().includes(needle);
       }),
     );
   }, [bookings, filters]);
 
   function setFilter(key: ColumnKey, value: string) {
     setFilters((f) => ({ ...f, [key]: value }));
+  }
+
+  function openSummary(b: MockBookingRow) {
+    showSummary({
+      kind: 'booking',
+      bookingNumber: b.bookingNumber,
+      buyerName: b.buyerName,
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      stayFrom: b.stayFrom,
+      stayTo: b.stayTo,
+      totalPrice: b.totalPrice,
+      currency: b.currency,
+      country: b.country,
+      destinationCity: b.destinationCity,
+      hotelName: b.hotelName,
+      accommodationType: b.accommodationType,
+      travelers: b.travelers,
+      paidAmount: b.paidAmount,
+      owedAmount: b.totalPrice - b.paidAmount,
+    });
   }
 
   const filterInputClass =
@@ -141,7 +173,12 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
               </th>
               <th className="px-3 py-2 font-medium">
                 Nosilac rezervacije
-                <input value={filters.buyerName} onChange={(e) => setFilter('buyerName', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
+                <input
+                  value={filters.buyerName}
+                  onChange={(e) => setFilter('buyerName', e.target.value)}
+                  placeholder="nosilac, država, destinacija, hotel..."
+                  className={`mt-1 ${filterInputClass}`}
+                />
               </th>
               <th className="px-3 py-2 font-medium">
                 Kanal
@@ -168,10 +205,22 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
           </thead>
           <tbody>
             {filtered.map((b) => (
-              <tr key={b.bookingNumber} className="border-b border-border last:border-0 hover:bg-panel2">
+              // Klik na red (23.8.2026, na zahtev vlasnika: "Kada otvorimo desni panel i
+              // kliknemo na neki red iz liste rezervacija u desnom panelu treba da se prikazu
+              // sve najvaznije informacije") — dizajn dok. §5b "sažetak reda", prvi stvaran
+              // izvor (RowSummaryContext.tsx). Ikonica toka rezervacije ostaje sopstvena radnja
+              // (`e.stopPropagation()`), ne otvara i sažetak.
+              <tr
+                key={b.bookingNumber}
+                onClick={() => openSummary(b)}
+                className="cursor-pointer border-b border-border last:border-0 hover:bg-panel2"
+              >
                 <td className="px-3 py-2">
                   <button
-                    onClick={() => setTimelineFor(b)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTimelineFor(b);
+                    }}
                     title="Tok rezervacije — ceo workflow, ko je i kada radio promenu"
                     className="flex h-[22px] w-[22px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent"
                   >
@@ -180,7 +229,14 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 </td>
                 <td className="px-3 py-2 font-mono text-ink">{b.bookingNumber}</td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
-                <td className="px-3 py-2 text-ink-dim">{b.buyerName}</td>
+                <td className="px-3 py-2">
+                  <div className="text-ink-dim">{b.buyerName}</div>
+                  {/* Država/destinacija/hotel ispod naziva nosioca (23.8.2026, na zahtev
+                      vlasnika: "Ispod naziva nosioca, stavite naiv drzave, destinacije, hotela"). */}
+                  <div className="text-[10px] text-ink-faint">
+                    {b.destinationCity}, {b.country} · {b.hotelName}
+                  </div>
+                </td>
                 <td className="px-3 py-2 text-ink-faint">{b.channel}</td>
                 <td className="px-3 py-2">
                   <StatusBadge label={b.status} />
