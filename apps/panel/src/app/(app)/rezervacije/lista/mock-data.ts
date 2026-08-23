@@ -61,6 +61,9 @@ export interface MockBookingItem {
 export interface MockBookingRow {
   bookingNumber: string;
   buyerName: string;
+  /** Stvaran izvor bi bio `ClientAccount.email`/`.phone` (M6 spec §2.1) — ovde izvedeno iz imena/broja rezervacije kad nije ručno uneto. */
+  buyerEmail: string;
+  buyerPhone: string;
   buyerType: 'FIZICKO_LICE' | 'PRAVNO_LICE';
   channel: 'B2C_SITE' | 'B2B_PORTAL' | 'MOBILE' | 'INTERNAL_PANEL' | 'PHONE' | 'MCP_AGENT';
   status: 'PENDING_SUPPLIER_CONFIRMATION' | 'CONFIRMED' | 'MODIFIED' | 'CANCELLED' | 'COMPLETED';
@@ -85,14 +88,46 @@ export interface MockBookingRow {
   items: MockBookingItem[];
 }
 
+// Dopuna (23.8.2026, na zahtev vlasnika: "kada imamo notifikacije... omoguciti slanje mejla i
+// prikazati broj telefona") — `UrgentModal` treba kontakt gosta/nalogodavca. Umesto ručnog unosa
+// u svih 20 mock redova, izvodi se deterministički iz imena/broja rezervacije (kao `paidAmount`
+// iznad) kad nije ručno navedeno — polje u modelu je stvarno (`ClientAccount.email`/`.phone`),
+// samo vrednost izmišljena.
+function slugifyName(name: string): string {
+  const map: Record<string, string> = { č: 'c', ć: 'c', ž: 'z', š: 's', đ: 'dj', Č: 'c', Ć: 'c', Ž: 'z', Š: 's', Đ: 'dj' };
+  return name
+    .split('')
+    .map((ch) => map[ch] ?? ch)
+    .join('')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/(^\.|\.$)/g, '');
+}
+
+function deriveEmail(buyerName: string): string {
+  return `${slugifyName(buyerName)}@primer.local`;
+}
+
+function derivePhone(bookingNumber: string): string {
+  const digits = bookingNumber.replace(/\D/g, '').slice(-7).padStart(7, '0');
+  return `+381 6${digits[0]} ${digits.slice(1, 4)} ${digits.slice(4, 7)}`;
+}
+
 function withDerived(
-  row: Omit<MockBookingRow, 'paidAmount' | 'items'> & { paidAmount?: number; items?: MockBookingItem[] },
+  row: Omit<MockBookingRow, 'paidAmount' | 'items' | 'buyerEmail' | 'buyerPhone'> & {
+    paidAmount?: number;
+    items?: MockBookingItem[];
+    buyerEmail?: string;
+    buyerPhone?: string;
+  },
 ): MockBookingRow {
   const paidAmount =
     row.paidAmount ??
     (row.paymentStatus === 'PAID' ? row.totalPrice : row.paymentStatus === 'PARTIALLY_PAID' ? Math.round(row.totalPrice * 0.4) : 0);
   const items = row.items ?? [defaultItem(row)];
-  return { ...row, paidAmount, items };
+  const buyerEmail = row.buyerEmail ?? deriveEmail(row.buyerName);
+  const buyerPhone = row.buyerPhone ?? derivePhone(row.bookingNumber);
+  return { ...row, paidAmount, items, buyerEmail, buyerPhone };
 }
 
 // Podrazumevana jedna stavka izvedena iz postojećih pljosnatih polja (23.8.2026) — mock lista

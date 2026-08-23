@@ -419,7 +419,16 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
         {sorted.length} / {bookings.length} rezervacija (mock)
       </p>
       {timelineFor && <BookingTimelineModal mockEntries={buildMockTimeline(timelineFor)} onClose={() => setTimelineFor(null)} />}
-      {urgentFor?.urgent && <UrgentModal bookingNumber={urgentFor.bookingNumber} reason={urgentFor.urgent.reason} onClose={() => setUrgentFor(null)} />}
+      {urgentFor?.urgent && (
+        <UrgentModal
+          bookingNumber={urgentFor.bookingNumber}
+          reason={urgentFor.urgent.reason}
+          buyerName={urgentFor.buyerName}
+          buyerEmail={urgentFor.buyerEmail}
+          buyerPhone={urgentFor.buyerPhone}
+          onClose={() => setUrgentFor(null)}
+        />
+      )}
       {filtersModalOpen && (
         <FiltersModal
           columnFilters={filters}
