@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import Icon from './Icon';
 import ThemeToggle from './ThemeToggle';
 import TabBar from './TabBar';
+import CustomizeLayoutButton from './CustomizeLayoutButton';
 import { useTabs } from './TabsContext';
 import NotificationBell from './NotificationBell';
 
@@ -79,9 +80,11 @@ function InboxButton() {
 export default function TopBar({
   rightPanelOpen,
   onToggleRightPanel,
+  layoutProps,
 }: {
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
+  layoutProps: Omit<ComponentProps<typeof CustomizeLayoutButton>, 'rightPanelOpen' | 'onToggleRightPanel'>;
 }) {
   const router = useRouter();
 
@@ -110,6 +113,7 @@ export default function TopBar({
       <ThemeToggle />
       <NotificationBell />
       <InboxButton />
+      <CustomizeLayoutButton {...layoutProps} rightPanelOpen={rightPanelOpen} onToggleRightPanel={onToggleRightPanel} />
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"

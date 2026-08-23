@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getMe } from '@/lib/me';
+import { getMe, hasPermission } from '@/lib/me';
 import { visibleNavItems } from '@/lib/nav-visible';
 import Shell from '@/components/Shell';
 
@@ -12,9 +12,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!me) redirect('/prijava');
 
   const items = visibleNavItems(me);
+  // M15 spec §6.9.2 — terminal panel, isključivo VLASNIK. Proveravano ovde (Server Component,
+  // stvarna efektivna dozvola iz M1), ne pretpostavljano iz uloge po imenu u Shell.tsx.
+  const showBiTerminal = hasPermission(me, 'M15', 'bi-terminal', 'VIEW');
 
   return (
-    <Shell fullName={me.fullName} roles={me.roles} items={items}>
+    <Shell fullName={me.fullName} roles={me.roles} items={items} showBiTerminal={showBiTerminal}>
       {children}
     </Shell>
   );

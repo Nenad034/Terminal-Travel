@@ -237,6 +237,20 @@ const M15_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M15', resource: 'agent-inbox', action: 'VIEW', description: 'Agregovan prikaz PROPOSE_THEN_APPROVE stavki koje čekaju ljudsko odobrenje kroz sve module' },
 ];
 
+// M15 spec §6.9.2/§8 — `bi-terminal/VIEW` je NAMERNO ODVOJEN od M15_PERMISSIONS iznad (ne u tom
+// nizu) jer se M15_PERMISSIONS u celini prosleđuje i VLASNIK-u i DIREKTOR-u (DEFAULT_ROLE_PERMISSIONS
+// ispod) — da je ovde, terminal bi automatski dobio i Direktor, suprotno vlasnikovoj eksplicitnoj
+// odluci "isključivo Vlasnik". I dalje se dodaje u glavnu listu za Permission katalog (main()), samo
+// se ručno dodeljuje isključivo VLASNIK-u u DEFAULT_ROLE_PERMISSIONS.
+const M15_BI_TERMINAL_PERMISSION: { module: string; resource: string; action: string; description: string }[] = [
+  {
+    module: 'M15',
+    resource: 'bi-terminal',
+    action: 'VIEW',
+    description: 'Terminal panel — kontrolisan, samo-za-čitanje AI agent za poslovna pitanja (poglavlje 6.9). Isključivo Vlasnik, ne Direktor.',
+  },
+];
+
 // M18 spec §7 — dozvole operativnog nadzora. Svih devet ide isključivo Vlasniku/Direktoru
 // (spec tabela — nema šire uloge, isti obrazac kao M15 dozvole).
 const M18_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
@@ -349,6 +363,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M21_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M22_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M23_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
+    // §6.9.2 — isključivo VLASNIK, namerno NE u DIREKTOR bloku ispod.
+    ...M15_BI_TERMINAL_PERMISSION.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -670,6 +686,7 @@ async function main() {
     ...M16_PERMISSIONS,
     ...M9_PERMISSIONS,
     ...M15_PERMISSIONS,
+    ...M15_BI_TERMINAL_PERMISSION,
     ...M18_PERMISSIONS,
     ...M19_PERMISSIONS,
     ...M21_PERMISSIONS,
@@ -770,6 +787,37 @@ async function seedM15Omnisearch() {
       agentRole: 'OMNISEARCH_AGENT',
       moduleCode: null,
       status: 'DISABLED', // §3 ograda na nivou koda — ne može ACTIVE dok M15_OMNISEARCH != ACTIVATED
+      modelTier: 'LIGHT',
+      modelIdentifier: 'claude-haiku-4-5-20251001',
+    },
+  });
+
+  // M15 spec §6.9.5 — sopstveni, nezavisan gate od M15_OMNISEARCH (isti obrazac, drugi module_code).
+  await prisma.moduleAgentActivation.upsert({
+    where: { moduleCode: 'M15_BI_TERMINAL' },
+    update: {},
+    create: { moduleCode: 'M15_BI_TERMINAL', status: 'NOT_READY' },
+  });
+
+  const biTerminalAgentUser = await prisma.user.upsert({
+    where: { email: 'bi-terminal-agent@sistem.terminal-travel.local' },
+    update: {},
+    create: {
+      email: 'bi-terminal-agent@sistem.terminal-travel.local',
+      fullName: 'BiTerminalAgent (sistemski AI nalog)',
+      accountType: 'AI_AGENT',
+      status: 'ACTIVE',
+    },
+  });
+
+  await prisma.aIAgent.upsert({
+    where: { userId: biTerminalAgentUser.id },
+    update: {},
+    create: {
+      userId: biTerminalAgentUser.id,
+      agentRole: 'BI_TERMINAL_AGENT',
+      moduleCode: null,
+      status: 'DISABLED', // §3 ograda na nivou koda — ne može ACTIVE dok M15_BI_TERMINAL != ACTIVATED
       modelTier: 'LIGHT',
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },

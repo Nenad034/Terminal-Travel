@@ -2283,6 +2283,7 @@ enum AgentRole {
   HELP_CENTER_AGENT // M21 spec §5.1, dodato avgust 2026
   EMAIL_INBOX_AGENT // M22 spec §4, dodato avgust 2026
   KNOWLEDGE_AGENT // M23 spec §3.2/§4, dodato avgust 2026
+  BI_TERMINAL_AGENT // M15 spec §6.9, dodato avgust 2026 — isključivo read-only, isključivo Vlasnik
 }
 
 enum AgentStatus {

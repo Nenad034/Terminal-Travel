@@ -12,21 +12,36 @@ import StatusBar from './StatusBar';
 import AiChatBox from './AiChatBox';
 import RightPanel from './RightPanel';
 import NotificationStack from './NotificationStack';
+import TerminalPanel from './TerminalPanel';
 import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
+// Dizajn dok. §5f — "Customize Layout" (23.8.2026) — jedan localStorage ključ za sve panele koji
+// se mogu potpuno sakriti/prikazati, isti privremeni obrazac kao SIDEBAR_COLLAPSED_KEY dok pravi
+// `UserPreference` backend (M1 §3.9) ne postoji u kodu.
+const LAYOUT_VISIBILITY_KEY = 'tt-panel-layout-visibility';
+interface LayoutVisibility {
+  sidebar: boolean;
+  statusBar: boolean;
+  terminal: boolean;
+}
+const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = { sidebar: true, statusBar: true, terminal: false };
 
 export default function Shell({
   fullName,
   roles,
   items,
+  showBiTerminal,
   children,
 }: {
   fullName: string;
   roles: string[];
   items: NavItem[];
+  /** M15 spec §6.9.2 — `M15/bi-terminal/VIEW`, isključivo VLASNIK. Kad je `false`, terminal
+   * stavka u "Customize Layout" meniju i sam `TerminalPanel` se uopšte ne montiraju. */
+  showBiTerminal: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -63,6 +78,29 @@ export default function Shell({
   // §6d "predlog... pojavljuje se odmah po dodavanju stavke") — SelectionProvider poziva
   // `onFirstAdd` kad prva stavka uđe u selekciju, isto ponašanje kao klik na dugme.
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  // "Customize Layout" (dizajn dok. §5f, 23.8.2026) — isti bezbedan hidratacioni obrazac kao
+  // `sidebarCollapsed` iznad: podrazumevana vrednost na SERVERU i prvom klijentskom renderu,
+  // localStorage se čita tek posle mount-a.
+  const [layoutVisibility, setLayoutVisibility] = useState<LayoutVisibility>(DEFAULT_LAYOUT_VISIBILITY);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LAYOUT_VISIBILITY_KEY);
+      if (raw) setLayoutVisibility({ ...DEFAULT_LAYOUT_VISIBILITY, ...JSON.parse(raw) });
+    } catch {
+      // localStorage nedostupan ili neispravan zapis — ostaje podrazumevano
+    }
+  }, []);
+  function toggleLayout(key: keyof LayoutVisibility) {
+    setLayoutVisibility((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(LAYOUT_VISIBILITY_KEY, JSON.stringify(next));
+      } catch {
+        // i dalje radi za ovu sesiju bez trajnog čuvanja
+      }
+      return next;
+    });
+  }
   // AI chat kao plutajući prozor umesto trajno usidrenog dela centralnog panela (22.8.2026, na
   // zahtev vlasnika — "chat treba da se pojavljuje na klik na ikonu... drugi klik se uklanja iz
   // vidokruga, ne briše se ono što je chatovano"). Poništava raniji princip "uvek deo centralnog
@@ -125,26 +163,42 @@ export default function Shell({
             namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-          <TopBar rightPanelOpen={rightPanelOpen} onToggleRightPanel={() => setRightPanelOpen((v) => !v)} />
+          <TopBar
+            rightPanelOpen={rightPanelOpen}
+            onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
+            layoutProps={{
+              sidebarVisible: layoutVisibility.sidebar,
+              onToggleSidebar: () => toggleLayout('sidebar'),
+              statusBarVisible: layoutVisibility.statusBar,
+              onToggleStatusBar: () => toggleLayout('statusBar'),
+              chatOpen,
+              onToggleChat: () => setChatOpen((v) => !v),
+              showTerminal: showBiTerminal,
+              terminalOpen: layoutVisibility.terminal,
+              onToggleTerminal: () => toggleLayout('terminal'),
+            }}
+          />
           <div className="flex flex-1 overflow-hidden">
             <ActivityBar groups={groups} activeGroupId={activeGroup?.id ?? ''} onSelectGroup={setActiveGroupId} />
-            <ResizablePane
-              storageKey="tt-panel-sidebar-width"
-              defaultWidth={224}
-              minWidth={180}
-              maxWidth={420}
-              collapsed={sidebarCollapsed}
-              collapsedWidth={40}
-            >
-              <Sidebar
-                items={items}
-                activeGroup={activeGroup}
-                mePresent
+            {layoutVisibility.sidebar && (
+              <ResizablePane
+                storageKey="tt-panel-sidebar-width"
+                defaultWidth={224}
+                minWidth={180}
+                maxWidth={420}
                 collapsed={sidebarCollapsed}
-                onCollapse={() => setCollapsed(true)}
-                onExpand={() => setCollapsed(false)}
-              />
-            </ResizablePane>
+                collapsedWidth={40}
+              >
+                <Sidebar
+                  items={items}
+                  activeGroup={activeGroup}
+                  mePresent
+                  collapsed={sidebarCollapsed}
+                  onCollapse={() => setCollapsed(true)}
+                  onExpand={() => setCollapsed(false)}
+                />
+              </ResizablePane>
+            )}
             <div className="flex flex-1 flex-col overflow-hidden">
               {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
                   vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj
@@ -170,6 +224,11 @@ export default function Shell({
                     kolone, uvek, bez obzira da li je chat otvoren (plutajući prozor se nadovezuje
                     PREKO sadržaja, ne gura ga). */}
                 <main id="tt-main-content" className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
+                {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
+                    sadržaja, iznad statusne trake, span samo centralne kolone (ne ide ispod
+                    bočne trake/desnog panela, isto kao pravi VS Code Panel). Montira se SAMO uz
+                    `showBiTerminal` (RBAC, isključivo VLASNIK) — nema onemogućenog stanja. */}
+                {showBiTerminal && layoutVisibility.terminal && <TerminalPanel onClose={() => toggleLayout('terminal')} />}
               </div>
             </div>
             {/* Plutajući AI chat (22.8.2026, na zahtev vlasnika) — bez zatamnjenja pozadine
@@ -218,13 +277,15 @@ export default function Shell({
               </ResizablePane>
             )}
           </div>
-          <StatusBar
-            fullName={fullName}
-            roleLabel={roles.join(', ')}
-            moduleCode={moduleCodeForHref(pathname)}
-            chatOpen={chatOpen}
-            onToggleChat={() => setChatOpen((v) => !v)}
-          />
+          {layoutVisibility.statusBar && (
+            <StatusBar
+              fullName={fullName}
+              roleLabel={roles.join(', ')}
+              moduleCode={moduleCodeForHref(pathname)}
+              chatOpen={chatOpen}
+              onToggleChat={() => setChatOpen((v) => !v)}
+            />
+          )}
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
