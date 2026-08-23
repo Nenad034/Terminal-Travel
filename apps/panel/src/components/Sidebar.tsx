@@ -64,10 +64,6 @@ export default function Sidebar({
             <Icon name={item.icon} />
           </Link>
         ))}
-        {/* Logo na dnu levog panela (22.8.2026, na zahtev vlasnika) — kolabovano stanje dobija
-            samo ikonicu (avion/circuit glif), bez naziva (nema mesta na 40px). */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className="mt-auto w-6 flex-shrink-0" />
       </nav>
     );
   }
@@ -138,16 +134,6 @@ export default function Sidebar({
           })}
         </>
       )}
-      {/* Logo na dnu levog panela (22.8.2026, na zahtev vlasnika — "dajte mi predlog kako da
-          ovaj logo stavimo u donji deo levog panela"). `mt-auto` ga gura na dno kad ima
-          slobodnog prostora (isti trik kao "Administracija" ikonica na dnu ActivityBar.tsx);
-          ako sadržaj sekcije preraste visinu panela, logo jednostavno ide posle liste u
-          scroll-u, ne ostaje zalepljen za dno viewport-a — prihvatljiv kompromis, isto
-          ponašanje kao footer u većini scroll kontejnera. `terminal-travel-logo.png` je
-          providna verzija zvaničnog loga (pozadina/šahovnica programski uklonjena — izvorna
-          slika je isporučena bez prave providnosti, ni JPG ni prvi PNG pokušaj). */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/terminal-travel-logo.png" alt="Terminal Travel" className="mx-4 mt-auto w-auto max-w-[70%] flex-shrink-0 self-center pt-3" />
     </nav>
   );
 }

@@ -16,16 +16,17 @@ import Icon from './Icon';
 // tabovi nisu imali eksplicitnu visinu nego su je nasleđivali od `<header>` reda preko
 // `items-center`/padding-a).
 export default function TabBar() {
-  const { tabs, activePath, closeTab, closeAllTabs } = useTabs();
+  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs } = useTabs();
 
   return (
     <div className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
       {tabs.map((tab) => {
-        const active = tab.path === activePath;
+        const active = tab.id === activeTabId;
         return (
           <Link
-            key={tab.path}
+            key={tab.id}
             href={tab.path}
+            onClick={() => setActiveTab(tab.id)}
             className={`group flex h-[29px] max-w-[200px] flex-shrink-0 items-center gap-1.5 rounded border px-2 text-[11px] transition-colors ${
               active ? 'border-accent bg-accent-soft text-ink' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
             }`}
@@ -37,7 +38,7 @@ export default function TabBar() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  closeTab(tab.path);
+                  closeTab(tab.id);
                 }}
                 className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
               >
@@ -47,13 +48,13 @@ export default function TabBar() {
           </Link>
         );
       })}
-      <Link
-        href="/"
-        title="Nov tab — Početna (docs/analize/29-DIZAJN-SISTEM-UI.md §5a)"
+      <button
+        onClick={() => openTab('/blank', 'Novi tab', { forceNew: true })}
+        title="Nov, prazan tab (docs/analize/29-DIZAJN-SISTEM-UI.md §5a) — više klikova otvara više odvojenih praznih tabova"
         className="flex h-[23px] w-[23px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
       >
         <Icon name="add" className="!text-[14px]" />
-      </Link>
+      </button>
       {/* Na zahtev vlasnika, 19.8.2026 — vidljivo tek kad ima "previše" otvorenih tabova. */}
       {tabs.length > 3 && (
         <button

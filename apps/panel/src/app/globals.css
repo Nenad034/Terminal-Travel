@@ -210,6 +210,20 @@ code,
   font-family: var(--font-mono, ui-monospace, monospace);
 }
 
+/* Nevidljiva scroll traka svuda (23.8.2026, na zahtev vlasnika: "uklonite bocnu traku za
+   scrolovanje gde god se nalazi... deluje ruzno") — scrolovanje ostaje potpuno funkcionalno
+   (overflow-y-auto na svakom mestu je nepromenjen), samo se sama traka ne iscrtava. Primenjeno
+   globalno na `*` umesto pojedinačnih klasa po scroll kontejneru (13 mesta u kodu, dizajn dok. —
+   Sidebar/Shell glavni sadržaj/TerminalPanel/AiChatBox/CommandPalette/RightPanel/NotificationBell/
+   M19 chat...) da nijedno buduće `overflow-y-auto` mesto ne bude propušteno. */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* stariji Edge/IE */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome/Edge/Safari (WebKit/Blink) */
+}
+
 @layer components {
   /* Zajednički stil za text/select/textarea polja u formama (M2/M3/M5 Faza 1 ekrani) —
      WCAG AA kontrast border/bg proveren u tailwind.config.ts komentaru (paleta "Horizont"). */

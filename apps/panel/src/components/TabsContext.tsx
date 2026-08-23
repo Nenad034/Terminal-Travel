@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { usePathname, useRouter } from 'next/navigation';
 
 export interface OpenTab {
+  id: string;
   path: string;
   label: string;
   dirty?: boolean;
@@ -12,18 +13,34 @@ export interface OpenTab {
 interface TabsContextValue {
   tabs: OpenTab[];
   activePath: string;
-  openTab: (path: string, label: string) => void;
+  /** Koji ZAPIS (ne putanja) je trenutno istaknut u traci — bitno tek kad dve stavke dele istu
+   * putanju (§5a dopuna 23.8.2026, `forceNew`), inače se poklapa sa tabom čija je `path === activePath`. */
+  activeTabId: string;
+  /** `forceNew: true` (23.8.2026, na zahtev vlasnika: "omogucite otvaranje vise tabova za isti
+   * modul") — uvek pravi NOV zapis čak i ako isti `path` već postoji u traci (npr. druga
+   * paralelna pretraga), umesto da pronađe/istakne postojeći. Podrazumevano ponašanje (bez
+   * `forceNew`) ostaje nepromenjeno — pronađi po `path`-u, nikad ne dupliraj. */
+  openTab: (path: string, label: string, opts?: { forceNew?: boolean }) => void;
   /**
    * docs/analize/29-DIZAJN-SISTEM-UI.md §5a — "izmena unutar već otvorenog tab-a ne otvara
    * nov tab, samo osvežava tekući". Menja putanju/naslov AKTIVNOG taba na mestu (bez novog
    * elementa u nizu) — koristi se za drill-down linkove (lista → zapis), ne za namerne nove
    * radnje (klik na sekciju u levoj traci, izbor iz komandne palete — te ostaju na `openTab`).
+   * Dopuna 23.8.2026 — sad prati `activeTabId`, ne više pronalaženje po putanji (ranije bi
+   * dve stavke sa istom putanjom obe "izgledale" aktivno; sad je nedvosmisleno koji zapis).
    */
   navigateInTab: (path: string, label: string) => void;
-  closeTab: (path: string) => void;
+  /** Postavlja koji zapis je istaknut BEZ navigacije — potrebno kad klik na tab ne menja URL
+   * (druga stavka već ima istu putanju kao trenutno aktivna, 23.8.2026 dopuna). */
+  setActiveTab: (id: string) => void;
+  closeTab: (id: string) => void;
   /** Zatvara sve tabove osim Početne (na zahtev vlasnika, 19.8.2026 — "previše otvorenih"). */
   closeAllTabs: () => void;
   markDirty: (path: string, dirty: boolean) => void;
+}
+
+function newTabId(): string {
+  return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `t${Date.now()}${Math.random()}`;
 }
 
 const TabsCtx = createContext<TabsContextValue | null>(null);
@@ -37,17 +54,26 @@ const STORAGE_KEY = 'tt-panel-tabs';
 export function TabsProvider({ children, homeLabel }: { children: React.ReactNode; homeLabel: string }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [tabs, setTabs] = useState<OpenTab[]>([{ path: '/', label: homeLabel }]);
+  const [tabs, setTabs] = useState<OpenTab[]>([{ id: 'home', path: '/', label: homeLabel }]);
+  const [activeTabId, setActiveTabId] = useState('home');
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (raw) setTabs(JSON.parse(raw));
+      if (raw) {
+        // Migracija (23.8.2026) — stariji sačuvan zapis nema `id` (dodato uz forceNew/duplikate
+        // dopunu), dodeli ga ovde umesto da se osloni na to da je uvek prisutan.
+        const restored: OpenTab[] = JSON.parse(raw).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, dirty: t.dirty }));
+        setTabs(restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }]);
+        const match = restored.find((t) => t.path === pathname) ?? restored[0];
+        if (match) setActiveTabId(match.id);
+      }
     } catch {
       // ignoriši oštećen zapis
     }
     setHydrated(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -66,55 +92,70 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   // rutom (linija ispod, `openTab(pathname, label)`) — tamo bi push na istu putanju samo
   // dodao suvišan zapis u istoriju pregledača.
   const openTab = useCallback(
-    (path: string, label: string) => {
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.path === path);
-        if (idx === -1) return [...prev, { path, label }];
-        // Tab već postoji (npr. otvoren kroz navigateInTab pre nego što je ciljna stranica
-        // stigla do svog sopstvenog useRegisterTab poziva) — osveži naslov ako se razlikuje,
-        // nikad ne dupliraj.
-        if (prev[idx].label === label) return prev;
-        const next = [...prev];
-        next[idx] = { ...next[idx], label };
-        return next;
-      });
+    (path: string, label: string, opts?: { forceNew?: boolean }) => {
+      if (!opts?.forceNew) {
+        const existing = tabs.find((t) => t.path === path);
+        if (existing) {
+          if (existing.label !== label) {
+            setTabs((prev) => prev.map((t) => (t.id === existing.id ? { ...t, label } : t)));
+          }
+          setActiveTabId(existing.id);
+          if (path !== pathname) router.push(path);
+          return;
+        }
+      }
+      // Novi zapis — ili nijedan postojeći nema tu putanju, ili je `forceNew` eksplicitno
+      // zatražen (23.8.2026, "omogucite otvaranje vise tabova za isti modul").
+      const id = newTabId();
+      setTabs((prev) => [...prev, { id, path, label }]);
+      setActiveTabId(id);
       if (path !== pathname) router.push(path);
     },
-    [pathname, router],
+    [tabs, pathname, router],
   );
 
   const navigateInTab = useCallback(
     (path: string, label: string) => {
       setTabs((prev) => {
-        const activeIdx = prev.findIndex((t) => t.path === pathname);
-        if (activeIdx === -1) {
-          // Bezbednosna mreža — aktivan tab se ne poklapa ni sa jednim zapisom, ponašaj se
+        const idx = prev.findIndex((t) => t.id === activeTabId);
+        if (idx === -1) {
+          // Bezbednosna mreža — aktivan zapis se ne poklapa ni sa jednim tabom, ponašaj se
           // kao openTab umesto da tiho ne uradiš ništa.
-          return prev.some((t) => t.path === path) ? prev : [...prev, { path, label }];
+          const existing = prev.find((t) => t.path === path);
+          if (existing) {
+            setActiveTabId(existing.id);
+            return prev;
+          }
+          const id = newTabId();
+          setActiveTabId(id);
+          return [...prev, { id, path, label }];
         }
         const next = [...prev];
-        next[activeIdx] = { path, label };
+        next[idx] = { ...next[idx], path, label };
         return next;
       });
       router.push(path);
     },
-    [pathname, router],
+    [activeTabId, router],
   );
 
+  const setActiveTab = useCallback((id: string) => setActiveTabId(id), []);
+
   const closeTab = useCallback(
-    (path: string) => {
+    (id: string) => {
       setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.path === path);
+        const idx = prev.findIndex((t) => t.id === id);
         if (idx === -1 || prev.length === 1) return prev;
-        const next = prev.filter((t) => t.path !== path);
-        if (pathname === path) {
+        const next = prev.filter((t) => t.id !== id);
+        if (id === activeTabId) {
           const fallback = next[Math.max(0, idx - 1)];
+          setActiveTabId(fallback.id);
           router.push(fallback.path);
         }
         return next;
       });
     },
-    [pathname, router],
+    [activeTabId, router],
   );
 
   const markDirty = useCallback((path: string, dirty: boolean) => {
@@ -122,12 +163,16 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   }, []);
 
   const closeAllTabs = useCallback(() => {
-    setTabs([{ path: '/', label: homeLabel }]);
+    const id = newTabId();
+    setTabs([{ id, path: '/', label: homeLabel }]);
+    setActiveTabId(id);
     if (pathname !== '/') router.push('/');
   }, [homeLabel, pathname, router]);
 
   return (
-    <TabsCtx.Provider value={{ tabs, activePath: pathname, openTab, navigateInTab, closeTab, closeAllTabs, markDirty }}>
+    <TabsCtx.Provider
+      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, markDirty }}
+    >
       {children}
     </TabsCtx.Provider>
   );

@@ -69,14 +69,15 @@ function InboxButton() {
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice preseljene u ActivityBar.tsx
 // (vertikalna traka, 21.8.2026) — gornja traka sad nosi tabove, pretragu i desni klaster
-// dugmadi. "TT Terminal Travel" naziv UKLONJEN (22.8.2026, na zahtev vlasnika, posle dodavanja
-// punog loga na dno Sidebar-a, Sidebar.tsx v1.71 — postao je suvišan/dupliran). ISPRAVKA (isti
-// dan, odmah zatim: "tabove ostavite gde su i bili ne treba da idu skroz u levo") — uklanjanje
-// naziva je pomerilo tabove skroz do leve ivice trake, što nije bilo traženo; dodat prazan
-// razmak fiksne širine (`w-[255px]`, ista vrednost koju je zauzimao naziv u podrazumevanom
-// stanju Sidebar-a) da tabovi ostanu vizuelno na istoj poziciji kao pre — bez teksta/sadržaja,
-// i bez dinamičkog praćenja širine Sidebar-a (ta računica je uklonjena zajedno sa nazivom,
-// namerno pojednostavljeno na fiksnu vrednost).
+// dugmadi. Logo VRAĆEN u gornju traku (23.8.2026, na zahtev vlasnika: "Uklonite logo iz levog
+// panela onemogucava da se panel skroz zatvori... stavite na gornju traku iznad levog panela")
+// — poništava v1.71/v1.72 obrazac (logo je bio na dnu Sidebar-a, sprečavao potpuno kolabovanje
+// jer `<img>` bez eksplicitne širine ne skuplja flex kontejner ispod svoje prirodne veličine).
+// Zauzima ISTI `w-[255px]` prostor koji je ranije bio prazan razmak (v1.72) — taj razmak je već
+// bio poravnat sa ActivityBar+Sidebar kolonom ispod (43px+224px podrazumevana širina, minus
+// 12px padding/gap header-a = 255px, v1.65 računica), pa popunjavanje logotipom automatski
+// zadovoljava i "iznad levog panela" i "prvi tab počinje od leve ivice centralnog panela" (širina
+// spacer-a nepromenjena, tabovi ostaju na istoj poziciji).
 export default function TopBar({
   rightPanelOpen,
   onToggleRightPanel,
@@ -96,7 +97,11 @@ export default function TopBar({
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-panel-2 px-2 text-xs">
-      <div className="w-[255px] flex-shrink-0" />
+      <div className="flex w-[255px] flex-shrink-0 items-center gap-2 px-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/terminal-travel-icon.png" alt="" className="h-5 w-5 flex-shrink-0" />
+        <span className="truncate text-sm font-semibold tracking-wide text-ink">Terminal Travel</span>
+      </div>
       <div className="flex h-full min-w-0 flex-1">
         <TabBar />
       </div>
