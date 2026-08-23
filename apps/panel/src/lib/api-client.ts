@@ -39,7 +39,33 @@ interface ApiFetchOptions {
 // (Next.js ograničenje) — `apiFetch` se poziva i iz Server Component render-a (read-only), zato
 // je upis nove sesije u `try/catch`: ako ne uspe da se upiše (read-only kontekst), osvežen token
 // se ipak koristi za OVAJ zahtev, sledeći zahtev će ponovo osvežiti (blago rasipno, ne pogrešno).
+//
+// DRUGI BAG (23.8.2026, isti dan — pravi browser i dalje pokazivao istu poruku i POSLE prve
+// popravke, iako je izolovan `curl` test dosledno radio) — TRKA (race condition), ne izolovan
+// slučaj: panel ima nekoliko komponenti koje se osvežavaju u pozadini na 30s (`TopBar.tsx`
+// Agent Inbox, `StatusBar.tsx` AI status, `NotificationBell.tsx`) — sve dele ISTU sesiju/kolačić.
+// Kad access token istekne, više njih istovremeno pogodi 401 i svako pokuša OSVEŽAVANJE nezavisno.
+// Refresh token je JEDNOKRATAN (rotira se pri svakoj upotrebi, M1 spec §3.7) — prvi zahtev koji
+// stigne uspe i rotira token, ali svi ostali koji su krenuli sa istim (u međuvremenu već
+// iskorišćenim/opozvanim) refresh tokenom dobiju grešku, uprkos tome što je sesija "stvarno"
+// validna. Rešeno "single-flight" obrascem: `inFlightRefreshes` mapa pamti Promise po tačnoj
+// vrednosti refresh tokena koji se osvežava — ako drugi poziv stigne DOK je prvi još u toku (isti
+// token), čeka isti Promise umesto da pokrene sopstveni suvišan/gubitnički poziv. Radi jer je
+// `next dev` jedan Node proces — mapa u memoriji je deljena između svih paralelnih zahteva.
+const inFlightRefreshes = new Map<string, Promise<SessionData | null>>();
+
 async function refreshSession(refreshToken: string): Promise<SessionData | null> {
+  const existing = inFlightRefreshes.get(refreshToken);
+  if (existing) return existing;
+
+  const promise = doRefresh(refreshToken).finally(() => {
+    inFlightRefreshes.delete(refreshToken);
+  });
+  inFlightRefreshes.set(refreshToken, promise);
+  return promise;
+}
+
+async function doRefresh(refreshToken: string): Promise<SessionData | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/iam/auth/refresh`, {
       method: 'POST',
