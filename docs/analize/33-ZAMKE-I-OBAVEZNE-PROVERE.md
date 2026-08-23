@@ -47,6 +47,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* CSS pobednik pravila se određuje po **specifičnosti selektora**, ne po tome koje pravilo je poslednje u fajlu. `@vscode/codicons/dist/codicon.css` postavlja font-size na `.codicon[class*='codicon-']` (specifičnost 0,2,0) — specifičnije od prostog `.codicon` (0,1,0), pa vendor pravilo pobeđuje bez obzira na redosled/`@import` poziciju.
 - *Provera:* override nad tuđom bibliotekom (ne sopstvenim komponentama) se ne smatra potvrđenim dok se stvarno **iskompajlirano** CSS pravilo ne pročita direktno iz isporučenog bundle-a (`/_next/static/css/...`) i potvrdi da pobeđuje — ne samo da je izvorni fajl izmenjen i da `tsc`/build prolazi. Ako selektor vendor biblioteke ima veću specifičnost, ili se koristi `!important`/istom-ili-većom specifičnošću, ili se selektor cilja tačnije.
 
+**1.6 Nova boja/token u `tailwind.config.ts` zahteva restart dev servera, ne samo hot-reload**
+- *Simptom:* nova utility klasa (npr. `bg-bar`, novo ime dodato u `theme.colors`) je prisutna u HTML className stringu (potvrđeno grep-om nad renderovanom stranicom), ali element vizuelno pada nazad na pozadinu roditelja kao da klasa ne postoji — u ovom slučaju izgledalo je kao da su trake dobile POGREŠNU (najsvetliju umesto najtamnije) boju, iako je sam CSS token bio numerički ispravno poređan (23.8.2026, uživo — "ja vidim da je boja traka sada najsvetlija").
+- *Uzrok:* dev server (pokrenut ranije u sesiji) je i dalje radio sa STARIM, keširanim Tailwind build-om od pre izmene `tailwind.config.ts` — Next.js dev server ne detektuje pouzdano nove `theme.colors` unose bez restarta (za razliku od izmena u `globals.css`, koje se HMR pouzdano hvata). Element bez ijedne stvarno primenjene `bg-*` klase pada na pozadinu roditelja — ako je ta pozadina slučajno SVETLIJA nijansa, greška izgleda kao "obrnuta boja", ne kao "nema boje", što odvodi dijagnozu u pogrešnom pravcu.
+- *Provera:* posle SVAKE izmene `tailwind.config.ts` (nova boja/token/font/spacing vrednost), grep-uj `.next/static/css/app/*.css` da klasa STVARNO postoji sa očekivanim pravilom (isti obrazac kao zamka 1.5 — "u HTML-u" nije dovoljno). Ako ne postoji, restartuj dev server (ugasi proces, pokreni ponovo) pre nego što se traži dalje objašnjenje u samom kodu/vrednostima.
+
 ---
 
 ## 2. Prava pristupa i identitet (M1, M5, M6)

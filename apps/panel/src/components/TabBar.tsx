@@ -27,7 +27,17 @@ export default function TabBar() {
             key={tab.id}
             href={tab.path}
             onClick={() => setActiveTab(tab.id)}
-            className={`group flex h-[29px] max-w-[200px] flex-shrink-0 items-center gap-1.5 rounded border px-2 text-[11px] transition-colors ${
+            title={tab.label}
+            // Fiksna širina — 20 karaktera (23.8.2026, na zahtev vlasnika: "Sirina tabova
+            // treba da bude ista za svaki tab bez obzira na duzinu teksta... 20 karaktera.
+            // Ako je tekst duzi neka budu ... tri tacke") — `w-[20ch]` umesto ranijeg
+            // `max-w-[200px]` (svaki tab je bio RAZLIČITE širine, do tog maksimuma, u
+            // zavisnosti od dužine naziva). `ch` je CSS jedinica širine cifre "0" u trenutnom
+            // fontu — najbliža moguća aproksimacija "N karaktera" i za proporcionalan font
+            // (ne samo monospace). Pun naziv i dalje dostupan preko `title` (native tooltip
+            // na hover, "misem preko taba da se pojavi ceo tekst" — nema potrebe za sopstvenim
+            // JS tooltip-om, browser to već radi).
+            className={`group flex h-[29px] w-[20ch] flex-shrink-0 items-center gap-1.5 rounded border px-2 text-[11px] transition-colors ${
               active ? 'border-accent bg-accent-soft text-ink' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
             }`}
           >
