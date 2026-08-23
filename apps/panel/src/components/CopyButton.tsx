@@ -9,7 +9,20 @@ import Icon from './Icon';
 // (https/localhost) — panel već radi isključivo tako (dev na localhost, produkcija bez izbora
 // hosting provajdera i dalje čeka HTTPS po planu). Izdvojeno iz AiChatBox.tsx (23.8.2026) da
 // isti obrazac koristi i TerminalPanel.tsx bez dupliranja.
-export default function CopyButton({ text, className = '' }: { text: string; className?: string }) {
+export default function CopyButton({
+  text,
+  className = '',
+  alwaysVisible = false,
+  title = 'Kopiraj poruku',
+}: {
+  text: string;
+  className?: string;
+  // Podrazumevano dugme se otkriva SAMO na hover preko roditeljske `group` klase (pojedinačna
+  // poruka). "Kopiraj sav razgovor" (23.8.2026, na zahtev vlasnika) nije unutar takve grupe i
+  // treba da bude stalno vidljivo — otud ovaj izlaz umesto novog, odvojenog dugmeta.
+  alwaysVisible?: boolean;
+  title?: string;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -22,8 +35,8 @@ export default function CopyButton({ text, className = '' }: { text: string; cla
           // clipboard nedostupan (npr. nesiguran kontekst) — nema šta da se uradi, dugme ostaje tiho
         }
       }}
-      title={copied ? 'Kopirano' : 'Kopiraj poruku'}
-      className={`opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100 ${copied ? 'text-ok' : 'text-ink-faint hover:text-ink'} ${className}`}
+      title={copied ? 'Kopirano' : title}
+      className={`${alwaysVisible ? '' : 'opacity-0 transition-opacity group-hover:opacity-100 hover:!opacity-100'} ${copied ? 'text-ok' : 'text-ink-faint hover:text-ink'} ${className}`}
     >
       <Icon name={copied ? 'check' : 'copy'} />
     </button>

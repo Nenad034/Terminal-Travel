@@ -329,6 +329,27 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
     setTurns((t) => t.filter((_, i) => i !== index));
   }
 
+  // Kopiranje CELOG razgovora (23.8.2026, na zahtev vlasnika: "omoguci kopiranja svih poruka ne
+  // samo pojedinacnih") — dopuna uz postojeći CopyButton po poruci, ne zamena. Isti tekstualni
+  // oblik kao pojedinačan prikaz ($ pitanje / odgovor), tura po turu, radi lepljenja u drugi alat.
+  function buildFullTranscriptText(): string {
+    return turns
+      .map((t) => {
+        const lines = [`$ ${t.question}`];
+        if (t.pendingWebFetch && !t.webFetchDecision) {
+          lines.push(`[predlog: poseti ${t.pendingWebFetch.url} — čeka odobrenje]`);
+        } else if (t.answer) {
+          lines.push(t.answer);
+        } else if (t.error) {
+          lines.push(t.error);
+        } else if (t.inactive) {
+          lines.push('Terminal još nije aktiviran.');
+        }
+        return lines.join('\n');
+      })
+      .join('\n\n');
+  }
+
   return (
     <div className="flex flex-shrink-0 flex-col overflow-hidden bg-panel font-mono text-xs" style={{ height }}>
       <div
@@ -341,9 +362,14 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         <span className="flex items-center gap-1.5 text-ink-dim">
           <Icon name="terminal" /> TERMINAL
         </span>
-        <button onClick={onClose} title="Zatvori terminal" className="text-ink-faint hover:text-ink">
-          <Icon name="close" />
-        </button>
+        <div className="flex items-center gap-2">
+          {turns.length > 0 && (
+            <CopyButton text={buildFullTranscriptText()} alwaysVisible title="Kopiraj ceo razgovor" className="text-ink-faint hover:text-ink" />
+          )}
+          <button onClick={onClose} title="Zatvori terminal" className="text-ink-faint hover:text-ink">
+            <Icon name="close" />
+          </button>
+        </div>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
         {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. "šta je danas prodato", "lista nenaplaćenih aranžmana".</p>}

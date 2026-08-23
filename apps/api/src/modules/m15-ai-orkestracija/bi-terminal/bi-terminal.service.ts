@@ -158,7 +158,7 @@ export class BiTerminalService {
           type: 'object' as const,
           properties: {
             view: { type: 'string' as const, enum: [...VIEW_NAMES] },
-            groupBy: { type: 'string' as const, description: 'Samo za view=bookings: destination_country, destination_city, product_name, supplier_name, channel, subagent_name — opciono' },
+            groupBy: { type: 'string' as const, description: 'Samo za view=bookings: status, destination_country, destination_city, product_name, supplier_name, channel, subagent_name — opciono' },
             dateFrom: { type: 'string' as const, description: 'YYYY-MM-DD — opciono' },
             dateTo: { type: 'string' as const, description: 'YYYY-MM-DD — opciono' },
             filters: {

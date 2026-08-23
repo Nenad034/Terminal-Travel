@@ -51,9 +51,29 @@ export class ReportViewsService {
   // te specifikacije) koji ume da grupiše po bilo kojoj od DYNAMIC_DIMENSIONS.
   private async bookingsView(args: QueryViewArgs) {
     const filters = args.filters ?? {};
+    if (args.groupBy === 'status') {
+      // `status` namerno NIJE deo M13 DYNAMIC_DIMENSIONS (taj registar je pisan za §4.2.1
+      // "dinamički izveštaj" pre nego što je BiTerminalAgent postojao) — lokalna dopuna ovde,
+      // uživo otkrivena praznina (23.8.2026, "kojeg su statusa te rezervacije" nije imalo odgovor).
+      const where: { bookingDate?: { gte?: Date; lte?: Date } } = {};
+      if (args.dateFrom || args.dateTo) {
+        where.bookingDate = {};
+        if (args.dateFrom) where.bookingDate.gte = new Date(args.dateFrom);
+        if (args.dateTo) where.bookingDate.lte = new Date(args.dateTo);
+      }
+      const rows = await this.prisma.factBooking.findMany({ where, select: { status: true, finalPrice: true } });
+      const byStatus = new Map<string, { bookingCount: number; totalValue: number }>();
+      for (const r of rows) {
+        const acc = byStatus.get(r.status) ?? { bookingCount: 0, totalValue: 0 };
+        acc.bookingCount += 1;
+        acc.totalValue += r.finalPrice;
+        byStatus.set(r.status, acc);
+      }
+      return [...byStatus.entries()].map(([status, acc]) => ({ status, ...acc }));
+    }
     if (args.groupBy) {
       if (!DYNAMIC_DIMENSIONS.includes(args.groupBy as DynamicDimension)) {
-        return { error: `Nepoznata dimenzija za grupisanje: "${args.groupBy}". Dozvoljene: ${DYNAMIC_DIMENSIONS.join(', ')}.` };
+        return { error: `Nepoznata dimenzija za grupisanje: "${args.groupBy}". Dozvoljene: status, ${DYNAMIC_DIMENSIONS.join(', ')}.` };
       }
       return this.reports.dynamic({ from: args.dateFrom, to: args.dateTo }, [args.groupBy as DynamicDimension]);
     }
