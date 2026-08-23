@@ -3,13 +3,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { ReportsService, DYNAMIC_DIMENSIONS, type DynamicDimension } from '../../m13-bi/reports/reports.service';
 import { SupplierObligationsService } from '../../m10-finansije/supplier-obligations/supplier-obligations.service';
 import { SearchService } from '../../m5-rezervacije/search/search.service';
+import { ExchangeRatesService } from '../../m10-finansije/exchange-rates/exchange-rates.service';
 
 // M15 spec §6.9.6 — generički read-only upit nad ZATVORENIM registrom "pogleda". Ovo NIJE slobodan
 // SQL/Prisma upit od jezičkog modela: model bira isključivo `view` iz VIEW_NAMES i, po pogledu,
 // dozvoljene `groupBy`/`filters` ključeve iz ovog fajla — svaki pogled je unapred pregledan kod koji
 // poziva POSTOJEĆE servise (isti "defense in depth" princip kao §6.9.1, samo širi domet od fiksne
 // liste alata §6.9.3). Dodavanje novog pogleda je izmena ovog fajla + dokumenta, nikad odluka agenta.
-export const VIEW_NAMES = ['bookings', 'employee_sales', 'subagent_performance', 'supplier_obligations', 'catalog_offers'] as const;
+export const VIEW_NAMES = ['bookings', 'employee_sales', 'subagent_performance', 'supplier_obligations', 'catalog_offers', 'exchange_rates'] as const;
 export type ViewName = (typeof VIEW_NAMES)[number];
 
 export interface QueryViewArgs {
@@ -27,6 +28,7 @@ export class ReportViewsService {
     private readonly reports: ReportsService,
     private readonly supplierObligations: SupplierObligationsService,
     private readonly search: SearchService,
+    private readonly exchangeRates: ExchangeRatesService,
   ) {}
 
   async query(view: string, args: QueryViewArgs): Promise<unknown> {
@@ -41,6 +43,8 @@ export class ReportViewsService {
         return this.supplierObligationsView(args);
       case 'catalog_offers':
         return this.catalogOffersView(args);
+      case 'exchange_rates':
+        return this.exchangeRatesView(args);
       default:
         return { error: `Nepoznat pogled: "${view}". Dozvoljeni pogledi: ${VIEW_NAMES.join(', ')}.` };
     }
@@ -173,5 +177,16 @@ export class ReportViewsService {
       .sort((a, b) => a.price - b.price);
 
     return cheapestPerProduct.slice(0, 10);
+  }
+
+  // `exchange_rates` — dopuna (23.8.2026, na zahtev vlasnika: "koliki je kurs..." u BI Terminalu).
+  // Čita POSTOJEĆI M10 `ExchangeRateSnapshot` (dnevni automatski uvoz sa NBS, M10 spec §11/v1.15)
+  // umesto da agent predlaže sirovo preuzimanje sa nbs.rs preko `propose_web_fetch` — NBS-ov server
+  // ionako odbija zahteve koji se ne predstave kao pregledač (§6.9.7 se namerno NE lažno predstavlja),
+  // a ovaj podatak već postoji lokalno, ažuriran svako jutro, bez potrebe za internetom.
+  private async exchangeRatesView(args: QueryViewArgs) {
+    const filters = args.filters ?? {};
+    const currency = typeof filters.currency === 'string' ? filters.currency : undefined;
+    return this.exchangeRates.findAll({ currency });
   }
 }
