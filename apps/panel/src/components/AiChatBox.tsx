@@ -128,7 +128,17 @@ export default function AiChatBox() {
   const [plusMenuPos, setPlusMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const speechSupported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  // BAG (23.8.2026, prijavio vlasnik uživo — "Hydration failed... Expected server HTML to
+  // contain a matching <button>") — `typeof window !== 'undefined'` direktno u telu komponente
+  // je na serveru uvek `false` (nema mikrofon dugmeta), ali na klijentu tokom SAME hidratacije
+  // `window` već postoji, pa bi prvi klijentski render odmah ubacio dugme koje server nije poslao
+  // — mimoilaženje se dešava PRE nego što React stigne da ih uskladi. Ispravljeno istim bezbednim
+  // obrascem kao `Shell.tsx` `sidebarCollapsed` — počinje `false` na oba (server i prvi klijentski
+  // render moraju biti identični), stvarna provera se radi tek u `useEffect` POSLE hidratacije.
+  const [speechSupported, setSpeechSupported] = useState(false);
+  useEffect(() => {
+    setSpeechSupported(!!(window.SpeechRecognition || window.webkitSpeechRecognition));
+  }, []);
 
   const activeTab = tabs.find((t) => t.path === activePath);
   const isSearchTab = activePath.startsWith('/rezervacije/pretraga') && activePath.includes('?');
