@@ -55,6 +55,14 @@ export class BookingsController {
     return this.bookings.findOne(id, actor.userId);
   }
 
+  // Dopuna (23.8.2026, na zahtev vlasnika — vidi BookingsService.history() komentar) — ista
+  // dozvola kao pregled same rezervacije, nema poseban gate.
+  @Get(':id/history')
+  @RequirePermission('M5', 'booking', 'VIEW')
+  history(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.history(id, actor.userId);
+  }
+
   @Post(':id/modify')
   @RequirePermission('M5', 'booking', 'MODIFY')
   modify(@Param('id') id: string, @Body() dto: ModifyBookingDto, @CurrentUser() actor: { userId: string }) {

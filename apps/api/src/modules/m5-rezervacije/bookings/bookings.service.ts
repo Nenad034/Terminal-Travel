@@ -414,6 +414,27 @@ export class BookingsService {
     return serializeBooking(booking as any, context);
   }
 
+  // Dopuna (23.8.2026, na zahtev vlasnika — "citav workflow te rezervacije od pocetka do
+  // trenutka kada se gleda status sa datumima, vremenima i ko je radio promenu"). M5 spec §11
+  // napomena: promene statusa se NE čuvaju u posebnoj tabeli, koriste se postojeći M1
+  // `AuditLogEntry` zapisi (module=M5, resourceType=Booking) — ovde se samo čitaju hronološkim
+  // redom i dopunjuju čitljivim imenom aktera (audit zapis čuva samo `actorId`).
+  async history(id: string, actorUserId: string) {
+    // Ista provera vidljivosti kao findOne — istorija tuđe rezervacije se ne otkriva.
+    await this.findOne(id, actorUserId);
+    const entries = await this.auditLog.findByResource('Booking', id);
+    const actorIds = [...new Set(entries.map((e) => e.actorId).filter((v): v is string => Boolean(v)))];
+    const actors = actorIds.length > 0 ? await this.prisma.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, fullName: true } }) : [];
+    const nameById = new Map(actors.map((a) => [a.id, a.fullName]));
+    return entries.map((e) => ({
+      timestamp: e.timestamp,
+      action: e.action,
+      actorType: e.actorType,
+      actorName: e.actorId ? (nameById.get(e.actorId) ?? e.actorId) : 'sistem',
+      context: e.context,
+    }));
+  }
+
   // ==========================================================================
   // M5 spec §6.4 — provera duplikata pre otkazivanja
   // ==========================================================================

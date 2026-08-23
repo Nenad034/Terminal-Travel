@@ -55,4 +55,16 @@ export class AuditLogService {
       take: 200,
     });
   }
+
+  // Dopuna (23.8.2026, na zahtev vlasnika — "workflow te rezervacije od pocetka... sa datumima,
+  // vremenima i ko je radio promenu") — timeline JEDNOG zapisa, hronološkim redom (rastuće, za
+  // razliku od `find()` iznad koje je "poslednje prvo"). Reuses postojeći append-only
+  // `AuditLogEntry` (M5 spec §11 — "promene statusa rezervacije se ne čuvaju u posebnoj tabeli,
+  // koristi se AuditLogEntry"), isti mehanizam radi za bilo koji `resourceType`, ne samo Booking.
+  async findByResource(resourceType: string, resourceId: string) {
+    return this.prisma.auditLogEntry.findMany({
+      where: { resourceType, resourceId },
+      orderBy: { timestamp: 'asc' },
+    });
+  }
 }

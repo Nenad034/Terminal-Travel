@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
+import BookingHistoryButton from './BookingHistoryButton';
 
 interface BookingItem {
   id: string;
@@ -86,7 +87,8 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
             <h1 className="font-mono text-lg">
               <span className="text-accent">$</span> {booking.bookingNumber}
             </h1>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <BookingHistoryButton bookingId={booking.id} />
               <Badge label={booking.status} />
               <Badge label={booking.paymentStatus} />
             </div>
