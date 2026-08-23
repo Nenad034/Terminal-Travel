@@ -73,6 +73,24 @@ export default function Shell({
       // localStorage nedostupan — i dalje radi za ovu sesiju
     }
   };
+  // Merenje STVARNE širine ActivityBar+Sidebar kolone (23.8.2026) — vidi opširan komentar uz
+  // `leftColumnRef` div niže; `useLayoutEffect` bi bio idealniji (bez treptaja), ali `ResizeObserver`
+  // ionako radi PO layout-u pa razlika nije vidljiva, a `useEffect` izbegava SSR upozorenje.
+  // Podrazumevana vrednost pre prvog merenja (267 = 43px ActivityBar + 224px podrazumevana Sidebar
+  // širina) ista je pretpostavka kao dosad — samo se sad odmah zameni stvarno izmerenom vrednošću.
+  const leftColumnRef = useRef<HTMLDivElement>(null);
+  const [leftColumnWidth, setLeftColumnWidth] = useState(267);
+  useEffect(() => {
+    const el = leftColumnRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width !== undefined) setLeftColumnWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Desni panel se pojavljuje prema potrebi (dizajn dok. §5b — sažetak reda/"Povezano" traka),
   // ne podrazumevano otvoren. Jedini namerni auto-otvarač je M5 selekcija pretrage (§3.0e.3,
   // §6d "predlog... pojavljuje se odmah po dodavanju stavke") — SelectionProvider poziva
@@ -164,7 +182,7 @@ export default function Shell({
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
           <TopBar
-            sidebarWide={layoutVisibility.sidebar && !sidebarCollapsed}
+            leftColumnWidth={leftColumnWidth}
             rightPanelOpen={rightPanelOpen}
             onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
             layoutProps={{
@@ -180,31 +198,42 @@ export default function Shell({
             }}
           />
           <div className="flex flex-1 overflow-hidden">
-            <ActivityBar
-              groups={groups}
-              activeGroupId={activeGroup?.id ?? ''}
-              onSelectGroup={setActiveGroupId}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
-            />
-            {layoutVisibility.sidebar && (
-              <ResizablePane
-                storageKey="tt-panel-sidebar-width"
-                defaultWidth={224}
-                minWidth={180}
-                maxWidth={420}
+            {/* `leftColumnRef` (23.8.2026, uz snimak ekrana — "i dalje nije dobra pozicija prvog
+                taba") — dva uzastopna pokušaja da se TopBar-ov razmak POGODI (statična vrednost
+                v1.94, pa binarna proširena/uska vrednost v1.95) su i dalje bila netačna, jer
+                nijedan od pretpostavljenih brojeva nije pratio STVARNU renderovanu širinu ove
+                kolone (ActivityBar + Sidebar, koja zavisi od kolabovanog stanja, ručno prevučene
+                širine unutar 180-420px i sakrivanja preko "Customize Layout" — previše promenljivih
+                da bi se unapred izračunalo). Umesto nagađanja, širina se sad STVARNO MERI preko
+                `ResizeObserver` (ispod) i prosleđuje `TopBar`-u kao broj u pikselima — tačna u
+                svakom stanju, uključujući uživo prevlačenje, bez ijedne nove pretpostavke. */}
+            <div ref={leftColumnRef} className="flex">
+              <ActivityBar
+                groups={groups}
+                activeGroupId={activeGroup?.id ?? ''}
+                onSelectGroup={setActiveGroupId}
                 collapsed={sidebarCollapsed}
-                collapsedWidth={0}
-              >
-                <Sidebar
-                  items={items}
-                  activeGroup={activeGroup}
-                  mePresent
+                onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
+              />
+              {layoutVisibility.sidebar && (
+                <ResizablePane
+                  storageKey="tt-panel-sidebar-width"
+                  defaultWidth={224}
+                  minWidth={180}
+                  maxWidth={420}
                   collapsed={sidebarCollapsed}
-                  onCollapse={() => setCollapsed(true)}
-                />
-              </ResizablePane>
-            )}
+                  collapsedWidth={0}
+                >
+                  <Sidebar
+                    items={items}
+                    activeGroup={activeGroup}
+                    mePresent
+                    collapsed={sidebarCollapsed}
+                    onCollapse={() => setCollapsed(true)}
+                  />
+                </ResizablePane>
+              )}
+            </div>
             <div className="flex flex-1 flex-col overflow-hidden">
               {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
                   vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj
