@@ -275,13 +275,17 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
     const question = input.trim();
     if (!question) return;
     setInput('');
+    // Istorija (23.8.2026, na zahtev vlasnika — "ai agent gubi kontekst") — pošalji dosadašnje
+    // tekstualne odgovore da agent razume reference tipa "te rezervacije" na prethodno pitanje.
+    // Samo tura sa stvarnim odgovorom (ne učitavanje/greška/predlog na čekanju) ima šta da doprinese.
+    const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
     setTurns((t) => [...t, { question, loading: true, inactive: false }]);
 
     try {
       const res = await fetch('/api/bi-terminal/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question }),
+        body: JSON.stringify({ query: question, history }),
       });
       const data: {
         active?: boolean;

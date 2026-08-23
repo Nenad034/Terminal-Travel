@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await apiFetch('/ai-orchestration/bi-terminal/query', {
       method: 'POST',
-      body: { query: dto.query },
+      body: { query: dto.query, history: dto.history },
       requireAuth: true,
     });
     return NextResponse.json(result);

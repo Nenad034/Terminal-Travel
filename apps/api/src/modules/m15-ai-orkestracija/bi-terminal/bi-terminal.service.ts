@@ -54,7 +54,7 @@ export class BiTerminalService {
     private readonly webContentSafety: WebContentSafetyService,
   ) {}
 
-  async query(actorUserId: string, question: string): Promise<BiTerminalResponse> {
+  async query(actorUserId: string, question: string, history?: { question: string; answer: string }[]): Promise<BiTerminalResponse> {
     const activation = await this.prisma.moduleAgentActivation.findUnique({
       where: { moduleCode: BI_TERMINAL_MODULE_CODE },
     });
@@ -187,7 +187,17 @@ export class BiTerminalService {
       },
     ];
 
-    let messages: any[] = [{ role: 'user', content: question }];
+    // Kratkotrajna istorija razgovora (23.8.2026, uživo — "ai agent gubi kontekst": "kog su
+    // statusa te rezervacije" nije prepoznalo na šta "te" referira jer je svaki poziv bio
+    // izolovan). Samo tekst pitanja/odgovora iz prethodnih tura (bez tool_use blokova, koji nisu
+    // sačuvani na klijentu) — dovoljno da model razume referencu, ograničeno na poslednjih 6 tura
+    // (isti "tanak kontekst" princip kao M4 §2.4, trošak/token razlog) da razgovor ne raste bez
+    // granice. Panel šalje istoriju, ovaj poziv je i dalje bez sopstvene trajne sesije na serveru.
+    const historyMessages: any[] = (history ?? []).slice(-6).flatMap((h) => [
+      { role: 'user', content: h.question },
+      { role: 'assistant', content: h.answer },
+    ]);
+    let messages: any[] = [...historyMessages, { role: 'user', content: question }];
     const startedAt = Date.now();
     let totalInputTokens = 0;
     let totalOutputTokens = 0;

@@ -24,7 +24,7 @@ export class BiTerminalController {
   @Post('query')
   @RequirePermission('M15', 'bi-terminal', 'VIEW')
   query(@Body() dto: BiTerminalQueryDto, @CurrentUser() actor: { userId: string }) {
-    return this.biTerminal.query(actor.userId, dto.query);
+    return this.biTerminal.query(actor.userId, dto.query, dto.history);
   }
 
   // §6.9.3 dopuna — preuzimanje generisanog izveštaja (Excel/PDF/HTML). 30-minutni prolazan
