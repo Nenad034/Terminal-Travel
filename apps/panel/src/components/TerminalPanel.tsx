@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import Link from 'next/link';
 import Icon from './Icon';
 import CopyButton from './CopyButton';
@@ -12,6 +12,13 @@ const MAX_HEIGHT = 640;
 function clampHeight(v: number) {
   return Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, v));
 }
+
+// Podeljen terminal (23.8.2026, na zahtev vlasnika: "omogucite podelu terminala u dva dela i da
+// oba budu isto operativna da mogu dve razlicite stavri da radim u isto vreme") — isti obrazac
+// kao VS Code "Split Terminal". Visina panela ostaje ZAJEDNIČKA (jedna ručka za prevlačenje,
+// gore) — deljenje je horizontalno (dva panela jedan pored drugog), svaki sa POTPUNO nezavisnim
+// razgovorom/stanjem (`TerminalPane` ispod nema nijedan deljen `useState` sa svojim susedom).
+const SPLIT_KEY = 'tt-panel-terminal-split';
 
 interface Turn {
   question: string;
@@ -198,78 +205,73 @@ function WebFetchApprovalCard({
   );
 }
 
-// M15 spec §6.9, dizajn dok. §5f — terminal-stilizovan panel, isključivo Vlasnik (RBAC
-// sprovodi backend, ova komponenta se uopšte ne montira bez `M15/bi-terminal/VIEW`, vidi
-// Shell.tsx). NIJE stvaran shell — svaki unos je pitanje na prirodnom jeziku ka kontrolisanom,
-// samo-za-čitanje `BiTerminalAgent` (M15 spec §6.9.1-6.9.3), ne komanda operativnog sistema.
-// "Obriši" red (X na redu) je isključivo klijentsko sakrivanje — stvaran zapis ostaje trajno u
-// M1 audit logu (§6.9.4), dostupan preko /audit-log filtriranog na module=M15,
-// action=bi-terminal.query.
-export default function TerminalPanel({ onClose }: { onClose: () => void }) {
+export interface TerminalPaneHandle {
+  getTranscriptText: () => string;
+}
+
+// Kopiranje preko `ref` (ne preko `CopyButton`-ovog statičnog `text` prop-a) — tekst se čita
+// TEK NA KLIK preko `getText()`, nikad iz zastarelog snapshot-a napravljenog pri poslednjem
+// renderu roditelja (bitno jer roditelj `TerminalPanel` ne mora da se ponovo renderuje svaki
+// put kad se PROMENI sadržaj razgovora unutar `TerminalPane`, samo kad postane prazan/neprazan).
+function CopyAllButton({ getText, title, className = '' }: { getText: () => string; title: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(getText());
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        } catch {
+          // clipboard nedostupan — dugme ostaje tiho
+        }
+      }}
+      title={copied ? 'Kopirano' : title}
+      className={`${copied ? 'text-ok' : 'text-ink-faint hover:text-ink'} ${className}`}
+    >
+      <Icon name={copied ? 'check' : 'copy'} />
+    </button>
+  );
+}
+
+// Jedan operativan terminal — potpuno samostalan (sopstveni `turns`/`input`, sopstveni `send`),
+// bez ijedne deljene promenljive sa drugim `TerminalPane`-om kad je panel podeljen (§ komentar
+// uz `SPLIT_KEY` iznad). `ref` izlaže samo ono što roditelj (`TerminalPanel`) treba za ZAJEDNIČKO
+// dugme "Kopiraj ceo razgovor" u zaglavlju kad NIJE podeljen — kad JESTE podeljen, svaki panel
+// dobija sopstveno dugme (niže), roditeljski `ref`-ovi se tad ne koriste.
+const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; onTurnsChange?: (hasTurns: boolean) => void }>(
+  function TerminalPane({ showOwnHeader = false, onTurnsChange }, ref) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Promenljiva visina (23.8.2026, na zahtev vlasnika: "omogucite povecavanje visine
-  // terminala") — isti obrazac kao `ResizablePane.tsx` (prevlačenje, dvoklik vraća
-  // podrazumevanu, localStorage), samo vertikalno umesto horizontalno. Ručka je na GORNJOJ
-  // ivici (panel raste naviše kad se povuče, isto kao VS Code Panel).
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
-  const [dragging, setDragging] = useState(false);
-  const startY = useRef(0);
-  const startHeight = useRef(DEFAULT_HEIGHT);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(HEIGHT_KEY);
-      if (raw) {
-        const parsed = Number(raw);
-        if (Number.isFinite(parsed)) setHeight(clampHeight(parsed));
-      }
-    } catch {
-      // localStorage nedostupan — ostaje podrazumevana visina
-    }
-  }, []);
-
-  const onPointerMove = useCallback((e: PointerEvent) => {
-    // Ručka je na vrhu — prevlačenje naGORE (manji clientY) treba da POVEĆA visinu.
-    setHeight(clampHeight(startHeight.current - (e.clientY - startY.current)));
-  }, []);
-
-  const onPointerUp = useCallback(() => {
-    setDragging(false);
-    setHeight((h) => {
-      try {
-        localStorage.setItem(HEIGHT_KEY, String(h));
-      } catch {
-        // localStorage nedostupan — visina i dalje radi za ovu sesiju
-      }
-      return h;
-    });
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-  }, [onPointerMove]);
-
-  const onPointerDown = (e: React.PointerEvent) => {
-    setDragging(true);
-    startY.current = e.clientY;
-    startHeight.current = height;
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-  };
-
-  const resetHeight = () => {
-    setHeight(DEFAULT_HEIGHT);
-    try {
-      localStorage.setItem(HEIGHT_KEY, String(DEFAULT_HEIGHT));
-    } catch {
-      // localStorage nedostupan — reset i dalje radi za ovu sesiju
-    }
-  };
-
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    onTurnsChange?.(turns.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turns]);
+
+  // Kopiranje CELOG razgovora OVOG panela (23.8.2026, na zahtev vlasnika: "omoguci kopiranja
+  // svih poruka ne samo pojedinacnih") — dopuna uz postojeći CopyButton po poruci, ne zamena.
+  function buildFullTranscriptText(): string {
+    return turns
+      .map((t) => {
+        const lines = [`$ ${t.question}`];
+        if (t.pendingWebFetch && !t.webFetchDecision) {
+          lines.push(`[predlog: poseti ${t.pendingWebFetch.url} — čeka odobrenje]`);
+        } else if (t.answer) {
+          lines.push(t.answer);
+        } else if (t.error) {
+          lines.push(t.error);
+        } else if (t.inactive) {
+          lines.push('Terminal još nije aktiviran.');
+        }
+        return lines.join('\n');
+      })
+      .join('\n\n');
+  }
+
+  useImperativeHandle(ref, () => ({ getTranscriptText: buildFullTranscriptText }));
 
   async function send() {
     const question = input.trim();
@@ -333,48 +335,15 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
     setTurns((t) => t.filter((_, i) => i !== index));
   }
 
-  // Kopiranje CELOG razgovora (23.8.2026, na zahtev vlasnika: "omoguci kopiranja svih poruka ne
-  // samo pojedinacnih") — dopuna uz postojeći CopyButton po poruci, ne zamena. Isti tekstualni
-  // oblik kao pojedinačan prikaz ($ pitanje / odgovor), tura po turu, radi lepljenja u drugi alat.
-  function buildFullTranscriptText(): string {
-    return turns
-      .map((t) => {
-        const lines = [`$ ${t.question}`];
-        if (t.pendingWebFetch && !t.webFetchDecision) {
-          lines.push(`[predlog: poseti ${t.pendingWebFetch.url} — čeka odobrenje]`);
-        } else if (t.answer) {
-          lines.push(t.answer);
-        } else if (t.error) {
-          lines.push(t.error);
-        } else if (t.inactive) {
-          lines.push('Terminal još nije aktiviran.');
-        }
-        return lines.join('\n');
-      })
-      .join('\n\n');
-  }
-
   return (
-    <div className="flex flex-shrink-0 flex-col overflow-hidden bg-panel font-mono text-xs" style={{ height }}>
-      <div
-        onPointerDown={onPointerDown}
-        onDoubleClick={resetHeight}
-        title="Prevuci za promenu visine, dvoklik za podrazumevanu"
-        className={`h-1.5 flex-shrink-0 cursor-row-resize border-t hover:border-accent ${dragging ? 'border-accent' : 'border-transparent'}`}
-      />
-      <div className="flex h-[29px] flex-shrink-0 items-center justify-between border-t border-ink-faint bg-panel-2 px-3">
-        <span className="flex items-center gap-1.5 text-ink-dim">
-          <Icon name="terminal" /> TERMINAL
-        </span>
-        <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      {showOwnHeader && (
+        <div className="flex h-[22px] flex-shrink-0 items-center justify-end border-b border-ink-faint/40 px-2">
           {turns.length > 0 && (
-            <CopyButton text={buildFullTranscriptText()} alwaysVisible title="Kopiraj ceo razgovor" className="text-ink-faint hover:text-ink" />
+            <CopyButton text={buildFullTranscriptText()} alwaysVisible title="Kopiraj ceo razgovor ovog panela" className="text-ink-faint hover:text-ink" />
           )}
-          <button onClick={onClose} title="Zatvori terminal" className="text-ink-faint hover:text-ink">
-            <Icon name="close" />
-          </button>
         </div>
-      </div>
+      )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
         {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. "šta je danas prodato", "lista nenaplaćenih aranžmana".</p>}
         {turns.map((t, i) => (
@@ -463,6 +432,137 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
           placeholder="pitaj o poslovanju..."
           className="flex-1 bg-transparent text-ink outline-none placeholder:text-ink-faint"
         />
+      </div>
+    </div>
+  );
+});
+
+// M15 spec §6.9, dizajn dok. §5f — terminal-stilizovan panel, isključivo Vlasnik (RBAC
+// sprovodi backend, ova komponenta se uopšte ne montira bez `M15/bi-terminal/VIEW`, vidi
+// Shell.tsx). NIJE stvaran shell — svaki unos je pitanje na prirodnom jeziku ka kontrolisanom,
+// samo-za-čitanje `BiTerminalAgent` (M15 spec §6.9.1-6.9.3), ne komanda operativnog sistema.
+// "Obriši" red (X na redu) je isključivo klijentsko sakrivanje — stvaran zapis ostaje trajno u
+// M1 audit logu (§6.9.4), dostupan preko /audit-log filtriranog na module=M15,
+// action=bi-terminal.query.
+export default function TerminalPanel({ onClose }: { onClose: () => void }) {
+  const [split, setSplit] = useState(false);
+  const [pane1HasTurns, setPane1HasTurns] = useState(false);
+  const paneRef = useRef<TerminalPaneHandle>(null);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(SPLIT_KEY) === '1') setSplit(true);
+    } catch {
+      // localStorage nedostupan — ostaje podrazumevano nepodeljen
+    }
+  }, []);
+
+  function toggleSplit() {
+    setSplit((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(SPLIT_KEY, next ? '1' : '0');
+      } catch {
+        // localStorage nedostupan — i dalje radi za ovu sesiju
+      }
+      return next;
+    });
+  }
+
+  // Promenljiva visina (23.8.2026, na zahtev vlasnika: "omogucite povecavanje visine
+  // terminala") — isti obrazac kao `ResizablePane.tsx` (prevlačenje, dvoklik vraća
+  // podrazumevanu, localStorage), samo vertikalno umesto horizontalno. Ručka je na GORNJOJ
+  // ivici (panel raste naviše kad se povuče, isto kao VS Code Panel). ZAJEDNIČKA za oba panela
+  // kad je podeljen — deljenje je horizontalno (jedan pored drugog), ne vertikalno.
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const [dragging, setDragging] = useState(false);
+  const startY = useRef(0);
+  const startHeight = useRef(DEFAULT_HEIGHT);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HEIGHT_KEY);
+      if (raw) {
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed)) setHeight(clampHeight(parsed));
+      }
+    } catch {
+      // localStorage nedostupan — ostaje podrazumevana visina
+    }
+  }, []);
+
+  const onPointerMove = useCallback((e: PointerEvent) => {
+    // Ručka je na vrhu — prevlačenje naGORE (manji clientY) treba da POVEĆA visinu.
+    setHeight(clampHeight(startHeight.current - (e.clientY - startY.current)));
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    setDragging(false);
+    setHeight((h) => {
+      try {
+        localStorage.setItem(HEIGHT_KEY, String(h));
+      } catch {
+        // localStorage nedostupan — visina i dalje radi za ovu sesiju
+      }
+      return h;
+    });
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+  }, [onPointerMove]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    setDragging(true);
+    startY.current = e.clientY;
+    startHeight.current = height;
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  };
+
+  const resetHeight = () => {
+    setHeight(DEFAULT_HEIGHT);
+    try {
+      localStorage.setItem(HEIGHT_KEY, String(DEFAULT_HEIGHT));
+    } catch {
+      // localStorage nedostupan — reset i dalje radi za ovu sesiju
+    }
+  };
+
+  return (
+    <div className="flex flex-shrink-0 flex-col overflow-hidden bg-panel font-mono text-xs" style={{ height }}>
+      <div
+        onPointerDown={onPointerDown}
+        onDoubleClick={resetHeight}
+        title="Prevuci za promenu visine, dvoklik za podrazumevanu"
+        className={`h-1.5 flex-shrink-0 cursor-row-resize border-t hover:border-accent ${dragging ? 'border-accent' : 'border-transparent'}`}
+      />
+      <div className="flex h-[29px] flex-shrink-0 items-center justify-between border-t border-ink-faint bg-panel-2 px-3">
+        <span className="flex items-center gap-1.5 text-ink-dim">
+          <Icon name="terminal" /> TERMINAL
+        </span>
+        <div className="flex items-center gap-2">
+          {!split && pane1HasTurns && (
+            <CopyAllButton getText={() => paneRef.current?.getTranscriptText() ?? ''} title="Kopiraj ceo razgovor" />
+          )}
+          <button
+            onClick={toggleSplit}
+            title={split ? 'Spoji terminal nazad u jedan' : 'Podeli terminal na dva nezavisna panela'}
+            className={`flex h-[20px] w-[20px] items-center justify-center rounded ${split ? 'text-accent' : 'text-ink-faint hover:text-ink'}`}
+          >
+            <Icon name="split-horizontal" />
+          </button>
+          <button onClick={onClose} title="Zatvori terminal" className="text-ink-faint hover:text-ink">
+            <Icon name="close" />
+          </button>
+        </div>
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <TerminalPane ref={paneRef} showOwnHeader={split} onTurnsChange={setPane1HasTurns} />
+        {split && (
+          <>
+            <div className="w-px flex-shrink-0 bg-ink-faint/40" />
+            <TerminalPane showOwnHeader />
+          </>
+        )}
       </div>
     </div>
   );
