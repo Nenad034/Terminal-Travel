@@ -14,25 +14,45 @@ import Icon from '@/components/Icon';
 // danas nema sposobnost sastavljanja/slanja proizvoljnog mejla (vidi M15 spec §6.9.3 napomenu),
 // pravo slanje iz aplikacije čeka tu dopunu. Ovo otvara korisnikov podrazumevani mejl/telefon
 // klijent sa već popunjenim poljima, isti nivo integracije kao postojeći spoljni linkovi.
+//
+// Dopuna (23.8.2026, na zahtev vlasnika: "treba razlikovati obavestenja koje saljemo klijentima
+// i partnerima, dobavljacima po logici stvari") — problem koji čeka rok NIJE uvek kod gosta:
+// "čeka potvrdu dobavljača" znači treba kontaktirati DOBAVLJAČA (M3 `Supplier.contact_*`), ne
+// klijenta. `target` (mock-data.ts) bira ispravan kontakt i ton poruke — dobavljaču se ne piše
+// "Poštovani/a Marko" nego formalno ime firme/kontakt osobe.
 export default function UrgentModal({
   bookingNumber,
   reason,
+  target,
   buyerName,
   buyerEmail,
   buyerPhone,
+  supplierName,
+  supplierEmail,
+  supplierPhone,
   onClose,
 }: {
   bookingNumber: string;
   reason: string;
+  target: 'BUYER' | 'SUPPLIER';
   buyerName: string;
   buyerEmail: string;
   buyerPhone: string;
+  supplierName: string;
+  supplierEmail: string;
+  supplierPhone: string;
   onClose: () => void;
 }) {
-  const mailtoHref = `mailto:${buyerEmail}?subject=${encodeURIComponent(`Rezervacija ${bookingNumber}`)}&body=${encodeURIComponent(`Poštovani/a ${buyerName},\n\n`)}`;
-  const smsHref = `sms:${buyerPhone.replace(/\s+/g, '')}`;
-  const telHref = `tel:${buyerPhone.replace(/\s+/g, '')}`;
-  const whatsappHref = `https://wa.me/${buyerPhone.replace(/[^\d]/g, '')}`;
+  const isSupplier = target === 'SUPPLIER';
+  const contactLabel = isSupplier ? `Dobavljač — ${supplierName}` : `Klijent/nalogodavac — ${buyerName}`;
+  const contactEmail = isSupplier ? supplierEmail : buyerEmail;
+  const contactPhone = isSupplier ? supplierPhone : buyerPhone;
+  const mailSubject = isSupplier ? `Potvrda dostupnosti — rezervacija ${bookingNumber}` : `Rezervacija ${bookingNumber}`;
+  const mailGreeting = isSupplier ? `Poštovani,\n\nu vezi sa rezervacijom ${bookingNumber}: ` : `Poštovani/a ${buyerName},\n\n`;
+  const mailtoHref = `mailto:${contactEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailGreeting)}`;
+  const smsHref = `sms:${contactPhone.replace(/\s+/g, '')}`;
+  const telHref = `tel:${contactPhone.replace(/\s+/g, '')}`;
+  const whatsappHref = `https://wa.me/${contactPhone.replace(/[^\d]/g, '')}`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -48,10 +68,13 @@ export default function UrgentModal({
         </div>
         <div className="px-4 py-3 text-xs text-ink-dim">{reason}</div>
         <div className="border-t border-border px-4 py-3">
-          <div className="mb-2 text-[11px] text-ink-faint">Kontakt — {buyerName}</div>
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] text-ink-faint">
+            <Icon name={isSupplier ? 'organization' : 'account'} />
+            {contactLabel}
+          </div>
           <div className="mb-2 flex items-center justify-between gap-2">
             <a href={telHref} className="truncate font-mono text-ink hover:text-accent hover:underline">
-              {buyerPhone}
+              {contactPhone}
             </a>
             <div className="flex flex-shrink-0 items-center gap-1">
               <a href={telHref} title="Pozovi" className="flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-accent">
@@ -66,7 +89,7 @@ export default function UrgentModal({
             </div>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-ink-faint">{buyerEmail}</span>
+            <span className="truncate text-ink-faint">{contactEmail}</span>
             <a href={mailtoHref} title="Pošalji mejl" className="flex flex-shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-ink-faint hover:bg-panel2 hover:text-accent">
               <Icon name="mail" /> Pošalji mejl
             </a>

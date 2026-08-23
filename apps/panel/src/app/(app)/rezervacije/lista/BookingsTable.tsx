@@ -423,9 +423,13 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
         <UrgentModal
           bookingNumber={urgentFor.bookingNumber}
           reason={urgentFor.urgent.reason}
+          target={urgentFor.urgent.target}
           buyerName={urgentFor.buyerName}
           buyerEmail={urgentFor.buyerEmail}
           buyerPhone={urgentFor.buyerPhone}
+          supplierName={urgentFor.supplierName}
+          supplierEmail={urgentFor.supplierEmail}
+          supplierPhone={urgentFor.supplierPhone}
           onClose={() => setUrgentFor(null)}
         />
       )}
