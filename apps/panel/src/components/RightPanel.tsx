@@ -123,6 +123,16 @@ function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
   );
 }
 
+// "Odrasla osoba/dete/beba" oznaka (23.8.2026, na zahtev vlasnika: "Svuda Prikazati da li je
+// osoba odrasla osoba, dete ili beba (navesti i godine rodjenja za decu i bebe, a za odrasle
+// samo ukoliko je taj podatak unet)") — CHILD/BABY UVEK nose godinu rođenja (obavezno polje u
+// mock/stvarnom modelu), ADULT je samo ako je uneta (opciono polje).
+function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
+  const label = t.ageCategory === 'ADULT' ? 'odrasla osoba' : t.ageCategory === 'CHILD' ? 'dete' : 'beba';
+  if (t.ageCategory === 'ADULT') return t.birthYear ? `${label}, rođ. ${t.birthYear}.` : label;
+  return `${label}, rođ. ${t.birthYear}.`;
+}
+
 // Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
 // smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
@@ -140,13 +150,16 @@ function BookingSummary({ summary: s }: { summary: import('./RowSummaryContext')
       {s.accommodationType && <SummaryRow label="Tip smeštaja" value={s.accommodationType} />}
       <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />
       <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />
+      {s.branch && <SummaryRow label="Poslovnica" value={s.branch} />}
+      {s.assignedUser && <SummaryRow label="Zadužen" value={s.assignedUser} />}
       {s.travelers && s.travelers.length > 0 && (
         <div className="mt-2 mb-1">
           <div className="mb-1 text-ink-faint">Putnici ({s.travelers.length})</div>
           <ul className="flex flex-col gap-0.5">
             {s.travelers.map((t) => (
-              <li key={t} className="text-ink-dim">
-                {t}
+              <li key={t.name} className="flex items-center justify-between gap-2 text-ink-dim">
+                <span>{t.name}</span>
+                <span className="text-[10px] text-ink-faint">{travelerAgeLabel(t)}</span>
               </li>
             ))}
           </ul>

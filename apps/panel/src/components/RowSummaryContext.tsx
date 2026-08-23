@@ -9,6 +9,17 @@ import { createContext, useContext, useState } from 'react';
 // rezervacija u desnom panelu treba da se prikazu sve najvaznije informacije"). Namerno ODVOJENO
 // od `SelectionContext` (M5 §3.0e.3 — stavke IZ PRETRAGE pre kreiranja Ponude) — različita svrha,
 // različit oblik podataka; `RightPanel.tsx` prikazuje selekciju AKO ima stavki, inače sažetak reda.
+// Dopuna (23.8.2026, na zahtev vlasnika: "Svuda Prikazati da li je osoba odrasla osoba, dete
+// ili beba (navesti i godine rodjenja za decu i bebe, a za odrasle samo ukoliko je taj podatak
+// unet)") — isti oblik kao `MockBookingRow.Traveler` (rezervacije/lista/mock-data.ts), namerno
+// redefinisan ovde (ne uvoze se mock tipovi u deljenu komponentu) da ovaj kontekst radi i sa
+// pravim API odgovorom kad lista dobije stvarne podatke.
+export interface Traveler {
+  name: string;
+  ageCategory: 'ADULT' | 'CHILD' | 'BABY';
+  birthYear?: number;
+}
+
 export interface RowSummary {
   kind: 'booking';
   bookingNumber: string;
@@ -23,9 +34,11 @@ export interface RowSummary {
   destinationCity?: string;
   hotelName?: string;
   accommodationType?: string;
-  travelers?: string[];
+  travelers?: Traveler[];
   paidAmount?: number;
   owedAmount?: number;
+  branch?: string;
+  assignedUser?: string;
 }
 
 interface RowSummaryContextValue {

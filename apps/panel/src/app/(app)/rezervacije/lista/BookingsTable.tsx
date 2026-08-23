@@ -4,7 +4,11 @@ import { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
 import BookingTimelineModal, { type TimelineEntry } from '@/components/BookingTimelineModal';
 import { useRowSummary } from '@/components/RowSummaryContext';
+import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import type { MockBookingRow } from './mock-data';
+import FiltersModal, { type ExtraFilters } from './FiltersModal';
+import UrgentModal from './UrgentModal';
+import ExportButton from './ExportButton';
 
 function StatusBadge({ label }: { label: string }) {
   const tone = ['CONFIRMED', 'COMPLETED'].includes(label)
@@ -57,7 +61,7 @@ function buildMockTimeline(b: MockBookingRow): TimelineEntry[] {
 
 type TextColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
 type DateColumnKey = 'stayFrom' | 'stayTo' | 'createdAt';
-type ColumnKey = TextColumnKey | DateColumnKey;
+export type ColumnKey = TextColumnKey | DateColumnKey;
 
 const DATE_COLUMNS: DateColumnKey[] = ['stayFrom', 'stayTo', 'createdAt'];
 
@@ -92,6 +96,8 @@ function matchesDateRange(iso: string, filterText: string): boolean {
 // (`page.tsx`), koja ostaje čist wrapper. Tekstualne kolone: "sadrži" (case-insensitive).
 // Datumske kolone (Dolazak/Odlazak/Kreirano, isti dan, dopuna): opseg DD/MM/GGGG...DD/MM/GGGG.
 // Sve aktivne kolone se AND-uju.
+const EMPTY_EXTRA_FILTERS: ExtraFilters = { branch: '', assignedUser: '', supplierName: '', partnerName: '' };
+
 export default function BookingsTable({ bookings }: { bookings: MockBookingRow[] }) {
   const [filters, setFilters] = useState<Record<ColumnKey, string>>({
     bookingNumber: '',
@@ -104,12 +110,30 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     createdAt: '',
   });
   const [timelineFor, setTimelineFor] = useState<MockBookingRow | null>(null);
+  const [urgentFor, setUrgentFor] = useState<MockBookingRow | null>(null);
+  // Brzi filter po vrsti aranžmana (23.8.2026, na zahtev vlasnika: "Prva ikona ispred ove dve
+  // treba da bude ikona iz pretraga koja u stvari govori o kom turistickom aranzmanu se radi.
+  // Omoguciti pretragu i po tome. Staviti sve ikone oz pretrage horizontalno iznad liste") —
+  // isti `PRODUCT_ICONS` katalog kao vođena pretraga (`lib/search-product-types.ts`), klik
+  // bira/poništava (jedan aktivan odjednom — dovoljno za "koji tip", ne višestruki izbor ovde).
+  const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
+  // Filter za zvonce (23.8.2026, na zahtev vlasnika: "Postaviti filter i za zvonce. Prvi klik
+  // filtrira, drugi klik ne filtrira") — prost toggle, ne treći/četvrti stepen.
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [filtersModalOpen, setFiltersModalOpen] = useState(false);
+  const [extraFilters, setExtraFilters] = useState<ExtraFilters>(EMPTY_EXTRA_FILTERS);
 
   const { showSummary } = useRowSummary();
 
   const filtered = useMemo(() => {
-    return bookings.filter((b) =>
-      (Object.keys(filters) as ColumnKey[]).every((key) => {
+    return bookings.filter((b) => {
+      if (urgentOnly && !b.urgent) return false;
+      if (productTypeFilter && b.productType !== productTypeFilter) return false;
+      if (extraFilters.branch.trim() && !b.branch.toLowerCase().includes(extraFilters.branch.trim().toLowerCase())) return false;
+      if (extraFilters.assignedUser.trim() && !b.assignedUser.toLowerCase().includes(extraFilters.assignedUser.trim().toLowerCase())) return false;
+      if (extraFilters.supplierName.trim() && !b.supplierName.toLowerCase().includes(extraFilters.supplierName.trim().toLowerCase())) return false;
+      if (extraFilters.partnerName.trim() && !(b.partnerName ?? '').toLowerCase().includes(extraFilters.partnerName.trim().toLowerCase())) return false;
+      return (Object.keys(filters) as ColumnKey[]).every((key) => {
         const value = filters[key];
         if (!value.trim()) return true;
         if ((DATE_COLUMNS as string[]).includes(key)) return matchesDateRange(b[key as DateColumnKey], value);
@@ -122,9 +146,9 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
           return [b.buyerName, b.country, b.destinationCity, b.hotelName].some((v) => v.toLowerCase().includes(needle));
         }
         return String(b[key as TextColumnKey]).toLowerCase().includes(needle);
-      }),
-    );
-  }, [bookings, filters]);
+      });
+    });
+  }, [bookings, filters, urgentOnly, productTypeFilter, extraFilters]);
 
   function setFilter(key: ColumnKey, value: string) {
     setFilters((f) => ({ ...f, [key]: value }));
@@ -148,6 +172,8 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
       travelers: b.travelers,
       paidAmount: b.paidAmount,
       owedAmount: b.totalPrice - b.paidAmount,
+      branch: b.branch,
+      assignedUser: b.assignedUser,
     });
   }
 
@@ -156,11 +182,51 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
 
   return (
     <>
+      {/* Traka iznad liste (23.8.2026, na zahtev vlasnika) — devet ikona pretrage (klik bira/
+          poništava vrstu aranžmana kao filter), crveno zvonce (filter "samo hitno"), dugme
+          "Filteri" (otvara FiltersModal — brzi filteri po koloni + Poslovnica/User/Dobavljač/
+          Partner) i izvoz. */}
+      <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
+        {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
+          const active = productTypeFilter !== null && p.types.includes(productTypeFilter);
+          return (
+            <button
+              key={p.label}
+              onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
+              title={`Filtriraj: ${p.label}`}
+              className={`flex h-[26px] w-[26px] items-center justify-center rounded ${
+                active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'
+              }`}
+            >
+              <Icon name={p.icon} />
+            </button>
+          );
+        })}
+        <div className="mx-1 h-5 w-px bg-ink-faint/40" />
+        <button
+          onClick={() => setUrgentOnly((v) => !v)}
+          title={urgentOnly ? 'Ukloni filter "samo hitno"' : 'Filtriraj samo hitne rezervacije'}
+          className={`flex h-[26px] w-[26px] items-center justify-center rounded ${urgentOnly ? 'bg-danger-bg text-danger' : 'text-danger hover:bg-panel2'}`}
+        >
+          <Icon name="bell" />
+        </button>
+        <button
+          onClick={() => setFiltersModalOpen(true)}
+          title="Svi filteri"
+          className="flex h-[26px] items-center gap-1.5 rounded px-2 text-ink-faint hover:bg-panel2 hover:text-ink"
+        >
+          <Icon name="filter" /> Filteri
+        </button>
+        <div className="ml-auto">
+          <ExportButton rows={filtered} />
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-border bg-panel">
         <table className="w-full min-w-[980px] text-left text-xs">
           <thead>
             <tr className="border-b border-border bg-panel2 text-ink-faint">
-              <th className="w-8 px-3 py-2 font-medium" />
+              <th className="w-[64px] px-3 py-2 font-medium" />
               <th className="px-3 py-2 font-medium">
                 Broj
                 <input value={filters.bookingNumber} onChange={(e) => setFilter('bookingNumber', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
@@ -216,16 +282,36 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 className="cursor-pointer border-b border-border last:border-0 hover:bg-panel2"
               >
                 <td className="px-3 py-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setTimelineFor(b);
-                    }}
-                    title="Tok rezervacije — ceo workflow, ko je i kada radio promenu"
-                    className="flex h-[22px] w-[22px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent"
-                  >
-                    <Icon name="three-bars" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {/* Prva ikona = vrsta aranžmana (23.8.2026, na zahtev vlasnika) — isti
+                        katalog kao traka iznad liste, samo prikaz (ne klikabilna po redu, klik
+                        za filter ide preko trake iznad). */}
+                    <span title={PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.label ?? b.productType} className="flex h-[22px] w-[22px] items-center justify-center text-ink-faint">
+                      <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(b.productType))?.icon ?? 'question'} />
+                    </span>
+                    {b.urgent && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUrgentFor(b);
+                        }}
+                        title="Hitno — klikni za detalje"
+                        className="flex h-[22px] w-[22px] items-center justify-center rounded text-danger hover:bg-danger-bg"
+                      >
+                        <Icon name="bell" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTimelineFor(b);
+                      }}
+                      title="Tok rezervacije — ceo workflow, ko je i kada radio promenu"
+                      className="flex h-[22px] w-[22px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent"
+                    >
+                      <Icon name="three-bars" />
+                    </button>
+                  </div>
                 </td>
                 <td className="px-3 py-2 font-mono text-ink">{b.bookingNumber}</td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
@@ -268,6 +354,16 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
         {filtered.length} / {bookings.length} rezervacija (mock)
       </p>
       {timelineFor && <BookingTimelineModal mockEntries={buildMockTimeline(timelineFor)} onClose={() => setTimelineFor(null)} />}
+      {urgentFor?.urgent && <UrgentModal bookingNumber={urgentFor.bookingNumber} reason={urgentFor.urgent.reason} onClose={() => setUrgentFor(null)} />}
+      {filtersModalOpen && (
+        <FiltersModal
+          columnFilters={filters}
+          onColumnFilterChange={setFilter}
+          extraFilters={extraFilters}
+          onExtraFiltersChange={setExtraFilters}
+          onClose={() => setFiltersModalOpen(false)}
+        />
+      )}
     </>
   );
 }
