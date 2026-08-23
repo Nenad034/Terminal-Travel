@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { apiFetch, ApiError } from '@/lib/api-client';
+import { apiFetch, apiFetchMultipart, ApiError } from '@/lib/api-client';
 
 export interface FormState {
   error: string | null;
@@ -105,6 +105,31 @@ export async function upsertContentTranslation(id: string, _prev: FormState, for
     return { error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje prevoda nije uspelo.' };
   }
   revalidatePath(`/marketing/${id}`);
+  return { error: null };
+}
+
+// M12 spec §2.5/§7 (23.8.2026) — POST /content/:id/media, multipart/form-data. Isti obrazac kao
+// M19 `sendMessageRestFallback` prilog fajla (actions.ts u chat/).
+export async function addContentMedia(contentId: string, file: File): Promise<{ error: string | null }> {
+  try {
+    const formData = new FormData();
+    formData.set('file', file);
+    await apiFetchMultipart(`/marketing/content/${contentId}/media`, formData);
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje medije nije uspelo.' };
+  }
+  revalidatePath(`/marketing/${contentId}`);
+  return { error: null };
+}
+
+// M12 spec §2.5/§7 — DELETE /content/media/:mediaId.
+export async function removeContentMedia(contentId: string, mediaId: string): Promise<{ error: string | null }> {
+  try {
+    await apiFetch(`/marketing/content/media/${mediaId}`, { method: 'DELETE' });
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Uklanjanje medije nije uspelo.' };
+  }
+  revalidatePath(`/marketing/${contentId}`);
   return { error: null };
 }
 

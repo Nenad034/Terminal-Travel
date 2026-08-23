@@ -1,4 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { unlink } from 'fs/promises';
+import { join, relative } from 'path';
 import { ContentChannel, ContentPieceStatus, ContentPieceType, LanguageCode, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -8,6 +10,7 @@ import { UpsertContentTranslationDto } from './dto/upsert-content-translation.dt
 import { generateTrackingCode } from './tracking-code';
 import { hasAiTransparencyMarker } from './ai-transparency-check';
 import { DistributionService } from '../distribution/distribution.service';
+import { CONTENT_MEDIA_UPLOAD_ROOT, resolveContentMediaType } from './content-media-storage';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const SLUG_REQUIRED_TYPES: ContentPieceType[] = ['STATIC_PAGE', 'BLOG_POST'];
@@ -151,13 +154,13 @@ export class ContentService {
         targetChannels: filters.channel ? { has: filters.channel } : undefined,
         slug: filters.slug,
       },
-      include: { translations: true },
+      include: { translations: true, media: true },
       orderBy: [{ scheduledPublishAt: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
   async findOne(id: string) {
-    const content = await this.prisma.contentPiece.findUnique({ where: { id }, include: { translations: true } });
+    const content = await this.prisma.contentPiece.findUnique({ where: { id }, include: { translations: true, media: true } });
     if (!content) throw new NotFoundException(`ContentPiece ${id} nije pronađen.`);
     return content;
   }
@@ -391,5 +394,89 @@ export class ContentService {
       context: { contentPieceId },
     });
     return translation;
+  }
+
+  // ==========================================================================
+  // Medija (slike/video) — POST/DELETE .../media (§2.5, 23.8.2026, na zahtev vlasnika:
+  // "kako dodajemo slike i reels?" — `contains_ai_generated_media` je oduvek bio samo oznaka,
+  // nijedno polje nije stvarno čuvalo fajl pre ove dopune).
+  // ==========================================================================
+  private assertMediaMutable(content: { status: ContentPieceStatus }): void {
+    // Ista granica kao update() iznad — sadržaj se "zamrzava" čim uđe u odobravanje, prilog
+    // fajla ne sme da zaobiđe to pravilo (npr. zamena slike posle odobrenja bez ponovnog pregleda).
+    if (content.status === 'PUBLISHED') {
+      throw new BadRequestException('Objavljen sadržaj se više ne može menjati (M12 spec §3, nepovratna granica).');
+    }
+    if (content.status === 'APPROVED') {
+      throw new BadRequestException(
+        'Odobren sadržaj se ne može menjati preko ovog endpoint-a (M12 spec §3, nepovratna granica ka javnoj objavi).',
+      );
+    }
+  }
+
+  async addMedia(contentPieceId: string, file: Express.Multer.File, actorId: string) {
+    const content = await this.findOne(contentPieceId);
+    this.assertMediaMutable(content);
+
+    const mediaType = resolveContentMediaType(file.mimetype);
+    if (!mediaType) {
+      throw new BadRequestException(`Tip fajla "${file.mimetype}" nije podržan — samo slika/video (M12 spec §2.5).`);
+    }
+
+    const media = await this.prisma.contentMedia.create({
+      data: {
+        contentPieceId,
+        mediaType,
+        fileName: file.originalname,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        storagePath: relative(CONTENT_MEDIA_UPLOAD_ROOT, file.path),
+        uploadedBy: actorId,
+      },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M12',
+      action: 'content.media_added',
+      resourceType: 'ContentMedia',
+      resourceId: media.id,
+      afterState: media,
+      context: { contentPieceId },
+    });
+    return media;
+  }
+
+  async getMediaForDownload(mediaId: string) {
+    const media = await this.prisma.contentMedia.findUnique({ where: { id: mediaId } });
+    if (!media) throw new NotFoundException(`ContentMedia ${mediaId} nije pronađen.`);
+    return media;
+  }
+
+  async removeMedia(mediaId: string, actorId: string) {
+    const media = await this.prisma.contentMedia.findUnique({ where: { id: mediaId } });
+    if (!media) throw new NotFoundException(`ContentMedia ${mediaId} nije pronađen.`);
+    const content = await this.findOne(media.contentPieceId);
+    this.assertMediaMutable(content);
+
+    await this.prisma.contentMedia.delete({ where: { id: mediaId } });
+    // Fajl na disku se briše best-effort — DB zapis je izvor istine; ostavljen siroče na disku
+    // (retko, samo ako fs poziv otkaže) nije bezbednosni ili poslovni problem, samo trag na disku.
+    try {
+      await unlink(join(CONTENT_MEDIA_UPLOAD_ROOT, media.storagePath));
+    } catch {
+      // fajl već obrisan/nedostupan — ne blokira uklanjanje zapisa
+    }
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M12',
+      action: 'content.media_removed',
+      resourceType: 'ContentMedia',
+      resourceId: mediaId,
+      beforeState: media,
+      context: { contentPieceId: media.contentPieceId },
+    });
   }
 }

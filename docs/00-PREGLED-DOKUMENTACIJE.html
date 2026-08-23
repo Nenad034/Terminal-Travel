@@ -5155,6 +5155,10 @@ Prefiks: `/api/v1/helpdesk`
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M12) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — vidi poglavlje 8 za tačan obim; API dokumentacija u `docs/api/M12-marketing.md`, objašnjenje za vlasnika u `00-OBJASNJENJE-M12-ZA-VLASNIKA.md` (isti folder)
+**Verzija:** 1.5 — `ContentMedia` — prvi stvaran mehanizam za prilaganje slike/videa uz marketing sadržaj (23.8.2026, na zahtev vlasnika — pitao je direktno "kako dodajemo slike i reels u [ekran]?" na `/marketing/:id`). Nalaz pri proveri: `contains_ai_generated_media` (poglavlje 2.1, postoji od avgusta 2026) je OTKAD POSTOJI samo oznaka/checkbox za YUTA transparentnost — nikad nije čuvao stvaran fajl, `ContentTranslation.body` je čist tekst bez ijednog polja za medij. Za poređenje, M2 katalog proizvoda ima pravu galeriju (`Product.media`, JSON niz) — M12 nikad nije dobio ekvivalent, propust u specifikaciji, ne previd u UI-ju. Rešeno novim §2.5 modelom `ContentMedia` — isti obrazac kao M19 §2.5 `MessageAttachment` (chat prilozi, uveden dan ranije u istoj sesiji): lokalni disk API servera (`apps/api/uploads/marketing/`) dok se hosting provajder za produkciju ne izabere (vlasnikova odluka preko `AskUserQuestion`, ponovljena identično M19 odluci), max 100MB po fajlu (veći limit od M19-ovih 20MB — video/reels su tipično veći od chat priloga), bela lista MIME tipova (`image/*`/`video/*`, za razliku od M19 crne liste izvršnih ekstenzija — ovde svrha nije "sve osim opasnog", već tačno dve stvari). Dodavanje/uklanjanje medije zabranjeno čim `ContentPiece` pređe u `APPROVED`/`PUBLISHED` (ista granica kao `update()` teksta, poglavlje 3) — sprečava tihu zamenu slike posle odobrenja bez ponovnog pregleda. Panel: `MediaGallery.tsx` (nova komponenta uz `TranslationsPanel.tsx` na `/marketing/:id`) — dugme za otpremanje, grid prikaz (slike inline `<img>`, video `<video controls>`), dugme za uklanjanje po stavci; preuzimanje/prikaz kroz novu panel BFF rutu `apps/panel/src/app/api/marketing/media/[mediaId]/route.ts` (isti obrazac kao M19 chat-attachment proxy, ali NAMERNO bez prosleđivanja `Content-Disposition` zaglavlja — ovde se medija prikazuje UGRAĐENO u galeriji, `attachment` disposition bi naveo neke pregledače da odbiju inline prikaz slike/videa).
+
+**Provera:** `tsc --noEmit` čist za `apps/api` i `apps/panel`. Uživo, protiv prave baze i pravog API/panel servera (privremeni VLASNIK nalog + DRAFT `ContentPiece`, obrisani posle provere): (1) otpremanje prave PNG slike i mock MP4 fajla — oba HTTP 201, `mediaType` tačno razrešen (`IMAGE`/`VIDEO`) iz MIME tipa; (2) `GET /content/:id` prikazuje oba u `media[]`; (3) preuzimanje slike vraća BAJT-ZA-BAJT identičan sadržaj originalu; (4) prilog sa `text/plain` MIME tipom odbijen (HTTP 400, "samo slika/video"); (5) brisanje slike uklanja i DB zapis i fajl sa diska (potvrđeno da samo video ostaje i u bazi i u `uploads/marketing/`); (6) posle `approve()` (koji je i objavio sadržaj bez zakazanog termina) pokušaj otpremanja nove slike vraća HTTP 400 ("Objavljen sadržaj se više ne može menjati") — potvrđuje nepovratnu granicu; (7) kroz panel: `/marketing/:id` HTML prikazuje galeriju sa video fajlom i tačnim `/api/marketing/media/:id` linkom; panel BFF proxy vraća bajt-za-bajt identičan video sa `content-type: video/mp4` i BEZ `content-disposition` zaglavlja (potvrđeno `curl -D`). Sav test sadržaj (nalog, `ContentPiece`, fajlovi na disku) obrisan posle provere.
+
 **Verzija:** 1.4 — M8 integracija (avgust 2026, M8 nastavljen posle M12): nov javan endpoint `GET /marketing/public/content` (`PublicContentController`, bez guard-a, servira samo `status=PUBLISHED` sadržaj sa `M8_SITE` u `target_channels` preko `ContentService.findPublishedBySlug`) — zatvara poslednju otvorenu stavku poglavlja 8 (`/stranica/:slug`, `/blog/:slug` na M8 strani sada mogu da čitaju). Hvatanje `?ref=` ostaje na M8 strani (M8 spec poglavlje 3, korak 0), M12 se ovim ne menja. v1.3 — implementacija (avgust 2026): kod pod `apps/api/src/modules/m12-marketing/`, `ContentPiece`/`ContentTranslation`/`ChannelConfig` u Prisma šemi, M13 `resolveContentAttribution` povezan na pravi `ContentService.findByTrackingCode` (in-process DI, poglavlje 6c). M8-zavisne stavke (poglavlje 3b/6b — `/stranica/:slug`, `/blog/:slug`, hvatanje `?ref=`) namerno nisu implementirane (M8 pauziran, CLAUDE.md). v1.2 dopuna avgust 2026: `STATIC_PAGE` tip + `slug` za opšte stranice sajta (poglavlje 3b), `tracking_code` i atribucija rezervacije ka sadržaju preko M5/M13 (poglavlje 3a), `target_tags` filter za `EMAIL` kanal po M6 `tags` (poglavlje 4), obavezno označavanje AI generisanog vizuelnog sadržaja po YUTA preporuci (poglavlje 3c)
 **Zavisi od:** M1, M2, M6
 
@@ -5184,6 +5188,24 @@ M12 pokriva tok: **proizvod (M2) → generisanje sadržaja → kalendar/odobrenj
 | approved_by | UUID, nullable (FK → M1 User) | **obavezno pre `PUBLISHED`, nikad AI** |
 | published_at | timestamp, nullable | |
 | created_at / updated_at | timestamp | |
+
+### 2.5 `ContentMedia` (v1.5, 23.8.2026)
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| content_piece_id | UUID (FK → ContentPiece) | |
+| media_type | enum: `IMAGE`, `VIDEO` | izvedeno iz MIME tipa pri otpremanju, sačuvano eksplicitno (jednostavnije za panel prikaz) |
+| file_name | string | originalno ime koje je pošiljalac poslao |
+| mime_type | string | |
+| size_bytes | int | max 100 MB po prilogu (video/reels su veći od slika) |
+| storage_path | string | relativna putanja unutar `apps/api/uploads/marketing/<content_piece_id>/` — lokalni disk API servera, van git-a, dok se hosting provajder za produkciju ne izabere (ista vlasnikova odluka kao M19 §2.5 prilozi u chat-u) |
+| uploaded_by | UUID (FK → M1 User) | |
+| uploaded_at | timestamp | |
+
+Jedan `ContentPiece` može imati više medija (galerija). Dodavanje/uklanjanje je zabranjeno čim sadržaj pređe u `APPROVED`/`PUBLISHED` — ista nepovratna granica kao izmena teksta (poglavlje 3, `update()`). Preuzimanje/prikaz isključivo preko autentifikovanog `GET /marketing/content/media/:mediaId/download` (poglavlje 7) — fajl se ne servira kao javan statički resurs; dozvola je ista kao pregled sadržaja (`M12/content/VIEW`), bez dodatne provere vlasništva (za razliku od M19 priloga, ovde nema koncepta "učesnika razgovora" — ceo interni tim koji vidi sadržaj sme da vidi i njegovu galeriju).
+
+**Razlika od `contains_ai_generated_media` (poglavlje 2.1):** to polje je OTKAD POSTOJI samo oznaka/checkbox (YUTA transparentnost) — nikad nije čuvalo stvaran fajl. `ContentMedia` je prvi stvaran mehanizam za prilaganje slike/videa, uveden ovim prolazom nakon što je vlasnik direktno pitao "kako dodajemo slike i reels?" i otkrio da odgovor dotad nije postojao.
 
 ### 2.2 `ContentTranslation`
 Isti obrazac kao M2 `ProductTranslation` (poglavlje 2.2 te specifikacije) — redovi po jeziku, ne fiksne kolone, isti fallback (traženi jezik → engleski → srpski), isti skup 8 jezika.
@@ -5295,6 +5317,9 @@ Prefiks: `/api/v1/marketing`
 | `/content/:id` | GET / PATCH | |
 | `/content/:id/approve` | POST | ljudsko odobrenje, zahteva `M12/content/APPROVE_PUBLISH` |
 | `/content/:id/translations` | GET / PUT | |
+| `/content/:id/media` | POST | `multipart/form-data`, polje `file` — slika/video (v1.5, poglavlje 2.5); zahteva `M12/content/CREATE_DRAFT`, odbija ako sadržaj nije `DRAFT`/`PENDING_APPROVAL` |
+| `/content/media/:mediaId/download` | GET | zahteva `M12/content/VIEW` |
+| `/content/media/:mediaId` | DELETE | zahteva `M12/content/CREATE_DRAFT`, ista granica statusa kao upload |
 | `/channels` | GET / POST / PATCH | konfiguracija distribucionih kanala |
 | `/public/content` | GET | **bez autentikacije** (dopuna avgust 2026) — `?type=STATIC_PAGE\|BLOG_POST&slug=...&lang=...`, vraća samo `status=PUBLISHED` sadržaj koji ima `M8_SITE` u `target_channels`; inače `404`. Namena: M8 `/stranica/:slug`, `/blog/:slug` (poglavlje 3b) |
 

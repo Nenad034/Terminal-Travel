@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import TranslationsPanel from './TranslationsPanel';
 import ApproveContentButton from './ApproveContentButton';
+import MediaGallery from './MediaGallery';
 
 interface ContentPiece {
   id: string;
@@ -23,6 +24,7 @@ interface ContentPiece {
   publishedAt: string | null;
   status: string;
   translations: { languageCode: string; title: string; body: string; isReviewed: boolean }[];
+  media: { id: string; mediaType: 'IMAGE' | 'VIDEO'; fileName: string; sizeBytes: number }[];
 }
 
 // M17 spec §4/§7 (Faza 6) — detalj sadržaja: metapodaci, prevodi (M12 §2.2), odobrenje (§3
@@ -89,6 +91,12 @@ export default async function ContentDetailPage({ params }: { params: { id: stri
           <ApproveContentButton id={content.id} />
         </div>
       )}
+
+      <MediaGallery
+        contentId={content.id}
+        media={content.media}
+        canEdit={canEdit && content.status !== 'APPROVED' && content.status !== 'PUBLISHED'}
+      />
 
       <TranslationsPanel
         contentId={content.id}

@@ -2143,8 +2143,37 @@ model ContentPiece {
   updatedAt                DateTime           @updatedAt @map("updated_at")
 
   translations ContentTranslation[]
+  media        ContentMedia[]
 
   @@map("content_pieces")
+}
+
+enum ContentMediaType {
+  IMAGE
+  VIDEO
+}
+
+// §2.5 `ContentMedia` (v1.x, 23.8.2026, na zahtev vlasnika — "kako dodajemo slike i reels?").
+// `contains_ai_generated_media` (iznad) je oduvek bio SAMO oznaka/checkbox — nijedno polje nije
+// stvarno čuvalo fajl. Isti obrazac kao M19 `MessageAttachment` (poglavlje 2.5 tog spec-a):
+// lokalni disk API servera (`apps/api/uploads/marketing/`, van git-a) dok se hosting provajder za
+// produkciju ne izabere (vlasnikova odluka preko `AskUserQuestion`, ista kao za M19 priloge).
+// `mediaType` eksplicitno polje (ne izvedeno iz `mimeType` u letu na svakom čitanju) — jednostavnije
+// za panel prikaz (galerija slika naspram video plejera) bez parsiranja MIME stringa na klijentu.
+model ContentMedia {
+  id             String           @id @default(uuid())
+  contentPieceId String           @map("content_piece_id")
+  mediaType      ContentMediaType @map("media_type")
+  fileName       String           @map("file_name")
+  mimeType       String           @map("mime_type")
+  sizeBytes      Int              @map("size_bytes")
+  storagePath    String           @map("storage_path")
+  uploadedBy     String           @map("uploaded_by") // FK -> M1 User
+  uploadedAt     DateTime         @default(now()) @map("uploaded_at")
+
+  contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
+
+  @@map("content_media")
 }
 
 // §2.2 `ContentTranslation` — isti obrazac kao M2 ProductTranslation (red po jeziku).
