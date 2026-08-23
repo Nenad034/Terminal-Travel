@@ -24,6 +24,40 @@ export interface Traveler {
   birthYear?: number;
 }
 
+// Stavke (segmenti) rezervacije — dopuna (23.8.2026, na zahtev vlasnika, uz "Izmeni" dugme u
+// punom zapisu: "za svaki segment da se pojavi modul u kom ce se unositi rucno podaci novi ili
+// menjatu stari"). Tri načina unosa koje je vlasnik opisao odgovaraju VEĆ POSTOJEĆEM
+// `source_type` modelu za `QuoteItem`/`BookingItem` (M5 spec poglavlje 3.0f, 3.2/4.2) — ne novi
+// koncept, samo prvi put primenjen i na IZMENU već potvrđene rezervacije, ne samo na pravljenje
+// nove ponude:
+// 1. CONTRACTED — ručan izbor iz kataloga (država/destinacija/hotel/soba/usluga), ručan unos
+//    ulazne cene i marže (% i/ili iznos) — izlazna cena se računa.
+// 2. API — cena/uslovi dolaze od dobavljača (M4), agent unosi samo putnike — polja cene su
+//    informativna/samo za čitanje ovde (isto pravilo kao M5 spec poglavlje 3.0b.4: cena u
+//    rezultatima pretrage nije konačna garancija).
+// 3. MANUAL — iz baze već unetih aranžmana (`ManualProductEntry`, M5 spec poglavlje 3.0f.1),
+//    ručno ili uz AI-agent asistirano popunjavanje (poglavlje 3.0f.2) — AI deo NAMERNO nije
+//    povezan u ovom mock ekranu (zahteva stvaran M15 modul), obeleženo kao "čeka poseban prolaz".
+export type ItemSourceType = 'CONTRACTED' | 'API' | 'MANUAL';
+
+export interface MockBookingItem {
+  id: string;
+  sourceType: ItemSourceType;
+  productType: MockBookingRow['productType'];
+  country: string;
+  destinationCity: string;
+  hotelName: string;
+  roomType: string;
+  serviceType: string;
+  /** Ulazna cena (base_cost) — najmanja jedinica valute, ista konvencija kao ostatak M5. */
+  baseCost: number;
+  marginPercent: number;
+  marginAmount: number;
+  /** Izlazna cena (final_price). */
+  finalPrice: number;
+  currency: string;
+}
+
 export interface MockBookingRow {
   bookingNumber: string;
   buyerName: string;
@@ -48,15 +82,43 @@ export interface MockBookingRow {
   assignedUser: string;
   supplierName: string;
   partnerName: string | null;
+  items: MockBookingItem[];
 }
 
 function withDerived(
-  row: Omit<MockBookingRow, 'paidAmount'> & { paidAmount?: number },
+  row: Omit<MockBookingRow, 'paidAmount' | 'items'> & { paidAmount?: number; items?: MockBookingItem[] },
 ): MockBookingRow {
   const paidAmount =
     row.paidAmount ??
     (row.paymentStatus === 'PAID' ? row.totalPrice : row.paymentStatus === 'PARTIALLY_PAID' ? Math.round(row.totalPrice * 0.4) : 0);
-  return { ...row, paidAmount };
+  const items = row.items ?? [defaultItem(row)];
+  return { ...row, paidAmount, items };
+}
+
+// Podrazumevana jedna stavka izvedena iz postojećih pljosnatih polja (23.8.2026) — mock lista
+// je od v1.42 imala samo jedan segment po rezervaciji; ovo pravi realan `MockBookingItem` bez
+// izmišljanja druge marže od one koja postoji (20% pretpostavljena samo kad nema drugog izvora,
+// jasno obeleženo u komentaru koda, ne u UI-ju kao stvaran podatak).
+function defaultItem(row: { bookingNumber: string; channel: MockBookingRow['channel']; productType: MockBookingRow['productType']; country: string; destinationCity: string; hotelName: string; accommodationType: string; totalPrice: number; currency: string }): MockBookingItem {
+  const finalPrice = row.totalPrice;
+  const baseCost = Math.round(finalPrice * 0.8);
+  const marginAmount = finalPrice - baseCost;
+  const marginPercent = Math.round((marginAmount / baseCost) * 1000) / 10;
+  return {
+    id: `${row.bookingNumber}-item-1`,
+    sourceType: row.channel === 'MCP_AGENT' ? 'API' : 'CONTRACTED',
+    productType: row.productType,
+    country: row.country,
+    destinationCity: row.destinationCity,
+    hotelName: row.hotelName,
+    roomType: row.accommodationType,
+    serviceType: row.accommodationType,
+    baseCost,
+    marginPercent,
+    marginAmount,
+    finalPrice,
+    currency: row.currency,
+  };
 }
 
 const BRANCHES = ['Beograd — centrala', 'Novi Sad', 'Niš'];
