@@ -19,8 +19,8 @@ function PaymentBadge({ label }: { label: string }) {
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
 }
 
-function formatMoney(amount: number, currency: string): string {
-  return `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+function formatAmount(amount: number): string {
+  return (amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDate(iso: string): string {
@@ -190,7 +190,12 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 </td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayFrom)}</td>
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayTo)}</td>
-                <td className="px-3 py-2 text-right font-mono text-ink">{formatMoney(b.totalPrice, b.currency)}</td>
+                {/* Valuta ispod iznosa (23.8.2026, na zahtev vlasnika) — poništava raniji
+                    prikaz "iznos valuta" u jednom redu. */}
+                <td className="px-3 py-2 text-right">
+                  <div className="font-mono text-ink">{formatAmount(b.totalPrice)}</div>
+                  <div className="text-[10px] text-ink-faint">{b.currency}</div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
