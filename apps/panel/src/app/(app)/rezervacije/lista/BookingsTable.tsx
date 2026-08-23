@@ -36,8 +36,44 @@ function formatDate(iso: string): string {
 type TextColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
 type DateColumnKey = 'stayFrom' | 'stayTo' | 'createdAt';
 export type ColumnKey = TextColumnKey | DateColumnKey;
+type SortKey = ColumnKey | 'totalPrice';
 
 const DATE_COLUMNS: DateColumnKey[] = ['stayFrom', 'stayTo', 'createdAt'];
+
+// Sortiranje po koloni (23.8.2026, na zahtev vlasnika: "uvedite sortiranje po logici stvari") —
+// za Status/Uplatu NIJE azbučni redosled nego redosled po TOKU rezervacije/naplate (šta prvo
+// traži pažnju), isti princip po kom UrgentModal/zvonce već ističu nerešene stavke. Ostale kolone
+// imaju prirodan redosled (datum hronološki, iznos brojčano, tekst azbučno).
+const STATUS_ORDER: Record<MockBookingRow['status'], number> = {
+  PENDING_SUPPLIER_CONFIRMATION: 0,
+  MODIFIED: 1,
+  CONFIRMED: 2,
+  COMPLETED: 3,
+  CANCELLED: 4,
+};
+const PAYMENT_ORDER: Record<MockBookingRow['paymentStatus'], number> = {
+  UNPAID: 0,
+  INVOICE_PENDING: 1,
+  PARTIALLY_PAID: 2,
+  PAID: 3,
+};
+
+function compareBookings(a: MockBookingRow, b: MockBookingRow, key: SortKey): number {
+  switch (key) {
+    case 'stayFrom':
+    case 'stayTo':
+    case 'createdAt':
+      return new Date(a[key]).getTime() - new Date(b[key]).getTime();
+    case 'totalPrice':
+      return a.totalPrice - b.totalPrice;
+    case 'status':
+      return STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+    case 'paymentStatus':
+      return PAYMENT_ORDER[a.paymentStatus] - PAYMENT_ORDER[b.paymentStatus];
+    default:
+      return String(a[key]).localeCompare(String(b[key]), 'sr-RS');
+  }
+}
 
 // Dopuna (23.8.2026, na zahtev vlasnika: "01/06/2026...10/06/2026") — opseg datuma, DD/MM/GGGG,
 // razdvojen sa "...". Nepotpun/neispravan unos (dok korisnik još kuca) NE filtrira ništa —
@@ -96,6 +132,23 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [filtersModalOpen, setFiltersModalOpen] = useState(false);
   const [extraFilters, setExtraFilters] = useState<ExtraFilters>(EMPTY_EXTRA_FILTERS);
+  // Sortiranje (23.8.2026) — klik na zaglavlje: prvi klik rastuće, drugi opadajuće, treći
+  // isključuje sortiranje. Podrazumevano bez sortiranja (redosled iz mock-data.ts, kasnije API).
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  function toggleSort(key: SortKey) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('asc');
+      return;
+    }
+    if (sortDir === 'asc') {
+      setSortDir('desc');
+      return;
+    }
+    setSortKey(null);
+  }
 
   const { showSummary } = useRowSummary();
   const { openTab } = useTabs();
@@ -133,6 +186,12 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     });
   }, [bookings, filters, urgentOnly, productTypeFilter, extraFilters]);
 
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => dir * compareBookings(a, b, sortKey));
+  }, [filtered, sortKey, sortDir]);
+
   function setFilter(key: ColumnKey, value: string) {
     setFilters((f) => ({ ...f, [key]: value }));
   }
@@ -158,6 +217,21 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
       branch: b.branch,
       assignedUser: b.assignedUser,
     });
+  }
+
+  function SortLabel({ sortKeyValue, children }: { sortKeyValue: SortKey; children: React.ReactNode }) {
+    const active = sortKey === sortKeyValue;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSort(sortKeyValue)}
+        title="Sortiraj"
+        className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
+      >
+        {children}
+        <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
+      </button>
+    );
   }
 
   const filterInputClass =
@@ -201,7 +275,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
           <Icon name="filter" /> Filteri
         </button>
         <div className="ml-auto">
-          <ExportButton rows={filtered} />
+          <ExportButton rows={sorted} />
         </div>
       </div>
 
@@ -211,17 +285,17 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
             <tr className="border-b border-border bg-panel2 text-ink-faint">
               <th className="w-[64px] px-3 py-2 font-medium" />
               <th className="px-3 py-2 font-medium">
-                Broj
+                <SortLabel sortKeyValue="bookingNumber">Broj</SortLabel>
                 <input value={filters.bookingNumber} onChange={(e) => setFilter('bookingNumber', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               {/* "Kreirano" premešteno između "Broj" i "Nosilac rezervacije" (23.8.2026, na
                   zahtev vlasnika) — poništava raniji redosled (bilo je poslednja kolona). */}
               <th className="px-3 py-2 font-medium">
-                Kreirano
+                <SortLabel sortKeyValue="createdAt">Kreirano</SortLabel>
                 <input value={filters.createdAt} onChange={(e) => setFilter('createdAt', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                Nosilac rezervacije
+                <SortLabel sortKeyValue="buyerName">Nosilac rezervacije</SortLabel>
                 <input
                   value={filters.buyerName}
                   onChange={(e) => setFilter('buyerName', e.target.value)}
@@ -230,30 +304,34 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 />
               </th>
               <th className="px-3 py-2 font-medium">
-                Kanal
+                <SortLabel sortKeyValue="channel">Kanal</SortLabel>
                 <input value={filters.channel} onChange={(e) => setFilter('channel', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                Status
+                <SortLabel sortKeyValue="status">Status</SortLabel>
                 <input value={filters.status} onChange={(e) => setFilter('status', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                Uplata
+                <SortLabel sortKeyValue="paymentStatus">Uplata</SortLabel>
                 <input value={filters.paymentStatus} onChange={(e) => setFilter('paymentStatus', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                Dolazak
+                <SortLabel sortKeyValue="stayFrom">Dolazak</SortLabel>
                 <input value={filters.stayFrom} onChange={(e) => setFilter('stayFrom', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                Odlazak
+                <SortLabel sortKeyValue="stayTo">Odlazak</SortLabel>
                 <input value={filters.stayTo} onChange={(e) => setFilter('stayTo', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
-              <th className="px-3 py-2 text-right font-medium">Iznos</th>
+              <th className="px-3 py-2 text-right font-medium">
+                <div className="flex justify-end">
+                  <SortLabel sortKeyValue="totalPrice">Iznos</SortLabel>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((b) => (
+            {sorted.map((b) => (
               // Klik na red (23.8.2026, na zahtev vlasnika: "Kada otvorimo desni panel i
               // kliknemo na neki red iz liste rezervacija u desnom panelu treba da se prikazu
               // sve najvaznije informacije") — dizajn dok. §5b "sažetak reda", prvi stvaran
@@ -327,7 +405,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {sorted.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-3 py-6 text-center text-ink-faint">
                   Nijedna rezervacija ne odgovara filterima.
@@ -338,7 +416,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
         </table>
       </div>
       <p className="mt-2 text-[11px] text-ink-faint">
-        {filtered.length} / {bookings.length} rezervacija (mock)
+        {sorted.length} / {bookings.length} rezervacija (mock)
       </p>
       {timelineFor && <BookingTimelineModal mockEntries={buildMockTimeline(timelineFor)} onClose={() => setTimelineFor(null)} />}
       {urgentFor?.urgent && <UrgentModal bookingNumber={urgentFor.bookingNumber} reason={urgentFor.urgent.reason} onClose={() => setUrgentFor(null)} />}
