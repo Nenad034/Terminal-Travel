@@ -37,5 +37,9 @@ import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativ
     SupplierDraftService,
     AnthropicClientService,
   ],
+  // `ConversationsService` izvezen (23.8.2026, M15 spec §6.9.3 dopuna) — BiTerminalAgent "pošalji
+  // u chat" dugme (ljudski pokrenut klik, van tool-use petlje) direktno poziva postojeći M19 tok
+  // za prilog uz poruku, isti mehanizam kao ručno slanje priloga u chat-u, ne novi kanal.
+  exports: [ConversationsService],
 })
 export class M19KomunikacionaPlatformaModule {}

@@ -16,9 +16,107 @@ interface Turn {
   question: string;
   answer?: string;
   links?: { label: string; href: string }[];
+  report?: { id: string; format: 'EXCEL' | 'PDF' | 'HTML'; fileName: string };
   loading: boolean;
   inactive: boolean;
   error?: string;
+}
+
+interface Conversation {
+  id: string;
+  name: string | null;
+  type: string;
+}
+
+// M15 spec §6.9.3 dopuna (23.8.2026, na zahtev vlasnika: "omogucite... slanje svega toga putem
+// internog chata") — "predloži pa čovek odobri": ovo dugme je JEDINI način da izveštaj stvarno
+// ode negde, `BiTerminalAgent` sam nikad ne poziva ovaj endpoint iz tool-use petlje (samo
+// `generate_report`, priprema fajl). Mejl namerno nije ponuđen ovde — M22 danas ume samo da
+// odgovori unutar postojećeg niza poruka, nema "novi mejl proizvoljnom primaocu" (§6.9.3
+// dopuna, otvorena stavka, čeka poseban prolaz).
+function ReportCard({ report }: { report: NonNullable<Turn['report']> }) {
+  const [conversations, setConversations] = useState<Conversation[] | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openPicker() {
+    setPickerOpen((v) => !v);
+    if (conversations === null) {
+      const res = await fetch('/api/chat/conversations');
+      if (res.ok) setConversations(await res.json());
+      else setConversations([]);
+    }
+  }
+
+  async function sendTo(conversation: Conversation) {
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bi-terminal/reports/${report.id}/send-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: conversation.id }),
+      });
+      if (!res.ok) throw new Error();
+      setSentTo(conversation.name ?? conversation.type);
+      setPickerOpen(false);
+    } catch {
+      setError('Slanje nije uspelo — izveštaj je možda istekao (30 min), zatraži ga ponovo.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="mt-1 flex flex-col gap-1.5 rounded border border-ink-faint bg-panel-2 px-2.5 py-2">
+      <div className="flex items-center gap-2 text-ink">
+        <Icon name="file" />
+        {report.fileName}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <a
+          href={`/api/bi-terminal/reports/${report.id}/download`}
+          className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+        >
+          Preuzmi
+        </a>
+        <div className="relative">
+          <button
+            onClick={openPicker}
+            className="rounded border border-ink-faint px-2 py-0.5 text-[11px] text-accent hover:border-accent"
+          >
+            Pošalji u chat
+          </button>
+          {pickerOpen && (
+            <div className="absolute left-0 top-full z-10 mt-1 max-h-48 w-56 overflow-y-auto rounded border border-border bg-panel py-1 shadow-lg">
+              {conversations === null ? (
+                <div className="px-3 py-1.5 text-ink-faint">učitavam...</div>
+              ) : conversations.length === 0 ? (
+                <div className="px-3 py-1.5 text-ink-faint">Nema dostupnih razgovora.</div>
+              ) : (
+                conversations.map((c) => (
+                  <button
+                    key={c.id}
+                    disabled={sending}
+                    onClick={() => sendTo(c)}
+                    className="flex w-full items-center px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40"
+                  >
+                    {c.name ?? c.type}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {sentTo && <span className="flex items-center gap-1 text-ok">
+        <Icon name="check" /> Poslato u "{sentTo}"
+      </span>}
+      {error && <span className="text-danger">{error}</span>}
+    </div>
+  );
 }
 
 // M15 spec §6.9, dizajn dok. §5f — terminal-stilizovan panel, isključivo Vlasnik (RBAC
@@ -106,7 +204,13 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: question }),
       });
-      const data: { active?: boolean; answer?: string; links?: { label: string; href: string }[]; message?: string } = await res.json();
+      const data: {
+        active?: boolean;
+        answer?: string;
+        links?: { label: string; href: string }[];
+        report?: Turn['report'];
+        message?: string;
+      } = await res.json();
       setTurns((t) => {
         const next = [...t];
         const last = next[next.length - 1];
@@ -118,7 +222,7 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
           next[next.length - 1] = { ...last, loading: false, inactive: true };
           return next;
         }
-        next[next.length - 1] = { ...last, loading: false, answer: data.answer, links: data.links };
+        next[next.length - 1] = { ...last, loading: false, answer: data.answer, links: data.links, report: data.report };
         return next;
       });
     } catch {
@@ -193,6 +297,7 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
                     ))}
                   </div>
                 )}
+                {t.report && <ReportCard report={t.report} />}
               </>
             )}
           </div>

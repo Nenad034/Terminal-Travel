@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto';
-import { Injectable, Logger } from '@nestjs/common';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { ReportsService } from '../../m13-bi/reports/reports.service';
@@ -7,6 +9,10 @@ import { SupplierObligationsService } from '../../m10-finansije/supplier-obligat
 import { SubagentsService } from '../../m7-b2b-subagenti/subagents/subagents.service';
 import { AnthropicClientService } from '../anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
+import { ConversationsService } from '../../m19-komunikaciona-platforma/conversations/conversations.service';
+import { ensureConversationUploadDir, sanitizeAttachmentFileName } from '../../m19-komunikaciona-platforma/conversations/attachment-storage';
+import { generateExcelBuffer, generateHtmlString, generatePdfBuffer, type ReportData } from './report-generator';
+import { getReport, saveReport } from './report-store';
 
 const BI_TERMINAL_MODULE_CODE = 'M15_BI_TERMINAL';
 
@@ -14,6 +20,7 @@ export interface BiTerminalResponse {
   active: boolean;
   answer?: string;
   links?: { label: string; href: string }[];
+  report?: { id: string; format: 'EXCEL' | 'PDF' | 'HTML'; fileName: string };
 }
 
 // M15 spec §6.9 — terminal-stilizovan panel, isključivo Vlasnik. NIJE pravi shell: svaki unos
@@ -32,6 +39,7 @@ export class BiTerminalService {
     private readonly subagents: SubagentsService,
     private readonly anthropic: AnthropicClientService,
     private readonly invocationLog: AgentInvocationLogService,
+    private readonly conversations: ConversationsService,
   ) {}
 
   async query(actorUserId: string, question: string): Promise<BiTerminalResponse> {
@@ -97,6 +105,30 @@ export class BiTerminalService {
           },
         },
       },
+      {
+        // Dopuna (23.8.2026, na zahtev vlasnika — "omogucite kreiranje excel tabela, pdf i html
+        // izvestaja") — generiše fajl OD PODATAKA koje je neki drugi alat iznad već pročitao (isti
+        // "source" vokabular), NIKAD sopstveni upit. Samo priprema/preuzimanje — SLANJE mejlom/chatom
+        // je poseban, ljudski potvrđen korak (§6.9.3 dopuna, "predloži pa čovek odobri", ne ovaj alat).
+        name: 'generate_report',
+        description:
+          'Pripremi izveštaj za preuzimanje u traženom formatu, od podataka koje daje jedan od ostalih alata (source). Ne šalje ništa — samo priprema fajl.',
+        input_schema: {
+          type: 'object' as const,
+          properties: {
+            format: { type: 'string' as const, enum: ['EXCEL', 'PDF', 'HTML'], description: 'Format fajla' },
+            source: {
+              type: 'string' as const,
+              enum: ['sales_today', 'subagent_bookings', 'unpaid_arrangements', 'list_subagents', 'report_snapshot'],
+              description: 'Koji od postojećih alata daje podatke za izveštaj',
+            },
+            subagentName: { type: 'string' as const, description: 'Prosleđuje se subagent_bookings izvoru — opciono' },
+            from: { type: 'string' as const, description: 'Prosleđuje se izvoru koji prima period — opciono' },
+            to: { type: 'string' as const, description: 'Prosleđuje se izvoru koji prima period — opciono' },
+          },
+          required: ['format', 'source'],
+        },
+      },
     ];
 
     let messages: any[] = [{ role: 'user', content: question }];
@@ -111,6 +143,7 @@ export class BiTerminalService {
     const addLink = (label: string, href: string) => {
       if (!links.find((l) => l.href === href)) links.push({ label, href });
     };
+    let generatedReport: BiTerminalResponse['report'] | undefined;
 
     const logInvocation = async () => {
       const agentUser = await this.prisma.aIAgent.findFirst({ where: { agentRole: 'BI_TERMINAL_AGENT' } });
@@ -152,8 +185,15 @@ export class BiTerminalService {
         toolsCalled.push(use.name);
         let result: unknown;
         try {
-          result = await this.callTool(use.name, use.input as Record<string, unknown>, addLink);
+          result = await this.callTool(use.name, use.input as Record<string, unknown>, addLink, actorUserId, (r) => {
+            generatedReport = r;
+          });
         } catch (err) {
+          // BAG (23.8.2026, uživo test — `generate_report` je tiho padao na CJS/ESM uvoz
+          // problemu, exceljs/pdfkit) — greška je stizala do jezičkog modela kao string, koji ju
+          // je preveo u ljubaznu rečenicu, ali PRAVI uzrok nikad nije dospeo u server log. Sad se
+          // loguje ovde, ne samo prosleđuje modelu.
+          this.logger.error(`Alat "${use.name}" bacio grešku: ${(err as Error).message}`, (err as Error).stack);
           result = { error: (err as Error).message };
         }
         toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(result) });
@@ -175,14 +215,21 @@ export class BiTerminalService {
       context: { question, answer: finalAnswer ?? null, toolsCalled },
     });
 
-    return { active: true, answer: finalAnswer ?? 'Nisam uspeo da sastavim odgovor — pokušaj drugačije formulisano pitanje.', links };
+    return { active: true, answer: finalAnswer ?? 'Nisam uspeo da sastavim odgovor — pokušaj drugačije formulisano pitanje.', links, report: generatedReport };
   }
 
   // Zatvorena lista (§6.9.3) — jezički model bira KOJI alat i sa kojim parametrima, ne sastavlja
   // sopstveni upit. Svaki alat je isključivo VIEW/read-only poziv postojećeg internog servisa.
   // `addLink` — isto poreklo kao OmnisearchAgent `matchedRoutes` (§6.5.4 tačka 3): alat SME da
-  // predloži link ka zapisu koji je pronašao, nikad da izvrši radnju preko njega.
-  private async callTool(name: string, input: Record<string, unknown>, addLink: (label: string, href: string) => void): Promise<unknown> {
+  // predloži link ka zapisu koji je pronašao, nikad da izvrši radnju preko njega. `setReport` —
+  // isto, ali za `generate_report` (priprema fajla, ne slanje, vidi §6.9.3 dopuna).
+  private async callTool(
+    name: string,
+    input: Record<string, unknown>,
+    addLink: (label: string, href: string) => void,
+    actorUserId: string,
+    setReport: (r: BiTerminalResponse['report']) => void,
+  ): Promise<unknown> {
     switch (name) {
       case 'sales_today': {
         const today = new Date().toISOString().slice(0, 10);
@@ -204,9 +251,82 @@ export class BiTerminalService {
         addLink('Izveštaji — prodaja', '/izvestaji');
         return this.reports.sales({ from: input.from as string | undefined, to: input.to as string | undefined });
       }
+      case 'generate_report': {
+        return this.generateReport(input, actorUserId, setReport);
+      }
       default:
         return { error: `Nepoznat alat: ${name}` };
     }
+  }
+
+  private async buildReportData(source: string, input: Record<string, unknown>): Promise<ReportData> {
+    const noopLink = () => {};
+    switch (source) {
+      case 'sales_today': {
+        const today = new Date().toISOString().slice(0, 10);
+        const data = await this.reports.sales({ from: today, to: today });
+        return { title: 'Prodaja danas', rows: [data] };
+      }
+      case 'subagent_bookings': {
+        const data = await this.subagentBookings(
+          input.subagentName as string | undefined,
+          input.from as string | undefined,
+          input.to as string | undefined,
+          noopLink,
+        );
+        return { title: 'Promet po subagentima', rows: Array.isArray(data) ? data : [] };
+      }
+      case 'list_subagents': {
+        const data = await this.listSubagents(noopLink);
+        return { title: 'Spisak subagenata', rows: data };
+      }
+      case 'unpaid_arrangements': {
+        const pending = await this.supplierObligations.findAll({ status: 'PENDING' });
+        const approved = await this.supplierObligations.findAll({ status: 'APPROVED' });
+        return { title: 'Nenaplaćeni aranžmani', rows: [...pending, ...approved] };
+      }
+      case 'report_snapshot': {
+        const data = await this.reports.sales({ from: input.from as string | undefined, to: input.to as string | undefined });
+        return { title: 'Pregled prodaje', rows: [data] };
+      }
+      default:
+        return { title: 'Izveštaj', rows: [] };
+    }
+  }
+
+  private async generateReport(
+    input: Record<string, unknown>,
+    actorUserId: string,
+    setReport: (r: BiTerminalResponse['report']) => void,
+  ): Promise<unknown> {
+    const format = input.format as 'EXCEL' | 'PDF' | 'HTML';
+    const source = input.source as string;
+    const data = await this.buildReportData(source, input);
+
+    let buffer: Buffer;
+    let mimeType: string;
+    let extension: string;
+    if (format === 'EXCEL') {
+      buffer = await generateExcelBuffer(data);
+      mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      extension = 'xlsx';
+    } else if (format === 'PDF') {
+      buffer = await generatePdfBuffer(data);
+      mimeType = 'application/pdf';
+      extension = 'pdf';
+    } else {
+      buffer = Buffer.from(generateHtmlString(data), 'utf8');
+      mimeType = 'text/html';
+      extension = 'html';
+    }
+
+    // BAG (23.8.2026, uživo test) — `\w` ne pokriva slova sa kvakicama (č/ž/š...), pa je
+    // "Nenaplaćeni aranžmani" postajalo "Nenapla_eni_aran_mani" — `\p{L}` (unicode slovo) čuva ih,
+    // briše samo stvarno nedozvoljene znakove za ime fajla.
+    const fileName = `${data.title.replace(/[^\p{L}\p{N}-]+/gu, '_')}.${extension}`;
+    const id = saveReport({ buffer, mimeType, fileName, createdBy: actorUserId });
+    setReport({ id, format, fileName });
+    return { ready: true, fileName, rowCount: data.rows.length };
   }
 
   private async subagentClientAccounts() {
@@ -274,5 +394,28 @@ export class BiTerminalService {
         status: c.subagent.status,
       };
     });
+  }
+
+  // §6.9.3 dopuna — ljudski pokrenut klik (kontroler), ne alat u tool-use petlji. Ponovo koristi
+  // POSTOJEĆI M19 tok za prilog uz poruku (§2.5) — piše fajl na isto mesto gde bi ga upisao
+  // `FileInterceptor`/multer da je korisnik ručno otpremio prilog kroz chat, pa zove
+  // `ConversationsService.createMessage` identično kao ta ruta. Nema novog kanala za slanje.
+  async sendReportToChat(reportId: string, conversationId: string, actorUserId: string) {
+    const report = getReport(reportId);
+    if (!report) throw new NotFoundException('Izveštaj je istekao ili ne postoji — ponovo zatraži u terminalu.');
+
+    const dir = ensureConversationUploadDir(conversationId);
+    const diskName = `${randomUUID()}-${sanitizeAttachmentFileName(report.fileName)}`;
+    const fullPath = join(dir, diskName);
+    writeFileSync(fullPath, report.buffer);
+
+    const syntheticFile = {
+      originalname: report.fileName,
+      mimetype: report.mimeType,
+      size: report.buffer.length,
+      path: fullPath,
+    } as Express.Multer.File;
+
+    return this.conversations.createMessage(conversationId, { body: `Izveštaj: ${report.fileName}` }, actorUserId, syntheticFile);
   }
 }

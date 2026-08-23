@@ -20,6 +20,7 @@ import { M21CentarZaPomocModule } from '../m21-centar-za-pomoc/m21-centar-za-pom
 import { ReportsModule } from '../m13-bi/reports/reports.module';
 import { SupplierObligationsModule } from '../m10-finansije/supplier-obligations/supplier-obligations.module';
 import { SubagentsModule } from '../m7-b2b-subagenti/subagents/subagents.module';
+import { M19KomunikacionaPlatformaModule } from '../m19-komunikaciona-platforma/m19-komunikaciona-platforma.module';
 
 // docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md
 // v1.10 (Faza 7 prvi prolaz) dodaje pun AgentActionType registar (seed), sprovedbu na nivou
@@ -41,6 +42,7 @@ import { SubagentsModule } from '../m7-b2b-subagenti/subagents/subagents.module'
     ReportsModule,
     SupplierObligationsModule,
     SubagentsModule,
+    M19KomunikacionaPlatformaModule,
   ],
   controllers: [ModuleActivationController, OmnisearchController, ActionTypesController, AgentInboxController, BiTerminalController],
   providers: [ModuleActivationService, OmnisearchService, AnthropicClientService, ActionTypesService, AgentInboxService, BiTerminalService],

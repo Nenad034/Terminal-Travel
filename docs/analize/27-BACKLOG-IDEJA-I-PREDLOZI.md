@@ -268,6 +268,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Tačan mehanizam podešavanja "auto-send" praga za informativne kategorije.
 - Pretraga/arhiva starih niti i period čuvanja mejlova (retencija) — van obima ove verzije.
 - ~~M17 ekran (interni panel prikaz inbox-a)~~ — **rešeno avgust 2026 (M17 Faza 7)**, `apps/panel/src/app/(app)/email/`, uživo provereno.
+- **"Compose" — napisati i poslati nov mejl proizvoljnom primaocu** (23.8.2026, otkriveno pri M15 §6.9.3 dopuni — `BiTerminalAgent` je trebalo da može da pošalje izveštaj mejlom, ali M22 danas ume samo da odgovori unutar postojećeg niza poruka) — zaseban zadatak, M22 spec `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md` poglavlje 11.
 
 ## M23 — Znanje
 *(§10, `docs/moduli/M23-znanje/28-SPECIFIKACIJA-M23-ZNANJE.md` — backend implementiran avgust 2026)*
