@@ -186,7 +186,20 @@ export default function AiChatBox() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, pageContent }),
       });
-      const data: OmnisearchResponse = await res.json();
+      const data: OmnisearchResponse & { message?: string } = await res.json();
+      // BAG (23.8.2026, prijavio vlasnik uživo) — `res.status` se ranije uopšte nije proveravao,
+      // pa je istekla sesija (401, posle popravke u api-client.ts sad redak slučaj — samo ako i
+      // refresh token istekne posle 7 dana) davala IDENTIČNU poruku kao "AI još nije aktiviran"
+      // (`!data.active`, oba slučaja `active` falsy) — dva različita uzroka, ista zbunjujuća
+      // poruka. Razdvojeno ovde: 401 dobija sopstvenu, tačnu poruku.
+      if (res.status === 401) {
+        setTurns((t) => {
+          const next = [...t];
+          next[next.length - 1] = { ...next[next.length - 1], loading: false, answer: 'Sesija je istekla — osveži stranicu i prijavi se ponovo.' };
+          return next;
+        });
+        return;
+      }
       setTurns((t) => {
         const next = [...t];
         const last = next[next.length - 1];
