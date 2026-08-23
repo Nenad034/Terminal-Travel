@@ -1,9 +1,11 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Icon from './Icon';
 import CopyButton from './CopyButton';
+import { NAV_ITEMS } from '@/lib/nav';
 
 const HEIGHT_KEY = 'tt-panel-terminal-height';
 const DEFAULT_HEIGHT = 220;
@@ -22,6 +24,7 @@ const SPLIT_KEY = 'tt-panel-terminal-split';
 
 interface Turn {
   question: string;
+  contextLabel?: string;
   answer?: string;
   links?: { label: string; href: string }[];
   report?: { id: string; format: 'EXCEL' | 'PDF' | 'HTML'; fileName: string };
@@ -245,6 +248,19 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // "+" prilaganje konteksta (23.8.2026, na zahtev vlasnika: "dodajte u chat terminala i +
+  // dugme za dodavanje konteksta klikom na odredjeni modul") — isti obrazac/tekstualni oblik kao
+  // AiChatBox.tsx (`[Kontekst: X] pitanje`, poglavlje 6c.1/6c.2 dizajn dok.), ovde namerno UŽI:
+  // samo ručan izbor modula iz `NAV_ITEMS`, bez automatskog prilaganja trenutnog taba/sadržaja
+  // ekrana (BiTerminalAgent radi preko strukturiranih alata/§6.9.6 pogleda, ne preko sirovog
+  // teksta ekrana kao OmnisearchAgent) — kontekst ovde znači "fokusiraj se na ovaj modul", ne
+  // "evo šta trenutno gledam". Portal ka `document.body` (isti razlog kao AiChatBox — panel ima
+  // `overflow-hidden`, apsolutno pozicioniran meni bi se sekao na ivici).
+  const [context, setContext] = useState<string | null>(null);
+  const [plusOpen, setPlusOpen] = useState(false);
+  const plusRef = useRef<HTMLDivElement>(null);
+  const [plusMenuPos, setPlusMenuPos] = useState<{ top: number; left: number } | null>(null);
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
     onTurnsChange?.(turns.length > 0);
@@ -276,18 +292,21 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
   async function send() {
     const question = input.trim();
     if (!question) return;
+    const sentContext = context ?? undefined;
     setInput('');
+    setContext(null);
     // Istorija (23.8.2026, na zahtev vlasnika — "ai agent gubi kontekst") — pošalji dosadašnje
     // tekstualne odgovore da agent razume reference tipa "te rezervacije" na prethodno pitanje.
     // Samo tura sa stvarnim odgovorom (ne učitavanje/greška/predlog na čekanju) ima šta da doprinese.
     const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
-    setTurns((t) => [...t, { question, loading: true, inactive: false }]);
+    setTurns((t) => [...t, { question, contextLabel: sentContext, loading: true, inactive: false }]);
 
+    const query = sentContext ? `[Kontekst: ${sentContext}] ${question}` : question;
     try {
       const res = await fetch('/api/bi-terminal/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: question, history }),
+        body: JSON.stringify({ query, history }),
       });
       const data: {
         active?: boolean;
@@ -361,6 +380,7 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
                 <Icon name="close" />
               </button>
             </div>
+            {t.contextLabel && <div className="text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
             {t.loading ? (
               <span className="flex items-center gap-2 text-ink-faint">
                 <Icon name="loading" className="animate-spin" /> obrađujem...
@@ -421,7 +441,55 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
           </div>
         ))}
       </div>
+      {context && (
+        <div className="mx-3 mt-2 flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
+          <Icon name="link" />
+          {context}
+          <button onClick={() => setContext(null)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+            <Icon name="close" />
+          </button>
+        </div>
+      )}
       <div className="flex flex-shrink-0 items-center gap-2 border-t border-ink-faint px-3 py-2">
+        <div ref={plusRef} className="relative">
+          <button
+            onClick={() => {
+              if (!plusOpen && plusRef.current) {
+                const rect = plusRef.current.getBoundingClientRect();
+                setPlusMenuPos({ top: rect.top - 4, left: rect.left });
+              }
+              setPlusOpen((v) => !v);
+            }}
+            title="Priloži kontekst — fokusiraj odgovor na konkretan modul"
+            className={`flex h-[20px] w-[20px] flex-shrink-0 items-center justify-center rounded ${
+              plusOpen ? 'bg-panel-2 text-accent' : 'text-ink-faint hover:bg-panel-2 hover:text-ink'
+            }`}
+          >
+            <Icon name="add" />
+          </button>
+          {plusOpen &&
+            plusMenuPos &&
+            createPortal(
+              <div
+                style={{ top: plusMenuPos.top, left: plusMenuPos.left, transform: 'translateY(-100%)' }}
+                className="fixed z-50 max-h-64 w-56 overflow-y-auto rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
+              >
+                {NAV_ITEMS.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setContext(item.label);
+                      setPlusOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink"
+                  >
+                    <Icon name={item.icon} /> {item.label}
+                  </button>
+                ))}
+              </div>,
+              document.body,
+            )}
+        </div>
         <span className="text-accent">$</span>
         <input
           value={input}
@@ -559,7 +627,11 @@ export default function TerminalPanel({ onClose }: { onClose: () => void }) {
         <TerminalPane ref={paneRef} showOwnHeader={split} onTurnsChange={setPane1HasTurns} />
         {split && (
           <>
-            <div className="w-px flex-shrink-0 bg-ink-faint/40" />
+            {/* Linija između podeljenih panela pojačana (23.8.2026, na zahtev vlasnika: "stavite
+                liniju izmedju dva terminala") — prethodna `bg-ink-faint/40` na 1px je bila
+                praktično nevidljiva; puna boja daje jasnu, vidljivu granicu. Stanjeno za 30%
+                (isti dan, odmah zatim: "vertikalna linija neka bude tanja za 30%") — 2px×0.7=1.4px. */}
+            <div className="w-[1.4px] flex-shrink-0 bg-ink-faint" />
             <TerminalPane showOwnHeader />
           </>
         )}
