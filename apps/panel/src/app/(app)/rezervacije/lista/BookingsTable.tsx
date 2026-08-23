@@ -356,7 +356,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                           e.stopPropagation();
                           setUrgentFor(b);
                         }}
-                        title="Hitno — klikni za detalje"
+                        title={`Hitno (${b.urgent.length}) — klikni za detalje`}
                         className="flex h-[22px] w-[22px] items-center justify-center rounded text-danger hover:bg-danger-bg"
                       >
                         <Icon name="bell" />
@@ -422,8 +422,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
       {urgentFor?.urgent && (
         <UrgentModal
           bookingNumber={urgentFor.bookingNumber}
-          reason={urgentFor.urgent.reason}
-          target={urgentFor.urgent.target}
+          notifications={urgentFor.urgent}
           buyerName={urgentFor.buyerName}
           buyerEmail={urgentFor.buyerEmail}
           buyerPhone={urgentFor.buyerPhone}

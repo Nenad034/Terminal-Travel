@@ -53,11 +53,11 @@ export default function BookingRecordClient({ booking }: { booking: MockBookingR
             <span className="text-accent">$</span> {b.bookingNumber}
           </h1>
           <Badge label={b.status} />
-          {b.urgent && (
-            <span className="flex items-center gap-1 rounded bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger">
-              <Icon name="bell" /> {b.urgent.reason}
+          {b.urgent?.map((u, i) => (
+            <span key={i} className="flex items-center gap-1 rounded bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger">
+              <Icon name="bell" /> {u.reason}
             </span>
-          )}
+          ))}
         </div>
         <div className="flex items-center gap-1.5">
           <button
