@@ -24,15 +24,55 @@ export class BookingsController {
     private readonly supplierManifests: SupplierManifestsService,
   ) {}
 
+  // M5 spec v1.54 (24.8.2026, na zahtev vlasnika — prava "Lista rezervacija") — v1 skup pravih
+  // filtera, isključivo primenjen za INTERNAL_PANEL kontekst (poglavlje 6.2 ograda ostaje
+  // netaknuta za B2C/B2B/gost kontekst, ovi parametri se za njih ignorišu u servisu).
   @Get()
   @RequirePermission('M5', 'booking', 'VIEW')
   findAll(
     @Query('status') status: string | undefined,
     @Query('channel') channel: string | undefined,
     @Query('clientAccountId') clientAccountId: string | undefined,
+    @Query('paymentStatus') paymentStatus: string | undefined,
+    @Query('tipNastupanja') tipNastupanja: string | undefined,
+    @Query('buyerName') buyerName: string | undefined,
+    @Query('bookingNumber') bookingNumber: string | undefined,
+    @Query('currency') currency: string | undefined,
+    @Query('createdFrom') createdFrom: string | undefined,
+    @Query('createdTo') createdTo: string | undefined,
+    @Query('stayFrom') stayFrom: string | undefined,
+    @Query('stayTo') stayTo: string | undefined,
+    @Query('returnFrom') returnFrom: string | undefined,
+    @Query('returnTo') returnTo: string | undefined,
+    @Query('productType') productType: string | undefined,
+    @Query('destinationCity') destinationCity: string | undefined,
+    @Query('destinationCountry') destinationCountry: string | undefined,
+    @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
     @CurrentUser() actor: { userId: string },
   ) {
-    return this.bookings.findAll({ status, channel, clientAccountId }, actor);
+    return this.bookings.findAll(
+      {
+        status,
+        channel,
+        clientAccountId,
+        paymentStatus,
+        tipNastupanja,
+        buyerName,
+        bookingNumber,
+        currency,
+        createdFrom,
+        createdTo,
+        stayFrom,
+        stayTo,
+        returnFrom,
+        returnTo,
+        productType,
+        destinationCity,
+        destinationCountry,
+        hasTravelGuarantee,
+      },
+      actor,
+    );
   }
 
   @Get('calendar-summary')

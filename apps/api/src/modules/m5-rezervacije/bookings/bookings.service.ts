@@ -380,20 +380,91 @@ export class BookingsService {
     return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
   }
 
-  async findAll(filters: { status?: string; channel?: string; clientAccountId?: string }, actor: { userId: string }) {
+  // M5 spec v1.54 (24.8.2026, na zahtev vlasnika — prava "Lista rezervacija") — v1 skup pravih
+  // filtera. Polja koja se odnose na stavku (`stayFrom`/`stayTo`/`productType`/destinacija) se
+  // primenjuju preko `items: { some: {...} } }` — "bar jedna stavka ove rezervacije odgovara".
+  // NAMERNO primenjeno SAMO za INTERNAL_PANEL kontekst — B2C/B2B/gost kontekst zadržava strogo
+  // ownership ponašanje iz poglavlja 6.2, novi parametri se za njih tiho ignorišu (isti princip
+  // kao postojeći `clientAccountId` iznad — klijentski parametar nikad ne proširuje tuđ pristup).
+  async findAll(
+    filters: {
+      status?: string;
+      channel?: string;
+      clientAccountId?: string;
+      paymentStatus?: string;
+      tipNastupanja?: string;
+      buyerName?: string;
+      bookingNumber?: string;
+      currency?: string;
+      createdFrom?: string;
+      createdTo?: string;
+      stayFrom?: string;
+      stayTo?: string;
+      returnFrom?: string;
+      returnTo?: string;
+      productType?: string;
+      destinationCity?: string;
+      destinationCountry?: string;
+      hasTravelGuarantee?: string;
+    },
+    actor: { userId: string },
+  ) {
     const { context, ownClientAccountId } = await this.resolveApiContext(actor.userId);
     // Gost/B2B kontekst: ownership se NAMEĆE (ownClientAccountId), klijentski
     // clientAccountId parametar se ignoriše — sprečava da gost sam sebi zatraži
     // tuđe rezervacije menjajući query parametar.
     const clientAccountId = context === 'INTERNAL_PANEL' ? filters.clientAccountId : (ownClientAccountId ?? undefined);
+    const isInternal = context === 'INTERNAL_PANEL';
+
+    const where: Prisma.BookingWhereInput = {
+      status: filters.status as any,
+      channel: filters.channel as any,
+      clientAccountId,
+    };
+
+    if (isInternal) {
+      if (filters.paymentStatus) where.paymentStatus = filters.paymentStatus as PaymentStatus;
+      if (filters.tipNastupanja) where.tipNastupanja = filters.tipNastupanja as TipNastupanja;
+      if (filters.buyerName) where.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
+      if (filters.bookingNumber) where.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
+      if (filters.currency) where.currency = filters.currency;
+      if (filters.createdFrom || filters.createdTo) {
+        where.createdAt = {
+          ...(filters.createdFrom ? { gte: new Date(filters.createdFrom) } : {}),
+          ...(filters.createdTo ? { lte: new Date(`${filters.createdTo}T23:59:59.999Z`) } : {}),
+        };
+      }
+      if (filters.hasTravelGuarantee === 'true') where.travelGuaranteeRegistration = { isNot: null };
+      if (filters.hasTravelGuarantee === 'false') where.travelGuaranteeRegistration = { is: null };
+
+      const itemWhere: Prisma.BookingItemWhereInput = {};
+      if (filters.stayFrom || filters.stayTo) {
+        itemWhere.stayFrom = {
+          ...(filters.stayFrom ? { gte: new Date(filters.stayFrom) } : {}),
+          ...(filters.stayTo ? { lte: new Date(`${filters.stayTo}T23:59:59.999Z`) } : {}),
+        };
+      }
+      if (filters.returnFrom || filters.returnTo) {
+        itemWhere.stayTo = {
+          ...(filters.returnFrom ? { gte: new Date(filters.returnFrom) } : {}),
+          ...(filters.returnTo ? { lte: new Date(`${filters.returnTo}T23:59:59.999Z`) } : {}),
+        };
+      }
+      if (filters.productType || filters.destinationCity || filters.destinationCountry) {
+        itemWhere.product = {
+          ...(filters.productType ? { type: filters.productType as any } : {}),
+          ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
+          ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
+        };
+      }
+      if (Object.keys(itemWhere).length > 0) where.items = { some: itemWhere };
+    }
 
     const bookings = await this.prisma.booking.findMany({
-      where: {
-        status: filters.status as any,
-        channel: filters.channel as any,
-        clientAccountId,
+      where,
+      include: {
+        items: { include: { product: { select: { destinationCountry: true, destinationCity: true, type: true } } } },
       },
-      include: { items: true },
       orderBy: { createdAt: 'desc' },
       take: 200,
     });

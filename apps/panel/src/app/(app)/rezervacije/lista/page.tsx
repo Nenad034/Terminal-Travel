@@ -1,13 +1,27 @@
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
-import { MOCK_BOOKINGS } from './mock-data';
-import BookingsTable from './BookingsTable';
+import { apiFetch } from '@/lib/api-client';
+import RealBookingsTable, { type RealBooking } from './RealBookingsTable';
+import RealFilterBar, { type BookingFilters } from './RealFilterBar';
 
-// MOCK stranica (23.8.2026, na zahtev vlasnika — vidi mock-data.ts za pun kontekst zahteva).
-// Namerno BEZ poziva ka `GET /bookings` — ovo je i dalje prvi korak ("da vidimo kako će
-// izgledati"). Filteri po koloni i dugme za tok rezervacije DODATI (23.8.2026, isti dan, na
-// zahtev vlasnika) — vidi `BookingsTable.tsx` (klijentska komponenta, filtriranje/modal).
-export default function BookingListMockPage() {
+// M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
+// STVARNA lista, prelazi sa MOCK-a (v1.42-v1.53). `GET /sales/bookings` sad prima pun v1 skup
+// pravih filtera (vidi tabelu u spec-u); server komponenta samo prosleđuje `searchParams` kao
+// query string, isti obrazac kao postojeći `/marketing`/`/podrska`/`/b2b/rabati`.
+export default async function BookingListPage({ searchParams }: { searchParams: BookingFilters }) {
+  let bookings: RealBooking[] = [];
+  let error: string | null = null;
+  try {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(searchParams ?? {})) {
+      if (value) params.set(key, value);
+    }
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    bookings = await apiFetch<RealBooking[]>(`/sales/bookings${qs}`);
+  } catch {
+    error = 'Nemate dozvolu za uvid u rezervacije (M5/booking/VIEW).';
+  }
+
   return (
     <div className="p-6">
       <RegisterTab label="Lista rezervacija" />
@@ -15,13 +29,17 @@ export default function BookingListMockPage() {
         <h1 className="font-mono text-lg">
           <span className="text-accent">$</span> rezervacije/lista
         </h1>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-warn">
-          <Icon name="warning" /> MOCK prikaz — izmišljeni podaci, ne dolaze iz baze. Ikonica toka rezervacije prikazuje izmišljen
-          tok dok lista ne bude povezana na pravu bazu (pravi endpoint već postoji: `GET /sales/bookings/:id/history`).
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-faint">
+          <Icon name="info" /> Filteri (status/uplata/datumi/destinacija/tip nastupanja/valuta/garancija putovanja) rade nad pravim
+          podacima. Zvonce &quot;Hitno&quot;, kontakt, poslovnica, dodeljeni korisnik i naziv hotela su i dalje vizuelni primer bez
+          pravog izvora — jasno obeleženi na svakom mestu gde se pojavljuju.
         </p>
       </div>
 
-      <BookingsTable bookings={MOCK_BOOKINGS} />
+      <RealFilterBar filters={searchParams ?? {}} />
+
+      {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+      {!error && <RealBookingsTable bookings={bookings} />}
     </div>
   );
 }

@@ -83,11 +83,11 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
-    // MOCK stranica (23.8.2026, na zahtev vlasnika) — vidi apps/panel/.../rezervacije/lista/
-    // mock-data.ts za pun kontekst. Naziv namerno nosi "(mock)" da se ne pobrka sa gotovom
-    // funkcijom dok filteri/prava pretraga ne stignu u sledećem prolazu.
+    // STVARNA lista od M5 spec v1.54 (24.8.2026) — zove pravi `GET /sales/bookings` sa pravim
+    // filterima. "(mock)" uklonjeno iz naziva; par polja na samom ekranu (zvonce, kontakt,
+    // poslovnica, naziv hotela) i dalje su vizuelno-demo bez pravog izvora, obeleženo na ekranu.
     id: 'rezervacije-lista',
-    label: 'Lista rezervacija (mock)',
+    label: 'Lista rezervacija',
     icon: 'list-unordered',
     href: '/rezervacije/lista',
     permission: { module: 'M5', resource: 'booking', action: 'VIEW' },

@@ -106,7 +106,7 @@ export interface MockBookingRow {
 // u svih 20 mock redova, izvodi se deterministički iz imena/broja rezervacije (kao `paidAmount`
 // iznad) kad nije ručno navedeno — polje u modelu je stvarno (`ClientAccount.email`/`.phone`),
 // samo vrednost izmišljena.
-function slugifyName(name: string): string {
+export function slugifyName(name: string): string {
   const map: Record<string, string> = { č: 'c', ć: 'c', ž: 'z', š: 's', đ: 'dj', Č: 'c', Ć: 'c', Ž: 'z', Š: 's', Đ: 'dj' };
   return name
     .split('')
@@ -117,14 +117,14 @@ function slugifyName(name: string): string {
     .replace(/(^\.|\.$)/g, '');
 }
 
-function deriveEmail(buyerName: string): string {
+export function deriveEmail(buyerName: string): string {
   return `${slugifyName(buyerName)}@primer.local`;
 }
 
 // Generički — koristi se i za gosta (seed = broj rezervacije, jedinstven po redu) i za
 // dobavljača (seed = naziv dobavljača, isti broj za sve rezervacije istog dobavljača — realno,
 // jedan poslovni kontakt po firmi, ne po pojedinačnoj rezervaciji).
-function derivePhoneFromSeed(seed: string): string {
+export function derivePhoneFromSeed(seed: string): string {
   let hash = 0;
   for (const ch of seed) hash = (hash * 31 + ch.charCodeAt(0)) % 10_000_000;
   const digits = String(hash).padStart(7, '0');
