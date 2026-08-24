@@ -202,6 +202,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M15 — AI agentska orkestracija
 *(§11, `docs/moduli/M15-ai-orkestracija/18-SPECIFIKACIJA-M15-AI-ORKESTRACIJA.md`)*
+- **`query_view` ne pokriva "hitne" notifikacije po rezervaciji** (24.8.2026, na zahtev vlasnika — "Ostavi za kasnije") — "hitno" postoji samo kao mock podatak na M5 panel listi, nema pravu tabelu; čeka i M5 pravu bazu i deterministička pravila za "hitno" nad stvarnim podacima pre nego što se doda `query_view` pogled.
 - Tačan raspored uvođenja agenata po modulu — zavisi od redosleda stabilizacije u produkciji.
 - Konkretan izbor LLM provajdera/modela po domenskom agentu.
 - ~~Konkretan izbor Speech-to-Text provajdera za glasovni modalitet (poglavlje 6.6)~~ — **delimično rešeno 22.8.2026**: M17/interni tim kanal implementiran preko browser Web Speech API-ja (bez spoljnog provajdera, audio ne napušta uređaj). TTS (glas iz aplikacije ka korisniku) i spoljni STT provajder za slučaj da browser-native ne bude dovoljan ostaju otvoreni.
