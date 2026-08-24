@@ -104,6 +104,12 @@ export default function TopBar({
   const spacerWidth = Math.max(0, leftColumnWidth - HEADER_PADDING_GAP);
   const showLabel = spacerWidth >= 100;
   const router = useRouter();
+  // Logo zumiranje na klik (24.8.2026, na zahtev vlasnika: "Omogucite da se logo na jedan klik
+  // uveca duplo, a na drugi klik da se vrati nazad") — prost toggle, isti troetapno-nazad obrazac
+  // kao zvonce/urgentOnly (M5). `overflow-hidden` uklonjen sa roditelja (label i dalje sam sebi
+  // ograničava tekst preko `truncate`, ne treba mu roditeljski overflow) da uvećan logo stvarno
+  // vizuelno "izađe" preko trake tabova, ne da bude isečen na granici spacer-a.
+  const [logoZoomed, setLogoZoomed] = useState(false);
 
   async function logout() {
     await fetch('/api/session/logout', { method: 'POST' });
@@ -114,11 +120,17 @@ export default function TopBar({
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-bar px-2 text-xs">
       <div
-        className={`flex flex-shrink-0 items-center gap-2 overflow-hidden ${showLabel ? 'px-2' : 'justify-center px-0'}`}
+        className={`relative flex flex-shrink-0 items-center gap-2 ${showLabel ? 'px-2' : 'justify-center px-0'}`}
         style={{ width: spacerWidth }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`flex-shrink-0 ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
+        <button
+          onClick={() => setLogoZoomed((z) => !z)}
+          title={logoZoomed ? 'Umanji logo' : 'Uvećaj logo'}
+          className={`flex-shrink-0 origin-left transition-transform duration-150 ${logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'}`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`block ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
+        </button>
         {showLabel && <span className="truncate text-sm font-semibold tracking-wide text-ink">Terminal Travel</span>}
       </div>
       <div className="flex h-full min-w-0 flex-1">
