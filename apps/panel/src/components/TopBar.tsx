@@ -130,10 +130,17 @@ export default function TopBar({
           // kada se uveca logo") — uvećan logo (transform ne menja tok/layout ostalih elemenata,
           // samo iscrtavanje) je providno prelazio PREKO taba "Početna" jer PNG ima providnu
           // pozadinu. Neprozirna `bg-bar` (ista boja kao traka, pa se u NEuvećanom stanju ništa
-          // ne menja) + `shadow-lg`/`ring-1` SAMO kad je uvećan — sad izgleda kao namerna
-          // "iskačuća" značka, ne kao providno preklapanje sa tekstom taba ispod.
-          className={`flex flex-shrink-0 items-center gap-2 rounded-md origin-left transition-transform duration-150 ${
-            logoZoomed ? 'relative z-20 scale-[2] bg-bar px-1.5 py-1 shadow-lg ring-1 ring-border' : 'scale-100'
+          // ne menja) SAMO kad je uvećan — sad izgleda kao namerna "iskačuća" značka, ne kao
+          // providno preklapanje sa tekstom taba ispod.
+          // ISPRAVKA #2 (24.8.2026, isti dan, drugi snimak ekrana: "ne deluje lepo sece se u vrhu,
+          // uklonite kutiju koja uokviruje") — `origin-left` (Tailwind: "left center") je rastao
+          // podjednako gore/dole od vertikalne sredine header-a; header sedi na samom vrhu
+          // stranice (y=0), pa je gornja polovina rasta bila fizički isečena ivicom prozora, ne
+          // nekim CSS overflow-om koji bi se mogao ukloniti. `origin-top-left` rasta ISKLJUČIVO
+          // nadole, u prostor koji stvarno postoji. Okvir (`ring-1 ring-border`) uklonjen — samo
+          // senka ostaje, bez uokvirujuće kutije.
+          className={`flex flex-shrink-0 items-center gap-2 rounded-md origin-top-left transition-transform duration-150 ${
+            logoZoomed ? 'relative z-20 scale-[2] bg-bar px-1.5 py-1 shadow-lg' : 'scale-100'
           }`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
