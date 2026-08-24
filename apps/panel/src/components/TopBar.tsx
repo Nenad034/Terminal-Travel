@@ -126,7 +126,15 @@ export default function TopBar({
         <button
           onClick={() => setLogoZoomed((z) => !z)}
           title={logoZoomed ? 'Umanji logo' : 'Uvećaj logo'}
-          className={`flex flex-shrink-0 items-center gap-2 overflow-hidden origin-left transition-transform duration-150 ${logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'}`}
+          // ISPRAVKA (24.8.2026, na zahtev vlasnika, uz snimak ekrana: "malo se ovde preklapa
+          // kada se uveca logo") — uvećan logo (transform ne menja tok/layout ostalih elemenata,
+          // samo iscrtavanje) je providno prelazio PREKO taba "Početna" jer PNG ima providnu
+          // pozadinu. Neprozirna `bg-bar` (ista boja kao traka, pa se u NEuvećanom stanju ništa
+          // ne menja) + `shadow-lg`/`ring-1` SAMO kad je uvećan — sad izgleda kao namerna
+          // "iskačuća" značka, ne kao providno preklapanje sa tekstom taba ispod.
+          className={`flex flex-shrink-0 items-center gap-2 rounded-md origin-left transition-transform duration-150 ${
+            logoZoomed ? 'relative z-20 scale-[2] bg-bar px-1.5 py-1 shadow-lg ring-1 ring-border' : 'scale-100'
+          }`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`block flex-shrink-0 ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
