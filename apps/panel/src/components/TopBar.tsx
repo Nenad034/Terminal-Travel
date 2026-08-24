@@ -126,6 +126,7 @@ export default function TopBar({
         <button
           onClick={() => setLogoZoomed((z) => !z)}
           title={logoZoomed ? 'Umanji logo' : 'Uvećaj logo'}
+          aria-label="Terminal Travel"
           // ISPRAVKA (24.8.2026, na zahtev vlasnika, uz snimak ekrana: "malo se ovde preklapa
           // kada se uveca logo") — uvećan logo (transform ne menja tok/layout ostalih elemenata,
           // samo iscrtavanje) je providno prelazio PREKO taba "Početna" jer PNG ima providnu
@@ -143,17 +144,32 @@ export default function TopBar({
             logoZoomed ? 'relative z-20 scale-[2] bg-bar px-1.5 py-1 shadow-lg' : 'scale-100'
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`block flex-shrink-0 ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
-          {/* Slova u boji loga, 20% tamnija (24.8.2026, na zahtev vlasnika: "Slova neka budu u
-              boji loga samo za 20% tamnija") — logo je plavo→zeleno-tirkizni preliv (uzorkovano
-              direktno iz terminal-travel-icon.png: krajnja plava ~#1CABE5, krajnja tirkizna
-              ~#52DFB4), svaki kanal pomnožen sa 0.8 (isti preliv, samo tamniji) umesto izmišljene
-              jednobojne boje. */}
+          {/* Logo u bojama "Zalazak" palete (24.8.2026, na zahtev vlasnika: "Logo neka bude u
+              bojama zalaska sunca") — poništava prethodnu plavo-tirkiznu boju uzorkovanu iz same
+              PNG slike. "Zalazak" je već postojeća, WCAG AA proverena paleta sajta (M8,
+              `apps/web/src/app/globals.css`) — tri postojeća tokena (tamni mod, najzasićeniji):
+              `--accent` #E8A63C (amber), `--danger` #E2685A (koralno-crvena), `--plum` #A99BD8
+              (šljiva) — čitaju se kao horizont→sumrak preliv, umesto izmišljanja nove boje.
+              Fiksno (ne prati temu panela "Horizont") — brend ostaje isti bez obzira na temu,
+              isti princip kao prethodna boja slova. Ikonica: PNG nema sopstvenu boju u ovom
+              prikazu — `mask-image` koristi PROVIDNOST slike kao oblik (alfa maska), stvaran
+              preliv se boji preko CSS gradijenta iza maske. */}
+          <span
+            aria-hidden
+            className={`block flex-shrink-0 bg-gradient-to-br from-[#e8a63c] via-[#e2685a] to-[#a99bd8] ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`}
+            style={{
+              WebkitMaskImage: 'url(/brand/terminal-travel-icon.png)',
+              maskImage: 'url(/brand/terminal-travel-icon.png)',
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskPosition: 'center',
+            }}
+          />
           {showLabel && (
-            <span
-              className="truncate bg-gradient-to-r from-[#1689b7] to-[#42b290] bg-clip-text text-sm font-semibold tracking-wide text-transparent"
-            >
+            <span className="truncate bg-gradient-to-r from-[#e8a63c] via-[#e2685a] to-[#a99bd8] bg-clip-text text-sm font-semibold tracking-wide text-transparent">
               Terminal Travel
             </span>
           )}
