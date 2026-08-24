@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export interface OpenTab {
@@ -57,6 +57,21 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   const [tabs, setTabs] = useState<OpenTab[]>([{ id: 'home', path: '/', label: homeLabel }]);
   const [activeTabId, setActiveTabId] = useState('home');
   const [hydrated, setHydrated] = useState(false);
+  // ISPRAVKA (24.8.2026, na zahtev vlasnika — "Kliknuo sam sada na Katalog proizvoda i pojavila
+  // su se dva ista taba") — uzrok: React 18 Strict Mode (`reactStrictMode: true`, samo u dev
+  // režimu) namerno DVAPUT poziva svaki `useEffect` pri mount-u (mount → cleanup → mount ponovo,
+  // pre ijednog ponovnog renderovanja) da bi otkrio efekte koji nisu idempotentni. `useRegisterTab`
+  // (ispod) poziva `openTab(pathname, label)` iz efekta bez čišćenja — oba poziva su koristila
+  // ISTU zatvorenu (stale) `tabs` promenljivu iz render-a PRE mount-a (React još nije stigao da
+  // primeni ni jedan `setTabs` između ta dva poziva), pa je provera "da li tab već postoji"
+  // (`tabs.find(...)`) i DRUGI put vratila "ne postoji" — oba poziva su dodala PO JEDAN nov tab.
+  // `tabsRef` čita/piše SINHRONO (mimo React state batch-a), pa drugi poziv u istom sinhronom
+  // dvostrukom pozivu odmah vidi tab koji je prvi upravo dodao.
+  const tabsRef = useRef(tabs);
+  function commitTabs(next: OpenTab[]) {
+    tabsRef.current = next;
+    setTabs(next);
+  }
 
   useEffect(() => {
     try {
@@ -65,7 +80,7 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
         // Migracija (23.8.2026) — stariji sačuvan zapis nema `id` (dodato uz forceNew/duplikate
         // dopunu), dodeli ga ovde umesto da se osloni na to da je uvek prisutan.
         const restored: OpenTab[] = JSON.parse(raw).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, dirty: t.dirty }));
-        setTabs(restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }]);
+        commitTabs(restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }]);
         const match = restored.find((t) => t.path === pathname) ?? restored[0];
         if (match) setActiveTabId(match.id);
       }
@@ -94,10 +109,10 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   const openTab = useCallback(
     (path: string, label: string, opts?: { forceNew?: boolean }) => {
       if (!opts?.forceNew) {
-        const existing = tabs.find((t) => t.path === path);
+        const existing = tabsRef.current.find((t) => t.path === path);
         if (existing) {
           if (existing.label !== label) {
-            setTabs((prev) => prev.map((t) => (t.id === existing.id ? { ...t, label } : t)));
+            commitTabs(tabsRef.current.map((t) => (t.id === existing.id ? { ...t, label } : t)));
           }
           setActiveTabId(existing.id);
           if (path !== pathname) router.push(path);
@@ -107,33 +122,33 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
       // Novi zapis — ili nijedan postojeći nema tu putanju, ili je `forceNew` eksplicitno
       // zatražen (23.8.2026, "omogucite otvaranje vise tabova za isti modul").
       const id = newTabId();
-      setTabs((prev) => [...prev, { id, path, label }]);
+      commitTabs([...tabsRef.current, { id, path, label }]);
       setActiveTabId(id);
       if (path !== pathname) router.push(path);
     },
-    [tabs, pathname, router],
+    [pathname, router],
   );
 
   const navigateInTab = useCallback(
     (path: string, label: string) => {
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.id === activeTabId);
-        if (idx === -1) {
-          // Bezbednosna mreža — aktivan zapis se ne poklapa ni sa jednim tabom, ponašaj se
-          // kao openTab umesto da tiho ne uradiš ništa.
-          const existing = prev.find((t) => t.path === path);
-          if (existing) {
-            setActiveTabId(existing.id);
-            return prev;
-          }
+      const prev = tabsRef.current;
+      const idx = prev.findIndex((t) => t.id === activeTabId);
+      if (idx === -1) {
+        // Bezbednosna mreža — aktivan zapis se ne poklapa ni sa jednim tabom, ponašaj se
+        // kao openTab umesto da tiho ne uradiš ništa.
+        const existing = prev.find((t) => t.path === path);
+        if (existing) {
+          setActiveTabId(existing.id);
+        } else {
           const id = newTabId();
           setActiveTabId(id);
-          return [...prev, { id, path, label }];
+          commitTabs([...prev, { id, path, label }]);
         }
+      } else {
         const next = [...prev];
         next[idx] = { ...next[idx], path, label };
-        return next;
-      });
+        commitTabs(next);
+      }
       router.push(path);
     },
     [activeTabId, router],
@@ -143,28 +158,27 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
 
   const closeTab = useCallback(
     (id: string) => {
-      setTabs((prev) => {
-        const idx = prev.findIndex((t) => t.id === id);
-        if (idx === -1 || prev.length === 1) return prev;
-        const next = prev.filter((t) => t.id !== id);
-        if (id === activeTabId) {
-          const fallback = next[Math.max(0, idx - 1)];
-          setActiveTabId(fallback.id);
-          router.push(fallback.path);
-        }
-        return next;
-      });
+      const prev = tabsRef.current;
+      const idx = prev.findIndex((t) => t.id === id);
+      if (idx === -1 || prev.length === 1) return;
+      const next = prev.filter((t) => t.id !== id);
+      commitTabs(next);
+      if (id === activeTabId) {
+        const fallback = next[Math.max(0, idx - 1)];
+        setActiveTabId(fallback.id);
+        router.push(fallback.path);
+      }
     },
     [activeTabId, router],
   );
 
   const markDirty = useCallback((path: string, dirty: boolean) => {
-    setTabs((prev) => prev.map((t) => (t.path === path ? { ...t, dirty } : t)));
+    commitTabs(tabsRef.current.map((t) => (t.path === path ? { ...t, dirty } : t)));
   }, []);
 
   const closeAllTabs = useCallback(() => {
     const id = newTabId();
-    setTabs([{ id, path: '/', label: homeLabel }]);
+    commitTabs([{ id, path: '/', label: homeLabel }]);
     setActiveTabId(id);
     if (pathname !== '/') router.push('/');
   }, [homeLabel, pathname, router]);
