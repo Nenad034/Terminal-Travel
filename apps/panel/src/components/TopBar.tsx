@@ -126,12 +126,23 @@ export default function TopBar({
         <button
           onClick={() => setLogoZoomed((z) => !z)}
           title={logoZoomed ? 'Umanji logo' : 'Uvećaj logo'}
-          className={`flex-shrink-0 origin-left transition-transform duration-150 ${logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'}`}
+          className={`flex flex-shrink-0 items-center gap-2 overflow-hidden origin-left transition-transform duration-150 ${logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`block ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
+          <img src="/brand/terminal-travel-icon.png" alt="Terminal Travel" className={`block flex-shrink-0 ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`} />
+          {/* Slova u boji loga, 20% tamnija (24.8.2026, na zahtev vlasnika: "Slova neka budu u
+              boji loga samo za 20% tamnija") — logo je plavo→zeleno-tirkizni preliv (uzorkovano
+              direktno iz terminal-travel-icon.png: krajnja plava ~#1CABE5, krajnja tirkizna
+              ~#52DFB4), svaki kanal pomnožen sa 0.8 (isti preliv, samo tamniji) umesto izmišljene
+              jednobojne boje. */}
+          {showLabel && (
+            <span
+              className="truncate bg-gradient-to-r from-[#1689b7] to-[#42b290] bg-clip-text text-sm font-semibold tracking-wide text-transparent"
+            >
+              Terminal Travel
+            </span>
+          )}
         </button>
-        {showLabel && <span className="truncate text-sm font-semibold tracking-wide text-ink">Terminal Travel</span>}
       </div>
       <div className="flex h-full min-w-0 flex-1">
         <TabBar />
