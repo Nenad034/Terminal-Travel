@@ -2,14 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import Icon from './Icon';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import ActivityBar from './ActivityBar';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
-import AiChatBox from './AiChatBox';
 import RightPanel from './RightPanel';
 import NotificationStack from './NotificationStack';
 import TerminalPanel from './TerminalPanel';
@@ -155,53 +153,37 @@ export default function Shell({
       return next;
     });
   }
-  // AI chat kao plutajući prozor umesto trajno usidrenog dela centralnog panela (22.8.2026, na
-  // zahtev vlasnika — "chat treba da se pojavljuje na klik na ikonu... drugi klik se uklanja iz
-  // vidokruga, ne briše se ono što je chatovano"). Poništava raniji princip "uvek deo centralnog
-  // panela" (dizajn dok. §6c, 19.8.2026) — svesna izmena, ne previd. `chatOpen` samo kontroliše
-  // VIDLJIVOST (CSS `hidden`, ne uslovan JSX render) — `AiChatBox` ostaje montiran i kad je
-  // sakriven, njegovo `turns` stanje (istorija razgovora) se time nikad ne gubi.
-  const [chatOpen, setChatOpen] = useState(true);
-  const chatPanelRef = useRef<HTMLDivElement>(null);
-  // Prevlačenje bilo gde po centralnom panelu (23.8.2026, na zahtev vlasnika — "omogućite
-  // pomeranje chata gde god želimo da bude", eksplicitno KAO ZAMENA za "klik van chata ga
-  // zatvara" iz prethodnog prolaza istog dana: "ovim pomeranjem ćemo rešiti problem" — kad chat
-  // zaklanja nešto, korisnik ga sam odvuče u stranu umesto da nestane na slučajan klik). `null`
-  // = podrazumevana pozicija (CSS `bottom-[38px] right-4`, isto kao pre); posle prvog prevlačenja
-  // prelazi na apsolutno pozicioniranje preko `top`/`left` u pikselima.
-  const [chatPos, setChatPos] = useState<{ top: number; left: number } | null>(null);
-  const dragRef = useRef<{ startX: number; startY: number; startTop: number; startLeft: number } | null>(null);
-  // Uvećanje na visinu ekrana, na zahtev (25.8.2026, na zahtev vlasnika: "omogucite da se ai
-  // agent po zelji poveca visinu na visinu ekrana na kom se prikazuje") — samo VISINA se menja
-  // (`top-4 bottom-[38px]` umesto `max-h-[70vh]`), širina ostaje 560px kao inače; horizontalna
-  // pozicija (`chatPos.left` ako je prozor prevučen) se poštuje i dok je uvećan, samo se
-  // vertikalna pozicija privremeno ignoriše — vraća se na prethodnu kad se ponovo umanji.
-  const [chatMaximized, setChatMaximized] = useState(false);
-
-  function handleChatDragStart(e: React.MouseEvent) {
-    const rect = chatPanelRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    dragRef.current = { startX: e.clientX, startY: e.clientY, startTop: rect.top, startLeft: rect.left };
-
-    function onMove(ev: MouseEvent) {
-      const drag = dragRef.current;
-      if (!drag) return;
-      const nextTop = drag.startTop + (ev.clientY - drag.startY);
-      const nextLeft = drag.startLeft + (ev.clientX - drag.startX);
-      // Ne dozvoljava da zaglavlje potpuno izađe van vidljivog ekrana — uvek ostaje bar 40px
-      // dohvatljivo da se chat može ponovo dovući nazad.
-      setChatPos({
-        top: Math.max(0, Math.min(nextTop, window.innerHeight - 40)),
-        left: Math.max(-520, Math.min(nextLeft, window.innerWidth - 40)),
+  // AI chat NAPUŠTA plutajući prozor (dizajn dok. §6c.0, dopuna 25.8.2026, na zahtev vlasnika)
+  // — postaje trajan deo `RightPanel` (naslagan ispod postojećeg sadržaja), pa "otvoren/zatvoren
+  // AI chat" postaje isto pitanje kao "otvoren/zatvoren desni panel za trenutni modul"
+  // (`rightPanelOpen` ispod, već postoji od v2.10). `chatOpen`/`onToggleChat` propovi (TopBar/
+  // StatusBar/CustomizeLayoutButton) ostaju istog imena da se izbegne nepotreban dodatan diff u
+  // tim fajlovima — sad su prosto alias za `rightPanelOpen`/`toggleRightPanelForCurrentModule`.
+  //
+  // Izbor "sužava sadržaj" naspram "prelazi preko sadržaja" (§6c.0) — po korisniku preko
+  // `UserPreference` (M1 §3.9, ključ `right_panel_display_mode`), učitano jednom pri montiranju.
+  const [rightPanelMode, setRightPanelMode] = useState<'push' | 'overlay'>('push');
+  useEffect(() => {
+    fetch('/api/preferences', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const value = data?.right_panel_display_mode;
+        if (value === 'overlay' || value === 'push') setRightPanelMode(value);
+      })
+      .catch(() => {
+        // Podrazumevano ostaje "push" — ne blokira prikaz panela zbog neuspelog čitanja podešavanja.
       });
-    }
-    function onUp() {
-      dragRef.current = null;
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    }
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+  }, []);
+  function toggleRightPanelMode() {
+    const next = rightPanelMode === 'push' ? 'overlay' : 'push';
+    setRightPanelMode(next);
+    fetch('/api/preferences/right_panel_display_mode', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: next }),
+    }).catch(() => {
+      // Ponašanje za OVU sesiju i dalje radi (lokalno stanje već promenjeno) — samo se ne pamti.
+    });
   }
 
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0] ?? null;
@@ -211,7 +193,7 @@ export default function Shell({
       <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
       <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
       <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
-      <AiContextProvider onFirstAdd={() => setChatOpen(true)}>
+      <AiContextProvider onFirstAdd={openRightPanelForCurrentModule}>
         {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
@@ -235,8 +217,6 @@ export default function Shell({
               onToggleSidebar: () => toggleLayout('sidebar'),
               statusBarVisible: layoutVisibility.statusBar,
               onToggleStatusBar: () => toggleLayout('statusBar'),
-              chatOpen,
-              onToggleChat: () => setChatOpen((v) => !v),
               showTerminal: showBiTerminal,
               terminalOpen: layoutVisibility.terminal,
               onToggleTerminal: () => toggleLayout('terminal'),
@@ -299,10 +279,11 @@ export default function Shell({
                 {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
                     svaku poruku (M15 spec §6.5.1 dopuna, 22.8.2026, na zahtev vlasnika) — bez
                     ovog `id`-ja nema drugog opšteg mesta da se "trenutan sadržaj ekrana" pročita
-                    bez posebnog ožičenja svakog od 18 ekrana ponaosob. AiChatBox se preselio u
-                    plutajući prozor (ispod) — `<main>` sad sam zauzima celu visinu centralne
-                    kolone, uvek, bez obzira da li je chat otvoren (plutajući prozor se nadovezuje
-                    PREKO sadržaja, ne gura ga). */}
+                    bez posebnog ožičenja svakog od 18 ekrana ponaosob. AiChatBox je od 25.8.2026
+                    (§6c.0) dokovan deo `RightPanel` (ispod) — SUSED ovog `<main>`, ne njegov
+                    potomak, pa čitanje ostaje bezbedno (nema rizika od rekurzivnog čitanja
+                    sopstvene istorije). Izuzetak: `/ai-asistent` Fokus tab, gde AiChatBox JESTE
+                    ovaj `<main>` sadržaj — `fokus` prop tamo isključuje čitanje (AiChatBox.tsx). */}
                 <main id="tt-main-content" className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
                     sadržaja, iznad statusne trake, span samo centralne kolone (ne ide ispod
@@ -311,61 +292,40 @@ export default function Shell({
                 {showBiTerminal && layoutVisibility.terminal && <TerminalPanel onClose={() => toggleLayout('terminal')} />}
               </div>
             </div>
-            {/* Plutajući AI chat (22.8.2026, na zahtev vlasnika) — bez zatamnjenja pozadine
-                (vlasnikova eksplicitna odluka preko AskUserQuestion: "plutajući prozor u uglu",
-                ne pun modal) — sadržaj ispod ostaje vidljiv/klikabilan dok je chat otvoren, jer AI
-                automatski čita sadržaj otvorenog taba (M15 spec §6.5.1) i korisnik treba da može
-                da gleda oboje istovremeno. `hidden` (ne uslovan JSX) čuva `AiChatBox` montiranim —
-                istorija razgovora se ne gubi kad se prozor sakrije. Širina usklađena sa MAKSIMALNOM
-                širinom desnog panela — `RightPanel` koristi `ResizablePane maxWidth={560}` (ispod,
-                u ovom fajlu). Spoljni okvir (`border border-border`) UKLONJEN na zahtev vlasnika
-                ("nepotreban je") — `shadow-lg` i tonska razlika (`bg-panel` naspram `bg-bg`/
-                `bg-panel-2` iza njega) ostaju dovoljni za odvajanje bez linije.
+            {/* Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika) — AI chat je sad TRAJAN
+                deo `RightPanel` (naslagan ispod postojećeg sažetka/podsetnika), ne poseban
+                plutajući prozor. `ResizablePane` je UVEK montiran (`collapsed={!rightPanelOpen}`,
+                isti obrazac kao bočna traka) — `RightPanel`/`AiChatBox` se nikad ne uklanjaju iz
+                DOM-a, istorija razgovora se ne gubi zatvaranjem panela.
 
-                Pozicija: `chatPos === null` koristi CSS podrazumevanu (`bottom-[38px] right-4`,
-                donji desni ugao); posle prvog prevlačenja zaglavlja (23.8.2026, na zahtev
-                vlasnika) prelazi na `style={{ top, left }}` u pikselima — `bottom`/`right` klase
-                se tad UKLANJAJU (ne mogu da koegzistiraju sa `top`/`left`, CSS bi ih obe
-                primenio i razvukao element). Ovo ZAMENJUJE "klik van chata ga zatvara" iz
-                prethodnog prolaza istog dana (uklonjeno) — vlasnikova odluka: kad chat nešto
-                zaklanja, sam ga odvuče u stranu, ne nestaje na slučajan klik. */}
-            <div
-              ref={chatPanelRef}
-              className={`fixed z-40 w-[560px] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
-                chatOpen ? 'flex' : 'hidden'
-              } ${chatMaximized ? 'top-4 bottom-[38px]' : 'max-h-[70vh]'} ${
-                chatPos ? '' : chatMaximized ? 'right-4' : 'bottom-[38px] right-4'
-              }`}
-              style={chatPos ? { top: chatMaximized ? undefined : chatPos.top, left: chatPos.left } : undefined}
-            >
-              <div
-                onMouseDown={handleChatDragStart}
-                className="flex h-[36px] flex-shrink-0 cursor-move items-center justify-between border-b border-border bg-panel-2 px-3 text-xs font-medium text-ink"
-              >
-                <span className="flex items-center gap-1.5">
-                  <Icon name="sparkle" className="text-accent" /> AI asistent
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setChatMaximized((v) => !v)}
-                    title={chatMaximized ? 'Vrati na uobičajenu visinu' : 'Uvećaj na visinu ekrana'}
-                    className="text-ink-faint hover:text-ink"
-                  >
-                    <Icon name={chatMaximized ? 'screen-normal' : 'screen-full'} />
-                  </button>
-                  <button onClick={() => setChatOpen(false)} title="Zatvori (istorija se čuva)" className="text-ink-faint hover:text-ink">
-                    <Icon name="close" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <AiChatBox maximized={chatMaximized} />
-              </div>
-            </div>
-            {rightPanelOpen && (
-              <ResizablePane storageKey="tt-panel-right-width" defaultWidth={320} minWidth={260} maxWidth={560} handleSide="left">
-                <RightPanel moduleId={currentModuleId} moduleLabel={currentModuleLabel} onClose={closeRightPanelForCurrentModule} />
+                Push/overlay (§6c.0) — "push" (podrazumevano) ostaje u normalnom flex toku,
+                sužava centralni sadržaj. "overlay" prelazi na `position: fixed` uz desnu ivicu —
+                NE menja širinu centralnog sadržaja, samo ga delimično prekriva. Prelazak između
+                režima remontira `RightPanel` (različit roditelj) — istorija razgovora se u tom
+                retkom, eksplicitnom trenutku gubi; svako drugo otvaranje/zatvaranje je bezbedno. */}
+            {rightPanelMode === 'push' ? (
+              <ResizablePane storageKey="tt-panel-right-width" defaultWidth={320} minWidth={260} maxWidth={560} handleSide="left" collapsed={!rightPanelOpen} collapsedWidth={0}>
+                <RightPanel
+                  moduleId={currentModuleId}
+                  moduleLabel={currentModuleLabel}
+                  onClose={closeRightPanelForCurrentModule}
+                  displayMode={rightPanelMode}
+                  onToggleDisplayMode={toggleRightPanelMode}
+                />
               </ResizablePane>
+            ) : (
+              <div
+                className="fixed bottom-[38px] right-0 top-[43px] z-30 w-[420px] shadow-lg"
+                style={{ display: rightPanelOpen ? undefined : 'none' }}
+              >
+                <RightPanel
+                  moduleId={currentModuleId}
+                  moduleLabel={currentModuleLabel}
+                  onClose={closeRightPanelForCurrentModule}
+                  displayMode={rightPanelMode}
+                  onToggleDisplayMode={toggleRightPanelMode}
+                />
+              </div>
             )}
           </div>
           {layoutVisibility.statusBar && (
@@ -373,8 +333,8 @@ export default function Shell({
               fullName={fullName}
               roleLabel={roles.join(', ')}
               moduleCode={moduleCodeForHref(pathname)}
-              chatOpen={chatOpen}
-              onToggleChat={() => setChatOpen((v) => !v)}
+              chatOpen={rightPanelOpen}
+              onToggleChat={toggleRightPanelForCurrentModule}
             />
           )}
         </div>

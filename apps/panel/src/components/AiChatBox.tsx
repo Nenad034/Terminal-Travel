@@ -86,14 +86,16 @@ function itemLabel(item: AiContextItem): string {
 // §9), bez memorije prethodnih poruka na serveru — istorija ispod je čisto prikazna.
 // Slash komande, dugme "Zaustavi", istorija po zapisu, traka mode/dozvola (§6c.2), pravi
 // streaming/izvori-kao-pilule-sa-tipom/predložena pitanja (§6c.3) ostaju van obima.
-// `maximized` (25.8.2026, na zahtev vlasnika: "omogucite da se ai agent po zelji poveca visinu
-// na visinu ekrana") — Shell.tsx daje plutajućem prozoru pravu (definisanu) visinu preko
-// `top`+`bottom` fiksnog pozicioniranja SAMO kad je uvećan (podrazumevano je prozor auto-visine,
-// ograničen `max-h-[70vh]`, koji NIJE "definisana" visina za CSS procentualno nasleđivanje).
-// Zato `h-full`/`flex-1` ovde imaju efekat isključivo kad je `maximized=true` — u suprotnom
-// (`maximized=false`/nedostaje) ponašanje ostaje IDENTIČNO ranijem (`max-h-64`), bez rizika da
-// se pokvari podrazumevani mali prozor.
-export default function AiChatBox({ maximized = false }: { maximized?: boolean }) {
+// Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika) — AI chat napušta plutajući prozor,
+// postaje STALAN deo desnog panela (RightPanel.tsx), naslagan ispod postojećeg sadržaja. Ranije
+// `maximized` (ručno uvećanje plutajućeg prozora preko `top`/`bottom` pozicioniranja) je UKINUTO
+// — roditelj (RightPanel dokovan prikaz, ~40% visine panela, ILI `/ai-asistent` Fokus tab preko
+// celog centralnog prostora) sad UVEK daje definisanu visinu, pa je `h-full flex-1` layout ovde
+// bezuslovan (nema više "kompaktnog" `max-h-64` stanja). `fokus=true` (Fokus tab, novo) sakriva
+// dugme "Otvori u punom tabu" (već SI u punom tabu) i isključuje auto-kontekst čitanje ekrana
+// (nema odvojenog "drugog" ekrana dok je AI chat sam ceo ekran — isto ponašanje kao prazna
+// Početna, M15 spec §6.5.1).
+export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
   const { items: contextItems, addRecord, removeItem: removeContextItem, clear: clearContextItems } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -141,7 +143,9 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
   // tab"). Ispravka 22.8.2026, uživo nalaz — automatski kontekst je ćutke izostajao baš na tom
   // tabu jer je provera bila `activePath !== '/'`, ne naziv taba.
   const homeLabel = NAV_ITEMS.find((i) => i.id === 'pocetna')?.label;
-  const isUnlabeledHome = !activeTab || activeTab.label === homeLabel;
+  // `fokus` (§6c.0) prisilno isključuje auto-kontekst — u Fokus tabu je AI chat SAM ceo centralni
+  // sadržaj (`#tt-main-content` bi čitao sopstveni razgovor, rizik izbegnut isto kao ranije).
+  const isUnlabeledHome = fokus || !activeTab || activeTab.label === homeLabel;
   const autoContext = !isUnlabeledHome && dismissedForPath !== activePath ? activeTab!.label : null;
   // Čipovi za prikaz/slanje = automatski kontekst taba (ako nije uklonjen) + deljena lista ručno
   // priloženih stavki (dopuna v1.40/§6c.1a) — auto-kontekst se NE dupira ako je korisnik već
@@ -155,13 +159,14 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
 
   // Vidljiv tekst trenutnog taba, automatski prilagan na svaku poruku (22.8.2026, na zahtev
   // vlasnika, posle uživo razjašnjenja — "AI treba da može da vidi sadržaj u centralnom panelu").
-  // `#tt-main-content` (Shell.tsx) obuhvata samo sadržaj taba, NE i sam AiChatBox (odvojen
-  // sibling element) — nema rizika da razgovor pročita sopstvenu istoriju. Isto pravilo
-  // uklanjanja kao naziv taba: X na čipu (`dismissedForPath`) prekida i ovo za taj tab, ne samo
-  // labelu. Klijentsko sečenje je pogodnost (manji payload) — server ionako ponovo seče
-  // (`PAGE_CONTENT_MAX_CHARS`, omnisearch.service.ts), odbrana u dubinu.
+  // `#tt-main-content` (Shell.tsx) obuhvata sadržaj CENTRALNOG taba — dokovan AiChatBox (u
+  // RightPanel-u) je NJEGOV sused u DOM-u, nema rizika da pročita sopstvenu istoriju. U Fokus
+  // tabu (§6c.0) AiChatBox JE `#tt-main-content` sadržaj — `fokus` iznad to prisilno isključuje
+  // pre ovog poziva. Isto pravilo uklanjanja kao naziv taba: X na čipu (`dismissedForPath`)
+  // prekida i ovo za taj tab, ne samo labelu. Klijentsko sečenje je pogodnost (manji payload) —
+  // server ionako ponovo seče (`PAGE_CONTENT_MAX_CHARS`, omnisearch.service.ts), odbrana u dubinu.
   function readPageContent(): string | undefined {
-    if (dismissedForPath === activePath) return undefined;
+    if (fokus || dismissedForPath === activePath) return undefined;
     const text = document.getElementById('tt-main-content')?.innerText?.trim();
     return text ? text.slice(0, 8000) : undefined;
   }
@@ -252,8 +257,8 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
   const quickLinks = QUICK_LINK_IDS.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i));
 
   return (
-    <div className={`flex flex-col ${maximized ? 'h-full' : ''}`}>
-      {turns.length > 0 && <div className={`flex flex-col gap-3 overflow-y-auto py-2 ${maximized ? 'flex-1 min-h-0' : 'max-h-64'}`}>
+    <div className="flex h-full flex-col">
+      {turns.length > 0 && <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-2">
           {turns.map((t, i) => (
             <div key={i} className="flex flex-col gap-1.5">
               {t.contextLabels && t.contextLabels.length > 0 && (
@@ -393,6 +398,15 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
             )}
         </div>
         <Icon name="sparkle" className="text-accent" />
+        {!fokus && (
+          <button
+            onClick={() => openTab('/ai-asistent', 'AI asistent')}
+            title="Otvori u punom tabu (Fokus režim)"
+            className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+          >
+            <Icon name="screen-full" />
+          </button>
+        )}
         {speechSupported && (
           <button
             onClick={toggleListening}

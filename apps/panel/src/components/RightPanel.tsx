@@ -7,13 +7,18 @@ import { useRowSummary } from './RowSummaryContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
+import AiChatBox from './AiChatBox';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
 // (npr. gost → njegove rezervacije/fakture/tiketi). Pojavljuje se prema potrebi (dugme u
-// TopBar-u, ili automatski čim M5 selekcija dobije prvu stavku — Shell.tsx). NE nosi AI
-// razgovor — chat je od 19.8.2026 trajan deo centralnog panela (AiChatBox.tsx, Shell.tsx),
-// ovo je odvojena, ranije definisana svrha.
+// TopBar-u, ili automatski čim M5 selekcija dobije prvu stavku — Shell.tsx).
+//
+// AI chat (§6c.0, dopuna 25.8.2026, na zahtev vlasnika — napušta raniji plutajući prozor u uglu)
+// je sad TRAJAN deo OVOG panela, naslagan ISPOD sadržaja iznad (ne tabovi, oba mogu biti
+// vidljiva odjednom) — otvaranje/zatvaranje ovog panela sad kontroliše i pristup AI chat-u.
+// `AiChatBox` ostaje montiran čak i kad je panel kolabovan na širinu 0 (Shell.tsx, isti obrazac
+// kao bočna traka) — istorija razgovora se time ne gubi.
 //
 // Prvi stvaran sadržaj (21.8.2026, na zahtev vlasnika): M5 spec §3.0e.3 selekcija stavki iz
 // pretrage. "Sažetak reda" (23.8.2026, na zahtev vlasnika: "Kada otvorimo desni panel i
@@ -29,7 +34,22 @@ import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } fr
 // nema poslovnu akciju u ovom prolazu, samo prikaz+link+brisanje (pojedinačno/masovno/sve).
 const PRODAJA_MODULE_ID = 'prodaja';
 
-export default function RightPanel({ moduleId, moduleLabel, onClose }: { moduleId: string; moduleLabel: string; onClose: () => void }) {
+export default function RightPanel({
+  moduleId,
+  moduleLabel,
+  onClose,
+  displayMode,
+  onToggleDisplayMode,
+}: {
+  moduleId: string;
+  moduleLabel: string;
+  onClose: () => void;
+  /** §6c.0 — `push` (podrazumevano, sužava centralni sadržaj) naspram `overlay` (plutajući sloj
+   * preko sadržaja, širina se ne menja) — čuva se po korisniku, Shell.tsx (`UserPreference`
+   * ključ `right_panel_display_mode`). */
+  displayMode: 'push' | 'overlay';
+  onToggleDisplayMode: () => void;
+}) {
   const { items, removeItem, clear } = useSelection();
   const { summary, clearSummary } = useRowSummary();
   const { navigateInTab, openTab } = useTabs();
@@ -104,18 +124,28 @@ export default function RightPanel({ moduleId, moduleLabel, onClose }: { moduleI
               ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
               : `Podsetnik — ${moduleLabel}`}
         </span>
-        <button
-          onClick={() => {
-            if (isProdaja && items.length === 0) clearSummary();
-            onClose();
-          }}
-          title="Zatvori panel"
-          className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink"
-        >
-          <Icon name="close" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onToggleDisplayMode}
+            title={displayMode === 'push' ? 'Prelazi preko sadržaja (bez sužavanja)' : 'Sužava sadržaj (bez preklapanja)'}
+            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+          >
+            <Icon name={displayMode === 'push' ? 'layout-panel-right' : 'layers'} />
+          </button>
+          <button
+            onClick={() => {
+              if (isProdaja && items.length === 0) clearSummary();
+              onClose();
+            }}
+            title="Zatvori panel"
+            className="flex h-[29px] w-[29px] items-center justify-center rounded hover:bg-panel hover:text-ink"
+          >
+            <Icon name="close" />
+          </button>
+        </div>
       </div>
 
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {isProdaja && items.length === 0 && summary && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
       )}
@@ -216,6 +246,14 @@ export default function RightPanel({ moduleId, moduleLabel, onClose }: { moduleI
           </div>
         </div>
       )}
+      </div>
+
+      {/* §6c.0 — naslagano ISPOD sadržaja iznad, ~40% visine panela (nasleđuje vlasnikov
+          prvobitni predlog "40% visine ekrana", ovde primenjen na visinu SAMOG PANELA). Uvek
+          montirano (isti roditelj, samo se panel kolabuje — Shell.tsx) — istorija se ne gubi. */}
+      <div className="flex h-[40%] flex-shrink-0 flex-col overflow-hidden border-t border-border bg-panel">
+        <AiChatBox />
+      </div>
     </div>
   );
 }

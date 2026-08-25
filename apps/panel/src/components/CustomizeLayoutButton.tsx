@@ -10,8 +10,6 @@ interface CustomizeLayoutButtonProps {
   onToggleRightPanel: () => void;
   statusBarVisible: boolean;
   onToggleStatusBar: () => void;
-  chatOpen: boolean;
-  onToggleChat: () => void;
   /** Stavka i njeno dugme uopšte ne postoje u DOM-u bez ove dozvole (M15 spec §6.9.2) — nije
    * onemogućeno dugme, potpuno odsutno, isti princip kao svaki drugi gate u ovom projektu. */
   showTerminal: boolean;
@@ -38,9 +36,10 @@ export default function CustomizeLayoutButton(props: CustomizeLayoutButtonProps)
 
   const items = [
     { label: 'Bočna traka', checked: props.sidebarVisible, onToggle: props.onToggleSidebar },
+    // "Desni panel" sad pokriva i AI chat (dizajn dok. §6c.0, 25.8.2026) — raniji zaseban "AI
+    // chat" red je uklonjen, isti prekidač otvara/zatvara oboje (AI chat je trajan deo panela).
     { label: 'Desni panel', checked: props.rightPanelOpen, onToggle: props.onToggleRightPanel },
     { label: 'Statusna traka', checked: props.statusBarVisible, onToggle: props.onToggleStatusBar },
-    { label: 'AI chat', checked: props.chatOpen, onToggle: props.onToggleChat },
     ...(props.showTerminal ? [{ label: 'Terminal', checked: props.terminalOpen, onToggle: props.onToggleTerminal }] : []),
   ];
 
