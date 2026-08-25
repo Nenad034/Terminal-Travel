@@ -103,7 +103,7 @@ export default function ResizablePane({
   );
 
   return (
-    <div className="flex flex-shrink-0" style={{ width: collapsed ? collapsedWidth : width }}>
+    <div className="flex h-full flex-shrink-0" style={{ width: collapsed ? collapsedWidth : width }}>
       {!collapsed && handleSide === 'left' && handle}
       <div className="min-w-0 flex-1 overflow-hidden">{children}</div>
       {!collapsed && handleSide === 'right' && handle}
