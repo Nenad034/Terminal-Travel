@@ -439,8 +439,15 @@ function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./R
       {(s.country || s.destinationCity) && <SummaryRow label="Destinacija" value={[s.destinationCity, s.country].filter(Boolean).join(', ')} />}
       {s.hotelName && <SummaryRow label="Hotel/objekat" value={s.hotelName} />}
       {s.accommodationType && <SummaryRow label="Tip smeštaja" value={s.accommodationType} />}
-      <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />
-      <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />
+      {/* BAG (25.8.2026, prijavio vlasnik uživo, uz snimak ekrana — red bez stavki sa
+          datumom, npr. TT-M6-E2E-...-mjlipe8avah, prikazivao "Invalid Date") — `s.stayFrom`/
+          `s.stayTo` su prazan string kad rezervacija nema stavki sa datumom
+          (`RealBookingsTable.tsx` postavlja `null` → `''` kad nema stavki), a `new Date('')`
+          je UVEK "Invalid Date", ne prazan/nedostajući datum. Redovi se sad sakriju umesto da
+          prikažu netačnu vrednost — isti obrazac kao ostala opciona polja iznad (hotelName,
+          accommodationType...). */}
+      {s.stayFrom && <SummaryRow label="Dolazak" value={new Date(s.stayFrom).toLocaleDateString('sr-RS')} />}
+      {s.stayTo && <SummaryRow label="Odlazak" value={new Date(s.stayTo).toLocaleDateString('sr-RS')} />}
       {s.branch && <SummaryRow label="Poslovnica" value={s.branch} />}
       {s.assignedUser && <SummaryRow label="Zadužen" value={s.assignedUser} />}
       {s.travelers && s.travelers.length > 0 && (
