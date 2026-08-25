@@ -122,7 +122,7 @@ function itemLabel(item: AiContextItem): string {
 // Početna, M15 spec §6.5.1).
 export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
-  const { items: contextItems, addRecord, removeItem: removeContextItem, clear: clearContextItems } = useAiContext();
+  const { items: contextItems, addRecord, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
@@ -392,9 +392,14 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
 
           TREĆI ZAHTEV (21.8.2026, isti dan): "Uklonite linije gornjeg dela chata ostaje
           uokviren samo donji deo" — zajednički okvir oko OBA reda (unos + prečice) je i dalje
-          crtao liniju oko gornjeg (unos) reda, što nije bilo traženo. Red za unos sad je bez
-          ikakvog okvira; pun okvir (`border border-ink-faint`) ostaje SAMO oko donjeg reda
-          (brze prečice). */}
+          crtao liniju oko gornjeg (unos) reda, što nije bilo traženo. Red za unos je od tada bio
+          bez ikakvog okvira (donji red brzih prečica, koji je nosio pun okvir, je od dopune
+          25.8.2026/§6c.0a uklonjen).
+
+          ČETVRTI ZAHTEV (25.8.2026, na zahtev vlasnika, uz snimak ekrana): "dodajte samo jednu
+          tanku donju liniju polja" — tumačeno doslovno kao linija SAMOG tekstualnog polja
+          (Material-stil podvučen unos), ne okvir oko cele trake ikonica — `border-b` je na
+          `<input>` elementu ispod (isti `ink-faint` ton kao ostale linije chata iznad). */}
       <div className="flex flex-shrink-0 items-center gap-2 px-2 py-2">
         <div ref={plusRef} className="relative">
           <button
@@ -483,8 +488,24 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                   if (groupItems.length === 0) return null;
                   return (
                     <div key={group.id}>
-                      <div className="flex items-center gap-2 px-3 py-1.5 font-semibold text-ink">
-                        <Icon name={group.icon} /> {group.label}
+                      <div className="flex items-center justify-between gap-2 py-1.5 pl-3 pr-1.5 font-semibold text-ink">
+                        <span className="flex items-center gap-2">
+                          <Icon name={group.icon} /> {group.label}
+                        </span>
+                        {/* "#" (dopuna 25.8.2026, na zahtev vlasnika, uz snimak ekrana: "pored
+                            naziva modula dodajte oznaku # ... klikne se... modul treba da se
+                            unese u AI chat kao kontekst") — isti mehanizam/ikonica kao
+                            `AddToAiContextButton.tsx` (redovi tabela) — ovde primenjen na CEO
+                            modul (grupu), ne pojedinačan zapis. Ne zatvara popup — korisnik može
+                            dodati više modula pre navigacije/pitanja. */}
+                        <button
+                          onClick={() => addRecord(`Modul: ${group.label}`)}
+                          disabled={atCapacity}
+                          title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj modul "${group.label}" u AI kontekst`}
+                          className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded font-normal text-ink-faint hover:bg-panel-2 hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                        >
+                          <Icon name="symbol-number" />
+                        </button>
                       </div>
                       {groupItems.map((item) => (
                         <button
@@ -513,7 +534,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             if (e.key === 'Enter') send();
           }}
           placeholder={listening ? 'Slušam...' : 'Pitaj AI ili traži rezervaciju/proizvod...'}
-          className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+          className="flex-1 border-b border-ink-faint bg-transparent px-1 pb-1 text-sm text-ink outline-none placeholder:text-ink-faint"
         />
         {/* Mikrofon POSLE polja, neposredno ispred strelice (dopuna 25.8.2026, na zahtev
             vlasnika: "mikrofon stavite ispred strelice") — ranije je bio pre polja. */}
