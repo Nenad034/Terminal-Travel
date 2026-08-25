@@ -28,9 +28,13 @@ export class OmnisearchHistoryTurnDto {
 // `FILTERED_LIST` nosi `view`/`filters` u ISTOM obliku koji već prima `filter_list` alat
 // (filterable-views.ts, v1.39) — deterministički popunjeno na klijentu iz stvarnog stanja filter
 // trake, agent i dalje MORA pozvati alat da vidi stvarne redove.
+// `FILE`/`IMAGE` dopuna v1.43 (25.8.2026, na zahtev vlasnika — prilog fajla/slike preko "+").
+// Oba tranzientna — sadržaj (izvučen tekst dokumenta / base64 slika) stiže već gotov od
+// klijenta (dokument je prošao kroz POST .../extract-file, slika je pretvorena u base64 u
+// pregledaču preko FileReader/clipboardData) — ova ruta ga samo prenosi dalje, ništa ne čuva.
 export class ContextItemDto {
-  @IsIn(['RECORD', 'FILTERED_LIST'])
-  type!: 'RECORD' | 'FILTERED_LIST';
+  @IsIn(['RECORD', 'FILTERED_LIST', 'FILE', 'IMAGE'])
+  type!: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE';
 
   // RECORD
   @IsOptional()
@@ -52,9 +56,24 @@ export class ContextItemDto {
   @Min(0)
   resultCount?: number;
 
+  // FILE / IMAGE (label zajedničko sa FILTERED_LIST polje iznad)
   @IsOptional()
   @IsString()
   label?: string;
+
+  // FILE — izvučen tekst dokumenta (server ga dodatno seče, FILE_CONTENT_MAX_CHARS)
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  // IMAGE — base64 (BEZ "data:image/...;base64," prefiksa) + MIME tip
+  @IsOptional()
+  @IsString()
+  imageData?: string;
+
+  @IsOptional()
+  @IsIn(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
+  imageMediaType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 }
 
 export class OmnisearchQueryDto {

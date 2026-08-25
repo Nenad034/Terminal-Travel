@@ -1,10 +1,19 @@
-import { Body, Controller, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Post, Req, UnauthorizedException, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { OmnisearchService } from './omnisearch.service';
+import { ExtractFileService } from './extract-file.service';
 import { OmnisearchQueryDto } from './dto/omnisearch-query.dto';
-import { AccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { AccessTokenPayload, JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+
+// M15 spec §6.5.4.3 dopuna v1.43 — gornja granica veličine priloženog dokumenta (odbrana u
+// dubinu, isti princip kao MAX_ATTACHMENT_BYTES u M19) — fajl se NIKAD ne piše na disk
+// (`memoryStorage`), samo se obradi u memoriji i bafer se odbaci posle ekstrakcije teksta.
+const MAX_CONTEXT_FILE_BYTES = 8 * 1024 * 1024;
 
 // M15 spec §6.5.4, §9, prefiks /api/v1/ai-orchestration. Namerno BEZ @RequirePermission —
 // vidljivost rezultata se sprovodi UNUTAR servisa (M5/M2 dozvole se proveravaju po alatu, isti
@@ -21,6 +30,7 @@ export class OmnisearchController {
   constructor(
     private readonly omnisearch: OmnisearchService,
     private readonly jwt: JwtService,
+    private readonly extractFile: ExtractFileService,
   ) {}
 
   @Post()
@@ -36,6 +46,22 @@ export class OmnisearchController {
       history: dto.history,
       ipAddress: req.ip ?? null,
     });
+  }
+
+  /**
+   * M15 spec §6.5.4.3 dopuna v1.43 — prilog dokumenta u AI chat. Samo `INTERNAL_PANEL` (M17
+   * tim, isti obrazac kao ostatak §6c prilagajanja konteksta) — `JwtAuthGuard` obavezan,
+   * nasuprot glavnog `search()` iznad koji ručno grana po kanalu. `memoryStorage` — fajl NIKAD
+   * ne dodiruje disk, bafer se odbaci čim se tekst izvuče (nema trajnog čuvanja, za razliku od
+   * M19 priloga poruke).
+   */
+  @Post('extract-file')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_CONTEXT_FILE_BYTES } }))
+  async extractFileText(@UploadedFile() file: Express.Multer.File | undefined, @CurrentUser() _user: { userId: string }) {
+    if (!file) throw new BadRequestException('Nedostaje fajl.');
+    const { text } = await this.extractFile.extractText(file.buffer, file.originalname);
+    return { label: file.originalname, content: text };
   }
 
   /**

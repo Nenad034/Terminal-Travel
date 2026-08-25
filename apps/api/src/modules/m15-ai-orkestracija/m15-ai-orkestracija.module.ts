@@ -3,6 +3,7 @@ import { ModuleActivationController } from './module-activation/module-activatio
 import { ModuleActivationService } from './module-activation/module-activation.service';
 import { OmnisearchController } from './omnisearch/omnisearch.controller';
 import { OmnisearchService } from './omnisearch/omnisearch.service';
+import { ExtractFileService } from './omnisearch/extract-file.service';
 import { AnthropicClientService } from './anthropic/anthropic-client.service';
 import { ActionTypesController } from './action-types/action-types.controller';
 import { ActionTypesService } from './action-types/action-types.service';
@@ -54,6 +55,7 @@ import { ExchangeRatesModule } from '../m10-finansije/exchange-rates/exchange-ra
   providers: [
     ModuleActivationService,
     OmnisearchService,
+    ExtractFileService,
     AnthropicClientService,
     ActionTypesService,
     AgentInboxService,

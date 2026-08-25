@@ -14,9 +14,14 @@ import { createContext, useContext, useState } from 'react';
 // auto-kontekst taba ili "#" na stavci menija), klijent NE zna stvaran broj rezultata unapred
 // (nema poziva serveru samo da bi se izbrojalo) — server (`omnisearch.service.ts`) već ispravno
 // prikazuje "nepoznat broj rezultata" kad `resultCount` nedostaje.
+// `FILE`/`IMAGE` dopuna (25.8.2026, na zahtev vlasnika — prilog fajla/slike preko "+" i
+// lepljenje slike, M15 spec §6.5.4.3 v1.43). Oba TRANZIENTNA — sadržaj (izvučen tekst dokumenta
+// / base64 slika) živi samo u ovom stanju pregledača, nikad se ne čuva na serveru trajno.
 export type AiContextItem =
   | { id: string; type: 'RECORD'; refLabel: string }
-  | { id: string; type: 'FILTERED_LIST'; view: string; filters: Record<string, unknown>; resultCount?: number; label: string };
+  | { id: string; type: 'FILTERED_LIST'; view: string; filters: Record<string, unknown>; resultCount?: number; label: string }
+  | { id: string; type: 'FILE'; label: string; content: string }
+  | { id: string; type: 'IMAGE'; label: string; imageData: string; imageMediaType: string };
 
 const MAX_ITEMS = 8;
 
@@ -24,6 +29,8 @@ interface AiContextContextValue {
   items: AiContextItem[];
   addRecord: (refLabel: string) => void;
   addFilteredList: (args: { view: string; filters: Record<string, unknown>; resultCount?: number; label: string }) => void;
+  addFile: (args: { label: string; content: string }) => void;
+  addImage: (args: { label: string; imageData: string; imageMediaType: string }) => void;
   removeItem: (id: string) => void;
   clear: () => void;
   atCapacity: boolean;
@@ -55,6 +62,22 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
     });
   }
 
+  function addFile(args: { label: string; content: string }) {
+    setItems((prev) => {
+      if (prev.length >= MAX_ITEMS) return prev;
+      if (prev.length === 0) onFirstAdd?.();
+      return [...prev, { id: `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type: 'FILE', ...args }];
+    });
+  }
+
+  function addImage(args: { label: string; imageData: string; imageMediaType: string }) {
+    setItems((prev) => {
+      if (prev.length >= MAX_ITEMS) return prev;
+      if (prev.length === 0) onFirstAdd?.();
+      return [...prev, { id: `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, type: 'IMAGE', ...args }];
+    });
+  }
+
   function removeItem(id: string) {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
@@ -69,6 +92,8 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
         items,
         addRecord,
         addFilteredList,
+        addFile,
+        addImage,
         removeItem,
         clear,
         atCapacity: items.length >= MAX_ITEMS,

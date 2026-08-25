@@ -28,12 +28,15 @@ export interface OmnisearchRequest {
    * vodi, agent i dalje razrešava svaku stavku sopstvenim postojećim alatima (§6.5.2).
    */
   contextItems?: {
-    type: 'RECORD' | 'FILTERED_LIST';
+    type: 'RECORD' | 'FILTERED_LIST' | 'FILE' | 'IMAGE';
     refLabel?: string;
     view?: string;
     filters?: Record<string, unknown>;
     resultCount?: number;
     label?: string;
+    content?: string;
+    imageData?: string;
+    imageMediaType?: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
   }[];
   /**
    * M15 spec §6.5.4.2 dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji
@@ -50,6 +53,14 @@ export interface OmnisearchRequest {
 // prompt kad se ceo pogled priloži kao kontekst (token/cena razlog, isti duh kao PAGE_CONTENT_MAX_CHARS
 // ispod) — `count` iz baze ostaje tačan i preko ove granice, samo se lista redova seče.
 const FILTER_LIST_ROWS_MAX = 40;
+
+// M15 spec §6.5.4.3 dopuna v1.43 — prilog dokumenta/slike (25.8.2026, na zahtev vlasnika).
+// FILE_CONTENT_MAX_CHARS: izvučen tekst dokumenta u promptu (isti token/cena razlog kao gore).
+// MAX_IMAGES/MAX_IMAGE_BASE64_CHARS: odbrana u dubinu — klijent već ograničava na 4 slike i
+// 5MB po slici pre slanja, server ponavlja proveru (ne oslanja se samo na klijentsko sečenje).
+const FILE_CONTENT_MAX_CHARS = 12000;
+const MAX_IMAGES = 4;
+const MAX_IMAGE_BASE64_CHARS = 7_000_000; // ~5MB sirovih podataka posle base64 enkodiranja (~1.37x)
 
 // Server-side gornja granica dužine priloženog sadržaja ekrana (odbrana u dubinu, ne oslanja
 // se samo na klijentsko sečenje) — ~2000 tokena, drži trošak po poruci predvidivim (M18 §6.5).
@@ -134,14 +145,41 @@ export class OmnisearchService {
    * poziva applyFilterList() i ubacuje stvaran broj + stvarne redove direktno u tekst PRE nego
    * što se model uopšte pita — ista dozvola/identitet kao alat (nema šireg pristupa).
    */
-  private async buildContextItemsBlock(actorUserId: string, items?: OmnisearchRequest['contextItems']): Promise<string | undefined> {
-    if (!items || items.length === 0) return undefined;
+  // v1.43 dopuna (25.8.2026) — vraća i tekst (RECORD/FILTERED_LIST/FILE) i slike (IMAGE) odvojeno,
+  // jer slike ne mogu ući u običan tekstualni prompt — askAnthropic() ih pretvara u zasebne
+  // `image` content blokove kad ih ima bar jedna (Anthropic multimodalni poziv).
+  private async buildContextItemsBlock(
+    actorUserId: string,
+    items?: OmnisearchRequest['contextItems'],
+  ): Promise<{ text?: string; images: { mediaType: string; data: string; label: string }[] }> {
+    if (!items || items.length === 0) return { images: [] };
     const lines: string[] = [];
+    const images: { mediaType: string; data: string; label: string }[] = [];
     let filteredListUsed = false;
 
     for (const item of items) {
       if (item.type === 'RECORD' && item.refLabel) {
         lines.push(`${lines.length + 1}. ${item.refLabel}`);
+        continue;
+      }
+      if (item.type === 'FILE' && item.content) {
+        const truncated = item.content.length > FILE_CONTENT_MAX_CHARS;
+        const content = item.content.slice(0, FILE_CONTENT_MAX_CHARS);
+        lines.push(
+          `${lines.length + 1}. Priložen dokument "${item.label ?? 'dokument'}"${truncated ? ' (skraćeno, prevelik za ceo prikaz)' : ''}:\n"""\n${content}\n"""`,
+        );
+        continue;
+      }
+      if (item.type === 'IMAGE' && item.imageData && item.imageMediaType) {
+        if (images.length >= MAX_IMAGES) {
+          this.logger.warn('contextItems: više od 4 IMAGE stavke, dodatna preskočena.');
+          continue;
+        }
+        if (item.imageData.length > MAX_IMAGE_BASE64_CHARS) {
+          this.logger.warn(`contextItems: IMAGE "${item.label}" prevelika, preskočena.`);
+          continue;
+        }
+        images.push({ mediaType: item.imageMediaType, data: item.imageData, label: item.label ?? 'slika' });
         continue;
       }
       if (item.type === 'FILTERED_LIST') {
@@ -172,7 +210,7 @@ export class OmnisearchService {
       }
     }
 
-    return lines.length > 0 ? `Priložen kontekst:\n${lines.join('\n')}` : undefined;
+    return { text: lines.length > 0 ? `Priložen kontekst:\n${lines.join('\n')}` : undefined, images };
   }
 
   async search(req: OmnisearchRequest): Promise<OmnisearchResponse> {
@@ -622,11 +660,23 @@ export class OmnisearchService {
         'Nikad ne pretpostavljaj podatke o zapisima van onoga što ti je stvarno dato.';
 
     const pageContent = req.pageContent?.slice(0, PAGE_CONTENT_MAX_CHARS).trim();
-    const contextItemsBlock = await this.buildContextItemsBlock(req.actorUserId!, req.contextItems);
+    const { text: contextItemsBlock, images: contextImages } = await this.buildContextItemsBlock(req.actorUserId!, req.contextItems);
     const precedingBlocks = [pageContent ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""` : null, contextItemsBlock ?? null].filter(
       (part): part is string => part !== null,
     );
-    const userContent = precedingBlocks.length > 0 ? `${precedingBlocks.join('\n\n')}\n\nPitanje: ${req.query}` : req.query;
+    const userText = precedingBlocks.length > 0 ? `${precedingBlocks.join('\n\n')}\n\nPitanje: ${req.query}` : req.query;
+    // v1.43 (25.8.2026) — Claude Vision: kad ima bar jedna priložena slika, `content` postaje NIZ
+    // blokova (slike PA tekst, preporučen redosled u Anthropic dokumentaciji) umesto običnog
+    // stringa; bez slika ostaje string nepromenjeno (isti oblik kao ranije, ne remeti postojeće
+    // testove/ponašanje). Slika NIKAD ne prolazi kroz alat/tool_use — ovo je direktan multimodalni
+    // ulaz modelu, isti "odmah dostupno" princip kao v1.42 za FILTERED_LIST redove.
+    const userContent: any =
+      contextImages.length > 0
+        ? [
+            ...contextImages.map((img) => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } })),
+            { type: 'text', text: userText },
+          ]
+        : userText;
     // Istorija (25.8.2026, vidi OmnisearchRequest.history iznad) — samo tekst pitanja/odgovora
     // iz prethodnih tura (bez tool_use blokova, koji nisu sačuvani na klijentu), ograničeno na
     // poslednjih 6 tura, identičan princip kao BiTerminalAgent (bi-terminal.service.ts, 23.8.2026).

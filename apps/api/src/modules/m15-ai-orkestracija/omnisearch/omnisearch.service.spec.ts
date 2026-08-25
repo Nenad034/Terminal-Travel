@@ -302,6 +302,59 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(sentContent).toContain('pozovi filter_list');
   });
 
+  // v1.43 (25.8.2026, na zahtev vlasnika — prilog dokumenta preko "+") — FILE stavka nosi tekst
+  // već izvučen preko POST .../extract-file, ubačen DIREKTNO u prompt (isti "odmah dostupno"
+  // princip kao FILTERED_LIST redovi).
+  it('contextItems (FILE) ubacuje izvučen tekst dokumenta direktno u prompt', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'o čemu govori ovaj dokument',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [{ type: 'FILE', label: 'ugovor.pdf', content: 'Ugovor o saradnji između Terminal Travel i dobavljača X.' }],
+    });
+
+    const sentContent = create.mock.calls[0][0].messages[0].content as string;
+    expect(sentContent).toContain('Priložen dokument "ugovor.pdf"');
+    expect(sentContent).toContain('Ugovor o saradnji između Terminal Travel i dobavljača X.');
+  });
+
+  // v1.43 — IMAGE stavka NE ulazi u tekstualni blok, postaje zaseban `image` content blok
+  // (Claude Vision), `content` poruke prelazi sa stringa na niz blokova.
+  it('contextItems (IMAGE) šalje sliku modelu kao zaseban image content blok (Claude Vision)', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'šta piše na ovoj slici',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [{ type: 'IMAGE', label: 'screenshot.png', imageData: 'ZmFrZS1iYXNlNjQ=', imageMediaType: 'image/png' }],
+    });
+
+    const sentContent = create.mock.calls[0][0].messages[0].content;
+    expect(Array.isArray(sentContent)).toBe(true);
+    expect(sentContent[0]).toEqual({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'ZmFrZS1iYXNlNjQ=' } });
+    expect(sentContent[1].type).toBe('text');
+    expect(sentContent[1].text).toBe('šta piše na ovoj slici');
+  });
+
+  // Bez slika, `content` OSTAJE običan string (nepromenjeno ponašanje) — dokazuje da multimodalni
+  // oblik ne remeti postojeći tok kad korisnik ne priloži nijednu sliku.
+  it('bez IMAGE stavki, content poruke ostaje običan string, ne niz blokova', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'zdravo, kako si', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(typeof create.mock.calls[0][0].messages[0].content).toBe('string');
+  });
+
   // Nevažeći view/filteri se NE šalju modelu kao lažno-validna instrukcija — stavka se tiho
   // izostavi (fail soft, isti princip kao ostatak "agent ne izmišlja" — ovo je samo prompt tekst).
   it('contextItems (FILTERED_LIST, nepoznat view) se izostavlja iz prompta bez greške korisniku', async () => {

@@ -101,7 +101,28 @@ interface Turn {
 // `filterableViewForPath` ispod), izostavlja se umesto lažnog "(undefined)".
 function itemLabel(item: AiContextItem): string {
   if (item.type === 'RECORD') return item.refLabel;
+  if (item.type === 'FILE') return `Fajl: ${item.label}`;
+  if (item.type === 'IMAGE') return `Slika: ${item.label}`;
   return item.resultCount !== undefined ? `Filtrirano: ${item.label} (${item.resultCount})` : `Filtrirano: ${item.label}`;
+}
+
+// M15 spec §6.5.4.3 dopuna v1.43 (25.8.2026, na zahtev vlasnika — "kada se klikne na +
+// omogucite unos nekog fajla", zatim "slika takodje i kao fajl i copy-paste"). Dokument
+// (tekst/pdf/word/excel/html) se šalje na server preko ekstenzija/`extract-file.service.ts` da
+// bi se izvukao tekst — TRANZIENTNO, fajl se nikad ne piše na disk. Slika NIKAD ne ide na server
+// kao poseban upload korak — pretvara se u base64 direktno u pregledaču (Claude Vision je
+// prihvata kao deo tela `/omnisearch` zahteva, isti "gotovo za jedan poziv" princip kao pageContent).
+const IMAGE_MEDIA_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const DOCUMENT_FILE_ACCEPT = '.txt,.md,.csv,.json,.html,.htm,.pdf,.docx,.xlsx,.doc,.xls';
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 // Ispravka (25.8.2026, uživo nalaz uz snimak ekrana — pitanje "koliko rezervacija ima u listi
@@ -147,7 +168,7 @@ function filterableViewForPath(pathname: string): string | null {
 // Početna, M15 spec §6.5.1).
 export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
-  const { items: contextItems, addRecord, addFilteredList, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
+  const { items: contextItems, addRecord, addFilteredList, addFile, addImage, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
@@ -190,6 +211,62 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
       .then((data) => setModuleItems(Array.isArray(data) ? data.filter((i: NavItem) => i.implemented) : []))
       .catch(() => setModuleItems([]));
   }, []);
+  // Prilog fajla/slike preko "+" (v1.43) — jedan skriven <input type=file>, grananje po MIME
+  // tipu posle izbora (slika ide client-side u base64, dokument ide na server po tekst).
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileUploadError, setFileUploadError] = useState<string | null>(null);
+
+  async function addImageFile(file: File) {
+    if (!IMAGE_MEDIA_TYPES.has(file.type)) {
+      setFileUploadError(`Tip slike "${file.type || 'nepoznat'}" nije podržan (jpg/png/gif/webp).`);
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setFileUploadError(`Slika je prevelika (max 5MB): ${file.name}`);
+      return;
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    addImage({ label: file.name || 'slika', imageData: base64, imageMediaType: file.type });
+  }
+
+  async function addDocumentFile(file: File) {
+    const formData = new FormData();
+    formData.set('file', file);
+    try {
+      const res = await fetch('/api/ai-context/extract-file', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) {
+        setFileUploadError(data?.message ?? `Fajl "${file.name}" nije mogao da se pročita.`);
+        return;
+      }
+      addFile({ label: data.label ?? file.name, content: data.content ?? '' });
+    } catch {
+      setFileUploadError(`Fajl "${file.name}" nije mogao da se pošalje.`);
+    }
+  }
+
+  async function handleFilesSelected(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setFileUploadError(null);
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith('image/')) await addImageFile(file);
+      else await addDocumentFile(file);
+    }
+  }
+
+  // Lepljenje slike (Ctrl+V) direktno u polje za chat (v1.43, na zahtev vlasnika: "copy-paste")
+  // — isti IMAGE mehanizam kao dugme za prilog, samo drugi okidač, bez servera.
+  function handlePasteImage(e: React.ClipboardEvent<HTMLInputElement>) {
+    const imageItem = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'));
+    if (!imageItem) return;
+    const file = imageItem.getAsFile();
+    if (!file) return;
+    e.preventDefault();
+    setFileUploadError(null);
+    addImageFile(file);
+  }
+
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   // BAG (23.8.2026, prijavio vlasnik uživo — "Hydration failed... Expected server HTML to
@@ -262,7 +339,12 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
               : { type: 'RECORD' as const, refLabel: autoContext },
           ]
         : []),
-      ...contextItems.map((i) => (i.type === 'RECORD' ? { type: 'RECORD' as const, refLabel: i.refLabel } : { type: 'FILTERED_LIST' as const, view: i.view, filters: i.filters, resultCount: i.resultCount, label: i.label })),
+      ...contextItems.map((i) => {
+        if (i.type === 'RECORD') return { type: 'RECORD' as const, refLabel: i.refLabel };
+        if (i.type === 'FILE') return { type: 'FILE' as const, label: i.label, content: i.content };
+        if (i.type === 'IMAGE') return { type: 'IMAGE' as const, label: i.label, imageData: i.imageData, imageMediaType: i.imageMediaType };
+        return { type: 'FILTERED_LIST' as const, view: i.view, filters: i.filters, resultCount: i.resultCount, label: i.label };
+      }),
     ];
     // Istorija (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj
     // rezervaciji dobija potpuno nepovezan odgovor, jer je svaki poziv bio izolovan razgovor).
@@ -409,13 +491,22 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           )}
           {contextItems.map((item) => (
             <div key={item.id} className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
-              <Icon name={item.type === 'FILTERED_LIST' ? 'filter' : 'symbol-number'} />
+              <Icon name={item.type === 'FILTERED_LIST' ? 'filter' : item.type === 'FILE' ? 'file' : item.type === 'IMAGE' ? 'file-media' : 'symbol-number'} />
               {itemLabel(item)}
               <button onClick={() => removeContextItem(item.id)} title="Ukloni iz konteksta" className="ml-0.5 hover:text-danger">
                 <Icon name="close" />
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {fileUploadError && (
+        <div className="mx-2 mt-1 flex items-center justify-between gap-2 rounded border border-danger bg-danger-bg px-2 py-1 text-[11px] text-danger">
+          <span>{fileUploadError}</span>
+          <button onClick={() => setFileUploadError(null)} title="Zatvori">
+            <Icon name="close" />
+          </button>
         </div>
       )}
 
@@ -490,9 +581,33 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                 >
                   <Icon name="search" /> Rezultati trenutne pretrage
                 </button>
+                {/* v1.43 (25.8.2026, na zahtev vlasnika) — prilog dokumenta ILI slike. Jedan
+                    skriven input pokriva oba (accept lista + slika ekstenzije), grananje po
+                    MIME tipu je u handleFilesSelected iznad. */}
+                <button
+                  disabled={atCapacity}
+                  onClick={() => {
+                    fileInputRef.current?.click();
+                    setPlusOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Icon name="cloud-upload" /> Priloži fajl ili sliku
+                </button>
               </div>,
               document.body,
             )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={`${DOCUMENT_FILE_ACCEPT},image/*`}
+            className="hidden"
+            onChange={(e) => {
+              handleFilesSelected(e.target.files);
+              e.target.value = '';
+            }}
+          />
         </div>
         {/* §6c.0a (dopuna 25.8.2026, na zahtev vlasnika) — "oznaka za kontekst" koja otvara SVE
             module (ulogom filtrirano, `/api/nav-items`) u popup meniju, isti razlog za otvaranje
@@ -601,6 +716,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') send();
           }}
+          onPaste={handlePasteImage}
           placeholder={listening ? 'Slušam...' : 'Pitaj AI ili traži rezervaciju/proizvod...'}
           className="flex-1 border-b border-ink-faint bg-transparent px-1 pb-1 text-sm text-ink outline-none placeholder:text-ink-faint"
         />
