@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
-import { NAV_ITEMS, type NavItem } from '@/lib/nav';
+import { NAV_ITEMS, NAV_GROUPS, type NavItem } from '@/lib/nav';
 import CopyButton from './CopyButton';
 import { useAiContext, type AiContextItem } from './AiContextContext';
 
@@ -473,18 +473,34 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                 className="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
               >
                 {moduleItems.length === 0 && <p className="px-3 py-2 text-ink-faint">Učitavanje...</p>}
-                {moduleItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      openTab(item.href, item.label);
-                      setModulePickerOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink"
-                  >
-                    <Icon name={item.icon} /> {item.label}
-                  </button>
-                ))}
+                {/* Grupisano po `NAV_GROUPS` (25.8.2026, na zahtev vlasnika — snimak ekrana: "boldirajte
+                    osnovne stavke i neka budu bez linka. Otvaraju se samo podlinkovi") — isti obrazac kao
+                    Sidebar/ActivityBar: naziv grupe je podebljan, NIJE klikabilan (nema svoju rutu), samo
+                    stavke unutar nje otvaraju modul. Prazne grupe (korisnik nema nijedno pravo unutra) se
+                    ne prikazuju. */}
+                {NAV_GROUPS.map((group) => {
+                  const groupItems = moduleItems.filter((i) => group.itemIds.includes(i.id));
+                  if (groupItems.length === 0) return null;
+                  return (
+                    <div key={group.id}>
+                      <div className="flex items-center gap-2 px-3 py-1.5 font-semibold text-ink">
+                        <Icon name={group.icon} /> {group.label}
+                      </div>
+                      {groupItems.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            openTab(item.href, item.label);
+                            setModulePickerOpen(false);
+                          }}
+                          className="flex w-full items-center gap-2 py-1.5 pl-7 pr-3 text-left text-ink-dim hover:bg-panel-2 hover:text-ink"
+                        >
+                          <Icon name={item.icon} /> {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>,
               document.body,
             )}
