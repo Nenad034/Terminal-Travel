@@ -136,6 +136,12 @@ export default function Shell({
   // prelazi na apsolutno pozicioniranje preko `top`/`left` u pikselima.
   const [chatPos, setChatPos] = useState<{ top: number; left: number } | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; startTop: number; startLeft: number } | null>(null);
+  // Uvećanje na visinu ekrana, na zahtev (25.8.2026, na zahtev vlasnika: "omogucite da se ai
+  // agent po zelji poveca visinu na visinu ekrana na kom se prikazuje") — samo VISINA se menja
+  // (`top-4 bottom-[38px]` umesto `max-h-[70vh]`), širina ostaje 560px kao inače; horizontalna
+  // pozicija (`chatPos.left` ako je prozor prevučen) se poštuje i dok je uvećan, samo se
+  // vertikalna pozicija privremeno ignoriše — vraća se na prethodnu kad se ponovo umanji.
+  const [chatMaximized, setChatMaximized] = useState(false);
 
   function handleChatDragStart(e: React.MouseEvent) {
     const rect = chatPanelRef.current?.getBoundingClientRect();
@@ -288,10 +294,12 @@ export default function Shell({
                 zaklanja, sam ga odvuče u stranu, ne nestaje na slučajan klik. */}
             <div
               ref={chatPanelRef}
-              className={`fixed z-40 w-[560px] max-h-[70vh] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
+              className={`fixed z-40 w-[560px] flex-col overflow-hidden rounded-lg bg-panel shadow-lg ${
                 chatOpen ? 'flex' : 'hidden'
-              } ${chatPos ? '' : 'bottom-[38px] right-4'}`}
-              style={chatPos ? { top: chatPos.top, left: chatPos.left } : undefined}
+              } ${chatMaximized ? 'top-4 bottom-[38px]' : 'max-h-[70vh]'} ${
+                chatPos ? '' : chatMaximized ? 'right-4' : 'bottom-[38px] right-4'
+              }`}
+              style={chatPos ? { top: chatMaximized ? undefined : chatPos.top, left: chatPos.left } : undefined}
             >
               <div
                 onMouseDown={handleChatDragStart}
@@ -300,12 +308,21 @@ export default function Shell({
                 <span className="flex items-center gap-1.5">
                   <Icon name="sparkle" className="text-accent" /> AI asistent
                 </span>
-                <button onClick={() => setChatOpen(false)} title="Zatvori (istorija se čuva)" className="text-ink-faint hover:text-ink">
-                  <Icon name="close" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setChatMaximized((v) => !v)}
+                    title={chatMaximized ? 'Vrati na uobičajenu visinu' : 'Uvećaj na visinu ekrana'}
+                    className="text-ink-faint hover:text-ink"
+                  >
+                    <Icon name={chatMaximized ? 'screen-normal' : 'screen-full'} />
+                  </button>
+                  <button onClick={() => setChatOpen(false)} title="Zatvori (istorija se čuva)" className="text-ink-faint hover:text-ink">
+                    <Icon name="close" />
+                  </button>
+                </div>
               </div>
               <div className="flex-1 overflow-hidden">
-                <AiChatBox />
+                <AiChatBox maximized={chatMaximized} />
               </div>
             </div>
             {rightPanelOpen && (

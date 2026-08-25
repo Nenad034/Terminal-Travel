@@ -79,7 +79,14 @@ const QUICK_LINK_IDS = ['pretraga', 'crm', 'katalog', 'podrska'];
 // §9), bez memorije prethodnih poruka na serveru — istorija ispod je čisto prikazna.
 // Slash komande, dugme "Zaustavi", istorija po zapisu, traka mode/dozvola (§6c.2), pravi
 // streaming/izvori-kao-pilule-sa-tipom/predložena pitanja (§6c.3) ostaju van obima.
-export default function AiChatBox() {
+// `maximized` (25.8.2026, na zahtev vlasnika: "omogucite da se ai agent po zelji poveca visinu
+// na visinu ekrana") — Shell.tsx daje plutajućem prozoru pravu (definisanu) visinu preko
+// `top`+`bottom` fiksnog pozicioniranja SAMO kad je uvećan (podrazumevano je prozor auto-visine,
+// ograničen `max-h-[70vh]`, koji NIJE "definisana" visina za CSS procentualno nasleđivanje).
+// Zato `h-full`/`flex-1` ovde imaju efekat isključivo kad je `maximized=true` — u suprotnom
+// (`maximized=false`/nedostaje) ponašanje ostaje IDENTIČNO ranijem (`max-h-64`), bez rizika da
+// se pokvari podrazumevani mali prozor.
+export default function AiChatBox({ maximized = false }: { maximized?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
@@ -226,8 +233,8 @@ export default function AiChatBox() {
   const quickLinks = QUICK_LINK_IDS.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i));
 
   return (
-    <div className="flex flex-col">
-      {turns.length > 0 && <div className="flex max-h-64 flex-col gap-3 overflow-y-auto py-2">
+    <div className={`flex flex-col ${maximized ? 'h-full' : ''}`}>
+      {turns.length > 0 && <div className={`flex flex-col gap-3 overflow-y-auto py-2 ${maximized ? 'flex-1 min-h-0' : 'max-h-64'}`}>
           {turns.map((t, i) => (
             <div key={i} className="flex flex-col gap-1.5">
               {t.contextLabel && <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
