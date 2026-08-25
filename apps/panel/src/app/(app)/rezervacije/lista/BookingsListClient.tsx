@@ -110,46 +110,48 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
   return (
     <>
       <div className="sticky top-0 z-20 border-b border-border bg-panel pb-2">
-        <div className="flex items-center justify-between px-1 pt-1">
-          <span className="text-[11px] font-medium text-ink-faint">Filteri</span>
+        {/* Traka ikonica — UVEK vidljiva (24.8.2026, na zahtev vlasnika, uz snimak ekrana:
+            "ova traka neka uvek bude vidljiva u desnom kraju stavite - i + kako bi se ostali
+            filteri pojavili ispod ove trake"). Dugme −/+ premešteno na desni kraj OVE trake —
+            sklapa/otvara samo formu (`RealFilterBar` + "Sačuvaj pretragu") ispod, ne i ovu
+            traku. */}
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
+          {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
+            const active = productTypeFilter !== null && p.types.includes(productTypeFilter);
+            return (
+              <button
+                key={p.label}
+                onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
+                title={`Filtriraj: ${p.label}`}
+                className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
+              >
+                <Icon name={p.icon} />
+              </button>
+            );
+          })}
+          <div className="mx-1 h-5 w-px bg-ink-faint/40" />
+          <button
+            onClick={() => setDemoOnly((v) => !v)}
+            title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
+            className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
+          >
+            <Icon name="bell" /> demo zvona
+          </button>
           <button
             onClick={() => setFiltersCollapsed((v) => !v)}
-            title={filtersCollapsed ? 'Prikaži filtere' : 'Sakrij filtere'}
-            className="flex h-[22px] w-[22px] items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
+            title={filtersCollapsed ? 'Prikaži ostale filtere' : 'Sakrij ostale filtere'}
+            className="ml-auto flex h-[26px] w-[26px] items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
           >
             <Icon name={filtersCollapsed ? 'add' : 'remove'} />
           </button>
         </div>
         {!filtersCollapsed && (
-          <>
+          <div className="mt-2">
             {filterBar}
-            <div className="mb-2 flex justify-end">
+            <div className="flex justify-end">
               <SaveViewButton />
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
-              {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
-                const active = productTypeFilter !== null && p.types.includes(productTypeFilter);
-                return (
-                  <button
-                    key={p.label}
-                    onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
-                    title={`Filtriraj: ${p.label}`}
-                    className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
-                  >
-                    <Icon name={p.icon} />
-                  </button>
-                );
-              })}
-              <div className="mx-1 h-5 w-px bg-ink-faint/40" />
-              <button
-                onClick={() => setDemoOnly((v) => !v)}
-                title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
-                className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
-              >
-                <Icon name="bell" /> demo zvona
-              </button>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
