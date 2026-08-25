@@ -46,6 +46,11 @@ export interface OmnisearchRequest {
   ipAddress?: string | null;
 }
 
+// M15 spec §6.5.4.3 dopuna v1.42 — gornja granica broja STVARNIH redova ubačenih direktno u
+// prompt kad se ceo pogled priloži kao kontekst (token/cena razlog, isti duh kao PAGE_CONTENT_MAX_CHARS
+// ispod) — `count` iz baze ostaje tačan i preko ove granice, samo se lista redova seče.
+const FILTER_LIST_ROWS_MAX = 40;
+
 // Server-side gornja granica dužine priloženog sadržaja ekrana (odbrana u dubinu, ne oslanja
 // se samo na klijentsko sečenje) — ~2000 tokena, drži trošak po poruci predvidivim (M18 §6.5).
 const PAGE_CONTENT_MAX_CHARS = 8000;
@@ -121,44 +126,51 @@ export class OmnisearchService {
    * alat — nevažeći `view`/`filters` se ne šalju modelu kao lažno-validna instrukcija, samo se
    * izostave (agent i dalje ima RECORD stavke i sam upit).
    */
-  private buildContextItemsBlock(items?: OmnisearchRequest['contextItems']): string | undefined {
+  /**
+   * M15 spec §6.5.4.3 dopuna v1.42 (25.8.2026, na zahtev vlasnika — "kad se stavi modul u
+   * kontekst, agent treba ODMAH da precesalja ceo modul i odgovori na svako pitanje", ne da
+   * zavisi od toga da li će model ispravno pozvati alat). Za FILTERED_LIST stavku, umesto da
+   * SAMO instruiše model da pozove filter_list (v1.40/v1.41 ponašanje), servis sad SAM odmah
+   * poziva applyFilterList() i ubacuje stvaran broj + stvarne redove direktno u tekst PRE nego
+   * što se model uopšte pita — ista dozvola/identitet kao alat (nema šireg pristupa).
+   */
+  private async buildContextItemsBlock(actorUserId: string, items?: OmnisearchRequest['contextItems']): Promise<string | undefined> {
     if (!items || items.length === 0) return undefined;
     const lines: string[] = [];
     let filteredListUsed = false;
 
-    items.forEach((item, i) => {
+    for (const item of items) {
       if (item.type === 'RECORD' && item.refLabel) {
         lines.push(`${lines.length + 1}. ${item.refLabel}`);
-        return;
+        continue;
       }
       if (item.type === 'FILTERED_LIST') {
         if (filteredListUsed) {
-          this.logger.warn(`contextItems: više od jedne FILTERED_LIST stavke, dodatna preskočena (indeks ${i}).`);
-          return;
-        }
-        const view = item.view ? FILTERABLE_VIEWS[item.view] : undefined;
-        if (!view) {
-          this.logger.warn(`contextItems: nepoznat view "${item.view}" za FILTERED_LIST, stavka preskočena.`);
-          return;
-        }
-        const built = buildFilterQuery(view, item.filters ?? {});
-        if ('error' in built) {
-          this.logger.warn(`contextItems: nevažeći filteri za FILTERED_LIST "${item.view}" — ${built.error}`);
-          return;
+          this.logger.warn('contextItems: više od jedne FILTERED_LIST stavke, dodatna preskočena.');
+          continue;
         }
         filteredListUsed = true;
-        const label = item.label ?? view.label;
-        const count = item.resultCount !== undefined ? `${item.resultCount} rezultata` : 'nepoznat broj rezultata';
-        // Ispravka (25.8.2026, uživo nalaz — model je na prazne filtere ({}) reagovao pitanjem
-        // "koje filtere da primenim", umesto da ih vidi kao "bez filtera = ceo spisak" i pozove
-        // alat) — TAČNI filteri (ili eksplicitno "BEZ filtera") sad stoje direktno u tekstu, ne
-        // samo referenca "isti filteri", i instrukcija pokriva i brojanje, ne samo poređenje.
-        const filtersText = Object.keys(item.filters ?? {}).length > 0 ? JSON.stringify(item.filters) : 'BEZ filtera (ceo spisak)';
-        lines.push(
-          `${lines.length + 1}. Filtriran prikaz "${label}" (${count}), pogled "${item.view}", filteri: ${filtersText} — za PITANJE O BROJU, SPISKU ILI POREĐENJU, ODMAH pozovi filter_list sa TAČNO ovim view/filters (ne pitaj korisnika koji su filteri, već su ti dati), pa upotrebi "count" iz odgovora alata.`,
-        );
+        const label = item.label ?? FILTERABLE_VIEWS[item.view ?? '']?.label ?? item.view;
+        const resolved = await this.applyFilterList(actorUserId, item.view, item.filters ?? {});
+        if ('error' in resolved) {
+          this.logger.warn(`contextItems: FILTERED_LIST "${item.view}" nije razrešena — ${resolved.error}`);
+          continue;
+        }
+        if (resolved.rows) {
+          const rowsText = JSON.stringify(resolved.rows);
+          const truncNote = resolved.rowsNote ? ` (${resolved.rowsNote})` : '';
+          lines.push(
+            `${lines.length + 1}. Priložen prikaz "${label}" — ${resolved.count} rezultata ukupno, stvarni podaci ispod${truncNote}: ${rowsText} — ovo su STVARNI zapisi, odgovori DIREKTNO iz njih na SVAKO pitanje o ovom skupu (raspodela, spisak, poređenje, brojanje...), bez potrebe da pozivaš filter_list za ISTU kombinaciju filtera. Ako pitanje traži DRUGU kombinaciju filtera, pozovi filter_list.`,
+          );
+        } else {
+          const countText = resolved.count !== undefined ? `${resolved.count} rezultata` : 'nepoznat broj rezultata';
+          const filtersText = Object.keys(item.filters ?? {}).length > 0 ? JSON.stringify(item.filters) : 'BEZ filtera (ceo spisak)';
+          lines.push(
+            `${lines.length + 1}. Filtriran prikaz "${label}" (${countText}), pogled "${item.view}", filteri: ${filtersText} — stvarni redovi nisu dostupni za ovaj pogled; za pitanje o SPISKU pozovi filter_list sa TAČNO ovim view/filters, za pitanje o BROJU koristi brojku iznad.`,
+          );
+        }
       }
-    });
+    }
 
     return lines.length > 0 ? `Priložen kontekst:\n${lines.join('\n')}` : undefined;
   }
@@ -371,7 +383,10 @@ export class OmnisearchService {
     actorUserId: string,
     viewId: string | undefined,
     filters: Record<string, unknown>,
-  ): Promise<{ href: string; label: string; count?: number; countNote?: string } | { error: string }> {
+  ): Promise<
+    | { href: string; label: string; count?: number; countNote?: string; rows?: Record<string, unknown>[]; rowsNote?: string }
+    | { error: string }
+  > {
     const view = viewId ? FILTERABLE_VIEWS[viewId] : undefined;
     if (!view) return { error: `Nepoznat pogled "${viewId}". Dostupni pogledi: ${FILTERABLE_VIEW_IDS.join(', ')}.` };
 
@@ -382,11 +397,19 @@ export class OmnisearchService {
     const hasPermission = await this.permissions.hasPermission(actorUserId, permission.module, permission.resource, permission.action);
     if (!hasPermission) return { error: 'Nemate dozvolu za uvid u ovaj deo panela.' };
 
-    const count = await this.countForFilterListView(viewId!, actorUserId, built.values);
+    const data = await this.dataForFilterListView(viewId!, actorUserId, built.values);
     return {
       href: `${view.listPath}${built.qs ? `?${built.qs}` : ''}`,
       label: `Otvori filtrirano: ${view.label}`,
-      ...(count !== undefined ? { count } : { countNote: 'Broj rezultata nije dostupan za ovaj pogled — ne pretpostavljaj ga, samo predloži link.' }),
+      ...(data
+        ? {
+            count: data.count,
+            rows: data.rows.slice(0, FILTER_LIST_ROWS_MAX),
+            ...(data.count > FILTER_LIST_ROWS_MAX
+              ? { rowsNote: `prikazano prvih ${FILTER_LIST_ROWS_MAX} od ${data.count} — broj je tačan, spisak je uzorak` }
+              : {}),
+          }
+        : { countNote: 'Broj rezultata nije dostupan za ovaj pogled — ne pretpostavljaj ga, samo predloži link.' }),
     };
   }
 
@@ -402,7 +425,14 @@ export class OmnisearchService {
   // dodatnih servisa u ovaj već širok servis, van obima ove ispravke (upisano u poglavlje 11).
   // `findAll` je već ograničen na `take: 200` (§ta stranica), pa je i ovaj broj gornja granica od
   // 200, ne beskonačan count — isti, već postojeći kapacitet kao sama lista rezervacija.
-  private async countForFilterListView(viewId: string, actorUserId: string, values: Record<string, string[]>): Promise<number | undefined> {
+  // v1.42 dopuna (25.8.2026) — zamenjuje raniji countForFilterListView(): sad vraća i STVARNE
+  // redove (projectBookingRow), ne samo count, da bi priložen modul (buildContextItemsBlock)
+  // mogao da odgovori na PROIZVOLJNO pitanje o skupu, ne samo "koliko ima".
+  private async dataForFilterListView(
+    viewId: string,
+    actorUserId: string,
+    values: Record<string, string[]>,
+  ): Promise<{ count: number; rows: Record<string, unknown>[] } | undefined> {
     if (viewId !== 'bookings') return undefined;
     const MULTI_FIELDS = new Set(['status', 'paymentStatus', 'tipNastupanja', 'productType']);
     const filters: Record<string, unknown> = {};
@@ -411,10 +441,36 @@ export class OmnisearchService {
     }
     try {
       const rows = await this.bookings.findAll(filters as any, { userId: actorUserId });
-      return (rows as unknown[]).length;
+      return { count: (rows as unknown[]).length, rows: (rows as any[]).map((b) => this.projectBookingRow(b)) };
     } catch {
       return undefined;
     }
+  }
+
+  // Kompaktna projekcija (samo polja korisna za odgovaranje na pitanja — ne ceo Booking objekat
+  // sa svim internim identifikatorima) — jedan red po rezervaciji, destinacije/tipovi proizvoda
+  // svedeni na jedinstvene vrednosti iz njenih stavki (isti izvor kao RealBookingsTable prikaz).
+  private projectBookingRow(b: any): Record<string, unknown> {
+    const items = Array.isArray(b.items) ? b.items : [];
+    const destinations = [
+      ...new Set(
+        items
+          .map((i: any) => [i.product?.destinationCity, i.product?.destinationCountry].filter(Boolean).join(', '))
+          .filter((d: string) => d.length > 0),
+      ),
+    ];
+    const productTypes = [...new Set(items.map((i: any) => i.product?.type).filter(Boolean))];
+    return {
+      bookingNumber: b.bookingNumber,
+      buyerName: b.buyerName,
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      totalPrice: b.totalPrice,
+      currency: b.currency,
+      createdAt: b.createdAt instanceof Date ? b.createdAt.toISOString().slice(0, 10) : String(b.createdAt).slice(0, 10),
+      destinations,
+      productTypes,
+    };
   }
 
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
@@ -555,17 +611,18 @@ export class OmnisearchService {
         'svesno uklonio kontekst), a pitanje zavisi od ekrana, jasno reci da ne vidiš sadržaj i uputi korisnika da ' +
         'upiše konkretan broj rezervacije/ime/naziv proizvoda. ' +
         'VAŽNO: svaka poruka može (ne mora) nositi i blok "Priložen kontekst" — korisnik je SVESNO dodao jedan ili ' +
-        'više zapisa (npr. konkretne rezervacije) i/ili jedan filtriran prikaz preko ikonice u panelu. Numerisane ' +
-        'stavke tog bloka nisu podaci sami po sebi — to su reference koje MORAŠ sam razrešiti odgovarajućim alatom ' +
-        '(direktno poklapanje/pretraga za pojedinačan zapis, ili filter_list za stavku koja to eksplicitno traži) ' +
-        'PRE nego što odgovoriš — ovo važi za poređenje/analizu VIŠE zapisa, ALI I za obično pitanje o broju/spisku ' +
-        '("koliko ima...", "koje su...") kad je priložen JEDAN filtriran prikaz sa TAČNIM view/filters u tekstu ' +
-        'bloka — u tom slučaju view/filters su ti već dati, NIKAD ne pitaj korisnika koji su filteri, samo pozovi ' +
-        'filter_list sa njima i pročitaj "count" iz odgovora. Nikad ne pretpostavljaj podatke o zapisima iz same ' +
-        'reference.';
+        'više zapisa (npr. konkretne rezervacije) i/ili jedan filtriran prikaz/modul preko ikonice u panelu. ' +
+        'Numerisane RECORD stavke tog bloka nisu podaci sami po sebi — to su reference koje MORAŠ sam razrešiti ' +
+        'odgovarajućim alatom (direktno poklapanje/pretraga za pojedinačan zapis) PRE nego što odgovoriš. Stavka ' +
+        'koja opisuje priložen prikaz/modul može već nositi STVARNE podatke (broj i/ili redove) direktno u tekstu — ' +
+        'kad ih nosi, koristi ih DIREKTNO za odgovor na SVAKO pitanje o tom skupu (broj, spisak, raspodela, ' +
+        'poređenje...), bez ijednog poziva alata; pozovi filter_list samo ako pitanje traži DRUGU kombinaciju ' +
+        'filtera od priložene. Kad stavka umesto podataka kaže da redovi nisu dostupni za taj pogled, tek onda ' +
+        'pozovi filter_list sa TAČNO datim view/filters (nikad ne pitaj korisnika koji su filteri, već su ti dati). ' +
+        'Nikad ne pretpostavljaj podatke o zapisima van onoga što ti je stvarno dato.';
 
     const pageContent = req.pageContent?.slice(0, PAGE_CONTENT_MAX_CHARS).trim();
-    const contextItemsBlock = this.buildContextItemsBlock(req.contextItems);
+    const contextItemsBlock = await this.buildContextItemsBlock(req.actorUserId!, req.contextItems);
     const precedingBlocks = [pageContent ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""` : null, contextItemsBlock ?? null].filter(
       (part): part is string => part !== null,
     );

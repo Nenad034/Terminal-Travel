@@ -246,9 +246,45 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(sentContent).toContain('Pitanje: uporedi ove rezervacije');
   });
 
-  // Validan FILTERED_LIST prosleđuje eksplicitno uputstvo agentu da pozove filter_list sa TAČNO
-  // istim view/filterima — deterministički, ne prepričavanje/nagađanje iz teksta (§6.5.4.3).
-  it('contextItems (FILTERED_LIST, validan view) upućuje agenta da pozove filter_list sa istim filterima', async () => {
+  // v1.42 (25.8.2026, na zahtev vlasnika — "kad se stavi modul u kontekst, agent treba ODMAH da
+  // precesalja ceo modul") — priložen FILTERED_LIST za bookings sad SAM odmah povlači stvarne
+  // redove (bez čekanja da model pozove filter_list) i ubacuje ih direktno u prompt.
+  it('contextItems (FILTERED_LIST, bookings) odmah ubacuje STVARNE redove u prompt, bez čekanja na filter_list poziv', async () => {
+    const { service, anthropic, bookings } = makeService({ anthropicConfigured: true });
+    bookings.findAll.mockResolvedValue([
+      {
+        id: 'b1',
+        bookingNumber: 'TT-2027-000001',
+        buyerName: 'Marko Marković',
+        status: 'CONFIRMED',
+        paymentStatus: 'PAID',
+        totalPrice: 500,
+        currency: 'EUR',
+        createdAt: new Date('2027-01-15T00:00:00.000Z'),
+        items: [{ product: { destinationCity: 'Budva', destinationCountry: 'Crna Gora', type: 'ACCOMMODATION' } }],
+      },
+    ]);
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'analiziraj ove rezultate',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [{ type: 'FILTERED_LIST', view: 'bookings', filters: { status: 'CONFIRMED' }, label: 'Lista rezervacija' }],
+    });
+
+    const sentContent = create.mock.calls[0][0].messages[0].content as string;
+    expect(sentContent).toContain('Priložen prikaz "Lista rezervacija" — 1 rezultata ukupno, stvarni podaci ispod');
+    expect(sentContent).toContain('TT-2027-000001');
+    expect(sentContent).toContain('Budva, Crna Gora');
+    expect(sentContent).toContain('odgovori DIREKTNO iz njih na SVAKO pitanje');
+    expect(create.mock.calls[0][0].tools.find((t: any) => t.name === 'filter_list')).toBeDefined();
+  });
+
+  // Pogled bez wired servisa (npr. crm) i dalje nema stvarne redove — poštena napomena umesto
+  // izmišljenog spiska, agent se upućuje na filter_list SAMO ako pitanje traži drugačiju listu.
+  it('contextItems (FILTERED_LIST, pogled bez podataka, npr. crm) priznaje da redovi nisu dostupni, ne izmišlja ih', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
     const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
@@ -257,13 +293,12 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
       query: 'analiziraj ove rezultate',
       channel: 'INTERNAL_PANEL',
       actorUserId: 'u1',
-      contextItems: [{ type: 'FILTERED_LIST', view: 'bookings', filters: { status: 'CONFIRMED' }, resultCount: 14, label: 'Lista rezervacija' }],
+      contextItems: [{ type: 'FILTERED_LIST', view: 'crm', filters: {}, label: 'Gosti i nalogodavci' }],
     });
 
     const sentContent = create.mock.calls[0][0].messages[0].content as string;
-    expect(sentContent).toContain('Filtriran prikaz "Lista rezervacija" (14 rezultata)');
-    expect(sentContent).toContain('pogled "bookings"');
-    expect(sentContent).toContain('{"status":"CONFIRMED"}');
+    expect(sentContent).toContain('stvarni redovi nisu dostupni za ovaj pogled');
+    expect(sentContent).toContain('pogled "crm"');
     expect(sentContent).toContain('pozovi filter_list');
   });
 
