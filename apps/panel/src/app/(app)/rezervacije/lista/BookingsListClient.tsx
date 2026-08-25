@@ -139,7 +139,14 @@ function AddFilteredListButton({ resultCount }: { resultCount: number }) {
 // sticky elementa (forma + traka) bi se oba lepila za `top: 0` i preklapala — jedan omotač rešava
 // to bez merenja visine/JS ResizeObserver-a, jer se ceo blok lepi kao jedna celina.
 export default function BookingsListClient({ bookings, filterBar }: { bookings: RealBooking[]; filterBar: React.ReactNode }) {
-  const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
+  // Višestruki izbor (dopuna 25.8.2026, na zahtev vlasnika: "omoguciti biranje vise stavki") —
+  // ranije je klik na drugu ikonicu ZAMENIO prethodni izbor (`string | null`, jedna vrednost).
+  // Sad je to skup izabranih `Product.type` vrednosti — klik DODAJE/UKLANJA tu ikonicu iz skupa,
+  // prazan skup = bez filtera (svi tipovi). Uzgred ispravlja postojeći bag: "Things to do" nosi
+  // TRI tipa (EXCURSION/EVENT/TICKET, `search-product-types.ts`) — ranija logika je filtrirala
+  // samo `types[0]` (EXCURSION), tiho ignorišući EVENT/TICKET; nova logika (ne)označava CEO
+  // `p.types` skup te ikonice atomično, ne samo prvi element.
+  const [productTypeFilters, setProductTypeFilters] = useState<string[]>([]);
   const [demoOnly, setDemoOnly] = useState(false);
   // Uklanjanje/vraćanje filtera (24.8.2026, na zahtev vlasnika: "Omogucite i uklanjanje filtera
   // na - i ponovno pojavljivanje na + u listi rezervacija") — dugme na traci ostaje UVEK vidljivo
@@ -158,11 +165,15 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
             traku. */}
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
           {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
-            const active = productTypeFilter !== null && p.types.includes(productTypeFilter);
+            const active = p.types.some((t) => productTypeFilters.includes(t));
             return (
               <button
                 key={p.label}
-                onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
+                onClick={() =>
+                  setProductTypeFilters((cur) =>
+                    active ? cur.filter((t) => !p.types.includes(t)) : [...cur, ...p.types.filter((t) => !cur.includes(t))],
+                  )
+                }
                 title={`Filtriraj: ${p.label}`}
                 className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
               >
@@ -194,7 +205,7 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
       </div>
 
       <div className="mt-2">
-        <RealBookingsTable bookings={bookings} productTypeFilter={productTypeFilter} demoOnly={demoOnly} />
+        <RealBookingsTable bookings={bookings} productTypeFilters={productTypeFilters} demoOnly={demoOnly} />
       </div>
     </>
   );

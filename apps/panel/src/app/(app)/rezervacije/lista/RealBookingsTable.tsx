@@ -107,11 +107,12 @@ function PaymentBadge({ label }: { label: string }) {
 // omotača bi se preklapala (oba teže istom `top: 0`), umesto da se slažu jedan ispod drugog.
 export default function RealBookingsTable({
   bookings,
-  productTypeFilter,
+  productTypeFilters,
   demoOnly,
 }: {
   bookings: RealBooking[];
-  productTypeFilter: string | null;
+  /** Dopuna 25.8.2026 — višestruki izbor (BookingsListClient.tsx), prazan niz = bez filtera. */
+  productTypeFilters: string[];
   demoOnly: boolean;
 }) {
   const decorated = useMemo(() => bookings.map(decorate), [bookings]);
@@ -137,11 +138,11 @@ export default function RealBookingsTable({
 
   const filtered = useMemo(() => {
     return decorated.filter((b) => {
-      if (productTypeFilter && b.productType !== productTypeFilter) return false;
+      if (productTypeFilters.length > 0 && !productTypeFilters.includes(b.productType ?? '')) return false;
       if (demoOnly && !b.demoUrgent) return false;
       return true;
     });
-  }, [decorated, productTypeFilter, demoOnly]);
+  }, [decorated, productTypeFilters, demoOnly]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
