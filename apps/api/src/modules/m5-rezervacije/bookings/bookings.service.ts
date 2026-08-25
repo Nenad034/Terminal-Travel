@@ -388,11 +388,11 @@ export class BookingsService {
   // kao postojeći `clientAccountId` iznad — klijentski parametar nikad ne proširuje tuđ pristup).
   async findAll(
     filters: {
-      status?: string;
+      status?: string[];
       channel?: string;
       clientAccountId?: string;
-      paymentStatus?: string;
-      tipNastupanja?: string;
+      paymentStatus?: string[];
+      tipNastupanja?: string[];
       buyerName?: string;
       bookingNumber?: string;
       currency?: string;
@@ -402,7 +402,7 @@ export class BookingsService {
       stayTo?: string;
       returnFrom?: string;
       returnTo?: string;
-      productType?: string;
+      productType?: string[];
       destinationCity?: string;
       destinationCountry?: string;
       hasTravelGuarantee?: string;
@@ -416,15 +416,21 @@ export class BookingsService {
     const clientAccountId = context === 'INTERNAL_PANEL' ? filters.clientAccountId : (ownClientAccountId ?? undefined);
     const isInternal = context === 'INTERNAL_PANEL';
 
+    // Multiselect (24.8.2026, na zahtev vlasnika: "u svakom polju filtera gde je to moguce
+    // multiselect opciju") — status/uplata/tip nastupanja/tip proizvoda sad prihvataju NIZ
+    // vrednosti (`?status=CONFIRMED&status=CANCELLED`), primenjeno preko Prisma `{ in: [...] }`.
+    // Ostala polja (tekst/datum/valuta/garancija) NAMERNO ostaju jednostruka — "gde je to
+    // moguce" isključuje slobodan tekst i tri-state (ima/nema/svejedno, gde bi izbor oba
+    // "ima"+"nema" bio besmislen, isto što i "svejedno").
     const where: Prisma.BookingWhereInput = {
-      status: filters.status as any,
       channel: filters.channel as any,
       clientAccountId,
     };
+    if (filters.status && filters.status.length > 0) where.status = { in: filters.status as any };
 
     if (isInternal) {
-      if (filters.paymentStatus) where.paymentStatus = filters.paymentStatus as PaymentStatus;
-      if (filters.tipNastupanja) where.tipNastupanja = filters.tipNastupanja as TipNastupanja;
+      if (filters.paymentStatus && filters.paymentStatus.length > 0) where.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
+      if (filters.tipNastupanja && filters.tipNastupanja.length > 0) where.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
       if (filters.buyerName) where.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
       if (filters.bookingNumber) where.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
       if (filters.currency) where.currency = filters.currency;
@@ -450,9 +456,9 @@ export class BookingsService {
           ...(filters.returnTo ? { lte: new Date(`${filters.returnTo}T23:59:59.999Z`) } : {}),
         };
       }
-      if (filters.productType || filters.destinationCity || filters.destinationCountry) {
+      if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry) {
         itemWhere.product = {
-          ...(filters.productType ? { type: filters.productType as any } : {}),
+          ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
           ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
           ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
         };

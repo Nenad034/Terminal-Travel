@@ -30,11 +30,11 @@ export class BookingsController {
   @Get()
   @RequirePermission('M5', 'booking', 'VIEW')
   findAll(
-    @Query('status') status: string | undefined,
+    @Query('status') status: string | string[] | undefined,
     @Query('channel') channel: string | undefined,
     @Query('clientAccountId') clientAccountId: string | undefined,
-    @Query('paymentStatus') paymentStatus: string | undefined,
-    @Query('tipNastupanja') tipNastupanja: string | undefined,
+    @Query('paymentStatus') paymentStatus: string | string[] | undefined,
+    @Query('tipNastupanja') tipNastupanja: string | string[] | undefined,
     @Query('buyerName') buyerName: string | undefined,
     @Query('bookingNumber') bookingNumber: string | undefined,
     @Query('currency') currency: string | undefined,
@@ -44,19 +44,23 @@ export class BookingsController {
     @Query('stayTo') stayTo: string | undefined,
     @Query('returnFrom') returnFrom: string | undefined,
     @Query('returnTo') returnTo: string | undefined,
-    @Query('productType') productType: string | undefined,
+    @Query('productType') productType: string | string[] | undefined,
     @Query('destinationCity') destinationCity: string | undefined,
     @Query('destinationCountry') destinationCountry: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
     @CurrentUser() actor: { userId: string },
   ) {
+    // Multiselect (24.8.2026, na zahtev vlasnika) — NestJS `@Query` vraća string kad je
+    // parametar prisutan jednom, niz kad je ponovljen (`?status=A&status=B`). Normalizuje se
+    // ovde na uvek-niz pre prosleđivanja servisu, koji dalje ne mora da razlikuje oblike.
+    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
     return this.bookings.findAll(
       {
-        status,
+        status: toArray(status),
         channel,
         clientAccountId,
-        paymentStatus,
-        tipNastupanja,
+        paymentStatus: toArray(paymentStatus),
+        tipNastupanja: toArray(tipNastupanja),
         buyerName,
         bookingNumber,
         currency,
@@ -66,7 +70,7 @@ export class BookingsController {
         stayTo,
         returnFrom,
         returnTo,
-        productType,
+        productType: toArray(productType),
         destinationCity,
         destinationCountry,
         hasTravelGuarantee,

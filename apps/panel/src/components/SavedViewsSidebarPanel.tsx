@@ -8,8 +8,10 @@ export interface SavedView {
   id: string;
   name: string;
   /** Query parametri liste (isti oblik kao `BookingFilters`/`RealFilterBar`) — ovaj panel ih
-   * samo prosleđuje kroz URL, ne tumači ih (M1 spec §3.9 — vrednost je slobodna po ključu). */
-  filters: Record<string, string>;
+   * samo prosleđuje kroz URL, ne tumači ih (M1 spec §3.9 — vrednost je slobodna po ključu).
+   * Niz vrednosti (24.8.2026, multiselect dopuna) — polje sa više izabranih opcija (npr.
+   * status: ['CONFIRMED','CANCELLED']) čuva SVE, ne samo poslednju. */
+  filters: Record<string, string | string[]>;
 }
 
 const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
@@ -17,10 +19,14 @@ const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
  * (dugme za čuvanje živi u centralnom panelu, ovaj panel u levoj traci — različiti delovi stabla). */
 export const SAVED_VIEWS_CHANGED_EVENT = 'tt:saved-views-changed';
 
-function toQueryString(filters: Record<string, string>): string {
+function toQueryString(filters: Record<string, string | string[]>): string {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (value) params.set(key, value);
+    if (Array.isArray(value)) {
+      for (const v of value) if (v) params.append(key, v);
+    } else if (value) {
+      params.set(key, value);
+    }
   }
   const qs = params.toString();
   return qs ? `?${qs}` : '';

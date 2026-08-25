@@ -30,9 +30,15 @@ function SaveViewButton() {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      const filters: Record<string, string> = {};
+      // Multiselect (24.8.2026) — ponovljen ključ (`status=A&status=B`) mora sačuvati SVE
+      // vrednosti kao niz, ne samo poslednju (prost `filters[key] = value` bi tiho izgubio sve
+      // osim poslednje pri ponovljenom ključu).
+      const filters: Record<string, string | string[]> = {};
       searchParams.forEach((value, key) => {
-        filters[key] = value;
+        const existingValue = filters[key];
+        if (existingValue === undefined) filters[key] = value;
+        else if (Array.isArray(existingValue)) existingValue.push(value);
+        else filters[key] = [existingValue, value];
       });
       const res = await fetch('/api/preferences', { cache: 'no-store' });
       const data = res.ok ? await res.json() : {};

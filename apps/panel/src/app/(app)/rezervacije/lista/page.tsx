@@ -13,9 +13,18 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
   let bookings: RealBooking[] = [];
   let error: string | null = null;
   try {
+    // Multiselect (24.8.2026, na zahtev vlasnika) — `value` može biti `string[]` za polja sa
+    // više izabranih opcija (status/uplata/tip nastupanja/tip proizvoda); svaka vrednost niza
+    // se dodaje kao poseban `key=vrednost` par (`append`, ne `set`) da `GET /sales/bookings`
+    // (poglavlje 11) dobije isti oblik ponovljenog parametra koji NestJS `@Query` prirodno
+    // parsira nazad u niz.
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(searchParams ?? {})) {
-      if (value) params.set(key, value);
+      if (Array.isArray(value)) {
+        for (const v of value) if (v) params.append(key, v);
+      } else if (value) {
+        params.set(key, value);
+      }
     }
     const qs = params.toString() ? `?${params.toString()}` : '';
     bookings = await apiFetch<RealBooking[]>(`/sales/bookings${qs}`);

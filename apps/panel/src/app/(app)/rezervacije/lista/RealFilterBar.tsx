@@ -1,9 +1,15 @@
 import Link from 'next/link';
 
+// Multiselect (24.8.2026, na zahtev vlasnika: "u svakom polju filtera gde je to moguce
+// multiselect opciju") — polja koja su kategorička (konačan, mali skup vrednosti) prihvataju
+// niz. Next.js `searchParams` daje `string[]` kad je query parametar ponovljen (`?status=A&
+// status=B`), `string` kad je prisutan jednom — oba oblika se prihvataju, normalizuju u
+// `toArray()` ispod pre slanja API-ju. Slobodan tekst/datumi/valuta/tri-state garancija
+// NAMERNO ostaju jednostruki — "gde je to moguce" isključuje ih (videti M5 spec v1.59).
 export interface BookingFilters {
-  status?: string;
-  paymentStatus?: string;
-  tipNastupanja?: string;
+  status?: string | string[];
+  paymentStatus?: string | string[];
+  tipNastupanja?: string | string[];
   buyerName?: string;
   bookingNumber?: string;
   currency?: string;
@@ -13,10 +19,15 @@ export interface BookingFilters {
   stayTo?: string;
   returnFrom?: string;
   returnTo?: string;
-  productType?: string;
+  productType?: string | string[];
   destinationCity?: string;
   destinationCountry?: string;
   hasTravelGuarantee?: string;
+}
+
+function toArray(v: string | string[] | undefined): string[] {
+  if (v === undefined) return [];
+  return Array.isArray(v) ? v : [v];
 }
 
 const STATUSES = ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED', 'CANCELLED', 'COMPLETED'];
@@ -41,9 +52,8 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
       <Field label="Nosilac rezervacije">
         <input name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} />
       </Field>
-      <Field label="Status">
-        <select name="status" defaultValue={filters.status ?? ''} className={inputClass}>
-          <option value="">svi</option>
+      <Field label="Status (Ctrl/Cmd-klik za više)">
+        <select name="status" multiple defaultValue={toArray(filters.status)} className={`${inputClass} h-[62px]`}>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -51,9 +61,8 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           ))}
         </select>
       </Field>
-      <Field label="Uplata">
-        <select name="paymentStatus" defaultValue={filters.paymentStatus ?? ''} className={inputClass}>
-          <option value="">sve</option>
+      <Field label="Uplata (Ctrl/Cmd-klik za više)">
+        <select name="paymentStatus" multiple defaultValue={toArray(filters.paymentStatus)} className={`${inputClass} h-[62px]`}>
           {PAYMENT_STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -61,9 +70,8 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           ))}
         </select>
       </Field>
-      <Field label="Tip nastupanja">
-        <select name="tipNastupanja" defaultValue={filters.tipNastupanja ?? ''} className={inputClass}>
-          <option value="">svi</option>
+      <Field label="Tip nastupanja (Ctrl/Cmd-klik za više)">
+        <select name="tipNastupanja" multiple defaultValue={toArray(filters.tipNastupanja)} className={`${inputClass} h-[45px]`}>
           {TIP_NASTUPANJA.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -71,9 +79,8 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           ))}
         </select>
       </Field>
-      <Field label="Tip proizvoda">
-        <select name="productType" defaultValue={filters.productType ?? ''} className={inputClass}>
-          <option value="">svi</option>
+      <Field label="Tip proizvoda (Ctrl/Cmd-klik za više)">
+        <select name="productType" multiple defaultValue={toArray(filters.productType)} className={`${inputClass} h-[62px]`}>
           {PRODUCT_TYPES.map((s) => (
             <option key={s} value={s}>
               {s}
