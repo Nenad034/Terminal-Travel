@@ -137,22 +137,18 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
           >
             <Icon name="bell" /> demo zvona
           </button>
+          <div className="ml-auto">
+            <SaveViewButton />
+          </div>
           <button
             onClick={() => setFiltersCollapsed((v) => !v)}
             title={filtersCollapsed ? 'Prikaži ostale filtere' : 'Sakrij ostale filtere'}
-            className="ml-auto flex h-[26px] w-[26px] items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
+            className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel2 hover:text-ink"
           >
             <Icon name={filtersCollapsed ? 'add' : 'remove'} />
           </button>
         </div>
-        {!filtersCollapsed && (
-          <div className="mt-2">
-            {filterBar}
-            <div className="flex justify-end">
-              <SaveViewButton />
-            </div>
-          </div>
-        )}
+        {!filtersCollapsed && <div className="mt-2">{filterBar}</div>}
       </div>
 
       <div className="mt-2">
