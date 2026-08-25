@@ -1,7 +1,8 @@
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { apiFetch } from '@/lib/api-client';
-import RealBookingsTable, { type RealBooking } from './RealBookingsTable';
+import BookingsListClient from './BookingsListClient';
+import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
 
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
@@ -36,10 +37,8 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
         </p>
       </div>
 
-      <RealFilterBar filters={searchParams ?? {}} />
-
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {!error && <RealBookingsTable bookings={bookings} />}
+      {!error && <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />}
     </div>
   );
 }

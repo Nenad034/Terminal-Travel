@@ -98,10 +98,22 @@ function PaymentBadge({ label }: { label: string }) {
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
 }
 
-export default function RealBookingsTable({ bookings }: { bookings: RealBooking[] }) {
+// Filter po tipu proizvoda i "demo zvona" (24.8.2026, dopuna: "Filtere u listi rezervacija
+// fixirajte da budu vidljivi prilikom scrolovanja") — državа premeštena u `BookingsListClient.tsx`
+// (novi zajednički sticky omotač sa `RealFilterBar`, poglavlje 5a/5b dizajn dok. princip da
+// filteri ostaju vidljivi) da bi traka ikonica i forma filtera mogle da se lepe za vrh ZAJEDNO,
+// kao jedan sticky blok — dva odvojena `position: sticky` elementa bez zajedničkog
+// omotača bi se preklapala (oba teže istom `top: 0`), umesto da se slažu jedan ispod drugog.
+export default function RealBookingsTable({
+  bookings,
+  productTypeFilter,
+  demoOnly,
+}: {
+  bookings: RealBooking[];
+  productTypeFilter: string | null;
+  demoOnly: boolean;
+}) {
   const decorated = useMemo(() => bookings.map(decorate), [bookings]);
-  const [productTypeFilter, setProductTypeFilter] = useState<string | null>(null);
-  const [demoOnly, setDemoOnly] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [urgentFor, setUrgentFor] = useState<DecoratedRow | null>(null);
@@ -184,30 +196,6 @@ export default function RealBookingsTable({ bookings }: { bookings: RealBooking[
 
   return (
     <>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
-        {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
-          const active = productTypeFilter !== null && p.types.includes(productTypeFilter);
-          return (
-            <button
-              key={p.label}
-              onClick={() => setProductTypeFilter((cur) => (cur && p.types.includes(cur) ? null : p.types[0]))}
-              title={`Filtriraj: ${p.label}`}
-              className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
-            >
-              <Icon name={p.icon} />
-            </button>
-          );
-        })}
-        <div className="mx-1 h-5 w-px bg-ink-faint/40" />
-        <button
-          onClick={() => setDemoOnly((v) => !v)}
-          title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
-          className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
-        >
-          <Icon name="bell" /> demo zvona
-        </button>
-      </div>
-
       <div className="overflow-x-auto rounded-lg border border-border bg-panel">
         <table className="w-full min-w-[980px] text-left text-xs">
           <thead>
