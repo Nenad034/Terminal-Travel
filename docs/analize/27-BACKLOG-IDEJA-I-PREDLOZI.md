@@ -95,6 +95,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M4 — Integracije spoljnih API konekcija
 *(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
 - Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) — implementiraju se kasnije.
+- **TravelgateX saradnja u procesu uspostavljanja** (25.8.2026) — vidi M10 stavku o Travelsoft Pay (ista grupacija, Travelsoft Group) kao mogućem platnom provajderu, ne samo sadržajni adapter.
 - Tačni rate-limit po provajderu — definišu se kad se zna stvarni Travelgate ugovor.
 - Solvex produkcijski pristup (URL/kredencijali) — nije dobijen, test kredencijali potvrđeno aktivni (avgust 2026).
 - Dedup istog fizičkog hotela preko više provajdera (Travelgate + Solvex) — nema definisan mehanizam mapiranja.
@@ -167,11 +168,12 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Ograničenje gotovine (AML) — potvrditi sa pravnikom da li je ručna procedura dovoljna.
 - Kurs pri više uplata u različitim danima (avans + balans) — zahteva potvrdu knjigovođe.
 - Izbor konkretnog PCI-DSS platnog provajdera koji podržava RSD/lokalne kartice. **Do tada:** `card/initiate` odgovor izlaže `gatewayTransactionId` i M8 sam poziva `card/webhook` odmah posle initiate (simulira korak provajdera, poglavlje 7.1/7.2 dopuna avgust 2026) — ukloniti čim stvaran hostovani checkout postoji.
+- **Travelsoft Pay kao mogućnost za plaćanja/FX** (25.8.2026, vlasnik naišao na travelsoftpay.com dok se uspostavlja saradnja sa TravelgateX — ista grupacija, Travelsoft Group) — travel-native platforma za virtuelne kartice ka dobavljačima, orkestraciju naplate od gostiju (multi-PSP routing) i multi-currency isplate dobavljačima. Ne pokriva SEF/ESIR fiskalizaciju (odvojeno, domaći zakonski zahtev) — relevantno za deo koji SEF/ESIR ne pokriva: plaćanja stranim dobavljačima, FX, kartično naplaćivanje gostiju. Kandidat i za PCI-DSS platnog provajdera iznad i za `VIRTUAL_CARD` isplate ispod. Nije odlučeno, čeka dalju razradu M10 i status TravelgateX saradnje (moguća gotova integracija unutar iste grupacije). Detalji: [[project_travelgatex_travelsoftpay]] u memoriji.
 - Granični slučajevi PDV po sistemu marže (mešoviti aranžmani) — zahtevaju potvrdu knjigovođe.
 - Pravna posledica `buyer_acceptance_status = EXPIRED`/`REJECTED` kod SEF fakture.
 - BSP poravnanje — mehanizam definiše se kad M4 dobije avio/GDS adapter.
 - Da li obaveze prema van-M3 dobavljačima ulaze u `SupplierObligation`.
-- Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima.
+- Izbor platnog provajdera za `VIRTUAL_CARD` isplate dobavljačima. Vidi Travelsoft Pay kandidat iznad.
 - Tačan tehnički format kojim SEF prihvata `KNJIZNO_ODOBRENJE` — potvrditi sa knjigovođom.
 - FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
 - `buyer_acceptance_status → EXPIRED` prelazak nije implementiran (nema periodičnog posla koji proverava istekle 15-dnevne rokove) — dodato pri implementaciji, avgust 2026.
