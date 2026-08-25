@@ -193,7 +193,11 @@ export default function Shell({
       <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
       <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
       <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
-      <AiContextProvider onFirstAdd={openRightPanelForCurrentModule}>
+      {/* `onFirstAdd` NE otvara desni panel dok je korisnik u Fokus tabu (dopuna 25.8.2026, na
+          zahtev vlasnika: "kada se klikne na # otvara se odmah desni panel iako je vec ai agent
+          u celom tabu. To ukinite") — AI chat je tamo već preko celog centralnog prostora
+          (`/ai-asistent`, §6c.0), otvaranje desnog panela pored njega nema smisla/nepotrebno je. */}
+      <AiContextProvider onFirstAdd={() => { if (pathname !== '/ai-asistent') openRightPanelForCurrentModule(); }}>
         {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim

@@ -507,17 +507,31 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                           <Icon name="symbol-number" />
                         </button>
                       </div>
+                      {/* "#" i na pojedinačnim stavkama, ne samo na nazivu modula (dopuna
+                          25.8.2026, na zahtev vlasnika: "oznaku za kontekst stavite i u podmeni
+                          stavke") — isti mehanizam kao grupa iznad, samo dodaje POJEDINAČNU
+                          sekciju (npr. "Kalendar rezervacija"), ne ceo modul. Ne navigira, ne
+                          zatvara popup — razlika od klika na ostatak reda. */}
                       {groupItems.map((item) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            openTab(item.href, item.label);
-                            setModulePickerOpen(false);
-                          }}
-                          className="flex w-full items-center gap-2 py-1.5 pl-7 pr-3 text-left text-ink-dim hover:bg-panel-2 hover:text-ink"
-                        >
-                          <Icon name={item.icon} /> {item.label}
-                        </button>
+                        <div key={item.id} className="group flex w-full items-center justify-between gap-1 pl-7 pr-1.5 text-ink-dim hover:bg-panel-2 hover:text-ink">
+                          <button
+                            onClick={() => {
+                              openTab(item.href, item.label);
+                              setModulePickerOpen(false);
+                            }}
+                            className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left"
+                          >
+                            <Icon name={item.icon} /> <span className="truncate">{item.label}</span>
+                          </button>
+                          <button
+                            onClick={() => addRecord(item.label)}
+                            disabled={atCapacity}
+                            title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj "${item.label}" u AI kontekst`}
+                            className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded text-ink-faint opacity-0 hover:bg-panel hover:text-accent focus:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Icon name="symbol-number" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   );
