@@ -59,6 +59,14 @@ export default function RightPanel({
     usePanelCollection();
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [dragOver, setDragOver] = useState(false);
+  // Sklapanje jednog od dva naslagana dela kad nije potreban (dopuna 25.8.2026, na zahtev
+  // vlasnika: "kada se nalaze u desnom panelu i ai agent i neki sadrzaj omoguciti uklanjanje
+  // jednog od dva dela ako nije potreban") — SAMO vizuelno sklapanje (visina 0), `AiChatBox`
+  // ostaje montiran čak i kad je sklopljen (isti princip kao kolabovan ceo panel, Shell.tsx) —
+  // istorija razgovora se ne gubi. Sklapanje gornjeg dela pušta AI chat da zauzme CEO preostali
+  // prostor umesto fiksnih ~40% (`topCollapsed` ispod menja AI sekciju sa `h-[40%]` na `flex-1`).
+  const [topCollapsed, setTopCollapsed] = useState(false);
+  const [chatCollapsed, setChatCollapsed] = useState(false);
 
   const isProdaja = moduleId === PRODAJA_MODULE_ID;
   const collectedItems = itemsByModule[moduleId] ?? [];
@@ -126,6 +134,13 @@ export default function RightPanel({
         </span>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => setTopCollapsed((v) => !v)}
+            title={topCollapsed ? 'Prikaži ovaj deo' : 'Sklopi ovaj deo (AI chat zauzima ostatak prostora)'}
+            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+          >
+            <Icon name={topCollapsed ? 'chevron-down' : 'chevron-up'} />
+          </button>
+          <button
             onClick={onToggleDisplayMode}
             title={displayMode === 'push' ? 'Prelazi preko sadržaja (bez sužavanja)' : 'Sužava sadržaj (bez preklapanja)'}
             className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
@@ -145,7 +160,7 @@ export default function RightPanel({
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className={topCollapsed ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
       {isProdaja && items.length === 0 && summary && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
       )}
@@ -249,10 +264,29 @@ export default function RightPanel({
       </div>
 
       {/* §6c.0 — naslagano ISPOD sadržaja iznad, ~40% visine panela (nasleđuje vlasnikov
-          prvobitni predlog "40% visine ekrana", ovde primenjen na visinu SAMOG PANELA). Uvek
-          montirano (isti roditelj, samo se panel kolabuje — Shell.tsx) — istorija se ne gubi. */}
-      <div className="flex h-[40%] flex-shrink-0 flex-col overflow-hidden border-t border-border bg-panel">
-        <AiChatBox />
+          prvobitni predlog "40% visine ekrana", ovde primenjen na visinu SAMOG PANELA) — ILI
+          CEO preostali prostor kad je gornji deo sklopljen (`topCollapsed`). `AiChatBox` je
+          UVEK montiran (isti roditelj, samo se sekcija/panel kolabuje) — istorija se ne gubi. */}
+      <div
+        className={`flex flex-shrink-0 flex-col overflow-hidden border-t border-border bg-panel ${
+          chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : 'h-[40%]'
+        }`}
+      >
+        <div className="flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
+          <span className="flex items-center gap-1.5">
+            <Icon name="sparkle" className="text-accent" /> AI asistent
+          </span>
+          <button
+            onClick={() => setChatCollapsed((v) => !v)}
+            title={chatCollapsed ? 'Prikaži AI chat' : 'Sklopi AI chat (ostatak zauzima ostali sadržaj)'}
+            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+          >
+            <Icon name={chatCollapsed ? 'chevron-up' : 'chevron-down'} />
+          </button>
+        </div>
+        <div className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'}>
+          <AiChatBox />
+        </div>
       </div>
     </div>
   );

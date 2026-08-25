@@ -5,9 +5,37 @@ import { createPortal } from 'react-dom';
 import Icon from './Icon';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
-import { NAV_ITEMS } from '@/lib/nav';
+import { NAV_ITEMS, type NavItem } from '@/lib/nav';
 import CopyButton from './CopyButton';
 import { useAiContext, type AiContextItem } from './AiContextContext';
+
+// Dizajn dok. §6c.0 — strelica "Pošalji" u bojama loga (25.8.2026, na zahtev vlasnika: "Samo
+// strelica neka bude u boji Loga"). ISTA tri tona kao logo (TopBar.tsx, fiksno, ne prati temu
+// panela — brend ostaje isti bez obzira na temu, isti princip kao logo). Codicon glifovi ne
+// podržavaju pouzdano `background-clip: text` preko ::before pseudo-elementa (razlog zašto ovo
+// NIJE Icon.tsx codicon), pa je isti pristup kao BrendIcon.tsx — inline SVG, `<linearGradient>`.
+function SendArrowIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="tt-send-gradient" x1="0" y1="16" x2="16" y2="0">
+          <stop offset="0%" stopColor="#e8a63c" />
+          <stop offset="50%" stopColor="#e2685a" />
+          <stop offset="100%" stopColor="#a99bd8" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M14.5 1.5 1.5 7.1c-.6.26-.55 1.13.07 1.32l4.8 1.48 1.48 4.8c.19.62 1.06.67 1.32.07L14.5 1.5Z"
+        fill="none"
+        stroke="url(#tt-send-gradient)"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <path d="M6.5 9.5 14.5 1.5" stroke="url(#tt-send-gradient)" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 // Ispisivanje reč-po-reč (na zahtev vlasnika, 19.8.2026 — "kao u AI pretrazi u Chrome ili u
 // VS Code"). Odgovor i dalje stiže u JEDNOM odgovoru sa servera (M15 omnisearch nema pravi
@@ -67,9 +95,6 @@ interface Turn {
   inactive: boolean;
 }
 
-// Prečice ispod polja za unos (dizajn dok. §6c — "šta još"), na zahtev vlasnika 19.8.2026.
-const QUICK_LINK_IDS = ['pretraga', 'crm', 'katalog', 'podrska'];
-
 // Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
 // referencu, FILTERED_LIST dodaje broj rezultata radi transparentnosti ("šta je agent video").
 function itemLabel(item: AiContextItem): string {
@@ -120,7 +145,26 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   // NJEGOVIH stvarnih (sadržajem određenih) granica — smer otvaranja menija (gore/dole) tu ništa
   // ne menja, jer panel nije fiksne visine, samo se uklapa oko sadržaja. Jedino pravo rešenje je
   // da meni izađe iz tog roditelja preko portala (ispod), umesto da bude njegovo dete.
-  const [plusMenuPos, setPlusMenuPos] = useState<{ top: number; left: number } | null>(null);
+  // `bottom` (ne `top`) — dopuna 25.8.2026, dizajn dok. §6c.0: red za unos je sad na DNU panela
+  // (ranije je bio pri vrhu, meni se otvarao nadole u prazan prostor ispod). Meni sad raste
+  // NAGORE od dugmeta (`bottom: window.innerHeight - rect.top`), isti portal-van-roditelja
+  // razlog kao ranije (`overflow-hidden` seče apsolutno pozicioniran element).
+  const [plusMenuPos, setPlusMenuPos] = useState<{ bottom: number; left: number } | null>(null);
+  const [modulePickerOpen, setModulePickerOpen] = useState(false);
+  const moduleButtonRef = useRef<HTMLDivElement>(null);
+  const [modulePickerPos, setModulePickerPos] = useState<{ bottom: number; left: number } | null>(null);
+  // §6c.0a (dopuna 25.8.2026, na zahtev vlasnika: "oznaka za kontekst... otvore svi moduli u
+  // popup meniju... odabrati jedan od modula") — ISTA, ulogom filtrirana lista koju već koriste
+  // Sidebar/CommandPalette (`visibleNavItems`, server-side) — učitana preko `/api/nav-items` jer
+  // AiChatBox u Fokus tabu (`/ai-asistent`) nema pristup Shell.tsx-ovim server-side `items`
+  // props-ima (posebna ruta, van tog stabla). Učitano jednom, ne po otvaranju menija.
+  const [moduleItems, setModuleItems] = useState<NavItem[]>([]);
+  useEffect(() => {
+    fetch('/api/nav-items', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setModuleItems(Array.isArray(data) ? data.filter((i: NavItem) => i.implemented) : []))
+      .catch(() => setModuleItems([]));
+  }, []);
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef<any>(null);
   // BAG (23.8.2026, prijavio vlasnik uživo — "Hydration failed... Expected server HTML to
@@ -254,13 +298,18 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
     recognition.start();
   }
 
-  const quickLinks = QUICK_LINK_IDS.map((id) => NAV_ITEMS.find((i) => i.id === id)).filter((i): i is (typeof NAV_ITEMS)[number] => Boolean(i));
-
   return (
     <div className="flex h-full flex-col">
-      {turns.length > 0 && <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto py-2">
-          {turns.map((t, i) => (
-            <div key={i} className="flex flex-col gap-1.5">
+      {/* Dopuna 25.8.2026, na zahtev vlasnika: "Poruke idu odozdo ka gore" + red za unos na dno
+          panela. UVEK montirano (ne `{turns.length > 0 && ...}`) — ako se prazan uslov ukloni iz
+          DOM-a, nema `flex-1` elementa koji popunjava prostor, pa red za unos "isplivava" na vrh
+          umesto da ostane pri dnu (tačno bag prijavljen uživo, snimak ekrana). `flex-col-reverse`
+          + `[...turns].reverse()` — najnovija tura je PRVO dete u DOM-u, `flex-col-reverse` je
+          crta na DNU (najbliže polju za unos), stariji razgovor raste NAGORE; scroll pozicija
+          prirodno ostaje "prilepljena" za najnoviju poruku bez ručnog scrollIntoView-a. */}
+      <div className="flex min-h-0 flex-1 flex-col-reverse gap-3 overflow-y-auto py-2">
+          {[...turns].reverse().map((t, i) => (
+            <div key={turns.length - 1 - i} className="flex flex-col gap-1.5">
               {t.contextLabels && t.contextLabels.length > 0 && (
                 <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabels.join(' · ')}</div>
               )}
@@ -303,7 +352,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
               )}
             </div>
           ))}
-        </div>}
+      </div>
 
       {effectiveContextLabels.length > 0 && (
         <div className="mx-2 mt-2 flex flex-wrap items-center gap-1.5">
@@ -352,7 +401,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             onClick={() => {
               if (!plusOpen && plusRef.current) {
                 const rect = plusRef.current.getBoundingClientRect();
-                setPlusMenuPos({ top: rect.bottom + 4, left: rect.left });
+                setPlusMenuPos({ bottom: window.innerHeight - rect.top + 4, left: rect.left });
               }
               setPlusOpen((v) => !v);
             }}
@@ -363,14 +412,15 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           </button>
           {/* Portal ka document.body (23.8.2026) — vidi komentar uz `plusMenuPos` iznad za razlog.
               Pozicioniran preko `position: fixed` + izračunatih piksela, ne preko Tailwind
-              `absolute`/`top-full` klasa (te su relativne u odnosu na roditelja, tačno ono što
+              `absolute`/`bottom-full` klasa (te su relativne u odnosu na roditelja, tačno ono što
               je izlagalo meni sečenju). `z-50` ovde je odbrana u dubinu — portal na kraju
-              `<body>` već prirodno crta iznad ostatka stranice bez toga. */}
+              `<body>` već prirodno crta iznad ostatka stranice bez toga. Otvara se NAGORE
+              (`bottom`, ne `top`) — dopuna 25.8.2026, red za unos je sad pri dnu panela. */}
           {plusOpen &&
             plusMenuPos &&
             createPortal(
               <div
-                style={{ top: plusMenuPos.top, left: plusMenuPos.left }}
+                style={{ bottom: plusMenuPos.bottom, left: plusMenuPos.left }}
                 className="fixed z-50 w-56 rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
               >
                 <button
@@ -393,6 +443,48 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                 >
                   <Icon name="search" /> Rezultati trenutne pretrage
                 </button>
+              </div>,
+              document.body,
+            )}
+        </div>
+        {/* §6c.0a (dopuna 25.8.2026, na zahtev vlasnika) — "oznaka za kontekst" koja otvara SVE
+            module (ulogom filtrirano, `/api/nav-items`) u popup meniju, isti razlog za otvaranje
+            NAGORE kao `+` meni iznad. Klik na modul otvara ga (isti `openTab` mehanizam kao
+            Sidebar/CommandPalette) i zatvara meni. */}
+        <div ref={moduleButtonRef} className="relative">
+          <button
+            onClick={() => {
+              if (!modulePickerOpen && moduleButtonRef.current) {
+                const rect = moduleButtonRef.current.getBoundingClientRect();
+                setModulePickerPos({ bottom: window.innerHeight - rect.top + 4, left: rect.left });
+              }
+              setModulePickerOpen((v) => !v);
+            }}
+            title="Otvori modul"
+            className={`flex h-[31px] w-[31px] items-center justify-center rounded ${modulePickerOpen ? 'bg-panel-2 text-accent' : 'hover:bg-panel-2 hover:text-ink'}`}
+          >
+            <Icon name="list-tree" />
+          </button>
+          {modulePickerOpen &&
+            modulePickerPos &&
+            createPortal(
+              <div
+                style={{ bottom: modulePickerPos.bottom, left: modulePickerPos.left }}
+                className="fixed z-50 max-h-72 w-64 overflow-y-auto rounded-lg border border-border bg-panel py-1 text-xs shadow-lg"
+              >
+                {moduleItems.length === 0 && <p className="px-3 py-2 text-ink-faint">Učitavanje...</p>}
+                {moduleItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      openTab(item.href, item.label);
+                      setModulePickerOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink"
+                  >
+                    <Icon name={item.icon} /> {item.label}
+                  </button>
+                ))}
               </div>,
               document.body,
             )}
@@ -430,30 +522,10 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
         <button
           onClick={() => send()}
           title="Pošalji"
-          className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded hover:bg-panel-2 hover:text-accent"
+          className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded hover:bg-panel-2"
         >
-          <Icon name="send" />
+          <SendArrowIcon />
         </button>
-      </div>
-
-      {/* Centrirano (21.8.2026, na zahtev vlasnika: "centrirajte tagove na sredinu donje
-          polovine chata") — ranije levo poravnato (`flex flex-wrap`), sad `justify-center`.
-          Srednja linija (border-t koji je razdvajao ovaj red od reda za unos iznad) UKLONJENA
-          (21.8.2026, noviji zahtev: "uklonite srednju liniju chata") — poništava prethodni
-          "ostavite samo gornju liniju" pokušaj; oba reda sad bez razdelne linije između sebe.
-          ISKOŠENE IVICE — probano pa POVUČENO (22.8.2026, isti dan, "ne sviđa mi se, vratite
-          kako je bilo") — nazad na običan pravougaon tag/pilula oblik, bez skewX transform-a. */}
-      <div className="flex flex-wrap justify-center gap-1.5 px-2 py-1.5">
-        {quickLinks.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => openTab(item.href, item.label)}
-            title={item.label}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded border border-ink-faint text-ink-faint hover:border-accent hover:text-ink"
-          >
-            <Icon name={item.icon} />
-          </button>
-        ))}
       </div>
     </div>
   );
