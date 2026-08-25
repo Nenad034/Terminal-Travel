@@ -9,16 +9,21 @@ import { createContext, useContext, useState } from 'react';
 // `RECORD` — pojedinačan zapis, agent ga sam razrešava svojim postojećim alatima (ne šalje se
 // sirov podatak, samo čitljiva referenca). `FILTERED_LIST` — ceo trenutni/sačuvan filtriran
 // prikaz liste, najviše jedan odjednom.
+// `resultCount` opciono (dopuna 25.8.2026, uživo nalaz — vidi AiChatBox.tsx `filterableViewForPath`)
+// — kad se FILTERED_LIST konstruiše iz nav-item konteksta (ne iz stvarno prikazane liste, npr.
+// auto-kontekst taba ili "#" na stavci menija), klijent NE zna stvaran broj rezultata unapred
+// (nema poziva serveru samo da bi se izbrojalo) — server (`omnisearch.service.ts`) već ispravno
+// prikazuje "nepoznat broj rezultata" kad `resultCount` nedostaje.
 export type AiContextItem =
   | { id: string; type: 'RECORD'; refLabel: string }
-  | { id: string; type: 'FILTERED_LIST'; view: string; filters: Record<string, unknown>; resultCount: number; label: string };
+  | { id: string; type: 'FILTERED_LIST'; view: string; filters: Record<string, unknown>; resultCount?: number; label: string };
 
 const MAX_ITEMS = 8;
 
 interface AiContextContextValue {
   items: AiContextItem[];
   addRecord: (refLabel: string) => void;
-  addFilteredList: (args: { view: string; filters: Record<string, unknown>; resultCount: number; label: string }) => void;
+  addFilteredList: (args: { view: string; filters: Record<string, unknown>; resultCount?: number; label: string }) => void;
   removeItem: (id: string) => void;
   clear: () => void;
   atCapacity: boolean;
@@ -41,7 +46,7 @@ export function AiContextProvider({ children, onFirstAdd }: { children: React.Re
     });
   }
 
-  function addFilteredList(args: { view: string; filters: Record<string, unknown>; resultCount: number; label: string }) {
+  function addFilteredList(args: { view: string; filters: Record<string, unknown>; resultCount?: number; label: string }) {
     setItems((prev) => {
       if (prev.some((i) => i.type === 'FILTERED_LIST')) return prev; // najviše jedan odjednom, M15 spec §6.5.4.3
       if (prev.length >= MAX_ITEMS) return prev;

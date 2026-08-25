@@ -96,9 +96,34 @@ interface Turn {
 }
 
 // Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
-// referencu, FILTERED_LIST dodaje broj rezultata radi transparentnosti ("šta je agent video").
+// referencu, FILTERED_LIST dodaje broj rezultata radi transparentnosti ("šta je agent video") —
+// kad broj nije poznat unapred (kontekst iz nav-stavke, ne iz stvarno prikazane liste — vidi
+// `filterableViewForPath` ispod), izostavlja se umesto lažnog "(undefined)".
 function itemLabel(item: AiContextItem): string {
-  return item.type === 'RECORD' ? item.refLabel : `Filtrirano: ${item.label} (${item.resultCount})`;
+  if (item.type === 'RECORD') return item.refLabel;
+  return item.resultCount !== undefined ? `Filtrirano: ${item.label} (${item.resultCount})` : `Filtrirano: ${item.label}`;
+}
+
+// Ispravka (25.8.2026, uživo nalaz uz snimak ekrana — pitanje "koliko rezervacija ima u listi
+// rezervacija" uz priložen kontekst "Lista rezervacija" je dobilo "ne vidim sadržaj ekrana"
+// umesto da agent sam pozove `filter_list`). Uzrok: običan RECORD kontekst nosi SAMO čitljivu
+// referencu — agent nema signal da "Lista rezervacija" odgovara TAČNO M15 `filter_list` pogledu
+// `bookings` (filterable-views.ts, backend). Za rute koje IMAJU pravi pogled u tom registru,
+// kontekst (auto-kontekst taba ILI "#" na stavci menija) sad postaje FILTERED_LIST sa PRAZNIM
+// filterima (= "ceo spisak") umesto običnog RECORD-a — isti deterministički mehanizam kao dugme
+// "Dodaj u AI kontekst" na traci filtera (BookingsListClient.tsx), samo bez aktivnih filtera.
+// `resultCount` namerno izostavljen — klijent ovde ne zna stvaran broj (nema zaseban poziv
+// serveru samo da bi se izbrojalo), backend/model to i dalje moraju stvarno da provere pozivom
+// alata, ne da pretpostave iz broja u čipu.
+const PATH_TO_FILTERABLE_VIEW: Record<string, string> = {
+  '/rezervacije/lista': 'bookings',
+  '/crm': 'crm',
+  '/marketing': 'marketing',
+  '/nadzor': 'health_signals',
+};
+function filterableViewForPath(pathname: string): string | null {
+  const match = Object.keys(PATH_TO_FILTERABLE_VIEW).find((p) => pathname === p || pathname.startsWith(`${p}?`));
+  return match ? PATH_TO_FILTERABLE_VIEW[match] : null;
 }
 
 // Dizajn dok. §6c/§6c.1 — polje za AI razgovor fiksirano pri dnu centralnog panela, na SVAKOM
@@ -122,7 +147,7 @@ function itemLabel(item: AiContextItem): string {
 // Početna, M15 spec §6.5.1).
 export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
-  const { items: contextItems, addRecord, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
+  const { items: contextItems, addRecord, addFilteredList, removeItem: removeContextItem, clear: clearContextItems, atCapacity } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
@@ -219,11 +244,24 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
     const question = (overrideText ?? input).trim();
     if (!question) return;
     const pageContent = readPageContent();
-    // `contextItems` (dopuna v1.40, M15 spec §6.5.4.3) — auto-kontekst taba ulazi kao obična
-    // RECORD stavka (ista referenca kao dosad), plus sve ručno priložene stavke (do 8 ukupno,
-    // isto ograničenje sprovedeno i server-side preko DTO-a).
+    // `contextItems` (dopuna v1.40, M15 spec §6.5.4.3) — auto-kontekst taba ulazi kao RECORD
+    // stavka, OSIM kad ruta ima pravi `filter_list` pogled (§6.5.4.3 ispravka 25.8.2026,
+    // `filterableViewForPath` iznad — "koliko rezervacija ima u listi" je ranije dobijalo
+    // "ne vidim sadržaj ekrana" jer agent nije znao da "Lista rezervacija" znači `bookings`
+    // pogled) — tad postaje FILTERED_LIST sa praznim filterima ("ceo spisak"), isti mehanizam
+    // kao dugme "Dodaj u AI kontekst" na traci filtera. Najviše JEDNA FILTERED_LIST stavka po
+    // zahtevu (§6.5.4.3) — ako je korisnik već ručno priložio jednu, auto-kontekst ostaje RECORD
+    // da ne izgubi svoju referencu tiho (server bi drugu FILTERED_LIST samo preskočio uz log).
+    const autoView = autoContext ? filterableViewForPath(activePath) : null;
+    const autoAsFilteredList = autoView && !contextItems.some((i) => i.type === 'FILTERED_LIST');
     const sentContextItems = [
-      ...(autoContext && !manualLabels.has(autoContext) ? [{ type: 'RECORD' as const, refLabel: autoContext }] : []),
+      ...(autoContext && !manualLabels.has(autoContext)
+        ? [
+            autoAsFilteredList
+              ? { type: 'FILTERED_LIST' as const, view: autoView!, filters: {}, label: autoContext }
+              : { type: 'RECORD' as const, refLabel: autoContext },
+          ]
+        : []),
       ...contextItems.map((i) => (i.type === 'RECORD' ? { type: 'RECORD' as const, refLabel: i.refLabel } : { type: 'FILTERED_LIST' as const, view: i.view, filters: i.filters, resultCount: i.resultCount, label: i.label })),
     ];
     // Istorija (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj
@@ -299,7 +337,11 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    // `fokus` (dopuna 25.8.2026, na zahtev vlasnika: "polje za chat i odgovore prikazite na 70%
+    // sirine ekrana na kom se prikazuje") — SAMO u Fokus tabu (`/ai-asistent`), gde bi razgovor
+    // inače razvučen preko cele širine ekrana bio teže čitljiv; dokovan prikaz u desnom panelu
+    // već ima svoju (užu, ručno podesivu) širinu, ovo se na njega ne primenjuje.
+    <div className={`flex h-full flex-col ${fokus ? 'mx-auto w-[70%]' : ''}`}>
       {/* Dopuna 25.8.2026, na zahtev vlasnika: "Poruke idu odozdo ka gore" + red za unos na dno
           panela. UVEK montirano (ne `{turns.length > 0 && ...}`) — ako se prazan uslov ukloni iz
           DOM-a, nema `flex-1` elementa koji popunjava prostor, pa red za unos "isplivava" na vrh
@@ -524,7 +566,19 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
                             <Icon name={item.icon} /> <span className="truncate">{item.label}</span>
                           </button>
                           <button
-                            onClick={() => addRecord(item.label)}
+                            onClick={() => {
+                              // Ispravka 25.8.2026 (uživo nalaz) — stavka sa pravim `filter_list`
+                              // pogledom (npr. "Lista rezervacija" → `bookings`) ulazi kao
+                              // FILTERED_LIST (prazni filteri = ceo spisak), ne obična RECORD
+                              // referenca — agent tad ima deterministički signal da pozove
+                              // filter_list umesto da traži "sadržaj ekrana" koji ne postoji.
+                              const view = filterableViewForPath(item.href);
+                              if (view && !contextItems.some((i) => i.type === 'FILTERED_LIST')) {
+                                addFilteredList({ view, filters: {}, label: item.label });
+                              } else {
+                                addRecord(item.label);
+                              }
+                            }}
                             disabled={atCapacity}
                             title={atCapacity ? 'Najviše 8 zapisa u AI kontekstu odjednom' : `Dodaj "${item.label}" u AI kontekst`}
                             className="flex h-[22px] w-[22px] flex-shrink-0 items-center justify-center rounded text-ink-faint opacity-0 hover:bg-panel hover:text-accent focus:opacity-100 group-hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-30"

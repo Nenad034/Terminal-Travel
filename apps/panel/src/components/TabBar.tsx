@@ -42,7 +42,12 @@ export default function TabBar() {
             }`}
           >
             {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
-            <span className="truncate">{tab.label}</span>
+            {/* `flex-1` (dopuna 25.8.2026, na zahtev vlasnika: "x za zatvaranje tabova stavite u
+                desni kraj a ne iza teksta odmah") — ranije je labela zauzimala samo sopstvenu
+                prirodnu širinu, pa je "x" kod kratkih naziva sedeo odmah uz tekst sa praznim
+                prostorom do desne ivice taba. Sad labela puni preostali prostor (i dalje se seče
+                na `truncate` kad ne stane), "x" je UVEK na desnoj ivici bez obzira na dužinu teksta. */}
+            <span className="min-w-0 flex-1 truncate">{tab.label}</span>
             {tabs.length > 1 && (
               <span
                 onClick={(e) => {
