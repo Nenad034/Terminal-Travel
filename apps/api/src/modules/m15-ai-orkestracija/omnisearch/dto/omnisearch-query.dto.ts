@@ -1,6 +1,20 @@
-import { IsIn, IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsIn, IsObject, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 const LANGUAGE_CODES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'] as const;
+
+// Dopuna (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj rezervaciji
+// dobija potpuno nepovezan odgovor) — isti uzrok i isto rešenje kao BiTerminalQueryDto
+// (bi-terminal-query.dto.ts, 23.8.2026): svaki `/omnisearch` poziv je bio izolovan razgovor bez
+// pamćenja prethodnih tura. Panel (AiChatBox.tsx) je jedini koji pamti istoriju te sesije u
+// pregledaču — nema novog trajnog mehanizma na serveru (i dalje važi audit log §10, po pozivu).
+export class OmnisearchHistoryTurnDto {
+  @IsString()
+  question!: string;
+
+  @IsString()
+  answer!: string;
+}
 
 // M15 spec §6.5.4, §9 — POST /ai-orchestration/omnisearch. `channel` je prošireno (dopuna
 // avgust 2026, M8 §3a implementacija) sa `B2C_SITE` — prvi prolaz (v1.9) je namerno pokrivao
@@ -31,4 +45,12 @@ export class OmnisearchQueryDto {
   @IsOptional()
   @IsIn(LANGUAGE_CODES)
   lang?: (typeof LANGUAGE_CODES)[number];
+
+  // Dopuna 25.8.2026, vidi OmnisearchHistoryTurnDto iznad. Server ionako seče na poslednjih 6
+  // tura (omnisearch.service.ts) bez obzira šta klijent pošalje — odbrana u dubinu.
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OmnisearchHistoryTurnDto)
+  history?: OmnisearchHistoryTurnDto[];
 }

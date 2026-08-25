@@ -20,6 +20,14 @@ export interface OmnisearchRequest {
   lang?: LanguageCode;
   /** M15 spec §6.5.1 dopuna (22.8.2026) — vidljiv tekst otvorenog taba, samo INTERNAL_PANEL. */
   pageContent?: string;
+  /**
+   * M15 spec §6.5.4.2 dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji
+   * je davalo nepovezan odgovor) — kratkotrajna istorija RAZGOVORA U OVOJ SESIJI PREGLEDAČA,
+   * isti obrazac kao BiTerminalQueryDto.history (23.8.2026). Server je i dalje bez trajne
+   * memorije poruka — panel šalje prethodne ture na svaki poziv, servis samo koristi
+   * poslednjih 6 (vidi askAnthropic ispod).
+   */
+  history?: { question: string; answer: string }[];
   ipAddress?: string | null;
 }
 
@@ -404,7 +412,14 @@ export class OmnisearchService {
     const userContent = pageContent
       ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""\n\nPitanje: ${req.query}`
       : req.query;
-    let messages: any[] = [{ role: 'user', content: userContent }];
+    // Istorija (25.8.2026, vidi OmnisearchRequest.history iznad) — samo tekst pitanja/odgovora
+    // iz prethodnih tura (bez tool_use blokova, koji nisu sačuvani na klijentu), ograničeno na
+    // poslednjih 6 tura, identičan princip kao BiTerminalAgent (bi-terminal.service.ts, 23.8.2026).
+    const historyMessages: any[] = (req.history ?? []).slice(-6).flatMap((h) => [
+      { role: 'user', content: h.question },
+      { role: 'assistant', content: h.answer },
+    ]);
+    let messages: any[] = [...historyMessages, { role: 'user', content: userContent }];
     const entityResults: EntityResult[] = [];
     const matchedRoutes: MatchedRoute[] = [];
     const startedAt = Date.now();

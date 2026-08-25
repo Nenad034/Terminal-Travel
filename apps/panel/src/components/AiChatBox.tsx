@@ -150,6 +150,11 @@ export default function AiChatBox() {
     if (!question) return;
     const sentContext = effectiveContext ?? undefined;
     const pageContent = readPageContent();
+    // Istorija (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj
+    // rezervaciji dobija potpuno nepovezan odgovor, jer je svaki poziv bio izolovan razgovor).
+    // Isti obrazac kao TerminalPanel.tsx (BiTerminalAgent, 23.8.2026) — samo tura sa stvarnim
+    // odgovorom (ne učitavanje/neaktivno) ima šta da doprinese, server ionako seče na poslednjih 6.
+    const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
     setInput('');
     setContext(null);
     setTurns((t) => [...t, { question, contextLabel: sentContext, links: [], loading: true, inactive: false }]);
@@ -159,7 +164,7 @@ export default function AiChatBox() {
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, pageContent }),
+        body: JSON.stringify({ query, pageContent, history }),
       });
       const data: OmnisearchResponse & { message?: string } = await res.json();
       // BAG (23.8.2026, prijavio vlasnik uživo) — `res.status` se ranije uopšte nije proveravao,

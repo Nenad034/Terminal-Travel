@@ -222,6 +222,46 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(sentMessages[0].content).toBe('analiziraj nešto opšte');
   });
 
+  // Dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji je davalo nepovezan
+  // odgovor, jer je svaki `/omnisearch` poziv bio izolovan razgovor). Dokazuje da se `history`
+  // stvarno prosleđuje modelu kao prethodne user/assistant ture, PRE tekućeg pitanja.
+  it('history se prosleđuje modelu kao prethodne user/assistant poruke, poslednjih 6 tura', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'Da, to je ta rezervacija.' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const history = Array.from({ length: 8 }, (_, i) => ({ question: `pitanje ${i}`, answer: `odgovor ${i}` }));
+    await service.search({
+      query: 'da, to je upravo ta rezervacija',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      history,
+    });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    // 6 tura * 2 poruke (user+assistant) + tekuće pitanje na kraju.
+    expect(sentMessages).toHaveLength(13);
+    expect(sentMessages[0]).toEqual({ role: 'user', content: 'pitanje 2' }); // poslednjih 6, ne prve
+    expect(sentMessages[sentMessages.length - 1]).toEqual({ role: 'user', content: 'da, to je upravo ta rezervacija' });
+  });
+
+  it('bez history-je, poruka modelu sadrži samo tekuće pitanje', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'analiziraj nešto opšte', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    expect(sentMessages).toHaveLength(1);
+  });
+
   // M5 spec §6.1 / M15 spec §6.5.1 dopuna (22.8.2026, na zahtev vlasnika — "nabavite alate koji
   // ovo omogucavaju", posle uživo nalaza da AI nije mogao da izlista rezervacije po datumu).
   // Novi alat `list_bookings_by_date` poziva ISTI `BookingsService.calendarDay` koji koristi
