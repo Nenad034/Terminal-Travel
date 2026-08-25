@@ -37,6 +37,7 @@ model User {
   refreshTokens       RefreshToken[]
   mfaRecoveryCodes    MfaRecoveryCode[]
   passwordResetTokens PasswordResetToken[]
+  preferences         UserPreference[]
 
   @@map("users")
 }
@@ -199,6 +200,24 @@ enum ActorType {
   HUMAN
   AI_AGENT
   SYSTEM
+}
+
+// §3.9 `UserPreference` (M1 spec, dopunjeno 18.8.2026, izgrađeno 24.8.2026 na zahtev vlasnika
+// uz M17 "sačuvani prikazi" — dizajn dok. §5b) — generičko ključ-vrednost skladište ličnih
+// UI podešavanja po korisniku (širina panela, tema, sačuvani filteri po listi, itd.), namerno
+// BEZ posebnog modela po svakom podešavanju — oblik vrednosti definiše modul/ekran koji je
+// koristi, M1 ga ne tumači.
+model UserPreference {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, key])
+  @@map("user_preferences")
 }
 
 // ============================================================================

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
+import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
 import type { NavGroup, NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — leva traka prikazuje spisak sekcija AKTIVNE
@@ -75,6 +76,10 @@ export default function Sidebar({
           {/* M5 pretraga — vođena pretraga + filteri u levom panelu (dizajn dok. §5b/§6d),
               van obima za ostatak sekcija (M17 spec §4a), ostaje sledeći korak po sekciji. */}
           {selected.id === 'pretraga' && <SearchSidebarPanel />}
+          {/* Sačuvani prikazi (24.8.2026, na zahtev vlasnika: "Filtere za listu rezervacija
+              stavimo u levi panel... Ima dosta praznog prostora") — dizajn dok. §5b, isti
+              obrazac kao pretraga iznad, samo za "Lista rezervacija". */}
+          {selected.id === 'rezervacije-lista' && <SavedViewsSidebarPanel />}
         </>
       ) : (
         <>

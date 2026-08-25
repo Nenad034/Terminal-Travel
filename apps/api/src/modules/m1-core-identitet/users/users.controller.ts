@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { UserPreferencesService } from './user-preferences.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { CreatePermissionOverrideDto } from './dto/create-permission-override.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,7 +15,23 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('iam/users')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly preferences: UserPreferencesService,
+  ) {}
+
+  // M1 spec §3.9/§6 — lična podešavanja, bez RBAC iznad "sopstveni nalog" (userId iz JWT-a, ne
+  // iz rute). `:id` ruta ispod ne kolidira (dva segmenta "me/preferences" naspram jednog
+  // dinamičkog), ali ostaje deklarisano na vrhu radi čitljivosti.
+  @Get('me/preferences')
+  getMyPreferences(@CurrentUser() actor: { userId: string }) {
+    return this.preferences.findAll(actor.userId);
+  }
+
+  @Put('me/preferences/:key')
+  setMyPreference(@Param('key') key: string, @Body('value') value: unknown, @CurrentUser() actor: { userId: string }) {
+    return this.preferences.set(actor.userId, key, value);
+  }
 
   @Get()
   @RequirePermission('M1', 'user', 'VIEW')
