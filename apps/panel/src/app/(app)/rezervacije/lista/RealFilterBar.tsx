@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 
 // Multiselect (24.8.2026, na zahtev vlasnika: "u svakom polju filtera gde je to moguce
 // multiselect opciju") — polja koja su kategorička (konačan, mali skup vrednosti) prihvataju
@@ -52,42 +53,10 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
       <Field label="Nosilac rezervacije">
         <input name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} />
       </Field>
-      <Field label="Status (Ctrl/Cmd-klik za više)">
-        <select name="status" multiple defaultValue={toArray(filters.status)} className={`${inputClass} h-[62px]`}>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Uplata (Ctrl/Cmd-klik za više)">
-        <select name="paymentStatus" multiple defaultValue={toArray(filters.paymentStatus)} className={`${inputClass} h-[62px]`}>
-          {PAYMENT_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Tip nastupanja (Ctrl/Cmd-klik za više)">
-        <select name="tipNastupanja" multiple defaultValue={toArray(filters.tipNastupanja)} className={`${inputClass} h-[45px]`}>
-          {TIP_NASTUPANJA.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </Field>
-      <Field label="Tip proizvoda (Ctrl/Cmd-klik za više)">
-        <select name="productType" multiple defaultValue={toArray(filters.productType)} className={`${inputClass} h-[62px]`}>
-          {PRODUCT_TYPES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} />
+      <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} />
+      <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} />
+      <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} />
       <Field label="Destinacija (grad)">
         <input name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} />
       </Field>
