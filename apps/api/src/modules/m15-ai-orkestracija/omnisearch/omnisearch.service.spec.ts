@@ -262,7 +262,9 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
 
     const sentContent = create.mock.calls[0][0].messages[0].content as string;
     expect(sentContent).toContain('Filtriran prikaz "Lista rezervacija" (14 rezultata)');
-    expect(sentContent).toContain('filter_list sa view="bookings"');
+    expect(sentContent).toContain('pogled "bookings"');
+    expect(sentContent).toContain('{"status":"CONFIRMED"}');
+    expect(sentContent).toContain('pozovi filter_list');
   });
 
   // Nevažeći view/filteri se NE šalju modelu kao lažno-validna instrukcija — stavka se tiho
@@ -393,6 +395,48 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M5', 'booking', 'VIEW');
     expect(result.matchedRoutes).toHaveLength(1);
     expect(result.matchedRoutes[0].href).toBe('/rezervacije/lista?status=CONFIRMED&status=MODIFIED&destinationCity=Budva');
+  });
+
+  // Ispravka (25.8.2026, uživo nalaz — Fokus tab bez pageContent-a je na "koliko rezervacija
+  // ima" dobijao "ne mogu da izbrojim iz linka", jer je filter_list do sada vraćao SAMO link).
+  it('filter_list (bookings) vraća i stvaran broj rezultata, preko BookingsService.findAll sa identitetom pozivaoca', async () => {
+    const { service, anthropic, bookings } = makeService({ anthropicConfigured: true });
+    bookings.findAll.mockResolvedValue(Array.from({ length: 28 }, (_, i) => ({ id: `b${i}` })));
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'bookings', filters: {} } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'Ima 28 rezervacija.' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'koliko rezervacija ima u sistemu', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'u1' });
+    const toolResultMessage = create.mock.calls[1][0].messages.find((m: any) => m.role === 'user' && Array.isArray(m.content));
+    const toolResultContent = JSON.parse(toolResultMessage.content[0].content);
+    expect(toolResultContent.count).toBe(28);
+  });
+
+  it('filter_list (pogled bez brojanja, npr. crm) vraća countNote umesto pogrešnog broja', async () => {
+    const { service, anthropic, permissions } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'crm', filters: {} } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({ query: 'koliko nalogodavaca ima', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M6', 'client-account', 'VIEW');
+    const toolResultMessage = create.mock.calls[1][0].messages.find((m: any) => m.role === 'user' && Array.isArray(m.content));
+    const toolResultContent = JSON.parse(toolResultMessage.content[0].content);
+    expect(toolResultContent.count).toBeUndefined();
+    expect(toolResultContent.countNote).toMatch(/nije dostupan/);
   });
 
   it('filter_list odbija nepoznato polje čitljivom porukom, ne baca grešku', async () => {

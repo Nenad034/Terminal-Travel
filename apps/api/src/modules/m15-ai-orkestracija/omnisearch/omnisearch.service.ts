@@ -149,8 +149,13 @@ export class OmnisearchService {
         filteredListUsed = true;
         const label = item.label ?? view.label;
         const count = item.resultCount !== undefined ? `${item.resultCount} rezultata` : 'nepoznat broj rezultata';
+        // Ispravka (25.8.2026, uživo nalaz — model je na prazne filtere ({}) reagovao pitanjem
+        // "koje filtere da primenim", umesto da ih vidi kao "bez filtera = ceo spisak" i pozove
+        // alat) — TAČNI filteri (ili eksplicitno "BEZ filtera") sad stoje direktno u tekstu, ne
+        // samo referenca "isti filteri", i instrukcija pokriva i brojanje, ne samo poređenje.
+        const filtersText = Object.keys(item.filters ?? {}).length > 0 ? JSON.stringify(item.filters) : 'BEZ filtera (ceo spisak)';
         lines.push(
-          `${lines.length + 1}. Filtriran prikaz "${label}" (${count}) — pozovi filter_list sa view="${item.view}" i istim filterima da vidiš stvarne redove pre analize/poređenja.`,
+          `${lines.length + 1}. Filtriran prikaz "${label}" (${count}), pogled "${item.view}", filteri: ${filtersText} — za PITANJE O BROJU, SPISKU ILI POREĐENJU, ODMAH pozovi filter_list sa TAČNO ovim view/filters (ne pitaj korisnika koji su filteri, već su ti dati), pa upotrebi "count" iz odgovora alata.`,
         );
       }
     });
@@ -366,7 +371,7 @@ export class OmnisearchService {
     actorUserId: string,
     viewId: string | undefined,
     filters: Record<string, unknown>,
-  ): Promise<{ href: string; label: string } | { error: string }> {
+  ): Promise<{ href: string; label: string; count?: number; countNote?: string } | { error: string }> {
     const view = viewId ? FILTERABLE_VIEWS[viewId] : undefined;
     if (!view) return { error: `Nepoznat pogled "${viewId}". Dostupni pogledi: ${FILTERABLE_VIEW_IDS.join(', ')}.` };
 
@@ -377,7 +382,39 @@ export class OmnisearchService {
     const hasPermission = await this.permissions.hasPermission(actorUserId, permission.module, permission.resource, permission.action);
     if (!hasPermission) return { error: 'Nemate dozvolu za uvid u ovaj deo panela.' };
 
-    return { href: `${view.listPath}${built.qs ? `?${built.qs}` : ''}`, label: `Otvori filtrirano: ${view.label}` };
+    const count = await this.countForFilterListView(viewId!, actorUserId, built.values);
+    return {
+      href: `${view.listPath}${built.qs ? `?${built.qs}` : ''}`,
+      label: `Otvori filtrirano: ${view.label}`,
+      ...(count !== undefined ? { count } : { countNote: 'Broj rezultata nije dostupan za ovaj pogled — ne pretpostavljaj ga, samo predloži link.' }),
+    };
+  }
+
+  // Ispravka (25.8.2026, uživo nalaz — pitanje "koliko rezervacija ima" je u Fokus tabu (dizajn
+  // dok. §6c.0, bez auto-čitanja sadržaja ekrana) dobijalo "ne mogu da izbrojim iz linka", jer je
+  // `filter_list` do sada vraćao SAMO navigacioni link — u dokovanom prikazu je "slučajno" radilo
+  // jer je agent tu brojku čitao sa VIDLJIVE tabele (`pageContent`), ne iz alata. Sad `filter_list`
+  // za pogled `bookings` vraća i STVARAN broj — poziva ISTI `BookingsService.findAll` koji koristi
+  // prava `/sales/bookings` ruta (isti princip kao §6.5.2 "isti interni API kao kanal", ne
+  // sirov upit u bazu), sa identitetom pozivaoca (ista dozvola/vidljivost, ništa šire). Namerno
+  // OGRANIČENO na `bookings` u ovom prolazu (jedini pogled iz stvarno prijavljenog problema) —
+  // ostalih 5 pogleda (crm/marketing/health_signals/help_questions/reports) bi zahtevalo uvoz
+  // dodatnih servisa u ovaj već širok servis, van obima ove ispravke (upisano u poglavlje 11).
+  // `findAll` je već ograničen na `take: 200` (§ta stranica), pa je i ovaj broj gornja granica od
+  // 200, ne beskonačan count — isti, već postojeći kapacitet kao sama lista rezervacija.
+  private async countForFilterListView(viewId: string, actorUserId: string, values: Record<string, string[]>): Promise<number | undefined> {
+    if (viewId !== 'bookings') return undefined;
+    const MULTI_FIELDS = new Set(['status', 'paymentStatus', 'tipNastupanja', 'productType']);
+    const filters: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(values)) {
+      filters[key] = MULTI_FIELDS.has(key) ? value : value[0];
+    }
+    try {
+      const rows = await this.bookings.findAll(filters as any, { userId: actorUserId });
+      return (rows as unknown[]).length;
+    } catch {
+      return undefined;
+    }
   }
 
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
@@ -480,7 +517,7 @@ export class OmnisearchService {
             // pogled/polje, nikad sopstveni upit; alat NIKAD ne izvršava akciju, samo vraća
             // link ka već postojećoj, uživo proverenoj filter traci u panelu (§6.5.4 tačka 3).
             name: 'filter_list',
-            description: `Primeni kombinaciju filtera na listu iz nekog modula panela i vrati link ka filtriranom prikazu. Korisnik i dalje sam otvara link — ovaj alat ništa ne izvršava. Dostupni pogledi i njihova polja: ${Object.values(
+            description: `Primeni kombinaciju filtera na listu iz nekog modula panela i vrati link ka filtriranom prikazu (i, za pogled "bookings", stvaran broj rezultata — koristi tu brojku direktno za pitanja "koliko ima..."; za ostale poglede broj još nije dostupan, reci to umesto da nagađaš). Korisnik i dalje sam otvara link — ovaj alat ništa ne izvršava. Dostupni pogledi i njihova polja: ${Object.values(
               FILTERABLE_VIEWS,
             )
               .map((v) => `${v.id} (${v.label}): ${Object.keys(v.fields).join(', ')}`)
@@ -521,8 +558,11 @@ export class OmnisearchService {
         'više zapisa (npr. konkretne rezervacije) i/ili jedan filtriran prikaz preko ikonice u panelu. Numerisane ' +
         'stavke tog bloka nisu podaci sami po sebi — to su reference koje MORAŠ sam razrešiti odgovarajućim alatom ' +
         '(direktno poklapanje/pretraga za pojedinačan zapis, ili filter_list za stavku koja to eksplicitno traži) ' +
-        'PRE nego što odgovoriš, pogotovo kad korisnik traži poređenje ili zajedničku analizu više priloženih ' +
-        'zapisa — nikad ne pretpostavljaj podatke o njima iz same reference.';
+        'PRE nego što odgovoriš — ovo važi za poređenje/analizu VIŠE zapisa, ALI I za obično pitanje o broju/spisku ' +
+        '("koliko ima...", "koje su...") kad je priložen JEDAN filtriran prikaz sa TAČNIM view/filters u tekstu ' +
+        'bloka — u tom slučaju view/filters su ti već dati, NIKAD ne pitaj korisnika koji su filteri, samo pozovi ' +
+        'filter_list sa njima i pročitaj "count" iz odgovora. Nikad ne pretpostavljaj podatke o zapisima iz same ' +
+        'reference.';
 
     const pageContent = req.pageContent?.slice(0, PAGE_CONTENT_MAX_CHARS).trim();
     const contextItemsBlock = this.buildContextItemsBlock(req.contextItems);
