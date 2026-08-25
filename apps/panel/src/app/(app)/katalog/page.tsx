@@ -59,6 +59,13 @@ export default async function KatalogPage() {
                 href={`/katalog/${p.id}`}
                 label={name}
                 className="rounded-lg border border-border bg-panel p-4 hover:border-accent"
+                dragPayload={{
+                  key: `katalog:${p.id}`,
+                  moduleId: 'katalog-nabavka',
+                  label: name,
+                  subtitle: `${p.type} — ${p.destinationCity}, ${p.destinationCountry}`,
+                  href: `/katalog/${p.id}`,
+                }}
               >
                 <div className="mb-1 flex items-center justify-between">
                   <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-[10px] font-medium text-accent2">{p.type}</span>

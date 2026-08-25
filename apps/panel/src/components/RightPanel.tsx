@@ -6,6 +6,7 @@ import { useSelection } from './SelectionContext';
 import { useRowSummary } from './RowSummaryContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
+import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -20,12 +21,27 @@ import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actio
 // najvaznije informacije") dobio izvor — `RowSummaryContext.tsx`, poseban od `SelectionContext`
 // (različita svrha/oblik). Selekcija ima prioritet nad sažetkom reda ako je oboje aktivno
 // (redak slučaj — različiti ekrani), inače sažetak reda, inače prazno stanje.
-export default function RightPanel({ onClose }: { onClose: () => void }) {
+//
+// M17 spec v2.10 — panel sad grana prikaz po TRENUTNOM MODULU (`moduleId`, `NAV_GROUP` granica
+// iz nav.ts, prosleđuje Shell.tsx). `moduleId === 'prodaja'` (M5: pretraga/kalendar/lista
+// rezervacija) zadržava GORNJI, nepromenjen tok (selekcija za ponudu/sažetak reda). Svaki drugi
+// modul dobija generičku "policu podsetnika" (`PanelCollectionContext`) punjenu prevlačenjem —
+// nema poslovnu akciju u ovom prolazu, samo prikaz+link+brisanje (pojedinačno/masovno/sve).
+const PRODAJA_MODULE_ID = 'prodaja';
+
+export default function RightPanel({ moduleId, moduleLabel, onClose }: { moduleId: string; moduleLabel: string; onClose: () => void }) {
   const { items, removeItem, clear } = useSelection();
   const { summary, clearSummary } = useRowSummary();
   const { navigateInTab, openTab } = useTabs();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { itemsByModule, addItem: addCollectedItem, removeItem: removeCollectedItem, removeItems: removeCollectedItems, clearModule } =
+    usePanelCollection();
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [dragOver, setDragOver] = useState(false);
+
+  const isProdaja = moduleId === PRODAJA_MODULE_ID;
+  const collectedItems = itemsByModule[moduleId] ?? [];
 
   const currencies = Array.from(new Set(items.map((i) => i.finalPriceCurrency)));
   const totalsByCurrency = currencies.map((c) => ({
@@ -47,13 +63,50 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
     if (res.quoteId) navigateInTab(`/rezervacije/ponude/${res.quoteId}`, 'Ponuda');
   }
 
+  function toggleSelected(key: string) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const raw = e.dataTransfer.getData(PANEL_ITEM_DRAG_MIME);
+    if (!raw) return;
+    try {
+      const item = JSON.parse(raw) as PanelCollectionItem;
+      addCollectedItem(item);
+    } catch {
+      // Nevalidan/tuđ drag payload — tiho ignorisano, ne blokira interakciju.
+    }
+  }
+
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-panel-2">
+    <div
+      className="flex h-full flex-col overflow-hidden bg-panel-2"
+      onDragOver={!isProdaja ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
+      onDragLeave={!isProdaja ? () => setDragOver(false) : undefined}
+      onDrop={!isProdaja ? handleDrop : undefined}
+    >
       <div className="flex h-[43px] flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
-        <span>{items.length > 0 ? `Selekcija (${items.length})` : summary ? 'Sažetak reda' : 'Izdvajanje'}</span>
+        <span>
+          {isProdaja
+            ? items.length > 0
+              ? `Selekcija (${items.length})`
+              : summary
+                ? 'Sažetak reda'
+                : 'Izdvajanje'
+            : collectedItems.length > 0
+              ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
+              : `Podsetnik — ${moduleLabel}`}
+        </span>
         <button
           onClick={() => {
-            if (items.length === 0) clearSummary();
+            if (isProdaja && items.length === 0) clearSummary();
             onClose();
           }}
           title="Zatvori panel"
@@ -63,18 +116,18 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {items.length === 0 && summary && (
+      {isProdaja && items.length === 0 && summary && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
       )}
 
-      {items.length === 0 && !summary && (
+      {isProdaja && items.length === 0 && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
           <Icon name="inspect" className="text-2xl" />
           <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za "Povezano" prikaz.</p>
         </div>
       )}
 
-      {items.length > 0 && (
+      {isProdaja && items.length > 0 && (
         <div className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-2">
             <div className="flex flex-col gap-2">
@@ -111,6 +164,91 @@ export default function RightPanel({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+
+      {!isProdaja && collectedItems.length === 0 && (
+        <div
+          className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
+            dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
+          }`}
+        >
+          <Icon name="gripper" className="text-2xl" />
+          <p>Prevuci ovde nešto iz centralnog panela da ga zadržiš kao podsetnik.</p>
+        </div>
+      )}
+
+      {!isProdaja && collectedItems.length > 0 && (
+        <div className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}>
+          <div className="flex-1 overflow-y-auto p-2">
+            <div className="flex flex-col gap-2">
+              {collectedItems.map((item) => (
+                <CollectedItemRow
+                  key={item.key}
+                  item={item}
+                  selected={selectedKeys.has(item.key)}
+                  onToggleSelected={() => toggleSelected(item.key)}
+                  onOpen={item.href ? () => openTab(item.href!, item.label) : undefined}
+                  onRemove={() => removeCollectedItem(moduleId, item.key)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-shrink-0 items-center gap-2 border-t border-border p-2">
+            {selectedKeys.size > 0 && (
+              <button
+                onClick={() => {
+                  removeCollectedItems(moduleId, Array.from(selectedKeys));
+                  setSelectedKeys(new Set());
+                }}
+                className="flex-1 rounded bg-panel px-3 py-1.5 text-xs font-medium text-ink hover:bg-border"
+              >
+                Obriši izabrano ({selectedKeys.size})
+              </button>
+            )}
+            <button
+              onClick={() => {
+                clearModule(moduleId);
+                setSelectedKeys(new Set());
+              }}
+              className="flex-1 rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-danger"
+            >
+              Obriši sve
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollectedItemRow({
+  item,
+  selected,
+  onToggleSelected,
+  onOpen,
+  onRemove,
+}: {
+  item: PanelCollectionItem;
+  selected: boolean;
+  onToggleSelected: () => void;
+  onOpen?: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-border bg-panel p-2 text-xs">
+      <input type="checkbox" checked={selected} onChange={onToggleSelected} className="mt-0.5 flex-shrink-0" />
+      <div className="min-w-0 flex-1">
+        {onOpen ? (
+          <button onClick={onOpen} className="truncate text-left font-medium text-ink hover:text-accent">
+            {item.label}
+          </button>
+        ) : (
+          <div className="truncate font-medium text-ink">{item.label}</div>
+        )}
+        {item.subtitle && <div className="truncate text-[11px] text-ink-faint">{item.subtitle}</div>}
+      </div>
+      <button onClick={onRemove} title="Ukloni" className="flex-shrink-0 text-ink-faint hover:text-danger">
+        <Icon name="close" />
+      </button>
     </div>
   );
 }

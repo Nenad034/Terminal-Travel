@@ -16,6 +16,7 @@ import TerminalPanel from './TerminalPanel';
 import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
 import { RowSummaryProvider } from './RowSummaryContext';
+import { PanelCollectionProvider } from './PanelCollectionContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
@@ -96,7 +97,40 @@ export default function Shell({
   // ne podrazumevano otvoren. Jedini namerni auto-otvarač je M5 selekcija pretrage (§3.0e.3,
   // §6d "predlog... pojavljuje se odmah po dodavanju stavke") — SelectionProvider poziva
   // `onFirstAdd` kad prva stavka uđe u selekciju, isto ponašanje kao klik na dugme.
-  const [rightPanelOpen, setRightPanelOpen] = useState(false);
+  //
+  // Vidljivost PO MODULU (M17 spec v2.10, 25.8.2026, na zahtev vlasnika: "Desni panel treba da
+  // bude uključen samo u modulu gde smo ga uključili. Kada pređemo na drugi modul desni panel
+  // se zatvara") — `Set` umesto jednog globalnog `boolean`; "modul" = `NAV_GROUP` granica
+  // (`nav.ts` §4a, ISTA koja već grupiše pretraga/kalendar/rezervacije-lista pod "Prodaja" u
+  // gornjoj traci). Trenutni modul se računa iz STVARNE putanje otvorenog taba (`pathname`),
+  // NE iz `activeGroupId` — to je odvojeno UI stanje (koja je ikonica gornje trake "razvijena"
+  // za pregled bočne trake), menja se SAMO ručnim klikom i može se razlikovati od modula
+  // stvarno otvorenog taba. Zatvaranje (X dugme) SAKRIVA panel za taj modul, ne prazni sadržaj
+  // (SelectionContext/RowSummaryContext/PanelCollectionContext ostaju netaknuti) — vraća se pri
+  // povratku u taj modul.
+  const currentModuleId = useMemo(() => groupForHref(pathname)?.id ?? 'pocetna', [pathname]);
+  const currentModuleLabel = useMemo(() => groups.find((g) => g.id === currentModuleId)?.label ?? 'Modul', [groups, currentModuleId]);
+  const [rightPanelOpenModules, setRightPanelOpenModules] = useState<Set<string>>(new Set());
+  const rightPanelOpen = rightPanelOpenModules.has(currentModuleId);
+  function openRightPanelForCurrentModule() {
+    setRightPanelOpenModules((prev) => (prev.has(currentModuleId) ? prev : new Set(prev).add(currentModuleId)));
+  }
+  function toggleRightPanelForCurrentModule() {
+    setRightPanelOpenModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(currentModuleId)) next.delete(currentModuleId);
+      else next.add(currentModuleId);
+      return next;
+    });
+  }
+  function closeRightPanelForCurrentModule() {
+    setRightPanelOpenModules((prev) => {
+      if (!prev.has(currentModuleId)) return prev;
+      const next = new Set(prev);
+      next.delete(currentModuleId);
+      return next;
+    });
+  }
   // "Customize Layout" (dizajn dok. §5f, 23.8.2026) — isti bezbedan hidratacioni obrazac kao
   // `sidebarCollapsed` iznad: podrazumevana vrednost na SERVERU i prvom klijentskom renderu,
   // localStorage se čita tek posle mount-a.
@@ -173,8 +207,9 @@ export default function Shell({
 
   return (
     <TabsProvider homeLabel="Početna">
-      <SelectionProvider onFirstAdd={() => setRightPanelOpen(true)}>
-      <RowSummaryProvider onFirstShow={() => setRightPanelOpen(true)}>
+      <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
+      <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
+      <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
         {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
@@ -192,7 +227,7 @@ export default function Shell({
           <TopBar
             leftColumnWidth={leftColumnWidth}
             rightPanelOpen={rightPanelOpen}
-            onToggleRightPanel={() => setRightPanelOpen((v) => !v)}
+            onToggleRightPanel={toggleRightPanelForCurrentModule}
             layoutProps={{
               sidebarVisible: layoutVisibility.sidebar,
               onToggleSidebar: () => toggleLayout('sidebar'),
@@ -327,7 +362,7 @@ export default function Shell({
             </div>
             {rightPanelOpen && (
               <ResizablePane storageKey="tt-panel-right-width" defaultWidth={320} minWidth={260} maxWidth={560} handleSide="left">
-                <RightPanel onClose={() => setRightPanelOpen(false)} />
+                <RightPanel moduleId={currentModuleId} moduleLabel={currentModuleLabel} onClose={closeRightPanelForCurrentModule} />
               </ResizablePane>
             )}
           </div>
@@ -343,6 +378,7 @@ export default function Shell({
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
+      </PanelCollectionProvider>
       </RowSummaryProvider>
       </SelectionProvider>
     </TabsProvider>
