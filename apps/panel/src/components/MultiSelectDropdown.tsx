@@ -73,7 +73,17 @@ export default function MultiSelectDropdown({
         {checked.size > 0 && (
           <button
             type="button"
-            onClick={() => setChecked(new Set())}
+            onClick={() => {
+              // Automatska primena (24.8.2026, na zahtev vlasnika) — `setChecked` je asinhrono
+              // (React state), pa bi `requestSubmit()` odmah posle njega video JOŠ NEIZMENJEN
+              // DOM (stare markirane čekboksove). Direktna DOM izmena (`.checked = false`) je
+              // sinhrona — čita se ispravno pri submit-u koji sledi u istom kliku.
+              ref.current?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((i) => {
+                i.checked = false;
+              });
+              setChecked(new Set());
+              ref.current?.closest('form')?.requestSubmit();
+            }}
             className="mb-1 flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-panel2 hover:text-danger"
           >
             <Icon name="close" /> Obriši izbor

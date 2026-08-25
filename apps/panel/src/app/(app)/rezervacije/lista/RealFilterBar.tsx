@@ -1,3 +1,6 @@
+'use client';
+
+import { useRef } from 'react';
 import Link from 'next/link';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import ClearableTextField from '@/components/ClearableTextField';
@@ -44,11 +47,33 @@ const inputClass = 'input text-xs';
 // (`?status=...`). Svako polje ovde odgovara STVARNOM `GET /sales/bookings` query parametru
 // (poglavlje 11) — nema dekorativnih/mock filtera ovde, ti ostaju u `FiltersModal` unutar
 // `RealBookingsTable.tsx`.
+// Automatska primena filtera (24.8.2026, na zahtev vlasnika: "da li moze da se podesi da kako
+// se koji filter odabira da se odmah vrsi selekcija u listi rezervacija, kako bi se ubrzale
+// stvari") — forma ostaje ISTA nativna GET forma (M5 spec §11/v1.54), samo se `requestSubmit()`
+// sad poziva automatski umesto da čeka klik na "filtriraj". Delegovan `onChange` na samoj
+// `<form>` (React sintetički event bubbling) hvata SVAKU promenu unutar nje na jednom mestu —
+// diskretni kontrolni elementi (checkbox/select/datum) primenjuju odmah, tekstualna polja
+// (kucanje) čekaju kratku pauzu (debounce) da se ne pokreće cela navigacija na svaki taster.
+const TEXT_DEBOUNCE_MS = 600;
+
 export default function RealFilterBar({ filters }: { filters: BookingFilters }) {
   const hasAnyFilter = Object.values(filters).some((v) => v);
+  const formRef = useRef<HTMLFormElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleFormChange(e: React.ChangeEvent<HTMLFormElement>) {
+    const target = e.target as unknown as HTMLInputElement;
+    const isTypedText = target.tagName === 'INPUT' && target.type === 'text';
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (isTypedText) {
+      debounceRef.current = setTimeout(() => formRef.current?.requestSubmit(), TEXT_DEBOUNCE_MS);
+    } else {
+      formRef.current?.requestSubmit();
+    }
+  }
 
   return (
-    <form action="/rezervacije/lista" className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-panel p-2 text-xs">
+    <form ref={formRef} action="/rezervacije/lista" onChange={handleFormChange} className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-panel p-2 text-xs">
       {/* Dva reda, sva polja u redu iste širine (24.8.2026, na zahtev vlasnika: "polja za
           pretragu datuma neka idu u drugi red, ostala polja u prvi i neka sva polja budu iste
           sirine da se rasporede celom sirinom trake filtera") — `flex-1` na svakom polju u istom

@@ -38,6 +38,9 @@ export default function ClearableDateRange({
             if (fromRef.current) fromRef.current.value = '';
             if (toRef.current) toRef.current.value = '';
             setHasValue(false);
+            // Automatska primena (24.8.2026, na zahtev vlasnika) — vidi isti komentar u
+            // ClearableTextField.tsx.
+            fromRef.current?.closest('form')?.requestSubmit();
           }}
           title="Obriši ovo polje"
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:text-danger"
