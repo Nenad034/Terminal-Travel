@@ -17,6 +17,7 @@ import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
 import { RowSummaryProvider } from './RowSummaryContext';
 import { PanelCollectionProvider } from './PanelCollectionContext';
+import { AiContextProvider } from './AiContextContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
@@ -210,6 +211,7 @@ export default function Shell({
       <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
       <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
       <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
+      <AiContextProvider onFirstAdd={() => setChatOpen(true)}>
         {/* VS Code obrazac, ISPRAVKA (21.8.2026, na zahtev vlasnika, uz stvaran VS Code
             snimak ekrana kao referencu: "ne sviđa mi se [prethodni pokušaj sa linijama/
             razmakom]... uklonite linije oko traka i panela, neka razdvajanje bude različitim
@@ -378,6 +380,7 @@ export default function Shell({
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
+      </AiContextProvider>
       </PanelCollectionProvider>
       </RowSummaryProvider>
       </SelectionProvider>

@@ -22,6 +22,20 @@ export interface OmnisearchRequest {
   /** M15 spec §6.5.1 dopuna (22.8.2026) — vidljiv tekst otvorenog taba, samo INTERNAL_PANEL. */
   pageContent?: string;
   /**
+   * M15 spec §6.5.4.3 dopuna (25.8.2026) — zapisi/sačuvani-filtrirani-prikazi koje je korisnik
+   * SVESNO priložio preko ikonice "Dodaj u AI kontekst" (dizajn dok. §6c.1a), do 8 stavki, max
+   * 1 tipa FILTERED_LIST. Isti princip kao pageContent — čisto određenje o čemu se razgovor
+   * vodi, agent i dalje razrešava svaku stavku sopstvenim postojećim alatima (§6.5.2).
+   */
+  contextItems?: {
+    type: 'RECORD' | 'FILTERED_LIST';
+    refLabel?: string;
+    view?: string;
+    filters?: Record<string, unknown>;
+    resultCount?: number;
+    label?: string;
+  }[];
+  /**
    * M15 spec §6.5.4.2 dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji
    * je davalo nepovezan odgovor) — kratkotrajna istorija RAZGOVORA U OVOJ SESIJI PREGLEDAČA,
    * isti obrazac kao BiTerminalQueryDto.history (23.8.2026). Server je i dalje bez trajne
@@ -97,6 +111,52 @@ export class OmnisearchService {
     private readonly invocationLog: AgentInvocationLogService,
     private readonly helpAssistant: HelpAssistantService,
   ) {}
+
+  /**
+   * M15 spec §6.5.4.3 — pretvara priložene kontekstne stavke u čitljiv blok teksta pre pitanja.
+   * `RECORD` stavke se nabroje kao dosadašnji `[Kontekst: ...]` prefiks (agent ih razrešava
+   * sopstvenim alatima). `FILTERED_LIST` stavka (najviše jedna — dodatne se tiho preskoče uz
+   * upozorenje u logu, isti "fail soft" princip kao nepoznat filter — ovo je samo prompt tekst,
+   * ne izvor istine) prolazi kroz ISTU `buildFilterQuery` validaciju koju koristi `filter_list`
+   * alat — nevažeći `view`/`filters` se ne šalju modelu kao lažno-validna instrukcija, samo se
+   * izostave (agent i dalje ima RECORD stavke i sam upit).
+   */
+  private buildContextItemsBlock(items?: OmnisearchRequest['contextItems']): string | undefined {
+    if (!items || items.length === 0) return undefined;
+    const lines: string[] = [];
+    let filteredListUsed = false;
+
+    items.forEach((item, i) => {
+      if (item.type === 'RECORD' && item.refLabel) {
+        lines.push(`${lines.length + 1}. ${item.refLabel}`);
+        return;
+      }
+      if (item.type === 'FILTERED_LIST') {
+        if (filteredListUsed) {
+          this.logger.warn(`contextItems: više od jedne FILTERED_LIST stavke, dodatna preskočena (indeks ${i}).`);
+          return;
+        }
+        const view = item.view ? FILTERABLE_VIEWS[item.view] : undefined;
+        if (!view) {
+          this.logger.warn(`contextItems: nepoznat view "${item.view}" za FILTERED_LIST, stavka preskočena.`);
+          return;
+        }
+        const built = buildFilterQuery(view, item.filters ?? {});
+        if ('error' in built) {
+          this.logger.warn(`contextItems: nevažeći filteri za FILTERED_LIST "${item.view}" — ${built.error}`);
+          return;
+        }
+        filteredListUsed = true;
+        const label = item.label ?? view.label;
+        const count = item.resultCount !== undefined ? `${item.resultCount} rezultata` : 'nepoznat broj rezultata';
+        lines.push(
+          `${lines.length + 1}. Filtriran prikaz "${label}" (${count}) — pozovi filter_list sa view="${item.view}" i istim filterima da vidiš stvarne redove pre analize/poređenja.`,
+        );
+      }
+    });
+
+    return lines.length > 0 ? `Priložen kontekst:\n${lines.join('\n')}` : undefined;
+  }
 
   async search(req: OmnisearchRequest): Promise<OmnisearchResponse> {
     const activation = await this.prisma.moduleAgentActivation.findUnique({
@@ -456,12 +516,20 @@ export class OmnisearchService {
         'odgovoriš na pitanja o tom ekranu ("šta vidiš", "koje je stanje", "šta bi trebalo uraditi") — nemaš potrebu ' +
         'da pitaš korisnika šta se prikazuje, već je tu. Kad blok NE postoji (npr. prazna Početna, ili je korisnik ' +
         'svesno uklonio kontekst), a pitanje zavisi od ekrana, jasno reci da ne vidiš sadržaj i uputi korisnika da ' +
-        'upiše konkretan broj rezervacije/ime/naziv proizvoda.';
+        'upiše konkretan broj rezervacije/ime/naziv proizvoda. ' +
+        'VAŽNO: svaka poruka može (ne mora) nositi i blok "Priložen kontekst" — korisnik je SVESNO dodao jedan ili ' +
+        'više zapisa (npr. konkretne rezervacije) i/ili jedan filtriran prikaz preko ikonice u panelu. Numerisane ' +
+        'stavke tog bloka nisu podaci sami po sebi — to su reference koje MORAŠ sam razrešiti odgovarajućim alatom ' +
+        '(direktno poklapanje/pretraga za pojedinačan zapis, ili filter_list za stavku koja to eksplicitno traži) ' +
+        'PRE nego što odgovoriš, pogotovo kad korisnik traži poređenje ili zajedničku analizu više priloženih ' +
+        'zapisa — nikad ne pretpostavljaj podatke o njima iz same reference.';
 
     const pageContent = req.pageContent?.slice(0, PAGE_CONTENT_MAX_CHARS).trim();
-    const userContent = pageContent
-      ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""\n\nPitanje: ${req.query}`
-      : req.query;
+    const contextItemsBlock = this.buildContextItemsBlock(req.contextItems);
+    const precedingBlocks = [pageContent ? `Sadržaj trenutnog ekrana:\n"""\n${pageContent}\n"""` : null, contextItemsBlock ?? null].filter(
+      (part): part is string => part !== null,
+    );
+    const userContent = precedingBlocks.length > 0 ? `${precedingBlocks.join('\n\n')}\n\nPitanje: ${req.query}` : req.query;
     // Istorija (25.8.2026, vidi OmnisearchRequest.history iznad) — samo tekst pitanja/odgovora
     // iz prethodnih tura (bez tool_use blokova, koji nisu sačuvani na klijentu), ograničeno na
     // poslednjih 6 tura, identičan princip kao BiTerminalAgent (bi-terminal.service.ts, 23.8.2026).

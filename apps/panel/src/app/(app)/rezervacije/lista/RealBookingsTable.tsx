@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
+import AddToAiContextButton from '@/components/AddToAiContextButton';
 import { useRowSummary } from '@/components/RowSummaryContext';
 import { useTabs } from '@/components/TabsContext';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
@@ -200,7 +201,7 @@ export default function RealBookingsTable({
         <table className="w-full min-w-[980px] text-left text-xs">
           <thead>
             <tr className="border-b border-border bg-panel2 text-ink-faint">
-              <th className="w-[48px] px-3 py-2 font-medium" />
+              <th className="w-[70px] px-3 py-2 font-medium" />
               <th className="px-3 py-2 font-medium">
                 <SortLabel sortKeyValue="bookingNumber">Broj</SortLabel>
               </th>
@@ -234,9 +235,10 @@ export default function RealBookingsTable({
           </thead>
           <tbody>
             {sorted.map((b) => (
-              <tr key={b.id} onClick={() => openSummary(b)} className="cursor-pointer border-b border-border last:border-0 hover:bg-panel2">
+              <tr key={b.id} onClick={() => openSummary(b)} className="group cursor-pointer border-b border-border last:border-0 hover:bg-panel2">
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1">
+                    <AddToAiContextButton refLabel={`Rezervacija ${b.bookingNumber}`} />
                     <span
                       title={PRODUCT_ICONS.find((p) => p.types.includes(b.productType ?? ''))?.label ?? b.productType ?? '—'}
                       className="flex h-[22px] w-[22px] items-center justify-center text-ink-faint"

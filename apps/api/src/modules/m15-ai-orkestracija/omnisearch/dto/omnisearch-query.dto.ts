@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsObject, IsOptional, IsString, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsObject, IsOptional, IsString, Min, MinLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 const LANGUAGE_CODES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'] as const;
@@ -22,6 +22,41 @@ export class OmnisearchHistoryTurnDto {
 // obima (čeka poseban prolaz, isto kao ranije). `context` je rezervisano mesto za budući filter
 // (npr. trenutna stranica) — nije korišćeno u ovom prolazu. `lang` je nov (B2C_SITE prosleđuje
 // aktivan jezik sajta radi lokalizovanih rezultata pretrage proizvoda/pomoći).
+// M15 spec §6.5.4.3 (dopuna 25.8.2026, na zahtev vlasnika — "ubaci rezervaciju/više rezervacija/
+// sačuvan filtriran prikaz kao AI kontekst"). Dva tipa: `RECORD` nosi samo čitljivu referencu
+// (agent je razrešava sopstvenim postojećim alatima — nema novog puta do sirovih podataka);
+// `FILTERED_LIST` nosi `view`/`filters` u ISTOM obliku koji već prima `filter_list` alat
+// (filterable-views.ts, v1.39) — deterministički popunjeno na klijentu iz stvarnog stanja filter
+// trake, agent i dalje MORA pozvati alat da vidi stvarne redove.
+export class ContextItemDto {
+  @IsIn(['RECORD', 'FILTERED_LIST'])
+  type!: 'RECORD' | 'FILTERED_LIST';
+
+  // RECORD
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  refLabel?: string;
+
+  // FILTERED_LIST
+  @IsOptional()
+  @IsString()
+  view?: string;
+
+  @IsOptional()
+  @IsObject()
+  filters?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  resultCount?: number;
+
+  @IsOptional()
+  @IsString()
+  label?: string;
+}
+
 export class OmnisearchQueryDto {
   @IsString()
   @MinLength(1)
@@ -33,6 +68,16 @@ export class OmnisearchQueryDto {
   @IsOptional()
   @IsObject()
   context?: Record<string, unknown>;
+
+  // M15 spec §6.5.4.3 — do 8 stavki ukupno (dalja podela RECORD/FILTERED_LIST i njeno
+  // ograničenje na max 1 FILTERED_LIST po zahtevu se proverava u servisu, gde postoji uvid u
+  // sadržaj svake stavke, ne samo dužinu niza).
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @ValidateNested({ each: true })
+  @Type(() => ContextItemDto)
+  contextItems?: ContextItemDto[];
 
   // M15 spec §6.5.1 dopuna (22.8.2026, na zahtev vlasnika) — vidljiv tekst trenutno otvorenog
   // taba u M17 panelu (INTERNAL_PANEL kanal), automatski prilagan na svaku poruku. Server-side

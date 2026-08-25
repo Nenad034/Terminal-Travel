@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Icon from '@/components/Icon';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from '@/components/SavedViewsSidebarPanel';
+import { useAiContext } from '@/components/AiContextContext';
 import RealBookingsTable, { type RealBooking } from './RealBookingsTable';
 
 const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
@@ -97,6 +98,40 @@ function SaveViewButton() {
   );
 }
 
+// Dugme "Dodaj filtrirani prikaz u AI kontekst" (25.8.2026, dizajn dok. §6c.1a, M15 spec
+// §6.5.4.3 — "omoguci sacuvan rezultata pretrage da unesemo kao kontekst pa da analiziramo
+// filtrirane stavke"). `view`/`filters` su TAČNO isti oblik koji već čita `filter_list` alat
+// (filterable-views.ts, `id: 'bookings'`) — agent i dalje MORA pozvati taj alat da vidi stvarne
+// redove, ovo samo prenosi TAČNO koji filter je korisnik gledao (deterministički, ne nagađanje).
+function AddFilteredListButton({ resultCount }: { resultCount: number }) {
+  const searchParams = useSearchParams();
+  const { addFilteredList, hasFilteredList } = useAiContext();
+  const hasFilters = Array.from(searchParams.keys()).length > 0;
+  if (!hasFilters) return null;
+
+  function add() {
+    const filters: Record<string, string | string[]> = {};
+    searchParams.forEach((value, key) => {
+      const existingValue = filters[key];
+      if (existingValue === undefined) filters[key] = value;
+      else if (Array.isArray(existingValue)) existingValue.push(value);
+      else filters[key] = [existingValue, value];
+    });
+    addFilteredList({ view: 'bookings', filters, resultCount, label: 'Lista rezervacija' });
+  }
+
+  return (
+    <button
+      onClick={add}
+      disabled={hasFilteredList}
+      title={hasFilteredList ? 'Već je priložen jedan filtriran prikaz — ukloni ga u AI chat-u da dodaš drugi' : 'Dodaj trenutno filtriranu listu u AI kontekst radi analize'}
+      className="flex h-[29px] items-center gap-1.5 rounded border border-ink-faint px-2 text-xs text-ink-faint hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Icon name="sparkle" /> Dodaj u AI kontekst
+    </button>
+  );
+}
+
 // Dopuna (24.8.2026, na zahtev vlasnika: "Filtere u listi rezervacija fixirajte da budu vidljivi
 // prilikom scrolovanja") — jedan zajednički klijentski omotač koji drži i formu (`filterBar`,
 // server-renderovan `RealFilterBar`, prosleđen kao `children`) i traku brzih ikonica (stanje
@@ -143,7 +178,8 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
           >
             <Icon name="bell" /> demo zvona
           </button>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
+            <AddFilteredListButton resultCount={bookings.length} />
             <SaveViewButton />
           </div>
           <button

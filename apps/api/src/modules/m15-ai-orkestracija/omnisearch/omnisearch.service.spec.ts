@@ -222,6 +222,67 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(sentMessages[0].content).toBe('analiziraj nešto opšte');
   });
 
+  // M15 spec §6.5.4.3 (25.8.2026) — više priloženih RECORD stavki (poređenje) ulazi u prompt kao
+  // numerisana lista referenci, agent ih i dalje sam razrešava (nema sirovih podataka ovde).
+  it('contextItems (RECORD, više stavki) se prosleđuju modelu kao numerisan blok "Priložen kontekst"', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'uporedi ove rezervacije',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [
+        { type: 'RECORD', refLabel: 'Rezervacija TT-2026-100' },
+        { type: 'RECORD', refLabel: 'Rezervacija TT-2026-101' },
+      ],
+    });
+
+    const sentContent = create.mock.calls[0][0].messages[0].content as string;
+    expect(sentContent).toContain('Priložen kontekst:');
+    expect(sentContent).toContain('1. Rezervacija TT-2026-100');
+    expect(sentContent).toContain('2. Rezervacija TT-2026-101');
+    expect(sentContent).toContain('Pitanje: uporedi ove rezervacije');
+  });
+
+  // Validan FILTERED_LIST prosleđuje eksplicitno uputstvo agentu da pozove filter_list sa TAČNO
+  // istim view/filterima — deterministički, ne prepričavanje/nagađanje iz teksta (§6.5.4.3).
+  it('contextItems (FILTERED_LIST, validan view) upućuje agenta da pozove filter_list sa istim filterima', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'analiziraj ove rezultate',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [{ type: 'FILTERED_LIST', view: 'bookings', filters: { status: 'CONFIRMED' }, resultCount: 14, label: 'Lista rezervacija' }],
+    });
+
+    const sentContent = create.mock.calls[0][0].messages[0].content as string;
+    expect(sentContent).toContain('Filtriran prikaz "Lista rezervacija" (14 rezultata)');
+    expect(sentContent).toContain('filter_list sa view="bookings"');
+  });
+
+  // Nevažeći view/filteri se NE šalju modelu kao lažno-validna instrukcija — stavka se tiho
+  // izostavi (fail soft, isti princip kao ostatak "agent ne izmišlja" — ovo je samo prompt tekst).
+  it('contextItems (FILTERED_LIST, nepoznat view) se izostavlja iz prompta bez greške korisniku', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    await service.search({
+      query: 'analiziraj ove rezultate',
+      channel: 'INTERNAL_PANEL',
+      actorUserId: 'u1',
+      contextItems: [{ type: 'FILTERED_LIST', view: 'ne-postoji', filters: {}, resultCount: 1, label: 'X' }],
+    });
+
+    const sentMessages = create.mock.calls[0][0].messages;
+    expect(sentMessages[0].content).toBe('analiziraj ove rezultate'); // isto kao bez ijednog konteksta
+  });
+
   // Dopuna (25.8.2026, uživo — "da" posle pitanja o konkretnoj rezervaciji je davalo nepovezan
   // odgovor, jer je svaki `/omnisearch` poziv bio izolovan razgovor). Dokazuje da se `history`
   // stvarno prosleđuje modelu kao prethodne user/assistant ture, PRE tekućeg pitanja.

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await apiFetch('/ai-orchestration/omnisearch', {
       method: 'POST',
-      body: { query: dto.query, channel: 'INTERNAL_PANEL', pageContent: dto.pageContent, history: dto.history },
+      body: { query: dto.query, channel: 'INTERNAL_PANEL', pageContent: dto.pageContent, contextItems: dto.contextItems, history: dto.history },
       requireAuth: true,
     });
     return NextResponse.json(result);

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useTabs } from './TabsContext';
 import { NAV_ITEMS } from '@/lib/nav';
 import CopyButton from './CopyButton';
+import { useAiContext, type AiContextItem } from './AiContextContext';
 
 // Ispisivanje reč-po-reč (na zahtev vlasnika, 19.8.2026 — "kao u AI pretrazi u Chrome ili u
 // VS Code"). Odgovor i dalje stiže u JEDNOM odgovoru sa servera (M15 omnisearch nema pravi
@@ -59,7 +60,7 @@ interface OmnisearchResponse {
 
 interface Turn {
   question: string;
-  contextLabel?: string;
+  contextLabels?: string[];
   answer?: string;
   links: { label: string; href: string }[];
   loading: boolean;
@@ -68,6 +69,12 @@ interface Turn {
 
 // Prečice ispod polja za unos (dizajn dok. §6c — "šta još"), na zahtev vlasnika 19.8.2026.
 const QUICK_LINK_IDS = ['pretraga', 'crm', 'katalog', 'podrska'];
+
+// Čitljiv naziv čipa za jednu kontekstnu stavku (dizajn dok. §6c.1a) — RECORD prikazuje samo
+// referencu, FILTERED_LIST dodaje broj rezultata radi transparentnosti ("šta je agent video").
+function itemLabel(item: AiContextItem): string {
+  return item.type === 'RECORD' ? item.refLabel : `Filtrirano: ${item.label} (${item.resultCount})`;
+}
 
 // Dizajn dok. §6c/§6c.1 — polje za AI razgovor fiksirano pri dnu centralnog panela, na SVAKOM
 // ekranu bez obzira koji modul je aktivan (ispravka 19.8.2026, na zahtev vlasnika — prvi
@@ -88,15 +95,19 @@ const QUICK_LINK_IDS = ['pretraga', 'crm', 'katalog', 'podrska'];
 // se pokvari podrazumevani mali prozor.
 export default function AiChatBox({ maximized = false }: { maximized?: boolean }) {
   const { tabs, activePath, openTab } = useTabs();
+  const { items: contextItems, addRecord, removeItem: removeContextItem, clear: clearContextItems } = useAiContext();
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
-  const [context, setContext] = useState<string | null>(null);
   // Naziv otvorenog taba se automatski prilaže kao kontekst na svaku poruku (22.8.2026, na
   // zahtev vlasnika, posle uživo zabune — AI je pitao "koji tab je otvoren" umesto da to zna).
   // Isti podatak koji je ranije zahtevao ručan klik na "+" (poglavlje 6c) — AI i dalje ne vidi
   // sadržaj ekrana, samo naziv zapisa, i sam ga pretražuje svojim alatima kad je relevantno.
   // `dismissedForPath` pamti da je korisnik svesno uklonio kontekst za TRENUTNI tab (X na čipu)
   // — ne vraća se dok se tab ne promeni, da uklanjanje stvarno nešto znači.
+  // Dopuna (25.8.2026, M15 spec §6.5.4.3, dizajn dok. §6c.1a) — ručno priloženi kontekst više
+  // nije jedna vrednost koja se zamenjuje sledećom, nego DELJENA lista (`AiContextContext`,
+  // Shell.tsx) koju pune i ikonice po redu bilo kog ekrana, i dugme "Dodaj filtrirani prikaz",
+  // ne samo ovo `+` polje — omogućava poređenje više zapisa u istom pitanju.
   const [dismissedForPath, setDismissedForPath] = useState<string | null>(null);
   const [plusOpen, setPlusOpen] = useState(false);
   const plusRef = useRef<HTMLDivElement>(null);
@@ -132,10 +143,13 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
   const homeLabel = NAV_ITEMS.find((i) => i.id === 'pocetna')?.label;
   const isUnlabeledHome = !activeTab || activeTab.label === homeLabel;
   const autoContext = !isUnlabeledHome && dismissedForPath !== activePath ? activeTab!.label : null;
-  const effectiveContext = context ?? autoContext;
+  // Čipovi za prikaz/slanje = automatski kontekst taba (ako nije uklonjen) + deljena lista ručno
+  // priloženih stavki (dopuna v1.40/§6c.1a) — auto-kontekst se NE dupira ako je korisnik već
+  // ručno dodao isti naziv preko "Trenutno otvoren zapis".
+  const manualLabels = new Set(contextItems.filter((i): i is Extract<AiContextItem, { type: 'RECORD' }> => i.type === 'RECORD').map((i) => i.refLabel));
+  const effectiveContextLabels = [...(autoContext && !manualLabels.has(autoContext) ? [autoContext] : []), ...contextItems.map(itemLabel)];
 
   useEffect(() => {
-    setContext(null);
     setDismissedForPath(null);
   }, [activePath]);
 
@@ -155,23 +169,28 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
   async function send(overrideText?: string) {
     const question = (overrideText ?? input).trim();
     if (!question) return;
-    const sentContext = effectiveContext ?? undefined;
     const pageContent = readPageContent();
+    // `contextItems` (dopuna v1.40, M15 spec §6.5.4.3) — auto-kontekst taba ulazi kao obična
+    // RECORD stavka (ista referenca kao dosad), plus sve ručno priložene stavke (do 8 ukupno,
+    // isto ograničenje sprovedeno i server-side preko DTO-a).
+    const sentContextItems = [
+      ...(autoContext && !manualLabels.has(autoContext) ? [{ type: 'RECORD' as const, refLabel: autoContext }] : []),
+      ...contextItems.map((i) => (i.type === 'RECORD' ? { type: 'RECORD' as const, refLabel: i.refLabel } : { type: 'FILTERED_LIST' as const, view: i.view, filters: i.filters, resultCount: i.resultCount, label: i.label })),
+    ];
     // Istorija (25.8.2026, uživo — vlasnik je primetio da "da" posle pitanja o konkretnoj
     // rezervaciji dobija potpuno nepovezan odgovor, jer je svaki poziv bio izolovan razgovor).
     // Isti obrazac kao TerminalPanel.tsx (BiTerminalAgent, 23.8.2026) — samo tura sa stvarnim
     // odgovorom (ne učitavanje/neaktivno) ima šta da doprinese, server ionako seče na poslednjih 6.
     const history = turns.filter((t) => t.answer && !t.loading).map((t) => ({ question: t.question, answer: t.answer! }));
     setInput('');
-    setContext(null);
-    setTurns((t) => [...t, { question, contextLabel: sentContext, links: [], loading: true, inactive: false }]);
+    clearContextItems();
+    setTurns((t) => [...t, { question, contextLabels: effectiveContextLabels, links: [], loading: true, inactive: false }]);
 
-    const query = sentContext ? `[Kontekst: ${sentContext}] ${question}` : question;
     try {
       const res = await fetch('/api/omnisearch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, pageContent, history }),
+        body: JSON.stringify({ query: question, pageContent, contextItems: sentContextItems, history }),
       });
       const data: OmnisearchResponse & { message?: string } = await res.json();
       // BAG (23.8.2026, prijavio vlasnik uživo) — `res.status` se ranije uopšte nije proveravao,
@@ -237,7 +256,9 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
       {turns.length > 0 && <div className={`flex flex-col gap-3 overflow-y-auto py-2 ${maximized ? 'flex-1 min-h-0' : 'max-h-64'}`}>
           {turns.map((t, i) => (
             <div key={i} className="flex flex-col gap-1.5">
-              {t.contextLabel && <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
+              {t.contextLabels && t.contextLabels.length > 0 && (
+                <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabels.join(' · ')}</div>
+              )}
               <div className="group flex items-center gap-1 self-end">
                 <CopyButton text={t.question} />
                 <div className="rounded-lg bg-accent-soft px-3 py-1.5 text-xs text-ink">{t.question}</div>
@@ -279,20 +300,26 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
           ))}
         </div>}
 
-      {effectiveContext && (
-        <div className="mx-2 mt-2 flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
-          <Icon name="link" />
-          {effectiveContext}
-          <button
-            onClick={() => {
-              setContext(null);
-              setDismissedForPath(activePath);
-            }}
-            title="Ukloni kontekst"
-            className="ml-0.5 hover:text-danger"
-          >
-            <Icon name="close" />
-          </button>
+      {effectiveContextLabels.length > 0 && (
+        <div className="mx-2 mt-2 flex flex-wrap items-center gap-1.5">
+          {autoContext && !manualLabels.has(autoContext) && (
+            <div className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
+              <Icon name="link" />
+              {autoContext}
+              <button onClick={() => setDismissedForPath(activePath)} title="Ukloni kontekst" className="ml-0.5 hover:text-danger">
+                <Icon name="close" />
+              </button>
+            </div>
+          )}
+          {contextItems.map((item) => (
+            <div key={item.id} className="flex items-center gap-1.5 self-start rounded-full border border-accent bg-accent-soft px-2 py-0.5 text-[11px] text-ink">
+              <Icon name={item.type === 'FILTERED_LIST' ? 'filter' : 'symbol-number'} />
+              {itemLabel(item)}
+              <button onClick={() => removeContextItem(item.id)} title="Ukloni iz konteksta" className="ml-0.5 hover:text-danger">
+                <Icon name="close" />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -344,7 +371,7 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
                 <button
                   disabled={isUnlabeledHome}
                   onClick={() => {
-                    if (activeTab) setContext(activeTab.label);
+                    if (activeTab) addRecord(activeTab.label);
                     setPlusOpen(false);
                   }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
@@ -354,7 +381,7 @@ export default function AiChatBox({ maximized = false }: { maximized?: boolean }
                 <button
                   disabled={!isSearchTab}
                   onClick={() => {
-                    setContext('rezultati trenutne pretrage');
+                    addRecord('rezultati trenutne pretrage');
                     setPlusOpen(false);
                   }}
                   className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-ink-dim hover:bg-panel-2 hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
