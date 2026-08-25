@@ -9,6 +9,7 @@ import { AnthropicClientService } from '../anthropic/anthropic-client.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { HelpAssistantService } from '../../m21-centar-za-pomoc/help-assistant/help-assistant.service';
 import { EntityResult, MatchedRoute, OmnisearchResponse } from './omnisearch-result.types';
+import { FILTERABLE_VIEWS, FILTERABLE_VIEW_IDS, buildFilterQuery } from './filterable-views';
 
 export type OmnisearchChannel = 'INTERNAL_PANEL' | 'B2C_SITE';
 
@@ -294,6 +295,31 @@ export class OmnisearchService {
     return this.bookings.calendarDay(parsed) as unknown as Record<string, unknown>;
   }
 
+  /**
+   * `filter_list` alat (§11 dopuna, 25.8.2026) — validira izbor pogleda/polja protiv
+   * `filterable-views.ts` registra, proverava M1 dozvolu identitetom pozivaoca (isto kao
+   * `listBookingsByDate` iznad — nikad širim pristupom agenta), i vraća SAMO link ka već
+   * postojećoj filter traci u panelu. Ne poziva NIJEDAN servis direktno — panel stranica sama
+   * čita query parametre i poziva svoj već postojeći, uživo proveren backend endpoint.
+   */
+  private async applyFilterList(
+    actorUserId: string,
+    viewId: string | undefined,
+    filters: Record<string, unknown>,
+  ): Promise<{ href: string; label: string } | { error: string }> {
+    const view = viewId ? FILTERABLE_VIEWS[viewId] : undefined;
+    if (!view) return { error: `Nepoznat pogled "${viewId}". Dostupni pogledi: ${FILTERABLE_VIEW_IDS.join(', ')}.` };
+
+    const built = buildFilterQuery(view, filters);
+    if ('error' in built) return built;
+
+    const permission = typeof view.permission === 'function' ? view.permission(built.values) : view.permission;
+    const hasPermission = await this.permissions.hasPermission(actorUserId, permission.module, permission.resource, permission.action);
+    if (!hasPermission) return { error: 'Nemate dozvolu za uvid u ovaj deo panela.' };
+
+    return { href: `${view.listPath}${built.qs ? `?${built.qs}` : ''}`, label: `Otvori filtrirano: ${view.label}` };
+  }
+
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
     const all = await this.products.findAll({});
     const lowerQuery = query.toLowerCase();
@@ -387,6 +413,30 @@ export class OmnisearchService {
               required: ['date'],
             },
           },
+          {
+            // §11 dopuna (25.8.2026, na zahtev vlasnika — "da li sada korisnik može kroz AI
+            // agenta da zatraži pretragu po nekom filteru ili više njih... želim to za svaki
+            // modul"). Zatvoren registar (filterable-views.ts) — model bira SAMO postojeći
+            // pogled/polje, nikad sopstveni upit; alat NIKAD ne izvršava akciju, samo vraća
+            // link ka već postojećoj, uživo proverenoj filter traci u panelu (§6.5.4 tačka 3).
+            name: 'filter_list',
+            description: `Primeni kombinaciju filtera na listu iz nekog modula panela i vrati link ka filtriranom prikazu. Korisnik i dalje sam otvara link — ovaj alat ništa ne izvršava. Dostupni pogledi i njihova polja: ${Object.values(
+              FILTERABLE_VIEWS,
+            )
+              .map((v) => `${v.id} (${v.label}): ${Object.keys(v.fields).join(', ')}`)
+              .join(' | ')}.`,
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                view: { type: 'string' as const, enum: FILTERABLE_VIEW_IDS },
+                filters: {
+                  type: 'object' as const,
+                  description: 'Ključ:vrednost parovi SAMO iz dozvoljenih polja izabranog pogleda; vrednost je string, ili niz stringova za polja koja dozvoljavaju višestruki izbor (npr. status).',
+                },
+              },
+              required: ['view', 'filters'],
+            },
+          },
         ];
 
     const systemPrompt = isB2C
@@ -470,6 +520,16 @@ export class OmnisearchService {
       messages.push({ role: 'assistant', content: response.content });
       const toolResults: any[] = [];
       for (const use of toolUses as any[]) {
+        if (use.name === 'filter_list') {
+          const input = use.input as { view?: string; filters?: Record<string, unknown> };
+          const result = await this.applyFilterList(req.actorUserId!, input.view, input.filters ?? {});
+          toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(result) });
+          if ('href' in result && !matchedRoutes.find((m) => m.href === result.href)) {
+            matchedRoutes.push({ label: result.label, href: result.href });
+          }
+          continue;
+        }
+
         if (use.name === 'list_bookings_by_date') {
           const date = String((use.input as any)?.date ?? '');
           const dayResult = await this.listBookingsByDate(req.actorUserId!, date);

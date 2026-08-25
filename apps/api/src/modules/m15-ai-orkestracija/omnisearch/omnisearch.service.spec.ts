@@ -308,6 +308,85 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M5', 'booking', 'VIEW');
   });
 
+  // Dopuna (25.8.2026, na zahtev vlasnika — "da li sada korisnik može kroz AI agenta da
+  // zatraži pretragu po nekom filteru ili više njih... želim to za svaki modul"). Dokazuje da
+  // `filter_list` (1) vraća ispravan link za validan pogled/polja, (2) validira dozvolu
+  // identitetom pozivaoca, (3) odbija nepoznato polje/nedozvoljenu enum vrednost čitljivom
+  // porukom modelu, umesto tihog prihvatanja ili pada.
+  it('filter_list vraća link ka filtriranoj listi rezervacija kad su polja validna i dozvola postoji', async () => {
+    const { service, anthropic, permissions } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'bookings', filters: { status: ['CONFIRMED', 'MODIFIED'], destinationCity: 'Budva' } } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({
+        content: [{ type: 'text', text: 'Evo linka ka filtriranoj listi.' }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({ query: 'pokaži potvrđene i izmenjene rezervacije za Budvu', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M5', 'booking', 'VIEW');
+    expect(result.matchedRoutes).toHaveLength(1);
+    expect(result.matchedRoutes[0].href).toBe('/rezervacije/lista?status=CONFIRMED&status=MODIFIED&destinationCity=Budva');
+  });
+
+  it('filter_list odbija nepoznato polje čitljivom porukom, ne baca grešku', async () => {
+    const { service, anthropic } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'bookings', filters: { nepostojecePolje: 'x' } } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({ query: 'filtriraj po nepostojećem polju', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(result.matchedRoutes).toHaveLength(0);
+    const toolResultMessage = create.mock.calls[1][0].messages.find((m: any) => m.role === 'user' && Array.isArray(m.content));
+    const toolResultContent = JSON.parse(toolResultMessage.content[0].content);
+    expect(toolResultContent.error).toMatch(/Nepoznato polje/);
+  });
+
+  it('filter_list odbija bez dozvole za taj modul, ne otkriva href', async () => {
+    const { service, anthropic, permissions } = makeService({ anthropicConfigured: true });
+    (permissions.hasPermission as jest.Mock).mockResolvedValue(false);
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'crm', filters: { email: 'test@example.com' } } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({ query: 'filtriraj nalogodavce po emailu', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(result.matchedRoutes).toHaveLength(0);
+  });
+
+  it('filter_list (reports) bira permission resurs dinamički prema izabranom tab-u', async () => {
+    const { service, anthropic, permissions } = makeService({ anthropicConfigured: true });
+    const create = jest
+      .fn()
+      .mockResolvedValueOnce({
+        content: [{ type: 'tool_use', id: 'tu1', name: 'filter_list', input: { view: 'reports', filters: { tab: 'smestaj', groupBy: 'room_type' } } }],
+        usage: { input_tokens: 10, output_tokens: 5 },
+      })
+      .mockResolvedValueOnce({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
+    (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
+
+    const result = await service.search({ query: 'pokaži izveštaj o smeštaju razvrstan po tipu sobe', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
+
+    expect(permissions.hasPermission).toHaveBeenCalledWith('u1', 'M13', 'report:occupancy', 'VIEW');
+    expect(result.matchedRoutes[0].href).toBe('/izvestaji?tab=smestaj&groupBy=room_type');
+  });
+
   // §6.5.4.3, §10 — "omnisearch nikad ne izvršava radnju sam": statička provera da servis
   // nema u SOPSTVENOM izvornom kodu nijedan poziv mutirajuće metode M5/M2 servisa (CREATE/
   // EDIT/SUBMIT/APPROVE/CANCEL). BookingsService/ProductsService imaju takve metode (cancel,
