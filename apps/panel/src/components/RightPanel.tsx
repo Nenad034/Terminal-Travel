@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Icon from './Icon';
 import { useSelection } from './SelectionContext';
 import { useRowSummary } from './RowSummaryContext';
@@ -33,6 +33,10 @@ import AiChatBox from './AiChatBox';
 // modul dobija generičku "policu podsetnika" (`PanelCollectionContext`) punjenu prevlačenjem —
 // nema poslovnu akciju u ovom prolazu, samo prikaz+link+brisanje (pojedinačno/masovno/sve).
 const PRODAJA_MODULE_ID = 'prodaja';
+
+function clampPercent(value: number): number {
+  return Math.min(80, Math.max(15, value));
+}
 
 export default function RightPanel({
   moduleId,
@@ -67,6 +71,48 @@ export default function RightPanel({
   // prostor umesto fiksnih ~40% (`topCollapsed` ispod menja AI sekciju sa `h-[40%]` na `flex-1`).
   const [topCollapsed, setTopCollapsed] = useState(false);
   const [chatCollapsed, setChatCollapsed] = useState(false);
+  // Ručno podešavanje visine linije koja deli AI chat od sadržaja iznad (dopuna 25.8.2026, na
+  // zahtev vlasnika: "omogucite rucno podesavanje visine linije koja deli ai agenta od sadrzaja
+  // u desnom panelu") — procenat visine PANELA (ne piksela, da se ponašanje ne slomi kad se
+  // panel ručno suzi/proširi preko `ResizablePane`, Shell.tsx). Pamti se po korisniku preko
+  // `localStorage` (isti privremen obrazac kao širina bočne trake/panela dok pravi
+  // `UserPreference` ne pokrije i ovo, M1 §3.9).
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [chatHeightPercent, setChatHeightPercent] = useState(40);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('tt-panel-right-chat-height');
+      if (raw) {
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed)) setChatHeightPercent(clampPercent(parsed));
+      }
+    } catch {
+      // localStorage nedostupan — ostaje podrazumevanih 40%
+    }
+  }, []);
+
+  function handleDividerPointerDown() {
+    const el = containerRef.current;
+    if (!el) return;
+    function onMove(ev: PointerEvent) {
+      const rect = el!.getBoundingClientRect();
+      setChatHeightPercent(clampPercent(((rect.bottom - ev.clientY) / rect.height) * 100));
+    }
+    function onUp() {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      setChatHeightPercent((p) => {
+        try {
+          localStorage.setItem('tt-panel-right-chat-height', String(p));
+        } catch {
+          // ponašanje i dalje radi za ovu sesiju bez trajnog čuvanja
+        }
+        return p;
+      });
+    }
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }
 
   const isProdaja = moduleId === PRODAJA_MODULE_ID;
   const collectedItems = itemsByModule[moduleId] ?? [];
@@ -115,6 +161,7 @@ export default function RightPanel({
 
   return (
     <div
+      ref={containerRef}
       className="flex h-full flex-col overflow-hidden bg-panel-2"
       onDragOver={!isProdaja ? (e) => { e.preventDefault(); setDragOver(true); } : undefined}
       onDragLeave={!isProdaja ? () => setDragOver(false) : undefined}
@@ -263,26 +310,52 @@ export default function RightPanel({
       )}
       </div>
 
-      {/* §6c.0 — naslagano ISPOD sadržaja iznad, ~40% visine panela (nasleđuje vlasnikov
-          prvobitni predlog "40% visine ekrana", ovde primenjen na visinu SAMOG PANELA) — ILI
-          CEO preostali prostor kad je gornji deo sklopljen (`topCollapsed`). `AiChatBox` je
-          UVEK montiran (isti roditelj, samo se sekcija/panel kolabuje) — istorija se ne gubi. */}
+      {/* Linija koja deli AI chat od sadržaja iznad — ručno prevlačiva (dopuna 25.8.2026, na
+          zahtev vlasnika: "omogucite rucno podesavanje visine linije koja deli ai agenta od
+          sadrzaja"), isti `cursor-row-resize` obrazac kao `ResizablePane` (horizontalne granice).
+          Prikazana SAMO kad ima šta stvarno da se deli (oba dela otvorena) — prevlačenje kad je
+          jedan deo sklopljen nema šta da menja. */}
+      {!topCollapsed && !chatCollapsed && (
+        <div
+          onPointerDown={handleDividerPointerDown}
+          title="Prevuci za promenu visine AI chat-a"
+          className="h-1.5 flex-shrink-0 cursor-row-resize border-t border-transparent hover:border-accent"
+        />
+      )}
+
+      {/* §6c.0 — naslagano ISPOD sadržaja iznad, podrazumevano 40% visine panela (ručno
+          podesivo, `chatHeightPercent` iznad) — ILI CEO preostali prostor kad je gornji deo
+          sklopljen (`topCollapsed`). `AiChatBox` je UVEK montiran (isti roditelj, samo se
+          sekcija/panel kolabuje) — istorija se ne gubi. */}
       <div
-        className={`flex flex-shrink-0 flex-col overflow-hidden border-t border-border bg-panel ${
-          chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : 'h-[40%]'
+        className={`flex flex-shrink-0 flex-col overflow-hidden ${topCollapsed || chatCollapsed ? 'border-t border-border' : ''} bg-panel ${
+          chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : ''
         }`}
+        style={!chatCollapsed && !topCollapsed ? { height: `${chatHeightPercent}%` } : undefined}
       >
         <div className="flex h-9 flex-shrink-0 items-center justify-between border-b border-border px-2 text-xs font-medium text-ink-faint">
           <span className="flex items-center gap-1.5">
             <Icon name="sparkle" className="text-accent" /> AI asistent
           </span>
-          <button
-            onClick={() => setChatCollapsed((v) => !v)}
-            title={chatCollapsed ? 'Prikaži AI chat' : 'Sklopi AI chat (ostatak zauzima ostali sadržaj)'}
-            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
-          >
-            <Icon name={chatCollapsed ? 'chevron-up' : 'chevron-down'} />
-          </button>
+          {/* Dugme "Fokus" (dopuna 25.8.2026, na zahtev vlasnika: "dugme za prosirivanje ai
+              agenta stavite u gornji desno cosak ai modula") — premešteno ovamo iz AiChatBox.tsx
+              reda za unos (gde je bilo pre ove dopune). */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => openTab('/ai-asistent', 'AI asistent')}
+              title="Otvori u punom tabu (Fokus režim)"
+              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+            >
+              <Icon name="screen-full" />
+            </button>
+            <button
+              onClick={() => setChatCollapsed((v) => !v)}
+              title={chatCollapsed ? 'Prikaži AI chat' : 'Sklopi AI chat (ostatak zauzima ostali sadržaj)'}
+              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+            >
+              <Icon name={chatCollapsed ? 'chevron-up' : 'chevron-down'} />
+            </button>
+          </div>
         </div>
         <div className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'}>
           <AiChatBox />

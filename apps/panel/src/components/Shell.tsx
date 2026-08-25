@@ -300,11 +300,19 @@ export default function Shell({
 
                 Push/overlay (§6c.0) — "push" (podrazumevano) ostaje u normalnom flex toku,
                 sužava centralni sadržaj. "overlay" prelazi na `position: fixed` uz desnu ivicu —
-                NE menja širinu centralnog sadržaja, samo ga delimično prekriva. Prelazak između
-                režima remontira `RightPanel` (različit roditelj) — istorija razgovora se u tom
-                retkom, eksplicitnom trenutku gubi; svako drugo otvaranje/zatvaranje je bezbedno. */}
+                NE menja širinu centralnog sadržaja, samo ga delimično prekriva. ISTA širina u
+                oba režima (dopuna 25.8.2026, na zahtev vlasnika: "sirina desnog panela neka bude
+                iste sirine (sira varijanta) i kada prelaze i kada ne prelaze preko sadrzaja") —
+                ISTI `ResizablePane` (isti `storageKey`, pamti JEDNU širinu bez obzira na režim,
+                podrazumevano 420px, šira od ranije 320px push vrednosti) u OBA slučaja; za
+                overlay je samo dodatno UMOTAN u `position: fixed` omotač bez sopstvene širine
+                (`fixed`/`right-0` sa `width: auto` se skuplja na širinu deteta — `ResizablePane`
+                i dalje diktira stvaran broj piksela preko sopstvenog `style={{width}}`).
+                Prelazak između režima remontira `RightPanel` (različit roditelj) — istorija
+                razgovora se u tom retkom, eksplicitnom trenutku gubi; svako drugo otvaranje/
+                zatvaranje je bezbedno. */}
             {rightPanelMode === 'push' ? (
-              <ResizablePane storageKey="tt-panel-right-width" defaultWidth={320} minWidth={260} maxWidth={560} handleSide="left" collapsed={!rightPanelOpen} collapsedWidth={0}>
+              <ResizablePane storageKey="tt-panel-right-width" defaultWidth={420} minWidth={260} maxWidth={560} handleSide="left" collapsed={!rightPanelOpen} collapsedWidth={0}>
                 <RightPanel
                   moduleId={currentModuleId}
                   moduleLabel={currentModuleLabel}
@@ -314,17 +322,16 @@ export default function Shell({
                 />
               </ResizablePane>
             ) : (
-              <div
-                className="fixed bottom-[38px] right-0 top-[43px] z-30 w-[420px] shadow-lg"
-                style={{ display: rightPanelOpen ? undefined : 'none' }}
-              >
-                <RightPanel
-                  moduleId={currentModuleId}
-                  moduleLabel={currentModuleLabel}
-                  onClose={closeRightPanelForCurrentModule}
-                  displayMode={rightPanelMode}
-                  onToggleDisplayMode={toggleRightPanelMode}
-                />
+              <div className="fixed bottom-[38px] right-0 top-[43px] z-30 shadow-lg" style={{ display: rightPanelOpen ? undefined : 'none' }}>
+                <ResizablePane storageKey="tt-panel-right-width" defaultWidth={420} minWidth={260} maxWidth={560} handleSide="left">
+                  <RightPanel
+                    moduleId={currentModuleId}
+                    moduleLabel={currentModuleLabel}
+                    onClose={closeRightPanelForCurrentModule}
+                    displayMode={rightPanelMode}
+                    onToggleDisplayMode={toggleRightPanelMode}
+                  />
+                </ResizablePane>
               </div>
             )}
           </div>

@@ -506,15 +506,17 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             )}
         </div>
         <Icon name="sparkle" className="text-accent" />
-        {!fokus && (
-          <button
-            onClick={() => openTab('/ai-asistent', 'AI asistent')}
-            title="Otvori u punom tabu (Fokus režim)"
-            className="flex h-[31px] w-[31px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
-          >
-            <Icon name="screen-full" />
-          </button>
-        )}
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') send();
+          }}
+          placeholder={listening ? 'Slušam...' : 'Pitaj AI ili traži rezervaciju/proizvod...'}
+          className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
+        />
+        {/* Mikrofon POSLE polja, neposredno ispred strelice (dopuna 25.8.2026, na zahtev
+            vlasnika: "mikrofon stavite ispred strelice") — ranije je bio pre polja. */}
         {speechSupported && (
           <button
             onClick={toggleListening}
@@ -526,15 +528,6 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
             <Icon name="mic" />
           </button>
         )}
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') send();
-          }}
-          placeholder={listening ? 'Slušam...' : 'Pitaj AI ili traži rezervaciju/proizvod...'}
-          className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
-        />
         <button
           onClick={() => send()}
           title="Pošalji"
