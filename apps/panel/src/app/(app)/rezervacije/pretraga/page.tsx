@@ -138,7 +138,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           ACCOMMODATION (isti princip se širi na ostalih 8 vrsta pretrage tek posle potvrde
           izgleda, svaka sa sopstvenim filterima u levom panelu). */}
       {types.length === 1 && types[0] === 'ACCOMMODATION' && hasQuery && !error ? (
-        <AccommodationResultsMock stayFrom={quoteDefaults.stayFrom} stayTo={quoteDefaults.stayTo} />
+        <AccommodationResultsMock
+          stayFrom={quoteDefaults.stayFrom}
+          stayTo={quoteDefaults.stayTo}
+          boardType={boardType}
+          priceMin={priceMin}
+          priceMax={priceMax}
+        />
       ) : (
         cardResults.length > 0 && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

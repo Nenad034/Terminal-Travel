@@ -147,13 +147,40 @@ function roomLineLabel(r: MockRoomLine): string {
   return parts.join(' + ');
 }
 
-export default function AccommodationResultsMock({ stayFrom, stayTo }: { stayFrom?: string; stayTo?: string }) {
+export default function AccommodationResultsMock({
+  stayFrom,
+  stayTo,
+  boardType,
+  priceMin,
+  priceMax,
+}: {
+  stayFrom?: string;
+  stayTo?: string;
+  /** M5 spec §3.0c.2 tačka 3 — isti filteri koje `page.tsx` već računa nad pravim rezultatima
+   * (cena/vrsta usluge), ovde primenjeni nad MOCK ponudama — BAG (26.8.2026, prijavio vlasnik
+   * uživo: "ne radi filter po tipu usluge") — mock ekran je ranije potpuno ignorisao ove props,
+   * jer ih uopšte nije primao. */
+  boardType?: string | null;
+  priceMin?: number | null;
+  priceMax?: number | null;
+}) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { items, addItem } = useSelection();
 
-  const sortedHotels = [...MOCK_HOTELS]
-    .map((h) => ({ ...h, offers: [...h.offers].sort((a, b) => offerTotal(a) - offerTotal(b)) }))
+  const sortedHotels = MOCK_HOTELS.map((h) => ({
+    ...h,
+    offers: h.offers
+      .filter((o) => {
+        if (boardType && o.boardType !== boardType) return false;
+        const total = offerTotal(o);
+        if (priceMin != null && total < priceMin) return false;
+        if (priceMax != null && total > priceMax) return false;
+        return true;
+      })
+      .sort((a, b) => offerTotal(a) - offerTotal(b)),
+  }))
+    .filter((h) => h.offers.length > 0)
     .sort((a, b) => offerTotal(a.offers[0]) - offerTotal(b.offers[0]));
 
   function toggle(id: string) {
