@@ -56,7 +56,14 @@ export default function SearchCriteriaPopup({
   const sp = useSearchParams();
   const [values, setValues] = useState(initialValues);
 
+  // Destinacija postaje OBAVEZNA (dopuna 26.8.2026, na zahtev vlasnika: "treba da piše i koja
+  // je destinacija" — sažetak pretrage/naziv sačuvane pretrage nije imao šta da prikaže kad je
+  // ovo polje ostalo prazno). Samo DRŽAVA je obavezna (M5 spec §3.0c.2 — korak 1 vođene pretrage
+  // je uvek zemlja, grad/hotel je finiji, opcioni drugi korak — pretraga cele države ostaje moguća).
+  const destinationValid = values.destinationCountry.trim().length > 0;
+
   function submit() {
+    if (!destinationValid) return;
     const next = new URLSearchParams(sp.toString());
     next.delete('type');
     for (const t of types) next.append('type', t);
@@ -80,12 +87,13 @@ export default function SearchCriteriaPopup({
 
         <div className="flex flex-col gap-3 text-xs">
           <label className="text-ink-faint">
-            država odredišta
+            država odredišta <span className="text-danger">*</span>
             <input
               value={values.destinationCountry}
               onChange={(e) => setValues((v) => ({ ...v, destinationCountry: e.target.value }))}
               className="input mt-1 w-full"
               placeholder="Grčka"
+              required
             />
           </label>
           <label className="text-ink-faint">
@@ -198,9 +206,11 @@ export default function SearchCriteriaPopup({
           )}
         </div>
 
+        {!destinationValid && <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>}
         <button
           onClick={submit}
-          className="mt-4 flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong"
+          disabled={!destinationValid}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Icon name="search" /> pretraži
         </button>
