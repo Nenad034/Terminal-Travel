@@ -8,6 +8,7 @@ import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
 import AiChatBox from './AiChatBox';
+import ProductPreviewCard from './ProductPreviewCard';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -33,6 +34,10 @@ import AiChatBox from './AiChatBox';
 // modul dobija generičku "policu podsetnika" (`PanelCollectionContext`) punjenu prevlačenjem —
 // nema poslovnu akciju u ovom prolazu, samo prikaz+link+brisanje (pojedinačno/masovno/sve).
 const PRODAJA_MODULE_ID = 'prodaja';
+
+// MOCK prekidač (26.8.2026) — vidi napomenu uz ProductPreviewCard poziv ispod. `true` dok
+// vlasnik ne potvrdi izgled; uklanja se u Fazi B.
+const SHOW_MOCK_PRODUCT_PREVIEW = true;
 
 function clampPercent(value: number): number {
   return Math.min(80, Math.max(15, value));
@@ -208,11 +213,20 @@ export default function RightPanel({
       </div>
 
       <div className={topCollapsed ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
-      {isProdaja && items.length === 0 && summary && (
+      {/* MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mi
+          jedan mock da vidim slike i opis jednog hotela u desnom panelu") — Faza A plana "Desni
+          panel — brzi pregled proizvoda" (plan fajl sesije). Prikazuje se PRIVREMENO UMESTO
+          sažetka reda/praznog stanja ispod (`SHOW_MOCK_PRODUCT_PREVIEW`), samo da vlasnik vidi
+          izgled uživo u pravom panelu. Faza B vraća sažetak reda kao poseban prioritet
+          (selekcija > brzi pregled > sažetak > prazno, vidi plan) i menja mock hotele stvarnim
+          podacima/tabovima — ovaj privremeni prekidač se tad uklanja. */}
+      {isProdaja && items.length === 0 && SHOW_MOCK_PRODUCT_PREVIEW && <ProductPreviewCard />}
+
+      {isProdaja && items.length === 0 && !SHOW_MOCK_PRODUCT_PREVIEW && summary && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
       )}
 
-      {isProdaja && items.length === 0 && !summary && (
+      {isProdaja && items.length === 0 && !SHOW_MOCK_PRODUCT_PREVIEW && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
           <Icon name="inspect" className="text-2xl" />
           <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za "Povezano" prikaz.</p>
