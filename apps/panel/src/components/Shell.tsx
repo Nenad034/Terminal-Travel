@@ -16,6 +16,7 @@ import { SelectionProvider } from './SelectionContext';
 import { RowSummaryProvider } from './RowSummaryContext';
 import { PanelCollectionProvider } from './PanelCollectionContext';
 import { AiContextProvider } from './AiContextContext';
+import { ProductPreviewProvider } from './ProductPreviewContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
@@ -216,6 +217,7 @@ export default function Shell({
     <TabsProvider homeLabel="Početna">
       <SelectionProvider onFirstAdd={openRightPanelForCurrentModule}>
       <RowSummaryProvider onFirstShow={openRightPanelForCurrentModule}>
+      <ProductPreviewProvider onFirstShow={openRightPanelForCurrentModule}>
       <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
       {/* `onFirstAdd` NE otvara desni panel dok je korisnik u Fokus tabu (dopuna 25.8.2026, na
           zahtev vlasnika: "kada se klikne na # otvara se odmah desni panel iako je vec ai agent
@@ -387,6 +389,7 @@ export default function Shell({
         <NotificationStack />
       </AiContextProvider>
       </PanelCollectionProvider>
+      </ProductPreviewProvider>
       </RowSummaryProvider>
       </SelectionProvider>
     </TabsProvider>

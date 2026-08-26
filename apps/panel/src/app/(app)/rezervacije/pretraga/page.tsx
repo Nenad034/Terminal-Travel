@@ -3,6 +3,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import SearchCriteriaChip from '@/components/SearchCriteriaChip';
 import QuoteButton from './QuoteButton';
+import ProductPreviewButton from './ProductPreviewButton';
 
 interface SearchOffer {
   roomTypeCode?: string;
@@ -159,7 +160,7 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
         )}
       </div>
       <div className="p-3">
-        <div className="font-medium text-ink">{r.name}</div>
+        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
         <div className="mb-2 text-xs text-ink-faint">
           {r.destinationCity}, {r.destinationCountry} · {r.type}
         </div>
@@ -199,7 +200,7 @@ function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; qu
   return (
     <div className="rounded-lg border border-border bg-panel p-4">
       <div className="mb-2">
-        <div className="font-medium text-ink">{r.name}</div>
+        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
         <div className="text-xs text-ink-faint">
           {r.destinationCity}, {r.destinationCountry} · {r.type} · {r.sourceType}
         </div>

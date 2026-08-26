@@ -1,14 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import { useSelection } from './SelectionContext';
 import { useRowSummary } from './RowSummaryContext';
+import { useProductPreview } from './ProductPreviewContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
 import AiChatBox from './AiChatBox';
 import ProductPreviewCard from './ProductPreviewCard';
+import ProductContactCard from './ProductContactCard';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -35,9 +38,12 @@ import ProductPreviewCard from './ProductPreviewCard';
 // nema poslovnu akciju u ovom prolazu, samo prikaz+link+brisanje (pojedinačno/masovno/sve).
 const PRODAJA_MODULE_ID = 'prodaja';
 
-// MOCK prekidač (26.8.2026) — vidi napomenu uz ProductPreviewCard poziv ispod. `true` dok
-// vlasnik ne potvrdi izgled; uklanja se u Fazi B.
-const SHOW_MOCK_PRODUCT_PREVIEW = true;
+// Ruta punog prikaza proizvoda (`/katalog/[id]/pregled`, ProductGalleryPage) — desni panel
+// ovde prikazuje kontakt+"aktivne rezervacije" (`ProductContactCard`) NEZAVISNO od `moduleId`
+// (M17 spec "Desni panel — brzi pregled proizvoda", Faza B). `katalog` pripada grupi
+// `katalog-nabavka` (nav.ts), RAZLIČITOJ od `prodaja` gde je pregled pokrenut — provera mora
+// biti po RUTI, ne po modulu, da radi bez obzira gde je ta ruta grupisana u levoj traci.
+const PRODUCT_PREGLED_RE = /^\/katalog\/([^/]+)\/pregled$/;
 
 function clampPercent(value: number): number {
   return Math.min(80, Math.max(15, value));
@@ -61,7 +67,10 @@ export default function RightPanel({
 }) {
   const { items, removeItem, clear } = useSelection();
   const { summary, clearSummary } = useRowSummary();
+  const { items: previewItems } = useProductPreview();
   const { navigateInTab, openTab } = useTabs();
+  const pathname = usePathname();
+  const productPregledMatch = pathname.match(PRODUCT_PREGLED_RE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { itemsByModule, addItem: addCollectedItem, removeItem: removeCollectedItem, removeItems: removeCollectedItems, clearModule } =
@@ -213,20 +222,17 @@ export default function RightPanel({
       </div>
 
       <div className={topCollapsed ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
-      {/* MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mi
-          jedan mock da vidim slike i opis jednog hotela u desnom panelu") — Faza A plana "Desni
-          panel — brzi pregled proizvoda" (plan fajl sesije). Prikazuje se PRIVREMENO UMESTO
-          sažetka reda/praznog stanja ispod (`SHOW_MOCK_PRODUCT_PREVIEW`), samo da vlasnik vidi
-          izgled uživo u pravom panelu. Faza B vraća sažetak reda kao poseban prioritet
-          (selekcija > brzi pregled > sažetak > prazno, vidi plan) i menja mock hotele stvarnim
-          podacima/tabovima — ovaj privremeni prekidač se tad uklanja. */}
-      {isProdaja && items.length === 0 && SHOW_MOCK_PRODUCT_PREVIEW && <ProductPreviewCard />}
+      {/* Prioritet unutar "prodaja" modula (Faza B, 26.8.2026): selekcija (ponuda) > brzi
+          pregled proizvoda (ProductPreviewContext istorija, klik na naziv u pretrazi) > sažetak
+          reda > prazno stanje. Raniji mock (isti dan, ranije) je zamenjen stvarnim podacima —
+          `ProductPreviewCard` sad sam učitava preko `/api/catalog/products/:id/preview`. */}
+      {isProdaja && items.length === 0 && previewItems.length > 0 && <ProductPreviewCard />}
 
-      {isProdaja && items.length === 0 && !SHOW_MOCK_PRODUCT_PREVIEW && summary && (
+      {isProdaja && items.length === 0 && previewItems.length === 0 && summary && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
       )}
 
-      {isProdaja && items.length === 0 && !SHOW_MOCK_PRODUCT_PREVIEW && !summary && (
+      {isProdaja && items.length === 0 && previewItems.length === 0 && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
           <Icon name="inspect" className="text-2xl" />
           <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za "Povezano" prikaz.</p>
@@ -271,7 +277,12 @@ export default function RightPanel({
         </div>
       )}
 
-      {!isProdaja && collectedItems.length === 0 && (
+      {/* Kontakt + "aktivne rezervacije" link za proizvod čiji je pun opis otvoren u centralnom
+          panelu (`/katalog/:id/pregled`, Faza B) — PRE generičkog "podsetnik" prikaza ispod za
+          isti razlog kao PRODUCT_PREGLED_RE komentar iznad (druga NAV grupa od "prodaja"). */}
+      {productPregledMatch && <ProductContactCard productId={productPregledMatch[1]} />}
+
+      {!isProdaja && !productPregledMatch && collectedItems.length === 0 && (
         <div
           className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
             dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
@@ -282,7 +293,7 @@ export default function RightPanel({
         </div>
       )}
 
-      {!isProdaja && collectedItems.length > 0 && (
+      {!isProdaja && !productPregledMatch && collectedItems.length > 0 && (
         <div className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}>
           <div className="flex-1 overflow-y-auto p-2">
             <div className="flex flex-col gap-2">

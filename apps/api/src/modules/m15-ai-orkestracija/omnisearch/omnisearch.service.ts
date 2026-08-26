@@ -530,6 +530,46 @@ export class OmnisearchService {
   }
 
   /**
+   * Dopuna (26.8.2026) — pun opis jednog proizvoda za `get_product_details` alat. Rešava ID
+   * direktno (`findOne`, isti podaci kao `/katalog/[id]` ekran) ako `query` liči na UUID, inače
+   * pronalazi najbolje poklapanje po nazivu (ista logika kao `searchProducts` iznad) i učitava
+   * njegov pun zapis. `attributes.contact` je opciona konvencija (M2 spec §2.3, dopuna) — polje
+   * nedostaje kod proizvoda uvezenih pre ove dopune, model tad jednostavno kaže da kontakt nije
+   * unet umesto da izmišlja.
+   */
+  private async getProductDetails(channel: OmnisearchChannel, query: string): Promise<Record<string, unknown> | { error: string }> {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let product: any;
+    if (UUID_RE.test(query.trim())) {
+      product = await this.products.findOne(query.trim()).catch(() => null);
+    } else {
+      const all = await this.products.findAll({});
+      const lowerQuery = query.toLowerCase();
+      product = (all as any[]).find((p) => p.translation?.name?.toLowerCase().includes(lowerQuery)) ?? null;
+    }
+    if (!product) return { error: `Proizvod "${query}" nije pronađen u katalogu.` };
+
+    const attrs = (product.attributes ?? {}) as Record<string, unknown>;
+    return {
+      id: product.id,
+      name: product.translation?.name ?? null,
+      description: product.translation?.description ?? null,
+      type: product.type,
+      destinationCity: product.destinationCity,
+      destinationCountry: product.destinationCountry,
+      stars: attrs.stars ?? null,
+      accommodationType: attrs.accommodation_type ?? null,
+      boardType: attrs.board_type ?? null,
+      amenities: attrs.amenities ?? null,
+      roomTypes: attrs.room_types ?? null,
+      contact: attrs.contact ?? null,
+      photoCount: Array.isArray(product.media) ? product.media.length : 0,
+      label: product.translation?.name ?? product.id,
+      href: productHref(channel, product.id),
+    };
+  }
+
+  /**
    * B2C_SITE varijanta — M2 `findAllPublic` (isti javni, dobavljača-slep serijalizator kao M2
    * PublicProductsController, M2 spec §5.1) filtrirano po `visible_channels=B2C_SITE` i
    * `status=ACTIVE`. Nikad ne otkriva `source_*` polja (identitet dobavljača) — polja su
@@ -587,6 +627,22 @@ export class OmnisearchService {
             input_schema: {
               type: 'object' as const,
               properties: { query: { type: 'string' as const, description: 'Naziv proizvoda ili destinacije' } },
+              required: ['query'],
+            },
+          },
+          {
+            // Dopuna (26.8.2026, na zahtev vlasnika, uživo nalaz — pitanje "šta mi možete reći o
+            // ovom hotelu" je dobilo samo "nema rezultata" jer `search_catalog` vraća isključivo
+            // naziv/ID/link, nikad pun opis/sadržaje/kontakt). Vraća PUN zapis (M2 `ProductsService.
+            // findOne`, isti podaci koje već koristi `/katalog/[id]` ekran) — koristi kad korisnik
+            // traži DETALJE konkretnog proizvoda (opis, kategorija, sadržaji, kontakt), ne kad
+            // traži SPISAK kandidata (za to i dalje `search_catalog`).
+            name: 'get_product_details',
+            description:
+              'Vrati pun opis, kategoriju (zvezdice), sadržaje, tipove soba i kontakt podatke jednog proizvoda iz kataloga (hotel/aranžman) po nazivu ili ID-ju. Koristi kad korisnik pita "šta znaš o..."/"reci mi više o..." konkretnom proizvodu, ne za spisak kandidata.',
+            input_schema: {
+              type: 'object' as const,
+              properties: { query: { type: 'string' as const, description: 'Naziv ili ID proizvoda' } },
               required: ['query'],
             },
           },
@@ -758,6 +814,16 @@ export class OmnisearchService {
                 }
               }
             }
+          }
+          continue;
+        }
+
+        if (use.name === 'get_product_details') {
+          const q = String((use.input as any)?.query ?? req.query);
+          const details = await this.getProductDetails(req.channel, q);
+          toolResults.push({ type: 'tool_result', tool_use_id: use.id, content: JSON.stringify(details) });
+          if (details && 'href' in details && !matchedRoutes.find((m) => m.href === (details as any).href)) {
+            matchedRoutes.push({ label: (details as any).label, href: (details as any).href });
           }
           continue;
         }

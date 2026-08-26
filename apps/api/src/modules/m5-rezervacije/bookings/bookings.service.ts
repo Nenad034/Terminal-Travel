@@ -403,6 +403,7 @@ export class BookingsService {
       returnFrom?: string;
       returnTo?: string;
       productType?: string[];
+      productId?: string;
       destinationCity?: string;
       destinationCountry?: string;
       hasTravelGuarantee?: string;
@@ -463,6 +464,10 @@ export class BookingsService {
           ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
         };
       }
+      // Dopuna (26.8.2026, na zahtev vlasnika — "aktivne rezervacije za ovaj hotel" link iz
+      // desnog panela, M17 spec "brzi pregled proizvoda") — direktan filter po proizvodu,
+      // odvojen od `productType` (koji filtrira po TIPU, ne po konkretnom proizvodu).
+      if (filters.productId) itemWhere.productId = filters.productId;
       if (Object.keys(itemWhere).length > 0) where.items = { some: itemWhere };
     }
 
