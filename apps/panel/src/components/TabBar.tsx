@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useTabs } from './TabsContext';
 import Icon from './Icon';
@@ -16,7 +17,15 @@ import Icon from './Icon';
 // tabovi nisu imali eksplicitnu visinu nego su je nasleđivali od `<header>` reda preko
 // `items-center`/padding-a).
 export default function TabBar() {
-  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs } = useTabs();
+  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs, reorderTabs } = useTabs();
+  // Ručno premeštanje tabova (26.8.2026, na zahtev vlasnika: "omogućite ručno menjanje
+  // pozicije tabova u centralnom panelu, horizontalno") — nativan HTML5 drag-and-drop (bez
+  // nove biblioteke — `docs/00-MASTER-ARHITEKTURA.md` poglavlje 6 nema DnD paket, a nativan
+  // API je dovoljan za prostu linearnu listu). `draggedId` prati koji tab se trenutno vuče,
+  // `dragOverId` samo za vizuelni indikator gde bi sleteo (razdvojeno da drop na sopstveni
+  // tab ili van trake ne ostavi "zaglavljen" indikator).
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   return (
     <div className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
@@ -26,8 +35,40 @@ export default function TabBar() {
           <Link
             key={tab.id}
             href={tab.path}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={(e) => {
+              // Klik posle prevlačenja ne sme dodatno da navigira/pomeri fokus (browser
+              // ume da ispali `click` neposredno posle `drop`-a na istom elementu).
+              if (draggedId) {
+                e.preventDefault();
+                return;
+              }
+              setActiveTab(tab.id);
+            }}
             title={tab.label}
+            draggable
+            onDragStart={(e) => {
+              setDraggedId(tab.id);
+              e.dataTransfer.effectAllowed = 'move';
+            }}
+            onDragEnd={() => {
+              setDraggedId(null);
+              setDragOverId(null);
+            }}
+            onDragOver={(e) => {
+              if (!draggedId || draggedId === tab.id) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDragOverId(tab.id);
+            }}
+            onDragLeave={() => {
+              setDragOverId((cur) => (cur === tab.id ? null : cur));
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (draggedId && draggedId !== tab.id) reorderTabs(draggedId, tab.id);
+              setDraggedId(null);
+              setDragOverId(null);
+            }}
             // Fiksna širina — 20 karaktera (23.8.2026, na zahtev vlasnika: "Sirina tabova
             // treba da bude ista za svaki tab bez obzira na duzinu teksta... 20 karaktera.
             // Ako je tekst duzi neka budu ... tri tacke") — `w-[20ch]` umesto ranijeg
@@ -37,9 +78,9 @@ export default function TabBar() {
             // (ne samo monospace). Pun naziv i dalje dostupan preko `title` (native tooltip
             // na hover, "misem preko taba da se pojavi ceo tekst" — nema potrebe za sopstvenim
             // JS tooltip-om, browser to već radi).
-            className={`group flex h-[29px] w-[20ch] flex-shrink-0 items-center gap-1.5 rounded border px-2 text-[11px] transition-colors ${
+            className={`group flex h-[29px] w-[20ch] flex-shrink-0 cursor-grab items-center gap-1.5 rounded border px-2 text-[11px] transition-colors active:cursor-grabbing ${
               active ? 'border-accent bg-accent-soft text-ink' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
-            }`}
+            } ${draggedId === tab.id ? 'opacity-40' : ''} ${dragOverId === tab.id ? 'border-accent-strong border-2' : ''}`}
           >
             {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
             {/* `flex-1` (dopuna 25.8.2026, na zahtev vlasnika: "x za zatvaranje tabova stavite u

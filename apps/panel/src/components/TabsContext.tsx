@@ -37,6 +37,11 @@ interface TabsContextValue {
   /** Zatvara sve tabove osim Početne (na zahtev vlasnika, 19.8.2026 — "previše otvorenih"). */
   closeAllTabs: () => void;
   markDirty: (path: string, dirty: boolean) => void;
+  /** Ručno premeštanje taba prevlačenjem (26.8.2026, na zahtev vlasnika: "omogućite ručno
+   * menjanje pozicije tabova u centralnom panelu, horizontalno") — ubacuje `draggedId` na
+   * mesto `targetId` u nizu (isti obrazac kao standardan browser/VS Code drag-and-drop
+   * tabova). Samo redosled — ne menja aktivan tab niti putanju. */
+  reorderTabs: (draggedId: string, targetId: string) => void;
 }
 
 function newTabId(): string {
@@ -176,6 +181,18 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     commitTabs(tabsRef.current.map((t) => (t.path === path ? { ...t, dirty } : t)));
   }, []);
 
+  const reorderTabs = useCallback((draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const prev = tabsRef.current;
+    const fromIdx = prev.findIndex((t) => t.id === draggedId);
+    const toIdx = prev.findIndex((t) => t.id === targetId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const next = [...prev];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    commitTabs(next);
+  }, []);
+
   const closeAllTabs = useCallback(() => {
     const id = newTabId();
     commitTabs([{ id, path: '/', label: homeLabel }]);
@@ -185,7 +202,7 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
 
   return (
     <TabsCtx.Provider
-      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, markDirty }}
+      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, markDirty, reorderTabs }}
     >
       {children}
     </TabsCtx.Provider>
