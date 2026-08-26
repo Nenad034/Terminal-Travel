@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
 import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
+import HomeSidebarPanel from './HomeSidebarPanel';
 import type { NavGroup, NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — leva traka prikazuje spisak sekcija AKTIVNE
@@ -80,6 +81,10 @@ export default function Sidebar({
               stavimo u levi panel... Ima dosta praznog prostora") — dizajn dok. §5b, isti
               obrazac kao pretraga iznad, samo za "Lista rezervacija". */}
           {selected.id === 'rezervacije-lista' && <SavedViewsSidebarPanel />}
+          {/* Sažetak + brzi linkovi za Početnu (26.8.2026, na zahtev vlasnika, uz snimak
+              ekrana GitLens-ove "Get Started" table kao primer) — isti obrazac kao dva
+              panela iznad, popunjava ranije prazan prostor ispod naslova "Početna". */}
+          {selected.id === 'pocetna' && <HomeSidebarPanel items={items} />}
         </>
       ) : (
         <>
