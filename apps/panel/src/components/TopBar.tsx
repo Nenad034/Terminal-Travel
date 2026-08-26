@@ -140,23 +140,27 @@ export default function TopBar({
           // nekim CSS overflow-om koji bi se mogao ukloniti. `origin-top-left` rasta ISKLJUČIVO
           // nadole, u prostor koji stvarno postoji. Okvir (`ring-1 ring-border`) uklonjen — samo
           // senka ostaje, bez uokvirujuće kutije.
+          // ISPRAVKA #3 (26.8.2026, na zahtev vlasnika: "kada se klikne na uvecanje loga uklonite
+          // pozadinu jer zahvata ikonu za Home i ne vidi se cela") — neprozirna `bg-bar` (uvedena
+          // u ISPRAVCI iznad baš da spreči providno preklapanje sa tabom ispod) je sama postala
+          // problem: uvećan 2x, taj neprozirni pravougaonik je fizički prekrivao dugme "Početna"
+          // pored logotipa. Vlasnik je eksplicitno tražio da pozadina ide, providno preklapanje
+          // (ako se ponovo pojavi) je manje ozbiljno od potpuno nevidljivog dugmeta.
           className={`flex flex-shrink-0 items-center gap-2 rounded-md origin-top-left transition-transform duration-150 ${
-            logoZoomed ? 'relative z-20 scale-[2] bg-bar px-1.5 py-1 shadow-lg' : 'scale-100'
+            logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'
           }`}
         >
-          {/* Logo u bojama "Zalazak" palete (24.8.2026, na zahtev vlasnika: "Logo neka bude u
-              bojama zalaska sunca") — poništava prethodnu plavo-tirkiznu boju uzorkovanu iz same
-              PNG slike. "Zalazak" je već postojeća, WCAG AA proverena paleta sajta (M8,
-              `apps/web/src/app/globals.css`) — tri postojeća tokena (tamni mod, najzasićeniji):
-              `--accent` #E8A63C (amber), `--danger` #E2685A (koralno-crvena), `--plum` #A99BD8
-              (šljiva) — čitaju se kao horizont→sumrak preliv, umesto izmišljanja nove boje.
-              Fiksno (ne prati temu panela "Horizont") — brend ostaje isti bez obzira na temu,
-              isti princip kao prethodna boja slova. Ikonica: PNG nema sopstvenu boju u ovom
-              prikazu — `mask-image` koristi PROVIDNOST slike kao oblik (alfa maska), stvaran
-              preliv se boji preko CSS gradijenta iza maske. */}
+          {/* Logo u "zlatnoj" boji aplikacije (26.8.2026, na zahtev vlasnika: "Logo Terminal
+              Travel neka bude u zlatnoj boji aplikacije") — poništava prethodni "Zalazak"
+              preliv (v2.08, tri boje iz apps/web palete, namerno FIKSAN bez obzira na temu
+              panela). `--accent` (#8A8A5E, "maslinasto-zlatna", globals.css) je VEĆ zvanična
+              zlatna boja OVE aplikacije (panel, "Horizont" tema) — ista u oba moda (svetli/
+              tamni), WCAG proveren token koji se već koristi svuda u panelu (`text-accent`/
+              `bg-accent`) — logo sad prati taj token umesto sopstvene fiksne palete. Puna reč
+              "TTerminal TTravel" (isti zahtev, dodato po jedno "T" na početak svake reči). */}
           <span
             aria-hidden
-            className={`block flex-shrink-0 bg-gradient-to-br from-[#e8a63c] via-[#e2685a] to-[#a99bd8] ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`}
+            className={`block flex-shrink-0 bg-accent ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`}
             style={{
               WebkitMaskImage: 'url(/brand/terminal-travel-icon.png)',
               maskImage: 'url(/brand/terminal-travel-icon.png)',
@@ -168,11 +172,7 @@ export default function TopBar({
               maskPosition: 'center',
             }}
           />
-          {showLabel && (
-            <span className="truncate bg-gradient-to-r from-[#e8a63c] via-[#e2685a] to-[#a99bd8] bg-clip-text text-sm font-semibold tracking-wide text-transparent">
-              Terminal Travel
-            </span>
-          )}
+          {showLabel && <span className="truncate text-sm font-semibold tracking-wide text-accent">TTerminal TTravel</span>}
         </button>
       </div>
       <div className="flex h-full min-w-0 flex-1">

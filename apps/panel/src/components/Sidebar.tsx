@@ -85,43 +85,55 @@ export default function Sidebar({
         <>
           {/* Ikona uklonjena (26.8.2026, na zahtev vlasnika, uz snimak ekrana — "u svakoj
               stavci menija imate po dve iste ikone") — dupliraj sa ActivityBar ikonicom cele
-              grupe (isti `activeGroup.icon`, levo od ove trake). Naziv uvećan 10% (12px→13.2px)
-              i podebljan da i dalje jasno nosi hijerarhiju bez ikonice. */}
-          <div className="mx-2 mb-2 flex items-center gap-2 px-2 text-[13.2px] font-bold text-ink-faint">
-            <span className="truncate">{activeGroup.label}</span>
-          </div>
-          {sectionItems.map((item) => {
-            if (!item.implemented) {
+              grupe (isti `activeGroup.icon`, levo od ove trake). Naziv VELIKIM SLOVIMA i
+              uvećan još 10% (26.8.2026, na zahtev vlasnika: "Nazivi modula neka budu napisani
+              velikim slovima, uvecajte ih za jos 10%" — 13.2px × 1.1 = 14.52px, nastavak
+              prethodnog +10% prolaza istog dana), `uppercase` čisto vizuelno (CSS
+              `text-transform`, ne menja stvaran string) — isti obrazac kao VS Code naslovi
+              sekcija u bočnoj traci ("EXPLORER", "OUTLINE"...).
+              Vertikalna linija (isti dan, na zahtev vlasnika: "Povezite naziv modula sa
+              stavkama modula onim linijama kao kada se u VS Code ispisuje tekst", tj. linije
+              za vođenje/indent guide kao u VS Code stablu) — poravnata sa horizontalnim
+              centrom ikonica stavki ispod (`left-5` = 20px = `mx-2`(8px) stavke + pola od
+              `w-6`(24px) ikonice), proteže se od dna naslova do dna poslednje stavke. */}
+          <div className="relative">
+            <div className="mx-2 mb-2 flex items-center gap-2 px-2 text-[14.52px] font-bold uppercase text-ink-faint">
+              <span className="truncate">{activeGroup.label}</span>
+            </div>
+            <div aria-hidden className="pointer-events-none absolute bottom-2 left-5 top-[26px] w-px bg-ink-faint/30" />
+            {sectionItems.map((item) => {
+              if (!item.implemented) {
+                return (
+                  <div
+                    key={item.id}
+                    title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
+                    className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-ink-faint opacity-40"
+                  >
+                    <span className="flex w-[29px] items-center justify-center">
+                      <Icon name="lock" />
+                    </span>
+                    <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">
+                      <span className="truncate">{item.label}</span>
+                      <span className="ml-2 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-mono">F{item.phase}</span>
+                    </span>
+                  </div>
+                );
+              }
               return (
-                <div
+                <Link
                   key={item.id}
-                  title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
-                  className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-ink-faint opacity-40"
+                  href={item.href}
+                  title={item.label}
+                  className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-sm text-ink-dim hover:bg-panel hover:text-ink"
                 >
-                  <span className="flex w-[29px] items-center justify-center">
-                    <Icon name="lock" />
+                  <span className="flex w-6 items-center justify-center">
+                    <Icon name={item.icon} />
                   </span>
-                  <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">
-                    <span className="truncate">{item.label}</span>
-                    <span className="ml-2 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-mono">F{item.phase}</span>
-                  </span>
-                </div>
+                  <span className="truncate">{item.label}</span>
+                </Link>
               );
-            }
-            return (
-              <Link
-                key={item.id}
-                href={item.href}
-                title={item.label}
-                className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-sm text-ink-dim hover:bg-panel hover:text-ink"
-              >
-                <span className="flex w-6 items-center justify-center">
-                  <Icon name={item.icon} />
-                </span>
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
+            })}
+          </div>
         </>
       )}
     </nav>
