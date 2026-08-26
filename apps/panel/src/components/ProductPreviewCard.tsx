@@ -15,6 +15,7 @@ import AddToAiContextButton from './AddToAiContextButton';
 interface MockHotel {
   id: string;
   name: string;
+  stars: number;
   city: string;
   country: string;
   description: string;
@@ -26,6 +27,7 @@ const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-hotel-1',
     name: 'Hotel Riviera',
+    stars: 5,
     city: 'Budva',
     country: 'Crna Gora',
     description:
@@ -41,6 +43,7 @@ const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-hotel-2',
     name: 'Hotel Panorama',
+    stars: 4,
     city: 'Kotor',
     country: 'Crna Gora',
     description: 'Butik hotel u starom gradu, sa terasom sa pogledom na zaliv. Doručak uključen, besplatan WiFi.',
@@ -54,6 +57,7 @@ const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-hotel-3',
     name: 'Hotel Adriatic',
+    stars: 3,
     city: 'Petrovac',
     country: 'Crna Gora',
     description: 'Porodični hotel uz peščanu plažu, sa animacijom za decu i unutrašnjim bazenom.',
@@ -108,9 +112,15 @@ export default function ProductPreviewCard() {
 
         <div className="mb-1 flex items-start justify-between gap-2">
           <div>
-            <div className="font-medium text-ink">{active.name}</div>
+            {/* Kategorija hotela pored naziva + država/destinacija ispod (26.8.2026, na zahtev
+                vlasnika: "dodahte samo da se ispod naziva hotela napise drzava i destinacija i
+                da pored naziva hotela buide napisana kategorija hotela 5*"). */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-ink">{active.name}</span>
+              <span className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-warn">{active.stars}*</span>
+            </div>
             <div className="text-[11px] text-ink-faint">
-              {active.city}, {active.country}
+              {active.country}, {active.city}
             </div>
           </div>
           <AddToAiContextButton refLabel={active.name} />
