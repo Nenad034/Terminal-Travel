@@ -83,8 +83,11 @@ export default function Sidebar({
         </>
       ) : (
         <>
-          <div className="mx-2 mb-2 flex items-center gap-2 px-2 text-xs font-medium text-ink-faint">
-            <Icon name={activeGroup.icon} />
+          {/* Ikona uklonjena (26.8.2026, na zahtev vlasnika, uz snimak ekrana — "u svakoj
+              stavci menija imate po dve iste ikone") — dupliraj sa ActivityBar ikonicom cele
+              grupe (isti `activeGroup.icon`, levo od ove trake). Naziv uvećan 10% (12px→13.2px)
+              i podebljan da i dalje jasno nosi hijerarhiju bez ikonice. */}
+          <div className="mx-2 mb-2 flex items-center gap-2 px-2 text-[13.2px] font-bold text-ink-faint">
             <span className="truncate">{activeGroup.label}</span>
           </div>
           {sectionItems.map((item) => {
