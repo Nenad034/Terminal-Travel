@@ -6,6 +6,18 @@ import { createContext, useContext, useState } from 'react';
 // panelu (dizajn dok. §5b/§6d). Čisto klijentsko stanje (ne preživljava osvežavanje stranice),
 // isti princip kao AiChatBox istorija — pravi zapis nastaje tek kad se stvarno pozove
 // POST /quotes (RightPanel.tsx, "Napravi ponudu").
+// Detaljna polja po sobi (dopuna 26.8.2026, na zahtev vlasnika: "u kartici u desnom panelu
+// treba da pišu detaljne informacije kao i u centralnom panelu" — traži pojedinačnu cenu po
+// sobi za navedeni broj osoba + ukupnu cenu). Sve OPCIONO — postojeći pravi `QuoteButton.tsx`
+// (rezultati pretrage) nastavlja da radi nepromenjeno bez ovih polja; samo ih popunjava
+// bogatiji izvor (za sad mock smeštaj, `AccommodationResultsMock.tsx`).
+export interface SelectionRoomLine {
+  adults: number;
+  children: number;
+  childrenAges?: number[];
+  price: number;
+}
+
 export interface SelectionItem {
   key: string;
   productId: string;
@@ -21,6 +33,13 @@ export interface SelectionItem {
   finalPrice: number;
   finalPriceCurrency: string;
   quoteExpiresAt?: string;
+  /** Opciono — kategorija (zvezdice), destinacija, čitljiv naziv usluge ("HB - Polupansion") i
+   * razbijena cena po sobi, za bogatiji prikaz u desnom panelu (RightPanel.tsx SelectionRow). */
+  stars?: number;
+  destinationCity?: string;
+  destinationCountry?: string;
+  boardTypeLabel?: string;
+  roomLines?: SelectionRoomLine[];
 }
 
 interface SelectionContextValue {

@@ -508,23 +508,61 @@ function SummaryRow({ label, value, strong, tone }: { label: string; value: stri
 }
 
 function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').SelectionItem; onRemove: () => void }) {
+  const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${item.finalPriceCurrency}`;
   return (
     <div className="rounded-lg border border-border bg-panel p-2 text-xs">
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate font-medium text-ink">{item.productName}</div>
-          <div className="text-[11px] text-ink-faint">{item.productType}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate font-medium text-ink">{item.productName}</span>
+            {item.stars !== undefined && (
+              <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[9px] font-semibold text-warn">{item.stars}*</span>
+            )}
+          </div>
+          {/* Detaljne informacije kao u centralnom panelu (dopuna 26.8.2026, na zahtev vlasnika:
+              "u kartici u desnom panelu treba da pišu detaljne informacije kao i u centralnom
+              panelu") — popunjeno SAMO kad izvor nosi ta opciona polja (`SelectionItem`
+              dopuna, `SelectionContext.tsx`); pravi `QuoteButton.tsx` rezultati i dalje prikazuju
+              samo `productType` ispod, isto kao ranije. */}
+          {item.destinationCity || item.destinationCountry ? (
+            <div className="text-[11px] text-ink-faint">{[item.destinationCountry, item.destinationCity].filter(Boolean).join(', ')}</div>
+          ) : (
+            <div className="text-[11px] text-ink-faint">{item.productType}</div>
+          )}
+          {(item.stayFrom || item.stayTo) && (
+            <div className="text-[11px] text-ink-faint">
+              {item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} – {item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'}
+            </div>
+          )}
+          {item.boardTypeLabel && <div className="text-[11px] text-ink-faint">{item.boardTypeLabel}</div>}
         </div>
         <button onClick={onRemove} title="Ukloni iz selekcije" className="flex-shrink-0 text-ink-faint hover:text-danger">
           <Icon name="close" />
         </button>
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-mono font-semibold text-ink">
-          {(item.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {item.finalPriceCurrency}
-        </span>
-        {item.sourceType === 'API' && item.quoteExpiresAt && <ExpiryBadge quoteExpiresAt={item.quoteExpiresAt} />}
-      </div>
+
+      {item.roomLines && item.roomLines.length > 0 ? (
+        <div className="mt-1.5 flex flex-col gap-0.5">
+          {item.roomLines.map((r, i) => (
+            <div key={i} className="flex items-center justify-between gap-2 text-ink-dim">
+              <span>
+                Soba {i + 1}: {r.adults} odrasl{r.adults === 1 ? 'a' : 'e'}
+                {r.children > 0 ? ` + ${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}` : ''}
+              </span>
+              <span className="font-mono">{money(r.price)}</span>
+            </div>
+          ))}
+          <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1">
+            <span className="font-medium text-ink-faint">Ukupno</span>
+            <span className="font-mono font-semibold text-ink">{money(item.finalPrice)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono font-semibold text-ink">{money(item.finalPrice)}</span>
+          {item.sourceType === 'API' && item.quoteExpiresAt && <ExpiryBadge quoteExpiresAt={item.quoteExpiresAt} />}
+        </div>
+      )}
     </div>
   );
 }

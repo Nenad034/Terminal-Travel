@@ -5,36 +5,30 @@ import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mock
-// podatke da vidim kako sve izgleda", posle razrade grid/list prikaza kroz razgovor; dorađeno
-// isti dan posle uživo pregleda screenshot-a — "ima mnogo praznog prostora i preklapa se
-// listanje sa tekstom... dovoljno je 2 odrasle (1 soba)... 5 banera u jednom redu... mock
-// slike... manja slika u list view-u u prvom redu, ispod bez slike... klikom odabir ponude i
-// slanje u desni panel"). Pravi `GET /search` (M5 spec §11) danas vraća JEDAN
-// `SearchResultProduct` po proizvodu sa NIZOM `offers[]` (tip sobe × vrsta usluge) — model
-// podataka za ovo VEĆ postoji, ali ne nosi razbijen broj SOBA po ponudi (`occupancy.room_config[]`
-// je fiksiran na nivou CELE pretrage, ne po ponudi) niti `attributes.stars`/slike u odgovoru
-// pretrage (samo u punom `Product` zapisu) — ovaj mock zato hardkoduje kompletnu strukturu da se
-// vidi ceo koncept. Prava žica (posle potvrde izgleda) menja mock hotele stvarnim `/sales/search`
-// odgovorom + dopunjuje ga poljima koja mu nedostaju.
+// podatke da vidim kako sve izgleda", dorađeno kroz dva naredna prolaza istog dana). Pravi
+// `GET /search` (M5 spec §11) danas vraća JEDAN `SearchResultProduct` po proizvodu sa NIZOM
+// `offers[]` (tip sobe × vrsta usluge) — ali NI cena NI zauzetost nisu razbijene po sobi kad
+// pretraga traži VIŠE soba sa RAZLIČITIM sastavom gostiju (npr. soba 1: 2 odrasle, soba 2: 2
+// odrasle + dete od 10 godina) — ovaj mock zato hardkoduje `rooms[]` (svaka stavka = JEDNA
+// soba, sopstvena cena za TAČNO taj sastav gostiju) da se vidi ceo koncept, dok prava žica
+// (M4/M3 provajder odgovor) ne stigne do istog nivoa detalja.
 //
-// Klik za odabir (dopuna, isti dan) — koristi POSTOJEĆI, PRAVI `SelectionContext` (M5 spec
-// §3.0e.3, isti mehanizam kao `QuoteButton.tsx` u pravim rezultatima) — dodavanje u desni panel
-// STVARNO radi već sada. Napomena: `productId`/`rateLineId` su mock vrednosti — dugme "Napravi
-// ponudu" u desnom panelu bi za OVE stavke vratilo grešku sa pravog servera (proizvod ne
-// postoji) — prihvatljivo dok je ovo mock faza, ne skriva se (isti duh kao ostatak mock
-// obeležavanja), zatvara se kad mock hoteli postanu pravi rezultati pretrage.
+// Klik za odabir — koristi PRAVI `SelectionContext` (M5 spec §3.0e.3, isti mehanizam kao
+// `QuoteButton.tsx`), sad prosleđuje SVE opciono dopunjena polja (`SelectionItem` dopuna,
+// 26.8.2026: `stars`/`destinationCity`/`destinationCountry`/`boardTypeLabel`/`roomLines`) da
+// desni panel prikaže identičan nivo detalja kao ovde (na zahtev vlasnika).
 interface MockRoomLine {
-  rooms: number;
   adults: number;
   children: number;
+  childrenAges?: number[];
+  price: number;
 }
 interface MockOffer {
   id: string;
   roomTypeName: string;
-  boardType: string;
-  price: number;
+  boardType: keyof typeof BOARD_TYPE_LABELS;
   currency: string;
-  roomLines: MockRoomLine[];
+  rooms: MockRoomLine[];
 }
 interface MockHotel {
   id: string;
@@ -46,6 +40,23 @@ interface MockHotel {
   offers: MockOffer[];
 }
 
+// Pun naziv usluge (dopuna 26.8.2026, na zahtev vlasnika: "za usluge koristite naziv na ovaj
+// način HB - Polupansion... za sve usluge") — kod + čitljiv naziv, svuda gde se usluga prikazuje.
+const BOARD_TYPE_LABELS = {
+  BB: 'Noćenje sa doručkom',
+  HB: 'Polupansion',
+  FB: 'Pun pansion',
+  AI: 'All Inclusive',
+  UAI: 'Ultra All Inclusive',
+} as const;
+function boardTypeDisplay(code: keyof typeof BOARD_TYPE_LABELS): string {
+  return `${code} - ${BOARD_TYPE_LABELS[code]}`;
+}
+
+function offerTotal(offer: MockOffer): number {
+  return offer.rooms.reduce((sum, r) => sum + r.price, 0);
+}
+
 const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-h1',
@@ -55,10 +66,10 @@ const MOCK_HOTELS: MockHotel[] = [
     country: 'Crna Gora',
     image: 'https://picsum.photos/seed/riviera/320/200',
     offers: [
-      { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', price: 45600, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h1-o2', roomTypeName: 'Standard soba', boardType: 'HB', price: 52300, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h1-o3', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'HB', price: 68900, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h1-o4', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'All Inclusive', price: 81200, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
+      { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 45600 }] },
+      { id: 'h1-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 52300 }] },
+      { id: 'h1-o3', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 68900 }] },
+      { id: 'h1-o4', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'AI', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 81200 }] },
     ],
   },
   {
@@ -69,8 +80,19 @@ const MOCK_HOTELS: MockHotel[] = [
     country: 'Crna Gora',
     image: 'https://picsum.photos/seed/panorama/320/200',
     offers: [
-      { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', price: 38900, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h2-o2', roomTypeName: 'Porodični apartman', boardType: 'BB', price: 71400, currency: 'EUR', roomLines: [{ rooms: 2, adults: 2, children: 1 }] },
+      { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 38900 }] },
+      // Primer sa dve RAZLIČITE sobe u istoj ponudi (tačan slučaj koji je vlasnik opisao: "1
+      // sobu za 2 odrasle i 2. sobu za 2 odrasle osobe i dete od 10 godina").
+      {
+        id: 'h2-o2',
+        roomTypeName: 'Porodični apartman (2 sobe)',
+        boardType: 'BB',
+        currency: 'EUR',
+        rooms: [
+          { adults: 2, children: 0, price: 35700 },
+          { adults: 2, children: 1, childrenAges: [10], price: 39900 },
+        ],
+      },
     ],
   },
   {
@@ -81,9 +103,9 @@ const MOCK_HOTELS: MockHotel[] = [
     country: 'Crna Gora',
     image: 'https://picsum.photos/seed/adriatic/320/200',
     offers: [
-      { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', price: 29900, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h3-o2', roomTypeName: 'Standard soba', boardType: 'HB', price: 34500, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h3-o3', roomTypeName: 'Porodična soba', boardType: 'Ultra All Inclusive', price: 99900, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 2 }] },
+      { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 29900 }] },
+      { id: 'h3-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 34500 }] },
+      { id: 'h3-o3', roomTypeName: 'Porodična soba', boardType: 'UAI', currency: 'EUR', rooms: [{ adults: 2, children: 2, childrenAges: [7, 9], price: 99900 }] },
     ],
   },
   {
@@ -93,9 +115,7 @@ const MOCK_HOTELS: MockHotel[] = [
     city: 'Tivat',
     country: 'Crna Gora',
     image: 'https://picsum.photos/seed/maslina/320/200',
-    offers: [
-      { id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', price: 41200, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-    ],
+    offers: [{ id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 41200 }] }],
   },
   {
     id: 'mock-h5',
@@ -105,8 +125,8 @@ const MOCK_HOTELS: MockHotel[] = [
     country: 'Crna Gora',
     image: 'https://picsum.photos/seed/sunset/320/200',
     offers: [
-      { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', price: 59900, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
-      { id: 'h5-o2', roomTypeName: 'Suite', boardType: 'All Inclusive', price: 112000, currency: 'EUR', roomLines: [{ rooms: 1, adults: 2, children: 0 }] },
+      { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 59900 }] },
+      { id: 'h5-o2', roomTypeName: 'Suite', boardType: 'AI', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 112000 }] },
     ],
   },
 ];
@@ -121,19 +141,10 @@ function formatDateRange(stayFrom?: string, stayTo?: string): string {
   return `${fmt(stayFrom)} – ${fmt(stayTo)}`;
 }
 
-// Kombinovano u JEDNU liniju (dopuna — "dovoljno je da napišete 2 odrasle (1 soba)"), umesto
-// ranijih dveju odvojenih linija (broj osoba iz pretrage + razbijen prikaz po sobi).
-function occupancySummary(roomLines: MockRoomLine[]): string {
-  const totalRooms = roomLines.reduce((sum, r) => sum + r.rooms, 0);
-  const totalAdults = roomLines.reduce((sum, r) => sum + r.rooms * r.adults, 0);
-  const totalChildren = roomLines.reduce((sum, r) => sum + r.rooms * r.children, 0);
-  const who = [
-    totalAdults > 0 ? `${totalAdults} odrasl${totalAdults === 1 ? 'a' : 'e'}` : null,
-    totalChildren > 0 ? `${totalChildren} dece` : null,
-  ]
-    .filter(Boolean)
-    .join(' + ');
-  return `${who} (${totalRooms} ${totalRooms === 1 ? 'soba' : 'sobe'})`;
+function roomLineLabel(r: MockRoomLine): string {
+  const parts = [`${r.adults} odrasl${r.adults === 1 ? 'a' : 'e'}`];
+  if (r.children > 0) parts.push(`${r.children} det${r.children === 1 ? 'e' : 'ece'}${r.childrenAges?.length ? ` (${r.childrenAges.join(', ')}g)` : ''}`);
+  return parts.join(' + ');
 }
 
 export default function AccommodationResultsMock({ stayFrom, stayTo }: { stayFrom?: string; stayTo?: string }) {
@@ -142,8 +153,8 @@ export default function AccommodationResultsMock({ stayFrom, stayTo }: { stayFro
   const { items, addItem } = useSelection();
 
   const sortedHotels = [...MOCK_HOTELS]
-    .map((h) => ({ ...h, offers: [...h.offers].sort((a, b) => a.price - b.price) }))
-    .sort((a, b) => a.offers[0].price - b.offers[0].price);
+    .map((h) => ({ ...h, offers: [...h.offers].sort((a, b) => offerTotal(a) - offerTotal(b)) }))
+    .sort((a, b) => offerTotal(a.offers[0]) - offerTotal(b.offers[0]));
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -170,10 +181,15 @@ export default function AccommodationResultsMock({ stayFrom, stayTo }: { stayFro
       rateLineId: offer.id,
       stayFrom,
       stayTo,
-      adults: offer.roomLines.reduce((sum, r) => sum + r.rooms * r.adults, 0),
-      children: offer.roomLines.reduce((sum, r) => sum + r.rooms * r.children, 0),
-      finalPrice: offer.price,
+      adults: offer.rooms.reduce((sum, r) => sum + r.adults, 0),
+      children: offer.rooms.reduce((sum, r) => sum + r.children, 0),
+      finalPrice: offerTotal(offer),
       finalPriceCurrency: offer.currency,
+      stars: hotel.stars,
+      destinationCity: hotel.city,
+      destinationCountry: hotel.country,
+      boardTypeLabel: `${offer.roomTypeName} · ${boardTypeDisplay(offer.boardType)}`,
+      roomLines: offer.rooms,
     });
   }
 
@@ -265,6 +281,25 @@ interface BannerProps {
   primary?: boolean;
 }
 
+// Deljeno između banera (grid) i reda (list) — svaka soba u svom redu sa sopstvenom cenom,
+// pa "Ukupno" (dopuna 26.8.2026, na zahtev vlasnika: "pojedinačna cena po sobi za navedeni broj
+// osoba i ukupna cena za obe sobe").
+function RoomBreakdown({ offer }: { offer: MockOffer }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      {offer.rooms.map((r, i) => (
+        <div key={i} className="flex items-center justify-between gap-2">
+          <span>
+            {offer.rooms.length > 1 ? `Soba ${i + 1}: ` : ''}
+            {roomLineLabel(r)}
+          </span>
+          <span className="font-mono">{money(r.price, offer.currency)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, onSelect, showToggle, expanded, onToggle }: BannerProps) {
   const selected = selectedKeys.has(selectionKey(hotel, offer));
   return (
@@ -286,14 +321,14 @@ function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey
         <div className="mb-1.5 truncate text-[10px] text-ink-faint">
           {hotel.country}, {hotel.city}
         </div>
-        <div className="mb-1.5 flex flex-col gap-0.5 text-[10px] text-ink-dim">
-          <span>{formatDateRange(stayFrom, stayTo)}</span>
-          <span>{occupancySummary(offer.roomLines)}</span>
+        <div className="mb-1.5 text-[10px] text-ink-dim">{formatDateRange(stayFrom, stayTo)}</div>
+        <div className="mb-1.5 truncate text-[10px] text-ink-dim">
+          {offer.roomTypeName} · {boardTypeDisplay(offer.boardType)}
         </div>
-        <div className="mb-2 truncate text-[10px] text-ink-dim">
-          {offer.roomTypeName} · {offer.boardType}
+        <div className="mb-2 text-[10px] text-ink-dim">
+          <RoomBreakdown offer={offer} />
         </div>
-        <div className="mt-auto flex items-center justify-between gap-1">
+        <div className="mt-auto flex items-center justify-between gap-1 border-t border-border pt-1.5">
           {showToggle ? (
             <span
               role="button"
@@ -317,7 +352,7 @@ function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey
             <span />
           )}
           <span className="truncate font-mono text-[11px] font-semibold text-ink">
-            {selected ? '✓ ' : ''}od {money(offer.price, offer.currency)}
+            {selected ? '✓ ' : ''}Ukupno {money(offerTotal(offer), offer.currency)}
           </span>
         </div>
       </div>
@@ -332,7 +367,7 @@ function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, o
       type="button"
       onClick={() => onSelect(hotel, offer)}
       disabled={selected}
-      className={`flex w-full items-center gap-3 border-border bg-panel p-3 text-left ${primary ? 'rounded-t-lg' : 'border-t bg-panel-2'} ${
+      className={`flex w-full items-start gap-3 border-border bg-panel p-3 text-left ${primary ? 'rounded-t-lg' : 'border-t bg-panel-2'} ${
         !expanded && primary ? 'rounded-b-lg border' : ''
       } ${selected ? 'bg-accent-soft/40' : 'hover:bg-panel2'}`}
     >
@@ -351,16 +386,14 @@ function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, o
             }
           }}
           title={expanded ? 'Sakrij ostale opcije' : 'Prikaži ostale opcije'}
-          className="flex-shrink-0 text-ink-faint hover:text-accent"
+          className="mt-0.5 flex-shrink-0 text-ink-faint hover:text-accent"
         >
           <Icon name={expanded ? 'chevron-up' : 'chevron-down'} />
         </span>
       ) : (
-        <span className="w-4 flex-shrink-0" />
+        <span className="mt-0.5 w-4 flex-shrink-0" />
       )}
-      {/* Manja slika SAMO u prvom (najpovoljnijem) redu — ostali otvoreni redovi bez slike
-          (dopuna, na zahtev vlasnika: "manju mock sliku kada je list view u pitanju u prvom
-          redu, ispod bez slike"). */}
+      {/* Manja slika SAMO u prvom (najpovoljnijem) redu — ostali otvoreni redovi bez slike. */}
       {primary && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={hotel.image} alt={hotel.name} className="h-10 w-14 flex-shrink-0 rounded object-cover" />
@@ -371,17 +404,15 @@ function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, o
           {primary && <span className="flex-shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-warn">{hotel.stars}*</span>}
         </div>
         <div className="truncate text-[11px] text-ink-faint">
-          {hotel.country}, {hotel.city} · {offer.roomTypeName} · {offer.boardType}
+          {hotel.country}, {hotel.city} · {offer.roomTypeName} · {boardTypeDisplay(offer.boardType)}
         </div>
       </div>
       <div className="hidden flex-shrink-0 flex-col items-end gap-0.5 text-[11px] text-ink-dim sm:flex">
         <span>{formatDateRange(stayFrom, stayTo)}</span>
-        <span>{occupancySummary(offer.roomLines)}</span>
+        <RoomBreakdown offer={offer} />
       </div>
       <div className="flex-shrink-0 font-mono text-sm font-semibold text-ink">
-        {selected ? '✓ ' : ''}
-        {primary ? 'od ' : ''}
-        {money(offer.price, offer.currency)}
+        {selected ? '✓ ' : ''}Ukupno {money(offerTotal(offer), offer.currency)}
       </div>
     </button>
   );
