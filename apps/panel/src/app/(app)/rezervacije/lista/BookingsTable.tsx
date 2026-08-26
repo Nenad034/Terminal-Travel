@@ -384,7 +384,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                   <div className="text-ink-dim">{b.buyerName}</div>
                   {/* Država/destinacija/hotel ispod naziva nosioca (23.8.2026, na zahtev
                       vlasnika: "Ispod naziva nosioca, stavite naiv drzave, destinacije, hotela"). */}
-                  <div className="text-[10px] text-ink-faint">
+                  <div className="text-xs text-ink-faint">
                     {b.destinationCity}, {b.country} · {b.hotelName}
                   </div>
                 </td>
@@ -401,7 +401,7 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                     prikaz "iznos valuta" u jednom redu. */}
                 <td className="px-3 py-2 text-right">
                   <div className="font-mono text-ink">{formatAmount(b.totalPrice)}</div>
-                  <div className="text-[10px] text-ink-faint">{b.currency}</div>
+                  <div className="text-[11px] text-ink-faint">{b.currency}</div>
                 </td>
               </tr>
             ))}

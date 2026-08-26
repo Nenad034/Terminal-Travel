@@ -59,7 +59,7 @@ function LinkSupplierAnnouncementForm({ threadId }: { threadId: string }) {
         <option value="SUPPLIER_CHANGE_NOTICE">najava izmene/storna (SupplierChangeNotice)</option>
       </select>
       <input name="announcementId" required placeholder="UUID (M5)" className="input" />
-      <p className="text-[10px] text-ink-faint">Upisuje samo vezu na niti — konačna potvrda ostaje isključivo M5/supplier-confirmation/CONFIRM (spec §3.1a).</p>
+      <p className="text-xs text-ink-faint">Upisuje samo vezu na niti — konačna potvrda ostaje isključivo M5/supplier-confirmation/CONFIRM (spec §3.1a).</p>
       <SubmitButton label="poveži najavu" pendingLabel="Povezujem…" />
     </form>
   );
@@ -74,7 +74,7 @@ function ConvertToTicketForm({ threadId }: { threadId: string }) {
         <Icon name="comment-discussion" className="text-accent" /> Pretvori u tiket
       </div>
       {state.error && <p className="rounded bg-danger-bg p-2 text-[11px] text-danger">{state.error}</p>}
-      <p className="text-[10px] text-ink-faint">Otvara M14 tiket (channel=EMAIL) i vezuje ga za ovu nit (spec §5).</p>
+      <p className="text-xs text-ink-faint">Otvara M14 tiket (channel=EMAIL) i vezuje ga za ovu nit (spec §5).</p>
       <SubmitButton label="pretvori u tiket" pendingLabel="Konvertujem…" />
     </form>
   );

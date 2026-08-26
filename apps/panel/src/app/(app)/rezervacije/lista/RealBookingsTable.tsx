@@ -268,7 +268,7 @@ export default function RealBookingsTable({
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
                 <td className="px-3 py-2">
                   <div className="text-ink-dim">{b.buyerName}</div>
-                  <div className="text-[10px] text-ink-faint">
+                  <div className="text-xs text-ink-faint">
                     {b.destinationCity && b.destinationCountry ? (
                       <>
                         {b.destinationCity}, {b.destinationCountry}
@@ -289,7 +289,7 @@ export default function RealBookingsTable({
                 <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayTo)}</td>
                 <td className="px-3 py-2 text-right">
                   <div className="font-mono text-ink">{formatAmount(b.totalPrice)}</div>
-                  <div className="text-[10px] text-ink-faint">{b.currency}</div>
+                  <div className="text-[11px] text-ink-faint">{b.currency}</div>
                 </td>
               </tr>
             ))}

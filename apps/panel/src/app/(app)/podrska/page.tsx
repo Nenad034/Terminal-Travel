@@ -103,9 +103,9 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
                 <div>
                   <div className="font-medium text-ink">
                     {t.ticketNumber} — {t.subject}
-                    {t.category === 'REKLAMACIJA' && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[10px] text-danger">REKLAMACIJA</span>}
-                    {t.zzpEscalatedAt && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[10px] text-danger">ZZP eskalirano</span>}
-                    {zzpOverdue && !t.zzpEscalatedAt && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">rok prekoračen</span>}
+                    {t.category === 'REKLAMACIJA' && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[11px] text-danger">REKLAMACIJA</span>}
+                    {t.zzpEscalatedAt && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[11px] text-danger">ZZP eskalirano</span>}
+                    {zzpOverdue && !t.zzpEscalatedAt && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">rok prekoračen</span>}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {t.category} · {t.channel} · {new Date(t.createdAt).toLocaleDateString('sr-RS')}

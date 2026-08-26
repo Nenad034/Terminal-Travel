@@ -112,7 +112,7 @@ export default async function IntegracijePage() {
                 <div className="flex items-center gap-2 font-medium text-ink">
                   <Icon name="pulse" className="text-accent" />
                   {c.displayName}
-                  {c.useMock && <span className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-mono text-ink-faint">MOCK</span>}
+                  {c.useMock && <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-mono text-ink-faint">MOCK</span>}
                 </div>
                 <div className="mt-1 text-xs text-ink-faint">
                   {c.providerCode} · {c.category}

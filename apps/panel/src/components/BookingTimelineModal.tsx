@@ -60,7 +60,7 @@ export default function BookingTimelineModal({
         <div className="flex items-center justify-between border-b border-border bg-panel2 px-4 py-2.5">
           <div className="flex items-center gap-2 text-sm font-semibold text-ink">
             <Icon name="three-bars" className="text-accent" />
-            Tok rezervacije {mockEntries && <span className="rounded bg-warn-bg px-1.5 py-0.5 text-[10px] font-normal text-warn">MOCK</span>}
+            Tok rezervacije {mockEntries && <span className="rounded bg-warn-bg px-1.5 py-0.5 text-[11px] font-normal text-warn">MOCK</span>}
           </div>
           <button onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
             <Icon name="close" />

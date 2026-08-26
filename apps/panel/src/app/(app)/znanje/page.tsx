@@ -107,7 +107,7 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
               <div>
                 <div className="font-medium text-ink">
                   {a.translation?.title ?? `(bez prevoda) ${a.subjectType}`}
-                  {a.generatedBy === 'AI' && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">AI nacrt</span>}
+                  {a.generatedBy === 'AI' && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">AI nacrt</span>}
                 </div>
                 <div className="text-xs text-ink-faint">
                   {a.subjectType}
@@ -139,5 +139,5 @@ function StatusBadge({ status }: { status: string }) {
 function RefreshBadge({ dueAt }: { dueAt: string }) {
   const due = new Date(dueAt).getTime() <= Date.now();
   if (!due) return null;
-  return <span className="rounded bg-danger-bg px-1.5 py-0.5 text-[10px] font-medium text-danger">osvežavanje dospelo</span>;
+  return <span className="rounded bg-danger-bg px-1.5 py-0.5 text-[11px] font-medium text-danger">osvežavanje dospelo</span>;
 }

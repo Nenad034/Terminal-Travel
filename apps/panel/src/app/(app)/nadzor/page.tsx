@@ -159,7 +159,7 @@ export default async function NadzorPage({ searchParams }: { searchParams: { mod
                   </div>
                   <div className="flex items-center gap-2">
                     {s.securityCategory && (
-                      <span className="rounded bg-panel2 px-2 py-0.5 text-[10px] font-medium text-ink-faint">#{s.securityCategory}</span>
+                      <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">#{s.securityCategory}</span>
                     )}
                     <SeverityBadge severity={s.severity} />
                   </div>

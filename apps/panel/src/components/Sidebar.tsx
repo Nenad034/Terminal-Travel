@@ -132,7 +132,7 @@ export default function Sidebar({
                     </span>
                     <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">
                       <span className="truncate">{item.label}</span>
-                      <span className="ml-2 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-mono">F{item.phase}</span>
+                      <span className="ml-2 rounded-full bg-panel px-1.5 py-0.5 text-[11px] font-mono">F{item.phase}</span>
                     </span>
                   </div>
                 );

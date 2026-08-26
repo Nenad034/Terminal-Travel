@@ -275,7 +275,7 @@ export default function ChatPanel({
               {/* 29-DIZAJN-SISTEM-UI.md §6a — poreklo je vidljivo na SVAKOJ poruci, i na sopstvenoj:
                   oznaka AI nacrta (§6a.2 pravilo 2) mora da se vidi i kad je poruku poslao onaj ko
                   gleda ekran, jer je upravo on odgovoran za tekst koji je AI predložio. */}
-              <div className="mb-0.5 text-[10px] text-ink-faint">
+              <div className="mb-0.5 text-[11px] text-ink-faint">
                 <ActorLabel
                   name={mine ? 'Vi' : sender?.fullName}
                   origin={sender?.accountType ?? 'STAFF'}
@@ -297,7 +297,7 @@ export default function ChatPanel({
                   ))}
                 </div>
               )}
-              <div className="mt-0.5 text-[10px] text-ink-faint">
+              <div className="mt-0.5 text-[11px] text-ink-faint">
                 {new Date(m.sentAt).toLocaleString('sr-RS')}
                 {m.editedAt && !m.deletedAt && ' · izmenjeno'}
               </div>

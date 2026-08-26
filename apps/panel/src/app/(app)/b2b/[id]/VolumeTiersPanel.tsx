@@ -56,7 +56,7 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
                 <span className="text-ink">
                   {t.resultingCommissionPercentage != null ? `${t.resultingCommissionPercentage}%` : ''}
                   {t.resultingCommissionFixedAmount != null ? ` +${t.resultingCommissionFixedAmount} ${t.resultingCommissionCurrency ?? ''}` : ''}
-                  {t.retroactive && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">retroaktivno</span>}
+                  {t.retroactive && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">retroaktivno</span>}
                 </span>
               </div>
             ))}

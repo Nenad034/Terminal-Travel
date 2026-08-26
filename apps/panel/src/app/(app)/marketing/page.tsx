@@ -109,8 +109,8 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
                 <div>
                   <div className="font-medium text-ink">
                     {title}
-                    {c.generatedBy === 'AI' && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">AI nacrt</span>}
-                    {c.containsAiGeneratedMedia && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">AI vizual</span>}
+                    {c.generatedBy === 'AI' && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">AI nacrt</span>}
+                    {c.containsAiGeneratedMedia && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">AI vizual</span>}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {c.type} · {c.targetChannels.join(', ') || '(bez kanala)'}

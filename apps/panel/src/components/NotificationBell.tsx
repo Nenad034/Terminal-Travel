@@ -130,7 +130,7 @@ export default function NotificationBell() {
                     <span className="font-medium text-ink">{item.title}</span>
                   </div>
                   {item.detail && <p className="mb-1 line-clamp-3 font-mono text-[11px] text-ink-faint">{item.detail}</p>}
-                  <span className="text-[10px] text-ink-faint">{new Date(item.sentAt).toLocaleString('sr-RS')}</span>
+                  <span className="text-[11px] text-ink-faint">{new Date(item.sentAt).toLocaleString('sr-RS')}</span>
                 </div>
               ))}
             </div>

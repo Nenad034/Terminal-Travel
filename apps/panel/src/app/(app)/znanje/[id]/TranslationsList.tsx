@@ -27,7 +27,7 @@ export default function TranslationsList({ translations }: { translations: Trans
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{t.languageCode}</span>
               {t.translationSource && (
-                <span className={`rounded px-1.5 py-0.5 text-[10px] ${t.translationSource === 'AI_GENERATED' ? 'bg-warn-bg text-warn' : 'bg-panel text-ink-faint'}`}>
+                <span className={`rounded px-1.5 py-0.5 text-[11px] ${t.translationSource === 'AI_GENERATED' ? 'bg-warn-bg text-warn' : 'bg-panel text-ink-faint'}`}>
                   {t.translationSource}
                 </span>
               )}

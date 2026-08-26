@@ -64,7 +64,7 @@ export default async function ProductGalleryPage({ params }: { params: { id: str
             <div key={m.url} className="overflow-hidden rounded-lg border border-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={m.url} alt={m.caption ?? name} className="aspect-[3/2] w-full object-cover" />
-              {m.caption && <div className="bg-panel px-2 py-1 text-[10px] text-ink-faint">{m.caption}</div>}
+              {m.caption && <div className="bg-panel px-2 py-1 text-xs text-ink-faint">{m.caption}</div>}
             </div>
           ))}
         </div>

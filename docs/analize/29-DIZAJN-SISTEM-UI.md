@@ -179,6 +179,21 @@ Ovo nije estetska preporuka nego **tvrd, merljiv zahtev**, isti duh kao "Izlazni
 
 Čist, geometrijski sans-serif font (npr. Inter ili sistemski font stek — `-apple-system, Segoe UI, ...`) za sav UI tekst — čitljivost i brzina skeniranja ekrana su prioritet nad ukrasom. Monospace font rezervisan isključivo za tehnički/strukturiran sadržaj (ID-jevi, kod, JSON prikazi u audit logu) — ne za opšti UI tekst, za razliku od utiska koji VS Code inspiracija može da sugeriše.
 
+### 3b. Skala veličine slova — obavezno pravilo, ne preporuka (dopuna, 26.8.2026, na zahtev vlasnika)
+
+*Vlasnik je uživo prijavio da su slova u banerima pretrage smeštaja premala i tražio: "hajde da standardizujemo velicinu slova u celoj aplikaciji u zavisnosti sta se opisuje... Heder, Footer, paneli". Pregled koda je potvrdio uzrok — nijedan korak veličine nije postojao u `globals.css`; svaka komponenta je birala `text-xs`/`text-sm` ili sirove Tailwind proizvoljne vrednosti (`text-[9px]`, `text-[10px]`, `text-[11px]`) nezavisno, bez zajedničkog pravila — otud vidljiva nedoslednost kroz ekrane. Vlasnik je preko `AskUserQuestion` potvrdio predloženu skalu i odlučio da se primeni u jednom sistematičnom prolazu kroz ceo panel (ne postepeno, modul po modul).*
+
+**Četiri nivoa, po NAMENI sadržaja — ne po tome koji je ekran/traka u pitanju:**
+
+| Nivo | Veličina | Tailwind klasa | Za šta |
+| :---- | :---- | :---- | :---- |
+| Naslov | 16px | `text-base` | Naslov stranice (npr. `$ rezervacije/lista`), naslov modala |
+| Sekcija | 14px | `text-sm` | Naslovi panela (npr. "AI asistent", "Sažetak reda"), naslovi grupa u bočnoj traci, isticanje unutar sadržaja |
+| Sadržaj | 12px | `text-xs` | **Podrazumevano za sve ostalo** — tabele, kartice, forme, baneri, dugmad, Header/Footer trake, bočni paneli. Header/Footer NISU poseban, manji nivo — razlika prema "Naslovu"/"Sekciji" se pravi težinom fonta i bojom (`font-medium`/`text-ink` naspram `text-ink-faint`), ne dodatnim korakom veličine. |
+| Sitno | 11px | `text-[11px]` | ISKLJUČIVO značke/pilule (status boje, npr. PAID/CONFIRMED) i sporedni podaci gde prostor stvarno nedostaje (vremenske oznake, brojači u zagradi). **Donja granica cele aplikacije — ništa ne sme biti manje od ovoga.** |
+
+**Tvrdo pravilo: `text-[9px]` i `text-[10px]` se više NIGDE ne koriste** — ispod su praga normalne čitljivosti za rad ceo radni dan (osoblje agencije, ne povremen posetilac). Svako postojeće mesto koje ih koristi prelazi na `text-[11px]` (ako je stvarno bedž/sporedan podatak) ili `text-xs` (ako je stvarno sadržaj — najčešći slučaj u praksi, pregled koda pri uvođenju ovog pravila pokazao je da je većina "sitnih" oznaka u banerima/karticama zapravo sadržaj, ne bedž).
+
 ---
 
 ## 3a. Ikonografija

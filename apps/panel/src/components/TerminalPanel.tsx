@@ -380,7 +380,7 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
                 <Icon name="close" />
               </button>
             </div>
-            {t.contextLabel && <div className="text-[10px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
+            {t.contextLabel && <div className="text-[11px] italic text-ink-faint">kontekst: {t.contextLabel}</div>}
             {t.loading ? (
               <span className="flex items-center gap-2 text-ink-faint">
                 <Icon name="loading" className="animate-spin" /> obrađujem...

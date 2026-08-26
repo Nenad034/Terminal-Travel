@@ -159,15 +159,15 @@ export default async function RevizijePage({ params }: { params: { id: string } 
 
 function TriggerBadge({ trigger }: { trigger: string }) {
   const label = trigger === 'INITIAL_CREATION' ? 'početna izrada' : trigger === 'SCHEDULED_REFRESH' ? '30-dnevno osvežavanje' : 'iz pitanja bez odgovora';
-  return <span className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-medium text-ink-dim">{label}</span>;
+  return <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-medium text-ink-dim">{label}</span>;
 }
 
 function RevisionStatusBadge({ status }: { status: string }) {
   const tone = status === 'APPROVED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>{status}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }
 
 function SourceMiniBadge({ status }: { status: string }) {
   const tone = status === 'APPROVED' ? 'text-ok' : status === 'REJECTED' ? 'text-danger' : 'text-warn';
-  return <span className={`text-[10px] font-medium ${tone}`}>({status})</span>;
+  return <span className={`text-[11px] font-medium ${tone}`}>({status})</span>;
 }

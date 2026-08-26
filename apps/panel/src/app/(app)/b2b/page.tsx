@@ -94,8 +94,8 @@ export default async function B2bPage() {
                 <div>
                   <div className="font-medium text-ink">
                     {name}
-                    {account?.taxId && <span className="ml-2 text-[10px] text-ink-faint">PIB {account.taxId}</span>}
-                    {s.parentSubagentId && <span className="ml-2 text-[10px] text-ink-faint">sub-subagent</span>}
+                    {account?.taxId && <span className="ml-2 text-[11px] text-ink-faint">PIB {account.taxId}</span>}
+                    {s.parentSubagentId && <span className="ml-2 text-[11px] text-ink-faint">sub-subagent</span>}
                   </div>
                   <div className="text-xs text-ink-faint">
                     provizija {s.commissionPercentage != null ? `${s.commissionPercentage}%` : '—'}

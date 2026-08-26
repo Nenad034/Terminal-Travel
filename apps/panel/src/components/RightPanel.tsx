@@ -427,7 +427,7 @@ function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
   const minutesLeft = Math.round((new Date(quoteExpiresAt).getTime() - Date.now()) / 60000);
   const expired = minutesLeft <= 0;
   return (
-    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${expired ? 'bg-danger-bg text-danger' : 'bg-warn-bg text-warn'}`}>
+    <span className={`rounded-full px-1.5 py-0.5 text-[11px] font-medium ${expired ? 'bg-danger-bg text-danger' : 'bg-warn-bg text-warn'}`}>
       {expired ? 'istekla' : `ističe za ${minutesLeft} min`}
     </span>
   );
@@ -482,7 +482,7 @@ function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./R
             {s.travelers.map((t) => (
               <li key={t.name} className="flex items-center justify-between gap-2 text-ink-dim">
                 <span>{t.name}</span>
-                <span className="text-[10px] text-ink-faint">{travelerAgeLabel(t)}</span>
+                <span className="text-[11px] text-ink-faint">{travelerAgeLabel(t)}</span>
               </li>
             ))}
           </ul>
@@ -516,7 +516,7 @@ function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').S
           <div className="flex items-center gap-1.5">
             <span className="truncate font-medium text-ink">{item.productName}</span>
             {item.stars !== undefined && (
-              <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[9px] font-semibold text-warn">{item.stars}*</span>
+              <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">{item.stars}*</span>
             )}
           </div>
           {/* Detaljne informacije kao u centralnom panelu (dopuna 26.8.2026, na zahtev vlasnika:

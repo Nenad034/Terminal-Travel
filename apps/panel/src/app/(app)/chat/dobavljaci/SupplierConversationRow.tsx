@@ -148,7 +148,7 @@ function GrantSubmit() {
 function RevokeButton({ conversationId, userId }: { conversationId: string; userId: string }) {
   return (
     <form action={revokeSupplierAccess.bind(null, conversationId, userId)}>
-      <button type="submit" className="text-[10px] text-danger hover:underline">
+      <button type="submit" className="text-xs text-danger hover:underline">
         ukloni
       </button>
     </form>

@@ -195,14 +195,14 @@ export default function BookingItemsEditor({
                     <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(item.productType))?.icon ?? 'question'} />
                     {item.hotelName} <span className="text-ink-faint">— {item.roomType}</span>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-ink-faint">
+                  <div className="mt-0.5 text-xs text-ink-faint">
                     {item.destinationCity}, {item.country} · {SOURCE_LABEL[item.sourceType]}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <div className="font-mono text-ink">{money(item.finalPrice, item.currency)}</div>
-                    <div className="text-[10px] text-ink-faint">ulazna {money(item.baseCost, item.currency)} · marža {item.marginPercent}%</div>
+                    <div className="text-xs text-ink-faint">ulazna {money(item.baseCost, item.currency)} · marža {item.marginPercent}%</div>
                   </div>
                   <button onClick={() => startEdit(item)} title="Izmeni stavku" className="flex h-[26px] w-[26px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-accent">
                     <Icon name="edit" />

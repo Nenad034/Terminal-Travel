@@ -122,14 +122,14 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
             placeholder="traži sekciju panela ili postavi pitanje…"
             className="flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-ink-faint"
           />
-          <kbd className="rounded border border-border bg-panel-2 px-1.5 py-0.5 text-[10px] text-ink-faint">Esc</kbd>
+          <kbd className="rounded border border-border bg-panel-2 px-1.5 py-0.5 text-[11px] text-ink-faint">Esc</kbd>
         </div>
 
         {!showAiPanel && (
           <div className="max-h-[50vh] overflow-y-auto p-2">
             {!query.trim() && recentTabs.length > 0 && (
               <div className="mb-2 border-b border-border pb-2">
-                <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-ink-faint">Nedavno otvoreno</p>
+                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Nedavno otvoreno</p>
                 {recentTabs.map((tab) => (
                   <div
                     key={tab.path}

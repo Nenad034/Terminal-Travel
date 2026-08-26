@@ -36,7 +36,7 @@ export default function TranslationsPanel({ contentId, translations, canEdit }: 
           <div key={t.languageCode} className="rounded border border-border bg-panel2 p-2 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">
-                {t.languageCode} {t.isReviewed && <span className="ml-1 text-[10px] text-ok">pregledano</span>}
+                {t.languageCode} {t.isReviewed && <span className="ml-1 text-[11px] text-ok">pregledano</span>}
               </span>
               {canEdit && (
                 <button type="button" onClick={() => setEditingLang(t.languageCode)} className="text-[11px] text-accent hover:underline">

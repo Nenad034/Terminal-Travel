@@ -87,7 +87,7 @@ export default function SearchSidebarPanel() {
                 className="flex h-9 flex-col items-center justify-center gap-0.5 rounded text-ink-faint opacity-40"
               >
                 <Icon name={p.icon} />
-                <span className="truncate text-[9px] leading-none">{p.label}</span>
+                <span className="truncate text-xs leading-none">{p.label}</span>
               </span>
             );
           }
@@ -102,7 +102,7 @@ export default function SearchSidebarPanel() {
               }`}
             >
               <Icon name={p.icon} />
-              <span className="truncate text-[9px] leading-none">{p.label}</span>
+              <span className="truncate text-xs leading-none">{p.label}</span>
             </button>
           );
         })}
@@ -173,12 +173,12 @@ export default function SearchSidebarPanel() {
                 <div className="mt-1 flex flex-col gap-2">
                   {AMENITY_GROUPS.map((group) => (
                     <div key={group.label}>
-                      <div className="mb-1 text-[10px] uppercase text-ink-faint/70">{group.label}</div>
+                      <div className="mb-1 text-xs uppercase text-ink-faint/70">{group.label}</div>
                       <div className="flex flex-wrap gap-1">
                         {group.tags.map((tag) => (
                           <label
                             key={tag.value}
-                            className="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+                            className="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
                           >
                             <input
                               type="checkbox"

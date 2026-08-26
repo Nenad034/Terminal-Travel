@@ -126,7 +126,7 @@ export default async function EmailInboxPage({
               <div>
                 <div className="font-medium text-ink">
                   {t.subject}
-                  {t.convertedToTicketId && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">tiket</span>}
+                  {t.convertedToTicketId && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">tiket</span>}
                 </div>
                 <div className="text-xs text-ink-faint">
                   {mailboxLabel(t.mailboxId)} · {t.correspondentType} · {new Date(t.lastMessageAt).toLocaleString('sr-RS')}

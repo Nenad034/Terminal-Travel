@@ -127,7 +127,7 @@ export default async function ClientAccountDetailPage({ params }: { params: { id
               {account.tags && account.tags.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {account.tags.map((t) => (
-                    <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-ink-faint">
+                    <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-faint">
                       {t}
                     </span>
                   ))}
@@ -145,7 +145,7 @@ export default async function ClientAccountDetailPage({ params }: { params: { id
                   <strong className="text-ink">
                     {loyalty.manualOverrideTier?.name ?? loyalty.currentTier?.name ?? 'bez nivoa'}
                   </strong>
-                  {loyalty.manualOverrideTierId && <span className="ml-1 text-[10px] text-warn">(ručno dodeljeno)</span>}
+                  {loyalty.manualOverrideTierId && <span className="ml-1 text-[11px] text-warn">(ručno dodeljeno)</span>}
                 </p>
                 <p className="mt-1">Popust: {loyalty.discountPercentage}%</p>
                 <p className="mt-1">Izračunata metrika: {loyalty.calculatedMetricValue}</p>

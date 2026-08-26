@@ -137,7 +137,7 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-1 min-w-0 flex-col gap-0.5">
-      <span className="text-[10px] text-ink-faint">{label}</span>
+      <span className="text-xs text-ink-faint">{label}</span>
       {children}
     </label>
   );

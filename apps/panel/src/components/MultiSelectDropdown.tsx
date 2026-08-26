@@ -54,7 +54,7 @@ export default function MultiSelectDropdown({
 
   return (
     <div ref={ref} className="relative flex min-w-0 flex-1 flex-col gap-0.5">
-      <span className="text-[10px] text-ink-faint">{label}</span>
+      <span className="text-xs text-ink-faint">{label}</span>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

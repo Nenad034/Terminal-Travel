@@ -126,7 +126,7 @@ function MarkSentButton({ id, target }: { id: string; target: Target }) {
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <MarkSentSubmit />
-      {state.error && <span className="text-[10px] text-danger">{state.error}</span>}
+      {state.error && <span className="text-xs text-danger">{state.error}</span>}
     </form>
   );
 }
@@ -137,7 +137,7 @@ function MarkSentSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded border border-accent px-2 py-0.5 text-[10px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
+      className="rounded border border-accent px-2 py-0.5 text-xs font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
     >
       {pending ? 'Označavam…' : 'označi kao poslato'}
     </button>

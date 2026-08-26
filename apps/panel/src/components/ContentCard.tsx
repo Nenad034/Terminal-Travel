@@ -56,7 +56,7 @@ export default function ContentCard({ title, badge, description, actions, links 
       <div className="mb-1 flex items-center gap-2">
         <h3 className="font-medium text-ink">{title}</h3>
         {badge && (
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${BADGE_TONE_CLASSES[badge.tone ?? 'neutral']}`}>
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${BADGE_TONE_CLASSES[badge.tone ?? 'neutral']}`}>
             {badge.label}
           </span>
         )}

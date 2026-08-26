@@ -129,7 +129,7 @@ export default function StatusBar({
 
       {tz && <span title="Vreme na ovom računaru">{tz}</span>}
       <span
-        className="rounded border border-border px-1 font-mono text-[10px]"
+        className="rounded border border-border px-1 font-mono text-[11px]"
         title="Okruženje na koje je ovaj panel povezan"
       >
         {env}

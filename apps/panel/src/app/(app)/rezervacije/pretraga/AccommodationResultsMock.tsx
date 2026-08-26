@@ -343,16 +343,16 @@ function GridBanner({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey
       <div className="flex flex-1 flex-col p-2.5">
         <div className="mb-0.5 flex items-center gap-1.5">
           <span className="truncate text-xs font-medium text-ink">{hotel.name}</span>
-          <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[9px] font-semibold text-warn">{hotel.stars}*</span>
+          <span className="flex-shrink-0 rounded bg-panel2 px-1 py-0.5 text-[11px] font-semibold text-warn">{hotel.stars}*</span>
         </div>
-        <div className="mb-1.5 truncate text-[10px] text-ink-faint">
+        <div className="mb-1.5 truncate text-xs text-ink-faint">
           {hotel.country}, {hotel.city}
         </div>
-        <div className="mb-1.5 text-[10px] text-ink-dim">{formatDateRange(stayFrom, stayTo)}</div>
-        <div className="mb-1.5 truncate text-[10px] text-ink-dim">
+        <div className="mb-1.5 text-xs text-ink-dim">{formatDateRange(stayFrom, stayTo)}</div>
+        <div className="mb-1.5 truncate text-xs text-ink-dim">
           {offer.roomTypeName} · {boardTypeDisplay(offer.boardType)}
         </div>
-        <div className="mb-2 text-[10px] text-ink-dim">
+        <div className="mb-2 text-xs text-ink-dim">
           <RoomBreakdown offer={offer} />
         </div>
         <div className="mt-auto flex items-center justify-between gap-1 border-t border-border pt-1.5">
@@ -428,7 +428,7 @@ function ListRow({ hotel, offer, stayFrom, stayTo, selectedKeys, selectionKey, o
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="truncate font-medium text-ink">{hotel.name}</span>
-          {primary && <span className="flex-shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-warn">{hotel.stars}*</span>}
+          {primary && <span className="flex-shrink-0 rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">{hotel.stars}*</span>}
         </div>
         <div className="truncate text-[11px] text-ink-faint">
           {hotel.country}, {hotel.city} · {offer.roomTypeName} · {boardTypeDisplay(offer.boardType)}

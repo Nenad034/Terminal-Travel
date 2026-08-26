@@ -90,7 +90,7 @@ export default async function MailboxManagementPage() {
               <div className="text-sm font-medium text-ink">
                 {mb.displayName} <span className="text-ink-faint">({mb.address})</span>
                 {mb.isSupplierUnifiedInbox && (
-                  <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[10px] text-accent-strong">jedinstveno sanduče dobavljača</span>
+                  <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">jedinstveno sanduče dobavljača</span>
                 )}
               </div>
               <div className="text-xs text-ink-faint">

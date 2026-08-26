@@ -91,12 +91,12 @@ export default async function PitanjaPage({ searchParams }: { searchParams: { au
                 <span className="text-[11px] text-ink-faint">{new Date(q.createdAt).toLocaleString('sr-RS')}</span>
               </div>
               <div className="mb-2 flex items-center gap-2">
-                <span className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-ink-dim">{q.audienceContext}</span>
+                <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-dim">{q.audienceContext}</span>
                 <ConfidenceBadge confidence={q.confidence} />
-                {q.wasHelpful === true && <span className="rounded bg-ok-bg px-1.5 py-0.5 text-[10px] text-ok">👍 korisno</span>}
-                {q.wasHelpful === false && <span className="rounded bg-danger-bg px-1.5 py-0.5 text-[10px] text-danger">👎 nije korisno</span>}
+                {q.wasHelpful === true && <span className="rounded bg-ok-bg px-1.5 py-0.5 text-[11px] text-ok">👍 korisno</span>}
+                {q.wasHelpful === false && <span className="rounded bg-danger-bg px-1.5 py-0.5 text-[11px] text-danger">👎 nije korisno</span>}
                 {q.escalatedTicketId && (
-                  <span className="rounded bg-warn-bg px-1.5 py-0.5 text-[10px] text-warn">eskalirano → tiket {q.escalatedTicketId.slice(0, 8)}</span>
+                  <span className="rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">eskalirano → tiket {q.escalatedTicketId.slice(0, 8)}</span>
                 )}
               </div>
               {q.answerText ? (
@@ -127,5 +127,5 @@ export default async function PitanjaPage({ searchParams }: { searchParams: { au
 
 function ConfidenceBadge({ confidence }: { confidence: string }) {
   const tone = confidence === 'HIGH' ? 'text-ok bg-ok-bg' : confidence === 'LOW' ? 'text-warn bg-warn-bg' : 'text-danger bg-danger-bg';
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>{confidence}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>{confidence}</span>;
 }

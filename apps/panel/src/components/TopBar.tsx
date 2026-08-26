@@ -59,7 +59,7 @@ function InboxButton() {
     >
       <Icon name="inbox" />
       {count > 0 && (
-        <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-0.5 text-[9px] font-semibold leading-none text-accent-ink">
+        <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-0.5 text-[11px] font-semibold leading-none text-accent-ink">
           {count > 99 ? '99+' : count}
         </span>
       )}
@@ -193,7 +193,7 @@ export default function TopBar({
       >
         <Icon name="search" />
         traži ili izvrši
-        <kbd className="rounded border border-border bg-panel-2 px-1 text-[10px]">Ctrl K</kbd>
+        <kbd className="rounded border border-border bg-panel-2 px-1 text-[11px]">Ctrl K</kbd>
       </button>
       <ThemeToggle />
       <NotificationBell />

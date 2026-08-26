@@ -68,9 +68,9 @@ export default async function KatalogPage() {
                 }}
               >
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-[10px] font-medium text-accent2">{p.type}</span>
+                  <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-[11px] font-medium text-accent2">{p.type}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       p.status === 'ACTIVE' ? 'bg-ok-bg text-ok' : 'bg-panel-2 text-ink-faint'
                     }`}
                   >

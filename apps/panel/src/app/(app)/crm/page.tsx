@@ -100,7 +100,7 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
                 <div>
                   <div className="font-medium text-ink">
                     {name}
-                    {a.accountType === 'LEGAL_ENTITY' && <span className="ml-2 text-[10px] text-ink-faint">PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}</span>}
+                    {a.accountType === 'LEGAL_ENTITY' && <span className="ml-2 text-[11px] text-ink-faint">PRAVNO LICE{a.taxId ? ` · PIB ${a.taxId}` : ''}</span>}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {a.email ?? '—'} {a.phone ? `· ${a.phone}` : ''}
@@ -108,14 +108,14 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
                   {a.tags && a.tags.length > 0 && (
                     <div className="mt-1 flex gap-1">
                       {a.tags.map((t) => (
-                        <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[10px] text-ink-faint">
+                        <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-faint">
                           {t}
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
-                {!a.marketingConsent && <span className="text-[10px] text-ink-faint">bez marketing saglasnosti</span>}
+                {!a.marketingConsent && <span className="text-xs text-ink-faint">bez marketing saglasnosti</span>}
               </TabLink>
             );
           })}

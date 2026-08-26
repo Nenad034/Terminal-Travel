@@ -85,5 +85,5 @@ export default async function IzvoriPage({ params }: { params: { id: string } })
 
 function StatusBadge({ status }: { status: string }) {
   const tone = status === 'APPROVED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${tone}`}>{status}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
 }

@@ -59,8 +59,8 @@ export function Badge({ kind, children }: { kind: Exclude<BadgeKind, 'none'>; ch
   // tamo stopio i prestao da čita kao oznaka.
   const className =
     kind === 'ai'
-      ? 'rounded border border-accent bg-accent-soft px-1 py-px text-[10px] font-semibold uppercase tracking-wide text-accent-strong'
-      : 'rounded bg-panel2 px-1 py-px text-[10px] text-ink-faint';
+      ? 'rounded border border-accent bg-accent-soft px-1 py-px text-[11px] font-semibold uppercase tracking-wide text-accent-strong'
+      : 'rounded bg-panel2 px-1 py-px text-[11px] text-ink-faint';
   return <span className={className}>{children}</span>;
 }
 

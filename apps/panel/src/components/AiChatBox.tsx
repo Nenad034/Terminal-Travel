@@ -435,7 +435,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
           {[...turns].reverse().map((t, i) => (
             <div key={turns.length - 1 - i} className="flex flex-col gap-1.5">
               {t.contextLabels && t.contextLabels.length > 0 && (
-                <div className="self-end text-[10px] italic text-ink-faint">kontekst: {t.contextLabels.join(' · ')}</div>
+                <div className="self-end text-[11px] italic text-ink-faint">kontekst: {t.contextLabels.join(' · ')}</div>
               )}
               <div className="group flex items-center gap-1 self-end">
                 <CopyButton text={t.question} />

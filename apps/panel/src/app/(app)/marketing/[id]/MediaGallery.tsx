@@ -75,7 +75,7 @@ export default function MediaGallery({ contentId, media, canEdit }: { contentId:
               ) : (
                 <video src={`/api/marketing/media/${m.id}`} controls className="h-32 w-full object-cover" />
               )}
-              <div className="flex items-center justify-between gap-1 px-2 py-1 text-[10px] text-ink-faint">
+              <div className="flex items-center justify-between gap-1 px-2 py-1 text-xs text-ink-faint">
                 <span className="truncate" title={m.fileName}>
                   {m.fileName}
                 </span>
