@@ -160,9 +160,12 @@ export default function TopBar({
               (Chakra Petch, globals.css/tailwind.config.ts) — font sa slike koju je vlasnik
               poslao kao ISKLJUČIVO primer željenog fonta za natpis (potvrđeno u razgovoru), ne
               kao logo za kopiranje. */}
+          {/* Logo uvećan +15% (26.8.2026, na zahtev vlasnika: "kada se skupi levi panel previše
+              se smanjuje logo, uvecajte generalno logo za 15%") — 20px→23px (prošireno stanje),
+              16px→18.4px (skupljeno stanje, `!showLabel`), 14px→16.1px (natpis). */}
           <span
             aria-hidden
-            className={`block flex-shrink-0 bg-accent ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`}
+            className={`block flex-shrink-0 bg-accent ${showLabel ? 'h-[23px] w-[23px]' : 'h-[18.4px] w-[18.4px]'}`}
             style={{
               WebkitMaskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
               maskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
@@ -175,7 +178,7 @@ export default function TopBar({
             }}
           />
           {showLabel && (
-            <span className="truncate font-brand text-sm font-bold tracking-wide text-accent">terminal travel</span>
+            <span className="truncate font-brand text-[16.1px] font-bold tracking-wide text-accent">terminal travel</span>
           )}
         </button>
       </div>

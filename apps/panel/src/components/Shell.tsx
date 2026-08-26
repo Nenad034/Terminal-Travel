@@ -264,7 +264,17 @@ export default function Shell({
               <ActivityBar
                 groups={groups}
                 activeGroupId={activeGroup?.id ?? ''}
-                onSelectGroup={setActiveGroupId}
+                // ISPRAVKA (26.8.2026, na zahtev vlasnika: "kad se skupi levi panel ima neki bag
+                // i treba više puta da se klikne kako bi se ponovo otvorio") — dok je traka
+                // skupljena, klik na NEAKTIVNU grupu je do sad samo pozivao `setActiveGroupId`
+                // (Sidebar ostaje montiran kao `null` dok je `collapsed`, pa se ništa vidljivo
+                // nije desilo); tek SLEDEĆI klik je pogađao "već aktivnu" granu u ActivityBar-u
+                // koja stvarno zove `onToggleCollapse`. Sad izbor grupe dok je skupljeno odmah i
+                // širi traku — jedan klik, ne dva.
+                onSelectGroup={(id) => {
+                  setActiveGroupId(id);
+                  if (sidebarCollapsed) setCollapsed(false);
+                }}
                 collapsed={sidebarCollapsed}
                 onToggleCollapse={() => setCollapsed(!sidebarCollapsed)}
               />
