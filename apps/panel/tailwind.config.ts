@@ -46,6 +46,8 @@ const config: Config = {
       fontFamily: {
         sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
         mono: ['ui-monospace', '"Cascadia Code"', '"Cascadia Mono"', '"SFMono-Regular"', 'Menlo', 'Consolas', 'monospace'],
+        // Wordmark loga (26.8.2026) — vidi napomenu uz @import u globals.css.
+        brand: ['"Chakra Petch"', 'ui-monospace', 'Consolas', 'monospace'],
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

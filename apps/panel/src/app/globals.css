@@ -4,6 +4,15 @@
 
 @import '@vscode/codicons/dist/codicon.css';
 
+/* Font za wordmark loga (26.8.2026, na zahtev vlasnika: "Terminal Travel neka piše malim
+   slovima u ovom fontu sa slike" — slika je bila vlasnikov sopstveni Gemini-generisan
+   logo-koncept, "sabre" na njoj je poslat SAMO kao primer željenog fonta, ne kao tuđi
+   zaštićeni znak, potvrđeno u razgovoru). Chakra Petch (700) je najbliži slobodan Google Font
+   istom "čvrst, geometrijski, blago tehnički" utisku (sečeni uglovi na pojedinim slovima,
+   mono-nalik proporcije) — koristi se ISKLJUČIVO za `--font-brand` (TopBar wordmark), ne menja
+   `sans`/`mono` stek iz tailwind.config.ts korišćen svuda drugde u panelu. */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&display=swap');
+
 /* Istorija veličine: 16px (podrazumevano) → 21px (+30%, 19.8.2026) → 25px (+20%, 21.8.2026,
    BAG — vidi ispod, nikad nije stvarno primenjeno do popravke istog dana) → 21px (-15%,
    21.8.2026, na zahtev vlasnika: "sada je ovo preveliko, smanjte za 15%"). Jedini izvor

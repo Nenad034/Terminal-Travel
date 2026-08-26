@@ -150,20 +150,22 @@ export default function TopBar({
             logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'
           }`}
         >
-          {/* Logo u "zlatnoj" boji aplikacije (26.8.2026, na zahtev vlasnika: "Logo Terminal
-              Travel neka bude u zlatnoj boji aplikacije") — poništava prethodni "Zalazak"
-              preliv (v2.08, tri boje iz apps/web palete, namerno FIKSAN bez obzira na temu
-              panela). `--accent` (#8A8A5E, "maslinasto-zlatna", globals.css) je VEĆ zvanična
-              zlatna boja OVE aplikacije (panel, "Horizont" tema) — ista u oba moda (svetli/
-              tamni), WCAG proveren token koji se već koristi svuda u panelu (`text-accent`/
-              `bg-accent`) — logo sad prati taj token umesto sopstvene fiksne palete. Puna reč
-              "TTerminal TTravel" (isti zahtev, dodato po jedno "T" na početak svake reči). */}
+          {/* Nova ikonica (26.8.2026, na zahtev vlasnika, uz sopstveni Gemini-generisan koncept:
+              "ovo ce sada da bude nas logo... samo ga prilagodite za prikaz u aplikaciji") —
+              4 polja (kvadrat-obris / linije / terminal ">_" / linije), `terminal-travel-icon-v2.svg`,
+              nadahnuto konceptom sa slike ali NIJE identična kopija (nadahnuće, ne kopija —
+              dogovoreno u razgovoru), maskirana istim mask-image tehnikom kao pre (SVG umesto
+              PNG) preko `bg-accent` — zlatna boja aplikacije, isti token kao pre. Wordmark sad
+              MALIM slovima ("terminal travel", ne "TTerminal TTravel") u `font-brand`
+              (Chakra Petch, globals.css/tailwind.config.ts) — font sa slike koju je vlasnik
+              poslao kao ISKLJUČIVO primer željenog fonta za natpis (potvrđeno u razgovoru), ne
+              kao logo za kopiranje. */}
           <span
             aria-hidden
             className={`block flex-shrink-0 bg-accent ${showLabel ? 'h-5 w-5' : 'h-4 w-4'}`}
             style={{
-              WebkitMaskImage: 'url(/brand/terminal-travel-icon.png)',
-              maskImage: 'url(/brand/terminal-travel-icon.png)',
+              WebkitMaskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
+              maskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
               WebkitMaskSize: 'contain',
               maskSize: 'contain',
               WebkitMaskRepeat: 'no-repeat',
@@ -172,7 +174,9 @@ export default function TopBar({
               maskPosition: 'center',
             }}
           />
-          {showLabel && <span className="truncate text-sm font-semibold tracking-wide text-accent">TTerminal TTravel</span>}
+          {showLabel && (
+            <span className="truncate font-brand text-sm font-bold tracking-wide text-accent">terminal travel</span>
+          )}
         </button>
       </div>
       <div className="flex h-full min-w-0 flex-1">
