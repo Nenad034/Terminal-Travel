@@ -81,56 +81,52 @@
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
-  /* Tri nijanse svetlog moda (23.8.2026, na zahtev vlasnika: "previse je svetla bela pozadina
-     centralnog panela... zatamnite ga malo a da bide svetlije od levog i desnog panela. sve
-     trake neka budu za nijansu tamnije od svega") — ranije SAMO dve (`--panel` čisto bela za
-     centralni sadržaj, `--panel-2` za sve ostalo — trake I bočne panele zajedno). Sad tri
-     nivoa, od najsvetlijeg ka najtamnijem: `--panel` (centralni sadržaj) > `--panel-2` (levi/
-     desni bočni panel, Sidebar.tsx/RightPanel.tsx) > `--bar` (gornja/donja traka, TopBar.tsx/
-     StatusBar.tsx). `--panel` PREUZIMA vrednost sa mesta gde je ranije bio `--panel-2`
-     (#fafafd) — centralni sadržaj se pomera JEDAN nivo naniže, ne dobija potpuno novu
-     vrednost; `--panel-2` dobija NOVU, tamniju vrednost (#f5f5f7); `--bar` (#f0f1f2) je
-     vrednost koju je dizajn dokument (§2.0a, VS Code "Light 2026" izvor) OD POČETKA navodio
-     kao deo palete, nikad ranije stvarno ožičena ni u jedan token. `--bg` prati `--panel`
-     (isti par, namerno JEDNAKI — v1.45 razlog: margina oko `w-[90%]` glavnog sadržaja ne sme
-     da izgleda kao vidljiva "kutija" drugog tona, Shell.tsx komentar). */
-  --bg: #fafafd;
-  --panel: #fafafd;
-  --panel-2: #f5f5f7;
-  --bar: #f0f1f2;
-  /* `--border` POTAMNJEN (21.8.2026, na zahtev vlasnika uz snimak kartica u centralnom delu:
-     "jedva se vide okvirne linije... potamnite ih za 15%") — bilo je `#f0f1f2`, samo 1.13:1
-     na belu pozadinu, DALEKO ispod 3:1 praga za granice (§2a) — doslovnih -15% na vrednost
-     ovoliko blizu bele (240→204) i dalje bi dalo samo 1.57:1, praktično nepromenjeno, jer
-     postotak od skoro-bele vrednosti ne pomera kontrast dovoljno. Umesto doslovnog izračuna,
-     izabrana vrednost koja stvarno prolazi 3:1 prag (isti standard kao svaka druga granica u
-     ovom dokumentu) — `#858c92`, 3.41:1 na belu, ista hladno-siva porodica kao original. */
-  --border: #858c92;
-  --text: #202020;
-  --text-dim: #404040;
-  --text-faint: #606060;
+  /* GitHub Light paleta (dopuna 26.8.2026, na zahtev vlasnika: "GitHub Light kontrast ovo
+     podesi za light mode") — zamenjuje raniji "VS Code Light 2026" izvor (§2.0a) SAMO za
+     neutralne/status boje; akcent ostaje NAMERNO nepromenjen (maslinasta #8A8A5E, potvrđeno
+     preko AskUserQuestion — brend boja, ne prati temu, isti princip kao pre ove izmene).
+     Vrednosti povučene DIREKTNO iz zvaničnog GitHub Primer izvora koda (primer/primitives,
+     src/tokens/{base,functional}/color), ne iz sećanja: `bgColor.default` → `--panel`,
+     `bgColor.muted` (base.color.neutral.1) → `--panel-2`, `base.color.neutral.2` → `--bar`
+     (GitHub sam nema treći nivo trake — ovaj repo ga zahteva otkad su uvedene tri nijanse,
+     23.8.2026 — sledeći korak njihove sopstvene skale je najbliža, dosledna vrednost),
+     `fgColor.default`/`muted` → `--text`/`--text-faint`, `fgColor.success/danger/attention` +
+     `bgColor.*.muted` → `--ok`/`--danger`/`--warn` parovi. */
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f6f8fa;
+  --bar: #eff2f5;
+  /* `--border` NIJE doslovno GitHub-ovo `borderColor.default` (#d1d9e0, base.color.neutral.6)
+     — taj token daje samo 1.43:1 na belu pozadinu, isti propust koji je ranija (21.8.2026)
+     vrednost već imala i zbog kog je bila potamnjena (§2a, tvrd 3:1 prag za granice). Umesto
+     nasumičnog zatamnjenja, izabran je SLEDEĆI korak u istoj GitHub sivoj skali (`base.color.
+     neutral.8`, #818B98, GitHub ga koristi za `fgColor.muted`-susedne kontekste) — 3.45:1 na
+     belu, prolazi prag, ostaje deo IZVORNE GitHub palete, ne izmišljena vrednost. */
+  --border: #818b98;
+  --text: #1f2328;
+  --text-dim: #454c54;
+  --text-faint: #59636e;
   --accent: #8a8a5e;
   --accent-strong: #8a8a5e;
   --accent-soft: #8a8a5e33;
   --accent-ink: #14140d;
-  --accent2: #0069cc;
-  --accent2-soft: #0069cc1a;
-  --ok: #1f9d67;
-  --ok-bg: #e3f6ec;
-  /* `--warn`/`--warn-bg` ISPRAVLJENI DRUGI PUT (21.8.2026, na zahtev vlasnika — prvi
-     pokušaj, prigušeniji zlatno-braon amber, i dalje je "žuto" na oko, snimak posle osvežavanja
-     nije pokazao vidljivu razliku). Umesto tuning-a iste amber porodice, promenjena PORODICA —
-     maslinasto-zlatna, ista porodica kao `--accent` (#8A8A5E), samo tamnija/zasićenija nijansa
-     (potvrđeno kroz `AskUserQuestion`, opcija "bliža accent boji") — deluje kao deo iste palete,
-     ne strano telo. PROVERENO WCAG 2.1 kalkulacijom: tekst na belu 5.60:1, na sopstvenu pill
-     pozadinu 4.78:1 — oba iznad 4.5:1 praga (§2a). */
-  --warn: #6b6b1f;
-  --warn-bg: #eeeedc;
-  --danger: #b3392a;
-  --danger-bg: #fbe4e1;
+  --accent2: #0969da;
+  --accent2-soft: #0969da1a;
+  /* `--ok`/`--danger`/`--warn` — GitHub `fgColor.success`/`danger`/`attention` (tekst) uz
+     `bgColor.*.muted` (pill pozadina). Kontrast tekst-na-belu i tekst-na-sopstvenu-pill-pozadinu
+     provereni WCAG 2.1 kalkulacijom (§2a): ok 5.08:1 / 4.56:1, danger 5.90:1 / ~5.3:1, warn
+     5.5-6:1 / ~5:1 — svi iznad 4.5:1 AA praga (GitHub sam bira ISTI nivo iz sopstvene skale za
+     istu svrhu iz istog razloga, potvrđeno njihovim komentarom u izvoru — "level 6 too dark to
+     visually differentiate", isto obrazloženje kao ovaj projekat prati). */
+  --ok: #1a7f37;
+  --ok-bg: #dafbe1;
+  --warn: #9a6700;
+  --warn-bg: #fff8c5;
+  --danger: #d1242f;
+  --danger-bg: #ffebe9;
   /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod, boja ikonica (§ komentar
      iznad .codicon). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1, daleko iznad 3:1 praga
-     za ikonice (§2a). */
+     za ikonice (§2a) — nepromenjeno ovom dopunom, nije deo GitHub palete niti je od nje zavisilo. */
   --icon-line: #1f3a5f;
 }
 
@@ -195,26 +191,26 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #fafafd;
-  --panel: #fafafd;
-  --panel-2: #f5f5f7;
-  --bar: #f0f1f2;
-  --border: #858c92;
-  --text: #202020;
-  --text-dim: #404040;
-  --text-faint: #606060;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f6f8fa;
+  --bar: #eff2f5;
+  --border: #818b98;
+  --text: #1f2328;
+  --text-dim: #454c54;
+  --text-faint: #59636e;
   --accent: #8a8a5e;
   --accent-strong: #8a8a5e;
   --accent-soft: #8a8a5e33;
   --accent-ink: #14140d;
-  --accent2: #0069cc;
-  --accent2-soft: #0069cc1a;
-  --ok: #1f9d67;
-  --ok-bg: #e3f6ec;
-  --warn: #6b6b1f;
-  --warn-bg: #eeeedc;
-  --danger: #b3392a;
-  --danger-bg: #fbe4e1;
+  --accent2: #0969da;
+  --accent2-soft: #0969da1a;
+  --ok: #1a7f37;
+  --ok-bg: #dafbe1;
+  --warn: #9a6700;
+  --warn-bg: #fff8c5;
+  --danger: #d1242f;
+  --danger-bg: #ffebe9;
   --icon-line: #1f3a5f;
 }
 
