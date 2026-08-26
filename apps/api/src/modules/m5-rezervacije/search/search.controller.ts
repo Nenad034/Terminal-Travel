@@ -65,6 +65,7 @@ export class SearchController {
       minDriverAge: query.minDriverAge,
       durationNights: query.durationNights,
       cabinType: query.cabinType,
+      amenityTags: query.amenityTags,
     });
   }
 }

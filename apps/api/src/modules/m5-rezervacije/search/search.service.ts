@@ -28,6 +28,9 @@ export interface SearchParamsInput {
   /** M2 spec §2.3 `attributes.cabin_types[].category` — samo CRUISE, proizvod prolazi ako BILO KOJA
    * stavka niza ima traženu kategoriju. */
   cabinType?: string;
+  /** M2 spec §2.3c `attributes.amenities[]` (AmenityTag), M5 spec §3.0c.3 — samo ACCOMMODATION,
+   * proizvod prolazi samo ako njegov niz sadrži SVE tražene tagove (I-logika, ne ILI). */
+  amenityTags?: string[];
 }
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
@@ -83,6 +86,15 @@ export class SearchService {
       products = products.filter((p) => {
         const cabinTypes = (p.attributes as any)?.cabin_types;
         return Array.isArray(cabinTypes) && cabinTypes.some((c: any) => c?.category === params.cabinType);
+      });
+    }
+    // M5 spec §3.0c.3 (dopuna 26.8.2026, na zahtev vlasnika — filteri za vođenu pretragu
+    // smeštaja koji su bili specificirani ali nikad ožičeni) — I-logika: proizvod prolazi
+    // samo ako `attributes.amenities[]` sadrži SVAKI traženi tag, ne bar jedan.
+    if (params.amenityTags && params.amenityTags.length > 0) {
+      products = products.filter((p) => {
+        const amenities = (p.attributes as any)?.amenities;
+        return Array.isArray(amenities) && params.amenityTags!.every((tag) => amenities.includes(tag));
       });
     }
 

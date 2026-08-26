@@ -4,6 +4,7 @@ import Icon from '@/components/Icon';
 import SearchCriteriaChip from '@/components/SearchCriteriaChip';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
+import AccommodationResultsMock from './AccommodationResultsMock';
 
 interface SearchOffer {
   roomTypeCode?: string;
@@ -68,6 +69,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
     const children = Number(first(searchParams.children) ?? '0');
     params.set('occupancy', JSON.stringify({ adults, children, roomConfig: [{ adults, children, childrenAges: [] }] }));
     params.set('channel', 'INTERNAL_PANEL');
+    // M5 spec §3.0c.3 (dopuna 26.8.2026) — jedini filter iz vođene pretrage smeštaja koji ide
+    // kao pravi upitni parametar (I-logika na serveru); ostali (cena/dostupnost/vrsta usluge)
+    // ostaju klijentski nad već dobijenim rezultatima, isti obrazac kao ispod.
+    for (const tag of normalizeTypes(searchParams.amenityTags)) params.append('amenityTags', tag);
 
     try {
       results = await apiFetch<SearchResult[]>(`/sales/search?${params.toString()}`);
@@ -83,8 +88,11 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
   const priceMin = priceMinRaw ? Number(priceMinRaw) * 100 : null;
   const priceMax = priceMaxRaw ? Number(priceMaxRaw) * 100 : null;
   const availability = first(searchParams.availability) || null;
+  // M5 spec §3.0c.2 tačka 3 — "vrsta usluge" (board_type) filtrira se UNUTAR već dobijenih
+  // rezultata, isti princip kao dostupnost iznad (nije upitni parametar GET /search).
+  const boardType = first(searchParams.boardType) || null;
 
-  if (priceMin !== null || priceMax !== null || availability) {
+  if (priceMin !== null || priceMax !== null || availability || boardType) {
     results = results
       .map((r) => ({
         ...r,
@@ -92,6 +100,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           if (priceMin !== null && o.finalPrice < priceMin) return false;
           if (priceMax !== null && o.finalPrice > priceMax) return false;
           if (availability && o.availabilityStatus !== availability) return false;
+          if (boardType && o.boardType !== boardType) return false;
           return true;
         }),
       }))
@@ -122,12 +131,27 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
       {hasQuery && !error && results.length === 0 && <p className="text-center text-xs text-ink-faint">Nema rezultata za zadate kriterijume.</p>}
       {!hasQuery && <p className="text-center text-xs text-ink-faint">Podesite kriterijume u levom panelu.</p>}
 
-      {cardResults.length > 0 && (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {cardResults.map((r) => (
-            <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
-          ))}
-        </div>
+      {/* MOCK grid/list prikaz smeštaja (26.8.2026, na zahtev vlasnika: "napravite mock podatke
+          da vidim kako sve izgleda") — jedan baner/red po hotelu (najpovoljnija varijanta),
+          "listaj"/klik otvara ostale kombinacije tipa sobe+usluge, uvek sortirano od najniže ka
+          najvišoj ceni. Zamenjuje `cardResults` prikaz ISKLJUČIVO kad je pretraga tačno
+          ACCOMMODATION (isti princip se širi na ostalih 8 vrsta pretrage tek posle potvrde
+          izgleda, svaka sa sopstvenim filterima u levom panelu). */}
+      {types.length === 1 && types[0] === 'ACCOMMODATION' && hasQuery && !error ? (
+        <AccommodationResultsMock
+          stayFrom={quoteDefaults.stayFrom}
+          stayTo={quoteDefaults.stayTo}
+          adults={quoteDefaults.adults}
+          children={quoteDefaults.children}
+        />
+      ) : (
+        cardResults.length > 0 && (
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {cardResults.map((r) => (
+              <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
+            ))}
+          </div>
+        )
       )}
 
       {rowResults.length > 0 && (

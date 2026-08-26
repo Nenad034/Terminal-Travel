@@ -71,4 +71,12 @@ export class SearchQueryDto {
   durationNights?: number; // CRUISE — M2 spec §2.3 `attributes.duration_nights`
 
   @IsOptional() @IsString() cabinType?: string; // CRUISE — poklapa `attributes.cabin_types[].category`
+
+  // M5 spec §3.0c.3 (dopuna 26.8.2026) — ACCOMMODATION, poklapa `attributes.amenities[]` (M2
+  // spec §2.3c `AmenityTag`), I-logika (svi traženi tagovi moraju biti prisutni).
+  @IsOptional()
+  @Transform(({ value }) => (Array.isArray(value) ? value : [value]))
+  @IsArray()
+  @IsString({ each: true })
+  amenityTags?: string[];
 }

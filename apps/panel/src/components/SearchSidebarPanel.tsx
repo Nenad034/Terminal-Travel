@@ -10,13 +10,58 @@ import { PRODUCT_ICONS, type ProductIconDef } from '@/lib/search-product-types';
 // ostaje isključivo prikaz rezultata). Prvi, uzak rez (19.8.2026, na zahtev vlasnika):
 // jedan zajednički <form> (bez toga bi drugi deo izgubio polja prvog na submit), dve
 // sklopive sekcije. NAMERNO van obima ovog rezanja (upisano u M17/M5 spec, sledeći koraci):
-// devet ikonica po tipu proizvoda (§5b), grupisani filteri po kategoriji sa potpragovima
-// (§6d), sadržaji-tagovi, sačuvani prikazi. "Refundabilno/Nerefundabilno" brzi filter iz §6d
-// nije uključen — `cancellationPolicySummary` je slobodan tekst na API-ju, nema strukturno
-// polje da se pouzdano filtrira (M5 spec ne definiše takvo polje) — samo "Odmah potvrda/Upit"
-// je stvarno filtrirano (SearchOffer.availabilityStatus), primenjeno u page.tsx nad već
-// dobijenim rezultatima (klijentski/server-side filter, ne novi API parametar — GET /search
-// ne podržava cenu/dostupnost kao upitne parametre, M5 spec §11).
+// devet ikonica po tipu proizvoda (§5b), sačuvani prikazi. "Refundabilno/Nerefundabilno" brzi
+// filter iz §6d i dalje nije uključen — `SearchResultOffer.is_refundable` je specificiran (M5
+// spec v1.32) ali nikad implementiran na `search.service.ts` (proverено 26.8.2026 pri dopuni
+// ispod) — zahteva zaseban prolaz (izračunavanje iz `CancellationRule` prozora za CONTRACTED,
+// M5 spec §3.0c.3a), zabeleženo u backlogu, ne prećutno izostavljeno.
+//
+// Dopuna (26.8.2026, na zahtev vlasnika: "u levom panelu za smeštaj dodajte još filtera") —
+// dva filtera iz M5 spec §3.0c.2/§3.0c.3 koja su bila specificirana ali nikad ožičena:
+// "vrsta usluge" (board_type, klijentski filter nad već dobijenim rezultatima, isti princip
+// kao "dostupnost" — statičan skup vrednosti, NE ograničen na ono što se stvarno pojavljuje u
+// trenutnim rezultatima, isto pojednostavljenje kao postojeći "dostupnost" select) i sadržaji-
+// tagovi (`amenity_tags[]`, M2 spec §2.3c `AmenityTag` enum, pravi upitni parametar `GET
+// /search`, I-logika na serveru — proizvod mora imati SVE izabrane tagove).
+const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] }[] = [
+  {
+    label: 'Udaljenost od plaže',
+    tags: [
+      { value: 'BEACH_UNDER_50M', label: 'do 50m' },
+      { value: 'BEACH_UNDER_100M', label: 'do 100m' },
+      { value: 'BEACH_UNDER_250M', label: 'do 250m' },
+      { value: 'BEACH_UNDER_500M', label: 'do 500m' },
+    ],
+  },
+  {
+    label: 'Bazen',
+    tags: [
+      { value: 'POOL_OUTDOOR', label: 'spoljni' },
+      { value: 'POOL_INDOOR', label: 'zatvoren' },
+      { value: 'POOL_HEATED', label: 'grejan' },
+      { value: 'POOL_KIDS', label: 'dečji' },
+    ],
+  },
+  {
+    label: 'Sadržaji objekta',
+    tags: [
+      { value: 'WIFI_FREE', label: 'besplatan WiFi' },
+      { value: 'PARKING', label: 'parking' },
+      { value: 'SPA_WELLNESS', label: 'spa/wellness' },
+      { value: 'RESTAURANT', label: 'restoran' },
+      { value: 'RECEPTION_24H', label: 'recepcija 24h' },
+    ],
+  },
+  {
+    label: 'Pogodno za',
+    tags: [
+      { value: 'FAMILY_FRIENDLY', label: 'porodice' },
+      { value: 'ADULTS_ONLY', label: 'samo odrasli' },
+      { value: 'PETS_ALLOWED', label: 'kućni ljubimci' },
+    ],
+  },
+];
+const BOARD_TYPES = ['BB', 'HB', 'FB', 'AI', 'UAI'];
 export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -82,11 +127,13 @@ export default function SearchSidebarPanel() {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
           const next = new URLSearchParams(sp.toString());
-          for (const key of ['priceMin', 'priceMax', 'availability']) {
+          for (const key of ['priceMin', 'priceMax', 'availability', 'boardType']) {
             const val = String(data.get(key) ?? '');
             if (val) next.set(key, val);
             else next.delete(key);
           }
+          next.delete('amenityTags');
+          for (const tag of data.getAll('amenityTags')) next.append('amenityTags', String(tag));
           router.push(`/rezervacije/pretraga?${next.toString()}`);
         }}
       >
@@ -106,6 +153,50 @@ export default function SearchSidebarPanel() {
               <option value="ON_REQUEST">Upit</option>
             </select>
           </label>
+
+          {currentTypes.includes('ACCOMMODATION') && (
+            <>
+              <label className="text-ink-faint">
+                vrsta usluge
+                <select name="boardType" defaultValue={sp.get('boardType') ?? ''} className="input mt-1 w-full">
+                  <option value="">— sve —</option>
+                  {BOARD_TYPES.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="text-ink-faint">
+                sadržaji
+                <div className="mt-1 flex flex-col gap-2">
+                  {AMENITY_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <div className="mb-1 text-[10px] uppercase text-ink-faint/70">{group.label}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {group.tags.map((tag) => (
+                          <label
+                            key={tag.value}
+                            className="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+                          >
+                            <input
+                              type="checkbox"
+                              name="amenityTags"
+                              value={tag.value}
+                              defaultChecked={sp.getAll('amenityTags').includes(tag.value)}
+                              className="sr-only"
+                            />
+                            {tag.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
           <button
             type="submit"
             className="mt-1 flex items-center justify-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 font-semibold text-ink-dim hover:border-accent hover:text-ink"
