@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/Icon';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from '@/components/SavedViewsSidebarPanel';
@@ -132,6 +132,56 @@ function AddFilteredListButton({ resultCount }: { resultCount: number }) {
   );
 }
 
+function formatDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+// "Tag" okidači +10/−10 (26.8.2026, na zahtev vlasnika: "Rezervacije u dolasku od danas u
+// narednih 10 dana... ikona da izgleda ovako +10 (kao tag)... isto to za odlaske... -10...
+// staviti ih u traku koja je stalno vidljiva u filterima, na sredinu"). Postavlja/uklanja ISTA
+// dva polja koja `RealFilterBar` već razume (`stayFrom`/`stayTo` za dolazak, `returnFrom`/
+// `returnTo` za odlazak, M5 spec §11) preko prave navigacije — nema nove filter logike, samo
+// prečica za već postojeći opseg datuma. "Aktivno" stanje se prepoznaje po TAČNOM poklapanju
+// trenutnih query parametara sa izračunatim opsegom (danas → danas+10), klik dok je aktivno
+// uklanja ta dva parametra (isti "toggle" princip kao demo zvona/tip proizvoda dugmad).
+function DateRangeTag({ label, icon, title, fromKey, toKey }: { label: string; icon: string; title: string; fromKey: string; toKey: string }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const today = new Date();
+  const from = formatDate(today);
+  const toDate = new Date(today);
+  toDate.setDate(toDate.getDate() + 10);
+  const to = formatDate(toDate);
+
+  const active = searchParams.get(fromKey) === from && searchParams.get(toKey) === to;
+
+  function toggle() {
+    const params = new URLSearchParams(searchParams.toString());
+    if (active) {
+      params.delete(fromKey);
+      params.delete(toKey);
+    } else {
+      params.set(fromKey, from);
+      params.set(toKey, to);
+    }
+    router.push(`/rezervacije/lista${params.toString() ? `?${params.toString()}` : ''}`);
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      title={title}
+      className={`flex h-[26px] items-center gap-1 rounded-full border px-2.5 text-[11px] font-semibold ${
+        active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
+      }`}
+    >
+      <Icon name={icon} />
+      {label}
+    </button>
+  );
+}
+
 // Dopuna (24.8.2026, na zahtev vlasnika: "Filtere u listi rezervacija fixirajte da budu vidljivi
 // prilikom scrolovanja") — jedan zajednički klijentski omotač koji drži i formu (`filterBar`,
 // server-renderovan `RealFilterBar`, prosleđen kao `children`) i traku brzih ikonica (stanje
@@ -164,32 +214,42 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
             sklapa/otvara samo formu (`RealFilterBar` + "Sačuvaj pretragu") ispod, ne i ovu
             traku. */}
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-panel p-2">
-          {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
-            const active = p.types.some((t) => productTypeFilters.includes(t));
-            return (
-              <button
-                key={p.label}
-                onClick={() =>
-                  setProductTypeFilters((cur) =>
-                    active ? cur.filter((t) => !p.types.includes(t)) : [...cur, ...p.types.filter((t) => !cur.includes(t))],
-                  )
-                }
-                title={`Filtriraj: ${p.label}`}
-                className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
-              >
-                <Icon name={p.icon} />
-              </button>
-            );
-          })}
-          <div className="mx-1 h-5 w-px bg-ink-faint/40" />
-          <button
-            onClick={() => setDemoOnly((v) => !v)}
-            title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
-            className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
-          >
-            <Icon name="bell" /> demo zvona
-          </button>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {PRODUCT_ICONS.filter((p) => p.types.length > 0).map((p) => {
+              const active = p.types.some((t) => productTypeFilters.includes(t));
+              return (
+                <button
+                  key={p.label}
+                  onClick={() =>
+                    setProductTypeFilters((cur) =>
+                      active ? cur.filter((t) => !p.types.includes(t)) : [...cur, ...p.types.filter((t) => !cur.includes(t))],
+                    )
+                  }
+                  title={`Filtriraj: ${p.label}`}
+                  className={`flex h-[26px] w-[26px] items-center justify-center rounded ${active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel2 hover:text-ink'}`}
+                >
+                  <Icon name={p.icon} />
+                </button>
+              );
+            })}
+            <div className="mx-1 h-5 w-px bg-ink-faint/40" />
+            <button
+              onClick={() => setDemoOnly((v) => !v)}
+              title={demoOnly ? 'Ukloni filter "samo demo zvona"' : 'Prikaži samo redove sa demo zvonom (nije stvaran signal)'}
+              className={`flex h-[26px] items-center gap-1.5 rounded px-2 text-[11px] ${demoOnly ? 'bg-panel2 text-ink' : 'text-ink-faint hover:bg-panel2'}`}
+            >
+              <Icon name="bell" /> demo zvona
+            </button>
+          </div>
+          {/* Centrirani okidači +10/−10 (26.8.2026, na zahtev vlasnika: "staviti ih u traku
+              koja je stalno vidljiva u filterima, na sredinu") — `flex-1 justify-center` na
+              srednjem bloku prirodno gura levi/desni blok na svoje ivice bez sukoba sa
+              `ml-auto` (uklonjen sa desnog bloka ispod, više nije potreban). */}
+          <div className="flex flex-1 items-center justify-center gap-1.5">
+            <DateRangeTag label="+10" icon="sign-in" title="Dolasci od danas u narednih 10 dana" fromKey="stayFrom" toKey="stayTo" />
+            <DateRangeTag label="-10" icon="sign-out" title="Odlasci od danas u narednih 10 dana" fromKey="returnFrom" toKey="returnTo" />
+          </div>
+          <div className="flex items-center gap-1.5">
             <AddFilteredListButton resultCount={bookings.length} />
             <SaveViewButton />
           </div>

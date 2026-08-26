@@ -43,6 +43,8 @@ export default function HomeSidebarPanel({ items }: { items: NavItem[] }) {
     };
   }, []);
 
+  // Naslov jasno imenuje IZVOR (26.8.2026, na zahtev vlasnika: "nije mi jasno napisano hoću da
+  // piše Agent Inbox") — ranije je red pisao samo "N stavki čeka odobrenje", bez imena izvora.
   const rows: { icon: string; label: string; href: string; tone: 'warn' | 'danger' | 'ink' }[] = [];
   if (summary?.securityAlertsCount) {
     rows.push({ icon: 'shield', label: `${summary.securityAlertsCount} bezbednosnih upozorenja`, href: '/audit-log', tone: 'danger' });
@@ -51,7 +53,7 @@ export default function HomeSidebarPanel({ items }: { items: NavItem[] }) {
     rows.push({ icon: 'file-text', label: `${summary.expiringReleasesCount} rokova povrata alotmana`, href: '/dobavljaci', tone: 'warn' });
   }
   if (summary?.agentInboxTotal) {
-    rows.push({ icon: 'inbox', label: `${summary.agentInboxTotal} stavki čeka odobrenje`, href: '/', tone: 'warn' });
+    rows.push({ icon: 'inbox', label: `Agent Inbox: ${summary.agentInboxTotal} na čekanju`, href: '/', tone: 'warn' });
   }
   if (summary?.guaranteeStatus) {
     rows.push({ icon: 'law', label: `Garancija putovanja: ${summary.guaranteeStatus}`, href: '/compliance', tone: 'ink' });
@@ -68,39 +70,57 @@ export default function HomeSidebarPanel({ items }: { items: NavItem[] }) {
         ) : rows.length === 0 ? (
           <p className="px-2 text-[11px] text-ink-faint">Nema upozorenja za vašu ulogu.</p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             {rows.map((r) => (
-              <li key={r.label}>
-                <Link
-                  href={r.href}
-                  className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-panel ${
-                    r.tone === 'danger' ? 'text-danger' : r.tone === 'warn' ? 'text-warn' : 'text-ink-dim'
-                  }`}
-                >
-                  <Icon name={r.icon} />
-                  <span className="truncate">{r.label}</span>
-                </Link>
-              </li>
+              <SummaryCard key={r.label} {...r} />
             ))}
-          </ul>
+          </div>
         )}
       </div>
 
       {quickLinks.length > 0 && (
         <div>
           <div className="mb-1.5 px-2 text-[11px] font-medium text-ink-faint">Brzi linkovi</div>
-          <ul className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1.5">
             {quickLinks.map((item) => (
-              <li key={item.id}>
-                <Link href={item.href} className="flex items-center gap-2 rounded px-2 py-1.5 text-xs text-ink-dim hover:bg-panel hover:text-ink">
-                  <Icon name={item.icon} />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              </li>
+              <QuickLinkCard key={item.id} icon={item.icon} label={item.label} href={item.href} />
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+const TONE_CHIP: Record<'warn' | 'danger' | 'ink', string> = {
+  danger: 'bg-danger-bg text-danger',
+  warn: 'bg-warn-bg text-warn',
+  ink: 'bg-panel2 text-ink-dim',
+};
+
+// Kartice umesto ravnih redova (26.8.2026, na zahtev vlasnika: "Stavite linkove u neke lepe
+// kartice kao što je to u VS Code") — isti "kartica" jezik kao VS Code Welcome stranica
+// (ikonica u obojenoj značci + tekst pored, uokviren pravougaonik), ista `rounded-lg border
+// border-border bg-panel p-2` osnova koja se već koristi za kartice drugde u panelu (npr.
+// `RightPanel.tsx` `SelectionRow`/`CollectedItemRow`) — dosledan vizuelni jezik, ne nov obrazac.
+function SummaryCard({ icon, label, href, tone }: { icon: string; label: string; href: string; tone: 'warn' | 'danger' | 'ink' }) {
+  return (
+    <Link href={href} className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
+      <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${TONE_CHIP[tone]}`}>
+        <Icon name={icon} />
+      </span>
+      <span className="truncate text-xs font-medium text-ink">{label}</span>
+    </Link>
+  );
+}
+
+function QuickLinkCard({ icon, label, href }: { icon: string; label: string; href: string }) {
+  return (
+    <Link href={href} className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
+      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
+        <Icon name={icon} />
+      </span>
+      <span className="truncate text-xs font-medium text-ink">{label}</span>
+    </Link>
   );
 }
