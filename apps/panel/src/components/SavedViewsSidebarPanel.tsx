@@ -14,9 +14,11 @@ export interface SavedView {
   filters: Record<string, string | string[]>;
 }
 
-const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
 /** Emituje se posle uspešnog čuvanja/brisanja da se panel osveži bez zajedničkog state-a
- * (dugme za čuvanje živi u centralnom panelu, ovaj panel u levoj traci — različiti delovi stabla). */
+ * (dugme za čuvanje živi u centralnom panelu, ovaj panel u levoj traci — različiti delovi stabla).
+ * Deljen preko SVIH ekrana koji koriste ovaj panel (26.8.2026 dopuna, generalizacija ispod) —
+ * svaka instanca samo ponovo učita SOPSTVENI `preferenceKey`, jeftino i bez potrebe da nosi
+ * koji je tačno ključ promenjen. */
 export const SAVED_VIEWS_CHANGED_EVENT = 'tt:saved-views-changed';
 
 function toQueryString(filters: Record<string, string | string[]>): string {
@@ -36,9 +38,26 @@ function toQueryString(filters: Record<string, string | string[]>): string {
 // vlasnika — "Filtere za listu rezervacija stavimo u levi panel... Ima dosta praznog prostora")
 // — puni prazan prostor ispod izabrane stavke u levom panelu, isti mehanizam kao
 // `SearchSidebarPanel.tsx` (Sidebar.tsx bira komponentu po `selected.id`). Lično po korisniku
-// (M1 `UserPreference`, ne deljeno), klik odmah primenjuje sačuvane filtere (nova navigacija na
-// `/rezervacije/lista?...`), bez ponovnog kucanja.
-export default function SavedViewsSidebarPanel() {
+// (M1 `UserPreference`, ne deljeno), klik odmah primenjuje sačuvane filtere preko PRAVE
+// navigacije (nov `GET` poziv na server) — cena/dostupnost se time UVEK proveravaju iznova, nikad
+// se ne prikazuje stara sačuvana vrednost (26.8.2026 dopuna, na zahtev vlasnika: "svakako
+// proverava cena ponovo" — ovo je već bilo tačno svojstvo navigacije, ovde samo eksplicitno
+// potvrđeno u dokumentaciji).
+//
+// Generalizovano (26.8.2026, na zahtev vlasnika: "omogućite čuvanje filtera pretrage... max 10
+// pretraga") — isti mehanizam sad služi i `/rezervacije/lista` (bez ograničenja, nepromenjeno
+// ponašanje preko podrazumevanih vrednosti props-a) i `/rezervacije/pretraga` (novo, `maxItems=10`).
+export default function SavedViewsSidebarPanel({
+  preferenceKey = 'saved_views.rezervacije_lista',
+  baseHref = '/rezervacije/lista',
+  maxItems,
+  emptyHint = 'Sačuvaj trenutnu pretragu (dugme iznad liste) da je vidiš ovde.',
+}: {
+  preferenceKey?: string;
+  baseHref?: string;
+  maxItems?: number;
+  emptyHint?: string;
+} = {}) {
   const [views, setViews] = useState<SavedView[] | null>(null);
 
   async function load() {
@@ -49,7 +68,7 @@ export default function SavedViewsSidebarPanel() {
         return;
       }
       const data = await res.json();
-      setViews(Array.isArray(data[PREFERENCE_KEY]) ? data[PREFERENCE_KEY] : []);
+      setViews(Array.isArray(data[preferenceKey]) ? data[preferenceKey] : []);
     } catch {
       setViews([]);
     }
@@ -59,12 +78,13 @@ export default function SavedViewsSidebarPanel() {
     load();
     window.addEventListener(SAVED_VIEWS_CHANGED_EVENT, load);
     return () => window.removeEventListener(SAVED_VIEWS_CHANGED_EVENT, load);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preferenceKey]);
 
   async function remove(id: string) {
     const next = (views ?? []).filter((v) => v.id !== id);
     setViews(next);
-    await fetch(`/api/preferences/${PREFERENCE_KEY}`, {
+    await fetch(`/api/preferences/${preferenceKey}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: next }),
@@ -75,14 +95,16 @@ export default function SavedViewsSidebarPanel() {
 
   return (
     <div className="mx-2 mt-3 border-t border-border pt-3">
-      <div className="mb-1.5 px-2 text-[11px] font-medium text-ink-faint">Sačuvani prikazi</div>
+      <div className="mb-1.5 px-2 text-[11px] font-medium text-ink-faint">
+        Sačuvani prikazi{maxItems ? ` (${views.length}/${maxItems})` : ''}
+      </div>
       {views.length === 0 ? (
-        <p className="px-2 text-[11px] text-ink-faint">Sačuvaj trenutnu pretragu (dugme iznad liste) da je vidiš ovde.</p>
+        <p className="px-2 text-[11px] text-ink-faint">{emptyHint}</p>
       ) : (
         <ul className="flex flex-col gap-0.5">
           {views.map((v) => (
             <li key={v.id} className="group flex items-center gap-1 rounded px-2 py-1.5 hover:bg-panel">
-              <Link href={`/rezervacije/lista${toQueryString(v.filters)}`} className="flex flex-1 items-center gap-2 truncate text-xs text-ink-dim hover:text-ink">
+              <Link href={`${baseHref}${toQueryString(v.filters)}`} className="flex flex-1 items-center gap-2 truncate text-xs text-ink-dim hover:text-ink">
                 <Icon name="bookmark" />
                 <span className="truncate">{v.name}</span>
               </Link>

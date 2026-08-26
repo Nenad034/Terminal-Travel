@@ -77,6 +77,19 @@ export default function Sidebar({
           {/* M5 pretraga — vođena pretraga + filteri u levom panelu (dizajn dok. §5b/§6d),
               van obima za ostatak sekcija (M17 spec §4a), ostaje sledeći korak po sekciji. */}
           {selected.id === 'pretraga' && <SearchSidebarPanel />}
+          {/* Sačuvane pretrage (26.8.2026, na zahtev vlasnika: "omogućite čuvanje filtera
+              pretrage kako bi se vratili po želji, max 10 pretraga") — isti mehanizam kao
+              "Sačuvani prikazi" za listu rezervacija ispod, sad generalizovan (SavedViewsSidebarPanel
+              props), sopstven ključ i gornja granica od 10. Klik uvek navigira na PRAVU pretragu
+              (nov GET /sales/search poziv) — cena/dostupnost se time uvek proveravaju iznova. */}
+          {selected.id === 'pretraga' && (
+            <SavedViewsSidebarPanel
+              preferenceKey="saved_views.rezervacije_pretraga"
+              baseHref="/rezervacije/pretraga"
+              maxItems={10}
+              emptyHint="Sačuvaj trenutnu pretragu (dugme pored 'izmeni' na vrhu) da je vidiš ovde."
+            />
+          )}
           {/* Sačuvani prikazi (24.8.2026, na zahtev vlasnika: "Filtere za listu rezervacija
               stavimo u levi panel... Ima dosta praznog prostora") — dizajn dok. §5b, isti
               obrazac kao pretraga iznad, samo za "Lista rezervacija". */}
