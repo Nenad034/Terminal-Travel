@@ -53,7 +53,19 @@ export default function ActivityBar({
               title={isHome ? group.label : title}
               className={className}
               onClick={(e) => {
-                if (!active || isHome) return;
+                // ISPRAVKA (26.8.2026, na zahtev vlasnika — "kada zatvorimo levi panel i
+                // kliknemo na ikonu Home, opet se otvori. sada to nije tako") — Home je i dalje
+                // izuzet iz "klik na već-aktivnu grupu skuplja/širi" prečice iznad (namerno, isti
+                // razlog), ALI dok je traka skupljena, Home mora i dalje da je ponovo otvori —
+                // dosadašnji potpun izuzetak (`return` bez ičega) nikad nije dirao `collapsed`
+                // stanje, pa je klik na Home dok je traka skupljena samo navigirao bez ikakvog
+                // vidljivog efekta na traku. Ne zove se `e.preventDefault()` ovde — navigacija
+                // ka Početnoj i dalje radi normalno, ovo samo DODATNO širi traku ako je skupljena.
+                if (isHome) {
+                  if (collapsed) onToggleCollapse();
+                  return;
+                }
+                if (!active) return;
                 e.preventDefault();
                 onToggleCollapse();
               }}
