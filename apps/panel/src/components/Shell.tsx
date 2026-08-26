@@ -52,6 +52,30 @@ export default function Shell({
   const groups = useMemo(() => NAV_GROUPS.filter((g) => g.itemIds.some((id) => items.some((i) => i.id === id))), [items]);
 
   const [activeGroupId, setActiveGroupId] = useState(() => groupForHref(pathname)?.id ?? groups[0]?.id ?? 'pocetna');
+  // ISPRAVKA (26.8.2026, na zahtev vlasnika, uz uživo nalaz — "kad se klikne na dugme Home
+  // ništa se ne dešava", "link za Pretraga i rezervacije ne reaguje odmah, moram da kliknem na
+  // neku drugu ikonu pa da se vratim"). Uzrok: `activeGroupId` se DOSAD menjao ISKLJUČIVO ručnim
+  // klikom na ActivityBar/TopBar ikonicu grupe (`onSelectGroup`) — svaka DRUGA navigacija koja
+  // menja stvarnu putanju (TabBar klik na već otvoren tab, CommandPalette, klik na obaveštenje,
+  // link iz AI chat-a, jednostavni `<Link>` klik na single-item ActivityBar stavku poput Home-a
+  // samog) NIKAD nije ažurirala `activeGroupId` — ostajao je "zaleđen" na grupi iz koje je
+  // korisnik POSLEDNJI PUT ručno kliknuo ikonicu, bez obzira gde ga je navigacija stvarno odvela.
+  // Dva vidljiva simptoma istog uzroka: (1) Home ActivityBar stavka je "single" grupa — klik na
+  // NJU dok je `activeGroupId` i dalje slučajno "pocetna" (npr. posle navigacije na drugo mesto
+  // preko CommandPalette-a) se tumači kao "klik na već aktivnu ikonicu" i SAMO skuplja/širi levu
+  // traku umesto da stvarno vodi na Početnu — izgleda kao da dugme ništa ne radi. (2) `Sidebar.tsx`
+  // bira KOJU grupu da prikaže (i time da li se `selected` uopšte poklopi sa trenutnom putanjom)
+  // isključivo preko `activeGroupId` — dok je on zaleđen na pogrešnoj grupi, "Pretraga i
+  // rezervacije" se otvara ali Sidebar i dalje prikazuje PRETHODNU (pogrešnu) grupu, pa
+  // `SearchSidebarPanel` ne može da se poklopi/prikaže dok se `activeGroupId` ne "odblokira"
+  // sledećim ručnim klikom na neku ActivityBar ikonicu. Rešenje: `activeGroupId` se sad AUTOMATSKI
+  // sinhronizuje sa STVARNOM putanjom na svaku promenu (dodatno uz ručne klikove, ne umesto njih —
+  // ručno "pregledanje" druge grupe preko ActivityBar/TopBar ikonice i dalje radi jer ne menja
+  // putanju dok se ne klikne stavka unutar nje).
+  useEffect(() => {
+    const g = groupForHref(pathname);
+    if (g) setActiveGroupId(g.id);
+  }, [pathname]);
   // VS Code obrazac — leva traka se skuplja na tanku traku, ne nestaje (na zahtev vlasnika,
   // 19.8.2026). Podrazumevano `false` na SERVERU I na prvom klijentskom renderu (moraju biti
   // identični zbog hidratacije) — localStorage se čita tek u useEffect POSLE hidratacije, isti

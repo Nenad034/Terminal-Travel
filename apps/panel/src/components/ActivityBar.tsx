@@ -37,14 +37,23 @@ export default function ActivityBar({
         }`;
         const title = active ? `${group.label} — klik za ${collapsed ? 'proširivanje' : 'skupljanje'} leve trake` : group.label;
         if (single) {
+          // ISPRAVKA (26.8.2026, na zahtev vlasnika — "kad se klikne na dugme Home ništa se ne
+          // dešava... nije mi ni logično klikanje") — Home je jedina single-item grupa čiji je
+          // POSAO da uvek stvarno vodi na Početnu, ne da nudi skupi/proširi prečicu kao ostale
+          // (Audit log, API konekcije, MCP) kad se ponovo klikne dok je već aktivna. Sa
+          // stvarnim uzrokom "ništa se ne dešava" ispravljenim u Shell.tsx (activeGroupId sad
+          // prati stvarnu putanju), ovaj izuzetak sprečava da PREOSTALI, ređi slučaj (korisnik
+          // je STVARNO na Početnoj i opet klikne Home) i dalje samo skuplja traku umesto da
+          // ponovo, pouzdano fokusira Početnu.
+          const isHome = group.id === 'pocetna';
           return (
             <Link
               key={group.id}
               href={single.href}
-              title={title}
+              title={isHome ? group.label : title}
               className={className}
               onClick={(e) => {
-                if (!active) return;
+                if (!active || isHome) return;
                 e.preventDefault();
                 onToggleCollapse();
               }}
