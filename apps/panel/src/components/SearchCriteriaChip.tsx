@@ -25,13 +25,16 @@ function newViewId(): string {
 // otvaranje sačuvane pretrage (SavedViewsSidebarPanel u levom panelu) je PRAVA navigacija — nov
 // `GET /sales/search` poziv, cena/dostupnost se time UVEK proveravaju iznova, nikad se ne
 // prikazuje stara sačuvana cena.
+//
+// Naziv se generiše SAM (dopuna, na zahtev vlasnika: "naziv sačuvanog filtera treba sam da se
+// generiše iz odabranih filtera") — isti sažetak koji već piše na samom chip-u (tip · destinacija
+// · datumi · broj osoba), bez posebnog polja za kucanje/popover-a — jedan klik čuva.
 export default function SearchCriteriaChip() {
   const sp = useSearchParams();
   const [open, setOpen] = useState(false);
-  const [saveOpen, setSaveOpen] = useState(false);
-  const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
 
   const types = sp.getAll('type');
   if (types.length === 0) return null; // nema aktivne pretrage — nema šta da se sažme
@@ -41,9 +44,9 @@ export default function SearchCriteriaChip() {
   const destination = [sp.get('destinationCity'), sp.get('destinationCountry')].filter(Boolean).join(', ');
   const dates = sp.get('stayFrom') && sp.get('stayTo') ? `${sp.get('stayFrom')} – ${sp.get('stayTo')}` : null;
   const occupancy = `${sp.get('adults') ?? '2'} odr.${Number(sp.get('children') ?? '0') > 0 ? ` + ${sp.get('children')} dece` : ''}`;
+  const autoName = [label, destination || null, dates, occupancy].filter(Boolean).join(' · ');
 
   async function saveSearch() {
-    if (!name.trim()) return;
     setSaving(true);
     setSaveError(null);
     try {
@@ -61,15 +64,15 @@ export default function SearchCriteriaChip() {
         setSaveError(`Najviše ${MAX_SAVED_SEARCHES} sačuvanih pretraga — obriši neku u levom panelu pre čuvanja nove.`);
         return;
       }
-      const next = [...existing, { id: newViewId(), name: name.trim(), filters }];
+      const next = [...existing, { id: newViewId(), name: autoName, filters }];
       await fetch(`/api/preferences/${PREFERENCE_KEY}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: next }),
       });
       window.dispatchEvent(new Event(SAVED_VIEWS_CHANGED_EVENT));
-      setSaveOpen(false);
-      setName('');
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
     } finally {
       setSaving(false);
     }
@@ -88,38 +91,16 @@ export default function SearchCriteriaChip() {
         </button>
         <div className="relative">
           <button
-            onClick={() => {
-              setSaveError(null);
-              setSaveOpen((v) => !v);
-            }}
-            className="flex items-center gap-1 text-accent-strong hover:underline"
+            onClick={saveSearch}
+            disabled={saving}
+            title={`Sačuva se kao "${autoName}"`}
+            className="flex items-center gap-1 text-accent-strong hover:underline disabled:opacity-50"
           >
-            <Icon name="bookmark" /> sačuvaj
+            <Icon name={justSaved ? 'check' : 'bookmark'} /> {justSaved ? 'sačuvano' : saving ? '…' : 'sačuvaj'}
           </button>
-          {saveOpen && (
-            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-border bg-panel p-2 text-ink shadow-lg">
-              <label className="mb-1 block text-[11px] font-medium text-ink-faint">Naziv sačuvane pretrage</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="npr. Budva, avgust, porodica"
-                className="input mb-2 w-full"
-                autoFocus
-              />
-              {saveError && <p className="mb-2 text-[11px] text-danger">{saveError}</p>}
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setSaveOpen(false)} className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink">
-                  Otkaži
-                </button>
-                <button
-                  onClick={saveSearch}
-                  disabled={saving || !name.trim()}
-                  className="rounded bg-accent px-2 py-1 text-[11px] font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-                >
-                  {saving ? '…' : 'Sačuvaj'}
-                </button>
-              </div>
+          {saveError && (
+            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
+              {saveError}
             </div>
           )}
         </div>
