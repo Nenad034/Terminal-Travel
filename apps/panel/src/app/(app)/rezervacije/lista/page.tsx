@@ -56,10 +56,10 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
         <BookingsListClient
           bookings={bookings}
           filterBar={
-            <>
-              <PeriodQuickFilter searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>} />
-              <RealFilterBar filters={searchParams ?? {}} />
-            </>
+            <RealFilterBar
+              filters={searchParams ?? {}}
+              quickPeriod={<PeriodQuickFilter searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>} />}
+            />
           }
         />
       )}
