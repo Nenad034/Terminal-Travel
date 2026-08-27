@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
 import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
 import HomeSidebarPanel from './HomeSidebarPanel';
+import { useTabs } from './TabsContext';
 import type { NavGroup, NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — leva traka prikazuje spisak sekcija AKTIVNE
@@ -27,6 +27,7 @@ export default function Sidebar({
   collapsed?: boolean;
 }) {
   const pathname = usePathname();
+  const { openTab } = useTabs();
   const [forceShowList, setForceShowList] = useState(false);
 
   useEffect(() => {
@@ -138,17 +139,27 @@ export default function Sidebar({
                 );
               }
               return (
-                <Link
+                // ISPRAVKA (27.8.2026, na zahtev vlasnika: "kada kliknem na Pretraga i
+                // rezervacije ništa se ne događa... moram da kliknem na drugu ikonu pa da se
+                // vratim") — obična `<Link href>` je ovde ponekad ostavljala adresu promenjenu
+                // ali sadržaj neosvežen (nepouzdano App Router "meko" navigiranje na ovoj
+                // stranici), isti simptom kao ranije popravljena "openTab je ranije SAMO
+                // upisivao zapis" greška (`TabsContext.tsx` komentar). Rešenje je isto — umesto
+                // pasivnog `<Link>`-a, klik EKSPLICITNO zove `openTab(href, label)`, koji
+                // eksplicitno poziva `router.push` i sinhrono upisuje/aktivira tab, bez
+                // oslanjanja na to da će `<Link>` sam pouzdano izvršiti tranziciju.
+                <button
                   key={item.id}
-                  href={item.href}
+                  type="button"
+                  onClick={() => openTab(item.href, item.label)}
                   title={item.label}
-                  className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-sm text-ink-dim hover:bg-panel hover:text-ink"
+                  className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-left text-sm text-ink-dim hover:bg-panel hover:text-ink"
                 >
                   <span className="flex w-6 items-center justify-center">
                     <Icon name={item.icon} />
                   </span>
                   <span className="truncate">{item.label}</span>
-                </Link>
+                </button>
               );
             })}
           </div>
