@@ -20,6 +20,24 @@ import { SupplierManifestsService } from '../supplier-manifests/supplier-manifes
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { SubagentStubService } from '../common/subagent-stub.service';
 
+// M5 spec §7 dopuna (27.8.2026) — isti filter-oblik kao `findAll` iznad, minus datumski opseg
+// (kalendar prikaz sam zadaje opseg). Deljen između `calendarSummary`/`calendarDay`.
+export interface CalendarFilters {
+  status?: string[];
+  paymentStatus?: string[];
+  tipNastupanja?: string[];
+  buyerName?: string;
+  bookingNumber?: string;
+  currency?: string;
+  createdFrom?: string;
+  createdTo?: string;
+  productType?: string[];
+  productId?: string;
+  destinationCity?: string;
+  destinationCountry?: string;
+  hasTravelGuarantee?: string;
+}
+
 interface ItemReservationOutcome {
   quoteItemId: string;
   itemStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION';
@@ -881,12 +899,48 @@ export class BookingsService {
   // ==========================================================================
   // M5 spec §7 — kalendar rezervacija
   // ==========================================================================
-  async calendarSummary(from: Date, to: Date) {
+  // Isti filter-skup kao `findAll` (poglavlje iznad), BEZ datumskih opsega (stayFrom/stayTo/
+  // returnFrom/returnTo) — u kalendaru taj opseg već zadaje SAM prikaz (mesec/nedelja/dan koji
+  // se gleda), drugi, zaseban datumski filter bi bio konfuzan/redundantan. Dopuna 27.8.2026, na
+  // zahtev vlasnika: "Dodati filtere koji postoje u Listi rezervacija" u novi Google Calendar
+  // stil kalendara (M17 spec).
+  private buildCalendarItemWhere(filters: CalendarFilters): Prisma.BookingItemWhereInput {
+    const bookingWhere: Prisma.BookingWhereInput = {};
+    if (filters.status && filters.status.length > 0) bookingWhere.status = { in: filters.status as any };
+    if (filters.paymentStatus && filters.paymentStatus.length > 0) bookingWhere.paymentStatus = { in: filters.paymentStatus as PaymentStatus[] };
+    if (filters.tipNastupanja && filters.tipNastupanja.length > 0) bookingWhere.tipNastupanja = { in: filters.tipNastupanja as TipNastupanja[] };
+    if (filters.buyerName) bookingWhere.buyerName = { contains: filters.buyerName, mode: 'insensitive' };
+    if (filters.bookingNumber) bookingWhere.bookingNumber = { contains: filters.bookingNumber, mode: 'insensitive' };
+    if (filters.currency) bookingWhere.currency = filters.currency;
+    if (filters.createdFrom || filters.createdTo) {
+      bookingWhere.createdAt = {
+        ...(filters.createdFrom ? { gte: new Date(filters.createdFrom) } : {}),
+        ...(filters.createdTo ? { lte: new Date(`${filters.createdTo}T23:59:59.999Z`) } : {}),
+      };
+    }
+    if (filters.hasTravelGuarantee === 'true') bookingWhere.travelGuaranteeRegistration = { isNot: null };
+    if (filters.hasTravelGuarantee === 'false') bookingWhere.travelGuaranteeRegistration = { is: null };
+
+    const itemWhere: Prisma.BookingItemWhereInput = {};
+    if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry) {
+      itemWhere.product = {
+        ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
+        ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
+        ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
+      };
+    }
+    if (filters.productId) itemWhere.productId = filters.productId;
+    if (Object.keys(bookingWhere).length > 0) itemWhere.booking = bookingWhere;
+    return itemWhere;
+  }
+
+  async calendarSummary(from: Date, to: Date, filters: CalendarFilters = {}) {
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
         stayFrom: { lte: to },
         stayTo: { gte: from },
+        ...this.buildCalendarItemWhere(filters),
       },
       select: { stayFrom: true, stayTo: true },
     });
@@ -919,13 +973,14 @@ export class BookingsService {
     }));
   }
 
-  async calendarDay(date: Date) {
+  async calendarDay(date: Date, filters: CalendarFilters = {}) {
     const day = toMidnightUtc(date);
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
         stayFrom: { lte: day },
         stayTo: { gte: day },
+        ...this.buildCalendarItemWhere(filters),
       },
       include: { booking: true, guests: true },
     });

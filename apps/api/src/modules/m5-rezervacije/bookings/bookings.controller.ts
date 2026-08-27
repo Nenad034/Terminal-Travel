@@ -81,16 +81,80 @@ export class BookingsController {
     );
   }
 
+  // Isti v1 filter-skup kao `GET /sales/bookings` (iznad), BEZ datumskih opsega — vidi komentar
+  // uz `buildCalendarItemWhere` u servisu. Dopuna 27.8.2026, na zahtev vlasnika: "Dodati filtere
+  // koji postoje u Listi rezervacija" u novi kalendar (M17 spec, Google Calendar stil).
   @Get('calendar-summary')
   @RequirePermission('M5', 'booking', 'VIEW')
-  calendarSummary(@Query('from') from: string, @Query('to') to: string) {
-    return this.bookings.calendarSummary(new Date(from), new Date(to));
+  calendarSummary(
+    @Query('from') from: string,
+    @Query('to') to: string,
+    @Query('status') status: string | string[] | undefined,
+    @Query('paymentStatus') paymentStatus: string | string[] | undefined,
+    @Query('tipNastupanja') tipNastupanja: string | string[] | undefined,
+    @Query('buyerName') buyerName: string | undefined,
+    @Query('bookingNumber') bookingNumber: string | undefined,
+    @Query('currency') currency: string | undefined,
+    @Query('createdFrom') createdFrom: string | undefined,
+    @Query('createdTo') createdTo: string | undefined,
+    @Query('productType') productType: string | string[] | undefined,
+    @Query('productId') productId: string | undefined,
+    @Query('destinationCity') destinationCity: string | undefined,
+    @Query('destinationCountry') destinationCountry: string | undefined,
+    @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+  ) {
+    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+    return this.bookings.calendarSummary(new Date(from), new Date(to), {
+      status: toArray(status),
+      paymentStatus: toArray(paymentStatus),
+      tipNastupanja: toArray(tipNastupanja),
+      buyerName,
+      bookingNumber,
+      currency,
+      createdFrom,
+      createdTo,
+      productType: toArray(productType),
+      productId,
+      destinationCity,
+      destinationCountry,
+      hasTravelGuarantee,
+    });
   }
 
   @Get('calendar/:date')
   @RequirePermission('M5', 'booking', 'VIEW')
-  calendarDay(@Param('date') date: string) {
-    return this.bookings.calendarDay(new Date(date));
+  calendarDay(
+    @Param('date') date: string,
+    @Query('status') status: string | string[] | undefined,
+    @Query('paymentStatus') paymentStatus: string | string[] | undefined,
+    @Query('tipNastupanja') tipNastupanja: string | string[] | undefined,
+    @Query('buyerName') buyerName: string | undefined,
+    @Query('bookingNumber') bookingNumber: string | undefined,
+    @Query('currency') currency: string | undefined,
+    @Query('createdFrom') createdFrom: string | undefined,
+    @Query('createdTo') createdTo: string | undefined,
+    @Query('productType') productType: string | string[] | undefined,
+    @Query('productId') productId: string | undefined,
+    @Query('destinationCity') destinationCity: string | undefined,
+    @Query('destinationCountry') destinationCountry: string | undefined,
+    @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+  ) {
+    const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
+    return this.bookings.calendarDay(new Date(date), {
+      status: toArray(status),
+      paymentStatus: toArray(paymentStatus),
+      tipNastupanja: toArray(tipNastupanja),
+      buyerName,
+      bookingNumber,
+      currency,
+      createdFrom,
+      createdTo,
+      productType: toArray(productType),
+      productId,
+      destinationCity,
+      destinationCountry,
+      hasTravelGuarantee,
+    });
   }
 
   @Get(':id')
