@@ -56,7 +56,7 @@ const inputClass = 'input text-xs';
 // (kucanje) čekaju kratku pauzu (debounce) da se ne pokreće cela navigacija na svaki taster.
 const TEXT_DEBOUNCE_MS = 600;
 
-export default function RealFilterBar({ filters, quickPeriod }: { filters: BookingFilters; quickPeriod?: React.ReactNode }) {
+export default function RealFilterBar({ filters }: { filters: BookingFilters }) {
   const hasAnyFilter = Object.values(filters).some((v) => v);
   const formRef = useRef<HTMLFormElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,13 +78,11 @@ export default function RealFilterBar({ filters, quickPeriod }: { filters: Booki
           pretragu datuma neka idu u drugi red, ostala polja u prvi i neka sva polja budu iste
           sirine da se rasporede celom sirinom trake filtera") — `flex-1` na svakom polju u istom
           `flex` redu (bez `flex-wrap`) deli raspoloživu širinu podjednako, umesto da svako polje
-          zauzme samo prirodnu širinu svog sadržaja. `quickPeriod` (dopuna 27.8.2026, na zahtev
-          vlasnika — "dodali ste bez razloga još jedan red filtera, ubacite brzi filter... u
-          gornji red brzih filtera, odvojene po celinama") — `PeriodQuickFilter.tsx` se ubacuje
-          OVDE, kao prva "celina" u istom gornjem redu, `flex-shrink-0` (ne učestvuje u
-          ravnomernoj podeli širine kao polja) uz `border-r` razdvajanje od ostalih filtera. */}
+          zauzme samo prirodnu širinu svog sadržaja.
+          Napomena 27.8.2026: brzi period Dan/Nedelja/Mesec (`PeriodQuickFilter.tsx`) NIJE ovde —
+          vlasnik je pojasnio da je mislio na traku ikonica koja je UVEK vidljiva
+          (`BookingsListClient.tsx`, sticky), ne na ovu formu koja se može sakriti dugmetom −/+. */}
       <div className="flex items-end gap-2">
-        {quickPeriod}
         <Field label="Broj">
           <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} />
         </Field>

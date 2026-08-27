@@ -4,7 +4,6 @@ import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
-import PeriodQuickFilter from './PeriodQuickFilter';
 
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
 // STVARNA lista, prelazi sa MOCK-a (v1.42-v1.53). `GET /sales/bookings` sad prima pun v1 skup
@@ -53,15 +52,7 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {!error && (
-        <BookingsListClient
-          bookings={bookings}
-          filterBar={
-            <RealFilterBar
-              filters={searchParams ?? {}}
-              quickPeriod={<PeriodQuickFilter searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>} />}
-            />
-          }
-        />
+        <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
       )}
     </div>
   );

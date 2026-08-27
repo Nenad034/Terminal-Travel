@@ -7,6 +7,7 @@ import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from '@/components/SavedViewsSidebarPanel';
 import { useAiContext } from '@/components/AiContextContext';
 import RealBookingsTable, { type RealBooking } from './RealBookingsTable';
+import PeriodQuickFilter from './PeriodQuickFilter';
 
 const PREFERENCE_KEY = 'saved_views.rezervacije_lista';
 
@@ -244,10 +245,17 @@ export default function BookingsListClient({ bookings, filterBar }: { bookings: 
           {/* Centrirani okidači +10/−10 (26.8.2026, na zahtev vlasnika: "staviti ih u traku
               koja je stalno vidljiva u filterima, na sredinu") — `flex-1 justify-center` na
               srednjem bloku prirodno gura levi/desni blok na svoje ivice bez sukoba sa
-              `ml-auto` (uklonjen sa desnog bloka ispod, više nije potreban). */}
+              `ml-auto` (uklonjen sa desnog bloka ispod, više nije potreban). Brz period
+              Dan/Nedelja/Mesec (dopuna 27.8.2026, na zahtev vlasnika: "pregled na dnevnom
+              mesecnom i nedeljnom nivou staviti i u listu rezervacija" — ISPRAVKA #2, uz snimak
+              ekrana: "nisam mislio tu vec u prvi red brzih filtera koji je uvek vidljiv") — ide
+              baš OVDE, u istu uvek-vidljivu traku kao +10/−10, odvojen razdelnikom kao posebna
+              celina (ne u `RealFilterBar.tsx` formu, koja se dugmetom −/+ ispod može sakriti). */}
           <div className="flex flex-1 items-center justify-center gap-1.5">
             <DateRangeTag label="+10" icon="sign-in" title="Dolasci od danas u narednih 10 dana" fromKey="stayFrom" toKey="stayTo" />
             <DateRangeTag label="-10" icon="sign-out" title="Odlasci od danas u narednih 10 dana" fromKey="returnFrom" toKey="returnTo" />
+            <div className="mx-1 h-5 w-px bg-ink-faint/40" />
+            <PeriodQuickFilter />
           </div>
           <div className="flex items-center gap-1.5">
             <AddFilteredListButton resultCount={bookings.length} />
