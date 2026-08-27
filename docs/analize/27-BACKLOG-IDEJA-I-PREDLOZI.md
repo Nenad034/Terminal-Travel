@@ -127,7 +127,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Tačan izgled/template operativne liste po tipu dobavljača.
 - Da li slanje operativne liste ide samo email prilogom ili i strukturisanim API kanalom.
 - Da li API (M4) stavke ikad zahtevaju sličan operativni dokument.
-- Tačan izgled kalendara i vizuelno razlikovanje kategorija — dizajnersko pitanje.
+- **Kalendar rezervacija kao Google Calendar (27.8.2026, na zahtev vlasnika — zabeleženo, ne raditi sada):** M17 "Kalendar rezervacija" treba rađen sa svim funkcijama Google Calendar-a prilagođenim potrebama TT-a (dan/nedelja/mesec, prevlačenje termina...), PLUS isti set filtera koji već postoji na "Lista rezervacija". Veći poduhvat, obim funkcija nije razrađen — čeka poseban prolaz. Detalji: M5 spec §13.
 - Vizuelni prikaz/UI za sastavljanje putovanja (itinerar) — dizajnersko pitanje.
 - **Rešeno (23.8.2026, M5 spec v1.48):** "Pun zapis" forma za rezervaciju — predlog potvrđen ("Da gradi po predlogu, s tim sto cemo sigurno imati izmene i dorade"), prvi prolaz implementiran (`rezervacije/lista/[bookingNumber]/page.tsx`, mock, otvara se u novom app-tabu klikom na broj rezervacije ili dugmetom "Otvori pun zapis" iz sažetka). Dalje izmene/dorade najavljene, nisu još tražene — ne treba ponovo otvarati ovu stavku dok vlasnik ne zatraži konkretnu izmenu.
 - AI predlozi za popunu praznina u itineraru — čekaju M15.
