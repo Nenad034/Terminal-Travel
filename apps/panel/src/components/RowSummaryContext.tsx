@@ -20,7 +20,7 @@ export interface Traveler {
   birthYear?: number;
 }
 
-export interface RowSummary {
+export interface BookingRowSummary {
   kind: 'booking';
   bookingNumber: string;
   buyerName: string;
@@ -40,6 +40,31 @@ export interface RowSummary {
   branch?: string;
   assignedUser?: string;
 }
+
+// M17 spec dopuna (27.8.2026, na zahtev vlasnika: "kada kliknemo na stavku kalendara u desnom
+// panelu treba da se pojavi sumarni izveštaj koliko rezervacija, statusi, koje destinacije,
+// koliko osoba, koliko soba, da li ima i koliko rezervacija sa alertima") — agregat preko SVIH
+// stavki jednog dana u kalendaru (M5 spec §7.4), namerno DRUGI `kind` u istom kontekstu
+// (RightPanel.tsx grana prikaz po `summary.kind`) — ista "klik pokazuje sažetak ovde" ideja kao
+// `BookingRowSummary`, samo agregat umesto jednog reda. Dodate dve autorske dopune (na zahtev
+// vlasnika: "možete i vi dodati nešto") — raščlanjena vrednost po valuti i po tipu proizvoda,
+// oboje odsutno iz eksplicitnog zahteva ali direktno korisno uz "koliko rezervacija/destinacija".
+export interface CalendarDaySummary {
+  kind: 'calendar-day';
+  date: string;
+  bookingCount: number;
+  itemCount: number;
+  statusCounts: Record<string, number>;
+  destinationCounts: Record<string, number>;
+  productTypeCounts: Record<string, number>;
+  totalGuests: number;
+  totalRooms: number;
+  valueByCurrency: Record<string, number>;
+  supplierPendingCount: number;
+  unpaidCount: number;
+}
+
+export type RowSummary = BookingRowSummary | CalendarDaySummary;
 
 interface RowSummaryContextValue {
   summary: RowSummary | null;

@@ -255,6 +255,7 @@ Zahteva `M5/voucher/OVERRIDE_ISSUE` (isključivo Vlasnik/Direktor).
 ```
 
 ### GET /bookings/calendar-summary?from=2027-06-01&to=2027-06-30
+Isti v1 filter-skup kao `GET /bookings` (status/paymentStatus/tipNastupanja/buyerName/bookingNumber/currency/createdFrom/createdTo/productType/productId/destinationCity/destinationCountry/hasTravelGuarantee), BEZ datumskih opsega — `from`/`to` već zadaju taj opseg (M5 spec §7.4, dopuna 27.8.2026).
 **Odgovor `200`:**
 ```json
 [
@@ -264,10 +265,19 @@ Zahteva `M5/voucher/OVERRIDE_ISSUE` (isključivo Vlasnik/Direktor).
 ```
 
 ### GET /bookings/calendar/2027-06-10
+Isti filter-skup kao iznad. Odgovor prošireno (dopuna 27.8.2026, M17 "sumarni izveštaj u desnom panelu") sa `bookingStatus`/`paymentStatus`/`productType`/`destinationCity`/`destinationCountry`/`unitCount`/`finalPrice`/`finalPriceCurrency` po stavci — panel ovo agregira klijentski (broj rezervacija, po statusu, po destinaciji, ukupno osoba/soba, upozorenja).
 **Odgovor `200`:**
 ```json
 {
-  "ARRIVAL": [ { "bookingItemId": "bi-1", "bookingId": "booking-1", "bookingNumber": "TT-2027-000482", "productId": "prod-hotel-1", "status": "CONFIRMED", "guests": ["Petar Petrović"] } ],
+  "ARRIVAL": [
+    {
+      "bookingItemId": "bi-1", "bookingId": "booking-1", "bookingNumber": "TT-2027-000482", "productId": "prod-hotel-1",
+      "status": "CONFIRMED", "guests": ["Petar Petrović"],
+      "bookingStatus": "CONFIRMED", "paymentStatus": "UNPAID", "productType": "ACCOMMODATION",
+      "destinationCity": "Budva", "destinationCountry": "Crna Gora", "unitCount": 1,
+      "finalPrice": 45000, "finalPriceCurrency": "EUR"
+    }
+  ],
   "DEPARTURE": [],
   "STAYOVER": [],
   "SINGLE_DAY": []

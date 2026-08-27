@@ -982,7 +982,7 @@ export class BookingsService {
         stayTo: { gte: day },
         ...this.buildCalendarItemWhere(filters),
       },
-      include: { booking: true, guests: true },
+      include: { booking: true, guests: true, product: { select: { type: true, destinationCity: true, destinationCountry: true } } },
     });
 
     const groups: Record<'ARRIVAL' | 'DEPARTURE' | 'STAYOVER' | 'SINGLE_DAY', unknown[]> = {
@@ -993,6 +993,9 @@ export class BookingsService {
     };
     for (const item of items) {
       const category = classifyByDay(toMidnightUtc(item.stayFrom), toMidnightUtc(item.stayTo), day);
+      // M17 spec dopuna (27.8.2026, "sumarni izveštaj u desnom panelu klikom na dan") — polja
+      // ispod (status rezervacije/uplate, destinacija, tip proizvoda, broj soba, cena) NISU bila
+      // potrebna dok je dnevni detalj samo ispisivao listu — sad ih agregira klijent u sažetak.
       groups[category].push({
         bookingItemId: item.id,
         bookingId: item.bookingId,
@@ -1000,6 +1003,14 @@ export class BookingsService {
         productId: item.productId,
         status: item.itemStatus,
         guests: item.guests.map((g) => `${g.guestFirstName} ${g.guestLastName}`),
+        bookingStatus: item.booking.status,
+        paymentStatus: item.booking.paymentStatus,
+        productType: item.product.type,
+        destinationCity: item.product.destinationCity,
+        destinationCountry: item.product.destinationCountry,
+        unitCount: item.unitCount,
+        finalPrice: item.finalPrice,
+        finalPriceCurrency: item.finalPriceCurrency,
       });
     }
     return groups;

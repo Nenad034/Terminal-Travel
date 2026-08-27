@@ -13,6 +13,14 @@ export interface DayDetailEntry {
   productId: string;
   status: string;
   guests: string[];
+  bookingStatus: string;
+  paymentStatus: string;
+  productType: string;
+  destinationCity: string;
+  destinationCountry: string;
+  unitCount: number;
+  finalPrice: number;
+  finalPriceCurrency: string;
 }
 
 export interface DayDetail {
@@ -26,4 +34,8 @@ export const EMPTY_DAY_DETAIL: DayDetail = { ARRIVAL: [], DEPARTURE: [], STAYOVE
 
 export function dayDetailCount(d: DayDetail): number {
   return d.ARRIVAL.length + d.DEPARTURE.length + d.STAYOVER.length + d.SINGLE_DAY.length;
+}
+
+export function allEntries(d: DayDetail): DayDetailEntry[] {
+  return [...d.ARRIVAL, ...d.DEPARTURE, ...d.STAYOVER, ...d.SINGLE_DAY];
 }

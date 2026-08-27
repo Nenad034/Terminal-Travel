@@ -228,8 +228,12 @@ export default function RightPanel({
           `ProductPreviewCard` sad sam učitava preko `/api/catalog/products/:id/preview`. */}
       {isProdaja && items.length === 0 && previewItems.length > 0 && <ProductPreviewCard />}
 
-      {isProdaja && items.length === 0 && previewItems.length === 0 && summary && (
+      {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'booking' && (
         <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
+      )}
+
+      {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'calendar-day' && (
+        <CalendarDaySummaryCard summary={summary} />
       )}
 
       {isProdaja && items.length === 0 && previewItems.length === 0 && !summary && (
@@ -446,7 +450,7 @@ function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
 // Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
 // smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
-function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').RowSummary; onOpenFullRecord: () => void }) {
+function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord: () => void }) {
   const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
@@ -494,6 +498,93 @@ function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./R
         <SummaryRow label="Dug" value={s.owedAmount !== undefined ? money(s.owedAmount) : '—'} tone={s.owedAmount ? 'danger' : undefined} />
         <SummaryRow label="Status uplate" value={s.paymentStatus} />
       </div>
+    </div>
+  );
+}
+
+// Sumarni izveštaj za jedan dan u kalendaru (M17 spec dopuna, 27.8.2026, na zahtev vlasnika:
+// "kada kliknemo na stavku kalendara u desnom panelu treba da se pojavi sumarni izveštaj
+// koliko rezervacija, statusi, koje destinacije, koliko osoba, koliko soba, da li ima i koliko
+// rezervacija sa alertima"). Agregat se računa u `rezervacije/kalendar/build-day-summary.ts`
+// (Dan prikaz, `RegisterDaySummary.tsx`) — ovaj komponent samo prikazuje već gotov objekat.
+// Dve autorske dopune ("možete i vi dodati nešto"): vrednost po valuti, raščlanjenje po tipu
+// proizvoda.
+function CalendarDaySummaryCard({ summary: s }: { summary: import('./RowSummaryContext').CalendarDaySummary }) {
+  const dateLabel = new Date(`${s.date}T00:00:00`).toLocaleDateString('sr-RS', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const hasAlerts = s.supplierPendingCount > 0 || s.unpaidCount > 0;
+  return (
+    <div className="flex-1 overflow-y-auto p-3 text-xs">
+      <div className="mb-3">
+        <div className="text-[11px] uppercase tracking-wide text-ink-faint">Sažetak dana</div>
+        <div className="font-mono font-semibold capitalize text-ink">{dateLabel}</div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <StatTile label="Rezervacija" value={s.bookingCount} />
+        <StatTile label="Stavki" value={s.itemCount} />
+        <StatTile label="Osoba" value={s.totalGuests} />
+        <StatTile label="Soba" value={s.totalRooms} />
+      </div>
+
+      {hasAlerts && (
+        <div className="mb-3 flex flex-col gap-1 rounded-lg border border-danger bg-danger-bg p-2">
+          <div className="flex items-center gap-1.5 font-medium text-danger">
+            <Icon name="warning" /> Upozorenja
+          </div>
+          {s.supplierPendingCount > 0 && <SummaryRow label="Čeka potvrdu dobavljača" value={String(s.supplierPendingCount)} tone="danger" />}
+          {s.unpaidCount > 0 && <SummaryRow label="Nije naplaćeno" value={String(s.unpaidCount)} tone="danger" />}
+        </div>
+      )}
+
+      {Object.keys(s.statusCounts).length > 0 && (
+        <BreakdownSection title="Po statusu" counts={s.statusCounts} />
+      )}
+      {Object.keys(s.destinationCounts).length > 0 && (
+        <BreakdownSection title="Po destinaciji" counts={s.destinationCounts} />
+      )}
+      {Object.keys(s.productTypeCounts).length > 0 && (
+        <BreakdownSection title="Po tipu proizvoda" counts={s.productTypeCounts} />
+      )}
+      {Object.keys(s.valueByCurrency).length > 0 && (
+        <div className="mt-2 mb-1">
+          <div className="mb-1 text-ink-faint">Ukupna vrednost</div>
+          <ul className="flex flex-col gap-0.5">
+            {Object.entries(s.valueByCurrency).map(([currency, amount]) => (
+              <li key={currency} className="flex items-center justify-between gap-2 text-ink-dim">
+                <span>{currency}</span>
+                <span className="font-mono font-medium text-ink">{(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {s.bookingCount === 0 && <p className="text-ink-faint">Nema rezervacija za ovaj dan (uz trenutne filtere).</p>}
+    </div>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-border bg-panel p-2 text-center">
+      <div className="font-mono text-lg font-semibold text-ink">{value}</div>
+      <div className="text-[11px] text-ink-faint">{label}</div>
+    </div>
+  );
+}
+
+function BreakdownSection({ title, counts }: { title: string; counts: Record<string, number> }) {
+  const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="mt-2 mb-1">
+      <div className="mb-1 text-ink-faint">{title}</div>
+      <ul className="flex flex-col gap-0.5">
+        {entries.map(([key, count]) => (
+          <li key={key} className="flex items-center justify-between gap-2 text-ink-dim">
+            <span className="truncate">{key}</span>
+            <span className="font-mono text-ink">{count}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

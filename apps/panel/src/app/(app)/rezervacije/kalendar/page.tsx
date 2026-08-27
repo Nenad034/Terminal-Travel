@@ -5,6 +5,7 @@ import CalendarFilterBar from './CalendarFilterBar';
 import MonthGrid from './MonthGrid';
 import WeekGrid from './WeekGrid';
 import DayAgenda from './DayAgenda';
+import RegisterDaySummary from './RegisterDaySummary';
 import { computeRange, enumerateDates, extractFilters, filtersToQueryParams, todayIso, type CalendarView } from './calendar-utils';
 import { EMPTY_DAY_DETAIL, type DayDetail, type DaySummary } from './types';
 
@@ -57,6 +58,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Rec
       {!error && view === 'week' && <WeekGrid range={range} filters={filters} todayIso={todayIso()} byDate={daysByDate} />}
       {!error && view === 'day' && (
         <div className="rounded-lg border border-border bg-panel p-4">
+          <RegisterDaySummary date={anchor} detail={daysByDate.get(anchor) ?? EMPTY_DAY_DETAIL} />
           <DayAgenda detail={daysByDate.get(anchor) ?? EMPTY_DAY_DETAIL} />
         </div>
       )}
