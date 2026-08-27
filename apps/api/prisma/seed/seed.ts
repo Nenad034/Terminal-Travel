@@ -728,6 +728,7 @@ async function main() {
   await seedM21PublicGuestArticles();
   await seedM22EmailInboxAgent();
   await seedM23KnowledgeAgent();
+  await seedM5CalendarMockBookings();
 
   console.log(
     `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola.`,
@@ -1220,6 +1221,110 @@ async function seedM23KnowledgeAgent() {
       modelIdentifier: 'claude-haiku-4-5-20251001',
     },
   });
+}
+
+// M5/M17 spec §7.4 (27.8.2026, na zahtev vlasnika: "unesite mock podatke da vidim kako
+// izgleda" novi "Kalendar rezervacija") — vizuelni mock, ISKLJUČIVO za lokalni pregled novog
+// prikaza (mesec/nedelja/dan), ne test podataka za e2e. Idempotentno preko `bookingNumber`
+// prefiksa `TT-MOCK-CAL-` (upsert `update: {}` — drugo pokretanje ne dodaje duplikate, zamka
+// 5.3). Datumi su OFFSET od STVARNOG "danas" u trenutku pokretanja (ne fiksni kalendarski
+// datum) — mock ostaje vidljiv u tekućem mesecu bez obzira kad se seed pokrene, uključujući
+// jedan zapis koji namerno prelazi u naredni mesec (test granice mesečnog grida/nedelje).
+// Referencira POSTOJEĆE prave `Product`/`MarkupRule`/`ClientAccount` zapise (ne izmišljene
+// FK vrednosti) — ako lokalna baza nema nijedan ACCOMMODATION proizvod ili MarkupRule,
+// funkcija se tiho preskače (npr. sveža baza pre prvog M2/M3 unosa).
+async function seedM5CalendarMockBookings() {
+  const accommodationProducts = await prisma.product.findMany({
+    where: { type: 'ACCOMMODATION', status: 'ACTIVE' },
+    select: { id: true, destinationCity: true, destinationCountry: true },
+    distinct: ['destinationCity'],
+    take: 20,
+  });
+  const markupRule = await prisma.markupRule.findFirst({ select: { id: true } });
+  const clientAccount = await prisma.clientAccount.findFirst({ select: { id: true } });
+  if (accommodationProducts.length === 0 || !markupRule || !clientAccount) {
+    console.log('seedM5CalendarMockBookings: preskočeno (nema još ACCOMMODATION proizvoda/MarkupRule/ClientAccount u bazi)');
+    return;
+  }
+  const byCity = new Map(accommodationProducts.map((p) => [p.destinationCity, p]));
+  const pick = (city: string) => byCity.get(city) ?? accommodationProducts[0];
+
+  function addDays(base: Date, days: number): Date {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() + days);
+    return d;
+  }
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  interface MockEntry {
+    n: number;
+    city: string;
+    fromOffset: number;
+    toOffset: number;
+    guests: string[];
+    unitCount: number;
+    itemStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION';
+    bookingStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION' | 'MODIFIED';
+    price: number; // u najmanjoj jedinici valute (centi)
+  }
+  const ENTRIES: MockEntry[] = [
+    { n: 1, city: 'Budva', fromOffset: -12, toOffset: -8, guests: ['Marko Marković', 'Ana Marković'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 45000 },
+    { n: 2, city: 'Halkidiki', fromOffset: -5, toOffset: 0, guests: ['Jovan Jovanović', 'Milica Jovanović', 'Uroš Jovanović'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 68000 },
+    { n: 3, city: 'Rim', fromOffset: -2, toOffset: 3, guests: ['Petar Petrović'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'MODIFIED', price: 52000 },
+    { n: 4, city: 'Zlatibor', fromOffset: 0, toOffset: 0, guests: ['Nikola Nikolić', 'Jelena Nikolić'], unitCount: 1, itemStatus: 'PENDING_SUPPLIER_CONFIRMATION', bookingStatus: 'PENDING_SUPPLIER_CONFIRMATION', price: 15000 },
+    { n: 5, city: 'Solun', fromOffset: 3, toOffset: 7, guests: ['Stefan Stefanović', 'Ivana Stefanović', 'Luka Stefanović', 'Mila Stefanović'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 89000 },
+    { n: 6, city: 'Pariz', fromOffset: -1, toOffset: 3, guests: ['Vladimir Vasić', 'Tamara Vasić'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 71000 },
+    { n: 7, city: 'Kopaonik', fromOffset: 7, toOffset: 12, guests: ['Dragan Dragić', 'Snežana Dragić', 'Miloš Dragić', 'Sara Dragić'], unitCount: 2, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 132000 },
+    { n: 8, city: 'Halkidiki', fromOffset: 1, toOffset: 1, guests: ['Filip Filipović', 'Sofija Filipović'], unitCount: 1, itemStatus: 'CONFIRMED', bookingStatus: 'CONFIRMED', price: 9000 },
+  ];
+
+  for (const entry of ENTRIES) {
+    const bookingNumber = `TT-MOCK-CAL-${String(entry.n).padStart(4, '0')}`;
+    const existing = await prisma.booking.findUnique({ where: { bookingNumber } });
+    if (existing) continue; // idempotentno — ne dodaje duplikate na ponovno pokretanje
+
+    const product = pick(entry.city);
+    const booking = await prisma.booking.create({
+      data: {
+        bookingNumber,
+        clientAccountId: clientAccount.id,
+        buyerName: entry.guests[0],
+        buyerType: 'FIZICKO_LICE',
+        channel: 'INTERNAL_PANEL',
+        tipNastupanja: 'ORGANIZATOR',
+        status: entry.bookingStatus,
+        paymentStatus: 'UNPAID',
+        totalPrice: entry.price,
+        currency: 'EUR',
+        createdBy: 'seed-mock-calendar',
+      },
+    });
+    const item = await prisma.bookingItem.create({
+      data: {
+        bookingId: booking.id,
+        productId: product.id,
+        sourceType: 'CONTRACTED',
+        supplierReference: `MOCK-CAL-${entry.n}`,
+        stayFrom: addDays(today, entry.fromOffset),
+        stayTo: addDays(today, entry.toOffset),
+        baseCost: Math.round(entry.price * 0.8),
+        baseCostCurrency: 'EUR',
+        markupRuleId: markupRule.id,
+        finalPrice: entry.price,
+        finalPriceCurrency: 'EUR',
+        itemStatus: entry.itemStatus,
+        unitCount: entry.unitCount,
+      },
+    });
+    for (const fullName of entry.guests) {
+      const [guestFirstName, ...rest] = fullName.split(' ');
+      await prisma.bookingItemGuest.create({
+        data: { bookingItemId: item.id, guestFirstName, guestLastName: rest.join(' ') || '—' },
+      });
+    }
+  }
+  console.log(`seedM5CalendarMockBookings: ${ENTRIES.length} mock rezervacija (TT-MOCK-CAL-*) proverenih/ubačenih`);
 }
 
 main()
