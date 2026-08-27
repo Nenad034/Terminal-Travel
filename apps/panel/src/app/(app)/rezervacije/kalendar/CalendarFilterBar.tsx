@@ -47,7 +47,12 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
     <form ref={formRef} action="/rezervacije/kalendar" onChange={handleFormChange} className="mb-3 flex flex-col gap-2 rounded-lg border border-border bg-panel p-2 text-xs">
       <input type="hidden" name="view" value={view} />
       <input type="hidden" name="date" value={date} />
-      <div className="flex flex-wrap items-end gap-2">
+      {/* ISPRAVKA (27.8.2026, na zahtev vlasnika, uz snimak ekrana — "nije sve lepo stalo") —
+          `flex-wrap` sa `flex-1` po polju je poslednje polje isturao van vidljive širine umesto
+          da lepo prelomi red. Zamenjeno DVA REDA bez wrap-a (isti obrazac kao RealFilterBar.tsx,
+          već proveren u produkciji): svako polje u istom `flex` redu dobija `flex-1` da deli
+          RASPOLOŽIVU širinu ravnomerno, dolazak/odlazak datum-opseg ide u sopstveni drugi red. */}
+      <div className="flex items-end gap-2">
         <Field label="Broj">
           <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} />
         </Field>
@@ -74,6 +79,9 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
             <option value="false">nema</option>
           </select>
         </Field>
+      </div>
+
+      <div className="flex items-end gap-2">
         <Field label="Kreirano od/do">
           <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} />
         </Field>
@@ -95,7 +103,7 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="flex min-w-[140px] flex-1 flex-col gap-0.5">
+    <label className="flex flex-1 min-w-0 flex-col gap-0.5">
       <span className="text-xs text-ink-faint">{label}</span>
       {children}
     </label>

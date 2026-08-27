@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
+import PeriodQuickFilter from './PeriodQuickFilter';
 
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
 // STVARNA lista, prelazi sa MOCK-a (v1.42-v1.53). `GET /sales/bookings` sad prima pun v1 skup
@@ -20,6 +21,10 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
     // parsira nazad u niz.
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(searchParams ?? {})) {
+      // `periodView`/`periodAnchor` (dopuna 27.8.2026, PeriodQuickFilter.tsx) su ISKLJUČIVO
+      // UI stanje prekidača Dan/Nedelja/Mesec — ne stvarni `GET /sales/bookings` parametri
+      // (stvaran filter i dalje ide preko `stayFrom`/`stayTo`, koje prekidač samo postavlja).
+      if (key === 'periodView' || key === 'periodAnchor') continue;
       if (Array.isArray(value)) {
         for (const v of value) if (v) params.append(key, v);
       } else if (value) {
@@ -47,7 +52,17 @@ export default async function BookingListPage({ searchParams }: { searchParams: 
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {!error && <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />}
+      {!error && (
+        <BookingsListClient
+          bookings={bookings}
+          filterBar={
+            <>
+              <PeriodQuickFilter searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>} />
+              <RealFilterBar filters={searchParams ?? {}} />
+            </>
+          }
+        />
+      )}
     </div>
   );
 }
