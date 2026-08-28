@@ -163,7 +163,20 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
 
         {showAiPanel && (
           <div className="max-h-[60vh] overflow-y-auto p-2">
-            <AiSearchPanel state={aiState} onGo={go} navFallback={navResults} />
+            {/* BAG (28.8.2026, prijavio vlasnik uživo — "ne radi pretraga u ovom panelu") —
+                unos teksta potpuno sakriva statičnu navigaciju (navResults) u korist AI panela;
+                za kratke upite AI korak ne zove ništa i vraća prazan rezultat bez ijednog
+                fallback prikaza (fallback je do sada postojao SAMO za active:false/error, ne
+                i za uspešan-ali-prazan odgovor), pa je čak i doslovno poklapanje naziva sekcije
+                (npr. "rezervacije" → "Pretraga i rezervacije") bilo nevidljivo. Direktno
+                poklapanje navigacije se sad UVEK prikazuje kad postoji, bez obzira na AI ishod. */}
+            {navResults.length > 0 && (
+              <div className="mb-2 border-b border-border pb-2">
+                <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Sekcije panela</p>
+                <NavFallbackList items={navResults} onGo={go} />
+              </div>
+            )}
+            <AiSearchPanel state={aiState} onGo={go} />
           </div>
         )}
       </div>
@@ -200,27 +213,17 @@ type AiSearchState =
 // M15 spec §6.5, M17 spec §5.5 — prikaz AI odgovora/rezultata. Kad modul nije aktiviran
 // (active:false), poruka je smirena, ne izgleda kao greška, i navigacioni fallback ostaje
 // vidljiv da paleta nikad ne bude "pokvarena" za korisnika (M17 spec §7).
-function AiSearchPanel({ state, onGo, navFallback }: { state: AiSearchState; onGo: (href: string) => void; navFallback: NavItem[] }) {
+function AiSearchPanel({ state, onGo }: { state: AiSearchState; onGo: (href: string) => void }) {
   if (state.status === 'loading' || state.status === 'idle') {
     return <p className="p-4 text-center text-xs text-ink-faint">Tražim…</p>;
   }
   if (state.status === 'error') {
-    return (
-      <div className="p-2">
-        <p className="px-2 py-2 text-xs text-ink-faint">AI pretraga trenutno nije dostupna. Navigacija i dalje radi:</p>
-        <NavFallbackList items={navFallback} onGo={onGo} />
-      </div>
-    );
+    return <p className="px-2 py-2 text-xs text-ink-faint">AI pretraga trenutno nije dostupna.</p>;
   }
 
   const { data } = state;
   if (!data.active) {
-    return (
-      <div className="p-2">
-        <p className="px-2 py-2 text-xs text-ink-faint">AI pretraga još nije uključena za ovaj panel. Navigacija i dalje radi:</p>
-        <NavFallbackList items={navFallback} onGo={onGo} />
-      </div>
-    );
+    return <p className="px-2 py-2 text-xs text-ink-faint">AI pretraga još nije uključena za ovaj panel.</p>;
   }
 
   const nothingFound = data.matchedRoutes.length === 0 && data.entityResults.length === 0 && !data.aiAnswer;
