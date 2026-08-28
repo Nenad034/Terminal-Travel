@@ -81,7 +81,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **Migracija postojećeg slobodnog teksta u `AmenityTag`** (poglavlje 2.3c, 17.8.2026) — ručno mapiranje, obim/redosled nije razrađen (koliko proizvoda, ko radi).
 - **`INSURANCE.attributes.coverage_regions[]`** (M5 poglavlje 3.0d.8, 17.8.2026) — struktura (lista zemalja vs. region-enum) nije razrađena, čeka implementaciju putnog osiguranja.
 - **`attributes.category` vrednosti za `EXCURSION`/`EVENT`/`TICKET`** ("Things to do", M5 poglavlje 3.0d.4, 17.8.2026) — dorađuje se pri stvarnoj izradi ekrana, isti princip kao `AmenityTag`.
-- **Tip kreveta u `beds` (poglavlje 2.3b), ne samo broj** (25.8.2026, na zahtev vlasnika) — `base_beds`/`extra_beds_max` danas nose samo broj kreveta, ne i tip (francuski ležaj, dva odvojena kreveta, sofa za dve osobe, pomoćni ležaj za jednu osobu...); "2+1"/"2+2"/"3+1" oznake bez tipa kreveta klijenti različito tumače. Verovatno `bed_type` enum, isti obrazac kao `AmenityTag`.
+- ~~Tip kreveta u `beds`~~ — **rešeno 28.8.2026** (M2 spec v1.14): `base_bed_type`/`extra_bed_type` enumi dodati uz panel ekran za unos tipa sobe.
+- **Panel ekran za uređivanje hotelskih (ne-sobnih) `attributes` polja** (28.8.2026, nalaz pri gradnji panela za tip sobe) — `stars`/`board_type`/`amenities`/`accommodation_type`/`contact` i dalje nemaju panel ekran, samo API; `RoomTypesEditor.tsx` (v1.14) pokriva isključivo `room_types[]`.
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*

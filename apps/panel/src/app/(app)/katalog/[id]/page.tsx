@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import EditProductForm from './EditProductForm';
+import RoomTypesEditor, { type RoomType } from './RoomTypesEditor';
 
 interface Product {
   id: string;
@@ -9,6 +10,7 @@ interface Product {
   destinationCity: string;
   status: string;
   sourceType: string;
+  attributes?: { room_types?: RoomType[] } | null;
   translations?: { languageCode: string; name: string; description: string; slug: string }[];
 }
 
@@ -27,6 +29,11 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
         {product.type} · {product.destinationCity}, {product.destinationCountry} · izvor: {product.sourceType}
       </p>
       <EditProductForm productId={product.id} translation={sr} />
+      {product.type === 'ACCOMMODATION' && (
+        <div className="mt-4">
+          <RoomTypesEditor productId={product.id} initialRoomTypes={product.attributes?.room_types ?? []} />
+        </div>
+      )}
     </div>
   );
 }
