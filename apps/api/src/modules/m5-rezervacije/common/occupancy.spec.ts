@@ -7,6 +7,8 @@ import {
   computeRoomBaseCost,
   resolveBaseAdultsCovered,
   RoomTypeDefinition,
+  AgePolicyEntry,
+  RateLineForCalc,
 } from './occupancy';
 
 describe('assertRoomConfigMatchesTotals (M5 spec §3.2a)', () => {
@@ -154,5 +156,27 @@ describe('computeRoomBaseCost (M5 spec §3.2b)', () => {
         nights: 1,
       }),
     ).toThrow(BadRequestException);
+  });
+
+  // M3 spec §2.3c (28.8.2026, na zahtev vlasnika: "uzrasna politika koja važi generalno za
+  // hotel ne mora da bude ista kada taj hotel kreira cene za neku akciju") — bez override-a
+  // dete od 13 pada van podrazumevane CHILD granice (2-11,99) i klasifikuje se kao ADULT, pa
+  // nema odgovarajući age_pricing red (baca grešku, dole); sa override-om koji pomera CHILD
+  // granicu na 15,99, isto dete se klasifikuje kao CHILD i dobija CHILD popust.
+  it('ContractPeriod.age_policy_override menja klasifikaciju gosta za obračun cene', () => {
+    const room = { adults: 2, children: 1, childrenAges: [13] };
+    const rateLine: RateLineForCalc = { price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null };
+    const agePricingCandidates = [
+      { ageCategory: 'CHILD' as const, occupantIndex: 1, minAdultsPresent: null, pricingMode: 'FLAT_PRICE_PER_NIGHT' as const, percentage: null, flatPrice: 2000 },
+    ];
+
+    expect(() => computeRoomBaseCost({ room, roomType, rateLine, agePricingCandidates, nights: 1 })).toThrow(BadRequestException);
+
+    const override: AgePolicyEntry[] = [
+      { category: 'ADULT', ageFrom: 16, ageTo: null, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
+      { category: 'CHILD', ageFrom: 2, ageTo: 15.99, countsTowardCapacity: true, maxCount: null, requiresCrib: false, cribIncluded: null },
+    ];
+    const cost = computeRoomBaseCost({ room, roomType, rateLine, agePricingCandidates, agePolicyOverride: override, nights: 1 });
+    expect(cost).toBe(10000 + 2000);
   });
 });

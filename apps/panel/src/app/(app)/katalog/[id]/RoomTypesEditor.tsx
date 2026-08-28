@@ -67,6 +67,23 @@ const EXTRA_BED_LABELS: Record<ExtraBedType, string> = {
 };
 const AGE_CATEGORY_LABELS: Record<AgeCategory, string> = { ADULT: 'Odrasla osoba', CHILD: 'Dete', TEEN: 'Tinejdžer', INFANT: 'Beba' };
 
+// Šifra sobe kao broj — sadrži ID objekta (hotela) + rednu sobu unutar njega (28.8.2026, na
+// zahtev vlasnika). `Product.id` je UUID, ne broj (nema sopstveno numeričko polje) — prvih 8 hex
+// cifara (bez crtica) se pretvara u decimalan broj kao stabilan, jedinstven "brojčani" predstavnik
+// hotela; svaka sledeća soba dobija redni broj IZNAD najvišeg do sada iskorišćenog za taj hotel
+// (ne prost `length + 1`) — sprečava da izmena posle brisanja sobe slučajno dodeli šifru koju već
+// nosi neka preostala soba.
+function nextRoomCode(productId: string, existing: RoomType[]): string {
+  const objectPart = String(parseInt(productId.replace(/-/g, '').slice(0, 8), 16));
+  const usedSeqs = existing
+    .map((rt) => rt.code)
+    .filter((c) => c.startsWith(objectPart))
+    .map((c) => Number(c.slice(objectPart.length)))
+    .filter((n) => Number.isFinite(n));
+  const nextSeq = (usedSeqs.length > 0 ? Math.max(...usedSeqs) : 0) + 1;
+  return `${objectPart}${String(nextSeq).padStart(2, '0')}`;
+}
+
 function emptyRoomType(): RoomType {
   return {
     code: '',
@@ -113,13 +130,19 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
 
   function saveDraft() {
     if (!draft) return;
-    if (!draft.code.trim() || !draft.name.trim()) {
-      setError('Šifra i naziv su obavezni.');
+    if (!draft.name.trim()) {
+      setError('Naziv je obavezan.');
       return;
     }
+    // Šifra sobe (28.8.2026, na zahtev vlasnika: "šifra sobe treba da bude broj i da se
+    // automatski kreira kada se klikne na sačuvaj... neka ima u sebi Id broj objekta + svoj Id")
+    // — dodeljuje se SAMO pri prvom čuvanju nove sobe, isti obrazac kao svaki auto-generisan
+    // identifikator u ovom kodu (ne menja se pri kasnijoj izmeni, M3 `ContractPeriod.room_type`
+    // konvencija referencira ovaj kod, izmena posle unosa bi tiho pokidala tu vezu).
+    const finalDraft = editingIndex === null ? { ...draft, code: nextRoomCode(productId, roomTypes) } : draft;
     const next = [...roomTypes];
-    if (editingIndex === null) next.push(draft);
-    else next[editingIndex] = draft;
+    if (editingIndex === null) next.push(finalDraft);
+    else next[editingIndex] = finalDraft;
     void persist(next);
   }
 
@@ -190,9 +213,11 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
             {error && <p className="mb-3 rounded bg-danger-bg p-2 text-xs text-danger">{error}</p>}
 
             <div className="mb-4 grid grid-cols-2 gap-3">
-              <Field label="Šifra">
-                <input className="input text-xs" value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })} placeholder="npr. DELUXE_SEA_VIEW" />
-              </Field>
+              {editingIndex !== null && (
+                <Field label="Šifra">
+                  <span className="input flex items-center font-mono text-xs text-ink-faint">{draft.code}</span>
+                </Field>
+              )}
               <Field label="Naziv">
                 <input className="input text-xs" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="npr. Deluxe soba sa pogledom na more" />
               </Field>

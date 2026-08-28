@@ -159,13 +159,25 @@ export function computeRoomBaseCost(params: {
   rateLine: RateLineForCalc;
   agePricingCandidates: AgePricingCandidate[];
   nights: number;
+  // M3 spec §2.3c (28.8.2026, na zahtev vlasnika: "uzrasna politika koja važi generalno za hotel
+  // ne mora da bude ista kada taj hotel kreira cene za neku akciju" — npr. opšte "dete 2-12 =
+  // 30% popust", ali za konkretan cenovnik "dete do 15 ima isti popust") — `ContractPeriod.
+  // agePolicyOverride`, primenjuje se SAMO za klasifikaciju gosta radi CENE (ova funkcija), nikad
+  // za fizički kapacitet sobe (`assertRoomCapacity` i dalje uvek koristi M2 sobinu politiku —
+  // kapacitet je fizičko svojstvo sobe, ne menja se po cenovniku).
+  agePolicyOverride?: AgePolicyEntry[] | null;
 }): number {
-  const { room, roomType, rateLine, agePricingCandidates, nights } = params;
+  const { room, roomType, rateLine, agePricingCandidates, nights, agePolicyOverride } = params;
   if (nights <= 0) {
     throw new BadRequestException('Broj noćenja mora biti pozitivan (stay_to > stay_from).');
   }
 
-  const agePolicy = roomType.agePolicy && roomType.agePolicy.length > 0 ? roomType.agePolicy : DEFAULT_AGE_POLICY;
+  const agePolicy =
+    agePolicyOverride && agePolicyOverride.length > 0
+      ? agePolicyOverride
+      : roomType.agePolicy && roomType.agePolicy.length > 0
+        ? roomType.agePolicy
+        : DEFAULT_AGE_POLICY;
   const guests = classifyRoomGuests(room, agePolicy);
   const adultsPresent = room.adults;
 

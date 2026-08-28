@@ -86,6 +86,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
+- **Panel ekran za pojedinačan ugovor/period ne postoji** (28.8.2026, nalaz pri dodavanju `age_policy_override`, §2.3c) — lista ugovora postoji (`ugovori/page.tsx`), ali nema detalj-ekrana za unos `RateLine`/`age_pricing[]`/`age_policy_override` za konkretan `ContractPeriod`; sve ostaje API-only dok taj ekran ne dođe na red.
 - Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano).
 - Obračun konverzije valute za fakturisanje u RSD — definiše se u M10.
 - Da li `PACKAGE` proizvodi mogu imati sopstveni ugovor nezavisan od komponenti.

@@ -533,6 +533,7 @@ model ContractPeriod {
   ukupnaFiksnaObaveza     Int?          @map("ukupna_fiksna_obaveza") // samo CHARTER/FIXED_LEASE
   fixedObligationCurrency String?       @map("fixed_obligation_currency")
   paymentSchedule         Json?         @map("payment_schedule") // samo FIXED_LEASE — niz {due_date, amount}
+  agePolicyOverride       Json?         @map("age_policy_override") // M3 spec §2.3c — izuzetak od M2 room_types[].age_policy[] SAMO za ovaj cenovnik/period, isti oblik niza; null = koristi se M2 politika sobe
   createdAt               DateTime      @default(now()) @map("created_at")
   updatedAt               DateTime      @updatedAt @map("updated_at")
 

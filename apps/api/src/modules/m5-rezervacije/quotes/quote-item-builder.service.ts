@@ -3,7 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { applyMarkup } from '../common/markup-formula';
-import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
+import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition, AgePolicyEntry } from '../common/occupancy';
 
 const ROOM_BASED_TYPES = ['ACCOMMODATION', 'PACKAGE'];
 
@@ -127,6 +127,7 @@ export class QuoteItemBuilderService {
                 cribFeePerNight: rateLine!.cribFeePerNight,
               },
               agePricingCandidates: rateLine!.agePricing,
+              agePolicyOverride: (rateLine!.contractPeriod.agePolicyOverride as AgePolicyEntry[] | null) ?? null,
               nights: nights || 1,
             }),
           0,
