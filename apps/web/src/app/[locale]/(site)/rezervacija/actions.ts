@@ -1,5 +1,6 @@
 'use server';
 
+import { createHmac } from 'crypto';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api-client';
@@ -81,9 +82,17 @@ export async function payByCardAction(formData: FormData): Promise<void> {
     // initiate (isti podaci koje bi u produkciji poslao provajder) da bi ceo lanac
     // initiate → webhook → M5 potvrda bio proverljiv end-to-end već sada. OVO SE MORA
     // zameniti stvarnim hostovanim checkout tokom čim provajder bude izabran.
+    // Bezbednosni nalaz (28.8.2026, pre lansiranja pregled) — webhook zahteva potpis (M10
+    // spec §7.2) da niko ko sazna/izračuna gatewayTransactionId ne bi mogao sam da potvrdi
+    // rezervaciju kao plaćenu. Ovaj poziv je server-side (Next.js server akcija), tajna nikad
+    // ne stiže do pregledača.
+    const signature = createHmac('sha256', process.env.PAYMENT_WEBHOOK_SECRET ?? '')
+      .update(initiated.gatewayTransactionId)
+      .digest('hex');
     const booking = await apiFetch<{ bookingId: string }>('/finance/payments/card/webhook', {
       method: 'POST',
       body: { gatewayTransactionId: initiated.gatewayTransactionId, buyerName, buyerType: 'FIZICKO_LICE' },
+      headers: { 'x-payment-webhook-signature': signature },
       auth: false,
     });
 

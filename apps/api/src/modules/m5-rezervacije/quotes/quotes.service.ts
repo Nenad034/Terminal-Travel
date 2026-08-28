@@ -5,6 +5,8 @@ import { CreateQuoteDto } from './dto/create-quote.dto';
 import { LoyaltyStubService } from '../common/loyalty-stub.service';
 import { SubagentStubService } from '../common/subagent-stub.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { resolveApiContext, type M5CallerContext } from '../common/resolve-api-context';
+import { serializeQuote, type RawQuote } from './quote-visibility';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
 // podrazumevanih 30 min za čisto ugovorene stavke."
@@ -113,17 +115,26 @@ export class QuotesService {
   }
 
   // M5 spec §11 — GET /quotes/:id: "pregled ponude, uključujući da li je istekla."
+  // Ispravka 28.8.2026 (bezbednosni nalaz, pre lansiranja pregled) — ranije je proveravala
+  // ownership SAMO za GUEST (SUBAGENT_CONTACT/AI_AGENT su prolazili bez ikakve provere, IDOR:
+  // bilo koji subagent ili MCP klijent mogao je da učita TUĐU ponudu po ID-ju), i NIKAD nije
+  // maskirala odgovor (§6.2/M2 §5.1 — baseCost/markupRuleId/providerQuoteReference su curili
+  // ka B2C/B2B/MCP kanalima). Sad deli isti `resolveApiContext`/whitelist obrazac kao
+  // `BookingsService` — isti bag klase koju je deljena funkcija upravo trebalo da spreči.
   async findOne(id: string, actorUserId?: string) {
     const quote = await this.prisma.quote.findUnique({ where: { id }, include: { items: true } });
     if (!quote) throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
 
+    let context: M5CallerContext = 'INTERNAL_PANEL';
     if (actorUserId) {
-      const identity = await resolveCallerIdentity(this.prisma, actorUserId);
-      if (identity.accountType === 'GUEST' && quote.clientAccountId !== identity.ownProfileId) {
+      const resolved = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      context = resolved.context;
+      if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== resolved.ownClientAccountId) {
         throw new NotFoundException(`Ponuda ${id} nije pronađena.`);
       }
     }
 
-    return { ...quote, isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now() };
+    const serialized = serializeQuote(quote as unknown as RawQuote, context);
+    return { ...serialized, isExpired: quote.status === 'DRAFT' && quote.expiresAt.getTime() < Date.now() };
   }
 }

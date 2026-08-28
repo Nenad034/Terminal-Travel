@@ -87,7 +87,7 @@ describe('QuotesService', () => {
     it('gost NE vidi tuđu Ponudu — 404', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
-      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date() });
+      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date(), items: [] });
 
       await expect(service.findOne('q1', 'guest-1')).rejects.toThrow(NotFoundException);
     });
@@ -95,11 +95,59 @@ describe('QuotesService', () => {
     it('gost vidi sopstvenu Ponudu', async () => {
       const { service, prisma } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
-      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-own', status: 'DRAFT', expiresAt: new Date() });
+      prisma.quote.findUnique.mockResolvedValue({ id: 'q1', clientAccountId: 'acc-own', status: 'DRAFT', expiresAt: new Date(), items: [] });
 
       const result = await service.findOne('q1', 'guest-1');
 
-      expect(result.id).toBe('q1');
+      expect((result as unknown as { id: string }).id).toBe('q1');
+    });
+
+    it('subagent NE vidi tuđu Ponudu — 404 (IDOR, bezbednosni nalaz 28.8.2026)', async () => {
+      const { service, prisma, subagentStub } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
+      subagentStub.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
+      prisma.quote.findUnique.mockResolvedValue({ id: 'q2', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date(), items: [] });
+
+      await expect(service.findOne('q2', 'subagent-user-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('B2B/MCP pozivalac ne vidi baseCost/markupRuleId/providerQuoteReference (M2 spec §5.1)', async () => {
+      const { service, prisma, subagentStub } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
+      subagentStub.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
+      prisma.quote.findUnique.mockResolvedValue({
+        id: 'q3',
+        clientAccountId: 'acc-own-sub',
+        status: 'DRAFT',
+        expiresAt: new Date(),
+        items: [
+          {
+            id: 'item-1',
+            productId: 'p1',
+            sourceType: 'CONTRACTED',
+            stayFrom: new Date(),
+            stayTo: new Date(),
+            occupancy: { adults: 2, children: 0 },
+            baseCost: 5000,
+            baseCostCurrency: 'EUR',
+            rateLineId: 'rl-1',
+            markupRuleId: 'mr-1',
+            finalPrice: 8000,
+            finalPriceCurrency: 'EUR',
+            providerQuoteReference: 'supplier-secret-ref',
+            unitCount: 1,
+            cancellationPolicySnapshot: null,
+          },
+        ],
+      });
+
+      const result = await service.findOne('q3', 'subagent-user-1');
+      const item = (result as unknown as { items: Record<string, unknown>[] }).items[0];
+
+      expect(item.finalPrice).toBe(8000);
+      expect(item.baseCost).toBeUndefined();
+      expect(item.markupRuleId).toBeUndefined();
+      expect(item.providerQuoteReference).toBeUndefined();
     });
   });
 });

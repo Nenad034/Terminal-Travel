@@ -22,6 +22,8 @@ interface ApiFetchOptions {
   auth?: boolean;
   /** Podrazumevano zahteva prijavljenog gosta — baca ako sesija ne postoji. */
   requireAuth?: boolean;
+  /** Dodatna zaglavlja (npr. potpis webhook poziva, M10 spec §7.2). */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -33,7 +35,7 @@ interface ApiFetchOptions {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { method = 'GET', body, auth = true, requireAuth = false } = options;
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...options.headers };
 
   if (auth) {
     const session = await getSession();

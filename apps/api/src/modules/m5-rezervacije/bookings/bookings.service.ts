@@ -19,6 +19,7 @@ import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-cha
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { SubagentStubService } from '../common/subagent-stub.service';
+import { resolveApiContext } from '../common/resolve-api-context';
 
 // M5 spec §7 dopuna (27.8.2026) — isti filter-oblik kao `findAll` iznad, minus datumski opseg
 // (kalendar prikaz sam zadaje opseg). Deljen između `calendarSummary`/`calendarDay`.
@@ -380,22 +381,12 @@ export class BookingsService {
    * ClientAccount.id) — mora se mapirati preko SubagentStubService na pravi ClientAccount.id
    * pre poređenja sa Quote/Booking.client_account_id, inače ownership provera nikad ne pogađa.
    */
+  // Ispravka 28.8.2026 (bezbednosni nalaz, pre lansiranja pregled) — bila je PRIVATNA metoda
+  // ove klase, pa je `QuotesService.findOne` napisala SOPSTVENU, nepotpunu verziju (samo GUEST
+  // provera, IDOR za SUBAGENT_CONTACT/AI_AGENT) umesto da je deli. Sad je zajednička funkcija
+  // (`common/resolve-api-context.ts`) — svaki naredni M5 servis je uvozi, ne prepisuje.
   private async resolveApiContext(userId: string): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null }> {
-    const identity = await resolveCallerIdentity(this.prisma, userId);
-    if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
-    if (identity.accountType === 'SUBAGENT_CONTACT') {
-      const clientAccountId = identity.ownProfileId
-        ? await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
-        : null;
-      return { context: 'B2B', ownClientAccountId: clientAccountId };
-    }
-    // M16 spec §2/§4 dopuna (avgust 2026) — MCP klijent (User.accountType=AI_AGENT) dobija isto
-    // B2C maskiranje kao gost (sakriva supplier polja, §6.2), ali sopstveni ClientAccount
-    // predstavlja CEO spoljnog partnera (pool svih njegovih rezervacija), ne pojedinačnog
-    // putnika — isti obrazac kao B2B iznad, samo bez SubagentStub posredovanja jer
-    // User.linked_profile_id VEĆ jeste direktno ClientAccount.id za AI_AGENT (M16 registracija).
-    if (identity.accountType === 'AI_AGENT') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
-    return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
+    return resolveApiContext(this.prisma, this.subagentStub, userId);
   }
 
   // M5 spec v1.54 (24.8.2026, na zahtev vlasnika — prava "Lista rezervacija") — v1 skup pravih

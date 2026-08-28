@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
 import { InitiateCardPaymentDto, CardPaymentWebhookDto } from './dto/card-payment.dto';
@@ -7,12 +8,16 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { verifyPaymentWebhookSignature } from './payment-webhook-signature';
 
 // M10 spec §10, prefiks /api/v1/finance
 @ApiTags('finance-payments')
 @Controller('finance/payments')
 export class PaymentsController {
-  constructor(private readonly payments: PaymentsService) {}
+  constructor(
+    private readonly payments: PaymentsService,
+    private readonly config: ConfigService,
+  ) {}
 
   @Get()
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -36,9 +41,16 @@ export class PaymentsController {
   }
 
   // §7.2 korak 2 — povratni poziv platnog provajdera, jedini način na koji se CARD uplata
-  // beleži kao RECEIVED (§5.2, §9) — bez interne M1 autentikacije, provajder nema naš token.
+  // beleži kao RECEIVED (§5.2, §9) — bez interne M1 autentikacije (provajder nema naš token,
+  // isti obrazac kao svaki pravi PSP webhook), ALI sa obaveznim potpisom (bezbednosni nalaz,
+  // 28.8.2026, pre lansiranja pregled) — bez ovoga bi bilo ko ko sazna/izračuna
+  // `gatewayTransactionId` mogao da potvrdi rezervaciju kao plaćenu bez ijednog dinara.
   @Post('card/webhook')
-  handleCardWebhook(@Body() dto: CardPaymentWebhookDto) {
+  handleCardWebhook(@Body() dto: CardPaymentWebhookDto, @Headers('x-payment-webhook-signature') signature?: string) {
+    const secret = this.config.getOrThrow<string>('PAYMENT_WEBHOOK_SECRET');
+    if (!verifyPaymentWebhookSignature(dto.gatewayTransactionId, signature, secret)) {
+      throw new UnauthorizedException('Nevažeći ili nedostajući potpis webhook poziva.');
+    }
     return this.payments.handleCardWebhook(dto.gatewayTransactionId, dto);
   }
 }
