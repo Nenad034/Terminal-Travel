@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { saveRoomTypes } from '../actions';
+import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
 
 // M2 spec §2.3a/§2.3b/v1.14 (28.8.2026, na zahtev vlasnika: "koja polja sve taj panel treba da
 // ima" — nakon nalaza da room_types[]/beds/age_policy[] postoje u modelu od v1.4, ali nemaju
@@ -225,18 +226,11 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
                 />
               </Field>
               <Field label="Tip osnovnog kreveta">
-                <select
-                  className="input text-xs"
-                  value={draft.beds.base_bed_type ?? ''}
-                  onChange={(e) => setDraft({ ...draft, beds: { ...draft.beds, base_bed_type: (e.target.value || null) as BaseBedType | null } })}
-                >
-                  <option value="">nije unet</option>
-                  {(Object.keys(BASE_BED_LABELS) as BaseBedType[]).map((v) => (
-                    <option key={v} value={v}>
-                      {BASE_BED_LABELS[v]}
-                    </option>
-                  ))}
-                </select>
+                <ButtonGroup
+                  value={draft.beds.base_bed_type ?? 'NIJE_UNET'}
+                  onChange={(v) => setDraft({ ...draft, beds: { ...draft.beds, base_bed_type: v === 'NIJE_UNET' ? null : v } })}
+                  options={[{ value: 'NIJE_UNET', label: 'nije unet' }, ...(Object.keys(BASE_BED_LABELS) as BaseBedType[]).map((v) => ({ value: v, label: BASE_BED_LABELS[v] }))]}
+                />
               </Field>
               <Field label="Maks. broj dodatnih kreveta">
                 <input
@@ -250,18 +244,11 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
               {!!draft.beds.extra_beds_max && (
                 <>
                   <Field label="Tip dodatnog kreveta">
-                    <select
-                      className="input text-xs"
-                      value={draft.beds.extra_bed_type ?? ''}
-                      onChange={(e) => setDraft({ ...draft, beds: { ...draft.beds, extra_bed_type: (e.target.value || null) as ExtraBedType | null } })}
-                    >
-                      <option value="">nije unet</option>
-                      {(Object.keys(EXTRA_BED_LABELS) as ExtraBedType[]).map((v) => (
-                        <option key={v} value={v}>
-                          {EXTRA_BED_LABELS[v]}
-                        </option>
-                      ))}
-                    </select>
+                    <ButtonGroup
+                      value={draft.beds.extra_bed_type ?? 'NIJE_UNET'}
+                      onChange={(v) => setDraft({ ...draft, beds: { ...draft.beds, extra_bed_type: v === 'NIJE_UNET' ? null : v } })}
+                      options={[{ value: 'NIJE_UNET', label: 'nije unet' }, ...(Object.keys(EXTRA_BED_LABELS) as ExtraBedType[]).map((v) => ({ value: v, label: EXTRA_BED_LABELS[v] }))]}
+                    />
                   </Field>
                   <Field label="Maks. uzrast deteta na pomoćnom krevetu">
                     <input
@@ -325,17 +312,11 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
               {(draft.age_policy ?? []).map((ap, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto_auto_auto_auto] items-end gap-1.5 rounded border border-border p-2 text-[11px]">
                   <Field label="Kategorija">
-                    <select
-                      className="input text-xs"
+                    <ButtonGroup
                       value={ap.category}
-                      onChange={(e) => updateAgePolicy(draft, setDraft, i, { category: e.target.value as AgeCategory })}
-                    >
-                      {(Object.keys(AGE_CATEGORY_LABELS) as AgeCategory[]).map((c) => (
-                        <option key={c} value={c}>
-                          {AGE_CATEGORY_LABELS[c]}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(c) => updateAgePolicy(draft, setDraft, i, { category: c })}
+                      options={(Object.keys(AGE_CATEGORY_LABELS) as AgeCategory[]).map((c) => ({ value: c, label: AGE_CATEGORY_LABELS[c] }))}
+                    />
                   </Field>
                   <Field label="Od uzrasta">
                     <input type="number" step="0.01" className="input text-xs" value={ap.age_from} onChange={(e) => updateAgePolicy(draft, setDraft, i, { age_from: Number(e.target.value) })} />
@@ -350,19 +331,20 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
                       onChange={(e) => updateAgePolicy(draft, setDraft, i, { age_to: e.target.value === '' ? null : Number(e.target.value) })}
                     />
                   </Field>
-                  <label className="flex items-center gap-1 pb-2 text-ink-faint">
-                    <input type="checkbox" checked={ap.counts_toward_capacity} onChange={(e) => updateAgePolicy(draft, setDraft, i, { counts_toward_capacity: e.target.checked })} />
-                    u kapacitet
-                  </label>
-                  <label className="flex items-center gap-1 pb-2 text-ink-faint">
-                    <input type="checkbox" checked={!!ap.requires_crib} onChange={(e) => updateAgePolicy(draft, setDraft, i, { requires_crib: e.target.checked })} />
-                    krevetac
-                  </label>
+                  <div className="pb-2">
+                    <ToggleButton
+                      active={ap.counts_toward_capacity}
+                      onToggle={() => updateAgePolicy(draft, setDraft, i, { counts_toward_capacity: !ap.counts_toward_capacity })}
+                      label="u kapacitet"
+                    />
+                  </div>
+                  <div className="pb-2">
+                    <ToggleButton active={!!ap.requires_crib} onToggle={() => updateAgePolicy(draft, setDraft, i, { requires_crib: !ap.requires_crib })} label="krevetac" />
+                  </div>
                   {ap.requires_crib && (
-                    <label className="flex items-center gap-1 pb-2 text-ink-faint">
-                      <input type="checkbox" checked={!!ap.crib_included} onChange={(e) => updateAgePolicy(draft, setDraft, i, { crib_included: e.target.checked })} />
-                      uklj. u cenu
-                    </label>
+                    <div className="pb-2">
+                      <ToggleButton active={!!ap.crib_included} onToggle={() => updateAgePolicy(draft, setDraft, i, { crib_included: !ap.crib_included })} label="uklj. u cenu" />
+                    </div>
                   )}
                   <button
                     onClick={() => setDraft({ ...draft, age_policy: (draft.age_policy ?? []).filter((_, idx) => idx !== i) })}

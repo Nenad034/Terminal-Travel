@@ -3,6 +3,7 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu) i M7 (B2B portal, isti obrazac — poglavlje 7), kasnije M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
+**Verzija:** 1.56 — novo poglavlje 6f (28.8.2026, na zahtev vlasnika: "gde god je moguće izbegao bih padajuće menije, koristio bih formu tastera na koji se klikne za ono što želim ili dva klika za ono što ne želim"). Pravilo za nove ekrane: mali/poznat skup opcija → dugmad (jednostruk izbor: jedno aktivno, klik menja; višestruk izbor: klik uključuje/isključuje), ne `<select>`. Prvi primer: `RoomTypesEditor.tsx` (M2/M17). Retrofit postojećih padajućih menija namerno van obima ove dopune.
 **Verzija:** 1.55 — tri dopune, isti dan kao v1.54, na zahtev vlasnika/uživo nalazi: (1) auto-kontekst taba i "#" na stavci menija sad postaju FILTERED_LIST (ne RECORD) kad ruta ima pravi `filter_list` pogled — ispravlja pogrešan odgovor "ne vidim sadržaj ekrana" na pitanje o broju rezervacija; (2) Fokus tab (§6c.0) sadržaj ograničen na 70% širine, centriran; (3) dugme za zatvaranje taba (poglavlje 5a) uvek na desnoj ivici, ne odmah uz kratak naziv. M17 spec v2.18.
 **Verzija:** 1.54 — dve dopune, isti dan kao v1.53, na zahtev vlasnika: "#" oznaka sad postoji i na pojedinačnim stavkama unutar grupe u popup-u "Otvori modul" (ranije samo na nazivu modula), i `AiContextProvider.onFirstAdd` više ne otvara desni panel kad je korisnik već u Fokus tabu (`/ai-asistent`) — bio je suvišan/zbunjujuć dupli prikaz AI chat-a. M17 spec v2.17.
 **Verzija:** 1.53 — dve dopune, isti dan kao v1.52, na zahtev vlasnika uz snimke ekrana: (1) red za unos dobija JEDNU tanku donju liniju — na samom `<input>` elementu (Material-stil podvučen unos), ne okvir oko cele trake ikonica; (2) svaki red naziva modula (grupe) u popup-u "Otvori modul" (§6c.0a) dobija na desnom kraju ikonicu "#" (`symbol-number`) — klik dodaje CEO modul kao RECORD stavku u AI kontekst, ne zatvara popup, isti mehanizam kao ikonica po redu tabele (§6c.1a). M17 spec v2.16.
@@ -590,6 +591,20 @@ Dve vizuelne podforme, ista osnova (`bg-panel`/`bg-panel-2`, tanka `border-borde
 Zajednička pravila za obe podforme: hover stanje veze/reda dobija diskretnu promenu boje teksta (svetlije/tamnije od akcentne, ne nova boja), ne pozadinsku promenu cele kartice; kartica nikad ne nosi sopstvenu senku van standardnog `shadow-sm` (poglavlje 6, isti utisak kao ostatak interfejsa); sadržaj je uvek stvaran (naslov/opis/veza vezani za pravi zapis ili modul), nikad placeholder tekst na produkciji.
 
 Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.tsx`) koju svaki ekran uvozi — isto pravilo kao poglavlje 6a.2 tačka 5 (jedna komponenta, ne obrazac koji se prepisuje po ekranima).
+
+---
+
+## 6f. Izbor iz malog, poznatog skupa opcija — dugmad, ne padajući meni (dopuna, 28.8.2026, na zahtev vlasnika)
+
+**Pravilo:** za polje sa malim, unapred poznatim skupom opcija (tip kreveta, uzrasna kategorija, status i slično), podrazumevani izbor je **grupa dugmadi/pločica** (klik = izabrano), ne `<select>` padajući meni — vlasnikova formulacija: "gde god je moguće izbegao bih padajuće menije, koristio bih formu tastera na koji se klikne za ono što želim ili dva klika za ono što ne želim." Razlog: definisanje strukturiranih pravila (npr. tip sobe, poglavlje "Tipovi soba" M2/M17) je već zahtevno po koncentraciji/vremenu — dodatni klik da se meni otvori, pa još jedan da se opcija nađe u listi, troši oboje bez razloga kad je skup opcija dovoljno mali da stane u red dugmadi.
+
+**Konkretan obrazac:**
+- **Jednostruk izbor** (npr. tip osnovnog kreveta) — red/grupa dugmadi, tačno jedno aktivno u svakom trenutku (`aria-pressed`/vizuelno `bg-accent-soft text-accent-strong` na aktivnom, isto stanje kao aktivan filter poglavlje 6d); klik na već aktivno dugme ga NE deselektuje (jednostruk izbor uvek mora imati tačno jednu vrednost, za razliku od višestrukog izbora ispod) — klik na drugo dugme prebacuje izbor.
+- **Višestruk izbor** (npr. pogodnosti/`amenities[]`) — svako dugme je nezavisan prekidač: prvi klik uključuje (aktivno stanje), drugi klik na ISTO dugme isključuje — ovo je vlasnikovo "dva klika za ono što ne želim" kad je dugme već bilo uključeno (podrazumevano stanje ili ranije uključeno).
+- Kad je skup opcija velik (desetine/stotine vrednosti, npr. spisak zemalja) — dugmad prestaje da bude praktična; padajući meni ili tekstualna pretraga sa predlozima ostaju opravdani, ovo pravilo važi za "mali, poznat skup", ne za svaki izbor uopšte.
+- Prvi ugrađen primer: `RoomTypesEditor.tsx` (M2/M17, 28.8.2026) — tip osnovnog/dodatnog kreveta i uzrasna kategorija su dugmad, ne `<select>`.
+
+**Namerno van obima ove dopune:** retrofit postojećih `<select>`/`MultiSelectDropdown` mesta u aplikaciji (npr. status/tip proizvoda filteri u "Lista rezervacija") — ovo pravilo važi za NOVE ekrane od ovog datuma; zamena postojećih ostaje poseban, veći zadatak ako se pokaže vredno truda (dosledna izmena kroz više ekrana odjednom, ne parče po parče).
 
 ---
 
