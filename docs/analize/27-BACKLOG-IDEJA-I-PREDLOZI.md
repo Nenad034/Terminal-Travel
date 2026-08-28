@@ -102,7 +102,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M4 — Integracije spoljnih API konekcija
 *(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
-- **Tri MCP konektora za pretragu smeštaja, empirijski testirani, nijedan usvojen** (28.8.2026) — Expedia/Novasol/Booking.com, konkretno ponašanje/greške po provajderu u `docs/moduli/M04-integracije-api/05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md`. Čeka odluku vlasnika da li/koji/kako integrisati.
+- **Tri MCP konektora za pretragu smeštaja + TravelgateX/HotelX B2B API, empirijski/dokumentaciono nalaz, nijedan usvojen** (28.8.2026, dopunjeno istog dana) — Expedia/Novasol/Booking.com (live testirano) + TravelgateX/HotelX (iz dokumentacije, čeka live potvrdu) u `docs/moduli/M04-integracije-api/05-ANALIZA-MCP-KONEKTORI-SMESTAJ.md`. Čeka odluku vlasnika da li/koji/kako integrisati; TravelgateX nalaz treba uporediti i sa postojećim Travelgate adapterom (M4 spec poglavlje 5).
 - Konkretni adapteri za buduće kategorije (GDS/avio, transferi, aktivnosti) — implementiraju se kasnije.
 - **TravelgateX saradnja u procesu uspostavljanja** (25.8.2026) — vidi M10 stavku o Travelsoft Pay (ista grupacija, Travelsoft Group) kao mogućem platnom provajderu, ne samo sadržajni adapter.
 - Tačni rate-limit po provajderu — definišu se kad se zna stvarni Travelgate ugovor.

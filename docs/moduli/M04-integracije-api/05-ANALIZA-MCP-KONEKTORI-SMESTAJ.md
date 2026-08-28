@@ -1,7 +1,7 @@
 # Tehnička beleška: integracija provajdera za pretragu smeštaja
 
-**Status:** Analiza/referenca — empirijski nalazi, NE Nivo 2 specifikacija. Nijedan od tri testirana provajdera nije usvojen kao M4 adapter ovim dokumentom — to čeka posebnu odluku vlasnika i dopunu `04-SPECIFIKACIJA-M4-INTEGRACIJE-API.md` pre koda (isti hard rule kao svaki drugi modul, CLAUDE.md).
-**Poreklo:** Dostavio vlasnik, 28.8.2026 — testiranje tri MCP konektora protiv istog scenarija.
+**Status:** Analiza/referenca — empirijski nalazi, NE Nivo 2 specifikacija. Nijedan od testiranih provajdera/konektora nije usvojen kao M4 adapter ovim dokumentom — to čeka posebnu odluku vlasnika i dopunu `04-SPECIFIKACIJA-M4-INTEGRACIJE-API.md` pre koda (isti hard rule kao svaki drugi modul, CLAUDE.md).
+**Poreklo:** Dostavio vlasnik, 28.8.2026 — testiranje tri MCP konektora protiv istog scenarija; ažurirano istog dana dopunom o TravelgateX/HotelX (poglavlje 5, iz dokumentacije, ne live poziva — vidi napomenu o izvoru na početku tog poglavlja).
 
 Ovaj dokument je nastao testiranjem tri MCP konektora za pretragu smeštaja
 (Expedia, Novasol, Booking.com) na istom scenariju: porodica (2 odrasla + 2
@@ -26,7 +26,7 @@ pozivaju:
    dvosmisleno (vidi 1.1).
 3. Pozvati pretragu (jedan ili više provajdera).
 4. Po potrebi dopuniti rezultate podacima koje odabrani provajder ne vraća
-   (vidi tabelu u sekciji 5).
+   (vidi tabelu u sekciji 6).
 5. Prikazati korisniku uži izbor sa objašnjenjem zašto svaka opcija odgovara
    zahtevu, i navesti izvore.
 
@@ -132,7 +132,7 @@ cancellation/payment opcije, guest rating pragovi), utvrđeno je da:
 
 **Na šta obratiti pažnju:** za tip pansiona kod ovog provajdera ne postoji
 programski način da se traži kroz `search_hotels` — jedina opcija je naknadna
-provera (web pretraga po nazivu hotela, vidi sekciju 5) ili preusmeravanje
+provera (web pretraga po nazivu hotela, vidi sekciju 6) ili preusmeravanje
 korisnika na Expedia link (`url` polje u odgovoru) gde on ručno postavlja
 filtere na sajtu. Nije testirano da li Expedia URL prihvata query parametre
 za filtere direktno u linku — proveriti pre oslanjanja na taj pristup.
@@ -320,7 +320,142 @@ ukupnu cenu za obe sobe zajedno. Filter radi ispravno i treba ga koristiti
 kad porodica/grupa realno zahteva više od jedne sobe — ne pokušavati to
 simulirati udvostručavanjem `number_of_adults` uz `number_of_rooms: 1`.
 
-## 5. Zbirna tabela: šta nedostaje kod kog provajdera
+## 5. TravelgateX / HotelX API — pravi B2B konektor (za ugovorene dobavljače)
+
+**Važna napomena o izvoru ovih nalaza.** Konektor koji se u listi konektora
+pojavljuje kao "TravelgateX Custom" (`travelgate.mcp.kapa.ai`) **NIJE live
+API konekcija** — to je kapa.ai-hostovan MCP server koji radi isključivo
+pretragu/Q&A nad TravelgateX-ovom dokumentacijom (`docs.travelgate.com`).
+Nema pristup pravom API-ju, ne može ništa da pretraži niti rezerviše u
+stvarnom inventaru, i rate-limitovan je (40 poziva/sat, 200/dan po
+korisniku). Nalazi u ovoj sekciji su **činjenice iz dokumentacije**, ne
+rezultati testiranja live poziva (za razliku od sekcija 2-4, gde je svaki
+nalaz potvrđen stvarnim pozivom). Kad se implementira prava integracija sa
+TravelgateX-om (ili bilo kojim sličnim B2B agregatorom), ovi nalazi treba da
+budu polazna tačka, ali svaki mora biti **ponovo potvrđen live pozivom** po
+metodologiji iz sekcije 8, isto kao što je urađeno za Expediju/Novasol/
+Booking.com.
+
+### 5.1 Osnovna arhitektura i terminologija
+HotelX je GraphQL API na jedinstvenom endpoint-u `https://api.travelgate.com`.
+Ključni pojmovi koje agent mora da razlikuje:
+- **Seller** — konekcija/nalog preko kog se pristupa jednom ili više
+  **Supplier**-a (dobavljača, svaki sa svojim supplier code-om).
+- **Buyer** / **Client** — strana koja poziva API; poziv nosi "traffic tag"
+  (npr. `client_b2b` vs `client_b2c`) koji utiče na to koje cene/uslove
+  dobavljač vraća — isti upit sa različitim traffic tag-om može vratiti
+  drugačije cene.
+- **Access** — kredencijali i konfiguracija za konkretnu Seller konekciju
+  (API key, dozvoljeni supplier-i, limiti).
+- **Context** — parametri okruženja poziva (jezik, valuta, market) koji se
+  prosleđuju uz svaki upit i mogu uticati na dostupnost i cenu.
+- **FastX** — Travelgate-ov standardizovani sistem šifri za hotele, odeljke
+  (boards/pansioni) i tipove soba, koji omogućava da se rezultati više
+  različitih dobavljača uporede/agregiraju pod istim kodom. Alternativa je
+  rad direktno sa nativnim šiframa pojedinačnog dobavljača (native codes).
+  **Za implementaciju sa više dobavljača ovo znači da mapiranje polja mora
+  biti trosmerno**: polja iz sopstvene aplikacije → FastX standardizovani
+  kod → nativni kod svakog dobavljača — ne dvosmerno kao kod pojedinačnog
+  OTA konektora.
+
+### 5.2 Obavezan redosled: Search → Quote → Book (ne sme se preskočiti)
+Za razliku od Expedia/Booking.com/Novasol konektora testiranih u ovoj
+sesiji (koji vraćaju cenu direktno u rezultatu pretrage, spremnu za
+prikaz), HotelX zahteva **tročlani tok**:
+1. **Search** — vraća opcije sa okvirnom cenom/dostupnošću.
+2. **Quote** — obavezan korak pre rezervacije; ponovo validira cenu,
+   uslove otkazivanja i dostupnost za tačno izabranu opciju. Cena iz Search
+   koraka **nije garantovana** i može se razlikovati od Quote cene.
+3. **Book** — zahteva da struktura soba/putnika (rooms/paxes) tačno
+   odgovara onome što je poslato u originalnom Search pozivu; neusklađena
+   struktura (npr. drugačiji raspored dece po sobama) izaziva grešku ili
+   pogrešnu rezervaciju.
+
+**Na šta obratiti pažnju:** agent koji implementira ovakav tok ne sme
+prikazati Search cenu korisniku kao konačnu, niti preskočiti Quote radi
+brzine — to je arhitekturno drugačije od jednostavnijih OTA konektora i
+mora se predvideti u UI-ju (npr. "cena se potvrđuje u sledećem koraku").
+
+Postoji i alternativni **one-shot tok** (`oneStepQuote`/`oneStepBook`) za
+buyer-e koji unapred imaju kеširanu dostupnost (dobijenu preko ChannelX
+Push API-ja) — tada se Quote i Book mogu spojiti, ali to zahteva posebnu
+infrastrukturu (primanje i keširanje push podataka od dobavljača), nije
+podrazumevani slučaj.
+
+### 5.3 Boards i Categories nisu pravi filteri u Search pozivu
+Isti obrazac koji je potvrđen kod Booking.com (4.6 — `meal_plan` znači
+"nudi opciju", ne "garantovano u ceni") ovde je dokumentovan eksplicitno u
+samoj arhitekturi: **Boards** (pansioni/meal plan) i **Categories**
+(zvezdice) su odvojeni "content" upiti (metapodaci o hotelu), **ne
+parametri kojima se live Search direktno filtrira**. Prisustvo pansiona u
+Boards content upitu **ne garantuje** da će ta opcija biti dostupna u
+konkretnom live Search pozivu za dati datum/hotel.
+
+### 5.4 Kritičan nalaz: nemapirani board se TIHO gubi iz rezultata
+Ovo je ozbiljniji slučaj od bilo čega pronađenog kod OTA konektora u
+sekcijama 2-4. Ako tekst pansiona koji dobavljač vrati **ne može da se
+mapira** na standardizovani FastX kod, ta opcija se **potpuno briše iz
+dostupnosti** — bez greške, bez upozorenja, opcija prosto ne postoji u
+odgovoru. Ovo je gori slučaj od Expedijinog "tihog ignorisanja filtera"
+(2.3), jer se tamo bar cela lista rezultata i dalje vraća (samo
+nefiltrirana) — ovde stvarno dostupna soba/cena **nestaje iz odgovora bez
+traga**. **Na šta obratiti pažnju:** ako se implementira sistem sa
+mapiranjem nativnih kodova na standardizovani sloj (bilo FastX bilo
+sopstveni), agent/tim mora imati monitoring nemapiranih vrednosti (npr.
+log kad dobavljač vrati tekst pansiona koji ne postoji u mapnoj tabeli),
+inače se gubi prodaja bez ikakvog vidljivog simptoma.
+
+### 5.5 Kontrola veličine rezultata: `optionsQuota` i `businessRulesType`
+- `optionsQuota` — maksimalan broj opcija po board-u (opseg 1-300,
+  podrazumevano 300). Bitno za kontrolu veličine odgovora i latencije kod
+  hotela sa mnogo tipova soba/cena.
+- `businessRulesType` — `CHEAPER_AMOUNT` (vraća samo najjeftiniju opciju po
+  grupi) vs `ROOM_TYPE` (grupiše po tipu sobe). Menja **koji** se podskup
+  opcija vraća, ne samo broj — bira se prema tome da li agent treba da
+  prikaže "najjeftiniju opciju po kategoriji" ili "sve tipove soba".
+
+### 5.6 DeltaPrice — tolerancija odstupanja cene između Quote i Book
+API podržava mehanizam tolerancije (`amount`/`percent`/`applyBoth`) koji
+definiše koliko cena sme da odstupi između Quote i Book koraka a da se
+rezervacija ipak izvrši (umesto da automatski propadne na svako sitno
+odstupanje cene, uobičajeno kod dinamičkog određivanja cena). **Na šta
+obratiti pažnju:** ovo je obrazac vredan kopiranja i u sopstvenoj
+implementaciji Book toka — bez eksplicitne tolerancije, ili se rezervacije
+nepotrebno odbijaju zbog sitnih fluktuacija cene, ili se (gore) prihvataju
+rezervacije sa neproverenim velikim odstupanjem cene.
+
+### 5.7 Look-to-Book (L2B) odnos — komercijalno ograničenje, ne tehnički bag
+Za razliku od svih dosad testiranih konektora, B2B ugovoreni pristup nosi
+i **poslovno/ugovorno** ograničenje koje nema tehnički simptom u samom
+odgovoru: dobavljači prate odnos broja pretraga (Search) prema broju
+stvarnih rezervacija (Book) po buyer-u. Prekomerno pretraživanje bez
+konverzije u rezervacije može dovesti do throttle-ovanja ili blokiranja
+naloga od strane dobavljača (Travelgate nudi alat "Traffic Optimizer" za
+upravljanje ovim). **Na šta obratiti pažnju:** ovo direktno utiče na
+arhitekturu keširanja — agent/aplikacija ne sme naivno pozivati Search pri
+svakoj izmeni filtera na strani korisnika (kao što je uobičajeno kod
+običnog web pretraživanja); potrebno je keširati/debounce-ovati pretrage na
+strani aplikacije, što nije bila briga ni kod jednog OTA konektora
+testiranog u sekcijama 2-4 (tamo je ograničenje samo rate-limit, ne
+poslovni odnos search:book).
+
+### 5.8 HTTP zaglavlja i timeout semantika
+- `Authorization: Apikey xxx` za standardne pozive; `Bearer <JWT>` za
+  administrativne/monitoring pozive (JWT se dobija preko
+  `query { admin { jwt } }`).
+- `Accept-Encoding: gzip`, `Connection: keep-alive` — preporučeno za
+  performanse pri velikom broju poziva.
+- Opciono `TGX-Content-Type: graphqlx/json` — prebacuje odgovor iz
+  GraphQL u REST-sličan format, preporučeno kod odgovora sa >5000 opcija
+  (GraphQL serializacija postaje neefikasna na tim količinama).
+- Opciono `TGX-Operation-Timeout` (ms) — **mora biti postavljen veći** od
+  unutrašnjeg `timeout` polja specifičnog za dobavljača u samom upitu;
+  ako je spoljni timeout manji ili jednak unutrašnjem, poziv se prekida
+  pre nego što unutrašnji mehanizam dobavljača uopšte stigne da odgovori
+  (uključujući i sa greškom), što daje pogrešnu dijagnostiku ("dobavljač
+  ne radi" umesto "naš timeout je prekratak").
+
+## 6. Zbirna tabela: šta nedostaje kod kog provajdera
 
 | Kriterijum | Expedia | Novasol | Booking.com |
 |---|---|---|---|
@@ -336,9 +471,11 @@ filtrirati naknadno na strani aplikacije nad podacima iz odgovora, ili (b)
 dopuniti spoljnom web pretragom (naziv hotela + traženi kriterijum, npr.
 "Halbpension" / "half board" / "ski-in ski-out"), uz fetch zvaničnog sajta
 hotela pošto direktno scrape-ovanje booking.com stranica često ne uspeva
-(robots.txt blokira taj pristup).
+(robots.txt blokira taj pristup). TravelgateX/HotelX (poglavlje 5) nije
+uključen u ovu tabelu — nalazi su iz dokumentacije, ne iz uporedivog live
+testa kao ostala tri reda.
 
-## 6. Opšta pravila za implementaciju (nezavisno od provajdera)
+## 7. Opšta pravila za implementaciju (nezavisno od provajdera)
 
 1. **Nikad ne pretpostaviti da filter radi samo zato što poziv nije vratio
    grešku.** Kod Expedije smo to direktno demonstrirali — tiho ignorisanje
@@ -364,14 +501,16 @@ hotela pošto direktno scrape-ovanje booking.com stranica često ne uspeva
    provajderu (npr. tip pansiona Novasolu), drugo je razlog da se filtrira
    naknadno na strani aplikacije (npr. zvezdice Expediji).
 
-## 7. Metodologija za testiranje BUDUĆIH konektora (letovi, izleti, ...)
+## 8. Metodologija za testiranje BUDUĆIH konektora (letovi, izleti, ...)
 
-Sekcije 2–4 su nalazi specifični za tri konektora za smeštaj. Ono što sledi
-je **postupak** koji se pokazao efikasnim u ovoj sesiji i koji treba
-ponoviti za svaki novi turistički konektor (npr. konektor za letove,
-Viator za izlete/aktivnosti, i svaki budući). Cilj je da se ova provera radi
-sistematski i unapred, a ne da se greške otkrivaju tek kad korisnik prijavi
-pogrešan rezultat u produkciji.
+Sekcije 2–4 su nalazi specifični za tri konektora za smeštaj (potvrđeni live
+pozivom); poglavlje 5 (TravelgateX/HotelX) je iz dokumentacije i sam sebe
+označava kao nešto što treba ponovo potvrditi po ovoj istoj metodologiji pre
+oslanjanja. Ono što sledi je **postupak** koji se pokazao efikasnim u ovoj
+sesiji i koji treba ponoviti za svaki novi turistički konektor (npr.
+konektor za letove, Viator za izlete/aktivnosti, i svaki budući). Cilj je da
+se ova provera radi sistematski i unapred, a ne da se greške otkrivaju tek
+kad korisnik prijavi pogrešan rezultat u produkciji.
 
 **Korak 1 — Bazni poziv.** Pozvati alat sa minimalnim obaveznim poljima, bez
 ijednog "mekog" filtera, na destinaciji/upitu sa dovoljno velikim brojem
@@ -423,7 +562,7 @@ na sekcije 2-4 ovog dokumenta — ne kao uopštenu ocenu "filteri uglavnom
 rade" ili "ovaj konektor je pouzdaniji", nego kao proverljivu činjenicu na
 koju se agent kasnije može osloniti bez ponovnog testiranja.
 
-## 8. Test-slučaj za regresiono testiranje
+## 9. Test-slučaj za regresiono testiranje
 
 - Destinacija: Bad Kleinkirchheim, Austrija
 - Datumi: 2027-01-10 – 2027-01-17 (7 noćenja)
@@ -433,4 +572,6 @@ koju se agent kasnije može osloniti bez ponovnog testiranja.
 
 Ovaj upit i njegovi rezultati (dokumentovani u sekcijama 2–4 iznad) mogu
 poslužiti kao regresioni test pri implementaciji ili promeni verzije bilo
-kog od tri konektora.
+kog od tri konektora testirana live pozivom (Expedia/Novasol/Booking.com).
+TravelgateX/HotelX (poglavlje 5) nema regresioni test dok se prvi live
+poziv stvarno ne izvrši.
