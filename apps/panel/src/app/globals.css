@@ -202,6 +202,41 @@
   --icon-line: #1f3a5f;
 }
 
+/* "Dim" mod (29.8.2026, treći ručni izbor pored svetlog/tamnog, na zahtev vlasnika — isti
+   koncept kao Twitter/X "Dim": tamna atmosfera ali plavkasto-siva, ne crna, manje naprezanja za
+   oči od punog `dark` moda). Tailwind "slate" skala (plavkasta varijanta zinc-a iz dark/light
+   modova) — namerno DRUGA skala od dark moda (zinc) da se dim vizuelno razlikuje kao sopstveno
+   stanje, ne samo "dark, malo svetlije". Isti akcent (indigo/teal) kao ostala dva moda — brend
+   boja se ne menja po modu. Nema `prefers-color-scheme` grane (OS ne signalizira "dim" kao
+   sistemsko podešavanje) — dostupan isključivo preko ručnog prekidača (ThemeToggle.tsx).
+   Sve vrednosti provereni WCAG 2.1 AA kontrast-skriptom pre primene, isti princip kao light/dark. */
+:root[data-theme='dim'] {
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #334155;
+  --bar: #334155;
+  --border: #475569;
+  --text: #f8fafc;
+  --text-dim: #cbd5e1;
+  /* #a3b0c2, ne doslovno Tailwind slate-400 (#94a3b8) — isti razlog kao text-faint u light
+     modu: slate-400 prolazi 5.71:1 na --panel ALI PADA na 4.04:1 na --panel-2 (#334155),
+     posvetljeno da prođe na obe pozadine (6.65:1 / 4.71:1), potvrđeno kontrast-skriptom. */
+  --text-faint: #a3b0c2;
+  --accent: #818cf8;
+  --accent-strong: #a5b4fc;
+  --accent-soft: #818cf833;
+  --accent-ink: #0b1120;
+  --accent2: #5eead4;
+  --accent2-soft: #5eead41a;
+  --ok: #4ade80;
+  --ok-bg: #0d1f13;
+  --warn: #fbbf24;
+  --warn-bg: #241a06;
+  --danger: #f87171;
+  --danger-bg: #240b0b;
+  --icon-line: currentColor;
+}
+
 * {
   box-sizing: border-box;
 }

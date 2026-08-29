@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const THEME_INIT_SCRIPT = `
 try {
   var stored = localStorage.getItem('tt-panel-theme');
-  if (stored === 'dark' || stored === 'light') {
+  if (stored === 'dark' || stored === 'light' || stored === 'dim') {
     document.documentElement.setAttribute('data-theme', stored);
   }
 } catch (e) {}
