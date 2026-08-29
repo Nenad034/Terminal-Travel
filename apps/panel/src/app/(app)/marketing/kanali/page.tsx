@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import NewChannelForm from './NewChannelForm';
 import ChannelStatusForm from './ChannelStatusForm';
+import { Badge } from '@/components/ui/badge';
 
 interface ChannelConfig {
   channelCode: string;
@@ -69,6 +70,10 @@ export default async function KanaliPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'ACTIVE') return <Badge variant="ok">{status}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
 }

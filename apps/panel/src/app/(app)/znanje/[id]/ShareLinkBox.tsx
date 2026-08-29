@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Icon from '@/components/Icon';
+import { Button } from '@/components/ui/button';
 
 // M23 spec §5 — javni, neautentifikovan link preko share_token (`GET /knowledge/public/:shareToken`,
 // M8 ruta `/znanje/:share_token` ostaje van obima ovog prolaza — CLAUDE.md, ne diramo apps/web).
@@ -27,9 +28,9 @@ export default function ShareLinkBox({ shareToken }: { shareToken: string }) {
     <div className="flex items-center gap-2 rounded-lg border border-border bg-panel2 p-3 text-xs">
       <Icon name="link" className="text-accent" />
       <code className="flex-1 truncate text-ink-dim">{path}</code>
-      <button type="button" onClick={copy} className="rounded border border-border px-2 py-1 font-medium text-ink-dim hover:border-accent">
+      <Button type="button" onClick={copy} variant="outline" size="sm" className="h-auto px-2 py-1">
         {copied ? 'kopirano' : 'kopiraj'}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { createChannel, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 const CHANNELS = ['FACEBOOK', 'INSTAGRAM', 'EMAIL'];
@@ -35,12 +36,8 @@ export default function NewChannelForm() {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded bg-accent px-3 py-1.5 font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Čuvanje…' : 'dodaj'}
-    </button>
+    </Button>
   );
 }

@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ContentPiece {
   id: string;
@@ -51,14 +53,18 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
         </div>
         <div className="flex gap-2">
           {canChannels && (
-            <Link href="/marketing/kanali" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-              <Icon name="settings-gear" /> kanali
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/marketing/kanali" className="flex items-center gap-1.5">
+                <Icon name="settings-gear" /> kanali
+              </Link>
+            </Button>
           )}
           {canCreate && (
-            <Link href="/marketing/nov" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-              <Icon name="add" /> nov sadržaj
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/marketing/nov" className="flex items-center gap-1.5">
+                <Icon name="add" /> nov sadržaj
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -81,13 +87,13 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.type || searchParams?.status) && (
-            <Link href="/marketing" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/marketing">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -109,8 +115,16 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
                 <div>
                   <div className="font-medium text-ink">
                     {title}
-                    {c.generatedBy === 'AI' && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">AI nacrt</span>}
-                    {c.containsAiGeneratedMedia && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">AI vizual</span>}
+                    {c.generatedBy === 'AI' && (
+                      <Badge variant="secondary" className="ml-2 bg-accent-soft text-accent-strong">
+                        AI nacrt
+                      </Badge>
+                    )}
+                    {c.containsAiGeneratedMedia && (
+                      <Badge variant="warn" className="ml-2">
+                        AI vizual
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {c.type} · {c.targetChannels.join(', ') || '(bez kanala)'}
@@ -128,6 +142,11 @@ export default async function MarketingPage({ searchParams }: { searchParams: { 
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'APPROVED' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'PUBLISHED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'APPROVED') return (
+    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }

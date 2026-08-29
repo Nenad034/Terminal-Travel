@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import Icon from '@/components/Icon';
 import { addContentMedia, removeContentMedia } from '../actions';
+import { Button } from '@/components/ui/button';
 
 interface ContentMediaItem {
   id: string;
@@ -48,15 +49,17 @@ export default function MediaGallery({ contentId, media, canEdit }: { contentId:
         {canEdit && (
           <>
             <input ref={fileInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
-            <button
+            <Button
               type="button"
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded border border-border px-2 py-1 text-[11px] text-ink-dim hover:border-accent hover:text-ink disabled:opacity-50"
+              variant="outline"
+              size="sm"
+              className="h-auto gap-1.5 px-2 py-1 text-[11px]"
             >
               <Icon name={uploading ? 'loading' : 'cloud-upload'} className={uploading ? 'animate-spin' : ''} />
               {uploading ? 'Otpremam…' : 'Dodaj sliku/video'}
-            </button>
+            </Button>
           </>
         )}
       </div>

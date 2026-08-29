@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import ArticleTabs from '../ArticleTabs';
 import RevisionActions from './RevisionActions';
 import ResearchForm from './ResearchForm';
+import { Badge } from '@/components/ui/badge';
 
 interface ProposedTranslation {
   languageCode: string;
@@ -159,12 +160,17 @@ export default async function RevizijePage({ params }: { params: { id: string } 
 
 function TriggerBadge({ trigger }: { trigger: string }) {
   const label = trigger === 'INITIAL_CREATION' ? 'početna izrada' : trigger === 'SCHEDULED_REFRESH' ? '30-dnevno osvežavanje' : 'iz pitanja bez odgovora';
-  return <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-medium text-ink-dim">{label}</span>;
+  return (
+    <Badge variant="secondary" className="text-ink-dim">
+      {label}
+    </Badge>
+  );
 }
 
 function RevisionStatusBadge({ status }: { status: string }) {
-  const tone = status === 'APPROVED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'APPROVED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'REJECTED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }
 
 function SourceMiniBadge({ status }: { status: string }) {

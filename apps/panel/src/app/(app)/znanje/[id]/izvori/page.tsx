@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import ArticleTabs from '../ArticleTabs';
 import SourceActions from './SourceActions';
 import ProposeSourceForm from './ProposeSourceForm';
+import { Badge } from '@/components/ui/badge';
 
 interface ArticleSource {
   id: string;
@@ -84,6 +85,7 @@ export default async function IzvoriPage({ params }: { params: { id: string } })
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'APPROVED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'APPROVED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'REJECTED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ArticleRow {
   id: string;
@@ -57,9 +59,11 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
           </p>
         </div>
         {canCreate && (
-          <Link href="/znanje/nov" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-            <Icon name="add" /> novi članak
-          </Link>
+          <Button asChild size="sm">
+            <Link href="/znanje/nov" className="flex items-center gap-1.5">
+              <Icon name="add" /> novi članak
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -81,13 +85,13 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.subjectType || searchParams?.status) && (
-            <Link href="/znanje" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/znanje">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -107,7 +111,11 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
               <div>
                 <div className="font-medium text-ink">
                   {a.translation?.title ?? `(bez prevoda) ${a.subjectType}`}
-                  {a.generatedBy === 'AI' && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">AI nacrt</span>}
+                  {a.generatedBy === 'AI' && (
+                    <Badge variant="warn" className="ml-2">
+                      AI nacrt
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-ink-faint">
                   {a.subjectType}
@@ -129,8 +137,13 @@ export default async function ZnanjePage({ searchParams }: { searchParams: { sub
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'ARCHIVED' ? 'text-ink-faint bg-panel2' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'PUBLISHED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'ARCHIVED') return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }
 
 // §4c — vizuelni podsetnik da je rok osvežavanja dospeo (next_refresh_due_at ≤ sada); sam
@@ -139,5 +152,5 @@ function StatusBadge({ status }: { status: string }) {
 function RefreshBadge({ dueAt }: { dueAt: string }) {
   const due = new Date(dueAt).getTime() <= Date.now();
   if (!due) return null;
-  return <span className="rounded bg-danger-bg px-1.5 py-0.5 text-[11px] font-medium text-danger">osvežavanje dospelo</span>;
+  return <Badge variant="danger">osvežavanje dospelo</Badge>;
 }

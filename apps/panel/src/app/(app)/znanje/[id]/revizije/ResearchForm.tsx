@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { researchArticle, FormState } from '../../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 const SOURCE_TYPES = ['HOTEL_OFFICIAL_WEBSITE', 'HOTEL_SOCIAL_MEDIA', 'GOVERNMENT_OR_TOURISM_BOARD'];
@@ -18,13 +19,9 @@ export default function ResearchForm({ articleId, revisionId }: { articleId: str
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded border border-border px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent"
-      >
+      <Button type="button" onClick={() => setOpen(true)} variant="outline" size="sm">
         {revisionId ? 'dostavi istraženi tekst za ovu reviziju' : '+ novo istraživanje'}
-      </button>
+      </Button>
     );
   }
 
@@ -42,9 +39,9 @@ export default function ResearchForm({ articleId, revisionId }: { articleId: str
       <textarea name="rawText" required rows={8} placeholder="nalepljen sirov tekst sa izvora" className="input" />
       <div className="flex gap-2">
         <SubmitButton />
-        <button type="button" onClick={() => setOpen(false)} className="rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-ink">
+        <Button type="button" onClick={() => setOpen(false)} variant="ghost" size="sm">
           zatvori
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -53,12 +50,8 @@ export default function ResearchForm({ articleId, revisionId }: { articleId: str
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm" className="self-start">
       {pending ? 'Šaljem…' : 'Pošalji na istraživanje'}
-    </button>
+    </Button>
   );
 }
