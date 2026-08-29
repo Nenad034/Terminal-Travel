@@ -263,6 +263,18 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
       { "id": "account-locked", "label": "Nalog zaključan", "matchActions": ["user.locked"] },
       { "id": "password-reset", "label": "Lozinka resetovana", "matchActions": ["auth.password_reset"] }
     ]
+  },
+  {
+    "key": "m5-booking-flow",
+    "label": "M5 — tok rezervacije",
+    "module": "M5",
+    "nodes": [
+      { "id": "booking-created", "label": "Rezervacija kreirana", "matchActions": ["booking.confirmed"] },
+      { "id": "booking-modified", "label": "Rezervacija izmenjena", "matchActions": ["booking.modified"] },
+      { "id": "payment-status-changed", "label": "Status plaćanja promenjen", "matchActions": ["booking.payment_status_changed"] },
+      { "id": "voucher-override", "label": "Vaučer bez pune uplate", "matchActions": ["booking.voucher_override_issued"] },
+      { "id": "booking-cancelled", "label": "Rezervacija otkazana", "matchActions": ["booking.cancelled"] }
+    ]
   }
 ]
 ```

@@ -277,7 +277,7 @@ Prefiks: `/api/v1/ops`
 | module | string | modul čiji se audit log čita (`AuditLogEntry.module`) |
 | nodes[] | `{ id, label, matchActions: string[] }` | jedan "čvor" na mapi = jedan ili više `AuditLogEntry.action` vrednosti koje se broje zajedno |
 
-**Pilot: `m1-security`** — prvi i za sada jedini registrovan `ProcessMapDefinition`, direktan odgovor na deo zahteva "ne daj bože proboj spolja":
+**Pilot: `m1-security`** — prvi registrovan `ProcessMapDefinition`, direktan odgovor na deo zahteva "ne daj bože proboj spolja":
 
 | Čvor | `matchActions` |
 | :---- | :---- |
@@ -289,13 +289,25 @@ Prefiks: `/api/v1/ops`
 
 **Preduslov ugrađen u ovaj prolaz, ne posebna stavka:** pre ove dopune, pogrešan MFA kod (drugi korak prijave) se **nije uopšte beležio niti brojao** — samo pogrešna lozinka je pokretala brojač/zaključavanje (M1 spec §5, otkriveno pri pripremi ovog pilota). Mapa bez ove ispravke bi trajno pokazivala "nula pokušaja" na tom čvoru bez obzira šta se stvarno dešava — zato je popravka M1 dela (audit log upis + isti brojač/zaključavanje kao za lozinku) uslov da ovaj pilot uopšte ima smisla, ne odvojen zadatak.
 
+**Drugo širenje: `m5-booking-flow`** (dopunjeno 29.8.2026, na zahtev vlasnika: "proširimo mapu i na M5 tok rezervacije") — isti registar, nov unos, bez izmene mehanizma:
+
+| Čvor | `matchActions` |
+| :---- | :---- |
+| Rezervacija kreirana | `booking.confirmed` *(pokriva i odmah potvrđenu i onu na čekanju potvrde dobavljača — audit log upisuje isti `action` u oba slučaja, razliku nosi samo Event Bus emisija, ne audit trag)* |
+| Rezervacija izmenjena | `booking.modified` |
+| Status plaćanja promenjen | `booking.payment_status_changed` |
+| Vaučer bez pune uplate | `booking.voucher_override_issued` |
+| Rezervacija otkazana | `booking.cancelled` |
+
+**Namerno izostavljen čvor za Ponudu (Quote).** Kreiranje ponude se danas ne beleži u audit log — M5 spec §3.0e.3a beleži samo izuzetak `quote.date_mismatch_override`, ne svaku ponudu. Vlasnik je izričito odlučio (29.8.2026, upitan direktno pre implementacije) da mapa prikazuje samo ono što se već beleži, i da NE uvodi novo, šire beleženje svake ponude samo da bi mapa imala dodatan čvor (ponude su česte/često napuštene, za razliku od rezervacije koja je stvarna obaveza) — ako se ovo pokaže potrebnim kasnije, to je zasebna odluka o proširenju M5 audit traga, ne automatska posledica ove mape.
+
 **`GET /ops/process-maps/:key/live`** vraća, za svaki `node`: broj zapisa čiji `action` odgovara `matchActions` u proteklih `windowMinutes` minuta, i vreme poslednjeg takvog zapisa (`lastAt`, `null` ako nema nijednog u prozoru). `AuditLogService.find()` je ograničen na 200 zapisa (postojeće ograničenje, M1 spec) — ako čvor dostigne tačno 200, odgovor nosi `capped: true` da se to vidljivo pokaže (npr. "200+" u panelu) umesto da se tiho prikaže pogrešno mali broj. Klik na čvor u M17 panelu ne ide kroz ovaj endpoint — vodi direktno na `GET /iam/audit-log?module=M1&action=<matchActions>` (M1 spec §6, dopunjeno u istom prolazu) radi pune liste/detalja tog čvora — mapa i audit log ostaju jedan izvor istine (princip #1, poglavlje 3 Master dokumenta), mapa je samo njegov prikaz.
 
 **"Uživo" znači kratak poll, ne push.** Panel (M17) osvežava brojeve na svakih 5 sekundi dok je ekran otvoren — isti obrazac kao postojeći 30-sekundni poll za Agent Inbox/AI status (`TopBar.tsx`/`StatusBar.tsx`). Prava trenutna isporuka (WebSocket/SSE) nije u tehničkom steku (poglavlje 6 Master dokumenta) i ne uvodi se ovim prolazom — ako se pokaže potreba za bržim od par sekundi, to je zasebna odluka o steku, ne automatska nadogradnja.
 
 **M17 prikaz:** nova stavka u postojećem `/nadzor` delu panela ("Operativni nadzor", M17 spec poglavlje 4/7) — kartice registrovanih mapa (`GET /process-maps`), klik otvara mapu sa živim brojevima po čvoru, klik na čvor otvara audit log filtriran na taj čvor. Ovo je konkretna realizacija "klikom na jednu ikonu" iz zahteva — ikona je već tu (Operativni nadzor u gornjoj traci), dodaje mu se novi ekran.
 
-**Namerno van obima ovog prolaza:** mape za druge module (M5 tok rezervacije, M10 tok novca — pominjani kao mogući sledeći koraci) — pilot prvo dokazuje koncept, širenje na drugi modul je zaseban prolaz, isti princip kao svaka druga postepena izgradnja u ovom projektu.
+**Namerno van obima ovog prolaza:** mapa za M10 (tok novca) — pominjana kao mogući sledeći korak (poglavlje 11) — ostaje zaseban prolaz.
 
 ---
 
@@ -317,6 +329,7 @@ Sve stavke dokazane e2e testom (`apps/api/test/m18-exit-criteria.e2e-spec.ts`) i
 - [x] `enforcement_state` se automatski vraća na `NORMAL` na `period_start` narednog perioda (nov red, prethodni ostaje istorijski) — sprovedeno kroz `@Cron(EVERY_DAY_AT_MIDNIGHT)` rollover u `AiProviderQuotaService`/`AiAgentBudgetsService`; ručni povratak pre isteka radi isključivo preko `M18/ai-provider-quota/OVERRIDE` dozvole i ostavlja trag u `AuditLogEntry` (M1).
 - [x] Pogrešan MFA kod (`POST /auth/mfa/verify`) upisuje `auth.mfa_failed` u audit log i uvećava isti brojač/zaključavanje kao pogrešna lozinka (poglavlje 9a, M1 spec §5). *(dokazano jediničnim testovima, `auth.service.spec.ts` — pogrešan kod piše `auth.mfa_failed`/uvećava brojač, peti uzastopni pogrešan kod zaključava nalog identično pogrešnoj lozinci, uspešan kod resetuje brojač.)*
 - [x] `GET /ops/process-maps` vraća registrovan `m1-security` sa svih pet čvorova (poglavlje 9a). *(dokazano jediničnim testom, `process-maps.service.spec.ts`.)*
+- [x] `GET /ops/process-maps` vraća i registrovan `m5-booking-flow` sa svih pet čvorova, čitano iz modula M5 (poglavlje 9a). *(dokazano jediničnim testom, `process-maps.service.spec.ts`.)*
 - [x] `GET /ops/process-maps/m1-security/live` vraća tačan broj i `lastAt` po čvoru, dokazano uživo: pravi neuspešan `POST /auth/login` na pravi dev API → čvor "Pogrešna lozinka" na `/nadzor/procesne-mape/m1-security` raste sa 1 na 2 u narednom pollu, bez ponovnog učitavanja stranice (avgust 2026, uživo protiv prave Postgres baze).*
 - [x] M17 panel: `/nadzor/procesne-mape` prikazuje karticu "M1 — bezbednosni signali", klik otvara mapu koja se osvežava na 5 sekundi, klik na čvor otvara `/audit-log?module=M1&action=...` filtriran tačno na taj čvor (dokazano uživo, `auth.login_failed` čvor → tačno filtrirana lista, avgust 2026).
 
@@ -331,7 +344,8 @@ Sve stavke dokazane e2e testom (`apps/api/test/m18-exit-criteria.e2e-spec.ts`) i
 - **Autonomni trend-research agent** (poglavlje 5, "agent istražuje") — implementiran je samo CRUD/odobrenje scaffolding (`TrendSuggestion`); pravo autonomno istraživanje (web-search) zahteva API van tehničkog steka, čeka odluku vlasnika. Do tada, nalazi se unose ručno (isti tip rada kao ranija Sabre analiza u ovom repozitorijumu).
 - **M17 panel ekran za M18** — implementiran (avgust 2026, M17 Faza 7): `apps/panel/src/app/(app)/nadzor/` (signali/kanali/trendovi/ai-troškovi), `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md` poglavlje 4/7. Kod napisan, pušovan i ručno provereno uživo protiv prave baze, uključujući odobrenje `TrendSuggestion` (vidi M17 spec poglavlje 7, Faza 7 red). **Dopuna 23.8.2026:** `/ops/provider-health` (§2.3) sad TAKOĐE ima panel prikaz — `apps/panel/src/app/(app)/integracije/page.tsx` (M17 spec v2.00), van `/nadzor/` sekcije, u grupi "Administracija" (spojen sa M4 `/integrations/providers`).
 - Tačan prag za "neuobičajen skok" po tipu signala (koliko grešaka u kom periodu je "previše") — konstante u `HealthDetectorsService`/`ProviderHealthService` su svesni, konzervativni polazni pragovi; podešava se empirijski kad sistem počne da radi u produkciji, ne unapred nagađa.
-- **Živa procesna mapa (poglavlje 9a) — širenje na druge module.** Pilot pokriva samo `m1-security`; kandidati za sledeći `ProcessMapDefinition` (spomenuti pri dogovoru, 29.8.2026): M5 tok rezervacije (pretraga → ponuda → rezervacija → potvrda) i M10 tok novca (uplata → faktura → obaveza dobavljaču). Svaki novi dodaje se kao nov `ProcessMapDefinition` u istom registru, isti obrazac kao pilot — ne zaseban mehanizam.
+- **Živa procesna mapa (poglavlje 9a) — širenje na druge module.** Registrovane: `m1-security`, `m5-booking-flow`. Kandidat za sledeći `ProcessMapDefinition`: M10 tok novca (uplata → faktura → obaveza dobavljaču). Svaki novi dodaje se kao nov `ProcessMapDefinition` u istom registru, isti obrazac kao dosadašnji — ne zaseban mehanizam.
+- **Živa procesna mapa — čvor za Ponudu (Quote) u `m5-booking-flow`.** Namerno izostavljen (poglavlje 9a) jer se kreiranje ponude danas ne beleži u audit log — dodavanje tog beleženja je zasebna odluka o proširenju obima M5 audit traga (ponude su znatno češće od rezervacija), ne automatska posledica ove mape. Ako se pokaže potreba, prvo dopuniti M5 spec §3.0e.3a/§10 (audit log poglavlje), pa tek onda dodati čvor.
 - **Živa procesna mapa — pravi push umesto polla.** Trenutno osvežavanje na 5 sekundi (poglavlje 9a) je namerno u granicama postojećeg steka (bez WebSocket/SSE, poglavlje 6 Master dokumenta). Ako se pokaže potreba za bržim/trenutnim prikazom, uvođenje WebSocket-a je zasebna odluka o tehničkom steku koja čeka potvrdu vlasnika, ne automatska nadogradnja ovog pilota.
 - Konkretan iznos `budget_limit_eur`/`quota_limit` (globalno i po agentu) i period (`DAILY`/`WEEKLY`/`MONTHLY`) — poslovna odluka vlasnika, ne pretpostavlja se u kodu; oba polja ostaju `nullable`/nekonfigurisana dok se ne unesu preko `POST`/`PATCH /ops/ai-provider-quota` i `/ops/ai-agent-budgets` (poglavlje 6.5).
 - Da li bezbednosno kritične akcije (izuzete od degradacije, poglavlje 6.5) treba da imaju sopstveni, odvojeni budžet umesto deljenja istog sa običnim agentima — razmotriti ako se pokaže da izuzetak redovno probija ukupni budžet.
