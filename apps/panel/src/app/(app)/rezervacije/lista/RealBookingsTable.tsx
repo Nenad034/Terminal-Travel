@@ -6,6 +6,8 @@ import AddToAiContextButton from '@/components/AddToAiContextButton';
 import { useRowSummary } from '@/components/RowSummaryContext';
 import { useTabs } from '@/components/TabsContext';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { deriveEmail, derivePhoneFromSeed } from './mock-data';
 import UrgentModal from './UrgentModal';
 
@@ -90,13 +92,25 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('sr-RS');
 }
 
+// shadcn/ui Badge (29.8.2026, tt-shadcn-redesign) — isti semantički raspored boja kao pre
+// (ok/danger/neutralno), samo preko zajedničke komponente umesto ručnog <span> na svakom mestu.
 function StatusBadge({ label }: { label: string }) {
-  const tone = ['CONFIRMED', 'COMPLETED'].includes(label) ? 'text-ok bg-ok-bg' : label === 'CANCELLED' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
+  if (['CONFIRMED', 'COMPLETED'].includes(label)) return <Badge variant="ok">{label}</Badge>;
+  if (label === 'CANCELLED') return <Badge variant="danger">{label}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {label}
+    </Badge>
+  );
 }
 function PaymentBadge({ label }: { label: string }) {
-  const tone = label === 'PAID' ? 'text-ok bg-ok-bg' : label === 'UNPAID' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
+  if (label === 'PAID') return <Badge variant="ok">{label}</Badge>;
+  if (label === 'UNPAID') return <Badge variant="danger">{label}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {label}
+    </Badge>
+  );
 }
 
 // Filter po tipu proizvoda i "demo zvona" (24.8.2026, dopuna: "Filtere u listi rezervacija
@@ -198,46 +212,46 @@ export default function RealBookingsTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border border-border bg-panel">
-        <table className="w-full min-w-[980px] text-left text-xs">
-          <thead>
-            <tr className="border-b border-border bg-panel2 text-ink-faint">
-              <th className="w-[70px] px-3 py-2 font-medium" />
-              <th className="px-3 py-2 font-medium">
+      <div className="rounded-lg border border-border bg-panel">
+        <Table className="min-w-[980px] text-xs">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[70px]" />
+              <TableHead>
                 <SortLabel sortKeyValue="bookingNumber">Broj</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="createdAt">Kreirano</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="buyerName">Nosilac rezervacije</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="channel">Kanal</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="status">Status</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="paymentStatus">Uplata</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="stayFrom">Dolazak</SortLabel>
-              </th>
-              <th className="px-3 py-2 font-medium">
+              </TableHead>
+              <TableHead>
                 <SortLabel sortKeyValue="stayTo">Odlazak</SortLabel>
-              </th>
-              <th className="px-3 py-2 text-right font-medium">
+              </TableHead>
+              <TableHead className="text-right">
                 <div className="flex justify-end">
                   <SortLabel sortKeyValue="totalPrice">Iznos</SortLabel>
                 </div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {sorted.map((b) => (
-              <tr key={b.id} onClick={() => openSummary(b)} className="group cursor-pointer border-b border-border last:border-0 hover:bg-panel2">
-                <td className="px-3 py-2">
+              <TableRow key={b.id} onClick={() => openSummary(b)} className="group cursor-pointer last:border-0">
+                <TableCell>
                   <div className="flex items-center gap-1">
                     <AddToAiContextButton refLabel={`Rezervacija ${b.bookingNumber}`} />
                     <span
@@ -259,14 +273,14 @@ export default function RealBookingsTable({
                       </button>
                     )}
                   </div>
-                </td>
-                <td className="px-3 py-2 font-mono">
+                </TableCell>
+                <TableCell className="font-mono">
                   <button onClick={(e) => openFullRecord(e, b)} title="Otvori pun zapis rezervacije" className="text-ink hover:text-accent hover:underline">
                     {b.bookingNumber}
                   </button>
-                </td>
-                <td className="px-3 py-2 text-ink-faint">{formatDate(b.createdAt)}</td>
-                <td className="px-3 py-2">
+                </TableCell>
+                <TableCell className="text-ink-faint">{formatDate(b.createdAt)}</TableCell>
+                <TableCell>
                   <div className="text-ink-dim">{b.buyerName}</div>
                   <div className="text-xs text-ink-faint">
                     {b.destinationCity && b.destinationCountry ? (
@@ -277,31 +291,31 @@ export default function RealBookingsTable({
                       '—'
                     )}
                   </div>
-                </td>
-                <td className="px-3 py-2 text-ink-faint">{b.channel}</td>
-                <td className="px-3 py-2">
+                </TableCell>
+                <TableCell className="text-ink-faint">{b.channel}</TableCell>
+                <TableCell>
                   <StatusBadge label={b.status} />
-                </td>
-                <td className="px-3 py-2">
+                </TableCell>
+                <TableCell>
                   <PaymentBadge label={b.paymentStatus} />
-                </td>
-                <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayFrom)}</td>
-                <td className="px-3 py-2 text-ink-faint">{formatDate(b.stayTo)}</td>
-                <td className="px-3 py-2 text-right">
+                </TableCell>
+                <TableCell className="text-ink-faint">{formatDate(b.stayFrom)}</TableCell>
+                <TableCell className="text-ink-faint">{formatDate(b.stayTo)}</TableCell>
+                <TableCell className="text-right">
                   <div className="font-mono text-ink">{formatAmount(b.totalPrice)}</div>
                   <div className="text-[11px] text-ink-faint">{b.currency}</div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {sorted.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-ink-faint">
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={9} className="py-6 text-center text-ink-faint">
                   Nijedna rezervacija ne odgovara filterima.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
       <p className="mt-2 text-[11px] text-ink-faint">{sorted.length} / {bookings.length} rezervacija</p>
 
