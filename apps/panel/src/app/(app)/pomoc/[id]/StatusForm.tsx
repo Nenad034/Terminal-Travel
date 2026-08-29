@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateArticleStatus, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 // PUBLISHED namerno izostavljen ovde — objava ide isključivo kroz PublishButton (poseban PUBLISH
@@ -31,12 +32,8 @@ export default function StatusForm({ id, status }: { id: string; status: string 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-border px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm">
       {pending ? 'Čuvanje…' : 'promeni status'}
-    </button>
+    </Button>
   );
 }

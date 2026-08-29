@@ -5,6 +5,8 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import HelpTabs from './HelpTabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface HelpArticleRow {
   id: string;
@@ -69,9 +71,11 @@ export default async function PomocPage({
           <p className="text-xs text-ink-dim">Baza znanja za korišćenje platforme (uputstvo za rad, ne uputstvo za putovanje) — M21.</p>
         </div>
         {canCreate && (
-          <Link href="/pomoc/nov" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-            <Icon name="add" /> nov članak
-          </Link>
+          <Button asChild size="sm">
+            <Link href="/pomoc/nov" className="flex items-center gap-1.5">
+              <Icon name="add" /> nov članak
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -102,13 +106,13 @@ export default async function PomocPage({
             <input type="checkbox" name="isCriticalExample" value="true" defaultChecked={searchParams?.isCriticalExample === 'true'} className="h-3.5 w-3.5" />
             samo kritični primeri
           </label>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.relatedModule || searchParams?.lang || searchParams?.isCriticalExample || status) && (
-            <Link href="/pomoc" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/pomoc">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -162,8 +166,16 @@ function ArticleGroup({
             <div>
               <div className="font-medium text-ink">
                 {a.translation?.title ?? a.slug}
-                {a.isCriticalExample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">kritičan primer</span>}
-                {a.generatedBy === 'AI' && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">AI nacrt</span>}
+                {a.isCriticalExample && (
+                  <Badge variant="secondary" className="ml-2 bg-accent-soft text-accent-strong">
+                    kritičan primer
+                  </Badge>
+                )}
+                {a.generatedBy === 'AI' && (
+                  <Badge variant="warn" className="ml-2">
+                    AI nacrt
+                  </Badge>
+                )}
               </div>
               <div className="text-xs text-ink-faint">
                 {a.audience.join(', ')} · {a.relatedModule ?? '(bez modula)'} · {a.translation?.languageCode ?? '—'}
@@ -178,6 +190,11 @@ function ArticleGroup({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PUBLISHED' ? 'text-ok bg-ok-bg' : status === 'ARCHIVED' ? 'text-ink-faint bg-panel2' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'PUBLISHED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'ARCHIVED') return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }

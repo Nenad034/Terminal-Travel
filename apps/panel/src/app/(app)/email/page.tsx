@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface EmailThread {
   id: string;
@@ -68,9 +70,11 @@ export default async function EmailInboxPage({
           <p className="text-xs text-ink-dim">Centralizovan email klijent — M22. Vidljivo samo sandučadima na koje imate MailboxAccess.</p>
         </div>
         {canManageMailboxes && (
-          <Link href="/email/sanducad" className="flex items-center gap-1.5 rounded bg-panel2 px-3 py-1.5 text-xs font-medium text-ink hover:bg-border">
-            <Icon name="settings-gear" /> sandučad
-          </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/email/sanducad" className="flex items-center gap-1.5">
+              <Icon name="settings-gear" /> sandučad
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -100,13 +104,13 @@ export default async function EmailInboxPage({
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.mailboxId || searchParams?.status || searchParams?.correspondentType) && (
-            <Link href="/email" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/email">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -126,7 +130,11 @@ export default async function EmailInboxPage({
               <div>
                 <div className="font-medium text-ink">
                   {t.subject}
-                  {t.convertedToTicketId && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">tiket</span>}
+                  {t.convertedToTicketId && (
+                    <Badge variant="secondary" className="ml-2 bg-accent-soft text-accent-strong">
+                      tiket
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-ink-faint">
                   {mailboxLabel(t.mailboxId)} · {t.correspondentType} · {new Date(t.lastMessageAt).toLocaleString('sr-RS')}
@@ -142,6 +150,15 @@ export default async function EmailInboxPage({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'CLOSED' ? 'text-ink-faint bg-panel2' : status === 'AWAITING_REPLY' ? 'text-warn bg-warn-bg' : 'text-accent-strong bg-accent-soft';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'CLOSED') return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
+  if (status === 'AWAITING_REPLY') return <Badge variant="warn">{status}</Badge>;
+  return (
+    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+      {status}
+    </Badge>
+  );
 }

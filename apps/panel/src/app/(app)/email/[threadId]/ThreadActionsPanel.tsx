@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { linkBooking, linkSupplierAnnouncement, convertToTicket, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -83,12 +84,8 @@ function ConvertToTicketForm({ threadId }: { threadId: string }) {
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm" className="self-start">
       {pending ? pendingLabel : label}
-    </button>
+    </Button>
   );
 }

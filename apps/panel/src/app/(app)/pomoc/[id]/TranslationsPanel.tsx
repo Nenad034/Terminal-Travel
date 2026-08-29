@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { upsertArticleTranslation, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 const LANGUAGES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'];
@@ -34,9 +35,9 @@ export default function TranslationsPanel({ articleId, translations, canEdit }: 
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{t.languageCode}</span>
               {canEdit && (
-                <button type="button" onClick={() => setEditingLang(t.languageCode)} className="text-[11px] text-accent hover:underline">
+                <Button type="button" onClick={() => setEditingLang(t.languageCode)} variant="link" size="sm" className="h-auto p-0 text-[11px]">
                   izmeni
-                </button>
+                </Button>
               )}
             </div>
             <p className="mt-1 font-medium text-ink">{t.title}</p>
@@ -48,9 +49,9 @@ export default function TranslationsPanel({ articleId, translations, canEdit }: 
       {canEdit && (
         <>
           {editingLang === null ? (
-            <button type="button" onClick={() => setEditingLang('sr')} className="rounded border border-border px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
+            <Button type="button" onClick={() => setEditingLang('sr')} variant="outline" size="sm">
               + dodaj/izmeni prevod
-            </button>
+            </Button>
           ) : (
             <TranslationForm
               articleId={articleId}
@@ -100,9 +101,9 @@ function TranslationForm({
       />
       <div className="flex gap-2">
         <SubmitButton />
-        <button type="button" onClick={onDone} className="rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-ink">
+        <Button type="button" onClick={onDone} variant="ghost" size="sm">
           zatvori
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -111,12 +112,8 @@ function TranslationForm({
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm" className="self-start">
       {pending ? 'Čuvanje…' : 'Sačuvaj prevod'}
-    </button>
+    </Button>
   );
 }

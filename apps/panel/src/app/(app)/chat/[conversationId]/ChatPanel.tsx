@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { PresenceDot } from '../PresenceDot';
 import { draftSupplierReply, markConversationRead, sendMessageRestFallback } from '../actions';
+import { Button } from '@/components/ui/button';
 
 interface Participant {
   userId: string;
@@ -340,15 +341,17 @@ export default function ChatPanel({
             className="hidden"
             onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
           />
-          <button
+          <Button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             title="Priloži fajl"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center self-end rounded border border-border text-ink-faint hover:border-accent hover:text-ink"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 flex-shrink-0 self-end text-ink-faint hover:text-ink"
           >
             {/* Codicon set nema "paperclip"/"attach" — "file-add" je najbliži postojeći. */}
             <Icon name="file-add" />
-          </button>
+          </Button>
           <textarea
             value={draft}
             onChange={(e) => handleDraftChange(e.target.value)}
@@ -364,24 +367,15 @@ export default function ChatPanel({
             className="input flex-1"
           />
           <div className="flex flex-col items-end gap-1 self-end">
-            <button
-              type="submit"
-              disabled={sending || (draft.trim() === '' && !pendingFile)}
-              className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-            >
+            <Button type="submit" disabled={sending || (draft.trim() === '' && !pendingFile)} size="sm">
               {sending ? 'Šaljem…' : 'pošalji'}
-            </button>
+            </Button>
             {/* §9.5 — AI nacrt postoji samo za razgovore sa dobavljačima; interni tim-chat ga
                 nema (namerno uža granica nego M7 chat). */}
             {conversationType === 'EXTERNAL_SUPPLIER' && (
-              <button
-                type="button"
-                onClick={handleRequestDraft}
-                disabled={drafting}
-                className="rounded border border-border px-2 py-1 text-[11px] text-ink-dim hover:bg-panel2 disabled:opacity-50"
-              >
+              <Button type="button" onClick={handleRequestDraft} disabled={drafting} variant="outline" size="sm" className="h-auto px-2 py-1 text-[11px]">
                 {drafting ? 'Pišem nacrt…' : 'predloži nacrt (AI)'}
-              </button>
+              </Button>
             )}
           </div>
         </form>

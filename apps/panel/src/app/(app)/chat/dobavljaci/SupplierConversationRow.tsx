@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { grantSupplierAccess, inviteSupplierContact, revokeSupplierAccess, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialGrantState: FormState = { error: null };
 const initialInviteState: FormState = { error: null };
@@ -80,13 +81,9 @@ export default function SupplierConversationRow({
           </p>
         </div>
         {canGrant && (
-          <button
-            type="button"
-            onClick={() => setManageOpen((v) => !v)}
-            className="rounded border border-border px-2.5 py-1 text-[11px] font-medium text-ink-dim hover:border-accent hover:text-ink"
-          >
+          <Button type="button" onClick={() => setManageOpen((v) => !v)} variant="outline" size="sm">
             {manageOpen ? 'zatvori upravljanje' : 'upravljaj pristupom'}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -139,18 +136,18 @@ function GrantAccessForm({ conversationId }: { conversationId: string }) {
 function GrantSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50">
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft">
       {pending ? 'Dodeljujem…' : 'dodeli pristup'}
-    </button>
+    </Button>
   );
 }
 
 function RevokeButton({ conversationId, userId }: { conversationId: string; userId: string }) {
   return (
     <form action={revokeSupplierAccess.bind(null, conversationId, userId)}>
-      <button type="submit" className="text-xs text-danger hover:underline">
+      <Button type="submit" variant="link" size="sm" className="h-auto p-0 text-xs text-danger">
         ukloni
-      </button>
+      </Button>
     </form>
   );
 }
@@ -184,8 +181,8 @@ function InviteContactForm({ conversationId, contacts }: { conversationId: strin
 function InviteSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded border border-accent px-2.5 py-1 text-[11px] font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50">
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2.5 py-1 text-[11px] text-accent-strong hover:bg-accent-soft">
       {pending ? 'Šaljem…' : 'pozovi kontakt'}
-    </button>
+    </Button>
   );
 }

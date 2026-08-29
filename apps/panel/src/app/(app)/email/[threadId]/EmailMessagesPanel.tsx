@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { createEmailMessage, sendEmailDraft, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -91,13 +92,9 @@ function NewMessageForm({ threadId }: { threadId: string }) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm" className="self-start">
       {pending ? 'Šaljem…' : 'Dodaj poruku'}
-    </button>
+    </Button>
   );
 }
 
@@ -115,12 +112,8 @@ function SendDraftButton({ threadId, messageId }: { threadId: string; messageId:
 function SendSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-accent px-2 py-0.5 text-xs font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
       {pending ? 'Šaljem…' : 'pošalji'}
-    </button>
+    </Button>
   );
 }

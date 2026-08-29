@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface Ticket {
   id: string;
@@ -51,9 +53,11 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
           <p className="text-xs text-ink-dim">Tiketing za goste i subagente — M14.</p>
         </div>
         {canCreate && (
-          <Link href="/podrska/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-            <Icon name="add" /> novi tiket
-          </Link>
+          <Button asChild size="sm">
+            <Link href="/podrska/novi" className="flex items-center gap-1.5">
+              <Icon name="add" /> novi tiket
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -75,13 +79,13 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.status || searchParams?.category) && (
-            <Link href="/podrska" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/podrska">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -103,9 +107,21 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
                 <div>
                   <div className="font-medium text-ink">
                     {t.ticketNumber} — {t.subject}
-                    {t.category === 'REKLAMACIJA' && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[11px] text-danger">REKLAMACIJA</span>}
-                    {t.zzpEscalatedAt && <span className="ml-2 rounded bg-danger-bg px-1.5 py-0.5 text-[11px] text-danger">ZZP eskalirano</span>}
-                    {zzpOverdue && !t.zzpEscalatedAt && <span className="ml-2 rounded bg-warn-bg px-1.5 py-0.5 text-[11px] text-warn">rok prekoračen</span>}
+                    {t.category === 'REKLAMACIJA' && (
+                      <Badge variant="danger" className="ml-2">
+                        REKLAMACIJA
+                      </Badge>
+                    )}
+                    {t.zzpEscalatedAt && (
+                      <Badge variant="danger" className="ml-2">
+                        ZZP eskalirano
+                      </Badge>
+                    )}
+                    {zzpOverdue && !t.zzpEscalatedAt && (
+                      <Badge variant="warn" className="ml-2">
+                        rok prekoračen
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-ink-faint">
                     {t.category} · {t.channel} · {new Date(t.createdAt).toLocaleDateString('sr-RS')}
@@ -125,11 +141,20 @@ export default async function PodrskaPage({ searchParams }: { searchParams: { st
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'RESOLVED' || status === 'CLOSED' ? 'text-ok bg-ok-bg' : status === 'IN_PROGRESS' ? 'text-accent-strong bg-accent-soft' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'RESOLVED' || status === 'CLOSED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'IN_PROGRESS') return (
+    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }
 
 function PriorityBadge({ priority }: { priority: string }) {
-  const tone = priority === 'URGENT' || priority === 'HIGH' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{priority}</span>;
+  if (priority === 'URGENT' || priority === 'HIGH') return <Badge variant="danger">{priority}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {priority}
+    </Badge>
+  );
 }

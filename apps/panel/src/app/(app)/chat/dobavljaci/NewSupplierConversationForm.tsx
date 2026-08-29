@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { createSupplierConversation, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -16,13 +17,9 @@ export default function NewSupplierConversationForm({ suppliers }: { suppliers: 
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong"
-      >
+      <Button type="button" onClick={() => setOpen(true)} size="sm" className="flex items-center gap-1.5">
         <Icon name="add" /> novi razgovor sa dobavljačem
-      </button>
+      </Button>
     );
   }
 
@@ -42,9 +39,9 @@ export default function NewSupplierConversationForm({ suppliers }: { suppliers: 
       </label>
       <div className="flex gap-2">
         <SubmitButton />
-        <button type="button" onClick={() => setOpen(false)} className="rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-ink">
+        <Button type="button" onClick={() => setOpen(false)} variant="ghost" size="sm">
           otkaži
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -53,12 +50,8 @@ export default function NewSupplierConversationForm({ suppliers }: { suppliers: 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Kreiranje…' : 'kreiraj razgovor'}
-    </button>
+    </Button>
   );
 }
