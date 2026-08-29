@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { createSupplier, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const SUPPLIER_TYPES = ['HOTEL', 'PREVOZNIK', 'OSIGURAVAC', 'DRUGO'];
 
@@ -62,12 +63,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="mt-1 rounded bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} className="mt-1 self-start">
       {pending ? 'Čuvanje…' : 'Sačuvaj dobavljača'}
-    </button>
+    </Button>
   );
 }

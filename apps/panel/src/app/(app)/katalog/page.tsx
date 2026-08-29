@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface Product {
   id: string;
@@ -40,9 +42,11 @@ export default async function KatalogPage() {
           <p className="text-xs text-ink-dim">Svi proizvodi (ugovoreni i API), bez obzira na izvor.</p>
         </div>
         {canCreate && (
-          <Link href="/katalog/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-            <Icon name="add" /> novi proizvod
-          </Link>
+          <Button asChild size="sm">
+            <Link href="/katalog/novi" className="flex items-center gap-1.5">
+              <Icon name="add" /> novi proizvod
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -68,14 +72,12 @@ export default async function KatalogPage() {
                 }}
               >
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-[11px] font-medium text-accent2">{p.type}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      p.status === 'ACTIVE' ? 'bg-ok-bg text-ok' : 'bg-panel-2 text-ink-faint'
-                    }`}
-                  >
+                  <Badge variant="outline" className="border-transparent bg-accent2-soft text-accent2">
+                    {p.type}
+                  </Badge>
+                  <Badge variant={p.status === 'ACTIVE' ? 'ok' : 'secondary'} className={p.status === 'ACTIVE' ? '' : 'text-ink-faint'}>
                     {p.status}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="text-sm font-medium text-ink">{name}</div>
                 <div className="text-xs text-ink-faint">

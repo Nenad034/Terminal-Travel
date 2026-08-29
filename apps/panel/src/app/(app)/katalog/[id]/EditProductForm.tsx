@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { updateProductTranslation, FormState } from '../actions';
 import { usePathname } from 'next/navigation';
 import { useTabs } from '@/components/TabsContext';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -56,12 +57,8 @@ export default function EditProductForm({
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="mt-1 rounded bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} className="mt-1 self-start">
       {pending ? 'Čuvanje…' : 'Sačuvaj izmene'}
-    </button>
+    </Button>
   );
 }

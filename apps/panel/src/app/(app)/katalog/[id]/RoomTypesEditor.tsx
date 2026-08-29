@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { saveRoomTypes } from '../actions';
 import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
+import { Button } from '@/components/ui/button';
 
 // M2 spec §2.3a/§2.3b/v1.14 (28.8.2026, na zahtev vlasnika: "koja polja sve taj panel treba da
 // ima" — nakon nalaza da room_types[]/beds/age_policy[] postoje u modelu od v1.4, ali nemaju
@@ -167,9 +168,9 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
         <h2 className="text-sm font-semibold text-ink">Tipovi soba</h2>
         <div className="flex items-center gap-2">
           {savedAt && <span className="text-[11px] text-success">sačuvano</span>}
-          <button onClick={openAdd} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
+          <Button onClick={openAdd} size="sm">
             + Dodaj sobu
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -195,12 +196,12 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
               </div>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => openEdit(i)} className="rounded px-2 py-1 text-ink-faint hover:bg-panel hover:text-ink">
+              <Button onClick={() => openEdit(i)} variant="ghost" size="sm" className="h-auto px-2 py-1 text-ink-faint hover:text-ink">
                 izmeni
-              </button>
-              <button onClick={() => removeRoomType(i)} className="rounded px-2 py-1 text-ink-faint hover:bg-panel hover:text-danger">
+              </Button>
+              <Button onClick={() => removeRoomType(i)} variant="ghost" size="sm" className="h-auto px-2 py-1 text-ink-faint hover:text-danger">
                 ukloni
-              </button>
+              </Button>
             </div>
           </div>
         ))}
@@ -371,35 +372,35 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
                       <ToggleButton active={!!ap.crib_included} onToggle={() => updateAgePolicy(draft, setDraft, i, { crib_included: !ap.crib_included })} label="uklj. u cenu" />
                     </div>
                   )}
-                  <button
+                  <Button
                     onClick={() => setDraft({ ...draft, age_policy: (draft.age_policy ?? []).filter((_, idx) => idx !== i) })}
-                    className="mb-2 rounded px-2 py-1 text-ink-faint hover:text-danger"
+                    variant="ghost"
+                    size="sm"
+                    className="mb-2 h-auto px-2 py-1 text-ink-faint hover:text-danger"
                   >
                     ukloni
-                  </button>
+                  </Button>
                 </div>
               ))}
-              <button
+              <Button
                 onClick={() =>
                   setDraft({ ...draft, age_policy: [...(draft.age_policy ?? []), { category: 'ADULT', age_from: 0, age_to: null, counts_toward_capacity: true }] })
                 }
-                className="self-start rounded border border-border px-2 py-1 text-[11px] text-ink-faint hover:border-accent hover:text-accent"
+                variant="outline"
+                size="sm"
+                className="h-auto self-start px-2 py-1 text-[11px]"
               >
                 + Dodaj uzrasnu kategoriju
-              </button>
+              </Button>
             </div>
 
             <div className="flex justify-end gap-2">
-              <button onClick={closeModal} className="rounded px-3 py-1.5 text-xs text-ink-faint hover:text-ink">
+              <Button onClick={closeModal} variant="ghost" size="sm">
                 Otkaži
-              </button>
-              <button
-                onClick={saveDraft}
-                disabled={saving}
-                className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-              >
+              </Button>
+              <Button onClick={saveDraft} disabled={saving} size="sm">
                 {saving ? 'Čuvanje…' : 'Sačuvaj sobu'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

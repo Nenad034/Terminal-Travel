@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import { Button } from '@/components/ui/button';
 
 interface Supplier {
   id: string;
@@ -40,14 +41,18 @@ export default async function SuppliersPage() {
         </div>
         <div className="flex gap-2">
           {canViewContracts && (
-            <Link href="/ugovori" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-              <Icon name="file-text" /> ugovori
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/ugovori" className="flex items-center gap-1.5">
+                <Icon name="file-text" /> ugovori
+              </Link>
+            </Button>
           )}
           {canCreate && (
-            <Link href="/dobavljaci/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-              <Icon name="add" /> novi dobavljač
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/dobavljaci/novi" className="flex items-center gap-1.5">
+                <Icon name="add" /> novi dobavljač
+              </Link>
+            </Button>
           )}
         </div>
       </div>

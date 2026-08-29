@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import { Badge } from '@/components/ui/badge';
 
 interface ProductMedia {
   url: string;
@@ -84,9 +85,9 @@ export default async function ProductGalleryPage({ params }: { params: { id: str
           <div className="mb-2 text-xs font-medium text-ink-faint">Sadržaji</div>
           <div className="flex flex-wrap gap-1.5">
             {attrs.amenities.map((a) => (
-              <span key={a} className="rounded-full bg-panel2 px-2 py-1 text-[11px] text-ink-dim">
+              <Badge key={a} variant="secondary" className="text-ink-dim">
                 {a}
-              </span>
+              </Badge>
             ))}
           </div>
         </div>
