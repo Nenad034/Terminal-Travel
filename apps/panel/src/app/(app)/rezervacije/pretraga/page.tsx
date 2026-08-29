@@ -5,6 +5,9 @@ import SearchCriteriaChip from '@/components/SearchCriteriaChip';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import AccommodationResultsMock from './AccommodationResultsMock';
+import FlightResultsMock from './FlightResultsMock';
+import TransferResultsMock from './TransferResultsMock';
+import ExcursionResultsMock from './ExcursionResultsMock';
 
 interface SearchOffer {
   roomTypeCode?: string;
@@ -91,6 +94,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
   // M5 spec §3.0c.2 tačka 3 — "vrsta usluge" (board_type) filtrira se UNUTAR već dobijenih
   // rezultata, isti princip kao dostupnost iznad (nije upitni parametar GET /search).
   const boardType = first(searchParams.boardType) || null;
+  const cabinClass = first(searchParams.cabinClass) || null;
 
   if (priceMin !== null || priceMax !== null || availability || boardType) {
     results = results
@@ -131,37 +135,56 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
       {hasQuery && !error && results.length === 0 && <p className="text-center text-xs text-ink-faint">Nema rezultata za zadate kriterijume.</p>}
       {!hasQuery && <p className="text-center text-xs text-ink-faint">Podesite kriterijume u levom panelu.</p>}
 
-      {/* MOCK grid/list prikaz smeštaja (26.8.2026, na zahtev vlasnika: "napravite mock podatke
-          da vidim kako sve izgleda") — jedan baner/red po hotelu (najpovoljnija varijanta),
-          "listaj"/klik otvara ostale kombinacije tipa sobe+usluge, uvek sortirano od najniže ka
-          najvišoj ceni. Zamenjuje `cardResults` prikaz ISKLJUČIVO kad je pretraga tačno
-          ACCOMMODATION (isti princip se širi na ostalih 8 vrsta pretrage tek posle potvrde
-          izgleda, svaka sa sopstvenim filterima u levom panelu). */}
-      {types.length === 1 && types[0] === 'ACCOMMODATION' && hasQuery && !error ? (
-        <AccommodationResultsMock
-          stayFrom={quoteDefaults.stayFrom}
-          stayTo={quoteDefaults.stayTo}
-          boardType={boardType}
-          priceMin={priceMin}
-          priceMax={priceMax}
-        />
-      ) : (
-        cardResults.length > 0 && (
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {cardResults.map((r) => (
-              <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
-            ))}
-          </div>
-        )
-      )}
+      {/* MOCK prikazi po tipu pretrage (26.8.2026 ACCOMMODATION, prošireno 29.8.2026 na zahtev
+          vlasnika: "dodajte mock podatke za pretragu letova, transfera i izleta da bih video
+          kako sve radi" — FLIGHT/TRANSFER/"Things to do" isti princip, svaki sa sopstvenim
+          hardkodovanim oblikom dok prava M4 provajder žica ne stigne do istog nivoa detalja).
+          Zamenjuje `cardResults`/`rowResults` prikaz ISKLJUČIVO za ove četiri kombinacije tipa;
+          ostalih 5 vrsta (RENT-A-CAR, PACKAGE, CRUISE, INSURANCE, individualni paketi) i dalje
+          idu kroz pravi `GET /search` prikaz ispod, bez mock-a. */}
+      {(() => {
+        const isThingsToDo = types.length === 3 && ['EXCURSION', 'EVENT', 'TICKET'].every((t) => types.includes(t));
+        if (!hasQuery || error) return null;
 
-      {rowResults.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {rowResults.map((r) => (
-            <ResultRowGroup key={r.productId} result={r} quoteDefaults={quoteDefaults} />
-          ))}
-        </div>
-      )}
+        if (types.length === 1 && types[0] === 'ACCOMMODATION') {
+          return (
+            <AccommodationResultsMock
+              stayFrom={quoteDefaults.stayFrom}
+              stayTo={quoteDefaults.stayTo}
+              boardType={boardType}
+              priceMin={priceMin}
+              priceMax={priceMax}
+            />
+          );
+        }
+        if (types.length === 1 && types[0] === 'FLIGHT') {
+          return <FlightResultsMock cabinClass={cabinClass} priceMin={priceMin} priceMax={priceMax} />;
+        }
+        if (types.length === 1 && types[0] === 'TRANSFER') {
+          return <TransferResultsMock priceMin={priceMin} priceMax={priceMax} />;
+        }
+        if (isThingsToDo) {
+          return <ExcursionResultsMock priceMin={priceMin} priceMax={priceMax} />;
+        }
+        return (
+          <>
+            {cardResults.length > 0 && (
+              <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {cardResults.map((r) => (
+                  <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
+                ))}
+              </div>
+            )}
+            {rowResults.length > 0 && (
+              <div className="flex flex-col gap-3">
+                {rowResults.map((r) => (
+                  <ResultRowGroup key={r.productId} result={r} quoteDefaults={quoteDefaults} />
+                ))}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
