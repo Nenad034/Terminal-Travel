@@ -3,6 +3,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../NadzorSubnav';
 import TrendSuggestionActions from './TrendSuggestionActions';
+import { Badge } from '@/components/ui/badge';
 
 interface TrendSuggestion {
   id: string;
@@ -51,7 +52,9 @@ export default async function NadzorTrendoviPage() {
           {sorted.map((s) => (
             <div key={s.id} className="rounded-lg border border-border bg-panel p-3 text-sm">
               <div className="mb-1 flex items-center justify-between">
-                <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">{s.category}</span>
+                <Badge variant="secondary" className="text-ink-faint">
+                  {s.category}
+                </Badge>
                 <StatusBadge status={s.status} />
               </div>
               <p className="text-ink">{s.summary}</p>
@@ -76,6 +79,7 @@ export default async function NadzorTrendoviPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'APPROVED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'APPROVED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'REJECTED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { runReconciliation, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -18,12 +19,8 @@ export default function ReconciliationButton() {
 function Btn() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="gap-1.5">
       {pending ? 'Pokrećem…' : 'pokreni rekonsilijaciju'}
-    </button>
+    </Button>
   );
 }

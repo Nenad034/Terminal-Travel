@@ -3,6 +3,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../NadzorSubnav';
 import OverrideQuotaButton from './OverrideQuotaButton';
+import { Badge } from '@/components/ui/badge';
 
 interface AIProviderQuota {
   id: string;
@@ -141,6 +142,6 @@ export default async function NadzorAiTroskoviPage() {
 }
 
 function EnforcementBadge({ state }: { state: string }) {
-  const tone = state === 'DEGRADED' ? 'text-danger bg-danger-bg' : 'text-ok bg-ok-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{state}</span>;
+  if (state === 'DEGRADED') return <Badge variant="danger">{state}</Badge>;
+  return <Badge variant="ok">{state}</Badge>;
 }

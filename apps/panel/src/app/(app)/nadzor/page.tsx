@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from './NadzorSubnav';
 import RunWeeklyReviewButton from './RunWeeklyReviewButton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface HealthSignal {
   id: string;
@@ -130,13 +132,13 @@ export default async function NadzorPage({ searchParams }: { searchParams: { mod
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             filtriraj
-          </button>
+          </Button>
           {(searchParams?.module || searchParams?.type || searchParams?.severity) && (
-            <Link href="/nadzor" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/nadzor">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -159,7 +161,9 @@ export default async function NadzorPage({ searchParams }: { searchParams: { mod
                   </div>
                   <div className="flex items-center gap-2">
                     {s.securityCategory && (
-                      <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">#{s.securityCategory}</span>
+                      <Badge variant="secondary" className="text-ink-faint">
+                        #{s.securityCategory}
+                      </Badge>
                     )}
                     <SeverityBadge severity={s.severity} />
                   </div>
@@ -181,6 +185,11 @@ export default async function NadzorPage({ searchParams }: { searchParams: { mod
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const tone = severity === 'CRITICAL' ? 'text-danger bg-danger-bg border border-danger' : severity === 'WARNING' ? 'text-warn bg-warn-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{severity}</span>;
+  if (severity === 'CRITICAL') return <Badge variant="danger" className="border-danger">{severity}</Badge>;
+  if (severity === 'WARNING') return <Badge variant="warn">{severity}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {severity}
+    </Badge>
+  );
 }

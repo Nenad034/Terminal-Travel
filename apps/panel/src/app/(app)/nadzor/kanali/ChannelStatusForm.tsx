@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateNotificationChannelStatus, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -27,12 +28,8 @@ export default function ChannelStatusForm({ id, status }: { id: string; status: 
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-border px-2 py-1 font-medium text-ink-dim hover:border-accent disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto px-2 py-1">
       {pending ? 'Čuvanje…' : 'sačuvaj'}
-    </button>
+    </Button>
   );
 }

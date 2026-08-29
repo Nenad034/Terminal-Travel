@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import ReconciliationButton from './ReconciliationButton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface Bucket {
   key: string;
@@ -249,9 +251,9 @@ export default async function IzvestajiPage({ searchParams }: { searchParams: Se
               />
             </Field>
           )}
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             primeni filter
-          </button>
+          </Button>
         </form>
       )}
 
@@ -292,9 +294,9 @@ export default async function IzvestajiPage({ searchParams }: { searchParams: Se
               <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
                 <Icon name="graph-line" className="text-accent" /> Razvrstano po {occupancy.groupBy}
                 {occupancy.unclassifiedCount > 0 && (
-                  <span className="rounded bg-warn-bg px-2 py-0.5 text-[11px] font-normal text-warn">
+                  <Badge variant="warn" className="font-normal">
                     {occupancy.unclassifiedCount} stavki nije razvrstano (obično API-sourced)
-                  </span>
+                  </Badge>
                 )}
               </div>
               <div className="overflow-hidden rounded-lg border border-border">

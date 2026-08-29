@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { approveTrendSuggestion, rejectTrendSuggestion, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -31,25 +32,17 @@ export default function TrendSuggestionActions({ id }: { id: string }) {
 function ApproveButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Odobravam…' : 'odobri'}
-    </button>
+    </Button>
   );
 }
 
 function RejectButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-border px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-danger hover:text-danger disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="hover:border-danger hover:text-danger">
       {pending ? 'Odbijam…' : 'odbij'}
-    </button>
+    </Button>
   );
 }
