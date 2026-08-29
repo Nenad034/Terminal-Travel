@@ -35,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/korisnici',
     permission: { module: 'M1', resource: 'user', action: 'VIEW' },
     phase: 0,
-    implemented: false, // M1 ekrani nisu u obimu ovog prolaza (samo dashboard/audit-log iz §5)
+    implemented: true, // M1 spec §7 — lista/detalj/uloge/pojedinačni izuzeci, dopunjeno 29.8.2026
   },
   {
     id: 'audit-log',

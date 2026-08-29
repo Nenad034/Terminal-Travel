@@ -128,8 +128,14 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new ApiError(res.status, parsedBody);
   }
 
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  // BAG (29.8.2026, otkriveno pri M1 "korisnici" ekranu — POST /iam/users/:id/roles vraća 201
+  // sa PRAZNIM telom, ne 204). `res.json()` na praznom telu baca SyntaxError, ne ApiError, pa je
+  // svaki takav uspešan poziv do sad ispadao kao generička "nije uspelo" poruka u pozivaocu (koji
+  // hvata samo `err instanceof ApiError`). Provera dužine tela pokriva i 204 i "200/201 sa praznim
+  // telom", umesto oslanjanja isključivo na status kod koji API ne garantuje dosledno kroz module.
+  const raw = await res.text();
+  if (raw === '') return undefined as T;
+  return JSON.parse(raw) as T;
 }
 
 // M19 spec §2.5/§8 (v1.6, 22.8.2026) — varijanta `apiFetch`-a za `multipart/form-data` (prilog
