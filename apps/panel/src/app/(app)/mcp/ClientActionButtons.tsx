@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { activateMcpClient, approveReadWriteMcpClient, suspendMcpClient, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -46,14 +47,14 @@ export function SuspendButton({ id, canManage }: { id: string; canManage: boolea
 function Btn({ label, pendingLabel, danger }: { label: string; pendingLabel: string; danger?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button
+    <Button
       type="submit"
       disabled={pending}
-      className={`rounded border px-2 py-1 text-[11px] font-medium disabled:opacity-50 ${
-        danger ? 'border-border bg-panel text-danger hover:border-danger' : 'border-border bg-panel text-ink-dim hover:border-accent'
-      }`}
+      variant="outline"
+      size="sm"
+      className={`h-auto px-2 py-1 text-[11px] ${danger ? 'hover:border-danger hover:text-danger' : ''}`}
     >
       {pending ? pendingLabel : label}
-    </button>
+    </Button>
   );
 }

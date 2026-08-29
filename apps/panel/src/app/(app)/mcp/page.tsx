@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import CreateClientForm from './CreateClientForm';
 import { ActivateButton, ApproveReadWriteButton, SuspendButton } from './ClientActionButtons';
+import { Badge } from '@/components/ui/badge';
 
 interface McpClient {
   id: string;
@@ -88,11 +89,20 @@ export default async function McpClientsPage() {
 }
 
 function StatusBadge({ status }: { status: McpClient['status'] }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : status === 'SUSPENDED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'ACTIVE') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'SUSPENDED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }
 
 function AccessLevelBadge({ level }: { level: McpClient['accessLevel'] }) {
-  const tone = level === 'READ_WRITE' ? 'text-accent-strong bg-accent-soft' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{level}</span>;
+  if (level === 'READ_WRITE') return (
+    <Badge variant="secondary" className="bg-accent-soft text-accent-strong">
+      {level}
+    </Badge>
+  );
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {level}
+    </Badge>
+  );
 }

@@ -2,6 +2,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import { Badge } from '@/components/ui/badge';
 
 interface ProviderConfigRow {
   providerCode: string;
@@ -112,7 +113,11 @@ export default async function IntegracijePage() {
                 <div className="flex items-center gap-2 font-medium text-ink">
                   <Icon name="pulse" className="text-accent" />
                   {c.displayName}
-                  {c.useMock && <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-mono text-ink-faint">MOCK</span>}
+                  {c.useMock && (
+                    <Badge variant="secondary" className="font-mono text-ink-faint">
+                      MOCK
+                    </Badge>
+                  )}
                 </div>
                 <div className="mt-1 text-xs text-ink-faint">
                   {c.providerCode} · {c.category}
@@ -140,26 +145,33 @@ export default async function IntegracijePage() {
 }
 
 function ConfigStatusBadge({ status }: { status: Connection['configStatus'] }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`} title="Konfiguracioni status (M4)">{status}</span>;
+  if (status === 'ACTIVE') return <Badge variant="ok" title="Konfiguracioni status (M4)">{status}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint" title="Konfiguracioni status (M4)">
+      {status}
+    </Badge>
+  );
 }
 
 function CircuitBadge({ state }: { state: Connection['circuitState'] }) {
   if (state === 'CLOSED') return null; // podrazumevano/zdravo stanje — ne zaslužuje sopstvenu oznaku
-  const tone = state === 'OPEN' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
   return (
-    <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`} title="Circuit breaker stanje (M4 §4.1)">
+    <Badge variant={state === 'OPEN' ? 'danger' : 'warn'} title="Circuit breaker stanje (M4 §4.1)">
       circuit: {state}
-    </span>
+    </Badge>
   );
 }
 
 function HealthBadge({ status }: { status: ProviderHealthRow['status'] | null }) {
-  if (!status) return <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">NEMA PODATKA</span>;
-  const tone = status === 'ONLINE' ? 'text-ok bg-ok-bg' : status === 'OFFLINE' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
+  if (!status) return (
+    <Badge variant="secondary" className="text-ink-faint">
+      NEMA PODATKA
+    </Badge>
+  );
+  const variant = status === 'ONLINE' ? 'ok' : status === 'OFFLINE' ? 'danger' : 'warn';
   return (
-    <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`} title="Health-check status (M18 §2.3, ažurira se na 15 min)">
+    <Badge variant={variant} title="Health-check status (M18 §2.3, ažurira se na 15 min)">
       {status}
-    </span>
+    </Badge>
   );
 }

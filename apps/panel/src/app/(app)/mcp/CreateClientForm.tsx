@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { createMcpClient, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -21,24 +22,18 @@ export default function CreateClientForm() {
           Klijent „{state.clientName}" registrovan. Sačuvajte kredencijal — prikazuje se samo ovaj put:
         </p>
         <code className="mt-2 block break-all rounded bg-panel px-2 py-1.5 text-xs text-ink">{state.credential}</code>
-        <button
-          onClick={() => setOpen(false)}
-          className="mt-3 rounded border border-border bg-panel px-2 py-1 text-[11px] font-medium text-ink-dim hover:border-accent"
-        >
+        <Button onClick={() => setOpen(false)} variant="outline" size="sm" className="mt-3 h-auto px-2 py-1 text-[11px]">
           Zatvori
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (!open) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="mb-4 flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong"
-      >
+      <Button onClick={() => setOpen(true)} size="sm" className="mb-4 flex items-center gap-1.5">
         <Icon name="add" /> registruj MCP klijenta
-      </button>
+      </Button>
     );
   }
 
@@ -68,13 +63,9 @@ export default function CreateClientForm() {
       {state.error && <p className="mt-2 text-[11px] text-danger">{state.error}</p>}
       <div className="mt-3 flex gap-2">
         <SubmitButton />
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="rounded border border-border bg-panel px-3 py-1.5 text-xs text-ink-dim hover:border-accent"
-        >
+        <Button type="button" onClick={() => setOpen(false)} variant="outline" size="sm">
           Otkaži
-        </button>
+        </Button>
       </div>
       <p className="mt-2 text-[11px] text-ink-faint">
         Novi klijent počinje kao PENDING/READ_ONLY (M16 spec §3.1) — aktivacija i prelazak na READ_WRITE su odvojeni,
@@ -87,12 +78,8 @@ export default function CreateClientForm() {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Registrujem…' : 'Registruj'}
-    </button>
+    </Button>
   );
 }
