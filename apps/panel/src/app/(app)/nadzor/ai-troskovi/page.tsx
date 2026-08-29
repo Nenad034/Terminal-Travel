@@ -5,14 +5,18 @@ import NadzorSubnav from '../NadzorSubnav';
 import OverrideQuotaButton from './OverrideQuotaButton';
 import { Badge } from '@/components/ui/badge';
 
+// `budgetLimitEur`/`consumedEur` su Prisma `Decimal` na backendu (schema.prisma) — preko JSON-a
+// stižu kao STRING, ne broj (Decimal.toJSON() vraća string), otud `string | null` ovde, ne
+// `number`. Nalaz iz stvarne greške u produkciji (29.8.2026): `q.consumedEur.toFixed is not a
+// function`, jer je tip ovde pogrešno pisao `number` a vrednost je zapravo bila string.
 interface AIProviderQuota {
   id: string;
   providerName: string;
   period: string;
   quotaLimit: number | null;
   consumed: number;
-  budgetLimitEur: number | null;
-  consumedEur: number;
+  budgetLimitEur: string | null;
+  consumedEur: string;
   enforcementState: string;
   degradedAt: string | null;
   periodStart: string;
@@ -24,8 +28,8 @@ interface AIAgentBudget {
   id: string;
   agentId: string;
   period: string;
-  budgetLimitEur: number;
-  consumedEur: number;
+  budgetLimitEur: string;
+  consumedEur: string;
   enforcementState: string;
   periodStart: string;
   periodEnd: string;
@@ -92,10 +96,10 @@ export default async function NadzorAiTroskoviPage() {
                 <div className="mt-1 text-xs text-ink-dim">
                   {q.budgetLimitEur != null ? (
                     <>
-                      potrošeno <b className="text-ink">{q.consumedEur.toFixed(4)}</b> / {q.budgetLimitEur.toFixed(2)} EUR
+                      potrošeno <b className="text-ink">{Number(q.consumedEur).toFixed(4)}</b> / {Number(q.budgetLimitEur).toFixed(2)} EUR
                     </>
                   ) : (
-                    <>potrošeno {q.consumedEur.toFixed(4)} EUR (nema postavljen budget_limit_eur)</>
+                    <>potrošeno {Number(q.consumedEur).toFixed(4)} EUR (nema postavljen budget_limit_eur)</>
                   )}
                   {q.quotaLimit != null && (
                     <span className="ml-3">
@@ -127,7 +131,7 @@ export default async function NadzorAiTroskoviPage() {
                   <EnforcementBadge state={b.enforcementState} />
                 </div>
                 <div className="mt-1 text-xs text-ink-dim">
-                  potrošeno <b className="text-ink">{b.consumedEur.toFixed(4)}</b> / {b.budgetLimitEur.toFixed(2)} EUR
+                  potrošeno <b className="text-ink">{Number(b.consumedEur).toFixed(4)}</b> / {Number(b.budgetLimitEur).toFixed(2)} EUR
                 </div>
                 <div className="mt-1 text-[11px] text-ink-faint">
                   period {new Date(b.periodStart).toLocaleDateString('sr-RS')} – {new Date(b.periodEnd).toLocaleDateString('sr-RS')}
