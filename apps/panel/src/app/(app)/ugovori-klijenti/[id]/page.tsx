@@ -3,6 +3,7 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import { AcceptButton, VoidButton } from './ContractActions';
+import { Badge } from '@/components/ui/badge';
 
 interface ClientContract {
   id: string;
@@ -107,6 +108,7 @@ export default async function ClientContractDetailPage({ params }: { params: { i
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'ACCEPTED' ? 'text-ok bg-ok-bg' : status === 'VOIDED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'ACCEPTED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'VOIDED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

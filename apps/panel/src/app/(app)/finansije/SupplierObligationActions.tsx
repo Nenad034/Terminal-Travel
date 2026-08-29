@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { approveSupplierObligation, paySupplierObligation, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -30,12 +31,8 @@ export function PayButton({ id }: { id: string }) {
 function Btn({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-border bg-panel px-2 py-1 text-[11px] font-medium text-ink-dim hover:border-accent disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto px-2 py-1 text-[11px]">
       {pending ? pendingLabel : label}
-    </button>
+    </Button>
   );
 }

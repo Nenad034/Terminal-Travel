@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { acceptContract, voidContract, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -29,13 +30,9 @@ export function VoidButton({ id }: { id: string }) {
 
 function Btn({ label, pendingLabel, tone }: { label: string; pendingLabel: string; tone: 'accent' | 'danger' }) {
   const { pending } = useFormStatus();
-  const cls =
-    tone === 'accent'
-      ? 'bg-accent text-accent-ink hover:bg-accent-strong'
-      : 'border border-danger text-danger hover:bg-danger-bg';
   return (
-    <button type="submit" disabled={pending} className={`rounded px-3 py-1.5 text-xs font-semibold disabled:opacity-50 ${cls}`}>
+    <Button type="submit" disabled={pending} variant={tone === 'accent' ? 'default' : 'destructive'} size="sm">
       {pending ? pendingLabel : label}
-    </button>
+    </Button>
   );
 }

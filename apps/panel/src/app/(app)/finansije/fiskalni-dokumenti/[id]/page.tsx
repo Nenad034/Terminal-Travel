@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import { SubmitButton, StornoButton } from './FiscalDocumentActions';
 import RecordPaymentForm from './RecordPaymentForm';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface FiscalDocument {
   id: string;
@@ -113,9 +115,11 @@ export default async function FiscalDocumentDetailPage({ params }: { params: { i
           {(doc.status === 'SUBMITTED' || doc.status === 'ISSUED') && (
             <div className="mb-6 flex flex-wrap items-center gap-3">
               {doc.pdfUrl && (
-                <a href={doc.pdfUrl} target="_blank" rel="noreferrer" className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-                  preuzmi PDF
-                </a>
+                <Button asChild size="sm">
+                  <a href={doc.pdfUrl} target="_blank" rel="noreferrer">
+                    preuzmi PDF
+                  </a>
+                </Button>
               )}
               {canSubmit && <StornoButton id={doc.id} />}
             </div>
@@ -150,8 +154,7 @@ export default async function FiscalDocumentDetailPage({ params }: { params: { i
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const ok = ['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status);
-  const bad = ['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status);
-  const tone = ok ? 'text-ok bg-ok-bg' : bad ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (['ISSUED', 'RECEIVED', 'PAID', 'ACCEPTED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
+  if (['REJECTED', 'STORNIRANO', 'FAILED', 'VOIDED', 'EXPIRED'].includes(status)) return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

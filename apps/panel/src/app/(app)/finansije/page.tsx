@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { ApproveButton, PayButton } from './SupplierObligationActions';
+import { Badge } from '@/components/ui/badge';
 
 interface Mismatch {
   bookingId: string;
@@ -80,9 +81,7 @@ export default async function FinansijePage() {
                   className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                 >
                   <span className="font-medium text-ink">rezervacija {m.bookingId.slice(0, 8)}…</span>
-                  <span className="rounded bg-warn-bg px-2 py-0.5 text-[11px] font-medium text-warn">
-                    {m.reason === 'MISSING_FISCAL_DOCUMENT' ? 'nedostaje fiskalni dokument' : 'delimično plaćeno, predugo'}
-                  </span>
+                  <Badge variant="warn">{m.reason === 'MISSING_FISCAL_DOCUMENT' ? 'nedostaje fiskalni dokument' : 'delimično plaćeno, predugo'}</Badge>
                 </TabLink>
               ))}
             </div>
@@ -142,9 +141,7 @@ export default async function FinansijePage() {
                     className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
                   >
                     <span className="font-medium text-ink">rezervacija {s.bookingId.slice(0, 8)}…</span>
-                    <span className="rounded bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger">
-                      {s.depositStatus === 'OVERDUE' ? 'akontacija probijena' : 'balans probijen'}
-                    </span>
+                    <Badge variant="danger">{s.depositStatus === 'OVERDUE' ? 'akontacija probijena' : 'balans probijen'}</Badge>
                   </TabLink>
                 ))}
               {schedules.every((s) => s.depositStatus !== 'OVERDUE' && s.balanceStatus !== 'OVERDUE') && (
@@ -170,8 +167,9 @@ function Section({ icon, title, children }: { icon: string; title: string; child
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'PAID' ? 'text-ok bg-ok-bg' : status === 'DISPUTED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'PAID') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'DISPUTED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }
 
 function EmptyRow({ text }: { text: string }) {

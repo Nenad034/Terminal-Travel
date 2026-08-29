@@ -5,6 +5,8 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import RetryRegistrationButton from './RetryRegistrationButton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface TravelGuarantee {
   id: string;
@@ -84,9 +86,11 @@ export default async function CompliancePage({ searchParams }: { searchParams: {
           <p className="text-xs text-ink-dim">Garancija putovanja (YUTA) — status, iskorišćenost, CIS registracije po rezervaciji.</p>
         </div>
         {canEdit && (
-          <Link href="/compliance/izmena" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-            <Icon name="edit" /> {guarantee ? 'izmeni garanciju' : 'unesi garanciju'}
-          </Link>
+          <Button asChild size="sm">
+            <Link href="/compliance/izmena" className="flex items-center gap-1.5">
+              <Icon name="edit" /> {guarantee ? 'izmeni garanciju' : 'unesi garanciju'}
+            </Link>
+          </Button>
         )}
       </div>
 
@@ -186,8 +190,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const ok = ['ACTIVE', 'REGISTERED', 'RELEASED'].includes(status);
-  const bad = ['EXPIRED', 'FAILED'].includes(status);
-  const tone = ok ? 'text-ok bg-ok-bg' : bad ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (['ACTIVE', 'REGISTERED', 'RELEASED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
+  if (['EXPIRED', 'FAILED'].includes(status)) return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }
