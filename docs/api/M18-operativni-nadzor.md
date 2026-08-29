@@ -275,6 +275,19 @@ Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.202
       { "id": "voucher-override", "label": "Vaučer bez pune uplate", "matchActions": ["booking.voucher_override_issued"] },
       { "id": "booking-cancelled", "label": "Rezervacija otkazana", "matchActions": ["booking.cancelled"] }
     ]
+  },
+  {
+    "key": "m10-money-flow",
+    "label": "M10 — tok novca",
+    "module": "M10",
+    "nodes": [
+      { "id": "payment-recorded", "label": "Uplata gosta zabeležena", "matchActions": ["payment.recorded"] },
+      { "id": "invoice-created", "label": "Faktura kreirana", "matchActions": ["fiscal_document.draft_created"] },
+      { "id": "invoice-storno", "label": "Faktura stornirana", "matchActions": ["fiscal_document.storno"] },
+      { "id": "supplier-obligation-created", "label": "Obaveza dobavljaču kreirana", "matchActions": ["supplier_obligation.created", "supplier_obligation.auto_created"] },
+      { "id": "supplier-obligation-paid", "label": "Obaveza dobavljaču isplaćena", "matchActions": ["supplier_obligation.paid"] },
+      { "id": "refund-executed", "label": "Povraćaj gostu izvršen", "matchActions": ["refund_instruction.executed"] }
+    ]
   }
 ]
 ```

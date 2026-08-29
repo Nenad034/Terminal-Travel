@@ -9,10 +9,10 @@ describe('ProcessMapsService', () => {
     return { service, auditLog };
   }
 
-  it('findAll vraća oba registrovana čvora — "m1-security" i "m5-booking-flow" (M18 spec §9a)', () => {
+  it('findAll vraća sve registrovane mape — "m1-security", "m5-booking-flow", "m10-money-flow" (M18 spec §9a)', () => {
     const { service } = makeService();
     const maps = service.findAll();
-    expect(maps).toHaveLength(2);
+    expect(maps).toHaveLength(3);
 
     const m1 = maps.find((m) => m.key === 'm1-security');
     expect(m1).toMatchObject({ module: 'M1' });
@@ -26,6 +26,17 @@ describe('ProcessMapsService', () => {
       'payment-status-changed',
       'voucher-override',
       'booking-cancelled',
+    ]);
+
+    const m10 = maps.find((m) => m.key === 'm10-money-flow');
+    expect(m10).toMatchObject({ module: 'M10' });
+    expect(m10?.nodes.map((n) => n.id)).toEqual([
+      'payment-recorded',
+      'invoice-created',
+      'invoice-storno',
+      'supplier-obligation-created',
+      'supplier-obligation-paid',
+      'refund-executed',
     ]);
   });
 
@@ -77,6 +88,17 @@ describe('ProcessMapsService', () => {
     expect(auditLog.find).toHaveBeenCalledWith(expect.objectContaining({ module: 'M5', actions: ['booking.confirmed'] }));
     const created = result.nodes.find((n) => n.id === 'booking-created');
     expect(created).toEqual({ id: 'booking-created', label: 'Rezervacija kreirana', count: 1, capped: false, lastAt: '2026-08-29T12:00:00.000Z' });
+  });
+
+  it('live() za "m10-money-flow" prosleđuje SVE matchActions čvora u jedan poziv (obaveza dobavljaču ima dva izvora, poglavlje 9a)', async () => {
+    const { service, auditLog } = makeService();
+    (auditLog.find as jest.Mock).mockResolvedValue([]);
+
+    await service.live('m10-money-flow');
+
+    expect(auditLog.find).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'M10', actions: ['supplier_obligation.created', 'supplier_obligation.auto_created'] }),
+    );
   });
 
   it('označava čvor kao "capped" kad broj zapisa dostigne limit od 200 (M1 spec — AuditLogService.find, poglavlje 9a)', async () => {

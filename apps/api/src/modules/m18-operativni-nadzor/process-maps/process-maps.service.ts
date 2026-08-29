@@ -3,8 +3,9 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { ProcessMapDefinition } from './definitions/process-map.types';
 import { M1_SECURITY_PROCESS_MAP } from './definitions/m1-security.definition';
 import { M5_BOOKING_FLOW_PROCESS_MAP } from './definitions/m5-booking-flow.definition';
+import { M10_MONEY_FLOW_PROCESS_MAP } from './definitions/m10-money-flow.definition';
 
-const REGISTRY: ProcessMapDefinition[] = [M1_SECURITY_PROCESS_MAP, M5_BOOKING_FLOW_PROCESS_MAP];
+const REGISTRY: ProcessMapDefinition[] = [M1_SECURITY_PROCESS_MAP, M5_BOOKING_FLOW_PROCESS_MAP, M10_MONEY_FLOW_PROCESS_MAP];
 
 const DEFAULT_WINDOW_MINUTES = 1440;
 
