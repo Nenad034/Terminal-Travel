@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import DateField from '@/components/DateField';
 
 interface Bucket {
   key: string;
@@ -191,10 +192,10 @@ export default async function IzvestajiPage({ searchParams }: { searchParams: Se
         <form className="mb-4 flex flex-wrap items-end gap-2 text-xs" action="/izvestaji">
           <input type="hidden" name="tab" value={tab} />
           <Field label="od (datum)">
-            <input type="date" name="from" defaultValue={searchParams?.from ?? ''} className="input" />
+            <DateField name="from" defaultValue={searchParams?.from ?? ''} />
           </Field>
           <Field label="do (datum)">
-            <input type="date" name="to" defaultValue={searchParams?.to ?? ''} className="input" />
+            <DateField name="to" defaultValue={searchParams?.to ?? ''} />
           </Field>
           {(tab === 'profitabilnost' || tab === 'smestaj') && (
             <>

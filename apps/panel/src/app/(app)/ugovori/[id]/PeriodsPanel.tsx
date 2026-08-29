@@ -7,6 +7,7 @@ import { createPeriod, FormState } from '../actions';
 import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import DateField from '@/components/DateField';
 
 const initialState: FormState = { error: null };
 
@@ -102,10 +103,10 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
 
       <div className="grid grid-cols-3 gap-3">
         <Field label="Period boravka od">
-          <input name="stayFrom" type="date" required className="input" />
+          <DateField name="stayFrom" required />
         </Field>
         <Field label="Period boravka do">
-          <input name="stayTo" type="date" required className="input" />
+          <DateField name="stayTo" required />
         </Field>
         <Field label="Šifra tipa sobe">
           <input name="roomType" required className="input" placeholder="mora odgovarati room_types[].code (M2)" />

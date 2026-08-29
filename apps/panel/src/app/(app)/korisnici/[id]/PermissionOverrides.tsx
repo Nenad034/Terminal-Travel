@@ -5,6 +5,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { createPermissionOverride, deletePermissionOverride, FormState } from '../actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import DateField from '@/components/DateField';
 
 const initialState: FormState = { error: null };
 
@@ -123,7 +124,9 @@ function CreateOverrideForm({ userId, permissions, onDone }: { userId: string; p
       </label>
       <label className="text-ink-faint">
         rok isteka (opciono)
-        <input name="expiresAt" type="date" className="input mt-1" />
+        <div className="mt-1">
+          <DateField name="expiresAt" />
+        </div>
       </label>
       <div className="mt-1 flex gap-2">
         <SubmitButton />

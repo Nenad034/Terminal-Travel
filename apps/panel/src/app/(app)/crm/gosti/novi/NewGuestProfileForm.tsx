@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { createGuestProfile, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
+import DateField from '@/components/DateField';
 
 const initialState: FormState = { error: null };
 
@@ -34,7 +35,7 @@ export default function NewGuestProfileForm({ linkedClientAccountId }: { linkedC
         <input name="nationality" required className="input" placeholder="Srbija" />
       </Field>
       <Field label="datum rođenja">
-        <input name="dateOfBirth" type="date" required className="input" />
+        <DateField name="dateOfBirth" required />
       </Field>
       <Field label="email">
         <input name="email" type="email" className="input" />

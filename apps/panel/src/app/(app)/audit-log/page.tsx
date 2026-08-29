@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import { Button } from '@/components/ui/button';
 import AuditLogRows, { type AuditLogEntry } from './AuditLogRows';
+import AuditLogSearchForm from './AuditLogSearchForm';
 
 // M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
 // (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
@@ -45,7 +46,6 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Aud
   }
 
   const hasFilter = Boolean(searchParams?.module || searchParams?.action);
-  const hasSearch = Boolean(searchParams?.q || searchParams?.from || searchParams?.to);
   const backHref = safeInternalPath(searchParams?.back);
 
   return (
@@ -81,47 +81,20 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Aud
         </div>
       )}
 
-      {/* Dopuna (29.8.2026, na zahtev vlasnika: "dodajte i pretragu po pojmu i datumu", M1
-          spec §6/§7) — `module`/`action`/`back`/`backLabel` se prenose kao skriveni ulazi da
-          pretraga po pojmu/datumu ne obriše filter stigao klikom sa procesne mape. */}
-      <form className="mb-3 flex flex-wrap items-end gap-2 text-xs" action="/audit-log">
-        {searchParams?.module && <input type="hidden" name="module" value={searchParams.module} />}
-        {searchParams?.action && <input type="hidden" name="action" value={searchParams.action} />}
-        {searchParams?.back && <input type="hidden" name="back" value={searchParams.back} />}
-        {searchParams?.backLabel && <input type="hidden" name="backLabel" value={searchParams.backLabel} />}
-        <label className="flex flex-col gap-0.5">
-          <span className="text-ink-faint">pojam</span>
-          <input name="q" defaultValue={searchParams?.q ?? ''} placeholder="akcija, resurs, modul…" className="input" />
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-ink-faint">od datuma</span>
-          <input name="from" type="date" defaultValue={searchParams?.from ?? ''} className="input" />
-        </label>
-        <label className="flex flex-col gap-0.5">
-          <span className="text-ink-faint">do datuma</span>
-          <input name="to" type="date" defaultValue={searchParams?.to ?? ''} className="input" />
-        </label>
-        <Button type="submit" variant="secondary" size="sm">
-          pretraži
-        </Button>
-        {hasSearch && (
-          <Button asChild variant="ghost" size="sm">
-            <Link
-              href={(() => {
-                const qs = new URLSearchParams();
-                if (searchParams?.module) qs.set('module', searchParams.module);
-                if (searchParams?.action) qs.set('action', searchParams.action);
-                if (searchParams?.back) qs.set('back', searchParams.back);
-                if (searchParams?.backLabel) qs.set('backLabel', searchParams.backLabel);
-                const suffix = qs.toString() ? `?${qs.toString()}` : '';
-                return `/audit-log${suffix}`;
-              })()}
-            >
-              obriši pretragu
-            </Link>
-          </Button>
-        )}
-      </form>
+      {/* Dopuna (29.8.2026, na zahtev vlasnika: "dodajte i pretragu po pojmu i datumu" +
+          "omogucite kada se ukucava pojama da se odmah filtrirajju stavke liste", M1 spec
+          §6/§7) — klijentska komponenta, pojam se filtrira uživo (debounce), datum preko
+          DateField.tsx (kalendar ili kucanje "12082026"). `module`/`action`/`back`/`backLabel`
+          se prenose da pretraga ne obriše filter stigao klikom sa procesne mape. */}
+      <AuditLogSearchForm
+        module={searchParams?.module}
+        action={searchParams?.action}
+        q={searchParams?.q}
+        from={searchParams?.from}
+        to={searchParams?.to}
+        back={searchParams?.back}
+        backLabel={searchParams?.backLabel}
+      />
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

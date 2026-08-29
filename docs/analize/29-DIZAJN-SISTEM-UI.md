@@ -608,6 +608,22 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 
 ---
 
+## 6g. Svako polje za unos datuma — kalendar ILI kucanje brojeva, nikad goli `<input type="date">` (dopuna, 29.8.2026, na zahtev vlasnika)
+
+**Pravilo:** vlasnikova formulacija — "omogucite u svim poljim gde se bira datum da se bira u kalendaru ili da se ukucava na nacin 12082026 (12 avgust 2026)". Svako polje za datum u panelu koristi deljenu komponentu `apps/panel/src/components/DateField.tsx`, ne goli `<input type="date">`.
+
+**Razlog za sopstvenu komponentu, ne oslanjanje na native `<input type="date">`:** native kalendar postoji, ALI redosled segmenata (dan/mesec/godina) pri direktnom kucanju zavisi od OS/browser lokala, ne od jezika stranice — u en-US redosledu bi kucanje "12082026" ispalo mesec=12/dan=08 (8. decembar), ne dan=12/mesec=08 (12. avgust) kako korisnik namerava. `DateField.tsx` fiksira DD-MM-GGGG redosled bez obzira na lokal korisnikovog uređaja, i sam crta kalendar (bez nove biblioteke, poglavlje 6 Master dokumenta) da kalendar-klik radi identično u svakom browseru.
+
+**Ponašanje:**
+- Kucanje cifara automatski dodaje tačke dok se kuca ("1" → "12" → "12.08" → "12.08.2026.") — nevažeći datum (npr. "31.02.") dobija crvenu ivicu i `title` objašnjenje, ne tiho pogrešnu vrednost.
+- Ikonica kalendara otvara sopstveni popover (mesec/godina zaglavlje sa strelicama, mreža dana, prečica "Danas") — zatvara se klikom van njega ili izborom dana.
+- Spoljni ugovor ostaje ISO `"yyyy-mm-dd"` u oba pravca (isto što je i native `<input type="date">` nosio) — ništa niz tok (server actions, API filteri) se ne menja, samo unos.
+- Radi i u nativnoj formi (`name`+`defaultValue`, GET/POST kao ranije) i u kontrolisanom React state-u (`value`+`onChange`, npr. `SearchCriteriaPopup.tsx`).
+
+**Sprovedeno kroz ceo panel u istom prolazu** (19 mesta, 10 fajlova, 29.8.2026) — ovo NIJE "važi za nove ekrane od sad" izuzetak kao poglavlje 6f; vlasnik je eksplicitno tražio "u svim poljima", pa je retrofit urađen odmah, ne odložen.
+
+---
+
 ## 7. Obim primene — M17 i M7 istim obrascem, M8/M9 zasebno
 
 *(izmenjeno 17.8.2026 — ranije "samo M17 za sada")*

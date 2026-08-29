@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateGuestProfile, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
+import DateField from '@/components/DateField';
 
 const initialState: FormState = { error: null };
 
@@ -45,7 +46,7 @@ export default function EditGuestProfileForm({ guest }: { guest: Guest }) {
         <input name="nationality" defaultValue={guest.nationality} className="input" />
       </Field>
       <Field label="datum rođenja">
-        <input name="dateOfBirth" type="date" defaultValue={guest.dateOfBirth.slice(0, 10)} className="input" />
+        <DateField name="dateOfBirth" defaultValue={guest.dateOfBirth.slice(0, 10)} />
       </Field>
       <Field label="email">
         <input name="email" type="email" defaultValue={guest.email ?? ''} className="input" />

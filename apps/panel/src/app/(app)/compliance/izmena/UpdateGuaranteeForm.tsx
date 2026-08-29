@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateGuarantee, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
+import DateField from '@/components/DateField';
 
 interface TravelGuarantee {
   id: string;
@@ -49,10 +50,10 @@ export default function UpdateGuaranteeForm({ guarantee }: { guarantee: TravelGu
         </select>
       </Field>
       <Field label="važi od">
-        <input name="validFrom" type="date" defaultValue={guarantee?.validFrom?.slice(0, 10)} required className="input" />
+        <DateField name="validFrom" defaultValue={guarantee?.validFrom?.slice(0, 10)} required />
       </Field>
       <Field label="važi do">
-        <input name="validTo" type="date" defaultValue={guarantee?.validTo?.slice(0, 10)} required className="input" />
+        <DateField name="validTo" defaultValue={guarantee?.validTo?.slice(0, 10)} required />
       </Field>
       <Field label="link ka skeniranom sertifikatu">
         <input name="documentUrl" defaultValue={guarantee?.documentUrl ?? ''} className="input" placeholder="https://…" />

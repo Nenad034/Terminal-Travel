@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import Icon from './Icon';
+import DateField from './DateField';
 
 // M5 spec §3.0c/§3.0d ("vođena pretraga za 9 vrsta proizvoda") + vlasnikov predlog 22.8.2026
 // ("ikone... popup u kom definišemo vrednosti... klik na pretraži... dugme izmeni"). Šest opštih
@@ -123,21 +124,15 @@ export default function SearchCriteriaPopup({
           <div className="flex gap-2">
             <label className="flex-1 text-ink-faint">
               od
-              <input
-                type="date"
-                value={values.stayFrom}
-                onChange={(e) => setValues((v) => ({ ...v, stayFrom: e.target.value }))}
-                className="input mt-1 w-full"
-              />
+              <div className="mt-1">
+                <DateField value={values.stayFrom} onChange={(iso) => setValues((v) => ({ ...v, stayFrom: iso }))} className="input w-full" />
+              </div>
             </label>
             <label className="flex-1 text-ink-faint">
               do
-              <input
-                type="date"
-                value={values.stayTo}
-                onChange={(e) => setValues((v) => ({ ...v, stayTo: e.target.value }))}
-                className="input mt-1 w-full"
-              />
+              <div className="mt-1">
+                <DateField value={values.stayTo} onChange={(iso) => setValues((v) => ({ ...v, stayTo: iso }))} className="input w-full" />
+              </div>
             </label>
           </div>
           <label className="text-ink-faint">
@@ -204,12 +199,9 @@ export default function SearchCriteriaPopup({
               {values.tripType === 'ROUND_TRIP' && (
                 <label className="text-ink-faint">
                   datum povratka
-                  <input
-                    type="date"
-                    value={values.returnDate}
-                    onChange={(e) => setValues((v) => ({ ...v, returnDate: e.target.value }))}
-                    className="input mt-1 w-full"
-                  />
+                  <div className="mt-1">
+                    <DateField value={values.returnDate} onChange={(iso) => setValues((v) => ({ ...v, returnDate: iso }))} className="input w-full" />
+                  </div>
                 </label>
               )}
 
@@ -343,7 +335,9 @@ function FlightLegsEditor({ value, onChange }: { value: string; onChange: (next:
                 placeholder="dokle"
                 className="input w-1/3"
               />
-              <input type="date" value={leg.date} onChange={(e) => updateLeg(i, { date: e.target.value })} className="input w-1/3" />
+              <div className="w-1/3">
+                <DateField value={leg.date} onChange={(iso) => updateLeg(i, { date: iso })} className="input" />
+              </div>
             </div>
           </div>
         ))}

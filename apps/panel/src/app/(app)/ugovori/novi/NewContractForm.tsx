@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { createContract, FormState } from '../../dobavljaci/actions';
+import DateField from '@/components/DateField';
 
 const CURRENCIES = ['EUR', 'RSD', 'USD'];
 
@@ -37,10 +38,10 @@ export default function NewContractForm({ suppliers }: { suppliers: { id: string
         </select>
       </Field>
       <Field label="važi od">
-        <input name="validFrom" type="date" required className="input" />
+        <DateField name="validFrom" required />
       </Field>
       <Field label="važi do">
-        <input name="validTo" type="date" required className="input" />
+        <DateField name="validTo" required />
       </Field>
       <Field label="uslovi otkazivanja (sažetak)">
         <textarea name="cancellationTermsSummary" rows={3} required className="input" />
