@@ -13,6 +13,12 @@ import Icon from './Icon';
 // `attributes.route` čiji tačan oblik M2 spec §2.3 nikad nije precizirao, `trip_cost` (M2 spec
 // §2.3) eksplicitno NIJE svojstvo proizvoda nego parametar ponude — filtriranje proizvoda po
 // njemu ne bi ništa značilo. Oba ostaju otvorena u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
+export interface FlightLeg {
+  originCity: string;
+  destinationCity: string;
+  date: string;
+}
+
 export interface SearchCriteriaValues {
   destinationCountry: string;
   destinationCity: string;
@@ -24,6 +30,12 @@ export interface SearchCriteriaValues {
   minDriverAge: string;
   durationNights: string;
   cabinType: string;
+  // M5 spec §3.0d.1 — tip putovanja određuje samo UI tok (ONE_WAY = jedan poziv, ROUND_TRIP =
+  // dva poziva uparena na klijentu, MULTI_CITY = niz poziva po nozi), nikad novi API parametar.
+  tripType: string;
+  originCity: string;
+  returnDate: string;
+  flightLegs: string; // JSON-encoded FlightLeg[], samo za MULTI_CITY
 }
 
 export function valuesFromSearchParams(sp: { get(key: string): string | null }): SearchCriteriaValues {
@@ -38,6 +50,10 @@ export function valuesFromSearchParams(sp: { get(key: string): string | null }):
     minDriverAge: sp.get('minDriverAge') ?? '',
     durationNights: sp.get('durationNights') ?? '',
     cabinType: sp.get('cabinType') ?? '',
+    tripType: sp.get('tripType') ?? 'ROUND_TRIP',
+    originCity: sp.get('originCity') ?? '',
+    returnDate: sp.get('returnDate') ?? '',
+    flightLegs: sp.get('flightLegs') ?? '',
   };
 }
 
@@ -145,20 +161,80 @@ export default function SearchCriteriaPopup({
           </label>
 
           {types.length === 1 && types[0] === 'FLIGHT' && (
-            <label className="text-ink-faint">
-              klasa (cabin class)
-              <select
-                value={values.cabinClass}
-                onChange={(e) => setValues((v) => ({ ...v, cabinClass: e.target.value }))}
-                className="input mt-1 w-full"
-              >
-                <option value="">— svejedno —</option>
-                <option value="ECONOMY">Economy</option>
-                <option value="PREMIUM_ECONOMY">Premium Economy</option>
-                <option value="BUSINESS">Business</option>
-                <option value="FIRST">First</option>
-              </select>
-            </label>
+            <>
+              <label className="text-ink-faint">
+                polazni grad
+                <input
+                  value={values.originCity}
+                  onChange={(e) => setValues((v) => ({ ...v, originCity: e.target.value }))}
+                  className="input mt-1 w-full"
+                  placeholder="Beograd"
+                />
+              </label>
+
+              <div>
+                <span className="text-ink-faint">tip putovanja</span>
+                <div className="mt-1 flex rounded border border-border text-[11px]">
+                  {[
+                    { value: 'ONE_WAY', label: 'Jednosmerno' },
+                    { value: 'ROUND_TRIP', label: 'Povratno' },
+                    { value: 'MULTI_CITY', label: 'Multidestinacija' },
+                  ].map((opt, i) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setValues((v) => ({
+                          ...v,
+                          tripType: opt.value,
+                          returnDate: opt.value === 'ROUND_TRIP' ? v.returnDate : '',
+                          flightLegs: opt.value === 'MULTI_CITY' ? v.flightLegs : '',
+                        }))
+                      }
+                      className={`flex-1 px-2 py-1.5 ${i > 0 ? 'border-l border-border' : ''} ${
+                        values.tripType === opt.value ? 'bg-accent font-semibold text-accent-ink' : 'text-ink-dim hover:bg-panel2'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {values.tripType === 'ROUND_TRIP' && (
+                <label className="text-ink-faint">
+                  datum povratka
+                  <input
+                    type="date"
+                    value={values.returnDate}
+                    onChange={(e) => setValues((v) => ({ ...v, returnDate: e.target.value }))}
+                    className="input mt-1 w-full"
+                  />
+                </label>
+              )}
+
+              {values.tripType === 'MULTI_CITY' && (
+                <FlightLegsEditor
+                  value={values.flightLegs}
+                  onChange={(next) => setValues((v) => ({ ...v, flightLegs: next }))}
+                />
+              )}
+
+              <label className="text-ink-faint">
+                klasa (cabin class)
+                <select
+                  value={values.cabinClass}
+                  onChange={(e) => setValues((v) => ({ ...v, cabinClass: e.target.value }))}
+                  className="input mt-1 w-full"
+                >
+                  <option value="">— svejedno —</option>
+                  <option value="ECONOMY">Economy</option>
+                  <option value="PREMIUM_ECONOMY">Premium Economy</option>
+                  <option value="BUSINESS">Business</option>
+                  <option value="FIRST">First</option>
+                </select>
+              </label>
+            </>
           )}
 
           {types.length === 1 && types[0] === 'TRANSPORT' && (
@@ -215,6 +291,70 @@ export default function SearchCriteriaPopup({
           <Icon name="search" /> pretraži
         </button>
       </div>
+    </div>
+  );
+}
+
+// Uređivač nogu puta za multidestinacijski let (M5 spec §3.0d.1 — "multi-city... niz poziva, po
+// jedan po nozi puta"). Vrednost putuje kao JSON string kroz `SearchCriteriaValues.flightLegs`
+// (isti obrazac kao `occupancy` u page.tsx) da ostane deo iste ravne URL parametar strukture.
+function FlightLegsEditor({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  let legs: FlightLeg[] = [];
+  try {
+    const parsed = value ? JSON.parse(value) : [];
+    if (Array.isArray(parsed)) legs = parsed;
+  } catch {
+    legs = [];
+  }
+  if (legs.length === 0) legs = [{ originCity: '', destinationCity: '', date: '' }];
+
+  function update(next: FlightLeg[]) {
+    onChange(JSON.stringify(next));
+  }
+
+  function updateLeg(i: number, patch: Partial<FlightLeg>) {
+    update(legs.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+
+  return (
+    <div>
+      <span className="text-ink-faint">noge puta</span>
+      <div className="mt-1 flex flex-col gap-2">
+        {legs.map((leg, i) => (
+          <div key={i} className="rounded border border-border p-2">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-[11px] font-medium text-ink-dim">let {i + 1}</span>
+              {legs.length > 1 && (
+                <button type="button" onClick={() => update(legs.filter((_, idx) => idx !== i))} className="text-ink-faint hover:text-danger">
+                  <Icon name="close" />
+                </button>
+              )}
+            </div>
+            <div className="flex gap-1">
+              <input
+                value={leg.originCity}
+                onChange={(e) => updateLeg(i, { originCity: e.target.value })}
+                placeholder="odakle"
+                className="input w-1/3"
+              />
+              <input
+                value={leg.destinationCity}
+                onChange={(e) => updateLeg(i, { destinationCity: e.target.value })}
+                placeholder="dokle"
+                className="input w-1/3"
+              />
+              <input type="date" value={leg.date} onChange={(e) => updateLeg(i, { date: e.target.value })} className="input w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => update([...legs, { originCity: '', destinationCity: '', date: '' }])}
+        className="mt-1 flex items-center gap-1 text-[11px] text-accent-strong hover:underline"
+      >
+        <Icon name="add" /> dodaj nogu puta
+      </button>
     </div>
   );
 }

@@ -225,6 +225,10 @@ function emptyValues(): SearchCriteriaValues {
     minDriverAge: '',
     durationNights: '',
     cabinType: '',
+    tripType: 'ROUND_TRIP',
+    originCity: '',
+    returnDate: '',
+    flightLegs: '',
   };
 }
 

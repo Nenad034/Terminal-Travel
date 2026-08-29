@@ -158,7 +158,33 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           );
         }
         if (types.length === 1 && types[0] === 'FLIGHT') {
-          return <FlightResultsMock stayFrom={quoteDefaults.stayFrom} cabinClass={cabinClass} priceMin={priceMin} priceMax={priceMax} />;
+          const tripType = first(searchParams.tripType) || 'ROUND_TRIP';
+          const originCity = first(searchParams.originCity) || null;
+          const returnDate = first(searchParams.returnDate) || null;
+          const destinationCity = first(searchParams.destinationCity) || null;
+          const flightLegsRaw = first(searchParams.flightLegs);
+          let flightLegs: { originCity: string; destinationCity: string; date: string }[] | undefined;
+          if (flightLegsRaw) {
+            try {
+              const parsed = JSON.parse(flightLegsRaw);
+              if (Array.isArray(parsed)) flightLegs = parsed;
+            } catch {
+              flightLegs = undefined;
+            }
+          }
+          return (
+            <FlightResultsMock
+              stayFrom={quoteDefaults.stayFrom}
+              returnDate={returnDate}
+              tripType={tripType}
+              originCity={originCity}
+              destinationCity={destinationCity}
+              flightLegs={flightLegs}
+              cabinClass={cabinClass}
+              priceMin={priceMin}
+              priceMax={priceMax}
+            />
+          );
         }
         if (types.length === 1 && types[0] === 'TRANSFER') {
           return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;

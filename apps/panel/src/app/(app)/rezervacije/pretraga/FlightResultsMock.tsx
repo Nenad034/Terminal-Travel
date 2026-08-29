@@ -105,30 +105,63 @@ function money(amountCents: number, currency: string): string {
   return `${(amountCents / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${currency}`;
 }
 
+function codeFor(city: string, fallback: string): string {
+  return city.trim() ? city.trim().slice(0, 3).toUpperCase() : fallback;
+}
+
+interface FlightLeg {
+  originCity: string;
+  destinationCity: string;
+  date: string;
+}
+
 export default function FlightResultsMock({
   stayFrom,
+  returnDate,
+  tripType,
+  originCity,
+  destinationCity,
+  flightLegs,
   cabinClass,
   priceMin,
   priceMax,
 }: {
-  /** Datum poletanja iz opštih "od/do" polja popup-a (M5 spec §3.0d.1 — `stay_from` = datum
-   * leta); mock ne razlikuje jednosmeran/povratni let, koristi isti datum za stayFrom/stayTo
-   * (jedan dan) da selekcija (§3.0e.3a) ima na čemu da proveri neusklađenost sa hotelom/transferom. */
+  /** Datum poletanja prve/jedine noge (M5 spec §3.0d.1 — `stay_from` = datum leta). */
   stayFrom?: string;
+  /** Samo za ROUND_TRIP. */
+  returnDate?: string | null;
+  /** ONE_WAY (podrazumevano ako nije prosleđeno) / ROUND_TRIP / MULTI_CITY — M5 spec §3.0d.1:
+   * "Tip putovanja određuje samo UI tok, ne novi API parametar". */
+  tripType?: string | null;
+  originCity?: string | null;
+  destinationCity?: string | null;
+  /** Samo za MULTI_CITY — jedna noga po pozivu `GET /search` (isto poglavlje). */
+  flightLegs?: FlightLeg[];
   cabinClass?: string | null;
   priceMin?: number | null;
   priceMax?: number | null;
 }) {
   const { items, addItem } = useSelection();
 
-  const flights = MOCK_FLIGHTS.filter((f) => {
-    if (cabinClass && f.cabinClass !== cabinClass) return false;
-    if (priceMin != null && f.price < priceMin) return false;
-    if (priceMax != null && f.price > priceMax) return false;
-    return true;
-  }).sort((a, b) => a.price - b.price);
+  function legFlights(from: string, to: string, idSuffix: string): MockFlight[] {
+    return MOCK_FLIGHTS.filter((f) => {
+      if (cabinClass && f.cabinClass !== cabinClass) return false;
+      if (priceMin != null && f.price < priceMin) return false;
+      if (priceMax != null && f.price > priceMax) return false;
+      return true;
+    })
+      .sort((a, b) => a.price - b.price)
+      .map((f) => ({
+        ...f,
+        id: `${f.id}-${idSuffix}`,
+        fromCity: from.trim() || f.fromCity,
+        fromCode: from.trim() ? codeFor(from, f.fromCode) : f.fromCode,
+        toCity: to.trim() || f.toCity,
+        toCode: to.trim() ? codeFor(to, f.toCode) : f.toCode,
+      }));
+  }
 
-  function select(f: MockFlight) {
+  function select(f: MockFlight, date?: string) {
     if (items.some((i) => i.key === f.id)) return;
     addItem({
       key: f.id,
@@ -136,8 +169,8 @@ export default function FlightResultsMock({
       productName: `${f.airline} ${f.flightNumber} — ${f.fromCity} → ${f.toCity}`,
       productType: 'FLIGHT',
       sourceType: 'API',
-      stayFrom,
-      stayTo: stayFrom,
+      stayFrom: date ?? stayFrom,
+      stayTo: date ?? stayFrom,
       adults: 1,
       children: 0,
       finalPrice: f.price,
@@ -147,60 +180,89 @@ export default function FlightResultsMock({
     });
   }
 
+  const legs: { label: string; from: string; to: string; date?: string; idSuffix: string }[] =
+    tripType === 'MULTI_CITY' && flightLegs && flightLegs.length > 0
+      ? flightLegs.map((l, i) => ({
+          label: `Let ${i + 1}: ${l.originCity || '?'} → ${l.destinationCity || '?'}`,
+          from: l.originCity,
+          to: l.destinationCity,
+          date: l.date || undefined,
+          idSuffix: `leg${i}`,
+        }))
+      : tripType === 'ROUND_TRIP'
+        ? [
+            { label: 'Polazak', from: originCity ?? '', to: destinationCity ?? '', date: stayFrom, idSuffix: 'out' },
+            { label: 'Povratak', from: destinationCity ?? '', to: originCity ?? '', date: returnDate ?? undefined, idSuffix: 'ret' },
+          ]
+        : [{ label: 'Let', from: originCity ?? '', to: destinationCity ?? '', date: stayFrom, idSuffix: 'ow' }];
+
   return (
     <div>
       <div className="mb-3 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
         MOCK — hardkodovani letovi, čeka potvrdu izgleda pre prave žice na `GET /search`.
       </div>
 
-      {flights.length === 0 ? (
-        <p className="text-center text-xs text-ink-faint">Nema letova za zadate kriterijume.</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {flights.map((f) => {
-            const selected = items.some((i) => i.key === f.id);
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => select(f)}
-                disabled={selected}
-                className={`flex items-center gap-4 rounded-lg border bg-panel p-3 text-left ${
-                  selected ? 'border-accent bg-accent-soft/40' : 'border-border hover:border-accent'
-                }`}
-              >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-panel2 text-accent">
-                  <Icon name="rocket" />
-                </div>
-                <div className="w-32 flex-shrink-0 text-xs text-ink-dim">
-                  <div className="font-medium text-ink">{f.airline}</div>
-                  <div className="text-ink-faint">{f.flightNumber}</div>
-                </div>
-                <div className="flex flex-1 items-center gap-3 text-sm">
-                  <div className="text-right">
-                    <div className="font-mono font-semibold text-ink">{f.departTime}</div>
-                    <div className="text-[11px] text-ink-faint">{f.fromCode}</div>
-                  </div>
-                  <div className="flex flex-1 flex-col items-center text-[11px] text-ink-faint">
-                    <span>{f.durationLabel}</span>
-                    <div className="h-px w-full bg-border" />
-                    <span>{f.stops === 0 ? 'direktan' : `${f.stops} presedanje`}</span>
-                  </div>
-                  <div>
-                    <div className="font-mono font-semibold text-ink">{f.arriveTime}</div>
-                    <div className="text-[11px] text-ink-faint">{f.toCode}</div>
-                  </div>
-                </div>
-                <div className="w-24 flex-shrink-0 text-[11px] text-ink-faint">{CABIN_CLASS_LABELS[f.cabinClass]}</div>
-                <div className="flex-shrink-0 font-mono text-sm font-semibold text-ink">
-                  {selected ? '✓ ' : ''}
-                  {money(f.price, f.currency)}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {legs.map((leg) => {
+        const flights = legFlights(leg.from, leg.to, leg.idSuffix);
+        return (
+          <div key={leg.idSuffix} className="mb-4 last:mb-0">
+            {legs.length > 1 && (
+              <h3 className="mb-2 text-sm font-semibold text-ink">
+                {leg.label}
+                {leg.date ? ` · ${leg.date}` : ''}
+              </h3>
+            )}
+            {flights.length === 0 ? (
+              <p className="text-center text-xs text-ink-faint">Nema letova za zadate kriterijume.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {flights.map((f) => {
+                  const selected = items.some((i) => i.key === f.id);
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => select(f, leg.date)}
+                      disabled={selected}
+                      className={`flex items-center gap-4 rounded-lg border bg-panel p-3 text-left ${
+                        selected ? 'border-accent bg-accent-soft/40' : 'border-border hover:border-accent'
+                      }`}
+                    >
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-panel2 text-accent">
+                        <Icon name="rocket" />
+                      </div>
+                      <div className="w-32 flex-shrink-0 text-xs text-ink-dim">
+                        <div className="font-medium text-ink">{f.airline}</div>
+                        <div className="text-ink-faint">{f.flightNumber}</div>
+                      </div>
+                      <div className="flex flex-1 items-center gap-3 text-sm">
+                        <div className="text-right">
+                          <div className="font-mono font-semibold text-ink">{f.departTime}</div>
+                          <div className="text-[11px] text-ink-faint">{f.fromCode}</div>
+                        </div>
+                        <div className="flex flex-1 flex-col items-center text-[11px] text-ink-faint">
+                          <span>{f.durationLabel}</span>
+                          <div className="h-px w-full bg-border" />
+                          <span>{f.stops === 0 ? 'direktan' : `${f.stops} presedanje`}</span>
+                        </div>
+                        <div>
+                          <div className="font-mono font-semibold text-ink">{f.arriveTime}</div>
+                          <div className="text-[11px] text-ink-faint">{f.toCode}</div>
+                        </div>
+                      </div>
+                      <div className="w-24 flex-shrink-0 text-[11px] text-ink-faint">{CABIN_CLASS_LABELS[f.cabinClass]}</div>
+                      <div className="flex-shrink-0 font-mono text-sm font-semibold text-ink">
+                        {selected ? '✓ ' : ''}
+                        {money(f.price, f.currency)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
