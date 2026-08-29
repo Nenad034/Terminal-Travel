@@ -174,6 +174,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
 - Tačan tehnički ugovor sa SEF v4.0.0 i izabranim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom.
 - Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
+- **Nalaz (29.8.2026):** ako se doda panel ekran za kursnu listu (`nbsMiddleRate`) ili pregled AI-uparivanja faktura (`matchConfidence`) — oba su Prisma `Decimal` polja, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj) od prvog dana tog ekrana.
 - Ograničenje gotovine (AML) — potvrditi sa pravnikom da li je ručna procedura dovoljna.
 - Kurs pri više uplata u različitim danima (avans + balans) — zahteva potvrdu knjigovođe.
 - Izbor konkretnog PCI-DSS platnog provajdera koji podržava RSD/lokalne kartice. **Do tada:** `card/initiate` odgovor izlaže `gatewayTransactionId` i M8 sam poziva `card/webhook` odmah posle initiate (simulira korak provajdera, poglavlje 7.1/7.2 dopuna avgust 2026) — ukloniti čim stvaran hostovani checkout postoji.
@@ -210,6 +211,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§9, `docs/moduli/M13-bi/13-SPECIFIKACIJA-M13-BI.md`)*
 - Tačan skup KPI-jeva koje AI agent proaktivno ističe — širi se po potrebi.
 - Break-even/P&L izveštaj za `CHARTER`/`FIXED_LEASE` periode — dodaje se kad se pokaže potreba.
+- **Nalaz (29.8.2026):** trenutni izveštaji ne prikazuju nijedno Prisma `Decimal` polje direktno (provereno) — ako se to promeni, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj).
 - Sačuvani/preporučeni preseti redosleda dimenzija za dinamički izveštaj — UX pogodnost za M17.
 
 ## M14 — Podrška / Helpdesk
