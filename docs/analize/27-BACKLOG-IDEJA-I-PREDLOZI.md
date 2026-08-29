@@ -187,6 +187,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - FX rizik kod `BANK_TRANSFER` isplata u stranoj valuti — potvrditi sa knjigovođom.
 - `buyer_acceptance_status → EXPIRED` prelazak nije implementiran (nema periodičnog posla koji proverava istekle 15-dnevne rokove) — dodato pri implementaciji, avgust 2026.
 - `virtual_card_reference` nema programsku zaštitu od unosa punog broja kartice — dodato pri implementaciji, avgust 2026.
+- **AI ekstrakcija konačne fakture treba i status plaćanja, ne samo iznos** (podsetnik vlasnika, 29.8.2026) — dopuna već postojećeg §8.6 (`SupplierInvoiceImport`, čeka se izbor AI provajdera, ista stavka kao "stvarna AI ekstrakcija ulazne fakture" u izlaznom kriterijumu poglavlje 11): treba `extracted_payment_status` na `SupplierInvoiceImportRow` i nova vrednost `PARTIALLY_PAID` na `SupplierObligation.status` (§8.1), da se poređenje dokument-naspram-TT-stanja (deljen `reconciliation_mismatch` signal, §5.3) proteže i na delimično plaćene fakture. Detalji: M10 spec §12/v1.17.
 - **Zakon o zaštiti potrošača — rok povraćaja novca (istraživanje, avgust 2026):** `RefundInstruction` (poglavlje 8.5.3) prati status (`PENDING → APPROVED → EXECUTED`) ali nema rok/deadline polje niti alarm — zakon (prema istraženim izvorima, potrebna potvrda pravnika) traži povraćaj u roku od 14 dana od otkazivanja. Isti obrazac kao `buyer_acceptance_deadline` (§6) samo primenjen na refundaciju — mehanička dopuna kad se rok potvrdi.
 
 ## M11 — Regulatorni modul (Compliance)
