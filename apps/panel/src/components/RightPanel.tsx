@@ -14,6 +14,7 @@ import AiChatBox from './AiChatBox';
 import ProductPreviewCard from './ProductPreviewCard';
 import ProductContactCard from './ProductContactCard';
 import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
+import AuditLogEntrySummaryCard from './AuditLogEntrySummaryCard';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -52,6 +53,11 @@ const PRODUCT_PREGLED_RE = /^\/katalog\/([^/]+)\/pregled$/;
 // (nav.ts) nema poseban `moduleId` samo za ovaj ekran.
 const PROCESS_MAP_RE = /^\/nadzor\/procesne-mape\/[^/]+$/;
 
+// M1 spec §7 dopuna (29.8.2026, na zahtev vlasnika: "kada se klikne na jednu stavku iz ovakvih
+// lista da se otvori desni panel sa detaljnim informacijama") — isti obrazac kao gornje dve
+// rute: provera po RUTI, "Administracija" grupa (nav.ts) nema poseban `moduleId` za ovaj ekran.
+const AUDIT_LOG_RE = /^\/audit-log$/;
+
 function clampPercent(value: number): number {
   return Math.min(80, Math.max(15, value));
 }
@@ -79,6 +85,7 @@ export default function RightPanel({
   const pathname = usePathname();
   const productPregledMatch = pathname.match(PRODUCT_PREGLED_RE);
   const processMapMatch = pathname.match(PROCESS_MAP_RE);
+  const auditLogMatch = pathname.match(AUDIT_LOG_RE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // M5 spec §3.0e.3a (dopuna 29.8.2026) — upozorenje o neusklađenim datumima PREVOZ/BORAVAK
@@ -213,7 +220,9 @@ export default function RightPanel({
                 : 'Izdvajanje'
             : processMapMatch
               ? 'Detalj čvora'
-              : collectedItems.length > 0
+              : auditLogMatch
+                ? 'Detalj zapisa'
+                : collectedItems.length > 0
                 ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
                 : `Podsetnik — ${moduleLabel}`}
         </span>
@@ -347,7 +356,17 @@ export default function RightPanel({
         </div>
       )}
 
-      {!isProdaja && !productPregledMatch && !processMapMatch && collectedItems.length === 0 && (
+      {/* M1 spec §7 dopuna — klik na red audit loga (AuditLogRows.tsx) puni RowSummary, isti
+          prioritet kao gornji blokovi. */}
+      {auditLogMatch && summary?.kind === 'audit-log-entry' && <AuditLogEntrySummaryCard summary={summary} />}
+      {auditLogMatch && !summary && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+          <Icon name="inspect" className="text-2xl" />
+          <p>Klikni na red da vidiš detalje ovde.</p>
+        </div>
+      )}
+
+      {!isProdaja && !productPregledMatch && !processMapMatch && !auditLogMatch && collectedItems.length === 0 && (
         <div
           className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
             dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
@@ -358,7 +377,7 @@ export default function RightPanel({
         </div>
       )}
 
-      {!isProdaja && !productPregledMatch && !processMapMatch && collectedItems.length > 0 && (
+      {!isProdaja && !productPregledMatch && !processMapMatch && !auditLogMatch && collectedItems.length > 0 && (
         <div className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}>
           <div className="flex-1 overflow-y-auto p-2">
             <div className="flex flex-col gap-2">

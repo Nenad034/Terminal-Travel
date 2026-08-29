@@ -1,29 +1,13 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
-import ActorLabel from '@/components/ActorLabel';
 import { Button } from '@/components/ui/button';
-
-interface AuditLogEntry {
-  id: string;
-  action: string;
-  module: string;
-  actorType: string;
-  actorId: string;
-  resourceType: string;
-  resourceId: string;
-  // M1 `AuditLogEntry.timestamp` (schema.prisma) — ekran je do sad čitao nepostojeći
-  // `createdAt`, pa je svaki red prikazivao "Invalid Date" (nalaz iz live-provere, avgust 2026).
-  timestamp: string;
-  beforeState?: unknown;
-  afterState?: unknown;
-}
+import AuditLogRows, { type AuditLogEntry } from './AuditLogRows';
 
 // M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
 // (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
 // korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
 // (isti princip kao §3 — panel ne izmišlja dozvole, samo poštuje ono što API vrati).
-// ActorType (HUMAN/AI_AGENT/SYSTEM) preveden u reč koju čovek čita; bedž ("AI") dodaje ActorLabel.
 // `back` dolazi iz query stringa (ProcessMapNodeSummaryCard.tsx) — iako ga danas generiše samo
 // naš kod, tretira se kao nepouzdan ulaz (bilo ko može ručno da izmeni URL): prihvata se samo
 // putanja unutar aplikacije (počinje jednim "/", nikad "//" — trik za protokol-relativni URL ka
@@ -34,24 +18,26 @@ function safeInternalPath(path: string | undefined): string | null {
   return path;
 }
 
-function actorWord(actorType: string): string {
-  if (actorType === 'HUMAN') return 'korisnik';
-  if (actorType === 'AI_AGENT') return 'AI agent';
-  if (actorType === 'SYSTEM') return 'sistem';
-  return 'nepoznat akter';
+interface AuditLogSearchParams {
+  module?: string;
+  action?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  back?: string;
+  backLabel?: string;
 }
 
-export default async function AuditLogPage({
-  searchParams,
-}: {
-  searchParams: { module?: string; action?: string; back?: string; backLabel?: string };
-}) {
+export default async function AuditLogPage({ searchParams }: { searchParams: AuditLogSearchParams }) {
   let entries: AuditLogEntry[] = [];
   let error: string | null = null;
   try {
     const qs = new URLSearchParams();
     if (searchParams?.module) qs.set('module', searchParams.module);
     if (searchParams?.action) qs.set('action', searchParams.action);
+    if (searchParams?.q) qs.set('q', searchParams.q);
+    if (searchParams?.from) qs.set('from', searchParams.from);
+    if (searchParams?.to) qs.set('to', searchParams.to);
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     entries = await apiFetch<AuditLogEntry[]>(`/iam/audit-log${suffix}`);
   } catch {
@@ -59,6 +45,7 @@ export default async function AuditLogPage({
   }
 
   const hasFilter = Boolean(searchParams?.module || searchParams?.action);
+  const hasSearch = Boolean(searchParams?.q || searchParams?.from || searchParams?.to);
   const backHref = safeInternalPath(searchParams?.back);
 
   return (
@@ -94,33 +81,54 @@ export default async function AuditLogPage({
         </div>
       )}
 
+      {/* Dopuna (29.8.2026, na zahtev vlasnika: "dodajte i pretragu po pojmu i datumu", M1
+          spec §6/§7) — `module`/`action`/`back`/`backLabel` se prenose kao skriveni ulazi da
+          pretraga po pojmu/datumu ne obriše filter stigao klikom sa procesne mape. */}
+      <form className="mb-3 flex flex-wrap items-end gap-2 text-xs" action="/audit-log">
+        {searchParams?.module && <input type="hidden" name="module" value={searchParams.module} />}
+        {searchParams?.action && <input type="hidden" name="action" value={searchParams.action} />}
+        {searchParams?.back && <input type="hidden" name="back" value={searchParams.back} />}
+        {searchParams?.backLabel && <input type="hidden" name="backLabel" value={searchParams.backLabel} />}
+        <label className="flex flex-col gap-0.5">
+          <span className="text-ink-faint">pojam</span>
+          <input name="q" defaultValue={searchParams?.q ?? ''} placeholder="akcija, resurs, modul…" className="input" />
+        </label>
+        <label className="flex flex-col gap-0.5">
+          <span className="text-ink-faint">od datuma</span>
+          <input name="from" type="date" defaultValue={searchParams?.from ?? ''} className="input" />
+        </label>
+        <label className="flex flex-col gap-0.5">
+          <span className="text-ink-faint">do datuma</span>
+          <input name="to" type="date" defaultValue={searchParams?.to ?? ''} className="input" />
+        </label>
+        <Button type="submit" variant="secondary" size="sm">
+          pretraži
+        </Button>
+        {hasSearch && (
+          <Button asChild variant="ghost" size="sm">
+            <Link
+              href={(() => {
+                const qs = new URLSearchParams();
+                if (searchParams?.module) qs.set('module', searchParams.module);
+                if (searchParams?.action) qs.set('action', searchParams.action);
+                if (searchParams?.back) qs.set('back', searchParams.back);
+                if (searchParams?.backLabel) qs.set('backLabel', searchParams.backLabel);
+                const suffix = qs.toString() ? `?${qs.toString()}` : '';
+                return `/audit-log${suffix}`;
+              })()}
+            >
+              obriši pretragu
+            </Link>
+          </Button>
+        )}
+      </form>
+
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
         <div className="overflow-hidden rounded-lg border border-border">
           {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
-          {entries.map((e) => (
-            // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
-            // obavestava") — dashboard "M1 — bezbednosna upozorenja" sad linkuje TAČNO na red
-            // koji ga je prouzrokovao (`/audit-log#audit-{id}`), ne samo na opštu listu.
-            <div key={e.id} id={`audit-${e.id}`} className="border-b border-border bg-panel px-4 py-2 font-mono text-xs last:border-b-0 hover:bg-panel-2">
-              <span className="text-ink-faint">{new Date(e.timestamp).toLocaleString('sr-RS')}</span>{' '}
-              <span className="text-accent2">{e.module}</span> <span className="text-ink">{e.action}</span>{' '}
-              <span className="text-ink-dim">
-                {e.resourceType}#{e.resourceId?.slice(0, 8)}
-              </span>{' '}
-              {/* §3.1 / 29-DIZAJN-SISTEM-UI.md §6a — ranije je ovde stajala sirova enum vrednost
-                  (`[AI_AGENT]`). Ime aktera audit log API ne vraća (samo actorId), pa se prikazuje
-                  čitljiva reč za poreklo + skraćen ID kao identifikator — ID je ovde legitiman
-                  jer je audit log tehnički prikaz (§3, monospace za ID-jeve), enum nije. */}
-              <ActorLabel
-                origin={e.actorType}
-                name={actorWord(e.actorType)}
-                className="text-ink-faint"
-              />{' '}
-              <span className="text-ink-faint">#{e.actorId?.slice(0, 8) ?? '—'}</span>
-            </div>
-          ))}
+          <AuditLogRows entries={entries} />
         </div>
       )}
     </div>

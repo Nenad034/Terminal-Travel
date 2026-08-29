@@ -82,7 +82,27 @@ export interface ProcessMapNodeSummary {
   lastAt: string | null;
 }
 
-export type RowSummary = BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary;
+// M1 spec §7 dopuna (29.8.2026, na zahtev vlasnika: "kada se klikne na jednu stavku iz ovakvih
+// lista da se otvori desni panel sa detaljnim informacijama" — potvrđeno da važi i za sam audit
+// log, ne samo za čvorove procesne mape). Isti obrazac, četvrti `kind` — `before_state`/
+// `after_state` su ovde nesređen JSON (šta god je zapisano pri upisu), prikazuju se kao takvi.
+export interface AuditLogEntrySummary {
+  kind: 'audit-log-entry';
+  id: string;
+  timestamp: string;
+  module: string;
+  action: string;
+  actorType: string;
+  actorId: string | null;
+  resourceType: string;
+  resourceId: string;
+  ipAddress: string | null;
+  beforeState?: unknown;
+  afterState?: unknown;
+  context?: unknown;
+}
+
+export type RowSummary = BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary | AuditLogEntrySummary;
 
 interface RowSummaryContextValue {
   summary: RowSummary | null;
