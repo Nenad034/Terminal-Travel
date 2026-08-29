@@ -94,25 +94,7 @@ export class AuthService {
     }
     const passwordOk = await argon2.verify(user.passwordHash, password);
     if (!passwordOk) {
-      const attempts = user.failedLoginAttempts + 1;
-      const shouldLock = attempts >= FAILED_ATTEMPTS_BEFORE_LOCK;
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLoginAttempts: shouldLock ? 0 : attempts,
-          lockedUntil: shouldLock ? new Date(Date.now() + LOCK_DURATION_MINUTES * 60_000) : null,
-        },
-      });
-      await this.auditLog.write({
-        actorType: 'HUMAN',
-        actorId: user.id,
-        module: 'M1',
-        action: shouldLock ? 'user.locked' : 'auth.login_failed',
-        resourceType: 'User',
-        resourceId: user.id,
-        context: { attempts },
-        ipAddress: ip,
-      });
+      await this.recordFailedAttempt(user.id, user.failedLoginAttempts, ip, 'auth.login_failed');
       throw new UnauthorizedException('Pogrešan email ili lozinka');
     }
 
@@ -148,13 +130,49 @@ export class AuthService {
     if (payload.type !== 'mfa_pending') throw new UnauthorizedException();
 
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: payload.sub } });
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new ForbiddenException('Nalog je privremeno zaključan — pokušajte kasnije');
+    }
     if (!user.mfaSecretEncrypted) throw new ForbiddenException('MFA nije podešena za ovaj nalog');
 
     const secret = decryptSecret(user.mfaSecretEncrypted);
     const valid = authenticator.verify({ token: code, secret });
-    if (!valid) throw new UnauthorizedException('Neispravan MFA kod');
+    if (!valid) {
+      // M1 spec §5 (dopunjeno 29.8.2026) — pogrešan MFA kod prati isti brojač/zaključavanje
+      // kao pogrešna lozinka; do ove dopune se uopšte nije beležio ni brojao.
+      await this.recordFailedAttempt(user.id, user.failedLoginAttempts, ip, 'auth.mfa_failed');
+      throw new UnauthorizedException('Neispravan MFA kod');
+    }
+
+    // Uspešna MFA — resetuj brojač (isti obrazac kao uspešna lozinka u login()).
+    await this.prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
 
     return this.issueTokens(user.id, ip, userAgent);
+  }
+
+  // M1 spec §5 — zajednička putanja za pogrešnu lozinku i pogrešan MFA kod: isti brojač
+  // (`failed_login_attempts`), isto zaključavanje posle `FAILED_ATTEMPTS_BEFORE_LOCK`, isti
+  // audit trag — namerno bez posebnog brojača/roka po koraku prijave.
+  private async recordFailedAttempt(userId: string, currentAttempts: number, ip: string | null, failedAction: string) {
+    const attempts = currentAttempts + 1;
+    const shouldLock = attempts >= FAILED_ATTEMPTS_BEFORE_LOCK;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        failedLoginAttempts: shouldLock ? 0 : attempts,
+        lockedUntil: shouldLock ? new Date(Date.now() + LOCK_DURATION_MINUTES * 60_000) : null,
+      },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: userId,
+      module: 'M1',
+      action: shouldLock ? 'user.locked' : failedAction,
+      resourceType: 'User',
+      resourceId: userId,
+      context: { attempts },
+      ipAddress: ip,
+    });
   }
 
   private async issueTokens(userId: string, ip: string | null, userAgent: string | null) {

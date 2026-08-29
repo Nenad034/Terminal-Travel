@@ -242,3 +242,55 @@ Zahteva `M18/ai-agent-budget/EDIT`. Za razliku od `/ai-provider-quota`, `budgetL
 ```json
 { "budgetLimitEur": 1 }
 ```
+
+---
+
+## GET /process-maps
+
+Katalog registrovanih "živih procesnih mapa" (M18 spec §9a, dopunjeno 29.8.2026) — definicija bez brojeva, za listu kartica u panelu. Zahteva `M18/process-map/VIEW`.
+
+**Odgovor `200`:**
+```json
+[
+  {
+    "key": "m1-security",
+    "label": "M1 — bezbednosni signali",
+    "module": "M1",
+    "nodes": [
+      { "id": "login-success", "label": "Uspešna prijava", "matchActions": ["auth.login_success"] },
+      { "id": "login-failed", "label": "Pogrešna lozinka", "matchActions": ["auth.login_failed"] },
+      { "id": "mfa-failed", "label": "Pogrešan MFA kod", "matchActions": ["auth.mfa_failed"] },
+      { "id": "account-locked", "label": "Nalog zaključan", "matchActions": ["user.locked"] },
+      { "id": "password-reset", "label": "Lozinka resetovana", "matchActions": ["auth.password_reset"] }
+    ]
+  }
+]
+```
+
+## GET /process-maps/:key/live
+
+Broj i vreme poslednjeg zapisa po čvoru, u proteklih `windowMinutes` minuta (podrazumevano 1440). Čita direktno iz M1 audit loga — ne novi izvor podataka, samo prikaz nad postojećim. Zahteva `M18/process-map/VIEW`.
+
+**Zahtev:**
+```
+GET /api/v1/ops/process-maps/m1-security/live?windowMinutes=60
+```
+
+**Odgovor `200`:**
+```json
+{
+  "key": "m1-security",
+  "label": "M1 — bezbednosni signali",
+  "nodes": [
+    { "id": "login-success", "label": "Uspešna prijava", "count": 60, "capped": false, "lastAt": "2026-08-29T19:56:49.355Z" },
+    { "id": "login-failed", "label": "Pogrešna lozinka", "count": 2, "capped": false, "lastAt": "2026-08-29T20:01:18.000Z" },
+    { "id": "mfa-failed", "label": "Pogrešan MFA kod", "count": 0, "capped": false, "lastAt": null },
+    { "id": "account-locked", "label": "Nalog zaključan", "count": 0, "capped": false, "lastAt": null },
+    { "id": "password-reset", "label": "Lozinka resetovana", "count": 0, "capped": false, "lastAt": null }
+  ]
+}
+```
+
+`capped: true` znači da je broj zapisa dostigao interni limit od 200 (`AuditLogService.find()`) — stvaran broj u prozoru može biti veći, namerno vidljivo umesto tiho pogrešno.
+
+`404` ako `:key` nije registrovan.

@@ -5,10 +5,12 @@ const TABS: { href: string; label: string }[] = [
   { href: '/nadzor/kanali', label: 'kanali obaveštenja' },
   { href: '/nadzor/trendovi', label: 'trendovi' },
   { href: '/nadzor/ai-troskovi', label: 'AI troškovi' },
+  { href: '/nadzor/procesne-mape', label: 'procesne mape' },
 ];
 
-// M18 — mala navigacija između 4 podekrana ovog modula (signali/kanali/trendovi/AI troškovi),
-// isti obrazac dugmadi kao /crm header linkovi ka /crm/ankete i /crm/gosti.
+// M18 — mala navigacija između 5 podekrana ovog modula (signali/kanali/trendovi/AI troškovi/
+// procesne mape, dopunjeno 29.8.2026, M18 spec §9a), isti obrazac dugmadi kao /crm header
+// linkovi ka /crm/ankete i /crm/gosti.
 export default function NadzorSubnav({ active }: { active: string }) {
   return (
     <div className="mb-4 flex gap-1.5 text-xs">

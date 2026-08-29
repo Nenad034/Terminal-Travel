@@ -251,7 +251,7 @@ const M15_BI_TERMINAL_PERMISSION: { module: string; resource: string; action: st
   },
 ];
 
-// M18 spec §7 — dozvole operativnog nadzora. Svih devet ide isključivo Vlasniku/Direktoru
+// M18 spec §7 — dozvole operativnog nadzora. Sve idu isključivo Vlasniku/Direktoru
 // (spec tabela — nema šire uloge, isti obrazac kao M15 dozvole).
 const M18_PERMISSIONS: { module: string; resource: string; action: string; description: string }[] = [
   { module: 'M18', resource: 'health-signal', action: 'VIEW', description: 'Uvid u detektovane operativne signale (kvarovi/nepravilnosti kroz sve module)' },
@@ -266,6 +266,7 @@ const M18_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M18', resource: 'ai-provider-quota', action: 'OVERRIDE', description: 'Ručan povratak iz DEGRADED u NORMAL pre isteka perioda' },
   { module: 'M18', resource: 'ai-agent-budget', action: 'VIEW', description: 'Uvid u budžet po pojedinačnom AI agentu' },
   { module: 'M18', resource: 'ai-agent-budget', action: 'EDIT', description: 'Izmena/kreiranje budžeta pojedinačnog AI agenta' },
+  { module: 'M18', resource: 'process-map', action: 'VIEW', description: 'Uvid u živu procesnu mapu (dopunjeno 29.8.2026, M18 spec §9a)' },
 ];
 
 // M19 spec §7/§9.6 — dozvole komunikacione platforme. conversation/* je interni tim-chat (širi

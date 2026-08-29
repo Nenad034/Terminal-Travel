@@ -167,6 +167,7 @@ Napomena: uloge za B2B portal (M7) i vodiče na terenu (M9) dodate su tek kad su
 - **2FA (TOTP, RFC 6238):** **obavezna** za sve interne uloge (Vlasnik, Direktor, HR, Sales Manager, Prodajni agent, Računovođa) — ne može se ugasiti od strane samog korisnika. Za **Gosta** opciona (korisnik je sam uključuje ako želi).
 - Pri uključivanju 2FA generiše se 10 jednokratnih rezervnih kodova (hešованih u bazi) za slučaj gubitka uređaja.
 - **Zaključavanje naloga:** posle 5 uzastopnih neuspešnih pokušaja, nalog se privremeno zaključava na 15 minuta (`locked_until`), uz upis u audit log.
+- **Zaključavanje na neuspešan MFA kod** (dopunjeno 29.8.2026, nalaz pri gradnji M18 "Live procesna mapa" — vidi M18 spec §11): pravilo iz stavke iznad se primenjivalo samo na pogrešnu lozinku (prvi korak) — pogrešan TOTP kod u drugom koraku (`POST /auth/mfa/verify`) se do sad **nije beležio ni brojao uopšte**, što je značilo da je neko sa ukradenom lozinkom mogao neograničeno da pogađa MFA kod bez traga i bez zaustavljanja. Ovo nije bila svesna odluka — ispravlja se kao dovršetak već postojeće politike, ne kao nova: svaki neuspešan `POST /auth/mfa/verify` upisuje `auth.mfa_failed` u audit log i uvećava **isti** `failed_login_attempts` brojač kao pogrešna lozinka; posle 5 (`FAILED_ATTEMPTS_BEFORE_LOCK`) nalog se zaključava na istih 15 minuta (`LOCK_DURATION_MINUTES`), isti mehanizam, ista konstanta — namerno ne uvodi se poseban brojač/rok samo za MFA.
 - **Zaboravljena lozinka:** token sa rokom od 1h, poslat na email, jednokratan.
 - **Pozivanje novog korisnika:** status `INVITED` → email sa linkom za postavljanje lozinke i (ako je interna uloga) obavezno podešavanje 2FA pre prvog pristupa bilo čemu osim te stranice.
 - **Samostalna registracija gosta (dopuna avgust 2026, M8 poglavlje 4).** Za razliku od internih uloga (koje uvek nastaju kroz `POST /users`, status `INVITED`, poziva ih neko sa `M1/user/CREATE`), gost sa javnog sajta (M8) i mobilne aplikacije (M9) sam sebi otvara nalog preko `POST /auth/register` — bez guard-a, bez `M1/user/CREATE` dozvole, jer poziv dolazi od anonimnog posetioca. Kreirani `User` dobija `account_type = GUEST`, `status = ACTIVE` odmah (ne `INVITED` — gost ne prolazi kroz tok pozivanja jer sam sebe registruje), lozinku po istim pravilima kao gore (Argon2id, min 12, provera probijenih lozinki), i 2FA ostaje opciona kao za svakog Gosta. Posle upisa u bazu, endpoint odmah izdaje access + refresh token par (isti par kao uspešna prijava bez 2FA) i emituje event `user.registered.guest` (Postgres LISTEN/NOTIFY, isti mehanizam kao ostali moduli) — M6 taj event hvata da napravi `ClientAccount(account_type=INDIVIDUAL)` i poveže je na `User.linked_profile_id` (M6 specifikacija, dopuna u istom prolazu). **`GuestProfile` se ne pravi pri registraciji** — taj zapis traži podatke o putnom dokumentu (broj, nacionalnost, datum rođenja) koje registracija ne prikuplja; pravi se kasnije, kad gost stvarno unese te podatke. M1 sam ne kreira M6 zapise — modul ne piše direktno u tuđu bazu, samo emituje događaj (princip #2, poglavlje 3 Master dokumenta).
@@ -181,7 +182,7 @@ Prefiks: `/api/v1/iam`
 | :---- | :---- | :---- |
 | `/auth/register` | POST | **javan, bez guard-a** — samostalna registracija gosta (email, lozinka, ime, telefon opciono), `account_type = GUEST`, `status = ACTIVE`; izdaje access + refresh token i emituje `user.registered.guest` (poglavlje 5) |
 | `/auth/login` | POST | email + lozinka → ako 2FA uključena, vraća privremeni token koji traži `/auth/mfa/verify` |
-| `/auth/mfa/verify` | POST | TOTP kod → izdaje access + refresh token |
+| `/auth/mfa/verify` | POST | TOTP kod → izdaje access + refresh token; pogrešan kod upisuje `auth.mfa_failed` i uvećava isti brojač/zaključavanje kao pogrešna lozinka (poglavlje 5, dopunjeno 29.8.2026) |
 | `/auth/refresh` | POST | refresh token → novi access + rotiran refresh token |
 | `/auth/logout` | POST | opoziva refresh token (jedan uređaj ili svi — parametar) |
 | `/auth/password/forgot` | POST | šalje reset link |
@@ -192,7 +193,7 @@ Prefiks: `/api/v1/iam`
 | `/users/:id/permission-overrides` | GET / POST / DELETE | pregled/dodela/uklanjanje pojedinačnog izuzetka — obavezan `reason` |
 | `/roles` | GET / POST / PATCH | katalog uloga |
 | `/permissions` | GET | katalog svih registrovanih dozvola (svi moduli) |
-| `/audit-log` | GET | filtriranje po korisniku/modulu/datumu — samo za uloge sa `M1/audit-log/VIEW` (podrazumevano: Vlasnik, Direktor) |
+| `/audit-log` | GET | filtriranje po korisniku/modulu/datumu/**akciji** (`action`, opciono, više vrednosti odvojenih zarezom — dodato 29.8.2026 za M18 "Live procesna mapa", poglavlje 9a te specifikacije) — samo za uloge sa `M1/audit-log/VIEW` (podrazumevano: Vlasnik, Direktor) |
 | `/users/me/preferences` | GET | vraća sve `UserPreference` (poglavlje 3.9) trenutno prijavljenog korisnika, kao mapu `key → value` |
 | `/users/me/preferences/:key` | PUT | upisuje/menja jednu vrednost; nema poseban guard osim prijave — korisnik menja isključivo svoje |
 

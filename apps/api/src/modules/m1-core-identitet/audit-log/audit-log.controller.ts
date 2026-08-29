@@ -18,12 +18,14 @@ export class AuditLogController {
   find(
     @Query('module') module?: string,
     @Query('actorId') actorId?: string,
+    @Query('action') action?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
     return this.auditLog.find({
       module,
       actorId,
+      actions: action ? action.split(',').map((a) => a.trim()).filter(Boolean) : undefined,
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
     });

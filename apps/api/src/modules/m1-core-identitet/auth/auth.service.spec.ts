@@ -300,6 +300,80 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('refreshToken');
       expect(prisma.refreshToken.create).toHaveBeenCalled();
     });
+
+    it('odbija kad je nalog već zaključan, pre provere koda (M1 spec §5, dopunjeno 29.8.2026)', async () => {
+      const { service, prisma } = makeService();
+      const secret = authenticator.generateSecret();
+      const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        lockedUntil: new Date(Date.now() + 10 * 60_000),
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
+
+      await expect(service.verifyMfa(mfaToken, '000000', null, null)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('pogrešan TOTP kod piše audit log "auth.mfa_failed" i uvećava isti brojač kao pogrešna lozinka (M1 spec §5, dopunjeno 29.8.2026)', async () => {
+      const { service, prisma, auditLog } = makeService();
+      const secret = authenticator.generateSecret();
+      const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        lockedUntil: null,
+        failedLoginAttempts: 2,
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
+
+      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(UnauthorizedException);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { failedLoginAttempts: 3, lockedUntil: null },
+      });
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'auth.mfa_failed', ipAddress: '1.2.3.4' }),
+      );
+    });
+
+    it('peti uzastopni pogrešan MFA kod zaključava nalog na 15 minuta, isto kao pogrešna lozinka (M1 spec §5, dopunjeno 29.8.2026)', async () => {
+      const { service, prisma, auditLog } = makeService();
+      const secret = authenticator.generateSecret();
+      const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        lockedUntil: null,
+        failedLoginAttempts: 4, // ovo je peti pokušaj
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
+
+      await expect(service.verifyMfa(mfaToken, '000000', '1.2.3.4', null)).rejects.toThrow(UnauthorizedException);
+
+      const updateCall = prisma.user.update.mock.calls[0][0];
+      expect(updateCall.data.failedLoginAttempts).toBe(0);
+      expect(updateCall.data.lockedUntil).toBeInstanceOf(Date);
+      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.locked' }));
+    });
+
+    it('uspešan MFA kod resetuje brojač neuspešnih pokušaja (isti obrazac kao uspešna lozinka)', async () => {
+      const { service, prisma } = makeService();
+      const secret = authenticator.generateSecret();
+      const validCode = authenticator.generate(secret);
+      const mfaToken = jwt.sign({ sub: 'u1', type: 'mfa_pending' });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'u1',
+        lockedUntil: null,
+        failedLoginAttempts: 3,
+        mfaSecretEncrypted: encryptSecret(secret),
+      });
+
+      await service.verifyMfa(mfaToken, validCode, null, null);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+    });
   });
 
   describe('refresh (M1 spec §3.7 — rotira pri svakom korišćenju)', () => {

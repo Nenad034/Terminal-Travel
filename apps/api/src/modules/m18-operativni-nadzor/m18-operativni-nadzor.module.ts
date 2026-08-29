@@ -21,6 +21,8 @@ import { AiProviderQuotaController } from './ai-provider-quota/ai-provider-quota
 import { AiProviderQuotaService } from './ai-provider-quota/ai-provider-quota.service';
 import { AiAgentBudgetsController } from './ai-agent-budgets/ai-agent-budgets.controller';
 import { AiAgentBudgetsService } from './ai-agent-budgets/ai-agent-budgets.service';
+import { ProcessMapsController } from './process-maps/process-maps.controller';
+import { ProcessMapsService } from './process-maps/process-maps.service';
 import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
@@ -42,6 +44,7 @@ import { EventBusModule } from '../../common/events/event-bus.module';
     AgentInvocationsController,
     AiProviderQuotaController,
     AiAgentBudgetsController,
+    ProcessMapsController,
   ],
   providers: [
     HealthSignalsService,
@@ -58,6 +61,7 @@ import { EventBusModule } from '../../common/events/event-bus.module';
     ModelTierResolverService,
     AiProviderQuotaService,
     AiAgentBudgetsService,
+    ProcessMapsService,
   ],
   // HealthSignalsService — dodato pri implementaciji M21 (avgust 2026): HelpAbuseDetectorService
   // (§5.5) kreira HELP_AGENT_ABUSE_PATTERN signale preko in-process DI, isti obrazac kao

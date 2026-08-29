@@ -41,11 +41,14 @@ export class AuditLogService {
     });
   }
 
-  async find(filter: { module?: string; actorId?: string; from?: Date; to?: Date }) {
+  // `actions` (dodato 29.8.2026, M18 spec §9a — "Live procesna mapa") — filtriranje na
+  // više `action` vrednosti odjednom (npr. čvor mape koji objedinjuje dve srodne akcije).
+  async find(filter: { module?: string; actorId?: string; actions?: string[]; from?: Date; to?: Date }) {
     return this.prisma.auditLogEntry.findMany({
       where: {
         module: filter.module,
         actorId: filter.actorId,
+        action: filter.actions && filter.actions.length > 0 ? { in: filter.actions } : undefined,
         timestamp: {
           gte: filter.from,
           lte: filter.to,

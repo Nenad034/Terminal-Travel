@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import ActorLabel from '@/components/ActorLabel';
+import { Button } from '@/components/ui/button';
 
 interface AuditLogEntry {
   id: string;
@@ -29,14 +31,20 @@ function actorWord(actorType: string): string {
   return 'nepoznat akter';
 }
 
-export default async function AuditLogPage() {
+export default async function AuditLogPage({ searchParams }: { searchParams: { module?: string; action?: string } }) {
   let entries: AuditLogEntry[] = [];
   let error: string | null = null;
   try {
-    entries = await apiFetch<AuditLogEntry[]>('/iam/audit-log');
+    const qs = new URLSearchParams();
+    if (searchParams?.module) qs.set('module', searchParams.module);
+    if (searchParams?.action) qs.set('action', searchParams.action);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    entries = await apiFetch<AuditLogEntry[]>(`/iam/audit-log${suffix}`);
   } catch {
     error = 'Nemate dozvolu za uvid u audit log (M1/audit-log/VIEW).';
   }
+
+  const hasFilter = Boolean(searchParams?.module || searchParams?.action);
 
   return (
     <div className="p-6">
@@ -45,6 +53,21 @@ export default async function AuditLogPage() {
         <span className="text-accent">$</span> tail -f audit.log
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Append-only zapis svake izmene u sistemu.</p>
+
+      {hasFilter && (
+        // Klik iz "Procesne mape" (M18 spec §9a) ili iz drugih dashboard upozorenja vodi
+        // ovde sa `module`/`action` u URL-u (M1 spec §6, dopunjeno 29.8.2026) — filter je
+        // vidljiv, sa jasnim putem nazad na neisfiltriranu listu.
+        <div className="mb-3 flex items-center gap-2 text-xs text-ink-faint">
+          <span>
+            filtrirano: {searchParams?.module && <span className="font-mono text-accent2">{searchParams.module}</span>}
+            {searchParams?.action && <span className="font-mono text-ink"> · {searchParams.action}</span>}
+          </span>
+          <Button asChild variant="ghost" size="sm" className="h-auto px-2 py-0.5 text-[11px]">
+            <Link href="/audit-log">obriši filter</Link>
+          </Button>
+        </div>
+      )}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
