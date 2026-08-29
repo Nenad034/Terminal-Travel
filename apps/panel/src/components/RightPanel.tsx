@@ -13,6 +13,7 @@ import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } fr
 import AiChatBox from './AiChatBox';
 import ProductPreviewCard from './ProductPreviewCard';
 import ProductContactCard from './ProductContactCard';
+import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
 
 // Dizajn dok. §5b — desni panel, "izdvajanje": sažetak reda kad je centar lista i korisnik
 // klikne red bez ulaska u pun zapis, ili "Povezano" traka kad centar prikazuje pun zapis
@@ -46,6 +47,11 @@ const PRODAJA_MODULE_ID = 'prodaja';
 // biti po RUTI, ne po modulu, da radi bez obzira gde je ta ruta grupisana u levoj traci.
 const PRODUCT_PREGLED_RE = /^\/katalog\/([^/]+)\/pregled$/;
 
+// M18 spec §9a dopuna (29.8.2026) — detalj-ekran žive procesne mape, isti obrazac kao
+// PRODUCT_PREGLED_RE iznad: provera po RUTI, ne po `moduleId`, jer "Analitika i nadzor" grupa
+// (nav.ts) nema poseban `moduleId` samo za ovaj ekran.
+const PROCESS_MAP_RE = /^\/nadzor\/procesne-mape\/[^/]+$/;
+
 function clampPercent(value: number): number {
   return Math.min(80, Math.max(15, value));
 }
@@ -72,6 +78,7 @@ export default function RightPanel({
   const { navigateInTab, openTab } = useTabs();
   const pathname = usePathname();
   const productPregledMatch = pathname.match(PRODUCT_PREGLED_RE);
+  const processMapMatch = pathname.match(PROCESS_MAP_RE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // M5 spec §3.0e.3a (dopuna 29.8.2026) — upozorenje o neusklađenim datumima PREVOZ/BORAVAK
@@ -204,9 +211,11 @@ export default function RightPanel({
               : summary
                 ? 'Sažetak reda'
                 : 'Izdvajanje'
-            : collectedItems.length > 0
-              ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
-              : `Podsetnik — ${moduleLabel}`}
+            : processMapMatch
+              ? 'Detalj čvora'
+              : collectedItems.length > 0
+                ? `Podsetnik — ${moduleLabel} (${collectedItems.length})`
+                : `Podsetnik — ${moduleLabel}`}
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -327,7 +336,18 @@ export default function RightPanel({
           isti razlog kao PRODUCT_PREGLED_RE komentar iznad (druga NAV grupa od "prodaja"). */}
       {productPregledMatch && <ProductContactCard productId={productPregledMatch[1]} />}
 
-      {!isProdaja && !productPregledMatch && collectedItems.length === 0 && (
+      {/* M18 spec §9a dopuna — klik na čvor procesne mape puni RowSummary (isti mehanizam kao
+          sažetak reda rezervacije), umesto direktne navigacije na pun audit log. Prioritet ISPRED
+          generičkog "podsetnik" prikaza ispod, isti obrazac kao ProductContactCard iznad. */}
+      {processMapMatch && summary?.kind === 'process-map-node' && <ProcessMapNodeSummaryCard summary={summary} />}
+      {processMapMatch && !summary && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
+          <Icon name="inspect" className="text-2xl" />
+          <p>Klikni na čvor na mapi da vidiš detalje ovde.</p>
+        </div>
+      )}
+
+      {!isProdaja && !productPregledMatch && !processMapMatch && collectedItems.length === 0 && (
         <div
           className={`flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs ${
             dragOver ? 'bg-accent-soft text-ink' : 'text-ink-faint'
@@ -338,7 +358,7 @@ export default function RightPanel({
         </div>
       )}
 
-      {!isProdaja && !productPregledMatch && collectedItems.length > 0 && (
+      {!isProdaja && !productPregledMatch && !processMapMatch && collectedItems.length > 0 && (
         <div className={`flex flex-1 flex-col overflow-hidden ${dragOver ? 'bg-accent-soft' : ''}`}>
           <div className="flex-1 overflow-y-auto p-2">
             <div className="flex flex-col gap-2">

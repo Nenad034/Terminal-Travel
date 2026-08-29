@@ -64,7 +64,25 @@ export interface CalendarDaySummary {
   unpaidCount: number;
 }
 
-export type RowSummary = BookingRowSummary | CalendarDaySummary;
+// M18 spec §9a dopuna (29.8.2026, na zahtev vlasnika: "kada se klikne na jednu od stavki u
+// procesnim mapama u desnom panelu treba da se prikaze vise detalja") — isti "klik pokazuje
+// sažetak ovde" obrazac kao BookingRowSummary/CalendarDaySummary, treći `kind` u istom
+// kontekstu. `ProcessMapView.tsx` puni ovo pri kliku na čvor umesto da odmah navigira na pun
+// audit log — pun log ostaje dostupan preko dugmeta u kartici (RightPanel.tsx).
+export interface ProcessMapNodeSummary {
+  kind: 'process-map-node';
+  mapKey: string;
+  mapLabel: string;
+  module: string;
+  nodeId: string;
+  nodeLabel: string;
+  matchActions: string[];
+  count: number;
+  capped: boolean;
+  lastAt: string | null;
+}
+
+export type RowSummary = BookingRowSummary | CalendarDaySummary | ProcessMapNodeSummary;
 
 interface RowSummaryContextValue {
   summary: RowSummary | null;

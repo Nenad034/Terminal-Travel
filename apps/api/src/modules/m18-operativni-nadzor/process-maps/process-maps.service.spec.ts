@@ -9,10 +9,10 @@ describe('ProcessMapsService', () => {
     return { service, auditLog };
   }
 
-  it('findAll vraća sve registrovane mape — "m1-security", "m5-booking-flow", "m10-money-flow" (M18 spec §9a)', () => {
+  it('findAll vraća sve registrovane mape — "m1-security", "m5-booking-flow", "m10-money-flow", "m7-subagent-flow" (M18 spec §9a)', () => {
     const { service } = makeService();
     const maps = service.findAll();
-    expect(maps).toHaveLength(3);
+    expect(maps).toHaveLength(4);
 
     const m1 = maps.find((m) => m.key === 'm1-security');
     expect(m1).toMatchObject({ module: 'M1' });
@@ -37,6 +37,19 @@ describe('ProcessMapsService', () => {
       'supplier-obligation-created',
       'supplier-obligation-paid',
       'refund-executed',
+    ]);
+
+    const m7 = maps.find((m) => m.key === 'm7-subagent-flow');
+    expect(m7).toMatchObject({ module: 'M7' });
+    expect(m7?.nodes.map((n) => n.id)).toEqual([
+      'subagent-registered',
+      'subagent-approved',
+      'subagent-updated',
+      'commission-ceiling-warning',
+      'rebate-created',
+      'rebate-approved',
+      'rebate-applied',
+      'rebate-rejected',
     ]);
   });
 
@@ -98,6 +111,17 @@ describe('ProcessMapsService', () => {
 
     expect(auditLog.find).toHaveBeenCalledWith(
       expect.objectContaining({ module: 'M10', actions: ['supplier_obligation.created', 'supplier_obligation.auto_created'] }),
+    );
+  });
+
+  it('live() za "m7-subagent-flow" čita iz modula M7 i spaja registered+child_registered u jedan čvor (poglavlje 9a)', async () => {
+    const { service, auditLog } = makeService();
+    (auditLog.find as jest.Mock).mockResolvedValue([]);
+
+    await service.live('m7-subagent-flow');
+
+    expect(auditLog.find).toHaveBeenCalledWith(
+      expect.objectContaining({ module: 'M7', actions: ['subagent.registered', 'subagent.child_registered'] }),
     );
   });
 

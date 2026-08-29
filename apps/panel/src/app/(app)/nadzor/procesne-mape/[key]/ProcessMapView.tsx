@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useRowSummary } from '@/components/RowSummaryContext';
 
 const POLL_INTERVAL_MS = 5000;
 const FLASH_DURATION_MS = 1500;
@@ -23,11 +23,47 @@ interface NodeLive {
 // M18 spec §9a — "uživo znači kratak poll, ne push" (bez WebSocket/SSE u tehničkom steku).
 // Isti obrazac kao TopBar.tsx Agent Inbox (poll na 30s) — ovde 5s jer je svrha da vlasnik
 // stvarno VIDI promenu dok gleda ekran, ne samo da je nađe posle.
-export default function ProcessMapView({ mapKey, module, nodes }: { mapKey: string; module: string; nodes: NodeDefinition[] }) {
+//
+// Dopuna (29.8.2026, na zahtev vlasnika: "kada se klikne na jednu od stavki u procesnim
+// mapama u desnom panelu treba da se prikaze vise detalja") — klik na čvor više ne navigira
+// direktno na audit log; puni RowSummaryContext (isti mehanizam kao sažetak reda rezervacije),
+// desni panel (RightPanel.tsx → ProcessMapNodeSummaryCard) prikazuje detalj i poslednje zapise.
+// Pun audit log ostaje dostupan preko dugmeta u toj kartici, ne gubi se ništa.
+export default function ProcessMapView({
+  mapKey,
+  mapLabel,
+  module,
+  nodes,
+}: {
+  mapKey: string;
+  mapLabel: string;
+  module: string;
+  nodes: NodeDefinition[];
+}) {
+  const { showSummary } = useRowSummary();
   const [live, setLive] = useState<Record<string, NodeLive> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flashing, setFlashing] = useState<Set<string>>(new Set());
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const previousCounts = useRef<Record<string, number>>({});
+  const selectedNodeIdRef = useRef<string | null>(null);
+  selectedNodeIdRef.current = selectedNodeId;
+
+  function selectNode(node: NodeDefinition, nodeLive: NodeLive | undefined) {
+    setSelectedNodeId(node.id);
+    showSummary({
+      kind: 'process-map-node',
+      mapKey,
+      mapLabel,
+      module,
+      nodeId: node.id,
+      nodeLabel: node.label,
+      matchActions: node.matchActions,
+      count: nodeLive?.count ?? 0,
+      capped: nodeLive?.capped ?? false,
+      lastAt: nodeLive?.lastAt ?? null,
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +94,28 @@ export default function ProcessMapView({ mapKey, module, nodes }: { mapKey: stri
             if (!cancelled) setFlashing(new Set());
           }, FLASH_DURATION_MS);
         }
+
+        // Ako je čvor otvoren u desnom panelu, brojevi tamo prate isti poll — ne gase se
+        // dok se ekran gleda, čekaju sledeći klik da promene ceo prikaz.
+        const selected = selectedNodeIdRef.current;
+        if (selected) {
+          const node = nodes.find((n) => n.id === selected);
+          const nodeLive = byId[selected];
+          if (node) {
+            showSummary({
+              kind: 'process-map-node',
+              mapKey,
+              mapLabel,
+              module,
+              nodeId: node.id,
+              nodeLabel: node.label,
+              matchActions: node.matchActions,
+              count: nodeLive?.count ?? 0,
+              capped: nodeLive?.capped ?? false,
+              lastAt: nodeLive?.lastAt ?? null,
+            });
+          }
+        }
       } catch {
         if (!cancelled) setError('Procesna mapa trenutno nije dostupna.');
       }
@@ -69,6 +127,7 @@ export default function ProcessMapView({ mapKey, module, nodes }: { mapKey: stri
       cancelled = true;
       clearInterval(t);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapKey]);
 
   return (
@@ -79,13 +138,14 @@ export default function ProcessMapView({ mapKey, module, nodes }: { mapKey: stri
         {nodes.map((node) => {
           const nodeLive = live?.[node.id];
           const isFlashing = flashing.has(node.id);
-          const qs = new URLSearchParams({ module, action: node.matchActions.join(',') });
+          const isSelected = selectedNodeId === node.id;
           return (
-            <Link
+            <button
               key={node.id}
-              href={`/audit-log?${qs.toString()}`}
-              className={`flex flex-col gap-1 rounded-lg border p-4 transition-colors duration-300 hover:border-accent ${
-                isFlashing ? 'border-accent bg-accent-soft' : 'border-border bg-panel'
+              type="button"
+              onClick={() => selectNode(node, nodeLive)}
+              className={`flex flex-col gap-1 rounded-lg border p-4 text-left transition-colors duration-300 hover:border-accent ${
+                isFlashing ? 'border-accent bg-accent-soft' : isSelected ? 'border-accent bg-panel' : 'border-border bg-panel'
               }`}
             >
               <span className="text-xs text-ink-faint">{node.label}</span>
@@ -96,7 +156,7 @@ export default function ProcessMapView({ mapKey, module, nodes }: { mapKey: stri
               <span className="text-[11px] text-ink-faint">
                 {nodeLive?.lastAt ? `poslednji: ${new Date(nodeLive.lastAt).toLocaleString('sr-RS')}` : 'nema zapisa u prozoru'}
               </span>
-            </Link>
+            </button>
           );
         })}
       </div>

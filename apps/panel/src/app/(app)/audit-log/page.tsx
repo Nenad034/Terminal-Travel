@@ -24,6 +24,16 @@ interface AuditLogEntry {
 // korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
 // (isti princip kao §3 — panel ne izmišlja dozvole, samo poštuje ono što API vrati).
 // ActorType (HUMAN/AI_AGENT/SYSTEM) preveden u reč koju čovek čita; bedž ("AI") dodaje ActorLabel.
+// `back` dolazi iz query stringa (ProcessMapNodeSummaryCard.tsx) — iako ga danas generiše samo
+// naš kod, tretira se kao nepouzdan ulaz (bilo ko može ručno da izmeni URL): prihvata se samo
+// putanja unutar aplikacije (počinje jednim "/", nikad "//" — trik za protokol-relativni URL ka
+// spoljnom sajtu), inače se link za povratak jednostavno ne prikazuje.
+function safeInternalPath(path: string | undefined): string | null {
+  if (!path) return null;
+  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  return path;
+}
+
 function actorWord(actorType: string): string {
   if (actorType === 'HUMAN') return 'korisnik';
   if (actorType === 'AI_AGENT') return 'AI agent';
@@ -31,7 +41,11 @@ function actorWord(actorType: string): string {
   return 'nepoznat akter';
 }
 
-export default async function AuditLogPage({ searchParams }: { searchParams: { module?: string; action?: string } }) {
+export default async function AuditLogPage({
+  searchParams,
+}: {
+  searchParams: { module?: string; action?: string; back?: string; backLabel?: string };
+}) {
   let entries: AuditLogEntry[] = [];
   let error: string | null = null;
   try {
@@ -45,10 +59,21 @@ export default async function AuditLogPage({ searchParams }: { searchParams: { m
   }
 
   const hasFilter = Boolean(searchParams?.module || searchParams?.action);
+  const backHref = safeInternalPath(searchParams?.back);
 
   return (
     <div className="p-6">
       <RegisterTab label="Audit log" />
+
+      {backHref && (
+        // M18 spec §9a dopuna (29.8.2026, na zahtev vlasnika: "kada se udje u neku od listi u
+        // procesnim mapama nemamo nacin da se vratimo korak ili dva nazad") — eksplicitan put
+        // nazad na ekran sa kog je stigao klik (procesna mapa), ne samo browser back dugme.
+        <Link href={backHref} className="mb-2 flex items-center gap-1 text-xs text-ink-faint hover:text-accent">
+          <span aria-hidden="true">←</span> Nazad na {searchParams?.backLabel || 'prethodni ekran'}
+        </Link>
+      )}
+
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> tail -f audit.log
       </h1>

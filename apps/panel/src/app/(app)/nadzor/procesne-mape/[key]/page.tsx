@@ -36,14 +36,14 @@ export default async function ProcessMapDetailPage({ params }: { params: { key: 
         <h1 className="font-mono text-lg">
           <span className="text-accent">$</span> {map?.label ?? params.key}
         </h1>
-        <p className="text-xs text-ink-dim">Osvežava se na svakih 5 sekundi. Klik na čvor otvara tačan trag u audit logu.</p>
+        <p className="text-xs text-ink-dim">Osvežava se na svakih 5 sekundi. Klik na čvor prikazuje detalje u desnom panelu.</p>
       </div>
 
       <NadzorSubnav active="/nadzor/procesne-mape" />
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {!error && !map && <p className="rounded bg-danger-bg p-3 text-sm text-danger">Procesna mapa "{params.key}" nije registrovana.</p>}
-      {!error && map && <ProcessMapView mapKey={map.key} module={map.module} nodes={map.nodes} />}
+      {!error && map && <ProcessMapView mapKey={map.key} mapLabel={map.label} module={map.module} nodes={map.nodes} />}
     </div>
   );
 }

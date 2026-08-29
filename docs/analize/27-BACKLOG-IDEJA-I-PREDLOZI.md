@@ -146,6 +146,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
 - Tačan period čuvanja/anonimizacije ličnih podataka gosta (pravo na zaborav) — utvrditi sa pravnikom.
 - **EU Digital Identity Wallet (EUDI) kao izvor podataka gosta** (22.8.2026, Phocuswright izveštaj 2026) — eIDAS 2.0 obavezuje EU platforme na prihvatanje do kraja 2027; TT nije u obavezanom krugu, ali gost sa novčanikom bi mogao njime popuniti `GuestProfile` umesto ručnog unosa. Čeka stvarnu potražnju iz EU tržišta, ne pre.
+- **Nalaz (29.8.2026, pri pripremi M18 žive procesne mape, poglavlje 9a te specifikacije):** M6 ima samo JEDNU akciju u audit tragu (`loyalty_status.manual_override`) — kreiranje/izmena profila gosta, ankete, komunikacija se danas ne beleže (specom potvrđeno kao namerno, §3.2/§7, ne propust). Vlasnik je odlučio (upitan direktno) da M6 PRESKOČI za živu procesnu mapu dok se ne odluči da li CRM treba bogatiji trag — mapa sa jednim čvorom ne bi bila korisna slika toka.
 
 ## M7 — B2B modul (Subagenti)
 *(§13, `docs/moduli/M07-b2b-subagenti/12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`)*
