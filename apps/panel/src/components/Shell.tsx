@@ -305,18 +305,14 @@ export default function Shell({
               {/* Traka tabova VRAĆENA u TopBar (21.8.2026, treći krug istog dana, na zahtev
                   vlasnika: "vratite tabove u gornji red") — poništava prethodni pokušaj
                   (v1.62, prvi red centralne kolone). Vidi TopBar.tsx. */}
-              {/* Sadržaj i AI chat su NAMERNO razdvojene širine (21.8.2026, na zahtev vlasnika —
-                  sadržaj na 90% širine panela, chat 20% uži od toga, 90%×0.8=72%), za razliku
-                  od ranijeg jedinstvenog w-[56%] omotača (19.8.2026, "prikaz na širinu chata").
-                  Svaki deo se centrira nezavisno (mx-auto). ISPRAVKA (21.8.2026, na zahtev
-                  vlasnika, drugi krug istog dana) — prethodni pokušaj (`bg-panel-2` na ovom
-                  omotaču, da margina oko `w-[90%]` postane vidljiva kao traka drugog tona) je,
-                  uz snimak ekrana, ispao kao vidljiva "kutija"/zakrpa dva tona oko sadržaja —
-                  vlasnik je eksplicitno tražio suprotno: "u centralnom delu sve treba da bude
-                  jedna boja". Vraćeno na jednu boju (bez eksplicitnog `bg-*` ovde — nasleđuje
-                  `bg-bg` sa spoljnog wrapper-a, koji je namerno ista vrednost kao `bg-panel`,
-                  §komentar globals.css) — 90% širina i dalje stvarno postoji u layout-u (grep
-                  potvrđen u v1.45), samo se više NE ističe bojom, na eksplicitan zahtev. */}
+              {/* Centralni sadržaj na PUNIH 100% dostupne širine (29.8.2026, na zahtev vlasnika,
+                  tt-shadcn-redesign — "centralni panel uvek treba da bude na 100% širine bez
+                  obzira koliko su bočni paneli široki") — POVLAČI raniju `w-[90%] mx-auto`
+                  odluku (21.8.2026, §komentar u istoriji ovog fajla): tih 10% margine je
+                  postajalo sve primetnije kad bi bočni paneli oduzeli deo dostupnog prostora,
+                  jer je 90% ionako sve manjeg preostalog prostora izgledalo kao da se centar
+                  dodatno skuplja. Bez `mx-auto`/fiksne širine, `flex-1` sam ispuni tačno onoliko
+                  prostora koliko ostane između bočne trake i desnog panela, u svakom stanju. */}
               <div className="flex flex-1 flex-col overflow-hidden">
                 {/* `id` čita AiChatBox.tsx da automatski priloži vidljiv sadržaj ovog taba uz
                     svaku poruku (M15 spec §6.5.1 dopuna, 22.8.2026, na zahtev vlasnika) — bez
@@ -326,7 +322,7 @@ export default function Shell({
                     potomak, pa čitanje ostaje bezbedno (nema rizika od rekurzivnog čitanja
                     sopstvene istorije). Izuzetak: `/ai-asistent` Fokus tab, gde AiChatBox JESTE
                     ovaj `<main>` sadržaj — `fokus` prop tamo isključuje čitanje (AiChatBox.tsx). */}
-                <main id="tt-main-content" className="mx-auto w-[90%] flex-1 overflow-y-auto bg-panel">{children}</main>
+                <main id="tt-main-content" className="w-full flex-1 overflow-y-auto bg-panel">{children}</main>
                 {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
                     sadržaja, iznad statusne trake, span samo centralne kolone (ne ide ispod
                     bočne trake/desnog panela, isto kao pravi VS Code Panel). Montira se SAMO uz
