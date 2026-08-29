@@ -1,6 +1,7 @@
 'use client';
 
 import { useSelection } from '@/components/SelectionContext';
+import { Button } from '@/components/ui/button';
 
 // M5 spec §3.0e.3 — "Dodaj" stavlja stavku u selekciju (desni panel), ne kreira Ponudu
 // odmah (ranije ponašanje, do 21.8.2026). Kreiranje Ponude je sad jedan zajednički korak
@@ -26,8 +27,9 @@ export default function QuoteButton(props: {
   const added = items.some((i) => i.key === key);
 
   return (
-    <button
+    <Button
       type="button"
+      size="sm"
       disabled={added}
       onClick={() =>
         addItem({
@@ -47,9 +49,8 @@ export default function QuoteButton(props: {
           quoteExpiresAt: props.quoteExpiresAt,
         })
       }
-      className="rounded bg-accent px-3 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
     >
       {added ? 'dodato' : 'dodaj'}
-    </button>
+    </Button>
   );
 }
