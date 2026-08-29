@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 // M17 zadatak (avgust 2026) — paleta "Horizont" (docs/moduli/M01-core-identitet/
 // 00-MOCKUP-M1-TERMINAL-STYLE.html, paleta 3), HEX vrednosti fino podešene i PROVERENE
@@ -38,6 +39,28 @@ const config: Config = {
         ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
         warn: { DEFAULT: 'var(--warn)', bg: 'var(--warn-bg)' },
         danger: { DEFAULT: 'var(--danger)', bg: 'var(--danger-bg)' },
+
+        // shadcn/ui semantički alias-i (29.8.2026, tt-shadcn-redesign) — NE nova paleta,
+        // svaki mapiran na postojeći "Horizont" token iznad, da shadcn komponente (kopiran
+        // izvorni kod, ne paket) rade sa bojama koje su već WCAG-proverene za ovaj panel.
+        // "accent" NIJE dodat ovde namerno — shadcn ga koristi za hover-highlight pozadinu
+        // (npr. stavka menija na hover), ali je taj naziv već zauzet iznad za brend boju;
+        // kopirane komponente koriste `muted`/`muted-foreground` na mestu shadcn-ovog
+        // "accent"/"accent-foreground" da izbegnu sudar značenja.
+        background: 'var(--bg)',
+        foreground: 'var(--text)',
+        card: { DEFAULT: 'var(--panel)', foreground: 'var(--text)' },
+        popover: { DEFAULT: 'var(--panel)', foreground: 'var(--text)' },
+        primary: { DEFAULT: 'var(--accent)', foreground: 'var(--accent-ink)' },
+        secondary: { DEFAULT: 'var(--panel-2)', foreground: 'var(--text)' },
+        muted: { DEFAULT: 'var(--panel-2)', foreground: 'var(--text-faint)' },
+        // Nema `destructive-foreground` vrednosti — kontrast pune crvene pozadine nije
+        // proveren za oba moda (docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md, WCAG odeljak),
+        // zato prve migrirane komponente koriste isključivo outline/ghost destructive
+        // varijantu (tekst/border `--danger` na providnoj pozadini, već proveren par).
+        destructive: 'var(--danger)',
+        input: 'var(--border)',
+        ring: 'var(--accent-strong)',
       },
       borderRadius: {
         DEFAULT: '8px',
@@ -59,7 +82,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;
