@@ -81,85 +81,73 @@
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
-  /* GitHub Light paleta (dopuna 26.8.2026, na zahtev vlasnika: "GitHub Light kontrast ovo
-     podesi za light mode") — zamenjuje raniji "VS Code Light 2026" izvor (§2.0a) SAMO za
-     neutralne/status boje; akcent ostaje NAMERNO nepromenjen (maslinasta #8A8A5E, potvrđeno
-     preko AskUserQuestion — brend boja, ne prati temu, isti princip kao pre ove izmene).
-     Vrednosti povučene DIREKTNO iz zvaničnog GitHub Primer izvora koda (primer/primitives,
-     src/tokens/{base,functional}/color), ne iz sećanja: `bgColor.default` → `--panel`,
-     `bgColor.muted` (base.color.neutral.1) → `--panel-2`, `base.color.neutral.2` → `--bar`
-     (GitHub sam nema treći nivo trake — ovaj repo ga zahteva otkad su uvedene tri nijanse,
-     23.8.2026 — sledeći korak njihove sopstvene skale je najbliža, dosledna vrednost),
-     `fgColor.default`/`muted` → `--text`/`--text-faint`, `fgColor.success/danger/attention` +
-     `bgColor.*.muted` → `--ok`/`--danger`/`--warn` parovi. */
-  --bg: #ffffff;
+  /* Paleta "shadcn/ui" (29.8.2026, tt-shadcn-redesign) — zamenjuje raniju GitHub Light/VS Code
+     paletu u okviru odobrene vizuelne promene (poglavlje 6 master dokumenta, vlasnik odabrao
+     shadcn/ui pravac posle poređenja sa Fluent UI React i PatternFly mockup-ima). Neutralne boje
+     su Tailwind "zinc" skala, akcent je Tailwind "indigo" (ranija maslinasta #8A8A5E NIJE više
+     brend boja — vlasnikova odluka je bila da se usvoji ceo shadcn vizuelni jezik, ne samo
+     komponente). Sve vrednosti PROVERENE WCAG 2.1 AA kontrast-skriptom (4.5:1 tekst, veći/UI
+     elementi 3:1) pre primene, isti princip kao ranija "Horizont"/GitHub paleta. */
+  --bg: #fafafa;
   --panel: #ffffff;
-  --panel-2: #f6f8fa;
-  --bar: #eff2f5;
-  /* `--border` NIJE doslovno GitHub-ovo `borderColor.default` (#d1d9e0, base.color.neutral.6)
-     — taj token daje samo 1.43:1 na belu pozadinu, isti propust koji je ranija (21.8.2026)
-     vrednost već imala i zbog kog je bila potamnjena (§2a, tvrd 3:1 prag za granice). Umesto
-     nasumičnog zatamnjenja, izabran je SLEDEĆI korak u istoj GitHub sivoj skali (`base.color.
-     neutral.8`, #818B98, GitHub ga koristi za `fgColor.muted`-susedne kontekste) — 3.45:1 na
-     belu, prolazi prag, ostaje deo IZVORNE GitHub palete, ne izmišljena vrednost. */
-  --border: #818b98;
-  --text: #1f2328;
-  --text-dim: #454c54;
-  --text-faint: #59636e;
-  --accent: #8a8a5e;
-  --accent-strong: #8a8a5e;
-  --accent-soft: #8a8a5e33;
-  --accent-ink: #14140d;
-  --accent2: #0969da;
-  --accent2-soft: #0969da1a;
-  /* `--ok`/`--danger`/`--warn` — GitHub `fgColor.success`/`danger`/`attention` (tekst) uz
-     `bgColor.*.muted` (pill pozadina). Kontrast tekst-na-belu i tekst-na-sopstvenu-pill-pozadinu
-     provereni WCAG 2.1 kalkulacijom (§2a): ok 5.08:1 / 4.56:1, danger 5.90:1 / ~5.3:1, warn
-     5.5-6:1 / ~5:1 — svi iznad 4.5:1 AA praga (GitHub sam bira ISTI nivo iz sopstvene skale za
-     istu svrhu iz istog razloga, potvrđeno njihovim komentarom u izvoru — "level 6 too dark to
-     visually differentiate", isto obrazloženje kao ovaj projekat prati). */
-  --ok: #1a7f37;
-  --ok-bg: #dafbe1;
-  --warn: #9a6700;
-  --warn-bg: #fff8c5;
-  --danger: #d1242f;
-  --danger-bg: #ffebe9;
-  /* "Navy teget" (21.8.2026, na zahtev vlasnika) — samo svetli mod, boja ikonica (§ komentar
-     iznad .codicon). #1f3a5f na belu/skoro-belu podlogu daje ~7.7:1, daleko iznad 3:1 praga
-     za ikonice (§2a) — nepromenjeno ovom dopunom, nije deo GitHub palete niti je od nje zavisilo. */
+  --panel-2: #f4f4f5;
+  --bar: #f4f4f5;
+  --border: #e4e4e7;
+  --text: #18181b;
+  --text-dim: #3f3f46;
+  /* #63636a, ne Tailwind zinc-500 (#71717a) doslovno — zinc-500 prolazi 4.83:1 na belu ALI PADA
+     na 4.40:1 na `--panel-2` (#f4f4f5, sivkasta traka zaglavlja tabele/sidebar-a) gde se
+     `--text-faint` takođe koristi (npr. datumi u tabeli rezervacija) — potamnjeno na sledeću
+     proveru koja prolazi na OBE pozadine (5.26:1 / 5.78:1), potvrđeno kontrast-skriptom, ne
+     pretpostavkom da je "zvanična" Tailwind vrednost automatski dovoljna. */
+  --text-faint: #63636a;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --accent-soft: #4f46e533;
+  /* Belo, ne tamno kao ranija maslinasta paleta — indigo-600 je dovoljno tamna/zasićena da
+     beo tekst na njoj prolazi 6.29:1 (kontrast-skripta), za razliku od svetle maslinaste kojoj
+     je trebao taman tekst. */
+  --accent-ink: #ffffff;
+  /* Sekundarni akcent (kalendar/katalog/audit log postojeći potrošači) — teal, namerno različit
+     ton od indigo brend boje da ostane vizuelno razdvojiv kao drugi signal, ne varijacija istog. */
+  --accent2: #0f766e;
+  --accent2-soft: #0f766e1a;
+  /* `--ok`/`--danger`/`--warn` — Tailwind green-700/amber-700/red-700 (tekst) + odgovarajuće
+     50-nijanse (pill pozadina). Kontrast provereni kontrast-skriptom: ok 5.02:1/4.79:1,
+     warn 5.02:1/4.84:1, danger 6.47:1/5.91:1 — svi iznad 4.5:1 AA praga. */
+  --ok: #15803d;
+  --ok-bg: #f0fdf4;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
+  /* "Navy teget" (21.8.2026, na zahtev vlasnika) — nepromenjeno ovom paleta-promenom, boja
+     ikonica ostaje odvojena odluka od pozadine/akcenta (§ komentar iznad .codicon). */
   --icon-line: #1f3a5f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #263238;
-    --panel: #263238;
-    --panel-2: #192227;
-    /* `--bar` dodat (23.8.2026) samo da bi token postojao svuda gde se koristi (`bg-bar`
-       klasa) — tamni mod NIJE tražio treću nijansu, ista vrednost kao `--panel-2`. */
-    --bar: #192227;
-    /* `--border` posvetljen isti prolaz (21.8.2026) — bilo je `#3b4a51`, samo 1.43:1 na tamnu
-       pozadinu, ispod 3:1 praga (§2a); vlasnikova pritužba je bila za svetli mod, ali tamni je
-       imao isti stvaran propust pri proveri, ista logika kao svaki drugi token ovog dana. */
-    --border: #748088;
-    --text: #eeffff;
-    --text-dim: #c9d6db;
-    --text-faint: #9bb0bd;
-    --accent: #8a8a5e;
-    --accent-strong: #8a8a5e;
-    --accent-soft: #8a8a5e33;
-    --accent-ink: #14140d;
-    --accent2: #80cbc4;
-    --accent2-soft: #80cbc41a;
-    --ok: #3ecf8e;
-    --ok-bg: #0f2b21;
-    /* Maslinasto-zlatna porodica (21.8.2026, drugi pokušaj — vidi § komentar u :root iznad),
-       ista porodica kao `--accent` (#8A8A5E), svetlija/zasićenija nijansa za tamnu pozadinu.
-       Provereno: tekst na `--bg` 7.03:1, na sopstvenu pill pozadinu 7.80:1. */
-    --warn: #c2c26a;
-    --warn-bg: #2a2a12;
-    --danger: #e2685a;
-    --danger-bg: #3a1712;
+    --bg: #09090b;
+    --panel: #18181b;
+    --panel-2: #27272a;
+    --bar: #27272a;
+    --border: #3f3f46;
+    --text: #fafafa;
+    --text-dim: #d4d4d8;
+    --text-faint: #a1a1aa;
+    --accent: #818cf8;
+    --accent-strong: #a5b4fc;
+    --accent-soft: #818cf833;
+    --accent-ink: #0b0b0f;
+    --accent2: #5eead4;
+    --accent2-soft: #5eead41a;
+    --ok: #4ade80;
+    --ok-bg: #0d1f13;
+    --warn: #fbbf24;
+    --warn-bg: #241a06;
+    --danger: #f87171;
+    --danger-bg: #240b0b;
     /* Tamni mod — bez promene (§ komentar iznad .codicon): `currentColor` u `color` svojstvu
        se po specifikaciji računa kao `inherit`. */
     --icon-line: currentColor;
@@ -167,50 +155,50 @@
 }
 
 :root[data-theme='dark'] {
-  --bg: #263238;
-  --panel: #263238;
-  --panel-2: #192227;
-  --bar: #192227;
-  --border: #748088;
-  --text: #eeffff;
-  --text-dim: #c9d6db;
-  --text-faint: #9bb0bd;
-  --accent: #8a8a5e;
-  --accent-strong: #8a8a5e;
-  --accent-soft: #8a8a5e33;
-  --accent-ink: #14140d;
-  --accent2: #80cbc4;
-  --accent2-soft: #80cbc41a;
-  --ok: #3ecf8e;
-  --ok-bg: #0f2b21;
-  --warn: #c2c26a;
-  --warn-bg: #2a2a12;
-  --danger: #e2685a;
-  --danger-bg: #3a1712;
+  --bg: #09090b;
+  --panel: #18181b;
+  --panel-2: #27272a;
+  --bar: #27272a;
+  --border: #3f3f46;
+  --text: #fafafa;
+  --text-dim: #d4d4d8;
+  --text-faint: #a1a1aa;
+  --accent: #818cf8;
+  --accent-strong: #a5b4fc;
+  --accent-soft: #818cf833;
+  --accent-ink: #0b0b0f;
+  --accent2: #5eead4;
+  --accent2-soft: #5eead41a;
+  --ok: #4ade80;
+  --ok-bg: #0d1f13;
+  --warn: #fbbf24;
+  --warn-bg: #241a06;
+  --danger: #f87171;
+  --danger-bg: #240b0b;
   --icon-line: currentColor;
 }
 
 :root[data-theme='light'] {
-  --bg: #ffffff;
+  --bg: #fafafa;
   --panel: #ffffff;
-  --panel-2: #f6f8fa;
-  --bar: #eff2f5;
-  --border: #818b98;
-  --text: #1f2328;
-  --text-dim: #454c54;
-  --text-faint: #59636e;
-  --accent: #8a8a5e;
-  --accent-strong: #8a8a5e;
-  --accent-soft: #8a8a5e33;
-  --accent-ink: #14140d;
-  --accent2: #0969da;
-  --accent2-soft: #0969da1a;
-  --ok: #1a7f37;
-  --ok-bg: #dafbe1;
-  --warn: #9a6700;
-  --warn-bg: #fff8c5;
-  --danger: #d1242f;
-  --danger-bg: #ffebe9;
+  --panel-2: #f4f4f5;
+  --bar: #f4f4f5;
+  --border: #e4e4e7;
+  --text: #18181b;
+  --text-dim: #3f3f46;
+  --text-faint: #63636a;
+  --accent: #4f46e5;
+  --accent-strong: #4338ca;
+  --accent-soft: #4f46e533;
+  --accent-ink: #ffffff;
+  --accent2: #0f766e;
+  --accent2-soft: #0f766e1a;
+  --ok: #15803d;
+  --ok-bg: #f0fdf4;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --danger: #b91c1c;
+  --danger-bg: #fef2f2;
   --icon-line: #1f3a5f;
 }
 
