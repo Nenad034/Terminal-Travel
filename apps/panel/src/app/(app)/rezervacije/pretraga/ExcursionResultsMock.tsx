@@ -100,7 +100,17 @@ function money(amountCents: number, currency: string): string {
   return `${(amountCents / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${currency}`;
 }
 
-export default function ExcursionResultsMock({ priceMin, priceMax }: { priceMin?: number | null; priceMax?: number | null }) {
+export default function ExcursionResultsMock({
+  stayFrom,
+  priceMin,
+  priceMax,
+}: {
+  /** Bag (29.8.2026) — mock nije nikad prosleđivao datum, pa je "Napravi ponudu" (RightPanel.tsx)
+   * uvek odbijao selekciju sa ovim tipom ("izaberite period boravka"), bez obzira na ostale stavke. */
+  stayFrom?: string;
+  priceMin?: number | null;
+  priceMax?: number | null;
+}) {
   const { items, addItem } = useSelection();
 
   const excursions = MOCK_EXCURSIONS.filter((e) => {
@@ -117,6 +127,8 @@ export default function ExcursionResultsMock({ priceMin, priceMax }: { priceMin?
       productName: e.name,
       productType: e.type,
       sourceType: 'CONTRACTED',
+      stayFrom,
+      stayTo: stayFrom,
       adults: 1,
       children: 0,
       finalPrice: e.price,

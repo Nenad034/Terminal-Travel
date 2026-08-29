@@ -158,13 +158,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Recor
           );
         }
         if (types.length === 1 && types[0] === 'FLIGHT') {
-          return <FlightResultsMock cabinClass={cabinClass} priceMin={priceMin} priceMax={priceMax} />;
+          return <FlightResultsMock stayFrom={quoteDefaults.stayFrom} cabinClass={cabinClass} priceMin={priceMin} priceMax={priceMax} />;
         }
         if (types.length === 1 && types[0] === 'TRANSFER') {
-          return <TransferResultsMock priceMin={priceMin} priceMax={priceMax} />;
+          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;
         }
         if (isThingsToDo) {
-          return <ExcursionResultsMock priceMin={priceMin} priceMax={priceMax} />;
+          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;
         }
         return (
           <>

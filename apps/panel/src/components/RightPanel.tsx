@@ -8,6 +8,7 @@ import { useRowSummary } from './RowSummaryContext';
 import { useProductPreview } from './ProductPreviewContext';
 import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
+import { findSelectionDateMismatches, type DateMismatchWarning } from '@/lib/date-mismatch';
 import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
 import AiChatBox from './AiChatBox';
 import ProductPreviewCard from './ProductPreviewCard';
@@ -73,6 +74,10 @@ export default function RightPanel({
   const productPregledMatch = pathname.match(PRODUCT_PREGLED_RE);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // M5 spec §3.0e.3a (dopuna 29.8.2026) — upozorenje o neusklađenim datumima PREVOZ/BORAVAK
+  // stavki; `null` dok se ne detektuje, popunjeno tek pri kliku "Napravi ponudu" (ne uživo dok
+  // se selekcija menja — izbegava treperenje upozorenja dok korisnik još dodaje stavke).
+  const [dateMismatchWarnings, setDateMismatchWarnings] = useState<DateMismatchWarning[] | null>(null);
   const { itemsByModule, addItem: addCollectedItem, removeItem: removeCollectedItem, removeItems: removeCollectedItems, clearModule } =
     usePanelCollection();
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -137,10 +142,20 @@ export default function RightPanel({
     total: items.filter((i) => i.finalPriceCurrency === c).reduce((sum, i) => sum + i.finalPrice, 0),
   }));
 
-  async function handleCreateQuote() {
+  async function handleCreateQuote(acknowledgeDateMismatch = false) {
+    if (!acknowledgeDateMismatch) {
+      const mismatches = findSelectionDateMismatches(
+        items.map((i) => ({ key: i.key, productName: i.productName, productType: i.productType, stayFrom: i.stayFrom, stayTo: i.stayTo })),
+      );
+      if (mismatches.length > 0) {
+        setDateMismatchWarnings(mismatches);
+        return;
+      }
+    }
+    setDateMismatchWarnings(null);
     setPending(true);
     setError(null);
-    const res = await createQuoteFromSelection(items);
+    const res = await createQuoteFromSelection(items, acknowledgeDateMismatch);
     setPending(false);
     if (res.error) {
       setError(res.error);
@@ -270,8 +285,34 @@ export default function RightPanel({
               ))}
             </div>
             {error && <p className="mb-2 text-[11px] text-danger">{error}</p>}
+            {dateMismatchWarnings && (
+              <div className="mb-2 rounded border border-warn bg-warn-bg p-2 text-[11px] text-warn">
+                <p className="mb-1 font-semibold">Datumi se ne poklapaju — termin prevoza je van perioda boravka:</p>
+                <ul className="mb-2 flex flex-col gap-0.5">
+                  {dateMismatchWarnings.map((m, idx) => (
+                    <li key={idx}>
+                      {m.productName}: {new Date(m.stayFrom).toLocaleDateString('sr-RS')} – {new Date(m.stayTo).toLocaleDateString('sr-RS')}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDateMismatchWarnings(null)}
+                    className="flex-1 rounded border border-warn px-2 py-1 font-semibold text-warn hover:bg-warn/10"
+                  >
+                    nazad
+                  </button>
+                  <button
+                    onClick={() => handleCreateQuote(true)}
+                    className="flex-1 rounded bg-warn px-2 py-1 font-semibold text-white hover:opacity-90"
+                  >
+                    da, termini su namerno različiti
+                  </button>
+                </div>
+              </div>
+            )}
             <button
-              onClick={handleCreateQuote}
+              onClick={() => handleCreateQuote()}
               disabled={pending}
               className="w-full rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
             >

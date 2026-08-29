@@ -76,7 +76,17 @@ function money(amountCents: number, currency: string): string {
   return `${(amountCents / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${currency}`;
 }
 
-export default function TransferResultsMock({ priceMin, priceMax }: { priceMin?: number | null; priceMax?: number | null }) {
+export default function TransferResultsMock({
+  stayFrom,
+  priceMin,
+  priceMax,
+}: {
+  /** Datum transfera iz opštih "od/do" polja popup-a; isti dan za stayFrom/stayTo, isti razlog
+   * kao FlightResultsMock (M5 spec §3.0e.3a — selekcija treba stvaran datum da proveri usklađenost). */
+  stayFrom?: string;
+  priceMin?: number | null;
+  priceMax?: number | null;
+}) {
   const { items, addItem } = useSelection();
 
   const transfers = MOCK_TRANSFERS.filter((t) => {
@@ -93,6 +103,8 @@ export default function TransferResultsMock({ priceMin, priceMax }: { priceMin?:
       productName: `${t.vehicleType} — ${t.fromLabel} → ${t.toLabel}`,
       productType: 'TRANSFER',
       sourceType: 'API',
+      stayFrom,
+      stayTo: stayFrom,
       adults: 1,
       children: 0,
       finalPrice: t.price,

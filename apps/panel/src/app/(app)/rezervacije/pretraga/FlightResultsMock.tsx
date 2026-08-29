@@ -106,10 +106,15 @@ function money(amountCents: number, currency: string): string {
 }
 
 export default function FlightResultsMock({
+  stayFrom,
   cabinClass,
   priceMin,
   priceMax,
 }: {
+  /** Datum poletanja iz opštih "od/do" polja popup-a (M5 spec §3.0d.1 — `stay_from` = datum
+   * leta); mock ne razlikuje jednosmeran/povratni let, koristi isti datum za stayFrom/stayTo
+   * (jedan dan) da selekcija (§3.0e.3a) ima na čemu da proveri neusklađenost sa hotelom/transferom. */
+  stayFrom?: string;
   cabinClass?: string | null;
   priceMin?: number | null;
   priceMax?: number | null;
@@ -131,6 +136,8 @@ export default function FlightResultsMock({
       productName: `${f.airline} ${f.flightNumber} — ${f.fromCity} → ${f.toCity}`,
       productType: 'FLIGHT',
       sourceType: 'API',
+      stayFrom,
+      stayTo: stayFrom,
       adults: 1,
       children: 0,
       finalPrice: f.price,

@@ -21,6 +21,9 @@ export interface BuildQuoteItemParams {
 
 export interface BuiltQuoteItemData {
   productId: string;
+  // M5 spec §3.0e.3a (dopuna 29.8.2026) — potreban da `QuotesService.create` razvrsta stavke u
+  // PREVOZ/BORAVAK grupe za proveru neusklađenih datuma, bez ponovnog čitanja proizvoda iz baze.
+  type: string;
   sourceType: 'CONTRACTED' | 'API';
   stayFrom: Date;
   stayTo: Date;
@@ -148,6 +151,7 @@ export class QuoteItemBuilderService {
       stayFrom,
       stayTo,
       occupancy,
+      type: product.type,
       baseCost,
       baseCostCurrency: product.sourceContract.currency,
       rateLineId: rateLine.id,
@@ -162,7 +166,7 @@ export class QuoteItemBuilderService {
   }
 
   private async buildApi(
-    product: { id: string; sourceProvider: string | null; sourceExternalId: string | null },
+    product: { id: string; type: string; sourceProvider: string | null; sourceExternalId: string | null },
     stayFrom: Date,
     stayTo: Date,
     occupancy: OccupancyInput,
@@ -200,6 +204,7 @@ export class QuoteItemBuilderService {
       stayFrom,
       stayTo,
       occupancy,
+      type: product.type,
       baseCost: quote.priceAmount,
       baseCostCurrency: quote.currency,
       rateLineId: null,

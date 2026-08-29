@@ -100,4 +100,10 @@ export class CreateQuoteDto {
   @IsString()
   @IsOptional()
   referralTrackingCode?: string;
+
+  // M5 spec §3.0e.3a (dopuna 29.8.2026) — eksplicitna potvrda da su neusklađeni datumi
+  // PREVOZ/BORAVAK stavki namerni; bez ovoga server odbija kreiranje kad je neusklađenost nađena.
+  @IsBoolean()
+  @IsOptional()
+  dateMismatchAcknowledged?: boolean;
 }

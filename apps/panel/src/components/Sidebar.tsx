@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Icon from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
 import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
+import SavedGroupSearchesSidebarPanel from './SavedGroupSearchesSidebarPanel';
 import HomeSidebarPanel from './HomeSidebarPanel';
 import { useTabs } from './TabsContext';
 import type { NavGroup, NavItem } from '@/lib/nav';
@@ -91,6 +92,10 @@ export default function Sidebar({
               emptyHint="Sačuvaj trenutnu pretragu (dugme pored 'izmeni' na vrhu) da je vidiš ovde."
             />
           )}
+          {/* Grupne pretrage (29.8.2026, na zahtev vlasnika: "omogućite čuvanje i grupnih
+              pretraga") — više pojedinačnih pretraga (npr. let + hotel + transfer) sačuvanih
+              zajedno, M5 spec v1.82. */}
+          {selected.id === 'pretraga' && <SavedGroupSearchesSidebarPanel />}
           {/* Sačuvani prikazi (24.8.2026, na zahtev vlasnika: "Filtere za listu rezervacija
               stavimo u levi panel... Ima dosta praznog prostora") — dizajn dok. §5b, isti
               obrazac kao pretraga iznad, samo za "Lista rezervacija". */}

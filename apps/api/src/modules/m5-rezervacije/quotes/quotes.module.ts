@@ -12,9 +12,20 @@ import { LoyaltyModule } from '../../m6-crm/loyalty/loyalty.module';
 import { SubagentStubService } from '../common/subagent-stub.service';
 import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
 import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.module';
+import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.module';
 
 @Module({
-  imports: [MarkupRulesModule, IntegrationsModule, AuthModule, PermissionsModule, BookingsModule, LoyaltyModule, SubagentsModule, CommissionModule],
+  imports: [
+    MarkupRulesModule,
+    IntegrationsModule,
+    AuthModule,
+    PermissionsModule,
+    BookingsModule,
+    LoyaltyModule,
+    SubagentsModule,
+    CommissionModule,
+    AuditLogModule,
+  ],
   controllers: [QuotesController],
   providers: [QuotesService, QuoteItemBuilderService, LoyaltyStubService, SubagentStubService],
   exports: [QuoteItemBuilderService, QuotesService],

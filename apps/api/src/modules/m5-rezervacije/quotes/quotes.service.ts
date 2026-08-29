@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from './quote-item-builder.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
@@ -7,6 +7,8 @@ import { SubagentStubService } from '../common/subagent-stub.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { resolveApiContext, type M5CallerContext } from '../common/resolve-api-context';
 import { serializeQuote, type RawQuote } from './quote-visibility';
+import { findDateMismatches } from '../common/date-mismatch';
+import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 
 // M5 spec §3.1 — "expires_at = najkraći quote_expires_at među stavkama (M4) ili
 // podrazumevanih 30 min za čisto ugovorene stavke."
@@ -19,6 +21,7 @@ export class QuotesService {
     private readonly builder: QuoteItemBuilderService,
     private readonly loyalty: LoyaltyStubService,
     private readonly subagentStub: SubagentStubService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // M5 spec §3.1/§3.2/§3.0b.3 — POST /quotes: konstruiše sve stavke po ISTIM pravilima
@@ -34,8 +37,10 @@ export class QuotesService {
     // SUBAGENT_CONTACT Subagent.id (resolve-caller-identity.ts), mora se mapirati na pravi
     // ClientAccount.id preko SubagentStubService pre nego što uđe u Quote.client_account_id.
     let clientAccountId = dto.clientAccountId;
+    let callerAccountType: string | null = null;
     if (actor?.userId) {
       const identity = await resolveCallerIdentity(this.prisma, actor.userId);
+      callerAccountType = identity.accountType;
       if (identity.accountType === 'GUEST') {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
@@ -60,6 +65,19 @@ export class QuotesService {
         }),
       ),
     );
+
+    // M5 spec §3.0e.3a (dopuna 29.8.2026) — server je jedini pravi oslonac (klijentska provera
+    // u RightPanel.tsx je samo brža povratna informacija). Bez `date_mismatch_acknowledged`,
+    // PREVOZ (let/transfer) stavka čiji se datum uopšte ne preklapa sa opsegom BORAVAK stavki
+    // (uz toleranciju 1 dan) blokira kreiranje Ponude umesto da tiho prođe.
+    const dateMismatch = findDateMismatches(built.map((b) => ({ productId: b.productId, type: b.type, stayFrom: b.stayFrom, stayTo: b.stayTo })));
+    if (dateMismatch.mismatched.length > 0 && !dto.dateMismatchAcknowledged) {
+      throw new BadRequestException({
+        message: 'Datumi stavki se ne poklapaju — termin prevoza je van perioda boravka. Potvrdite da je ovo namerno (M5 spec §3.0e.3a).',
+        code: 'DATE_MISMATCH',
+        mismatchedProductIds: dateMismatch.mismatched.map((m) => m.productId),
+      });
+    }
 
     const apiExpiries = built.map((b) => b.quoteExpiresAt).filter((v): v is string => v != null);
     const expiresAt =
@@ -110,6 +128,21 @@ export class QuotesService {
       },
       include: { items: true },
     });
+
+    // M5 spec §3.0e.3a — upisuje se TEK sad da `resourceId` bude prava Ponuda, ne pre kreiranja.
+    if (dateMismatch.mismatched.length > 0 && dto.dateMismatchAcknowledged) {
+      await this.auditLog.write({
+        actorType: callerAccountType === 'AI_AGENT' ? 'AI_AGENT' : 'HUMAN',
+        actorId: actor?.userId ?? null,
+        module: 'M5',
+        action: 'quote.date_mismatch_override',
+        resourceType: 'Quote',
+        resourceId: quote.id,
+        context: {
+          mismatchedItems: dateMismatch.mismatched.map((m) => ({ productId: m.productId, type: m.type, stayFrom: m.stayFrom, stayTo: m.stayTo })),
+        },
+      });
+    }
 
     return quote;
   }

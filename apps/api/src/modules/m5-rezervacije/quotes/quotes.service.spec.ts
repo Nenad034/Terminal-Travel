@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { QuotesService } from './quotes.service';
 
 // M5 spec §6.2 dopuna (avgust 2026, priprema za M8) — ownership za Gost pri kreiranju/čitanju Ponude.
@@ -14,8 +14,9 @@ describe('QuotesService', () => {
       resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null),
       getEffectiveCommissionPercentageForClientAccount: jest.fn().mockResolvedValue(null),
     };
-    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentStub as any);
-    return { service, prisma, builder, loyalty, subagentStub };
+    const auditLog = { write: jest.fn() };
+    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentStub as any, auditLog as any);
+    return { service, prisma, builder, loyalty, subagentStub, auditLog };
   }
 
   describe('create — client_account_id se ne uzima slepo iz tela zahteva za gosta', () => {
@@ -80,6 +81,141 @@ describe('QuotesService', () => {
       expect(prisma.quote.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ clientAccountId: 'acc-bilo-koji' }) }),
       );
+    });
+  });
+
+  describe('create — neusklađeni datumi PREVOZ/BORAVAK (§3.0e.3a)', () => {
+    function mockMismatchedBuilder(builder: any) {
+      builder.build.mockImplementation((params: any) =>
+        Promise.resolve(
+          params.productId === 'flight-1'
+            ? {
+                productId: 'flight-1',
+                type: 'FLIGHT',
+                sourceType: 'API',
+                stayFrom: new Date('2027-01-10'),
+                stayTo: new Date('2027-01-10'),
+                occupancy: {},
+                baseCost: 100,
+                baseCostCurrency: 'EUR',
+                rateLineId: null,
+                markupRuleId: 'mr1',
+                finalPrice: 120,
+                finalPriceCurrency: 'EUR',
+                providerQuoteReference: 'ext-1',
+                unitCount: 1,
+                cancellationPolicySnapshot: null,
+                quoteExpiresAt: null,
+              }
+            : {
+                productId: 'hotel-1',
+                type: 'ACCOMMODATION',
+                sourceType: 'CONTRACTED',
+                stayFrom: new Date('2027-02-05'),
+                stayTo: new Date('2027-02-12'),
+                occupancy: {},
+                baseCost: 1000,
+                baseCostCurrency: 'EUR',
+                rateLineId: 'rl1',
+                markupRuleId: 'mr1',
+                finalPrice: 1200,
+                finalPriceCurrency: 'EUR',
+                providerQuoteReference: null,
+                unitCount: 1,
+                cancellationPolicySnapshot: null,
+                quoteExpiresAt: null,
+              },
+        ),
+      );
+    }
+
+    it('odbija kreiranje bez date_mismatch_acknowledged kad se let i hotel ne poklapaju', async () => {
+      const { service, prisma, builder, auditLog } = makeService();
+      mockMismatchedBuilder(builder);
+
+      await expect(
+        service.create(
+          { channel: 'INTERNAL_PANEL', items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }] } as any,
+          { userId: 'staff-1' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.quote.create).not.toHaveBeenCalled();
+      expect(auditLog.write).not.toHaveBeenCalled();
+    });
+
+    it('kreira ponudu i upisuje audit log override kad je date_mismatch_acknowledged=true', async () => {
+      const { service, prisma, builder, auditLog } = makeService();
+      mockMismatchedBuilder(builder);
+      prisma.quote.create.mockResolvedValue({ id: 'q-mismatch', items: [] });
+
+      const result = await service.create(
+        {
+          channel: 'INTERNAL_PANEL',
+          items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }],
+          dateMismatchAcknowledged: true,
+        } as any,
+        { userId: 'staff-1' },
+      );
+
+      expect((result as unknown as { id: string }).id).toBe('q-mismatch');
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'quote.date_mismatch_override', resourceType: 'Quote', resourceId: 'q-mismatch' }),
+      );
+    });
+
+    it('ne blokira i ne upisuje audit log kad let pada unutar (+/- 1 dan) perioda boravka', async () => {
+      const { service, prisma, builder, auditLog } = makeService();
+      builder.build.mockImplementation((params: any) =>
+        Promise.resolve(
+          params.productId === 'flight-1'
+            ? {
+                productId: 'flight-1',
+                type: 'FLIGHT',
+                sourceType: 'API',
+                stayFrom: new Date('2027-02-05'), // tačno dan useljenja hotela — nema neusklađenosti
+                stayTo: new Date('2027-02-05'),
+                occupancy: {},
+                baseCost: 100,
+                baseCostCurrency: 'EUR',
+                rateLineId: null,
+                markupRuleId: 'mr1',
+                finalPrice: 120,
+                finalPriceCurrency: 'EUR',
+                providerQuoteReference: 'ext-1',
+                unitCount: 1,
+                cancellationPolicySnapshot: null,
+                quoteExpiresAt: null,
+              }
+            : {
+                productId: 'hotel-1',
+                type: 'ACCOMMODATION',
+                sourceType: 'CONTRACTED',
+                stayFrom: new Date('2027-02-05'),
+                stayTo: new Date('2027-02-12'),
+                occupancy: {},
+                baseCost: 1000,
+                baseCostCurrency: 'EUR',
+                rateLineId: 'rl1',
+                markupRuleId: 'mr1',
+                finalPrice: 1200,
+                finalPriceCurrency: 'EUR',
+                providerQuoteReference: null,
+                unitCount: 1,
+                cancellationPolicySnapshot: null,
+                quoteExpiresAt: null,
+              },
+        ),
+      );
+      prisma.quote.create.mockResolvedValue({ id: 'q-ok', items: [] });
+
+      const result = await service.create(
+        { channel: 'INTERNAL_PANEL', items: [{ productId: 'flight-1' }, { productId: 'hotel-1' }] } as any,
+        { userId: 'staff-1' },
+      );
+
+      expect((result as unknown as { id: string }).id).toBe('q-ok');
+      expect(auditLog.write).not.toHaveBeenCalled();
     });
   });
 
