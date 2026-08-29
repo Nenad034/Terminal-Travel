@@ -82,11 +82,11 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **`INSURANCE.attributes.coverage_regions[]`** (M5 poglavlje 3.0d.8, 17.8.2026) — struktura (lista zemalja vs. region-enum) nije razrađena, čeka implementaciju putnog osiguranja.
 - **`attributes.category` vrednosti za `EXCURSION`/`EVENT`/`TICKET`** ("Things to do", M5 poglavlje 3.0d.4, 17.8.2026) — dorađuje se pri stvarnoj izradi ekrana, isti princip kao `AmenityTag`.
 - ~~Tip kreveta u `beds`~~ — **rešeno 28.8.2026** (M2 spec v1.14): `base_bed_type`/`extra_bed_type` enumi dodati uz panel ekran za unos tipa sobe.
-- **Panel ekran za uređivanje hotelskih (ne-sobnih) `attributes` polja** (28.8.2026, nalaz pri gradnji panela za tip sobe) — `stars`/`board_type`/`amenities`/`accommodation_type`/`contact` i dalje nemaju panel ekran, samo API; `RoomTypesEditor.tsx` (v1.14) pokriva isključivo `room_types[]`.
+- ~~Panel ekran za uređivanje hotelskih (ne-sobnih) `attributes` polja~~ — **rešeno 29.8.2026**: `HotelAttributesEditor.tsx` pokriva `stars`/`board_type`/`amenities`/`accommodation_type`/`contact`, uz `RoomTypesEditor.tsx` (v1.14) koji ostaje isključivo za `room_types[]`.
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*
-- **Panel ekran za pojedinačan ugovor/period ne postoji** (28.8.2026, nalaz pri dodavanju `age_policy_override`, §2.3c) — lista ugovora postoji (`ugovori/page.tsx`), ali nema detalj-ekrana za unos `RateLine`/`age_pricing[]`/`age_policy_override` za konkretan `ContractPeriod`; sve ostaje API-only dok taj ekran ne dođe na red.
+- ~~Panel ekran za pojedinačan ugovor/period ne postoji~~ — **rešeno 29.8.2026**: `ugovori/[id]/page.tsx` (detalj ugovora + unos perioda, uključujući `age_policy_override`) i `ugovori/[id]/periods/[periodId]/page.tsx` (`RateLine`/`CancellationRule`). Napomena: backend `PUT .../rates` i `.../cancellation-rules` uvek KREIRAJU novu stavku (nema izmene/brisanja postojeće po ID-ju) — panel prati isti oblik, izmena/brisanje pojedinačne stavke ostaje otvoreno ako se pokaže potreba. `age_pricing[]` po redu cenovnika (§2.4a) ostaje API-only.
 - Tačan format `cancellation_terms_summary` (slobodan tekst vs. strukturirano).
 - Obračun konverzije valute za fakturisanje u RSD — definiše se u M10.
 - Da li `PACKAGE` proizvodi mogu imati sopstveni ugovor nezavisan od komponenti.

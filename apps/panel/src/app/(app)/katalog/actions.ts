@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { RoomType } from './[id]/RoomTypesEditor';
+import type { HotelAttributes } from './[id]/HotelAttributesEditor';
 
 export interface FormState {
   error: string | null;
@@ -70,6 +71,18 @@ export async function updateProductTranslation(_prev: FormState, formData: FormD
 export async function saveRoomTypes(productId: string, roomTypes: RoomType[]): Promise<void> {
   const product = await apiFetch<{ attributes?: Record<string, unknown> | null }>(`/catalog/products/${productId}`);
   const attributes = { ...(product.attributes ?? {}), room_types: roomTypes };
+  await apiFetch(`/catalog/products/${productId}`, { method: 'PATCH', body: { attributes } });
+  revalidatePath(`/katalog/${productId}`);
+  revalidatePath(`/katalog/${productId}/pregled`);
+}
+
+// M2 spec §2.3/§2.3c/§2.3d (28.8.2026, na zahtev vlasnika) — isti obrazac kao saveRoomTypes
+// iznad: `attributes` je jedan JSONB bez deep-merge na backendu, pa se trenutne vrednosti
+// ponovo učitavaju neposredno pre upisa da izmena hotelskih polja tiho ne obriše `room_types[]`
+// koji je neko drugi u međuvremenu izmenio.
+export async function saveHotelAttributes(productId: string, patch: HotelAttributes): Promise<void> {
+  const product = await apiFetch<{ attributes?: Record<string, unknown> | null }>(`/catalog/products/${productId}`);
+  const attributes = { ...(product.attributes ?? {}), ...patch };
   await apiFetch(`/catalog/products/${productId}`, { method: 'PATCH', body: { attributes } });
   revalidatePath(`/katalog/${productId}`);
   revalidatePath(`/katalog/${productId}/pregled`);

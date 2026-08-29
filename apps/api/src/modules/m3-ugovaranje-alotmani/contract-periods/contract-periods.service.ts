@@ -46,6 +46,7 @@ export class ContractPeriodsService {
         ukupnaFiksnaObaveza: dto.ukupnaFiksnaObaveza,
         fixedObligationCurrency: dto.fixedObligationCurrency,
         paymentSchedule: dto.paymentSchedule as unknown as Prisma.InputJsonValue,
+        agePolicyOverride: dto.agePolicyOverride as unknown as Prisma.InputJsonValue,
       },
     });
     await this.auditLog.write({

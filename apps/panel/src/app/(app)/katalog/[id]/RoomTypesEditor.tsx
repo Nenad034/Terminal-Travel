@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/button';
 // nijedan panel ekran za unos, samo API). Prvi primer u ovoj kodbazi obrasca "lista objekata +
 // modal za dodavanje/izmenu" — nema ranijeg da se prati.
 //
-// NAMERNO VAN OBIMA: uređivanje hotelskih (ne-sobnih) attributes polja (stars/board_type/
-// amenities/accommodation_type/contact) — ostaje samo API, zaseban zadatak (backlog, M2 sekcija).
+// Hotelska (ne-sobna) attributes polja (stars/board_type/amenities/accommodation_type/contact)
+// imaju sopstveni editor — vidi HotelAttributesEditor.tsx (dopunjeno 29.8.2026).
 export type BaseBedType = 'FRANCUSKI_LEZAJ' | 'DVA_ODVOJENA_KREVETA' | 'BRACNI_KREVET' | 'DRUGO';
 export type ExtraBedType = 'RAZVODNI_KREVET' | 'SOFA_KREVET' | 'POMOCNI_LEZAJ' | 'DRUGO';
 export type AgeCategory = 'ADULT' | 'CHILD' | 'TEEN' | 'INFANT';

@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
+import { Badge } from '@/components/ui/badge';
 
 interface Contract {
   id: string;
@@ -67,10 +68,15 @@ export default async function ContractsPage() {
           {contracts.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema ugovora.</p>}
           {contracts.map((c) => (
             // `id` (23.8.2026, na zahtev vlasnika: "ovo treba da ima linkove ka stavkama na koje
-            // obavestava") — nema posebnog ekrana za pojedinačan ugovor, pa je HTML anchor na redu
-            // ovde jedini realan način da dashboard upozorenje ("M3 — rokovi povrata alotmana")
-            // vodi TAČNO na taj ugovor umesto samo na opštu listu (`/ugovori#contract-{id}`).
-            <div key={c.id} id={`contract-${c.id}`} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
+            // obavestava") — dashboard upozorenje ("M3 — rokovi povrata alotmana") i dalje može
+            // da skoči na ovaj anchor (`/ugovori#contract-{id}`); klik na red sada dodatno vodi
+            // na pravi detalj-ekran ugovora (dopunjeno 29.8.2026, vidi [id]/page.tsx).
+            <Link
+              key={c.id}
+              id={`contract-${c.id}`}
+              href={`/ugovori/${c.id}`}
+              className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0 hover:bg-panel2"
+            >
               <div>
                 <div className="font-medium text-ink">
                   {c.contractNumber} <span className="text-ink-faint">— {suppliersById.get(c.supplierId) ?? c.supplierId}</span>
@@ -80,7 +86,7 @@ export default async function ContractsPage() {
                 </div>
               </div>
               <StatusBadge status={c.status} />
-            </div>
+            </Link>
           ))}
         </div>
       )}
@@ -89,6 +95,5 @@ export default async function ContractsPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : status === 'EXPIRED' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  return <Badge variant={status === 'ACTIVE' ? 'ok' : status === 'EXPIRED' || status === 'TERMINATED' ? 'danger' : 'secondary'}>{status}</Badge>;
 }
