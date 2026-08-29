@@ -76,6 +76,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* DB trigger sprovodi M1 §3.8; to je ispravno ponašanje, ne greška.
 - *Provera:* test podaci koji proizvode audit zapise ostaju u dnevniku — ne planiraj čišćenje, nego to napomeni u izveštaju.
 
+**2.5 `apps/panel/src/lib/api-client.ts` `apiFetch` je pretpostavljao da svaki uspešan odgovor ima JSON telo OSIM tačno statusa 204**
+- *Simptom:* stvaran API poziv uspe (npr. `POST /iam/users/:id/roles` vraća 201), ali panel forma prikazuje generičku "nije uspelo" grešku — otkriveno 29.8.2026 pri M1 "korisnici" ekranu (dodela uloge).
+- *Uzrok:* `POST /iam/users/:id/roles` vraća 201 sa **praznim** telom (`Content-Length: 0`), ne 204. `apiFetch` je pozivao `res.json()` bezuslovno za svaki status ≠ 204 — na praznom telu to baca `SyntaxError`, ne `ApiError`; pozivalac hvata samo `err instanceof ApiError` pa upada u generičku fallback poruku, iako je API poziv stvarno uspeo.
+- *Provera/rešenje:* `apiFetch` sad čita telo preko `res.text()` i proverava dužinu PRE parsiranja (`raw === '' ? undefined : JSON.parse(raw)`) — pokriva i 204 i "200/201 sa praznim telom" bez oslanjanja na status kod koji API ne garantuje dosledno kroz module. Ako se ponovo pojavi "poziv uspeva ali panel prijavljuje grešku", prva sumnja treba da bude ovaj obrazac (prazno telo na uspešnom statusu koji nije 204), ne sama poslovna logika forme.
+
 ---
 
 ## 3. Katalog, pretraga i javni sajt (M2, M5, M8, M12)
