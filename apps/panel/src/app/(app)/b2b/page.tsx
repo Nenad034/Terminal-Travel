@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface Subagent {
   id: string;
@@ -64,14 +66,18 @@ export default async function B2bPage() {
         </div>
         <div className="flex gap-2">
           {canViewRebates && (
-            <Link href="/b2b/rabati" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-              <Icon name="diff" /> rabati provizije
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/b2b/rabati" className="flex items-center gap-1.5">
+                <Icon name="diff" /> rabati provizije
+              </Link>
+            </Button>
           )}
           {canCreate && (
-            <Link href="/b2b/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-              <Icon name="add" /> novi subagent
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/b2b/novi" className="flex items-center gap-1.5">
+                <Icon name="add" /> novi subagent
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -114,6 +120,7 @@ export default async function B2bPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : status === 'SUSPENDED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'ACTIVE') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'SUSPENDED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

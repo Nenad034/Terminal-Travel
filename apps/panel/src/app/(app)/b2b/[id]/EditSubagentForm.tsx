@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { updateSubagent, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -47,8 +48,8 @@ export default function EditSubagentForm({ subagent }: { subagent: Subagent }) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded bg-panel2 px-3 py-1.5 text-xs font-medium text-ink hover:bg-border disabled:opacity-50">
+    <Button type="submit" disabled={pending} variant="secondary" size="sm">
       {pending ? 'Čuvanje…' : 'sačuvaj'}
-    </button>
+    </Button>
   );
 }

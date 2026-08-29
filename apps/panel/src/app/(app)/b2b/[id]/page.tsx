@@ -7,6 +7,7 @@ import ApproveSubagentForm from './ApproveSubagentForm';
 import EditSubagentForm from './EditSubagentForm';
 import VolumeTiersPanel from './VolumeTiersPanel';
 import RebatesPanel from '../RebatesPanel';
+import { Badge } from '@/components/ui/badge';
 
 interface Subagent {
   id: string;
@@ -233,6 +234,7 @@ export default async function SubagentDetailPage({ params }: { params: { id: str
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'ACTIVE' ? 'text-ok bg-ok-bg' : status === 'SUSPENDED' ? 'text-danger bg-danger-bg' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'ACTIVE') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'SUSPENDED') return <Badge variant="danger">{status}</Badge>;
+  return <Badge variant="warn">{status}</Badge>;
 }

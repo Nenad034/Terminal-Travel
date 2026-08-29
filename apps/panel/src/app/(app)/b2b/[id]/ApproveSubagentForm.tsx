@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { approveSubagent, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -36,8 +37,8 @@ export default function ApproveSubagentForm({ id, isTier1 }: { id: string; isTie
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Odobravam…' : 'Odobri subagenta'}
-    </button>
+    </Button>
   );
 }

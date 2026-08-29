@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { createVolumeTier, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -36,9 +37,9 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
         <div className="flex items-center gap-1.5 text-sm font-semibold text-ink">
           <Icon name="milestone" className="text-accent" /> Pragovi obima (obimski bonus)
         </div>
-        <button type="button" onClick={() => setShowForm((v) => !v)} className="text-xs text-accent hover:underline">
+        <Button type="button" onClick={() => setShowForm((v) => !v)} variant="link" size="sm" className="h-auto p-0">
           {showForm ? 'zatvori' : '+ novi prag'}
-        </button>
+        </Button>
       </div>
 
       {tiers.length === 0 ? (
@@ -116,8 +117,8 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Čuvanje…' : 'sačuvaj prag'}
-    </button>
+    </Button>
   );
 }

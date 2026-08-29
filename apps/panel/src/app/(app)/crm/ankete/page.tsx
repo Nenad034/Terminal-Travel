@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
 
 interface PostTripSurvey {
   id: string;
@@ -85,6 +86,11 @@ export default async function PostTripSurveysPage({ searchParams }: { searchPara
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = status === 'COMPLETED' ? 'text-ok bg-ok-bg' : status === 'PENDING' ? 'text-ink-faint bg-panel2' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'COMPLETED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'PENDING') return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }

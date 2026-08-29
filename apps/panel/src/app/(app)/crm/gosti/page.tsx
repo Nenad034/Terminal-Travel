@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Button } from '@/components/ui/button';
 
 interface GuestProfile {
   id: string;
@@ -41,13 +42,17 @@ export default async function GuestProfilesPage({ searchParams }: { searchParams
           <p className="text-xs text-ink-dim">Profili gostiju (ko putuje) — dokument, preference, istorija putovanja.</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/crm" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-            <Icon name="organization" /> nalogodavci
-          </Link>
-          {canCreate && (
-            <Link href="/crm/gosti/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-              <Icon name="add" /> novi gost
+          <Button asChild variant="outline" size="sm">
+            <Link href="/crm" className="flex items-center gap-1.5">
+              <Icon name="organization" /> nalogodavci
             </Link>
+          </Button>
+          {canCreate && (
+            <Button asChild size="sm">
+              <Link href="/crm/gosti/novi" className="flex items-center gap-1.5">
+                <Icon name="add" /> novi gost
+              </Link>
+            </Button>
           )}
         </div>
       </div>

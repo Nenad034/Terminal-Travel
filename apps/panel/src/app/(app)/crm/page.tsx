@@ -4,6 +4,8 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface ClientAccount {
   id: string;
@@ -51,19 +53,25 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
         </div>
         <div className="flex gap-2">
           {canViewSurveys && (
-            <Link href="/crm/ankete" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-              <Icon name="star" /> ankete
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/crm/ankete" className="flex items-center gap-1.5">
+                <Icon name="star" /> ankete
+              </Link>
+            </Button>
           )}
           {canViewGuests && (
-            <Link href="/crm/gosti" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">
-              <Icon name="account" /> gosti
-            </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/crm/gosti" className="flex items-center gap-1.5">
+                <Icon name="account" /> gosti
+              </Link>
+            </Button>
           )}
           {canCreate && (
-            <Link href="/crm/novi" className="flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
-              <Icon name="add" /> novi nalogodavac
-            </Link>
+            <Button asChild size="sm">
+              <Link href="/crm/novi" className="flex items-center gap-1.5">
+                <Icon name="add" /> novi nalogodavac
+              </Link>
+            </Button>
           )}
         </div>
       </div>
@@ -72,13 +80,13 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
         <form className="mb-3 flex gap-2 text-xs" action="/crm">
           <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga po email-u" className="input flex-1" />
           <input name="taxId" defaultValue={searchParams?.taxId ?? ''} placeholder="pretraga po PIB-u" className="input flex-1" />
-          <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+          <Button type="submit" variant="secondary" size="sm">
             traži
-          </button>
+          </Button>
           {(searchParams?.email || searchParams?.taxId) && (
-            <Link href="/crm" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-              obriši filter
-            </Link>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/crm">obriši filter</Link>
+            </Button>
           )}
         </form>
       )}
@@ -108,9 +116,9 @@ export default async function CrmPage({ searchParams }: { searchParams: { email?
                   {a.tags && a.tags.length > 0 && (
                     <div className="mt-1 flex gap-1">
                       {a.tags.map((t) => (
-                        <span key={t} className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] text-ink-faint">
+                        <Badge key={t} variant="secondary" className="text-ink-faint">
                           {t}
-                        </span>
+                        </Badge>
                       ))}
                     </div>
                   )}

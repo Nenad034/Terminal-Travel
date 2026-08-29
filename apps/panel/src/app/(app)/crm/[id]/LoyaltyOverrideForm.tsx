@@ -2,6 +2,7 @@
 
 import { useFormState, useFormStatus } from 'react-dom';
 import { overrideLoyaltyStatus, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -46,12 +47,14 @@ export default function LoyaltyOverrideForm({ clientAccountId, tiers }: { client
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
+    <Button
       type="submit"
       disabled={pending}
-      className="self-start rounded border border-warn px-3 py-1 text-[11px] font-semibold text-warn hover:bg-warn-bg disabled:opacity-50"
+      variant="outline"
+      size="sm"
+      className="self-start border-warn text-warn hover:bg-warn-bg"
     >
       {pending ? 'Dodeljujem…' : 'Ručno dodeli nivo'}
-    </button>
+    </Button>
   );
 }

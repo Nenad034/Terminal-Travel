@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import EditClientAccountForm from './EditClientAccountForm';
 import LoyaltyOverrideForm from './LoyaltyOverrideForm';
 import CommunicationLogPanel from '../CommunicationLogPanel';
+import { Badge } from '@/components/ui/badge';
 
 interface ClientAccount {
   id: string;
@@ -222,6 +223,11 @@ export default async function ClientAccountDetailPage({ params }: { params: { id
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone = ['CONFIRMED', 'COMPLETED'].includes(status) ? 'text-ok bg-ok-bg' : status === 'CANCELLED' ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (['CONFIRMED', 'COMPLETED'].includes(status)) return <Badge variant="ok">{status}</Badge>;
+  if (status === 'CANCELLED') return <Badge variant="danger">{status}</Badge>;
+  return (
+    <Badge variant="secondary" className="text-ink-faint">
+      {status}
+    </Badge>
+  );
 }

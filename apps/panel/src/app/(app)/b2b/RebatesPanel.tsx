@@ -1,5 +1,6 @@
 import Icon from '@/components/Icon';
 import RebateActions from './RebateActions';
+import { Badge } from '@/components/ui/badge';
 
 interface CommissionRebate {
   id: string;
@@ -56,7 +57,12 @@ export default function RebatesPanel({ subagentId, rebates, canApprove }: { suba
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const tone =
-    status === 'APPLIED' ? 'text-ok bg-ok-bg' : status === 'REJECTED' ? 'text-danger bg-danger-bg' : status === 'APPROVED' ? 'text-accent bg-panel2' : 'text-warn bg-warn-bg';
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{status}</span>;
+  if (status === 'APPLIED') return <Badge variant="ok">{status}</Badge>;
+  if (status === 'REJECTED') return <Badge variant="danger">{status}</Badge>;
+  if (status === 'APPROVED') return (
+    <Badge variant="secondary" className="text-accent">
+      {status}
+    </Badge>
+  );
+  return <Badge variant="warn">{status}</Badge>;
 }

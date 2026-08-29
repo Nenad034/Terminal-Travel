@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { createCommunicationLog, markCommunicationSent, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 const CHANNELS = ['EMAIL', 'PHONE', 'SMS', 'IN_PERSON'];
@@ -110,13 +111,9 @@ function NewCommunicationLogForm({ target }: { target: Target }) {
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} size="sm" className="self-start">
       {pending ? 'Beležim…' : 'Zabeleži komunikaciju'}
-    </button>
+    </Button>
   );
 }
 
@@ -134,12 +131,8 @@ function MarkSentButton({ id, target }: { id: string; target: Target }) {
 function MarkSentSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded border border-accent px-2 py-0.5 text-xs font-semibold text-accent-strong hover:bg-accent-soft disabled:opacity-50"
-    >
+    <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
       {pending ? 'Označavam…' : 'označi kao poslato'}
-    </button>
+    </Button>
   );
 }

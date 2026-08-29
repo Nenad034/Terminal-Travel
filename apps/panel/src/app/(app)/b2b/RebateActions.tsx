@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { approveRebate, rejectRebate, FormState } from './actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -24,9 +25,9 @@ export default function RebateActions({ subagentId, rebateId }: { subagentId: st
           <ApproveButton />
         </form>
         {!showReject ? (
-          <button type="button" onClick={() => setShowReject(true)} className="rounded border border-danger px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger-bg">
+          <Button type="button" onClick={() => setShowReject(true)} variant="destructive" size="sm">
             odbij
-          </button>
+          </Button>
         ) : null}
       </div>
       {showReject && (
@@ -44,17 +45,17 @@ export default function RebateActions({ subagentId, rebateId }: { subagentId: st
 function ApproveButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Odobravam…' : 'odobri rabat'}
-    </button>
+    </Button>
   );
 }
 
 function RejectButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded border border-danger px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger-bg disabled:opacity-50">
+    <Button type="submit" disabled={pending} variant="destructive" size="sm">
       {pending ? 'Odbijam…' : 'potvrdi odbijanje'}
-    </button>
+    </Button>
   );
 }

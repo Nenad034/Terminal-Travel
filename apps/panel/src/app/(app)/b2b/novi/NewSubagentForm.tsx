@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { createSubagent, FormState } from '../actions';
+import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
@@ -30,9 +31,9 @@ export default function NewSubagentForm({ account }: { account: ClientAccountSum
           </div>
         </div>
         {!expanded && (
-          <button type="button" onClick={() => setExpanded(true)} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
+          <Button type="button" onClick={() => setExpanded(true)} size="sm">
             registruj kao subagent
-          </button>
+          </Button>
         )}
       </div>
       {expanded && (
@@ -43,9 +44,9 @@ export default function NewSubagentForm({ account }: { account: ClientAccountSum
             <input name="commissionPercentage" type="number" min={0} max={100} step="0.01" className="input mt-1" />
           </label>
           <SubmitButton />
-          <button type="button" onClick={() => setExpanded(false)} className="rounded px-3 py-1.5 text-xs font-medium text-ink-faint hover:text-ink">
+          <Button type="button" onClick={() => setExpanded(false)} variant="ghost" size="sm">
             otkaži
-          </button>
+          </Button>
         </form>
       )}
       {state.error && <p className="mt-2 text-[11px] text-danger">{state.error}</p>}
@@ -56,8 +57,8 @@ export default function NewSubagentForm({ account }: { account: ClientAccountSum
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50">
+    <Button type="submit" disabled={pending} size="sm">
       {pending ? 'Registrujem…' : 'potvrdi'}
-    </button>
+    </Button>
   );
 }
