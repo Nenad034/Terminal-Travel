@@ -60,9 +60,26 @@ Cilj: da li `:id` operacije koje pozivaju GOST/SUBAGENT_CONTACT (ne interni tim)
 
 ---
 
+## 30.8.2026 — treći prolaz, CSRF pregled `/api/session/*` ruta (panel + sajt)
+
+Cilj: da li kolačić-zasnovane rute panela (`apps/panel/src/app/api/session/*`) i sajta (`apps/web/src/app/api/session/*`) mogu da se zloupotrebe cross-site — falširan zahtev sa druge stranice koji iskoristi kolačić koji browser sam šalje.
+
+### Provereno i čisto (bez nalaza)
+
+- **Sve rute su POST, nijedna GET** — `login`, `logout`, `mfa` (panel), `login`, `logout`, `register`, `guest-checkout` (sajt). Nema state-changing GET-a koji bi mogao da se okine iz `<img src=...>` ili sličnog na tuđoj stranici.
+- **Kolačić je `httpOnly`, `secure` u produkciji, `sameSite: 'lax'`** (`apps/panel/src/lib/session.ts` i `apps/web/src/lib/session.ts`, identično). `SameSite=Lax` sprečava browser da pošalje POSTOJEĆI kolačić na cross-site POST zahtev (šalje se samo na top-level GET navigaciju) — to pokriva najozbiljniju klasu CSRF-a ovde: `logout` sa tuđe stranice ne bi ni stigao do `getSession()` sa validnim kolačićem (server ga vidi kao da kolačić ne postoji), pa nema efekta.
+- **Prava autentikacija ka NestJS API-ju ide preko `Authorization: Bearer <token>` header-a** (`apps/panel/src/lib/api-client.ts`, `apps/web` isto), ne preko kolačića koji bi browser sam prilagao. Token se čita iz enkriptovanog httpOnly kolačića isključivo na serveru (Next.js API route/Server Component) i nikad ne stiže u JS koji bi napadačeva stranica mogla pročitati ili iskoristiti — backend API sam po sebi nije osetljiv na CSRF jer se uopšte ne oslanja na kolačić za autorizaciju.
+- **`login`/`register`/`guest-checkout` ne zahtevaju postojeću sesiju** — teorijski moguć "login CSRF" (napadač cross-site POST-uje SVOJE kredencijale u žrtvin browser, žrtva se nađe ulogovana kao napadač i može nesvesno uneti osetljive podatke misleći da je na svom nalogu). Ovo je poznat, ali nisko-ozbiljan obrazac (napadač ne dobija ništa što već nije imao — sopstvene kredencijale) i standardna industrijska praksa ga ne tretira posebnim CSRF tokenom na login/register rutama upravo iz tog razloga. Nije nađen dodatni rizik specifičan za ovu implementaciju.
+
+### Zaključak
+
+Nema nalaza koji zahteva izmenu koda. `SameSite=Lax` + `httpOnly` kolačić + `Authorization` header ka pravom API-ju (ne kolačić) je već ispravna kombinacija za ovaj tip aplikacije. Eksplicitni CSRF token bi bio čist dodatni sloj bez stvarne trenutne izloženosti — nije dodat, u skladu sa principom "ne dodavati zaštitu za scenario koji ne postoji" (CLAUDE.md).
+
+---
+
 ## Otvoreno za dalje
 
 - Odluka: koje preostale `npm audit fix --force` nadogradnje raditi i kada (posebno Next.js major skok — najveći rizik od nečeg što se pokvari, ali i najozbiljniji preostali nalaz — XSS/path traversal u postcss lancu).
 - Kad se izabere hosting: ograničiti `ChatGatewayService` CORS na stvarne domene, zaključati/ugasiti Swagger u produkciji.
 - IDOR pregled (30.8.2026) je pokrio samo module koji koriste `resolveCallerIdentity` (samoposlužni GOST/SUBAGENT_CONTACT put) — interni (STAFF) endpoint-i nisu posebno pregledani jer se oslanjaju na širi RBAC model (uloga vidi sve u svom modulu), ne na ownership po zapisu; vredi jednom proveriti da li ijedan STAFF endpoint NAMERNO treba užu vidljivost (npr. "prodajni agent vidi samo svoje klijente") a trenutno je širi.
-- CSRF razmatranje za panel/web (trenutno JWT u `Authorization` header-u preko servera, ne kolačić — niska izloženost, ali vredi eksplicitno potvrditi kroz `apps/panel`/`apps/web` sopstvene `/api/session/*` rute, koje JESU kolačić-zasnovane).
+- ~~CSRF razmatranje za panel/web~~ — pregledano 30.8.2026, čisto (vidi sekciju iznad).
