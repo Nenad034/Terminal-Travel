@@ -30,6 +30,27 @@
 2. **`ChatGatewayService` (M19) `cors: { origin: '*' }`** — nije danas iskoristivo (obrazloženo iznad), ali širi je nego što treba po principu najmanjeg ovlašćenja. Kada se izaberu stvarni domeni panela/sajta/mobilne aplikacije, ograničiti na tačnu listu — sitna izmena, ali čeka da ti domeni uopšte postoje (hosting provajder namerno neizabran).
 3. **Swagger (`/api/docs`) nema svoj guard** — u razvoju je to očekivano i korisno; pre bilo kakvog javnog izlaganja API-ja, ili se gasi u produkciji ili se stavlja iza autentikacije — čeka odluku o hostingu/produkciji, ne pre.
 
+---
+
+## 30.8.2026 — drugi prolaz, IDOR pregled (samoposlužni endpoint-i)
+
+Cilj: da li `:id` operacije koje pozivaju GOST/SUBAGENT_CONTACT (ne interni tim) stvarno proveravaju vlasništvo nad TIM zapisom, ne samo da li je pozivalac prijavljen. Pregledano preko svih mesta koja koriste `resolveCallerIdentity` (M5 bookings/quotes, M6 client-accounts/guest-profiles, M7 subagents/commission, M14 tickets, M20 client-contracts).
+
+### Nalaz i ispravka
+
+**`GuestProfilesService.update()` (M6) — gost je mogao da prebaci SOPSTVENI profil na TUĐ nalog.** `create()` je od početka sprečavao gosta da odmah pri kreiranju poveže profil sa tuđim `ClientAccount`-om; `findOne()`/`update()` su proveravali da profil TRENUTNO pripada pozivaocu — ali `update()` nije proveravao da NOVA vrednost `linkedClientAccountId` (izmenjivo polje, `UpdateGuestProfileDto`) i dalje ostaje pozivaočev nalog. Gost je mogao da pozove `PATCH /guest-profiles/<sopstveni-id>` sa telom `{ linkedClientAccountId: "<tuđ-nalog>" }` i time reši svoj profil sa svog naloga na tuđi, bez pristanka tog drugog naloga.
+
+**Ispravljeno** (`apps/api/src/modules/m6-crm/guest-profiles/guest-profiles.service.ts`) — `update()` sad primenjuje istu proveru kao `create()` pre upisa. Dodata 2 jedinična testa (`guest-profiles.service.spec.ts`) — jedan dokazuje da se pokušaj odbija (`ForbiddenException`, upis se ne dešava), drugi da normalna izmena (bez diranja tog polja) i dalje prolazi. M6 spec §7 dopunjen istim nalazom. Svih 787 testova prolazi.
+
+### Provereno i čisto (bez nalaza)
+
+- **M5 `bookings.service.ts` `findOne`/`history`** — proverava `booking.clientAccountId !== ownClientAccountId`, vraća 404 (ne otkriva postojanje tuđe rezervacije, ista filozofija kao M1 reset lozinke). `history()` prolazi kroz `findOne()` pre otkrivanja bilo čega.
+- **M5 `quotes.service.ts`** — nema `update()`/reassignment površine uopšte; `clientAccountId` se pri kreiranju prisilno postavlja na pozivaočev nalog za GUEST/SUBAGENT_CONTACT/AI_AGENT, telo zahteva se ignoriše za te tipove poziваoca.
+- **M6 `client-accounts.service.ts`** — `update()` nema nijedno polje koje pokazuje na DRUGI zapis (nema analognog `linkedClientAccountId` problema).
+- **M7 `subagents.service.ts` `update()`** — namerno BEZ ownership provere, ali ispravno: gated je na `M7/subagent/EDIT`, dozvolu koju `SUBAGENT_ADMIN` uloga nema u seed-u (samo `VIEW`/`MANAGE_OWN_NETWORK`) — znači da je ovo staff-only operacija po dizajnu, ownership provera bi bila suvišna. `updateChildCommission()` (self-service put, `MANAGE_OWN_NETWORK`) ownership proverava (`child.parentSubagentId !== parentId`).
+- **M14 `tickets.service.ts`** — `create()` prisilno postavlja `requesterClientAccountId` na pozivaočev nalog kad je ograničen (isti obrazac kao M5 quotes); `update()` je eksplicitno staff-only (komentar u kodu) i ne prima nijedno polje koje bi omogućilo reassignment.
+- **M20 `client-contracts.service.ts`** — samo `findOne`, nema `update`/`create` sa ownership površinom; ownership provera preko posebnog upita za `Booking` (ne `include`, da interna polja ne procure gostu).
+
 ### Namerno van dometa ovog prolaza (zahteva treću stranu/infrastrukturu, ne kod)
 
 - Nezavisan penetraciono testiranje (spoljna firma/stručnjak).
@@ -43,4 +64,5 @@
 
 - Odluka: koje preostale `npm audit fix --force` nadogradnje raditi i kada (posebno Next.js major skok — najveći rizik od nečeg što se pokvari, ali i najozbiljniji preostali nalaz — XSS/path traversal u postcss lancu).
 - Kad se izabere hosting: ograničiti `ChatGatewayService` CORS na stvarne domene, zaključati/ugasiti Swagger u produkciji.
-- Sledeći prolaz kroz Fazu 8 (kad bude vreme): OWASP-stil pregled preostalih modula pojedinačno (ovaj prolaz je pokrio zajedničke/infrastrukturne tačke, ne svaki od 23 modula linija po liniju) — IDOR provere (da li `GET /:id` endpoint-i proveravaju vlasništvo, ne samo prijavu), i CSRF razmatranje za panel/web (trenutno JWT u `Authorization` header-u preko servera, ne kolačić — niska izloženost, ali vredi eksplicitno potvrditi).
+- IDOR pregled (30.8.2026) je pokrio samo module koji koriste `resolveCallerIdentity` (samoposlužni GOST/SUBAGENT_CONTACT put) — interni (STAFF) endpoint-i nisu posebno pregledani jer se oslanjaju na širi RBAC model (uloga vidi sve u svom modulu), ne na ownership po zapisu; vredi jednom proveriti da li ijedan STAFF endpoint NAMERNO treba užu vidljivost (npr. "prodajni agent vidi samo svoje klijente") a trenutno je širi.
+- CSRF razmatranje za panel/web (trenutno JWT u `Authorization` header-u preko servera, ne kolačić — niska izloženost, ali vredi eksplicitno potvrditi kroz `apps/panel`/`apps/web` sopstvene `/api/session/*` rute, koje JESU kolačić-zasnovane).

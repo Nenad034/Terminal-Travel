@@ -172,6 +172,8 @@ Uloga **Gost** ima pristup isključivo sopstvenom `ClientAccount`/`GuestProfile`
 
 **Vlasništvo, ne samo dozvola (dopuna avgust 2026, priprema za M8, isti obrazac kao M5 spec §6.2).** `M6/client-account/VIEW,EDIT` i `M6/guest-profile/VIEW,CREATE,EDIT` sami po sebi ne razlikuju "sopstveno" od "tuđe" — to sprovode `ClientAccountsController`/`GuestProfilesController` eksplicitno: kad pozivalac ima `account_type = GUEST` (učitano uživo po `userId`, isti mehanizam kao M5), `:id` operacije i liste se ograničavaju na `ownClientAccountId` (`User.linked_profile_id`) odnosno profile povezane preko `linked_client_account_id` — pokušaj pristupa tuđem zapisu vraća 404, ne otkriva postojanje.
 
+**Nalaz i ispravka (30.8.2026, Faza 8 IDOR pregled — `docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md`).** `GuestProfilesService.create()` je od početka sprečavao gosta da poveže NOV profil sa tuđim nalogom (`linked_client_account_id !== ownAccountId` → `ForbiddenException`), ali `update()` je istu proveru propuštao — gost je mogao da izmeni SOPSTVENI (već-vlastiti) profil i u istoj poruci prebaci `linked_client_account_id` na tuđ nalog, jer `update()` je proveravao samo da profil TRENUTNO pripada pozivaocu, ne i da NOVA vrednost tog polja ostaje njegova. Ispravljeno — `update()` sad primenjuje istu proveru kao `create()`, dokazano jediničnim testovima (`guest-profiles.service.spec.ts`).
+
 ---
 
 ## 8. Dopuna M10 specifikacije (poglavlje 6 ovog dokumenta)

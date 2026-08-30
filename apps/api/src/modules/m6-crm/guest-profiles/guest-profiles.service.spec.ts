@@ -74,4 +74,30 @@ describe('GuestProfilesService', () => {
       );
     });
   });
+
+  // Nalaz (30.8.2026, Faza 8 IDOR pregled — docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md):
+  // `update()` je do sad primenjivao ISTU proveru vlasništva kao `findOne()` PRE izmene, ali
+  // nije sprečavao gosta da u istom pozivu prebaci sopstveni (već-vlastiti) profil na TUĐ
+  // nalog preko `linkedClientAccountId` — `create()` je tu proveru već imao, `update()` ne.
+  describe('update — gost ne sme da prebaci sopstveni profil na tuđi nalog', () => {
+    it('baca ForbiddenException ako gost pokuša da promeni linkedClientAccountId na tuđi nalog', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
+      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-1' });
+
+      await expect(service.update('gp-1', { linkedClientAccountId: 'acc-tudj' } as any, 'guest-1')).rejects.toThrow(ForbiddenException);
+      expect(prisma.guestProfile.update).not.toHaveBeenCalled();
+    });
+
+    it('dozvoljava izmenu kad gost ne dira linkedClientAccountId (ili ga postavlja na sopstveni)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-1' });
+      prisma.guestProfile.findUnique.mockResolvedValue({ id: 'gp-1', linkedClientAccountId: 'acc-1' });
+      prisma.guestProfile.update.mockResolvedValue({ id: 'gp-1' });
+
+      await service.update('gp-1', { fullName: 'Novo Ime' } as any, 'guest-1');
+
+      expect(prisma.guestProfile.update).toHaveBeenCalled();
+    });
+  });
 });

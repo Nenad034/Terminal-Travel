@@ -58,6 +58,15 @@ export class GuestProfilesService {
   }
 
   async update(id: string, dto: UpdateGuestProfileDto, actorUserId?: string) {
+    const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
+    // `findOne` proverava SAMO da profil TRENUTNO pripada pozivaocu — ne sprečava da ovaj
+    // poziv, u istom telu, prebaci taj isti profil na TUĐ nalog (`linkedClientAccountId` je
+    // izmenjivo polje, UpdateGuestProfileDto). Nalaz (30.8.2026, Faza 8 IDOR pregled —
+    // docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md): `create()` iznad je ovo već sprečavao,
+    // `update()` nije — ista provera, ovde nedostajala.
+    if (isGuest && dto.linkedClientAccountId && dto.linkedClientAccountId !== ownAccountId) {
+      throw new ForbiddenException('Gost sme da poveže profil isključivo sa sopstvenim nalogom.');
+    }
     await this.findOne(id, actorUserId);
     return this.prisma.guestProfile.update({
       where: { id },
