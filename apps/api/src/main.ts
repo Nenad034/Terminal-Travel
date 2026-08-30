@@ -2,11 +2,20 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Faza 8 (docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md, 29.8.2026, potvrđeno vlasnikom) —
+  // sigurnosna HTTP zaglavlja (X-Content-Type-Options, HSTS, X-Frame-Options i sl.), standardan
+  // NestJS obrazac. `contentSecurityPolicy: false` je namerno — podrazumevana strogačka CSP
+  // pravila lome Swagger UI (`/api/docs`, inline skriptovi koje ta biblioteka sama učitava,
+  // poznat problem u NestJS+helmet+Swagger kombinaciji); ovaj servis inače servira isključivo
+  // JSON (ne HTML koji CSP štiti), pa je taj kompromis bezbedan ovde.
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(

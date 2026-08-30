@@ -18,12 +18,17 @@
 - **Rate limiting (osnovni)** — globalni throttler postoji (`ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }])`, `app.module.ts`, primenjen preko `APP_GUARD`), plus stroži limiti gde treba (`guest-checkout` 5/sat po IP preko `@Throttle`, MFA/lozinka lockout M1 spec §5, dopunjeno 29.8.2026 — vidi M1 spec).
 - **Validacija ulaza** — `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` globalno (`main.ts`) — sprečava mass-assignment neočekivanih polja u telu zahteva.
 
-### Nalazi — čeka odluku vlasnika pre nego što se dirne
+### Rešeno (30.8.2026, potvrđeno vlasnikom)
 
-1. **Nema `helmet` (sigurnosna HTTP zaglavlja)** — `main.ts` ne postavlja `X-Content-Type-Options`/`X-Frame-Options`/HSTS i slično. `helmet` je NOVA zavisnost (CLAUDE.md tehnički stek, poglavlje 6) — standardna, uskogrudno-svrhovita (samo zaglavlja, ne menja ponašanje aplikacije), preporuka je da se doda, ali čeka potvrdu vlasnika pre uvođenja, po pravilu.
-2. **17–29 poznatih ranjivosti u zavisnostima** (`npm audit`, sve tri aplikacije) — najozbiljnije: `multer` (5 DoS prijava, koristi se za upload priloga), `picomatch`/`postcss` (visoka ozbiljnost, ReDoS/XSS/path traversal). **`npm audit fix` (bez `--force`) ne rešava ništa u ovom monorepo-u** — svaki stvaran fix zahteva `--force` i veliku (major) verziju paketa koji već koristimo (`@nestjs/platform-express`→12, `@nestjs/cli`→12, `exceljs`→3.4.0 unazad, `next`→16, `next-intl`→4) — sve su to izmene postojeće zavisnosti, ne nova tehnologija, ali nose realan rizik od pokvarenog ponašanja (posebno Next.js major skok) i zahtevaju pravo testiranje posle, ne slepo pokretanje. Čeka odluku vlasnika koji paket/kada.
-3. **`ChatGatewayService` (M19) `cors: { origin: '*' }`** — nije danas iskoristivo (obrazloženo iznad), ali širi je nego što treba po principu najmanjeg ovlašćenja. Kada se izaberu stvarni domeni panela/sajta/mobilne aplikacije, ograničiti na tačnu listu — sitna izmena, ali čeka da ti domeni uopšte postoje (hosting provajder namerno neizabran).
-4. **Swagger (`/api/docs`) nema svoj guard** — u razvoju je to očekivano i korisno; pre bilo kakvog javnog izlaganja API-ja, ili se gasi u produkciji ili se stavlja iza autentikacije — čeka odluku o hostingu/produkciji, ne pre.
+1. **`helmet` dodat** (`apps/api/src/main.ts`) — `app.use(helmet({ contentSecurityPolicy: false }))`. CSP namerno isključen (lomi Swagger UI, `apps/api` inače servira isključivo JSON koji CSP ne štiti). Upisano u Master dokument poglavlje 6. Uživo provereno: `curl -I` pokazuje `Strict-Transport-Security`/`X-Content-Type-Options`/`X-Frame-Options` i ostala helmet zaglavlja; Swagger UI (`/api/docs`) i dalje radi bez konzolnih grešaka; svih 785 testova prolazi.
+2. **`next-intl` 3.19.1 → 4.14.1** (`apps/web`) — rešava dve prijave (open redirect, prototype pollution preko `experimental.messages.precompile`). Ova aplikacija ne koristi `next-intl/navigation` pomoćnike (`createSharedPathnamesNavigation` i sl., najveći izvor v3→v4 lomljivih izmena) — samo `getRequestConfig`/`createMiddleware`, oba nepromenjena u v4. `tsc --noEmit` čist, `next build` prošao za svih 8 jezika, uživo provereno (sr i en početna strana, bez konzolnih grešaka).
+3. **`exceljs` NIJE dirat** — `npm audit`-ov predlog "fix" je zapravo vraćanje 3 glavne verzije unazad (4.4.0 → 3.4.0), ne napredak: čak i najnovija objavljena verzija exceljs-a (4.4.0, ono što već koristimo) zavisi od istog ranjivog `uuid@^8.3.0` — verzija 3.4.0 "prolazi" audit samo zato što tada exceljs uopšte nije zavisio od `uuid`, ne zato što je bezbednija. Stvarna izloženost je zanemarljiva (ranjivost je u `uuid` funkciji kojoj se prosleđuje `buf` parametar — naš kod, preko exceljs-a, taj parametar nigde ne prosleđuje), a rizik od kvara stvarno korišćene funkcionalnosti (izvoz u Excel, M15 `report-generator.ts`/`extract-file.service.ts`) pri skoku 3 glavne verzije unazad je neproporcionalno veći od koristi. Odluka: sačekati da exceljs sam ažurira svoju `uuid` zavisnost uzvodno, ne menjati ništa ovde.
+
+### Nalazi — i dalje čekaju odluku vlasnika
+
+1. **Preostale ranjivosti u zavisnostima** (multer, picomatch, postcss/Next.js major skok, `@nestjs/platform-express`/`@nestjs/cli`) — sve zahtevaju `--force` i veću (major) promenu verzije od next-intl-a iznad; najveći pojedinačni rizik/korist je Next.js major skok (rešava XSS/path traversal u postcss lancu, ali dira jezgro oba Next.js kanala) — namerno odložen za poseban, pažljivije testiran prolaz, ne uz ovaj.
+2. **`ChatGatewayService` (M19) `cors: { origin: '*' }`** — nije danas iskoristivo (obrazloženo iznad), ali širi je nego što treba po principu najmanjeg ovlašćenja. Kada se izaberu stvarni domeni panela/sajta/mobilne aplikacije, ograničiti na tačnu listu — sitna izmena, ali čeka da ti domeni uopšte postoje (hosting provajder namerno neizabran).
+3. **Swagger (`/api/docs`) nema svoj guard** — u razvoju je to očekivano i korisno; pre bilo kakvog javnog izlaganja API-ja, ili se gasi u produkciji ili se stavlja iza autentikacije — čeka odluku o hostingu/produkciji, ne pre.
 
 ### Namerno van dometa ovog prolaza (zahteva treću stranu/infrastrukturu, ne kod)
 
@@ -36,7 +41,6 @@
 
 ## Otvoreno za dalje
 
-- Odluka: dodati `helmet` (preporučeno, mala/bezbedna zavisnost) — čeka potvrdu.
-- Odluka: koje `npm audit fix --force` nadogradnje raditi sada vs. čekati (posebno Next.js major skok — najveći rizik od nečeg što se pokvari, ali i najozbiljniji nalaz — XSS/path traversal u postcss lancu).
+- Odluka: koje preostale `npm audit fix --force` nadogradnje raditi i kada (posebno Next.js major skok — najveći rizik od nečeg što se pokvari, ali i najozbiljniji preostali nalaz — XSS/path traversal u postcss lancu).
 - Kad se izabere hosting: ograničiti `ChatGatewayService` CORS na stvarne domene, zaključati/ugasiti Swagger u produkciji.
 - Sledeći prolaz kroz Fazu 8 (kad bude vreme): OWASP-stil pregled preostalih modula pojedinačno (ovaj prolaz je pokrio zajedničke/infrastrukturne tačke, ne svaki od 23 modula linija po liniju) — IDOR provere (da li `GET /:id` endpoint-i proveravaju vlasništvo, ne samo prijavu), i CSRF razmatranje za panel/web (trenutno JWT u `Authorization` header-u preko servera, ne kolačić — niska izloženost, ali vredi eksplicitno potvrditi).
