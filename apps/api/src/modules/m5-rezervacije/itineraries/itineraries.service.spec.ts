@@ -9,9 +9,10 @@ describe('ItinerariesService — vlasništvo (§3.0.1 dopuna, 31.8.2026)', () =>
     const prisma: any = {
       itinerary: { create: jest.fn(), findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
       itinerarySegment: { deleteMany: jest.fn(), createMany: jest.fn() },
+      quote: { create: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
-      $transaction: jest.fn((cb: any) => cb(prisma)),
+      $transaction: jest.fn((arg: any) => (typeof arg === 'function' ? arg(prisma) : Promise.all(arg))),
     };
     const builder = { build: jest.fn() };
     const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
@@ -115,6 +116,90 @@ describe('ItinerariesService — vlasništvo (§3.0.1 dopuna, 31.8.2026)', () =>
       prisma.itinerary.findUnique.mockResolvedValue({ id: 'it1', clientAccountId: 'acc-tudj', status: 'DRAFT', segments: [] });
 
       await expect(service.convertToQuote('it1', { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // M5 spec §3.0.2/§3.0.3 dopuna (31.8.2026) — occupancy po segmentu (Marko-ov scenario: 4
+  // putnika u jednom gradu, 2 u drugom) i is_included tiho preskakanje.
+  describe('convertToQuote — occupancy po segmentu i is_included (§3.0.2/§3.0.3 dopuna)', () => {
+    function builtItem(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        productId: 'p1',
+        sourceType: 'CONTRACTED',
+        stayFrom: new Date(),
+        stayTo: new Date(),
+        occupancy: { adults: 1, children: 0 },
+        baseCost: 1000,
+        baseCostCurrency: 'EUR',
+        rateLineId: 'rl1',
+        markupRuleId: 'mr1',
+        finalPrice: 1200,
+        finalPriceCurrency: 'EUR',
+        providerQuoteReference: null,
+        unitCount: 1,
+        cancellationPolicySnapshot: null,
+        quoteExpiresAt: null,
+        ...overrides,
+      };
+    }
+
+    it('koristi occupancy sa segmenta kad je popunjen (npr. 4 putnika u Rimu)', async () => {
+      const { service, prisma, builder } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      const segmentOccupancy = { adults: 2, children: 2, roomConfig: [{ adults: 2, children: 2, childrenAges: [5, 8] }] };
+      prisma.itinerary.findUnique.mockResolvedValue({
+        id: 'it1',
+        clientAccountId: 'acc-own',
+        channel: 'B2C_SITE',
+        status: 'DRAFT',
+        segments: [{ id: 's1', productId: 'p1', isIncluded: true, stayFrom: new Date(), stayTo: new Date(), occupancy: segmentOccupancy }],
+      });
+      builder.build.mockResolvedValue(builtItem());
+      prisma.quote.create.mockResolvedValue({ id: 'q1', items: [] });
+
+      await service.convertToQuote('it1', { userId: 'guest-1' });
+
+      expect(builder.build).toHaveBeenCalledWith(expect.objectContaining({ occupancy: segmentOccupancy }));
+    });
+
+    it('bez occupancy na segmentu zadržava staro ponašanje (1 odrasla osoba)', async () => {
+      const { service, prisma, builder } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.itinerary.findUnique.mockResolvedValue({
+        id: 'it1',
+        clientAccountId: 'acc-own',
+        channel: 'B2C_SITE',
+        status: 'DRAFT',
+        segments: [{ id: 's1', productId: 'p1', isIncluded: true, stayFrom: new Date(), stayTo: new Date(), occupancy: null }],
+      });
+      builder.build.mockResolvedValue(builtItem());
+      prisma.quote.create.mockResolvedValue({ id: 'q1', items: [] });
+
+      await service.convertToQuote('it1', { userId: 'guest-1' });
+
+      expect(builder.build).toHaveBeenCalledWith(expect.objectContaining({ occupancy: { adults: 1, children: 0 } }));
+    });
+
+    it('segment sa is_included=false se tiho preskače, ne ulazi u Ponudu', async () => {
+      const { service, prisma, builder } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.itinerary.findUnique.mockResolvedValue({
+        id: 'it1',
+        clientAccountId: 'acc-own',
+        channel: 'B2C_SITE',
+        status: 'DRAFT',
+        segments: [
+          { id: 's1', productId: 'p1', isIncluded: true, stayFrom: new Date(), stayTo: new Date(), occupancy: null },
+          { id: 's2', productId: 'p2', isIncluded: false, stayFrom: new Date(), stayTo: new Date(), occupancy: null },
+        ],
+      });
+      builder.build.mockResolvedValue(builtItem());
+      prisma.quote.create.mockResolvedValue({ id: 'q1', items: [] });
+
+      await service.convertToQuote('it1', { userId: 'guest-1' });
+
+      expect(builder.build).toHaveBeenCalledTimes(1);
+      expect(builder.build).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p1' }));
     });
   });
 });

@@ -1016,6 +1016,20 @@ model ItinerarySegment {
   stayFrom           DateTime? @map("stay_from")
   stayTo             DateTime? @map("stay_to")
   notes              String?
+  // §3.0.2 dopuna (31.8.2026) — segment ostaje u itineraru ali se isključuje iz zbira/konverzije
+  // bez brisanja (spec od v1.35, nedostajalo u Prisma modelu do sada).
+  isIncluded         Boolean   @default(true) @map("is_included")
+  // §3.0.2 dopuna (31.8.2026) — isti oblik kao QuoteItem.occupancy (§3.2/3.2a), po segmentu
+  // umesto na nivou cele Ponude. `null` = još nije određeno, konverzija pretpostavlja 1 odraslu
+  // osobu (nazadnokompatibilno ponašanje, §3.0.3).
+  occupancy          Json?
+  // §3.0.2 dopuna (31.8.2026) — informativna procena cene snimljena iz SearchResultOffer u
+  // trenutku izbora (spec od v1.35, nedostajalo u Prisma modelu do sada); nikad obavezujuća,
+  // cena se uvek računa iznova pri konverziji (§3.0.3).
+  previewBaseCost           Int?               @map("preview_base_cost")
+  previewFinalPrice         Int?               @map("preview_final_price")
+  previewFinalPriceCurrency String?            @map("preview_final_price_currency")
+  previewSourceType         ProductSourceType? @map("preview_source_type")
 
   itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   product   Product?  @relation(fields: [productId], references: [id])

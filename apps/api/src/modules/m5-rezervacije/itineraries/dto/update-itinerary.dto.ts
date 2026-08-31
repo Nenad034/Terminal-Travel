@@ -1,5 +1,7 @@
-import { IsArray, IsDateString, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ProductSourceType } from '@prisma/client';
+import { OccupancyInputDto } from '../../quotes/dto/create-quote.dto';
 
 // M5 spec §3.0.2 — dodavanje/brisanje/preslagivanje segmenata kroz PATCH; segments, kad je
 // poslato, ZAMENJUJE ceo postojeći skup (jednostavan, deterministički obrazac za jezgro —
@@ -31,6 +33,38 @@ export class ItinerarySegmentInputDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  // dopuna 31.8.2026 (§3.0.2) — segment ostaje u itineraru ali se isključuje iz zbira/konverzije
+  // bez brisanja; podrazumevano uključen kad nije poslato (nazadnokompatibilno).
+  @IsBoolean()
+  @IsOptional()
+  isIncluded?: boolean;
+
+  // dopuna 31.8.2026 (§3.0.2) — isti oblik kao QuoteItem.occupancy (§3.2/3.2a), po segmentu.
+  @ValidateNested()
+  @Type(() => OccupancyInputDto)
+  @IsOptional()
+  occupancy?: OccupancyInputDto;
+
+  // dopuna 31.8.2026 (§3.0.2) — informativna procena cene, snimljena iz SearchResultOffer u
+  // trenutku izbora; nikad obavezujuća, ponovo se računa pri konverziji (§3.0.3).
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  previewBaseCost?: number;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  previewFinalPrice?: number;
+
+  @IsString()
+  @IsOptional()
+  previewFinalPriceCurrency?: string;
+
+  @IsEnum(ProductSourceType)
+  @IsOptional()
+  previewSourceType?: ProductSourceType;
 }
 
 export class UpdateItineraryDto {

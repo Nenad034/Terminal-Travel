@@ -98,6 +98,12 @@ export class ItinerariesService {
               stayFrom: s.stayFrom ? new Date(s.stayFrom) : null,
               stayTo: s.stayTo ? new Date(s.stayTo) : null,
               notes: s.notes,
+              isIncluded: s.isIncluded ?? true,
+              occupancy: s.occupancy as any,
+              previewBaseCost: s.previewBaseCost,
+              previewFinalPrice: s.previewFinalPrice,
+              previewFinalPriceCurrency: s.previewFinalPriceCurrency,
+              previewSourceType: s.previewSourceType,
             })),
           });
         }
@@ -111,9 +117,10 @@ export class ItinerariesService {
   }
 
   /**
-   * M5 spec §3.0.3 — POST /itineraries/:id/to-quote: svaki segment sa product_id postaje
-   * QuoteItem po ISTIM pravilima cene/marže kao POST /quotes (QuoteItemBuilderService).
-   * Segmenti bez product_id se PRESKAČU uz eksplicitno upozorenje, ne tiho.
+   * M5 spec §3.0.3 — POST /itineraries/:id/to-quote: svaki segment sa `is_included = true` i
+   * popunjenim product_id postaje QuoteItem po ISTIM pravilima cene/marže kao POST /quotes
+   * (QuoteItemBuilderService). Segmenti sa `is_included = false` se TIHO preskaču (namerno
+   * isključeni); segmenti `is_included = true` bez product_id se preskaču uz upozorenje.
    */
   async convertToQuote(id: string, actor: { userId?: string } | null) {
     const itinerary = await this.findOne(id, actor?.userId);
@@ -121,26 +128,27 @@ export class ItinerariesService {
       throw new BadRequestException(`Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`);
     }
 
-    const withProduct = itinerary.segments.filter((s) => s.productId);
-    const skipped = itinerary.segments.filter((s) => !s.productId).map((s) => s.id);
+    const included = itinerary.segments.filter((s) => s.isIncluded);
+    const withProduct = included.filter((s) => s.productId);
+    const skipped = included.filter((s) => !s.productId).map((s) => s.id);
 
     if (withProduct.length === 0) {
       throw new BadRequestException(
-        'Nijedan segment nema popunjen product_id — nema šta da se konvertuje u Ponudu (M5 spec §3.0.3).',
+        'Nijedan uključen segment nema popunjen product_id — nema šta da se konvertuje u Ponudu (M5 spec §3.0.3).',
       );
     }
 
-    // §3.0.3 — occupancy nije deo Itinerary/ItinerarySegment modela (§3.0.2); segmenti nose
-    // samo product/datume. Konverzija zato pretpostavlja jednu odraslu osobu po sobi dok
-    // korisnik ne dopuni tačan sastav gostiju kroz izmenu nastale Quote/QuoteItem — Itinerary
-    // sam ne drži broj gostiju (van obima §3.0.2 tabele polja).
+    // §3.0.2/§3.0.3 dopuna (31.8.2026) — kad segment nosi sopstveni occupancy (npr. porodica
+    // koja u jednom gradu putuje sa 4 osobe, a u drugom sa 2), koristi se on; bez toga (`null`,
+    // stariji nacrti pre ove dopune) zadržava se dosadašnje podrazumevano ponašanje — jedna
+    // odrasla osoba, korisnik dopunjava tačan sastav kroz izmenu nastale QuoteItem.
     const built = await Promise.all(
       withProduct.map((segment) =>
         this.builder.build({
           productId: segment.productId!,
           stayFrom: (segment.stayFrom ?? new Date()).toISOString(),
           stayTo: (segment.stayTo ?? new Date()).toISOString(),
-          occupancy: { adults: 1, children: 0 },
+          occupancy: (segment.occupancy as any) ?? { adults: 1, children: 0 },
         }),
       ),
     );
