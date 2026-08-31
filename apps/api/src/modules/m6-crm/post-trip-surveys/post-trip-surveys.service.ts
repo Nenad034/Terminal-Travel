@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { GoogleReviewConfigService } from './google-review-config';
 import { SubmitPostTripSurveyDto } from './dto/submit-post-trip-survey.dto';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 
 const SURVEY_SEND_DELAY_DAYS = 2; // §4.3 — T+2 dana posle povratka
 
@@ -11,11 +12,23 @@ export class PostTripSurveysService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reviewConfig: GoogleReviewConfigService,
+    private readonly permissions: PermissionsService,
   ) {}
 
-  async findMany(filter: { bookingId?: string; status?: string }) {
+  // M6 spec §9 dopuna (31.8.2026, M1 §3.9a konvencija) — STAFF bez `M6/post-trip-survey/VIEW_ALL`
+  // vidi samo ankete čija je rezervacija (M5 Booking) u njegovom vlasništvu/zaduženju.
+  async findMany(filter: { bookingId?: string; status?: string }, actorUserId?: string) {
+    let scopedToOwnBooking = false;
+    if (actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'post-trip-survey', 'VIEW_ALL');
+      scopedToOwnBooking = !hasViewAll;
+    }
     return this.prisma.postTripSurvey.findMany({
-      where: { bookingId: filter.bookingId, status: filter.status as any },
+      where: {
+        bookingId: filter.bookingId,
+        status: filter.status as any,
+        booking: scopedToOwnBooking ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] } : undefined,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

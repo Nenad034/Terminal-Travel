@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
 import { PaymentTermsConfigService } from './payment-terms-config.service';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 
 // M10 spec §5.4.2/§5.4.3 — rok akontacije i pune uplate prema gostu/nalogodavcu, kao globalna
 // agencijska politika snimljena u trenutku kreiranja rasporeda (ne živi vezano na konfiguraciju).
@@ -13,14 +14,24 @@ export class ClientPaymentSchedulesService {
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
     private readonly paymentTerms: PaymentTermsConfigService,
+    private readonly permissions: PermissionsService,
   ) {}
 
-  async findAll(filters: { bookingId?: string; depositStatus?: string; balanceStatus?: string }) {
+  // M10 spec §10 dopuna (31.8.2026, M1 §3.9a konvencija) — STAFF bez
+  // `M10/client-payment-schedule/VIEW_ALL` vidi samo rasporede čija je rezervacija (M5 Booking)
+  // u njegovom vlasništvu/zaduženju.
+  async findAll(filters: { bookingId?: string; depositStatus?: string; balanceStatus?: string }, actorUserId?: string) {
+    let scopedToOwnBooking = false;
+    if (actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M10', 'client-payment-schedule', 'VIEW_ALL');
+      scopedToOwnBooking = !hasViewAll;
+    }
     return this.prisma.clientPaymentSchedule.findMany({
       where: {
         bookingId: filters.bookingId,
         depositStatus: filters.depositStatus as any,
         balanceStatus: filters.balanceStatus as any,
+        booking: scopedToOwnBooking ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] } : undefined,
       },
     });
   }

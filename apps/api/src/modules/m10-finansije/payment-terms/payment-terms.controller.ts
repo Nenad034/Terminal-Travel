@@ -33,7 +33,7 @@ export class PaymentTermsController {
 
   @Get('client-payment-schedules')
   @RequirePermission('M10', 'client-payment-schedule', 'VIEW')
-  findAll(@Query('bookingId') bookingId: string | undefined) {
-    return this.clientPaymentSchedules.findAll({ bookingId });
+  findAll(@Query('bookingId') bookingId: string | undefined, @CurrentUser() actor: { userId: string }) {
+    return this.clientPaymentSchedules.findAll({ bookingId }, actor.userId);
   }
 }

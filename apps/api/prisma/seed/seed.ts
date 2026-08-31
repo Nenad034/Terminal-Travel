@@ -119,6 +119,9 @@ const M6_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M6', resource: 'communication-log', action: 'VIEW', description: 'Uvid u komunikaciju sa klijentima/gostima' },
   { module: 'M6', resource: 'communication-log', action: 'CREATE', description: 'Beleženje/slanje komunikacije' },
   { module: 'M6', resource: 'post-trip-survey', action: 'VIEW', description: 'Uvid u ankete posle putovanja' },
+  // Dopuna 31.8.2026 (M1 §3.9a konvencija) — isti obrazac kao M5 §6.6.
+  { module: 'M6', resource: 'client-account', action: 'VIEW_ALL', description: 'Vidljivost svih nalogodavaca (ne samo onih čije rezervacije pozivalac poseduje/vodi)' },
+  { module: 'M6', resource: 'post-trip-survey', action: 'VIEW_ALL', description: 'Vidljivost svih anketa (ne samo za sopstvene rezervacije)' },
 ];
 
 // M10 spec §9 — dozvole finansija/fiskalizacije. Svaki SUBMIT/APPROVE/EXECUTE je eksplicitno
@@ -147,6 +150,8 @@ const M10_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW', description: 'Uvid u uvoze ulaznih faktura dobavljača' },
   { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE', description: 'Pokretanje uvoza/AI ekstrakcije ulazne fakture (sme i AI agent za ekstrakciju)' },
   { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW', description: 'Potvrda/ručno mapiranje reda uvoza — nikad AI agent' },
+  // Dopuna 31.8.2026 (M1 §3.9a konvencija) — isti obrazac kao M5 §6.6.
+  { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW_ALL', description: 'Vidljivost svih rokova naplate (ne samo za sopstvene rezervacije)' },
 ];
 
 // M11 spec §4 — dozvole regulatornog modula (garancija putovanja, evidencije za inspekciju).
@@ -179,6 +184,8 @@ const M20_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M20', resource: 'client-contract', action: 'VIEW', description: 'Uvid u ugovore sa klijentima' },
   { module: 'M20', resource: 'client-contract', action: 'ACCEPT', description: 'Ručno evidentiranje prihvatanja (WET_SIGNATURE_SCAN) — gost prihvata sam kroz M8 tok, ne kroz ovu dozvolu' },
   { module: 'M20', resource: 'client-contract', action: 'VOID', description: 'Poništavanje ugovora — nikad AI agent' },
+  // Dopuna 31.8.2026 (M1 §3.9a konvencija) — isti obrazac kao M5 §6.6.
+  { module: 'M20', resource: 'client-contract', action: 'VIEW_ALL', description: 'Vidljivost svih ugovora (ne samo za sopstvene rezervacije)' },
 ];
 
 // M14 spec §5 — dozvole podrške/helpdeska. RESPOND je interno-samo (izmena statusa/prioriteta,
@@ -188,6 +195,9 @@ const M14_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M14', resource: 'ticket', action: 'VIEW', description: 'Uvid u tikete (svi za interni tim, sopstveni za Gosta/subagenta)' },
   { module: 'M14', resource: 'ticket', action: 'CREATE', description: 'Otvaranje tiketa i dodavanje sopstvene (REQUESTER) poruke' },
   { module: 'M14', resource: 'ticket', action: 'RESPOND', description: 'Izmena statusa/prioriteta/dodele, STAFF/AI_DRAFT poruke, mark-sent — nikad Gost/subagent' },
+  // Dopuna 31.8.2026 (M1 §3.9a konvencija) — isti obrazac kao M5 §6.6; "sopstveno" ovde znači
+  // Ticket.assigned_to = pozivalac (nema owner_id/assigned_to_id par kao Booking, samo dodela).
+  { module: 'M14', resource: 'ticket', action: 'VIEW_ALL', description: 'Vidljivost svih tiketa internog tima (ne samo onih na kojima je pozivalac zadužen)' },
 ];
 
 // M13 spec §6 — dozvole izveštavanja/BI. `resource` polje koristi format `report:podtip` (isti
@@ -454,6 +464,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M20 spec §5 — Sales Manager vidi i ručno evidentira prihvatanje ugovora (telefon/interni panel).
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
+    { module: 'M20', resource: 'client-contract', action: 'VIEW_ALL' },
     // M7 spec §10 — Sales Manager vidi ceo lanac subagenata i rabate provizije, ne odobrava ih.
     { module: 'M7', resource: 'subagent', action: 'VIEW' },
     { module: 'M7', resource: 'commission-rebate', action: 'VIEW' },
@@ -461,6 +472,7 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
     { module: 'M6', resource: 'client-account', action: 'CREATE' },
     { module: 'M6', resource: 'client-account', action: 'EDIT' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW_ALL' },
     { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
     { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
     { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
@@ -468,10 +480,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'communication-log', action: 'VIEW' },
     { module: 'M6', resource: 'communication-log', action: 'CREATE' },
     { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
+    { module: 'M6', resource: 'post-trip-survey', action: 'VIEW_ALL' },
     // M14 spec §5 — Sales Manager vidi/odgovara na sve tikete (isti krug kao Vlasnik/Direktor).
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     { module: 'M14', resource: 'ticket', action: 'RESPOND' },
+    { module: 'M14', resource: 'ticket', action: 'VIEW_ALL' },
     // M13 spec §6 — Sales Manager dobija sales/occupancy (nije cenovno osetljivo kao profitabilnost/dinamički).
     { module: 'M13', resource: 'report:sales', action: 'VIEW' },
     { module: 'M13', resource: 'report:occupancy', action: 'VIEW' },
@@ -530,17 +544,21 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
     // M10 spec §9 — client-payment-schedule/VIEW je jedina M10 dozvola koju dobija
-    // Prodajni agent (uvid u rok naplate sopstvenih rezervacija), ništa drugo iz M10.
+    // Prodajni agent, ništa drugo iz M10. VIEW_ALL (31.8.2026, M1 §3.9a) — podrazumevano vidi
+    // sve, sužava se pojedinačno preko DENY, isti obrazac kao M5 §6.6.
     { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW_ALL' },
     // M11 spec §4 — Prodajni agent vidi CIS registracije garancije po sopstvenim rezervacijama.
     { module: 'M11', resource: 'travel-guarantee-registration', action: 'VIEW' },
-    // M20 spec §5 — Prodajni agent vidi i ručno evidentira prihvatanje ugovora sopstvenih klijenata.
+    // M20 spec §5 — Prodajni agent vidi i ručno evidentira prihvatanje ugovora klijenata.
     { module: 'M20', resource: 'client-contract', action: 'VIEW' },
     { module: 'M20', resource: 'client-contract', action: 'ACCEPT' },
-    // M6 spec §7 — Prodajni agent, ograničeno na sopstvene klijente (sprovodi se u servisu).
+    { module: 'M20', resource: 'client-contract', action: 'VIEW_ALL' },
+    // M6 spec §7 (31.8.2026, M1 §3.9a) — podrazumevano vidi sve klijente, sužava se pojedinačno.
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
     { module: 'M6', resource: 'client-account', action: 'CREATE' },
     { module: 'M6', resource: 'client-account', action: 'EDIT' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW_ALL' },
     { module: 'M6', resource: 'guest-profile', action: 'VIEW' },
     { module: 'M6', resource: 'guest-profile', action: 'CREATE' },
     { module: 'M6', resource: 'guest-profile', action: 'EDIT' },
@@ -548,13 +566,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M6', resource: 'communication-log', action: 'VIEW' },
     { module: 'M6', resource: 'communication-log', action: 'CREATE' },
     { module: 'M6', resource: 'post-trip-survey', action: 'VIEW' },
-    // M14 spec §5 — Prodajni agent dobija podrazumevano isti krug kao Sales Manager (spec §5:
-    // "svi tiketi; Prodajni agent podrazumevano samo sopstveni klijenti, širi se izuzetkom") —
-    // finije filtriranje po sopstvenim klijentima nije sprovedeno na nivou dozvole ovde, isti
-    // obrazac kao M5/M6 (ownership bi se sprovodio u servisu, ako/kad se pokaže potreba).
+    { module: 'M6', resource: 'post-trip-survey', action: 'VIEW_ALL' },
+    // M14 spec §5 (31.8.2026, M1 §3.9a) — podrazumevano vidi sve tikete, sužava se pojedinačno
+    // preko DENY na VIEW_ALL (zamenjuje raniju formulaciju "podrazumevano samo sopstveni").
     { module: 'M14', resource: 'ticket', action: 'VIEW' },
     { module: 'M14', resource: 'ticket', action: 'CREATE' },
     { module: 'M14', resource: 'ticket', action: 'RESPOND' },
+    { module: 'M14', resource: 'ticket', action: 'VIEW_ALL' },
     // M19 spec §7/§9.6 — Prodajni agent je u oba kruga: interni tim-chat i EXTERNAL_SUPPLIER
     // (VIEW/SEND_MESSAGE uz SupplierConversationAccess §9.4), ali NE GRANT_ACCESS (§9.6 tabela —
     // taj krug je uže Vlasnik/Direktor/Sales Manager).
@@ -591,6 +609,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'refund-instruction', action: 'VIEW' },
     { module: 'M10', resource: 'payment-terms-config', action: 'VIEW' },
     { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
+    // Dopuna 31.8.2026 (M1 §3.9a) — Računovođa radi fakturisanje za celu agenciju, ne samo
+    // rezervacije koje sama poseduje/vodi (ne poseduje nijednu) — VIEW_ALL joj je podrazumevano
+    // potrebna, ne izuzetak.
+    { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW_ALL' },
     { module: 'M10', resource: 'supplier-invoice-import', action: 'VIEW' },
     { module: 'M10', resource: 'supplier-invoice-import', action: 'CREATE' },
     { module: 'M10', resource: 'supplier-invoice-import', action: 'REVIEW' },
@@ -602,8 +624,10 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // je M7 prvi put implementiran — Računovođa je imao dozvolu u spec tabeli, ne i u kodu.
     { module: 'M7', resource: 'commission-rebate', action: 'VIEW' },
     { module: 'M7', resource: 'commission-rebate', action: 'APPROVE' },
-    // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6.
+    // M6 spec §7 — Računovođa dobija VIEW radi fakturisanja, ništa drugo iz M6. VIEW_ALL isti
+    // razlog kao M10 iznad (31.8.2026, M1 §3.9a).
     { module: 'M6', resource: 'client-account', action: 'VIEW' },
+    { module: 'M6', resource: 'client-account', action: 'VIEW_ALL' },
     // M13 spec §6 — Računovođa dobija finansijski izveštaj (FactPayment).
     { module: 'M13', resource: 'report:financial', action: 'VIEW' },
     // M19 spec §7 — Računovođa je u internom tim-chatu, ali van §9.6 kruga za

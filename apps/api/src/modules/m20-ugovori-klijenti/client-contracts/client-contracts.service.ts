@@ -7,6 +7,7 @@ import { buildContentSnapshot, determineContractType } from './contract-content-
 import type { ContractDocumentGeneratorAdapter } from '../adapters/contract-document-generator-adapter.interface';
 import { CONTRACT_DOCUMENT_GENERATOR_ADAPTER } from '../adapters/contract-document-generator.token';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 
 // M20 spec §3 — DRAFT→GENERATED je nivo "Autonomno" (deterministično sastavljanje iz postojećih
 // podataka, princip #4 Master dokumenta); ACCEPT/VOID su uvek ljudska ili sistemski-deterministička
@@ -20,6 +21,7 @@ export class ClientContractsService {
     private readonly auditLog: AuditLogService,
     private readonly agencyConfig: AgencyStaticConfigService,
     @Inject(CONTRACT_DOCUMENT_GENERATOR_ADAPTER) private readonly gateway: ContractDocumentGeneratorAdapter,
+    private readonly permissions: PermissionsService,
   ) {}
 
   // §6 dopuna (avgust 2026, priprema za M8) — ClientContract nema sopstveni
@@ -27,15 +29,28 @@ export class ClientContractsService {
   // M20/client-contract/VIEW, M5 spec §10 tabela) sme da vidi isključivo ugovore
   // sopstvenih rezervacija — bez ove provere bi mogao da pročita TUĐ ugovor (uklj.
   // ime/adresu/cenu nalogodavca) prostim nagađanjem ID-a.
+  // Dopuna 31.8.2026 (M1 §3.9a konvencija) — STAFF bez `M20/client-contract/VIEW_ALL` sužava
+  // se analogno, na ugovore rezervacija u sopstvenom vlasništvu/zaduženju (M5 §6.6).
   async findMany(filter: { bookingId?: string; status?: ClientContract['status'] }, actorUserId?: string) {
     const ownAccountId = await this.ownAccountIdIfGuest(actorUserId);
     if (ownAccountId === null) return []; // gost bez sopstvenog naloga (još) — nema šta da vidi
+
+    let scopedToOwnBooking = false;
+    if (ownAccountId === undefined && actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M20', 'client-contract', 'VIEW_ALL');
+      scopedToOwnBooking = !hasViewAll;
+    }
 
     return this.prisma.clientContract.findMany({
       where: {
         bookingId: filter.bookingId,
         status: filter.status,
-        booking: ownAccountId !== undefined ? { clientAccountId: ownAccountId } : undefined,
+        booking:
+          ownAccountId !== undefined
+            ? { clientAccountId: ownAccountId }
+            : scopedToOwnBooking
+              ? { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] }
+              : undefined,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -51,6 +66,14 @@ export class ClientContractsService {
       // supplier_reference) slučajno ispadne u odgovor gostu.
       const booking = await this.prisma.booking.findUnique({ where: { id: contract.bookingId } });
       if (booking?.clientAccountId !== ownAccountId) throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
+    } else if (actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M20', 'client-contract', 'VIEW_ALL');
+      if (!hasViewAll) {
+        const booking = await this.prisma.booking.findUnique({ where: { id: contract.bookingId } });
+        if (booking?.ownerId !== actorUserId && booking?.assignedToId !== actorUserId) {
+          throw new NotFoundException(`ClientContract ${id} nije pronađen.`);
+        }
+      }
     }
     return contract;
   }

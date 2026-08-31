@@ -5,6 +5,7 @@ import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-ident
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { CreateTicketMessageDto } from './dto/create-ticket-message.dto';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 
 const ZZP_RESPONSE_DAYS = 8; // §3.1 — zakonski rok odgovora na reklamaciju (Zakon o zaštiti potrošača)
 
@@ -22,6 +23,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventBus: EventBusService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   // §5 — Gost (accountType GUEST) i SUBAGENT_ADMIN (accountType SUBAGENT_CONTACT) vide/kreiraju
@@ -55,6 +57,8 @@ export class TicketsService {
 
   // §6 — GET /tickets. Gost/SUBAGENT_ADMIN vide isključivo sopstvene tikete (requester_client_
   // account_id == ownAccountId); interni tim (M14/ticket/VIEW) vidi sve.
+  // M14 spec §6 dopuna (31.8.2026, M1 §3.9a konvencija) — interni tim bez
+  // `M14/ticket/VIEW_ALL` vidi samo tikete na kojima je zadužen (`Ticket.assigned_to`).
   async findMany(actorUserId?: string) {
     const ownership = await this.resolveOwnershipContext(actorUserId);
     if (ownership.isRestricted) {
@@ -64,7 +68,15 @@ export class TicketsService {
         orderBy: { createdAt: 'desc' },
       });
     }
-    return this.prisma.ticket.findMany({ orderBy: { createdAt: 'desc' } });
+    let scopedToAssignee = false;
+    if (actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M14', 'ticket', 'VIEW_ALL');
+      scopedToAssignee = !hasViewAll;
+    }
+    return this.prisma.ticket.findMany({
+      where: scopedToAssignee ? { assignedTo: actorUserId } : undefined,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   // §7 — tiket vezan za rezervaciju prikazuje kontekst iz M5 uživo (bookingNumber/status), bez
@@ -76,6 +88,10 @@ export class TicketsService {
     const ownership = await this.resolveOwnershipContext(actorUserId);
     if (ownership.isRestricted && ticket.requesterClientAccountId !== ownership.ownAccountId) {
       throw new NotFoundException(`Ticket ${id} nije pronađen.`);
+    }
+    if (!ownership.isRestricted && actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M14', 'ticket', 'VIEW_ALL');
+      if (!hasViewAll && ticket.assignedTo !== actorUserId) throw new NotFoundException(`Ticket ${id} nije pronađen.`);
     }
 
     let relatedBooking: { id: string; bookingNumber: string; status: string } | null = null;

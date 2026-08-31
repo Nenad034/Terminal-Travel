@@ -9,8 +9,9 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
     };
     const eventBus = { emit: jest.fn() };
     const paymentTerms = { getActive: jest.fn() };
-    const service = new ClientPaymentSchedulesService(prisma, eventBus as any, paymentTerms as any);
-    return { service, prisma, eventBus, paymentTerms };
+    const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
+    const service = new ClientPaymentSchedulesService(prisma, eventBus as any, paymentTerms as any, permissions as any);
+    return { service, prisma, eventBus, paymentTerms, permissions };
   }
 
   describe('createForBooking (§5.4.2)', () => {
@@ -137,6 +138,34 @@ describe('ClientPaymentSchedulesService (M10 spec §5.4.2/§5.4.3)', () => {
         kind: 'deposit',
         severity: 'CRITICAL',
       });
+    });
+  });
+
+  describe('findAll — VIEW_ALL vidljivost (§10 dopuna, 31.8.2026, M1 §3.9a)', () => {
+    it('STAFF sa VIEW_ALL=true ne dobija booking filter', async () => {
+      const { service, prisma, permissions } = makeService();
+      permissions.hasPermission.mockResolvedValue(true);
+      prisma.clientPaymentSchedule.findMany.mockResolvedValue([]);
+
+      await service.findAll({}, 'staff-1');
+
+      expect(prisma.clientPaymentSchedule.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ booking: undefined }) }),
+      );
+    });
+
+    it('STAFF sužen (VIEW_ALL=false) filtrira na booking vlasništvo/zaduženje', async () => {
+      const { service, prisma, permissions } = makeService();
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.clientPaymentSchedule.findMany.mockResolvedValue([]);
+
+      await service.findAll({}, 'staff-1');
+
+      expect(prisma.clientPaymentSchedule.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+        }),
+      );
     });
   });
 });

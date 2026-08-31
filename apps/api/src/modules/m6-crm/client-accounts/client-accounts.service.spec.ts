@@ -7,9 +7,13 @@ describe('ClientAccountsService', () => {
     const prisma: any = {
       clientAccount: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       user: { findUnique: jest.fn() },
+      booking: { findMany: jest.fn().mockResolvedValue([]) },
     };
-    const service = new ClientAccountsService(prisma);
-    return { service, prisma };
+    // M6 spec §7 dopuna (31.8.2026, M1 §3.9a) — podrazumevano VIEW_ALL=true u testovima
+    // pisanim pre ovog mehanizma; testovi specifični za suženje ga eksplicitno menjaju.
+    const permissions: any = { hasPermission: jest.fn().mockResolvedValue(true) };
+    const service = new ClientAccountsService(prisma, permissions);
+    return { service, prisma, permissions };
   }
 
   describe('findOne — ownership', () => {
@@ -60,6 +64,59 @@ describe('ClientAccountsService', () => {
       const result = await service.findMany({});
 
       expect(result).toEqual([{ id: 'a1' }, { id: 'a2' }]);
+    });
+  });
+
+  describe('VIEW_ALL vidljivost (§7 dopuna, 31.8.2026, M1 §3.9a)', () => {
+    it('STAFF sa VIEW_ALL=true dobija sve naloge, bez suženja preko booking vlasništva', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(true);
+      prisma.clientAccount.findMany.mockResolvedValue([{ id: 'a1' }]);
+
+      await service.findMany({}, 'staff-1');
+
+      expect(prisma.clientAccount.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ id: undefined }) }),
+      );
+      expect(prisma.booking.findMany).not.toHaveBeenCalled();
+    });
+
+    it('STAFF sužen (VIEW_ALL=false) dobija samo naloge sa bar jednom rezervacijom u sopstvenom vlasništvu/zaduženju', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.booking.findMany.mockResolvedValue([{ clientAccountId: 'a1' }, { clientAccountId: 'a2' }]);
+      prisma.clientAccount.findMany.mockResolvedValue([{ id: 'a1' }, { id: 'a2' }]);
+
+      await service.findMany({}, 'staff-1');
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+      );
+      expect(prisma.clientAccount.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ id: { in: ['a1', 'a2'] } }) }),
+      );
+    });
+
+    it('findOne — sužen STAFF ne vidi nalog van sopstvenog opsega, vraća 404', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.booking.findMany.mockResolvedValue([{ clientAccountId: 'a1' }]);
+
+      await expect(service.findOne('a2', 'staff-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('findOne — sužen STAFF vidi nalog KOJI je u opsegu', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.booking.findMany.mockResolvedValue([{ clientAccountId: 'a1' }]);
+      prisma.clientAccount.findUnique.mockResolvedValue({ id: 'a1' });
+
+      const result = await service.findOne('a1', 'staff-1');
+      expect(result).toEqual({ id: 'a1' });
     });
   });
 });

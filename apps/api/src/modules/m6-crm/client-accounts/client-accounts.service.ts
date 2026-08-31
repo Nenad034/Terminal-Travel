@@ -3,12 +3,16 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateClientAccountDto } from './dto/create-client-account.dto';
 import { UpdateClientAccountDto } from './dto/update-client-account.dto';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 
 // M6 spec §2.1, §5 — Nalogodavac. Istorija putovanja se čita uživo iz M5 (§5), nikad ne
 // duplira lokalno (princip "jedan izvor istine").
 @Injectable()
 export class ClientAccountsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   // M6 spec §7 dopuna — Gost (account_type GUEST) sme da vidi/menja isključivo
   // sopstveni nalog; ownClientAccountId = null znači "nema sopstveni nalog" (npr.
@@ -19,14 +23,34 @@ export class ClientAccountsService {
     return { isGuest: identity.accountType === 'GUEST', ownAccountId: identity.ownProfileId };
   }
 
+  // M6 spec §7 dopuna (31.8.2026, M1 §3.9a konvencija) — STAFF bez `M6/client-account/VIEW_ALL`
+  // vidi samo naloge koji imaju bar jednu rezervaciju (M5 Booking) čiji je vlasnik ili zadužen.
+  // ClientAccount namerno nema DB FK ka Booking (schema.prisma napomena), pa se ovo radi u dva
+  // koraka umesto ugnježdenog Prisma filtera (isti obrazac kao M5 §6.6, samo bez relacije).
+  private async ownClientAccountIdsForStaffScope(actorUserId: string): Promise<string[]> {
+    const bookings = await this.prisma.booking.findMany({
+      where: { OR: [{ ownerId: actorUserId }, { assignedToId: actorUserId }] },
+      select: { clientAccountId: true },
+      distinct: ['clientAccountId'],
+    });
+    return bookings.map((b) => b.clientAccountId);
+  }
+
   async findMany(filter: { email?: string; taxId?: string }, actorUserId?: string) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
     if (isGuest) {
       const own = ownAccountId ? await this.prisma.clientAccount.findUnique({ where: { id: ownAccountId } }) : null;
       return own ? [own] : [];
     }
+
+    let scopedIds: string[] | undefined;
+    if (actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'client-account', 'VIEW_ALL');
+      if (!hasViewAll) scopedIds = await this.ownClientAccountIdsForStaffScope(actorUserId);
+    }
+
     return this.prisma.clientAccount.findMany({
-      where: { email: filter.email, taxId: filter.taxId },
+      where: { email: filter.email, taxId: filter.taxId, id: scopedIds ? { in: scopedIds } : undefined },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -34,6 +58,14 @@ export class ClientAccountsService {
   async findOne(id: string, actorUserId?: string) {
     const { isGuest, ownAccountId } = await this.ownAccountIdIfGuest(actorUserId);
     if (isGuest && id !== ownAccountId) throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
+
+    if (!isGuest && actorUserId) {
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M6', 'client-account', 'VIEW_ALL');
+      if (!hasViewAll) {
+        const scopedIds = await this.ownClientAccountIdsForStaffScope(actorUserId);
+        if (!scopedIds.includes(id)) throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);
+      }
+    }
 
     const account = await this.prisma.clientAccount.findUnique({ where: { id } });
     if (!account) throw new NotFoundException(`ClientAccount ${id} nije pronađen.`);

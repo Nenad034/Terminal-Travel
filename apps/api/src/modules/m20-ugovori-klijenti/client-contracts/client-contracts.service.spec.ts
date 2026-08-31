@@ -21,8 +21,9 @@ describe('ClientContractsService (M20 spec §3)', () => {
       }),
     };
     const gateway = { generate: jest.fn() };
-    const service = new ClientContractsService(prisma, auditLog as any, agencyConfig as any, gateway as any);
-    return { service, prisma, auditLog, agencyConfig, gateway };
+    const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
+    const service = new ClientContractsService(prisma, auditLog as any, agencyConfig as any, gateway as any, permissions as any);
+    return { service, prisma, auditLog, agencyConfig, gateway, permissions };
   }
 
   const bookingFixture = {
@@ -241,6 +242,57 @@ describe('ClientContractsService (M20 spec §3)', () => {
       expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ booking: undefined }) }),
       );
+    });
+  });
+
+  describe('VIEW_ALL vidljivost za STAFF (§6 dopuna, 31.8.2026, M1 §3.9a)', () => {
+    it('STAFF sa VIEW_ALL=true ne dobija booking filter', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(true);
+      prisma.clientContract.findMany.mockResolvedValue([]);
+
+      await service.findMany({}, 'staff-1');
+
+      expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ booking: undefined }) }),
+      );
+    });
+
+    it('STAFF sužen (VIEW_ALL=false) filtrira na booking vlasništvo/zaduženje', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.clientContract.findMany.mockResolvedValue([]);
+
+      await service.findMany({}, 'staff-1');
+
+      expect(prisma.clientContract.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ booking: { OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] } }),
+        }),
+      );
+    });
+
+    it('findOne — sužen STAFF ne vidi ugovor van sopstvenog opsega, vraća 404', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.clientContract.findUnique.mockResolvedValue({ id: 'c1', bookingId: 'b1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi' });
+
+      await expect(service.findOne('c1', 'staff-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('findOne — sužen STAFF vidi ugovor gde je zadužen', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.clientContract.findUnique.mockResolvedValue({ id: 'c1', bookingId: 'b1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'neko-drugi', assignedToId: 'staff-1' });
+
+      const result = await service.findOne('c1', 'staff-1');
+      expect(result).toEqual({ id: 'c1', bookingId: 'b1' });
     });
   });
 });
