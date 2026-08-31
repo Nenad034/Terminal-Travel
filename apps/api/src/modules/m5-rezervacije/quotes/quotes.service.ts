@@ -52,19 +52,23 @@ export class QuotesService {
       }
     }
 
-    const built = await Promise.all(
-      dto.items.map((item) =>
-        this.builder.build({
-          productId: item.productId,
-          stayFrom: item.stayFrom,
-          stayTo: item.stayTo,
-          occupancy: item.occupancy,
-          rateLineId: item.rateLineId ?? null,
-          providerQuoteReference: item.providerQuoteReference ?? null,
-          selectedOfferQuoteExpiresAt: item.selectedOfferQuoteExpiresAt ?? null,
-        }),
-      ),
-    );
+    // M5 spec §3.0d.6a — build() vraća niz po stavci zahteva (PACKAGE gradi više QuoteItem-a
+    // odjednom iz included_products[]); .flat() spaja sve u jedan ravan niz stavki Ponude.
+    const built = (
+      await Promise.all(
+        dto.items.map((item) =>
+          this.builder.build({
+            productId: item.productId,
+            stayFrom: item.stayFrom,
+            stayTo: item.stayTo,
+            occupancy: item.occupancy,
+            rateLineId: item.rateLineId ?? null,
+            providerQuoteReference: item.providerQuoteReference ?? null,
+            selectedOfferQuoteExpiresAt: item.selectedOfferQuoteExpiresAt ?? null,
+          }),
+        ),
+      )
+    ).flat();
 
     // M5 spec §3.0e.3a (dopuna 29.8.2026) — server je jedini pravi oslonac (klijentska provera
     // u RightPanel.tsx je samo brža povratna informacija). Bez `date_mismatch_acknowledged`,

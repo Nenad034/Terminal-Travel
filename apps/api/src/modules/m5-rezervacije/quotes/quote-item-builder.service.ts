@@ -59,23 +59,86 @@ export class QuoteItemBuilderService {
     private readonly integrations: IntegrationsService,
   ) {}
 
-  async build(params: BuildQuoteItemParams): Promise<BuiltQuoteItemData> {
+  // M5 spec §3.0d.6a — vraća NIZ (ne jednu stavku): za obične proizvode niz od jednog elementa,
+  // za `PACKAGE` (grupni paket) po jedna stavka za svaki `included_products[]` sastojak. Pozivaoci
+  // (QuotesService/ItinerariesService) spljošćuju rezultat, isti obrazac za oba.
+  async build(params: BuildQuoteItemParams): Promise<BuiltQuoteItemData[]> {
     const product = await this.prisma.product.findUnique({
       where: { id: params.productId },
       include: { sourceContract: true },
     });
     if (!product) throw new NotFoundException(`Proizvod ${params.productId} nije pronađen.`);
 
-    const stayFrom = new Date(params.stayFrom);
-    const stayTo = new Date(params.stayTo);
     const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
     // §4.2 dopuna (v1.14) — broj jedinica (soba) je zajednički za oba izvora, izveden jednom ovde.
     const unitCount = roomConfig.length;
 
-    if (product.sourceType === 'CONTRACTED') {
-      return this.buildContracted(product, stayFrom, stayTo, params.occupancy, roomConfig, params.rateLineId ?? null, unitCount);
+    if (product.type === 'PACKAGE') {
+      // §3.0d.6a — PACKAGE nikad nema sopstveni ugovor; params.stayFrom je izabrani "termin"
+      // (tačan datum polaska iz preseka sastojaka, isti dan koji je GET /search vratio kao
+      // packageDepartureDate). params.stayTo se ne koristi — svaki sastojak nosi SOPSTVENI
+      // stayTo iz svog ContractPeriod-a, ne zajednički opseg.
+      return this.buildPackage(product, new Date(params.stayFrom), params.occupancy, roomConfig, unitCount);
     }
-    return this.buildApi(product, stayFrom, stayTo, params.occupancy, params.selectedOfferQuoteExpiresAt ?? null, unitCount);
+
+    const stayFrom = new Date(params.stayFrom);
+    const stayTo = new Date(params.stayTo);
+    if (product.sourceType === 'CONTRACTED') {
+      return [await this.buildContracted(product, stayFrom, stayTo, params.occupancy, roomConfig, params.rateLineId ?? null, unitCount)];
+    }
+    return [await this.buildApi(product, stayFrom, stayTo, params.occupancy, params.selectedOfferQuoteExpiresAt ?? null, unitCount)];
+  }
+
+  /**
+   * M5 spec §3.0d.6a — gradi po jednu `QuoteItem` za svaki `included_products[]` sastojak
+   * grupnog paketa. Obim ovog prolaza (isto ograničenje kao SearchService.buildPackageOffers):
+   * svaki sastojak mora biti CONTRACTED sa FIXED/CHARTER periodom koji tačno sadrži izabrani
+   * termin — mešanje sa API/fleksibilnim sastojkom unutar grupnog paketa nije pokriveno ovde.
+   */
+  private async buildPackage(
+    product: { id: string; attributes: unknown },
+    terminDate: Date,
+    occupancy: OccupancyInput,
+    roomConfig: ReturnType<typeof assertRoomConfigMatchesTotals>,
+    unitCount: number,
+  ): Promise<BuiltQuoteItemData[]> {
+    const includedIds = ((product.attributes as any)?.included_products ?? []) as string[];
+    if (includedIds.length === 0) {
+      throw new BadRequestException(`PACKAGE ${product.id} nema included_products[] (M2 spec §2.3).`);
+    }
+
+    const components = await this.prisma.product.findMany({
+      where: { id: { in: includedIds } },
+      include: { sourceContract: true },
+    });
+
+    const items: BuiltQuoteItemData[] = [];
+    for (const component of components) {
+      if (component.sourceType !== 'CONTRACTED' || !component.sourceContractId || !component.sourceContract) {
+        throw new BadRequestException(
+          `Sastojak ${component.id} paketa ${product.id} nije CONTRACTED — mešanje sa API sastojkom u grupnom paketu nije podržano u ovom prolazu (M5 spec §3.0d.6a).`,
+        );
+      }
+      // Poređenje po datumskom STRINGU (YYYY-MM-DD), ne tačan Date objekat — isti obrazac kao
+      // SearchService.buildPackageOffers (dateKey), da se izbegne promašaj zbog vremenske
+      // komponente. `findFirst` sa tačnim `stayFrom` bi mogao tiho da promaši termin koji
+      // pretraga upravo prikazala kao dostupan.
+      const terminDateKey = terminDate.toISOString().slice(0, 10);
+      const candidatePeriods = await this.prisma.contractPeriod.findMany({
+        where: { contractId: component.sourceContractId, allotmentMode: { in: ['FIXED', 'CHARTER', 'FIXED_LEASE'] } },
+        include: { rateLines: { include: { agePricing: true } } },
+      });
+      const period = candidatePeriods.find((p) => p.stayFrom.toISOString().slice(0, 10) === terminDateKey);
+      if (!period || period.rateLines.length === 0) {
+        throw new BadRequestException(
+          `Sastojak ${component.id} paketa ${product.id} nema FIXED/CHARTER period za termin ${terminDate.toISOString().slice(0, 10)} (M5 spec §3.0d.6).`,
+        );
+      }
+      items.push(
+        await this.buildContracted(component, period.stayFrom, period.stayTo, occupancy, roomConfig, period.rateLines[0].id, unitCount),
+      );
+    }
+    return items;
   }
 
   private async buildContracted(

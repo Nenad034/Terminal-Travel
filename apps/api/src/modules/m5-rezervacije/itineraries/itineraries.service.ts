@@ -142,16 +142,20 @@ export class ItinerariesService {
     // koja u jednom gradu putuje sa 4 osobe, a u drugom sa 2), koristi se on; bez toga (`null`,
     // stariji nacrti pre ove dopune) zadržava se dosadašnje podrazumevano ponašanje — jedna
     // odrasla osoba, korisnik dopunjava tačan sastav kroz izmenu nastale QuoteItem.
-    const built = await Promise.all(
-      withProduct.map((segment) =>
-        this.builder.build({
-          productId: segment.productId!,
-          stayFrom: (segment.stayFrom ?? new Date()).toISOString(),
-          stayTo: (segment.stayTo ?? new Date()).toISOString(),
-          occupancy: (segment.occupancy as any) ?? { adults: 1, children: 0 },
-        }),
-      ),
-    );
+    // §3.0d.6a — build() vraća niz po segmentu (PACKAGE segment gradi više QuoteItem-a
+    // odjednom); .flat() spaja sve u jedan ravan niz stavki Ponude.
+    const built = (
+      await Promise.all(
+        withProduct.map((segment) =>
+          this.builder.build({
+            productId: segment.productId!,
+            stayFrom: (segment.stayFrom ?? new Date()).toISOString(),
+            stayTo: (segment.stayTo ?? new Date()).toISOString(),
+            occupancy: (segment.occupancy as any) ?? { adults: 1, children: 0 },
+          }),
+        ),
+      )
+    ).flat();
 
     const apiExpiries = built.map((b) => b.quoteExpiresAt).filter((v): v is string => v != null);
     const expiresAt =

@@ -5,7 +5,7 @@ import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.ser
 import { EventBusService } from '../../../common/events/event-bus.service';
 import { ContractPeriodsService } from '../../m3-ugovaranje-alotmani/contract-periods/contract-periods.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
-import { QuoteItemBuilderService } from '../quotes/quote-item-builder.service';
+import { QuoteItemBuilderService, BuiltQuoteItemData } from '../quotes/quote-item-builder.service';
 import { ComplianceStubsService } from '../common/compliance-stubs.service';
 import { ClientContractStubService } from '../common/client-contract-stub.service';
 import { generateBookingNumber } from '../common/booking-number';
@@ -281,16 +281,21 @@ export class BookingsService {
   }
 
   private async recomputeExpiredQuote(quote: Prisma.QuoteGetPayload<{ include: { items: true } }>) {
+    // M5 spec §3.0d.6a — PACKAGE se rasklapa na pojedinačne QuoteItem-e VEĆ pri kreiranju Ponude
+    // (QuotesService.create/ItinerariesService.convertToQuote), pa `QuoteItem.productId` ovde
+    // uvek referencira sastojak (ACCOMMODATION/FLIGHT/...), nikad sam PACKAGE — build() vraća
+    // tačno jedan element po pozivu, isto kao pre §3.0d.6a dopune.
     const rebuilt = await Promise.all(
-      quote.items.map((item) =>
-        this.builder.build({
+      quote.items.map(async (item) => {
+        const built = await this.builder.build({
           productId: item.productId,
           stayFrom: item.stayFrom.toISOString(),
           stayTo: item.stayTo.toISOString(),
           occupancy: item.occupancy as any,
           rateLineId: item.rateLineId,
-        }),
-      ),
+        });
+        return built[0];
+      }),
     );
     const apiExpiries = rebuilt.map((b) => b.quoteExpiresAt).filter((v): v is string => v != null);
     const newExpiresAt = apiExpiries.length > 0 ? new Date(Math.min(...apiExpiries.map((v) => new Date(v).getTime()))) : new Date(Date.now() + 30 * 60_000);
@@ -908,12 +913,19 @@ export class BookingsService {
     if (!oldItem) throw new NotFoundException(`Stavka ${dto.bookingItemId} ne pripada rezervaciji ${bookingId}.`);
     if (oldItem.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je već otkazana.');
 
-    const built = await this.builder.build({
+    // M5 spec §3.0d.6a — build() sad vraća niz (PACKAGE gradi više stavki odjednom); izmena
+    // menja TAČNO JEDNU postojeću stavku za jednu novu, pa PACKAGE proizvod ovde nije podržan
+    // u ovom prolazu (zamena cele grupe paketa je van obima §6 izmene pojedinačne stavke).
+    const builtItems = await this.builder.build({
       productId: oldItem.productId,
       stayFrom: dto.stayFrom,
       stayTo: dto.stayTo,
       occupancy: dto.occupancy,
     });
+    if (builtItems.length !== 1) {
+      throw new BadRequestException('Izmena PACKAGE proizvoda (grupni paket) nije podržana kroz izmenu pojedinačne stavke (M5 spec §6).');
+    }
+    const built = builtItems[0];
 
     // rezerviši novu stavku PRE oslobađanja stare — izbegava trenutak bez pokrivenog kapaciteta
     // ako oba koraka ciljaju isti period; oslobađanje stare stavke sledi tek posle uspeha.
@@ -975,7 +987,7 @@ export class BookingsService {
   }
 
   private async reserveBuiltItem(
-    built: Awaited<ReturnType<QuoteItemBuilderService['build']>>,
+    built: BuiltQuoteItemData,
     actorId: string,
   ): Promise<{ itemStatus: 'CONFIRMED' | 'PENDING_SUPPLIER_CONFIRMATION'; supplierReference: string }> {
     if (built.sourceType === 'CONTRACTED') {

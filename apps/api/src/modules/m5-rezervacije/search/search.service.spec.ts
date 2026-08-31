@@ -204,4 +204,122 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       expect(results.map((r) => r.productId)).toEqual(['withBalcony']);
     });
   });
+
+  // M5 spec §3.0d.6/§3.0d.6a — grupni paket: termini = presek FIXED/CHARTER datuma preko
+  // included_products[], cena = zbir sastojaka (svaki sa sopstvenom maržom).
+  describe('PACKAGE (grupni paket, §3.0d.6/§3.0d.6a)', () => {
+    const packageProduct = {
+      id: 'pkg1',
+      type: 'PACKAGE',
+      sourceType: 'CONTRACTED',
+      sourceContractId: null,
+      sourceContract: null,
+      destinationCountry: 'Grčka',
+      destinationCity: 'Zakintos',
+      media: [],
+      attributes: { included_products: ['flight1', 'hotel1'] },
+      translations: [{ languageCode: 'sr', name: 'Grčka čarter 7 dana', description: '' }],
+    };
+
+    function flightPeriod(stayFromIso: string) {
+      return {
+        id: 'fperiod1',
+        roomType: null,
+        allotmentMode: 'CHARTER',
+        totalCapacity: 50,
+        unitsSold: 0,
+        stayFrom: new Date(stayFromIso),
+        stayTo: new Date(stayFromIso),
+        rateLines: [{ id: 'frl1', price: 20000, priceBasis: 'PER_PERSON_PER_NIGHT', occupancy: null, cribFeePerNight: null, boardType: null, agePricing: [] }],
+        cancellationRules: [],
+      };
+    }
+    function hotelPeriod(stayFromIso: string, stayToIso: string) {
+      return {
+        id: 'hperiod1',
+        roomType: 'STD',
+        allotmentMode: 'FIXED',
+        totalCapacity: 10,
+        unitsSold: 0,
+        stayFrom: new Date(stayFromIso),
+        stayTo: new Date(stayToIso),
+        rateLines: [{ id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'AI', agePricing: [] }],
+        cancellationRules: [],
+      };
+    }
+
+    it('vraća po jednu ponudu za svaki termin koji IMAJU svi sastojci (presek datuma)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct]) // glavna pretraga
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        ]);
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([flightPeriod('2027-09-03')]) // flight1 — samo jedan termin
+        .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10'), hotelPeriod('2027-09-10', '2027-09-17')]); // hotel1 — dva termina, jedan se poklapa
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].offers).toHaveLength(1);
+      expect(results[0].offers[0].packageDepartureDate).toBe('2027-09-03');
+    });
+
+    it('cena ponude je zbir cena sastojaka (svaki sa sopstvenom maržom)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        ]);
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+        .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+      // let: +10% marža na 20000 = 22000; hotel: +500 fiksno na 5000*7=35000 = 35500
+      markupRules.resolveForContracted
+        .mockResolvedValueOnce({ percentage: 10, fixedAmount: null })
+        .mockResolvedValueOnce({ percentage: 0, fixedAmount: 500 });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results[0].offers[0].finalPrice).toBe(22000 + 35500);
+    });
+
+    it('sastojak bez FIXED/CHARTER perioda ne određuje termine — ako NIJEDAN sastojak nema, paket se ne prikazuje', async () => {
+      const { service, prisma } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: {} },
+        ]);
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]); // nijedan sastojak nema FIXED/CHARTER
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+      expect(results).toHaveLength(0);
+    });
+
+    it('poštuje tačan traženi datum (stayFrom) umesto opsega — §3.0d.6', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        ]);
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([flightPeriod('2027-09-03'), flightPeriod('2027-09-10')])
+        .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10'), hotelPeriod('2027-09-10', '2027-09-17')]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'], stayFrom: '2027-09-10' });
+
+      expect(results[0].offers).toHaveLength(1);
+      expect(results[0].offers[0].packageDepartureDate).toBe('2027-09-10');
+    });
+  });
 });
