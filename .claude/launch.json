@@ -2,6 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start:dev",
+        "--prefix",
+        "apps/api"
+      ],
+      "port": 3000
+    },
+    {
       "name": "panel",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
