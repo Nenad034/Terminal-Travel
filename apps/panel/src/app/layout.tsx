@@ -21,7 +21,10 @@ try {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sr">
+    // suppressHydrationWarning: THEME_INIT_SCRIPT namerno upisuje data-theme na <html>
+    // PRE hidratacije, pa se server HTML (bez atributa) i klijent (sa atributom) uvek
+    // razlikuju. Ogranicen je na sam <html> element i ne prenosi se na decu.
+    <html lang="sr" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
