@@ -6,6 +6,16 @@
 
 ---
 
+## 31.8.2026 — peti prolaz, `ItinerariesService` — nije bio obuhvaćen drugim prolazom (IDOR)
+
+Otkriveno usput dok se radilo na paketiranju (M5 `Itinerary`/§3.0d.6a), ne posebnom bezbednosnim prolazom — vredi zabeležiti jer je isti obrazac kao drugi prolaz iznad, samo na modulu koji tad nije bio na dnevnom redu.
+
+**`ItinerariesService` nije imao NIKAKVU proveru vlasništva.** `M5/itinerary/CREATE|VIEW|EDIT` dozvole su već dodeljene GOST i SUBAGENT_CONTACT ulogama u `seed.ts`, ali `findOne()`/`findAll()`/`update()`/`convertToQuote()` su radili nad bilo kojim itinerarom po ID-u bez provere pripadnosti — `findAll()` je čak uzimao `clientAccountId` direktno iz query parametra bez ograničenja. Bilo koji prijavljeni gost ili subagent je mogao pogađanjem/enumeracijom ID-a da vidi, izmeni ili konvertuje u Ponudu tuđi itinerar.
+
+**Ispravljeno** (`apps/api/src/modules/m5-rezervacije/itineraries/itineraries.service.ts`) — isti deljeni `resolveApiContext` obrazac kao `QuotesService`/`BookingsService`: `create()` prisiljava `client_account_id` na sopstveni nalog za GUEST/SUBAGENT_CONTACT/AI_AGENT; `findOne()`/`findAll()` proveravaju/nameću vlasništvo van `INTERNAL_PANEL` konteksta; `update()`/`convertToQuote()` nasleđuju proveru pozivom `findOne(id, actorUserId)`. 9 novih jediničnih testova (`itineraries.service.spec.ts`, do sada modul nije imao nijedan test). Svih 855 testova prolazi.
+
+---
+
 ## 31.8.2026 — četvrti prolaz, `npm audit` — Next.js major nadogradnja (`apps/panel`, `apps/web`)
 
 Nastavak stavke 1 iz "Otvoreno za dalje" (ispod) — `npm audit fix` (bez `--force`) nije rešavao ništa ni u jednom kanalu (`apps/api`/`apps/panel`/`apps/web`) zbog isprepletenih zavisnosti u monorepo-u; svaka preostala ranjivost je zahtevala skok glavne verzije. Vlasnik odlučio da se krene sa Next.js (veći stvaran rizik — mrežno dostupne ranjivosti SSRF/cache poisoning/DoS u App Router-u koji `apps/panel`/`apps/web` već koriste), NestJS v11→v12 (`apps/api`) ostaje namerno odložen.
