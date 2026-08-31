@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M3) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.12 — "Talas 1" dopuna na osnovu analize 55 novih primera cenovnika/ugovora više dobavljača (31.8.2026, vlasnik dostavio u `Primeri cenovnika/`; hoteli i tour-operatori iz CG/HR/AT/CY, uključujući Olympic Travel, Aycon portfolio, Plava Laguna, Solvex, Ananti, Heritage Grand Perast, Dionysos). Rešava 6 tačaka iz poglavlja 8 (v1.11) plus nove nalaze koje ta analiza otkriva, po prioritetu koji je vlasnik potvrdio (talas 1 = najveći uticaj na tačnost cene, talas 2 ostaje otvoren u poglavlju 8): nov `ContractPeriod.min_stay_nights`/`max_stay_nights` (poglavlje 2.3), `Contract.commission_model`/`commission_percentage` (poglavlje 2.2b), nov `PricelistOffer` (rani rezervacija/free-nights akcije, poglavlje 2.4b), `CancellationRule.rule_type` razdvaja kaznu pre dolaska od kazne za prevremeni odlazak (poglavlje 2.5), nov generički `AncillaryService` (poglavlje 2.6, umesto fiksnih polja po tipu troška — analiza pokazala previše raznolikosti: ljubimac/parking/rani check-in/room service/depozit), i nov `TouristTaxInfo` (poglavlje 2.7) — **isključivo informativni** podatak o ceni, vlasnik potvrdio da se raniju odluku (M10/M11, boravišna taksa nije pravna obaveza agencije) ne menja, samo se dodaje mogućnost da se taj trošak vidi u strukturi cene radi tačnog obračuna troška agencije/gosta.
 **Verzija:** 1.11 — `ContractPeriod.age_policy_override` (novo poglavlje 2.3c, 28.8.2026, na zahtev vlasnika: "uzrasna politika koja važi generalno za neki hotel ne mora da bude ista kada taj hotel kreira cene za neku akciju"). Opcion niz, isti oblik kao M2 `age_policy[]`, trostepen fallback (period → soba → sistemski podrazumevan) primenjen SAMO pri obračunu cene (M5 `computeRoomBaseCost`), nikad na fizički kapacitet sobe. Implementirano: Prisma polje + M5 rezolucija; panel unos čeka ekran za pojedinačan ugovor/period (ne postoji još, backlog M3 sekcija).
 **Verzija:** 1.10 — cross-referenca ažurirana (avgust 2026): M18 (Operativni nadzor) sad postoji u kodu — alarm za nizak kapacitet (`low_capacity_critical`, poglavlje 4.3) ima stvarnog pretplatnika (`M18EventSubscribersService`), umesto ranije napomene "M18 još ne postoji kao model"; v1.9 — dodato `Contract.payment_terms_days` (poglavlje 2.2, avgust 2026, otkriveno pri implementaciji M10): M10 spec §8.0/§8.1 pretpostavlja da `SupplierObligation.due_date` dolazi "iz uslova plaćanja u M3 Contract", ali takvo polje nikad nije postojalo — postojao je samo `payment_schedule` (specifičan za FIXED_LEASE); dodato opšte, nullable polje (rok u danima od prijema fakture), M10 koristi podrazumevanih 30 dana kad nije uneto; v1.8 — implementacija (avgust 2026, Faza 1): `apps/api/src/modules/m3-ugovaranje-alotmani/` — Supplier/SupplierContact/Contract/ContractPeriod (sva 4 `allotment_mode`)/RateLine+`RateLineAgePricing`/CancellationRule CRUD, sprečavanje preklapanja perioda (aplikativna provera, deljena između ručnog kreiranja i uvoza cenovnika), atomska `reserve()` (jedan `UPDATE ... WHERE units_sold + n <= total_capacity`, dokazano pravim paralelnim HTTP zahtevima), alarm za nizak kapacitet preko Event Bus-a (M18 još ne postoji kao model), `PricelistImport` ljudski tok odobrenja i `SupplierExtractionProfile` učenje. Dodato `extracted_occupancy` u `PricelistImportRow` (§4.2.2) — nedostajalo u v1.7 iako je `RateLine.occupancy` obavezno polje. Stvarna AI ekstrakcija cenovnika (§4.2, korak 2) namerno nije povezana — čeka odluku o AI provajderu, isti obrazac kao TODO za email u M1 i AI uvoz sadržaja u M2. 47 unit + 15 e2e testova dokazuje 13 od 18 stavki izlaznog kriterijuma (poglavlje 7) — preostalih 5 čeka M4/M5/M10/M18/AI-provajder odluku, eksplicitno obeleženo u checklisti; v1.7 — na zahtev vlasnika (avgust 2026): `PricelistImportRow` dobija polja za kandidate uzrasne cene (`extracted_price_basis`/`extracted_age_pricing`/`extracted_crib_fee_per_night`, poglavlje 4.2.2); nov `SupplierExtractionProfile` (poglavlje 4.2.5) — AI uvoz uči potvrđen obrazac po dobavljaču i ponovo ga koristi za sledeći uvoz istog dobavljača, sa ogradom da se ne primenjuje tiho ako se struktura dokumenta promeni; v1.6 na osnovu analize stvarnih cenovnika više dobavljača: `RateLine` dobija `price_basis` (po sobi vs. po osobi) i strukturiranu cenu po uzrasnoj kategoriji gosta `age_pricing[]` (poglavlje 2.4a), rešava otvoreno pitanje iz v1.5 o ceni po detetu/bebi; v1.5 ažurirana referenca `ContractPeriod.room_type` na strukturirano `attributes.room_types[].code` iz M2 poglavlja 2.3a (avgust 2026); v1.4 dodat `SupplierContact` (poglavlje 2.1a), portal login kontakt-osobe kod dobavljača za real-time chat, dopuna M19 specifikacije za problem #9 (avgust 2026); v1.3 dodato `Contract.default_tip_nastupanja` (poglavlje 2.2), rešava nalaz #1 iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOV-B2B.md` (avgust 2026, na zahtev vlasnika); v1.2 dodat alarm za nizak preostali kapacitet (poglavlje 4.3); v1.1 dodala konvenciju celobrojnih novčanih iznosa (poglavlje 2), sprečavanje preklapanja perioda (poglavlje 2.3b) — sve poređenjem sa PrimeTravel analizom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`)
 **Zavisi od:** M1 (Core / Identitet i pristup), M2 (Katalog proizvoda)
@@ -64,6 +65,8 @@ Jedan `Supplier` može imati više `SupplierContact` zapisa (npr. recepcija i me
 | payment_terms_days | integer, nullable | dopuna v1.9 (avgust 2026) — rok plaćanja dobavljaču u danima od prijema fakture; M10 `SupplierObligation.due_date` se izvodi odavde (M10 spec §8.1), podrazumevanih 30 dana kad nije uneto |
 | status | enum: `DRAFT`, `ACTIVE`, `EXPIRED`, `TERMINATED` | |
 | default_tip_nastupanja | enum: `ORGANIZATOR`, `POSREDNIK` | **obavezno pre nego što `Contract` može preći u `ACTIVE`** (dopuna ograde uz `MarkupRule`, M5 poglavlje 2.2) — vidi poglavlje 2.2a niže. Rešava nalaz iz `VALIDACIJA-WORKFLOW-B2C.md`/`VALIDACIJA-WORKFLOW-B2B.md` (avgust 2026): ko/šta određuje `Booking.tip_nastupanja` kad rezervaciju sam potvrđuje gost (M8) ili subagent (M7), bez prodajnog tima u toku |
+| commission_model | enum: `NET`, `COMMISSIONABLE` | dopuna v1.12 — vidi poglavlje 2.2b |
+| commission_percentage | decimal, nullable | dopuna v1.12 — samo za `commission_model = COMMISSIONABLE`, vidi poglavlje 2.2b |
 | created_at / updated_at / created_by | timestamp / UUID | |
 
 ### 2.2a `default_tip_nastupanja` — izvor istine za samouslužne kanale (dopuna, avgust 2026)
@@ -71,6 +74,19 @@ Jedan `Supplier` može imati više `SupplierContact` zapisa (npr. recepcija i me
 Ugovoreni proizvod iz ovog `Contract`-a se u praksi gotovo uvek prodaje pod istim poreskim/pravnim odnosom (agencija kao organizator, ili agencija kao posrednik za tuđi aranžman) — ta odluka se donosi **kad se ugovor zaključuje**, ne pri svakoj pojedinačnoj prodaji. `default_tip_nastupanja` čuva tu odluku na jednom mestu, tako da samouslužni kanali (M8 sajt, M7 B2B portal), koji nemaju prodajni tim u toku, imaju odakle da je automatski preuzmu — vidi M5 poglavlje 4.0a, koji definiše tačan mehanizam preuzimanja pri potvrdi rezervacije.
 
 Interni panel (M17), gde prodajni tim ručno bira `tip_nastupanja` po specifičnom dogovoru sa klijentom, i dalje sme da ga eksplicitno postavi drugačije od podrazumevane vrednosti ugovora — `default_tip_nastupanja` je *podrazumevana* vrednost, ne prisila; ljudski nalog na internom panelu je uvek u mogućnosti da svesno odstupi (npr. poseban jednokratni dogovor da agencija ovog puta posreduje umesto organizuje). Samo za samouslužne kanale (bez ljudskog naloga u toku) ova vrednost postaje obavezujuća, jer nema ko drugi da je izabere.
+
+### 2.2b `commission_model` — neto cena ili cena sa proviziju (dopuna v1.12, na osnovu analize stvarnih ugovora)
+
+**Problem:** `RateLine.price` (poglavlje 2.4) je do sada uvek tumačen kao "koliko agencija plaća dobavljaču" — trošak agencije. Analiza stvarnih ugovora (avgust 2026, 55 primera) pokazuje da to nije uvek tačno: neki dobavljači (npr. Aycon portfolio) daju cenovnik sa **bruto cenom + eksplicitnu proviziju** ("Agency commission 5%") koju agencija zadržava pri prosleđivanju uplate, dok drugi (npr. Ananti, Heritage Grand Perast) eksplicitno navode "**non-commissionable, net rates**" — `RateLine.price` je tada već pravi trošak agencije, bez odbitka.
+
+| Vrednost `commission_model` | Značenje | Kako se tumači `RateLine.price` |
+| :---- | :---- | :---- |
+| `NET` | Cenovnik je već neto — nema provizije koja se odbija | `RateLine.price` = trošak agencije, bez izmene (dosadašnje ponašanje, podrazumevano) |
+| `COMMISSIONABLE` | Cenovnik je bruto, agencija zadržava `commission_percentage` pri plaćanju dobavljaču | `RateLine.price` je bruto cena; stvarni trošak agencije (za M10 obavezu prema dobavljaču) = `RateLine.price × (1 − commission_percentage / 100)` |
+
+**Obim:** ovo utiče isključivo na **obavezu agencije prema dobavljaču** (M10 `SupplierObligation`) — ne menja `RateLine.price` kao osnovicu za prodajnu cenu gostu/subagentu (M5 `MarkupRule` se i dalje primenjuje na `RateLine.price` kao do sada; da li markup treba da se računa na bruto ili na neto iznos kad je `COMMISSIONABLE`, ostaje otvoreno pitanje dok M5 ne dobije ovu dopunu — vidi poglavlje 8). Tačan mehanizam kako M10 koristi `commission_percentage` pri generisanju `SupplierObligation` definiše M10 specifikacija, ne ovde (isti obrazac kao `payment_terms_days`, poglavlje 2.2).
+
+`Contract` ne sme preći u `ACTIVE` bez popunjenog `commission_model` (isto sprovođenje kao `default_tip_nastupanja`, poglavlje 2.2a) — dvosmislenost da li je cenovnik neto ili bruto direktno utiče na tačnost obaveze prema dobavljaču.
 
 ### 2.3 `ContractPeriod` — sezona/period unutar ugovora
 Jedan ugovor može pokrivati više sezona sa različitim cenama i alotmanom (npr. "leto 2027" i "zima 2027/28" u istom ugovoru sa istim hotelom). Ovo razdvaja **period važenja ugovora** (tačka 2.2, kad je dokument na snazi) od **perioda boravka na koji se cena/alotman odnose** — potvrđeno da su ovo dva različita opsega datuma.
@@ -88,6 +104,8 @@ Jedan ugovor može pokrivati više sezona sa različitim cenama i alotmanom (npr
 | ukupna_fiksna_obaveza / fixed_obligation_currency | integer / string, nullable | **samo za `CHARTER`/`FIXED_LEASE`** — u najmanjoj jedinici valute (poglavlje 2); vidi poglavlje 2.3a |
 | payment_schedule | JSONB, nullable | **samo za `FIXED_LEASE`** — vidi poglavlje 2.3a |
 | age_policy_override | JSONB, nullable | izuzetak od opšte uzrasne politike sobe SAMO za ovaj period/cenovnik — vidi poglavlje 2.3c |
+| min_stay_nights | integer, nullable | dopuna v1.12 — minimalan broj noćenja da bi se ova cena/period uopšte mogli rezervisati; `null` = nema minimuma. Potvrđeno analizom da se često razlikuje po tipu sobe unutar istog perioda (npr. vile 3 noćenja u vrhuncu sezone naspram 1 noćenja za standardne sobe) — kad taj slučaj nastupi, unose se dva odvojena `ContractPeriod` zapisa (različit `room_type`, isti `stay_from/stay_to`), ne jedno zajedničko polje |
+| max_stay_nights | integer, nullable | dopuna v1.12 — maksimalan broj noćenja; `null` = nema maksimuma |
 | created_at / updated_at | timestamp | |
 
 **`ON_REQUEST` period nema `total_capacity` ni `units_sold`** — sistem ne garantuje kapacitet; svaki pokušaj rezervacije u ovom periodu mora proći kroz ručnu ili API potvrdu dobavljača pre nego što se gostu potvrdi (M5 ovo tretira kao status "Na čekanju potvrde dobavljača", ne kao trenutnu potvrdu).
@@ -165,15 +183,86 @@ Rešava otvoreno pitanje iz M2 poglavlja 2.3b: `age_policy[]` (M2) definiše *ko
 
 **Kako se ovo sabira u ukupnu cenu sobe** — definiše M5 (poglavlje 3.2b te specifikacije, ne ovde), pošto je to deo formule za `base_cost`; ovde se čuvaju samo ulazni podaci.
 
+### 2.4b `PricelistOffer` — rana rezervacija i free-nights akcije (dopuna v1.12)
+
+Skoro svaki analizirani cenovnik (avgust 2026) sadrži bar jednu vremenski ograničenu akciju iznad osnovne cene iz `RateLine` — najčešće rani popust za rezervaciju unapred ("Early Booking Discount/EBB"), ređe "kupi X noćenja, plati Y" (npr. "6=5", "7=6"). Do sada nije postojalo mesto u modelu za ovo — cena se tretirala kao fiksna po `RateLine`. `PricelistOffer` je odvojen od `RateLine` jer akcija ima **sopstveni datumski prozor prijave** (kad gost mora da rezerviše), različit od `stay_from/stay_to` perioda boravka koji već čuva `ContractPeriod`.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| contract_period_id | UUID (FK → ContractPeriod) | |
+| offer_type | enum: `EARLY_BOOKING`, `FREE_NIGHTS` | |
+| booking_from / booking_to | date | prozor u kom gost mora da izvrši rezervaciju/uplatu da bi akcija važila — **različito** od `stay_from/stay_to` perioda (kad gost boravi) |
+| discount_type | enum: `PERCENTAGE`, `FIXED_AMOUNT`, nullable | samo za `EARLY_BOOKING`; `null` za `FREE_NIGHTS` (tamo popust proizlazi iz `stay_nights`/`pay_nights`, ne iz procenta) |
+| discount_percentage | decimal, nullable | samo za `discount_type = PERCENTAGE` |
+| discount_amount | integer, nullable | samo za `discount_type = FIXED_AMOUNT`, u najmanjoj jedinici valute ugovora (poglavlje 2) |
+| stay_nights / pay_nights | integer, nullable | samo za `offer_type = FREE_NIGHTS` — npr. `stay_nights = 6, pay_nights = 5` ("6=5"); `pay_nights` mora biti manje od `stay_nights` |
+| deposit_percentage | decimal, nullable | procenat uplate depozita koji akcija zahteva pri rezervaciji, ako postoji (potvrđeno u više primera) |
+| deposit_deadline | date, nullable | rok do kog depozit mora biti uplaćen |
+| min_age / max_age | decimal, nullable | akcija ograničena na gosta određenog uzrasta (retko, viđeno u praksi) — isti `X,99` zapis kao M2 `age_policy[].age_to` (M2 poglavlje 2.3b); `null` = bez uzrasnog ograničenja |
+| valid_arrival_weekdays | integer[], nullable | dani u nedelji (1=ponedeljak...7=nedelja) kad je dolazak dozvoljen pod ovom akcijom; `null` = bez ograničenja |
+| excluded_room_types | string[], nullable | `room_type` kodovi (poglavlje 2.3) izuzeti iz akcije (potvrđeno: dobavljači često isključuju luksuzne/predsedničke apartmane iz EBB-a) |
+| combinable_with_other_offers | boolean | da li se ova akcija sme sabrati sa drugom `PricelistOffer` stavkom istog perioda (potvrđeno da neki dobavljači eksplicitno navode redosled/kombinovanje, npr. "EBD se primenjuje prvo, pa grupni popust") — `false` = akcija se primenjuje samostalno, ne kombinuje se |
+| created_at / updated_at | timestamp | |
+
+**Namerno van obima ovde:** tačan redosled/algoritam kad se dve ili više `PricelistOffer` stavki primenjuju na istu rezervaciju (koja se računa prva, da li se baziraju jedna na drugu ili obe na `RateLine.price`) definiše M5 (obračun cene), ne ovde — M3 samo čuva ulazne podatke i `combinable_with_other_offers` zastavicu, isti obrazac kao `age_pricing[]` (poglavlje 2.4a).
+
 ### 2.5 `CancellationRule` — pravila otkazivanja po periodu
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | id | UUID (PK) | |
 | contract_period_id | UUID (FK → ContractPeriod) | |
-| days_before_stay | integer | prag — npr. 30, 15, 7 |
-| refund_percentage | integer (0–100) | koliko se vraća gostu ako otkaže u tom prozoru |
+| rule_type | enum: `PRE_ARRIVAL`, `EARLY_DEPARTURE`, podrazumevano `PRE_ARRIVAL` | dopuna v1.12 — razdvaja otkazivanje **pre** dolaska (postojeće ponašanje, polja ispod) od prevremenog napuštanja/skraćenja boravka **posle** check-in-a (novo, vidi ogradu niže); analiza stvarnih ugovora potvrdila da dobavljači ove dve situacije tretiraju različitim pravilima i osnovicama |
+| days_before_stay | integer, nullable | **samo za `PRE_ARRIVAL`** — prag, npr. 30, 15, 7 |
+| refund_percentage | integer (0–100), nullable | **samo za `PRE_ARRIVAL`** — koliko se vraća gostu ako otkaže u tom prozoru |
+| early_departure_basis | enum, nullable: `PERCENTAGE_OF_REMAINING_STAY`, `FLAT_AMOUNT` | **samo za `EARLY_DEPARTURE`** — kako se računa kazna kad gost skrati boravak posle dolaska; potvrđeno u praksi oba oblika (npr. "100% preostalih noćenja" naspram fiksnog iznosa "po vaučeru") |
+| early_departure_percentage | integer (0–100), nullable | **samo za `early_departure_basis = PERCENTAGE_OF_REMAINING_STAY`** — procenat cene preostalih, nerealizovanih noćenja koji se naplaćuje kao kazna |
+| early_departure_flat_amount | integer, nullable | **samo za `early_departure_basis = FLAT_AMOUNT`**, u najmanjoj jedinici valute ugovora (poglavlje 2) |
 
-Primer: 30 dana → 100%, 15–29 dana → 50%, 0–14 dana → 0%. Ovo koristi M5 (obračun otkazivanja) i M10 (obračun povraćaja) — M3 samo čuva pravilo.
+Primer za `PRE_ARRIVAL`: 30 dana → 100%, 15–29 dana → 50%, 0–14 dana → 0%. Ovo koristi M5 (obračun otkazivanja) i M10 (obračun povraćaja) — M3 samo čuva pravilo.
+
+**Ograda za `EARLY_DEPARTURE`:** ovo je kazna za skraćenje **već potvrđenog i započetog** boravka (gost je stigao pa prevremeno odlazi) — potpuno odvojena situacija od `PRE_ARRIVAL` (gost otkazuje pre nego što je uopšte stigao), zato različita polja, ne isti `days_before_stay`/`refund_percentage` par. Tačan obračun (koji M5/M10 tok pokreće kad tim/gost prijavi prevremeni odlazak) definiše M5, ne ovde — M3 samo čuva pravilo, isti obrazac kao za `PRE_ARRIVAL`.
+
+### 2.6 `AncillaryService` — pomoćni troškovi/usluge po periodu (dopuna v1.12)
+
+Analiza stvarnih cenovnika (avgust 2026) otkriva veliku raznolikost pomoćnih troškova koje dobavljači navode uz osnovnu cenu smeštaja — kućni ljubimac, parking, rani check-in/kasni check-out (viđeno **kao procenat noćne cene, ne fiksan iznos** kod pojedinih dobavljača), room service flat fee, povratni sigurnosni depozit, iznajmljivanje bicikla/skija, pranje veša, korišćenje bilijara, itd. Umesto fiksnog polja po svakom tipu troška (što bi zahtevalo novu izmenu specifikacije za svaki novi tip koji se pojavi kod sledećeg dobavljača), `AncillaryService` je generički red — isti obrazac kao `age_pricing[]` (poglavlje 2.4a), gde se raznolikost rešava strukturom podataka, ne brojem polja.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| contract_period_id | UUID (FK → ContractPeriod) | |
+| name | string | naziv usluge/troška tačno kako ga zove dobavljač (npr. "Kućni ljubimac", "Parking", "Rani check-in") — slobodan tekst, bez fiksnog enum-a tipa troška |
+| pricing_mode | enum: `FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE` | dopuna v1.12 — potvrđeno da dobavljači koriste oba (npr. depozit je uvek fiksan iznos, dok je rani check-in kod pojedinih dobavljača procenat noćne cene sobe) |
+| flat_amount | integer, nullable | **samo za `FLAT_PER_UNIT`**, u najmanjoj jedinici valute ugovora (poglavlje 2) |
+| percentage_of_nightly_rate | decimal, nullable | **samo za `PERCENTAGE_OF_NIGHTLY_RATE`** — procenat od `RateLine.price` te sobe/perioda |
+| unit | enum: `PER_STAY`, `PER_NIGHT`, `PER_DAY`, `PER_PERSON`, `PER_PET`, `PER_ROOM` | jedinica na koju se `flat_amount`/`percentage_of_nightly_rate` odnosi |
+| is_mandatory | boolean | `true` = trošak se automatski dodaje svakoj rezervaciji ovog perioda (npr. obavezna taksa za uslugu vodiča); `false` = opcion, gost/agent ga bira |
+| is_refundable | boolean | `true` = trošak se vraća pod određenim uslovom (tipičan slučaj: sigurnosni depozit) — sam uslov vraćanja ostaje slobodan tekst u `notes`, nema strukturiran model za to u ovoj verziji |
+| max_quantity | integer, nullable | ograničenje (npr. "1 ljubimac po sobi") — `null` = bez ograničenja |
+| notes | text, nullable | slobodan tekst za uslove koje ne pokriva struktura gore (npr. ograničenje rase/težine ljubimca, koji sati važe za rani check-in) |
+| created_at / updated_at | timestamp | |
+
+**Namerno van obima ovde:** da li se `AncillaryService` prikazuje/prodaje gostu kroz M5 tok rezervacije kao opciona stavka, ili služi samo kao interna referenca troška — definiše M5, ne ovde (isti obrazac kao za `PricelistOffer`, poglavlje 2.4b).
+
+### 2.7 `TouristTaxInfo` — informativni podatak o boravišnoj/gradskoj taksi (dopuna v1.12, na zahtev vlasnika)
+
+**Pravni status ostaje nepromenjen:** boravišna taksa/eTurista prijava je zakonska obaveza smeštajnog objekta (dobavljača) koji direktno prima gosta, ne agencije-touroperatora — ova odluka je doneta avgusta 2026 (`07-SPECIFIKACIJA-M10-FINANSIJE.md` poglavlje 1, `08-SPECIFIKACIJA-M11-COMPLIANCE.md`) i **ostaje na snazi**: Terminal ne prati, ne obračunava niti prijavljuje boravišnu taksu u ime bilo koga.
+
+**Zašto se ipak dodaje ovde:** analiza stvarnih cenovnika (avgust 2026) pokazuje da je boravišna taksa gotovo uvek prisutna kao stavka u dokumentu dobavljača, sa **sopstvenom uzrasnom granicom različitom od granice za popust na cenu sobe** (npr. taksa važi do 12 godina, dok popust na cenu sobe važi do 11,99 ili do 18 godina za istog dobavljača) — i sa različitim tretmanom: nekad je uključena u `RateLine.price` ("Tourist tax is incl."), nekad se plaća na licu mesta mimo agencije, nekad se prevaljuje agenciji kao trošak. Bez mesta da se ovaj podatak zapamti, tim mora da se vraća na originalni dokument dobavljača svaki put kad treba da odgovori gostu/subagentu koliko će stvarno platiti na licu mesta — `TouristTaxInfo` čuva taj podatak **isključivo informativno**, radi tačnog prikaza ukupnog troška, ne kao osnovu za obračun/naplatu/prijavu od strane Terminal-a.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| contract_period_id | UUID (FK → ContractPeriod) | |
+| included_in_price | boolean | `true` = taksa je već uračunata u `RateLine.price`, nema dodatnog troška; `false` = plaća se posebno |
+| collected_by | enum: `PAID_ON_SITE_BY_GUEST`, `INVOICED_TO_AGENCY`, nullable | **samo kad `included_in_price = false`** — ko naplaćuje taksu; `PAID_ON_SITE_BY_GUEST` znači gost plaća direktno objektu, van bilo kog toka kroz Terminal |
+| amount_per_night | integer, nullable | iznos po noći po gostu koji podleže taksi, u najmanjoj jedinici valute ugovora (poglavlje 2) — informativno, ne generiše obavezu u M10 |
+| currency | string, nullable | valuta iznosa, ako se razlikuje od `Contract.currency` (potvrđeno da se boravišna taksa ponekad navodi u lokalnoj valuti nezavisno od valute cenovnika) |
+| tax_exempt_max_age | decimal, nullable | uzrasna granica ispod koje gost ne podleže taksi — **namerno odvojeno** od `M2 room_types[].age_policy[]` i od `RateLine.age_pricing[]`, jer analiza potvrđuje da se ove granice po dobavljaču ne poklapaju; isti `X,99` zapis kao M2 `age_policy[].age_to` |
+| notes | text, nullable | slobodan tekst za dodatne uslove (npr. "prvih 5 noćenja", "samo za punoletne goste") |
+| created_at / updated_at | timestamp | |
+
+**Ograda:** nijedan endpoint ili tok u M3/M10/M11 ne sme koristiti `TouristTaxInfo` kao osnovu za generisanje fakture, obaveze ili zakonske prijave — polje postoji isključivo da bi tim/gost/subagent imao tačnu informaciju unapred. Ako se u budućnosti pokaže poslovna potreba da agencija ipak posreduje u naplati (npr. dobavljač insistira da agencija naplati taksu unapred u ime gosta), to je nova poslovna odluka koja zahteva reviziju M10/M11 pravnog nalaza, ne tiho proširenje ovog polja.
 
 ---
 
@@ -291,7 +380,10 @@ Prefiks: `/api/v1/contracting`
 | `/contracts/:id` | GET / PATCH | |
 | `/contracts/:id/periods` | GET / POST | sezone unutar ugovora — `POST`/`PATCH` odbija period koji se datumski preklapa sa postojećim za isti `room_type` (poglavlje 2.3b) |
 | `/contracts/:id/periods/:periodId/rates` | GET / PUT | cenovne stavke |
-| `/contracts/:id/periods/:periodId/cancellation-rules` | GET / PUT | pravila otkazivanja |
+| `/contracts/:id/periods/:periodId/cancellation-rules` | GET / PUT | pravila otkazivanja — `rule_type` (`PRE_ARRIVAL`/`EARLY_DEPARTURE`, poglavlje 2.5, dopuna v1.12) |
+| `/contracts/:id/periods/:periodId/offers` | GET / PUT | dopuna v1.12 — `PricelistOffer` (poglavlje 2.4b), rana rezervacija/free-nights akcije |
+| `/contracts/:id/periods/:periodId/ancillary-services` | GET / PUT | dopuna v1.12 — `AncillaryService` (poglavlje 2.6) |
+| `/contracts/:id/periods/:periodId/tourist-tax` | GET / PUT | dopuna v1.12 — `TouristTaxInfo` (poglavlje 2.7), isključivo informativno, vidi ogradu tog poglavlja |
 | `/contracts/:id/periods/:periodId/availability` | GET | preostali kapacitet — koristi M5 pri pretrazi |
 | `/contracts/:id/periods/:periodId/reserve` | POST | interni poziv (samo M5) — atomski umanjuje `units_sold`, vraća grešku ako nema kapaciteta |
 | `/contracts/expiring-releases` | GET | lista perioda kojima se bliži `release_days_before` rok, za AI agenta i za interni panel |
@@ -324,6 +416,12 @@ Prefiks: `/api/v1/contracting`
 - [ ] Upload testnog cenovnika sa uzrasnim tabelama rezultuje `PricelistImportRow` sa popunjenim `extracted_price_basis`/`extracted_age_pricing` kandidatima, ne samo osnovnim poljima (poglavlje 4.2.2). *(čeka AI provajdera, isto obrazloženje kao stavka o PDF/Excel uploadu iznad; model podataka i primena u `RateLineAgePricing` pri odobrenju su dokazani e2e testom)*
 - [ ] Prvi `PricelistImport` za novog dobavljača kreira `SupplierExtractionProfile` tek posle prvog `CONFIRMED` reda; drugi uvoz od istog dobavljača, sa istom strukturom dokumenta, ima viši prosečan `match_confidence` od prvog (poglavlje 4.2.5). *(prva polovina dokazana e2e testom — profil se kreira/ažurira pri odobrenju; druga polovina, da profil podiže `match_confidence` sledećeg uvoza, deo je same ekstrakcije i čeka AI provajdera)*
 - [ ] Test: uvoz od dobavljača sa postojećim profilom, ali sa dokumentom čija se `structure_signature` ne poklapa — profil se ne primenjuje, uvoz ide sa uobičajenom pouzdanošću i vidljivom napomenom da profil nije iskorišćen.
+- [ ] Dopuna v1.12 (talas 1): `Contract` ne može preći u `ACTIVE` bez popunjenog `commission_model` (poglavlje 2.2b), isto sprovođenje kao `default_tip_nastupanja`.
+- [ ] Dopuna v1.12: moguće je kreirati `ContractPeriod` sa `min_stay_nights`/`max_stay_nights` (poglavlje 2.3) i pročitati ih preko API-ja.
+- [ ] Dopuna v1.12: moguće je kreirati `PricelistOffer` tipa `EARLY_BOOKING` i `FREE_NIGHTS` za period (poglavlje 2.4b), sa ispravnim čuvanjem `booking_from/booking_to` odvojeno od `stay_from/stay_to`.
+- [ ] Dopuna v1.12: moguće je kreirati `CancellationRule` sa `rule_type = EARLY_DEPARTURE` nezavisno od postojećih `PRE_ARRIVAL` pravila istog perioda (poglavlje 2.5).
+- [ ] Dopuna v1.12: moguće je kreirati `AncillaryService` sa oba `pricing_mode` (`FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`, poglavlje 2.6).
+- [ ] Dopuna v1.12: moguće je kreirati `TouristTaxInfo` za period (poglavlje 2.7); potvrđeno testom da nijedan M10/M11 endpoint ne čita ovo polje kao osnovu za fakturisanje/prijavu.
 
 ---
 
@@ -335,10 +433,14 @@ Prefiks: `/api/v1/contracting`
 - Break-even/P&L pregled za `CHARTER`/`FIXED_LEASE` periode (poglavlje 2.3a) — definiše se kao izveštaj u M13 (BI) kad ta specifikacija dobije ovu dopunu, ne ovde.
 - Tačan OCR provajder/servis za `SCANNED_PDF` (poglavlje 4.2.1) — bira se pri implementaciji, ovaj dokument samo predviđa mesto za tu integraciju.
 - Da li prag od 85% (poglavlje 4.2.3) treba biti podesiv po dobavljaču/formatu dokumenta, ili ostaje globalna konstanta — otvoreno dok se ne pokaže potreba iz prakse.
-- **Nalazi iz analize stvarnih cenovnika više dobavljača** (avgust 2026, vlasnik dostavio 18 primera iz prakse — CG/HR/CY hoteli i tour-operator ugovori) — cena po uzrasnoj kategoriji (poglavlje 2.4a) je rešena ovom verzijom; ostalo iz iste analize namerno ostaje otvoreno dok se ne odluči prioritet:
-  - **Ograničenje tržišta porekla gosta** — više ugovora rate ograničava na spisak zemalja (npr. "važi samo za Kosovo, Češku, Poljsku...") ili dozvoljava dobavljaču da isključi tržište uz najavu — nema mesta u `Contract`/`ContractPeriod` danas.
-  - **Ograničenje po segmentu gosta** (FIT vs. grupa 8+ soba vs. MICE) — neki cenovnici važe samo za pojedinačne goste, ne za grupe.
-  - **Obavezan minimalni markup koji nameće dobavljač** (npr. "min. 20% iznad ove cene") — danas je `MarkupRule` (M5 poglavlje 2.1) isključivo interna odluka agencije; trebalo bi proveravati protiv donje granice koju ugovor nameće.
-  - **Kazna za otkazivanje sa različitom osnovicom po sezoni** (1. noćenje vs. cela rezervacija vs. 100% no-show) — proveriti da `CancellationRule` (poglavlje 2.5) pokriva ovu granularnost, ne samo jedan procenat praga.
-  - **Ponavljajući pomoćni troškovi bez mesta u modelu**: kućni ljubimac (po danu, sa ograničenjem), parking, rani check-in/kasni check-out doplata, room service flat fee, **povratni sigurnosni depozit** (nije trošak, drži se pa vraća — dotiče M10, ne samo M3).
-  - **Boravišna taksa/gradska taksa sa sopstvenim uzrasnim pragovima**, nezavisnim od `age_policy[]` praga za cenu sobe (u istom dokumentu viđeni različiti brojevi za dete — do 12 za taksu, do 11,99 ili do 18 za cenu sobe) — trenutno van obima (M10/M11 su boravišnu taksu isključili iz obima avgusta 2026), ali podaci pokazuju da je ovo realan trošak koji dobavljač prevaljuje na agenciju/gosta, vredi ponovo razmotriti obim.
+- **Nalazi iz analize stvarnih cenovnika više dobavljača** (avgust 2026, prvi krug — vlasnik dostavio 18 primera iz prakse, CG/HR/CY hoteli i tour-operator ugovori) — cena po uzrasnoj kategoriji (poglavlje 2.4a) je rešena tom verzijom.
+- **Drugi krug analize** (31.8.2026, 55 novih primera, `Primeri cenovnika/` — Olympic Travel, Aycon portfolio, Plava Laguna, Solvex, Ananti, Heritage Grand Perast, Dionysos i drugi) — svih 6 tačaka iz prethodne verzije ovog poglavlja potvrđeno je konkretnim primerima i rešeno u v1.12 kao "talas 1" (poglavlja 2.2b, 2.3, 2.4b, 2.5, 2.6, 2.7). Ista analiza otvara dodatne nalaze, namerno odloženi kao "talas 2" dok talas 1 ne uđe u implementaciju:
+  - **Dobavljač jednostrano suspenduje kapacitet ("STOP SALE")**, nezavisno od `release_days_before` (koji je uvek inicijativa agencije ka dobavljaču) — više ugovora navodi rok najave (npr. 48h za već predate rezervacije). Nema mesta u modelu danas; razmisliti o novom statusu/eventu na `ContractPeriod`, simetričnom sa poglavljem 4.1, ali u suprotnom smeru.
+  - **Obavezni datumski vezani doplati** (npr. doplata za Novogodišnju večeru, vezana za kalendarski datum, ne za sezonu/`board_type`) — možda pokriva delimično novi `AncillaryService` (poglavlje 2.6) uz `is_mandatory = true`, ali nedostaje datumski opseg specifičan za tu doplatu (razlikuje se od `stay_from/stay_to` celog perioda); proveriti pri implementaciji da li `AncillaryService` treba sopstveni `applies_from/applies_to`.
+  - **Rok povrata kao fiksan kalendarski datum ili ograničen na određene dane u nedelji**, ne samo "N dana pre dolaska" (`release_days_before` je uvek relativan broj dana) — nekoliko dobavljača navodi fiksan datum ili "samo petkom".
+  - **Ograničenje distributivnog kanala** (zabrana objave na B2C/meta-search sajtovima ili zahtev da neto cena ostane skrivena) — odvojeno od ograničenja tržišta porekla gosta (već otvoreno ispod); dotiče i M8 (šta sme da se objavi na sajtu).
+  - **Obavezan minimalni markup koji nameće dobavljač** (npr. "min. 20-30% iznad ove cene") — potvrđeno više puta u drugom krugu (Ananti, Heritage Grand Perast); danas je `MarkupRule` (M5 poglavlje 2.1) isključivo interna odluka agencije, trebalo bi proveravati protiv donje granice koju ugovor nameće. Nije rešeno u talasu 1 jer zahteva izmenu M5, ne samo M3.
+  - **Ograničenje tržišta porekla gosta** (npr. "važi samo za Kosovo, Češku, Poljsku...") i **ograničenje po segmentu gosta** (FIT vs. grupa 8+ soba vs. MICE) — oba potvrđena u oba kruga analize, i dalje bez mesta u `Contract`/`ContractPeriod`; nisu uključena u talas 1 jer zahtevaju odluku kako se ograničenje proverava u M5 toku prodaje (gost/subagent iz kog tržišta, kako se to zna u trenutku ponude), ne samo gde se podatak čuva.
+  - **Solvex format** (`014_Solvex_Offer_Summer_2025.xlsx`) je strukturno veliki wholesaler feed (stotine hotela u jednom fajlu, ne pojedinačan ugovor) — vredi razmotriti da li ovakav izvor pripada M4 (API/feed integracija) umesto ručnog/AI unosa kroz M3 `PricelistImport`, kad (ako) taj dobavljač uđe u razmatranje kao stvaran partner.
+  - **Interakcija `commission_model` (poglavlje 2.2b) sa M5 `MarkupRule`** — da li se markup računa na bruto ili neto cenu kad je `COMMISSIONABLE` — otvoreno dok M5 ne dobije ovu dopunu.
+  - **Provera `min_stay_nights`/`max_stay_nights` (poglavlje 2.3) i uzrasnog/dan-u-nedelji ograničenja `PricelistOffer` (poglavlje 2.4b) pri sastavljanju ponude** — M3 samo čuva podatke, sama provera/odbijanje ponude koja krši ova pravila je M5 posao, van obima ove specifikacije.

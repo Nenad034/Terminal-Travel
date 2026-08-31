@@ -136,12 +136,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Break-even/P&L pregled za `CHARTER`/`FIXED_LEASE` — definiše se u M13.
 - Izbor OCR provajdera za `SCANNED_PDF`.
 - Da li prag od 85% (fuzzy-match pouzdanost) treba biti podesiv po dobavljaču/formatu.
-- **Ograničenje tržišta porekla gosta** nema mesta u modelu ugovora (nalaz iz analize stvarnih cenovnika, avgust 2026).
-- **Ograničenje po segmentu gosta** (FIT vs. grupa vs. MICE) nije pokriveno (ista analiza).
-- **Obavezan minimalni markup koji nameće dobavljač** nije proveravan protiv `MarkupRule` (ista analiza).
-- **Kazna za otkazivanje sa različitom osnovicom po sezoni** — proveriti granularnost `CancellationRule` (ista analiza).
-- **Ponavljajući pomoćni troškovi** (kućni ljubimac, parking, rani check-in/kasni check-out, room service, povratni depozit) bez mesta u modelu (ista analiza).
-- **Boravišna taksa sa sopstvenim uzrasnim pragom**, nezavisnim od `age_policy[]` — van obima (M10/M11 je isključuju), ali vredi ponovo razmotriti (ista analiza).
+- ~~Ograničenje tržišta porekla gosta, ograničenje po segmentu, minimalni markup, kazna za otkazivanje sa različitom osnovicom, pomoćni troškovi, boravišna taksa~~ — **potvrđeno drugim krugom analize (55 primera, 31.8.2026) i delimično rešeno u M3 v1.12 ("talas 1")**: `commission_model` (§2.2b), `min_stay_nights`/`max_stay_nights` (§2.3), `PricelistOffer` (§2.4b), `CancellationRule.rule_type` (§2.5), `AncillaryService` (§2.6), `TouristTaxInfo` (§2.7, informativno, M10/M11 obim nepromenjen).
+- **Talas 2** (M3 §8, ostaje otvoreno): dobavljač jednostrano suspenduje kapacitet ("STOP SALE"); obavezni datumski vezani doplati (Nova godina i sl.); rok povrata kao fiksan datum/dan u nedelji; ograničenje distributivnog kanala; **ograničenje tržišta porekla gosta** i **ograničenje po segmentu gosta** (i dalje bez mesta — zahtevaju M5 odluku kako se proverava u toku prodaje, ne samo gde se čuva); **obavezan minimalni markup koji nameće dobavljač** (zahteva izmenu M5 `MarkupRule`); interakcija `commission_model` sa `MarkupRule` (bruto/neto osnovica); Solvex format kao mogući M4 (feed) kandidat umesto M3 ručnog unosa.
 
 ## M4 — Integracije spoljnih API konekcija
 *(§9, `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`)*
