@@ -4,6 +4,8 @@
 
 TCT-IMC je proizvod **Travelsoft** grupacije — ista grupacija koja stoji iza Travelsoft Pay, već pomenutog kao kandidat za M10 (vidi `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`, stavka "TravelgateX + Travelsoft Pay"). Odgovori sadrže jak signal (`prv_code` prefiks `HB-`) da je **Hotelbeds** osnovni dobavljač (bedbank/wholesaler) iza TCT-IMC agregacije, ne direktni hotelski ugovori.
 
+**Obim (dopunjeno nakon uvida u pun Postman collection, isti dan):** API pokriva četiri celine — Static Data/NBC (referentni podaci), **Hotel API** (poglavlje 1-3 ispod), **Flight Package API** (let+hotel paket, poglavlje 5) i **Back Office API** (fakturisanje/plaćanja, poglavlje 6). Prva dva su detaljno pokrivena kroz ručno dostavljene primere; poslednja dva su pročitana direktno iz preuzetog `TCT-IMC Postman Collection.json` (vlasnik ga preuzeo sa `imc-dev.tct.travel/docs`).
+
 ---
 
 ## 1. Tok API-ja (pretraga → kotacija → revalidacija → potvrda)
@@ -78,8 +80,81 @@ Katalog endpoint vraća `hotelFacilities` kao ad-hoc `facility_wlan`/`facility_p
 
 ---
 
-## 4. Otvoreno pre bilo kakve dalje akcije
+## 4. Otvoreno pre bilo kakve dalje akcije (deo I — Hotel API)
 
 - Ovo je istraživanje jednog dev/test naloga, ne potpisan ugovor — nijedan nalaz ovde ne menja M3/M4/M5 spec dok vlasnik ne odluči da TCT-IMC uopšte postane M4 dobavljač.
 - Write strana (`book`) je viđena samo kroz primer zahteva/odgovora — nema uvida u error-code katalog, rate-limit pravila, ni ponašanje pri neuspehu (npr. da li `book` posle isteka `cxl_deadline`/`provider_cxl_deadline` prosto odbija zahtev ili nešto drugo).
 - Ako TCT-IMC ikad uđe u M4 kao stvarna konekcija, dve stavke odavde bi realno zahtevale dopunu M3/M5/M10 modela — `cxl_deadline`/`provider_cxl_deadline` bafer obrazac (§3.1) i `price`/`converted_price`/`client_currency` razlika (§3.7a) — sve ostalo je ili već pokriveno ili potvrda postojeće TT odluke.
+
+---
+
+## 5. Flight Package API (let + hotel paket) — pun uvid iz Postman collection-a
+
+Odvojena grupa endpoint-a za **pakete** (let + smeštaj + transfer zajedno): `getPackageDepartures` (kalendar cena po datumu polaska), `search` (bogat filter — destinacija/aerodrom/hotel/zvezdice/datumi), `offer/:id` (pun detalj jedne ponude), `verify` (revalidacija), `discountsQuote`, `hotelDetails`, `extraServices`, `book`, `quotation` (create/update), `resumePackageBooking`, `cancel`, `bookingDetails`, `getCharterDeparture`.
+
+### 5.1 Struktura ponude — `accom` + `transport` kao odvojeni pod-objekti
+
+Jedna `offer` nosi `accom` (hotel/soba/cena, ista polja kao Hotel API) i `transport.routes[]` (let(ovi), svaki sa `depApt`/`arrApt`/`depDate`/`depTime`/`carrier`/`flNo`). **Direktno relevantno za već otvoreno pitanje u M3 §8**: "Da li `PACKAGE` proizvodi (iz M2) mogu imati sopstveni ugovor u M3 nezavisno od komponenti koje ga čine" — TCT-IMC pokazuje da je jedan realan odgovor "paket je kompozitna ponuda sastavljena u trenutku pretrage od zasebnih komponenti (let inventar + hotel inventar), ne unapred ugovoren paket-proizvod". Ne rešava pitanje umesto TT-a, samo dodaje konkretan primer kako to rade drugi.
+
+### 5.2 `hotelMatchType` — automatska zamena kad tačna ponuda nestane pri revalidaciji (nov obrazac, vredan pažnje)
+
+`verify` odgovor uključuje `hotelMatchType`: `exact` (ponuda potvrđena kakva jeste), `alternative_same_meal` (zamenjena najjeftinijom dostupnom sa istim pansionom), `alternative_differentmeal` (zamenjena najjeftinijom dostupnom, drugi pansion). Alternativne vrednosti se vraćaju samo agencijama koje imaju uključenu opciju "fleksibilno poklapanje rešenja" — inače nedostupna ponuda vraća standardnu poruku da nije pronađena.
+
+**TT M5 danas nema ovaj koncept** — `recomputeExpiredQuote` ponovo izračunava cenu ZA ISTU stavku, ne nudi automatsku zamenu za najbližu dostupnu alternativu ako stavka više nije dostupna. Vredna ideja za otvoreno pitanje (ne odluka): da li M5 treba opcioni "ponudi najbližu alternativu" korak kad tačna stavka nestane između ponude i potvrde, umesto direktnog odbijanja.
+
+### 5.3 `comission` vraćena direktno u `verify` odgovoru
+
+TCT vraća agencijinu proviziju (`comission: 32` uz `grossPrice: 3267`) kao deo live odgovora na reviziju cene — agencija odmah zna svoju maržu bez posebnog izračunavanja. Zanimljivo poređenje sa TT-ovim `Contract.commission_model`/`commission_percentage` (M3 §2.2b) — isti podatak, samo TCT ga vraća uživo po ponudi umesto da se čuva po ugovoru. Nije akcija, samo zapažanje o alternativnom mestu gde se provizija može izložiti.
+
+### 5.4 Avio-specifična kompleksnost (Wizzair/Ryanair) — konkretan primer koliko M4 avio adapter može biti složen
+
+`book` metoda za pakete sa avio komponentom ima **dva potpuno različita dodatna toka**, oba specifična za konkretnog prevoznika:
+
+- **Wizzair — provera cene pre potvrde.** Prvi poziv (bez `confirmPriceToken`) proverava trenutnu cenu leta kod avio-kompanije. Ako se cena promenila (razlika > 0.1), vraća `priceChanged: true` + `confirmPriceToken` (validan 120 sekundi) + staru/novu cenu; klijent mora ponovo pozvati `book` sa istim telom + tokenom da prihvati novu cenu.
+- **Ryanair — 3DS provera kartice.** Zahteva `cardVerificationReturnUrl` u zahtevu (inače se rezervacija odbija); odgovor vraća `cardVerificationRequired: true` + `verificationUrl` (preusmeri gosta na Ryanair-ovu 3DS stranicu) + `packageBookingId`; posle verifikacije, poziva se **poseban endpoint `resumePackageBooking`** sa `packageBookingId` da se rezervacija (hotel + transfer) tek tada finalizuje. Prozor verifikacije: 10 minuta.
+
+**Zašto je ovo vredno zabeleženo:** TT-ov M4 danas nema nijedan avio/GDS adapter (samo najavljen kao "budući" u M4 spec-u). Ovaj primer pokazuje da avio-specifična kompleksnost nije uniformna između prevoznika (redirect+resume kod jednog, token-confirm kod drugog) — kad TT stvarno počne M4 avio dopunu, ne treba pretpostaviti jedan generički obrazac za sve avio-kompanije, adapter sloj mora predvideti barem ova dva različita toka.
+
+### 5.5 Sistem popusta/lojalnosti u `book` pozivu
+
+`discount_code` (promo kod, validira se server-side, ne tiho prihvata pogrešan kod), `apc_member_code`/`apc_points` (lojalnost — bodovi se otkupljuju uz član-kod), `discountQuoteID` (potpisan token iz `discountsQuote` metode, važi 30 minuta, revalidira se pri `book`-u — ako se konačna cena ne poklapa sa kotiranom, rezervacija se odbija sa jasnom porukom, ista filozofija kao Wizzair price-check). TT M6 ima "nivoe lojalnosti" (pomenuto u ranijim analizama), ali tok "otkupi bodove u trenutku rezervacije" nije potvrđen kao postojeći u M5/M6 spec-u — vredna beleška za kasnije, ne akcija sad.
+
+### 5.6 `fixedClientPrice` — zaključana cena za gosta nezavisno od promene troška
+
+Opciono polje koje "zamrzava" finalnu cenu prikazanu gostu (npr. posle što je gost već platio), bez obzira na kasnije fluktuacije troška. TT-ov `Quote.price`/`expiresAt` obrazac već suštinski radi ovo (cena se zamrzava u trenutku ponude) — ne otvara novu stavku, samo potvrđuje da je TT-ov pristup ekvivalentan.
+
+---
+
+## 6. Back Office API (fakturisanje/plaćanja) — pun uvid iz Postman collection-a
+
+Endpoint-i: `rebook`, `bookings` (lista po opsegu datuma/ID-jeva), `invoices` (pretraga faktura po bogatim kriterijumima), `providers`, `bookingFinancials` (pun finansijski pregled jedne rezervacije), `invoiceDownloadLink`/`voucherDownloadLink`, `addPayment`.
+
+### 6.1 Struktura fakture — EU e-fakturisanje vokabular (direktno koristan primer za M10 SEF rad)
+
+`invoices` odgovor nosi punu strukturiranu fakturu u obrascu koji odgovara **EU e-invoicing standardu (EN 16931/UBL stila)**: `invoiceTypeCode: "380"` (standardni UBL kod za fakturu), `sellerInformation`/`buyerInformation` sa punim poreskim identifikatorima (`sellerVATidentifier`, `sellerUniqueIdentificationCode`), stavke sa `productVATCategory`/`productVATCode`/`productExceptVATReason` (npr. `"VATEX-EU-309"` — standardan kod izuzeća od PDV-a za turističke agencije po EU šemi marže). **Ovo je direktno koristan konkretan primer kad M10 dođe na red za SEF e-Fakturu dopunu** — TT još nije doneo odluku o SEF-u (zabeleženo u memoriji kao otvorena stavka), ali ovaj oblik pokazuje kako jedan realan, veći igrač u istoj industriji već strukturira fakturu za EU usklađenost. Nije predlog da TT kopira ovaj oblik — SEF ima sopstvenu srpsku šemu — samo referentna tačka.
+
+### 6.2 Storno (kreditna nota) preko uparenih faktura sa suprotnim predznakom
+
+Primer prikazuje dve fakture — originalnu (pozitivna vrednost) i storno (**negativna** vrednost, `has_pair` pokazuje na originalni `invoice_id`). Vredi proveriti (van obima ovog dokumenta) da li TT M10 modeluje storno/kreditnu notu na isti način (upareni zapis sa suprotnim predznakom) ili drugačije — ako drugačije, nije nužno greška, samo razlika vredna svesne odluke kad M10 dobije tu funkcionalnost.
+
+### 6.3 Raspored rata (`installments`) odvojen od stvarno primljenih uplata (`payments[]`)
+
+Svaka faktura nosi **plan** otplate (`installments`: niz `{index, date, value}`) i odvojeno **stvaran** niz izvršenih uplata (`payments[]`: datum, iznos, valuta, `type_of_payment` — `bank_transfer`/`credit_card`/`invoice_compensation`). Ovo se poklapa sa TT-ovim postojećim `ClientPaymentSchedules` konceptom (M10, pomenuto u commit istoriji) — **potvrda da je TT već na pravom obliku**, ne novi nalaz koji zahteva akciju.
+
+### 6.4 Otkazivanje sa tri nivoa neto cene (`net0`/`net1`/`net2`) plus cena za klijenta
+
+`bookingFinancials` prikazuje kaznu otkazivanja u **četiri paralelne cene**: `bookingcxlrule_price_net0`, `_net1`, `_net2` i `_price_client`. Verovatno predstavljaju slojeve troška (npr. neto cena dobavljača → neto cena posle marže agregatora → neto cena posle TCT provizije → cena koju plaća gost) — finiji sloj nego TT-ov trenutni `CancellationRule` (jedna cena/procenat po periodu, M3 §2.5). Vredno otvorenog pitanja za M3/M10 ako TT ikad treba da prati kaznu kroz više slojeva marže istovremeno (npr. franšizni obrazac iz M7 §2.0.7, gde više strana može imati sopstvenu maržu na istoj rezervaciji) — nije trenutno prioritet, samo zabeleženo.
+
+### 6.5 `furnizorId > 0` = "offline" rezervacija u istom sistemu faktura
+
+Dokumentacija eksplicitno kaže da vrednost `furnizorId` veća od 0 znači da je rezervacija ručno uneta (offline), ne kroz API. **Potvrđuje isti princip koji TT već sprovodi** — M3 (ručni/AI unos od dobavljača) i M4 (API dobavljači) hrane isti M5 `Booking` model bez razlike u daljem toku (fakturisanje, izveštavanje) — TCT-IMC to isto radi na svom kraju (offline i online rezervacije dele isti fakturni sistem). Potvrda, ne akcija.
+
+### 6.6 Bogatiji `booking_status`/`reservationStatus` enum
+
+Viđene vrednosti: `pending`, `pending_quote`, `confirmed`, `oktobuy`, `waiting_cancellation`, `waiting_cancellation_after_cxl`, `cancelled`, `rejected`, `errordetails`, `temporary`, `cancelled_after_cxl`. Bogatiji od onoga što je TT `Booking.status`/`BookingItem.itemStatus` enum verovatno pokriva — vredi uporediti tek ako se pokaže konkretna potreba (npr. razlika između "otkazano" i "otkazano posle isteka roka" koju TT danas ne razdvaja), ne akcija sad.
+
+## 7. Otvoreno pre bilo kakve dalje akcije (deo II — Flight Package + Back Office)
+
+- Nijedan nalaz iz poglavlja 5/6 nije prošao kroz `tt-architecture-core` proveru niti dobio obim od vlasnika — čista beleška, isto pravilo kao poglavlje 4.
+- Najvredniji kandidati za dalju pažnju ako TCT-IMC (ili bilo koji sličan agregator) ikad postane stvaran M4/M10 dobavljač: `hotelMatchType` automatska zamena (§5.2), avio-specifična kompleksnost po prevozniku (§5.4, relevantno tek kad M4 avio adapter stvarno krene), i tri-nivoa neto cena u kazni otkazivanja (§6.4).
+- Nije viđen error-code katalog za Flight Package/Back Office write pozive van primera u kolekciji — isto ograničenje kao Hotel API deo (poglavlje 4).
