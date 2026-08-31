@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 
 describe('UsersService', () => {
@@ -8,6 +8,7 @@ describe('UsersService', () => {
         create: jest.fn(),
         update: jest.fn(),
         findUniqueOrThrow: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       userRole: {
         upsert: jest.fn(),
@@ -176,6 +177,46 @@ describe('UsersService', () => {
       expect(auth.createInviteToken).toHaveBeenCalledWith('user-7');
       expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.invited' }));
       expect(result).toEqual({ user: created, inviteToken: 'raw-invite-token' });
+    });
+
+    it('franšizni nalog (linkedProfileId postavljen) sme da pozove naloge SAMO sopstvene franšize (M1 §5, M7 §2.0.7)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'franchise-direktor-1', linkedProfileId: 'subagent-fr-1' });
+      prisma.user.create.mockResolvedValue({ id: 'user-8' });
+
+      await service.invite(
+        { email: 'novi@fransiza.rs', fullName: 'Novi', roleIds: [], linkedProfileId: 'subagent-fr-1' } as any,
+        'franchise-direktor-1',
+      );
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ linkedProfileId: 'subagent-fr-1' }) }),
+      );
+    });
+
+    it('franšizni nalog NE sme da pozove nalog van sopstvene franšize (tuđa franšiza ili matična agencija)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'franchise-direktor-1', linkedProfileId: 'subagent-fr-1' });
+
+      await expect(
+        service.invite({ email: 'x@y.rs', fullName: 'X', roleIds: [], linkedProfileId: 'subagent-fr-DRUGA' } as any, 'franchise-direktor-1'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('matična agencija (bez linkedProfileId) sme da pozove nalog za bilo koju franšizu', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'hq-direktor-1', linkedProfileId: null });
+      prisma.user.create.mockResolvedValue({ id: 'user-9' });
+
+      await service.invite(
+        { email: 'x@y.rs', fullName: 'X', roleIds: [], linkedProfileId: 'bilo-koja-fransiza' } as any,
+        'hq-direktor-1',
+      );
+
+      expect(prisma.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ linkedProfileId: 'bilo-koja-fransiza' }) }),
+      );
     });
   });
 });

@@ -987,6 +987,13 @@ model Booking {
   // Ne postoji Booking.quote_id (rezervacija se ne referencira nazad na Ponudu), pa se ovde
   // kopira samo ono što je M20 stvarno potrebno — isti obrazac kao buyer_name/buyer_type dopuna.
   contractTermsAcceptedAt   DateTime?     @map("contract_terms_accepted_at")
+  // M5 spec §6.5/§6.6 dopuna (31.8.2026) — vlasništvo/zaduženje/franšizna vidljivost. Namerno
+  // bez DB-nivo FK (isti obrazac kao created_by/client_account_id) — owner_id/assigned_to_id
+  // su prazni za GOST_SELF rezervacije (nema internog "vlasnika" toka), franchise_subagent_id
+  // je prazan za rezervacije matične agencije.
+  ownerId                   String?       @map("owner_id")
+  assignedToId              String?       @map("assigned_to_id")
+  franchiseSubagentId       String?       @map("franchise_subagent_id")
 
   items                       BookingItem[]
   fiscalDocuments             FiscalDocument[]
@@ -994,9 +1001,33 @@ model Booking {
   clientPaymentSchedule       ClientPaymentSchedule?
   travelGuaranteeRegistration TravelGuaranteeRegistration?
   clientContracts             ClientContract[]
-  postTripSurvey              PostTripSurvey?
+  postTripSurvey               PostTripSurvey?
+  handoffRequests              BookingHandoffRequest[]
 
   @@map("bookings")
+}
+
+// M5 spec §6.5 (31.8.2026) — predlog predaje zaduženja, zahteva prihvatanje primaoca osim kad
+// ga direktno izvršava Vlasnik/Direktor (upisuje se odmah kao ACCEPTED, resolved_at = created_at).
+model BookingHandoffRequest {
+  id         String               @id @default(uuid())
+  bookingId  String               @map("booking_id")
+  fromUserId String               @map("from_user_id")
+  toUserId   String               @map("to_user_id")
+  status     BookingHandoffStatus @default(PENDING)
+  createdAt  DateTime             @default(now()) @map("created_at")
+  resolvedAt DateTime?            @map("resolved_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("booking_handoff_requests")
+}
+
+enum BookingHandoffStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
 }
 
 // §4.1 dopuna (v1.17) — ko je kupac: fizičko ili pravno lice (određuje SEF vs ESIR u M10).
@@ -1831,6 +1862,11 @@ enum SubagentStatus {
   SUSPENDED
 }
 
+enum SubagentPrivilegeLevel {
+  STANDARD
+  FRANCHISE
+}
+
 // §2.1 `Subagent` — client_account_id NAMERNO bez FK ka ClientAccount, isti razlog kao svako drugo
 // polje koje referencira M6 ClientAccount.id u ovoj šemi (ClientLoyaltyStatus/CommunicationLog/
 // PostTripSurvey iznad, ClientContract §6 dopuna) — aplikativni nivo je jedini koji sprovodi
@@ -1845,6 +1881,10 @@ model Subagent {
   clientAccountId      String         @unique @map("client_account_id")
   parentSubagentId     String?        @map("parent_subagent_id")
   status               SubagentStatus @default(PENDING_APPROVAL)
+  // M7 spec §2.0.7 dopuna (31.8.2026) — FRANCHISE otvara pun M17 pristup sopstvenim STAFF
+  // nalozima (M1 §3.1a) umesto jednog SUBAGENT_ADMIN portal naloga; bira ga isključivo
+  // Vlasnik/Direktor pri odobravanju (poglavlje 9), nikad sam subagent.
+  privilegeLevel       SubagentPrivilegeLevel @default(STANDARD) @map("privilege_level")
   commissionPercentage Decimal?       @map("commission_percentage")
   creditLimit          Decimal?       @map("credit_limit")
   creditLimitCurrency  String?        @map("credit_limit_currency")

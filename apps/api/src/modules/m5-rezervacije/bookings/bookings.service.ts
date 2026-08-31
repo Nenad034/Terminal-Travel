@@ -20,6 +20,8 @@ import { SupplierManifestsService } from '../supplier-manifests/supplier-manifes
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { SubagentStubService } from '../common/subagent-stub.service';
 import { resolveApiContext } from '../common/resolve-api-context';
+import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
+import { SYSTEM_ROLES } from '../../m1-core-identitet/roles/system-roles.constants';
 
 // M5 spec §7 dopuna (27.8.2026) — isti filter-oblik kao `findAll` iznad, minus datumski opseg
 // (kalendar prikaz sam zadaje opseg). Deljen između `calendarSummary`/`calendarDay`.
@@ -60,7 +62,17 @@ export class BookingsService {
     private readonly changeNotices: SupplierChangeNoticesService,
     private readonly supplierManifests: SupplierManifestsService,
     private readonly subagentStub: SubagentStubService,
+    private readonly permissions: PermissionsService,
   ) {}
+
+  // M5 spec §6.5 (31.8.2026) — Vlasnik/Direktor zaobilaze ownership provere za prenos
+  // vlasništva/direktno zaduženje; isti obrazac provere kao M19 InAppNotificationsService.
+  private async isVlasnikOrDirektor(userId: string): Promise<boolean> {
+    const match = await this.prisma.userRole.findFirst({
+      where: { userId, role: { name: { in: [SYSTEM_ROLES.VLASNIK, SYSTEM_ROLES.DIREKTOR] } } },
+    });
+    return Boolean(match);
+  }
 
   // ==========================================================================
   // M5 spec §4 — Quote → Booking
@@ -72,7 +84,7 @@ export class BookingsService {
     // §6.2 obrazac dopune — gost sme da potvrdi isključivo sopstvenu Ponudu (client_account_id
     // je već primorano na sopstveni nalog pri POST /quotes, ova provera zatvara pokušaj
     // potvrde TUĐE ponude pogađanjem/enumeracijom quoteId).
-    const { context, ownClientAccountId } = await this.resolveApiContext(actor.userId);
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actor.userId);
     if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== ownClientAccountId) {
       throw new NotFoundException(`Ponuda ${quoteId} nije pronađena.`);
     }
@@ -168,6 +180,12 @@ export class BookingsService {
         currency,
         confirmedAt: bookingStatus === 'CONFIRMED' ? now : null,
         createdBy: actor.userId,
+        // M5 spec §6.5/§6.6 (31.8.2026) — vlasništvo i zaduženje počinju kod kreatora;
+        // franšizna granica se hvata iz konteksta pozivaoca (STAFF vezan za FRANCHISE
+        // subagenta preko resolveApiContext), prazno za matičnu agenciju/gost/B2B.
+        ownerId: actor.userId,
+        assignedToId: actor.userId,
+        franchiseSubagentId,
         referralTrackingCode: quote.referralTrackingCode,
         // M20 spec §3.2 dopuna — prenosi već dati clickwrap pristanak (samouslužni kanali)
         // dalje na rezervaciju, da M20 zna da automatski prihvati ugovor bez ponovnog koraka.
@@ -385,7 +403,9 @@ export class BookingsService {
   // ove klase, pa je `QuotesService.findOne` napisala SOPSTVENU, nepotpunu verziju (samo GUEST
   // provera, IDOR za SUBAGENT_CONTACT/AI_AGENT) umesto da je deli. Sad je zajednička funkcija
   // (`common/resolve-api-context.ts`) — svaki naredni M5 servis je uvozi, ne prepisuje.
-  private async resolveApiContext(userId: string): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null }> {
+  private async resolveApiContext(
+    userId: string,
+  ): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
     return resolveApiContext(this.prisma, this.subagentStub, userId);
   }
 
@@ -419,7 +439,7 @@ export class BookingsService {
     },
     actor: { userId: string },
   ) {
-    const { context, ownClientAccountId } = await this.resolveApiContext(actor.userId);
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actor.userId);
     // Gost/B2B kontekst: ownership se NAMEĆE (ownClientAccountId), klijentski
     // clientAccountId parametar se ignoriše — sprečava da gost sam sebi zatraži
     // tuđe rezervacije menjajući query parametar.
@@ -478,6 +498,14 @@ export class BookingsService {
       // odvojen od `productType` (koji filtrira po TIPU, ne po konkretnom proizvodu).
       if (filters.productId) itemWhere.productId = filters.productId;
       if (Object.keys(itemWhere).length > 0) where.items = { some: itemWhere };
+
+      // M5 spec §6.6 (31.8.2026) — podrazumevano svi vide sve; sužavanje na sopstveno
+      // (vlasništvo ILI zaduženje, §6.5) ide preko DENY na M5/booking/VIEW_ALL (M1 §3.9a).
+      // Franšizna granica (§6.6/M7 §2.0.7) važi UVEK za franšizne naloge, nezavisno od
+      // VIEW_ALL — franšiza nikad ne vidi tuđu franšizu ili matičnu agenciju ovim putem.
+      if (franchiseSubagentId) where.franchiseSubagentId = franchiseSubagentId;
+      const hasViewAll = await this.permissions.hasPermission(actor.userId, 'M5', 'booking', 'VIEW_ALL');
+      if (!hasViewAll) where.OR = [{ ownerId: actor.userId }, { assignedToId: actor.userId }];
     }
 
     const bookings = await this.prisma.booking.findMany({
@@ -493,7 +521,7 @@ export class BookingsService {
   }
 
   async findOne(id: string, actorUserId: string) {
-    const { context, ownClientAccountId } = await this.resolveApiContext(actorUserId);
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actorUserId);
     const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true } });
     if (!booking) throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
     if (context !== 'INTERNAL_PANEL' && booking.clientAccountId !== ownClientAccountId) {
@@ -501,8 +529,166 @@ export class BookingsService {
       // kao M1 requestPasswordReset (ne kaže da li email postoji).
       throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
     }
+    if (context === 'INTERNAL_PANEL') {
+      // M5 spec §6.6 (31.8.2026) — franšizna granica uvek važi; van nje, sužavanje na
+      // vlasništvo/zaduženje samo kad korisnik nema M5/booking/VIEW_ALL.
+      if (franchiseSubagentId && booking.franchiseSubagentId !== franchiseSubagentId) {
+        throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
+      }
+      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW_ALL');
+      if (!hasViewAll && booking.ownerId !== actorUserId && booking.assignedToId !== actorUserId) {
+        throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
+      }
+    }
     const { serializeBooking } = await import('./booking-visibility');
     return serializeBooking(booking as any, context);
+  }
+
+  // ==========================================================================
+  // M5 spec §6.5 (31.8.2026) — vlasništvo i zaduženje rezervacije
+  // ==========================================================================
+
+  /** Prenos vlasništva — trenutni vlasnik ILI Vlasnik/Direktor bezuslovno, nikad Sales Manager
+   * (dozvola TRANSFER_OWNERSHIP se Sales Manageru namerno ne dodeljuje u seed.ts). */
+  async transferOwnership(bookingId: string, newOwnerId: string, actor: { userId: string }) {
+    const booking = await this.findOneRaw(bookingId);
+    const bypass = await this.isVlasnikOrDirektor(actor.userId);
+    if (!bypass && booking.ownerId !== actor.userId) {
+      throw new ForbiddenException('Samo trenutni vlasnik rezervacije ili Vlasnik/Direktor mogu preneti vlasništvo (M5 spec §6.5).');
+    }
+    const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { ownerId: newOwnerId } });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.ownership_transferred',
+      resourceType: 'Booking',
+      resourceId: bookingId,
+      beforeState: { ownerId: booking.ownerId },
+      afterState: { ownerId: newOwnerId },
+      context: {},
+    });
+    return updated;
+  }
+
+  /** Predlog predaje zaduženja — bilo koji korisnik sa VIEW nad rezervacijom sme da predloži;
+   * Vlasnik/Direktor izvršavaju direktno (upisano kao ACCEPTED), ostali čekaju prihvatanje. */
+  async proposeHandoff(bookingId: string, toUserId: string, actor: { userId: string }) {
+    // findOne primenjuje istu vidljivost kao ostatak M5 (§6.6) — predlagač mora da vidi
+    // rezervaciju da bi je uopšte predložio dalje.
+    await this.findOne(bookingId, actor.userId);
+    const bypass = await this.isVlasnikOrDirektor(actor.userId);
+    const now = new Date();
+
+    const request = await this.prisma.bookingHandoffRequest.create({
+      data: {
+        bookingId,
+        fromUserId: actor.userId,
+        toUserId,
+        status: bypass ? 'ACCEPTED' : 'PENDING',
+        resolvedAt: bypass ? now : null,
+      },
+    });
+
+    if (bypass) {
+      await this.prisma.booking.update({ where: { id: bookingId }, data: { assignedToId: toUserId } });
+    }
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: bypass ? 'booking.handoff_executed' : 'booking.handoff_proposed',
+      resourceType: 'Booking',
+      resourceId: bookingId,
+      afterState: { toUserId, status: request.status },
+      context: { handoffRequestId: request.id },
+    });
+
+    return request;
+  }
+
+  async acceptHandoff(handoffId: string, actor: { userId: string }) {
+    const request = await this.getPendingHandoffOrThrow(handoffId);
+    if (request.toUserId !== actor.userId) {
+      throw new ForbiddenException('Samo primalac predloga sme da ga prihvati (M5 spec §6.5).');
+    }
+    const now = new Date();
+    const updated = await this.prisma.bookingHandoffRequest.update({
+      where: { id: handoffId },
+      data: { status: 'ACCEPTED', resolvedAt: now },
+    });
+    await this.prisma.booking.update({ where: { id: request.bookingId }, data: { assignedToId: request.toUserId } });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.handoff_accepted',
+      resourceType: 'Booking',
+      resourceId: request.bookingId,
+      context: { handoffRequestId: handoffId },
+    });
+    return updated;
+  }
+
+  async declineHandoff(handoffId: string, actor: { userId: string }) {
+    const request = await this.getPendingHandoffOrThrow(handoffId);
+    if (request.toUserId !== actor.userId) {
+      throw new ForbiddenException('Samo primalac predloga sme da ga odbije (M5 spec §6.5).');
+    }
+    const updated = await this.prisma.bookingHandoffRequest.update({
+      where: { id: handoffId },
+      data: { status: 'DECLINED', resolvedAt: new Date() },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.handoff_declined',
+      resourceType: 'Booking',
+      resourceId: request.bookingId,
+      context: { handoffRequestId: handoffId },
+    });
+    return updated;
+  }
+
+  async cancelHandoff(handoffId: string, actor: { userId: string }) {
+    const request = await this.getPendingHandoffOrThrow(handoffId);
+    const bypass = await this.isVlasnikOrDirektor(actor.userId);
+    if (request.fromUserId !== actor.userId && !bypass) {
+      throw new ForbiddenException('Samo predlagač (ili Vlasnik/Direktor) sme da otkaže predlog (M5 spec §6.5).');
+    }
+    const updated = await this.prisma.bookingHandoffRequest.update({
+      where: { id: handoffId },
+      data: { status: 'CANCELLED', resolvedAt: new Date() },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.handoff_cancelled',
+      resourceType: 'Booking',
+      resourceId: request.bookingId,
+      context: { handoffRequestId: handoffId },
+    });
+    return updated;
+  }
+
+  private async getPendingHandoffOrThrow(handoffId: string) {
+    const request = await this.prisma.bookingHandoffRequest.findUnique({ where: { id: handoffId } });
+    if (!request) throw new NotFoundException(`Predlog predaje ${handoffId} nije pronađen.`);
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException(`Predlog predaje ${handoffId} više nije na čekanju (status: ${request.status}).`);
+    }
+    return request;
+  }
+
+  /** Sirov, bez-maskiranja pristup Booking-u za interne provere vlasništva (transferOwnership) —
+   * ne prolazi kroz serializeBooking jer ne vraća odgovor pozivaocu. */
+  private async findOneRaw(id: string) {
+    const booking = await this.prisma.booking.findUnique({ where: { id } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
+    return booking;
   }
 
   // Dopuna (23.8.2026, na zahtev vlasnika — "citav workflow te rezervacije od pocetka do

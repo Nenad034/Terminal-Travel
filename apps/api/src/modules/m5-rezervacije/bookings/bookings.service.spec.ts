@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 
 describe('BookingsService (M5 spec §4/§6.4)', () => {
@@ -12,6 +12,9 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       bookingItem: { findMany: jest.fn(), update: jest.fn(), count: jest.fn() },
       bookingItemGuest: { findMany: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
+      subagent: { findUnique: jest.fn().mockResolvedValue(null) },
+      userRole: { findFirst: jest.fn().mockResolvedValue(null) },
+      bookingHandoffRequest: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
@@ -27,6 +30,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     const changeNotices = { prepareDraft: jest.fn() };
     const supplierManifests = { supersedeIfOnSentManifest: jest.fn() };
     const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
+    // M5 spec §6.6 (31.8.2026) — podrazumevano VIEW_ALL=true u testovima da postojeći
+    // testovi (pisani pre ovog mehanizma) i dalje vide sve, bez potrebe za dodatnim mock-om
+    // po testu; testovi specifični za §6.5/§6.6 ga eksplicitno menjaju gde je bitno.
+    const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
 
     const service = new BookingsService(
       prisma,
@@ -40,8 +47,9 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       changeNotices as any,
       supplierManifests as any,
       subagentStub as any,
+      permissions as any,
     );
-    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance };
+    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions };
   }
 
   describe('confirmQuote — sve ili ništa (§4, korak 3)', () => {
@@ -412,6 +420,201 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ clientAccountId: 'bilo-koji' }) }),
       );
+    });
+  });
+
+  describe('findAll/findOne — VIEW_ALL vidljivost (§6.6, 31.8.2026)', () => {
+    it('podrazumevano (VIEW_ALL=true) interno osoblje NE dobija OR filter na vlasništvo/zaduženje', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([]);
+      permissions.hasPermission.mockResolvedValue(true);
+
+      await service.findAll({}, { userId: 'staff-1' });
+
+      const where = prisma.booking.findMany.mock.calls[0][0].where;
+      expect(where.OR).toBeUndefined();
+    });
+
+    it('kad je korisnik sužen (DENY na VIEW_ALL), findAll filtrira na owner_id ILI assigned_to_id', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([]);
+      permissions.hasPermission.mockResolvedValue(false);
+
+      await service.findAll({}, { userId: 'staff-1' });
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ OR: [{ ownerId: 'staff-1' }, { assignedToId: 'staff-1' }] }),
+        }),
+      );
+    });
+
+    it('findOne — sužen korisnik NE vidi tuđu (ni vlasnik ni zadužen) rezervaciju, vraća 404', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        ownerId: 'neko-drugi',
+        assignedToId: 'neko-drugi',
+        items: [],
+      });
+      permissions.hasPermission.mockResolvedValue(false);
+
+      await expect(service.findOne('b1', 'staff-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('findOne — sužen korisnik I DALJE vidi rezervaciju gde je zadužen (assigned_to_id), iako nije vlasnik', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        ownerId: 'neko-drugi',
+        assignedToId: 'staff-1',
+        items: [],
+      });
+      permissions.hasPermission.mockResolvedValue(false);
+
+      const result = await service.findOne('b1', 'staff-1');
+      expect((result as any).id).toBe('b1');
+    });
+
+    it('findAll — franšizni STAFF nalog dobija dodatni filter na sopstveni franchise_subagent_id, čak i sa VIEW_ALL=true', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: 'subagent-fr-1' });
+      prisma.subagent.findUnique.mockResolvedValue({ id: 'subagent-fr-1', privilegeLevel: 'FRANCHISE' });
+      prisma.booking.findMany.mockResolvedValue([]);
+      permissions.hasPermission.mockResolvedValue(true);
+
+      await service.findAll({}, { userId: 'franchise-staff-1' });
+
+      expect(prisma.booking.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ franchiseSubagentId: 'subagent-fr-1' }) }),
+      );
+    });
+  });
+
+  describe('transferOwnership (§6.5, 31.8.2026)', () => {
+    it('trenutni vlasnik sme da prenese sopstvenu rezervaciju', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'owner-1' });
+      prisma.userRole.findFirst.mockResolvedValue(null); // nije Vlasnik/Direktor
+      prisma.booking.update.mockResolvedValue({ id: 'b1', ownerId: 'novi-vlasnik' });
+
+      await service.transferOwnership('b1', 'novi-vlasnik', { userId: 'owner-1' });
+
+      expect(prisma.booking.update).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { ownerId: 'novi-vlasnik' } });
+    });
+
+    it('korisnik koji NIJE vlasnik ni Vlasnik/Direktor ne sme da prenese vlasništvo', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'owner-1' });
+      prisma.userRole.findFirst.mockResolvedValue(null);
+
+      await expect(service.transferOwnership('b1', 'novi-vlasnik', { userId: 'neko-drugi' })).rejects.toThrow(ForbiddenException);
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('Vlasnik/Direktor prenose vlasništvo bez obzira ko je trenutni vlasnik', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', ownerId: 'owner-1' });
+      prisma.userRole.findFirst.mockResolvedValue({ id: 'ur1' }); // JESTE Vlasnik/Direktor
+      prisma.booking.update.mockResolvedValue({ id: 'b1', ownerId: 'novi-vlasnik' });
+
+      await service.transferOwnership('b1', 'novi-vlasnik', { userId: 'direktor-1' });
+
+      expect(prisma.booking.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('predaja zaduženja — propose/accept/decline/cancel (§6.5, 31.8.2026)', () => {
+    it('proposeHandoff od strane Vlasnika/Direktora izvršava odmah (ACCEPTED), menja assigned_to_id bez čekanja', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'x', assignedToId: 'x', items: [] });
+      prisma.userRole.findFirst.mockResolvedValue({ id: 'ur1' });
+      prisma.bookingHandoffRequest.create.mockResolvedValue({ id: 'h1', bookingId: 'b1', status: 'ACCEPTED' });
+
+      await service.proposeHandoff('b1', 'novi-zaduzeni', { userId: 'direktor-1' });
+
+      expect(prisma.bookingHandoffRequest.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'ACCEPTED' }) }),
+      );
+      expect(prisma.booking.update).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { assignedToId: 'novi-zaduzeni' } });
+    });
+
+    it('proposeHandoff od strane redovnog korisnika ostaje PENDING, ne menja assigned_to_id odmah', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'x', assignedToId: 'x', items: [] });
+      prisma.userRole.findFirst.mockResolvedValue(null);
+      prisma.bookingHandoffRequest.create.mockResolvedValue({ id: 'h1', bookingId: 'b1', status: 'PENDING' });
+
+      await service.proposeHandoff('b1', 'novi-zaduzeni', { userId: 'agent-1' });
+
+      expect(prisma.bookingHandoffRequest.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING' }) }),
+      );
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('acceptHandoff — samo primalac sme da prihvati, tada se assigned_to_id menja', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'PENDING' });
+      prisma.bookingHandoffRequest.update.mockResolvedValue({ id: 'h1', status: 'ACCEPTED' });
+
+      await service.acceptHandoff('h1', { userId: 'b' });
+
+      expect(prisma.booking.update).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { assignedToId: 'b' } });
+    });
+
+    it('acceptHandoff — neko ko nije primalac ne sme da prihvati', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'PENDING' });
+
+      await expect(service.acceptHandoff('h1', { userId: 'trece-lice' })).rejects.toThrow(ForbiddenException);
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('declineHandoff — samo primalac sme da odbije, status prelazi u DECLINED', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'PENDING' });
+      prisma.bookingHandoffRequest.update.mockResolvedValue({ id: 'h1', status: 'DECLINED' });
+
+      await service.declineHandoff('h1', { userId: 'b' });
+
+      expect(prisma.bookingHandoffRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'DECLINED' }) }),
+      );
+    });
+
+    it('cancelHandoff — predlagač sme da otkaže sopstveni predlog', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'PENDING' });
+      prisma.userRole.findFirst.mockResolvedValue(null);
+      prisma.bookingHandoffRequest.update.mockResolvedValue({ id: 'h1', status: 'CANCELLED' });
+
+      await service.cancelHandoff('h1', { userId: 'a' });
+
+      expect(prisma.bookingHandoffRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'CANCELLED' }) }),
+      );
+    });
+
+    it('cancelHandoff — treće lice (ni predlagač ni Vlasnik/Direktor) ne sme da otkaže', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'PENDING' });
+      prisma.userRole.findFirst.mockResolvedValue(null);
+
+      await expect(service.cancelHandoff('h1', { userId: 'trece-lice' })).rejects.toThrow(ForbiddenException);
+    });
+
+    it('accept/decline/cancel odbijaju predlog koji više nije PENDING', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingHandoffRequest.findUnique.mockResolvedValue({ id: 'h1', bookingId: 'b1', fromUserId: 'a', toUserId: 'b', status: 'ACCEPTED' });
+
+      await expect(service.acceptHandoff('h1', { userId: 'b' })).rejects.toThrow(BadRequestException);
     });
   });
 });

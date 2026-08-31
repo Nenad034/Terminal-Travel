@@ -7,6 +7,8 @@ import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
 import { AssignGuideDto } from './dto/assign-guide.dto';
 import { PrepareSupplierManifestsDto } from './dto/prepare-supplier-manifests.dto';
+import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
+import { ProposeHandoffDto } from './dto/propose-handoff.dto';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -198,6 +200,40 @@ export class BookingsController {
   @RequirePermission('M5', 'booking', 'MODIFY')
   assignGuide(@Param('itemId') itemId: string, @Body() dto: AssignGuideDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.assignGuide(itemId, dto.assignedGuideId ?? null, actor);
+  }
+
+  // M5 spec §6.5 (31.8.2026) — prenos vlasništva; ownership provera (trenutni vlasnik ili
+  // Vlasnik/Direktor) je u servisu, dozvola ovde samo gate-uje ko sme uopšte da pokuša.
+  @Post(':id/transfer-ownership')
+  @RequirePermission('M5', 'booking', 'TRANSFER_OWNERSHIP')
+  transferOwnership(@Param('id') id: string, @Body() dto: TransferOwnershipDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.transferOwnership(id, dto.newOwnerId, actor);
+  }
+
+  // M5 spec §6.5 — predlog predaje zaduženja; Vlasnik/Direktor izvršavaju odmah (servis),
+  // ostali kreiraju PENDING predlog koji primalac mora prihvatiti/odbiti ispod.
+  @Post(':id/handoff-requests')
+  @RequirePermission('M5', 'booking', 'TRANSFER_ASSIGNMENT')
+  proposeHandoff(@Param('id') id: string, @Body() dto: ProposeHandoffDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.proposeHandoff(id, dto.toUserId, actor);
+  }
+
+  @Post('handoff-requests/:handoffId/accept')
+  @RequirePermission('M5', 'booking', 'ACCEPT_ASSIGNMENT')
+  acceptHandoff(@Param('handoffId') handoffId: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.acceptHandoff(handoffId, actor);
+  }
+
+  @Post('handoff-requests/:handoffId/decline')
+  @RequirePermission('M5', 'booking', 'ACCEPT_ASSIGNMENT')
+  declineHandoff(@Param('handoffId') handoffId: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.declineHandoff(handoffId, actor);
+  }
+
+  @Post('handoff-requests/:handoffId/cancel')
+  @RequirePermission('M5', 'booking', 'TRANSFER_ASSIGNMENT')
+  cancelHandoff(@Param('handoffId') handoffId: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.cancelHandoff(handoffId, actor);
   }
 
   @Post(':id/voucher/override')

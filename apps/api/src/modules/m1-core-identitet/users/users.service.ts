@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
@@ -28,7 +28,18 @@ export class UsersService {
   }
 
   // M1 spec §7 — "+ Pozovi korisnika": kreira nalog u statusu INVITED, šalje link za aktivaciju.
+  // §5 dopuna (31.8.2026, M7 spec §2.0.7) — franšizni lokalni "Direktor" (ili bilo koja uloga
+  // vezana za franšizu preko sopstvenog linked_profile_id) sme da poziva isključivo STAFF naloge
+  // sa ISTIM linked_profile_id — sprečava franšizu da doda zaposlenog matičnoj agenciji ili
+  // tuđoj franšizi. Vlasnik/Direktor matične agencije (bez linked_profile_id) ostaju bez ograde.
   async invite(dto: CreateUserDto, invitedBy: string) {
+    const inviter = await this.prisma.user.findUnique({ where: { id: invitedBy } });
+    if (inviter?.linkedProfileId && inviter.linkedProfileId !== dto.linkedProfileId) {
+      throw new ForbiddenException(
+        'Franšizni nalog sme da poziva isključivo STAFF naloge sopstvene franšize (M1 spec §5, M7 spec §2.0.7).',
+      );
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -36,6 +47,7 @@ export class UsersService {
         phone: dto.phone,
         accountType: 'STAFF',
         status: 'INVITED',
+        linkedProfileId: dto.linkedProfileId ?? null,
         roles: {
           create: dto.roleIds.map((roleId) => ({ roleId, assignedBy: invitedBy })),
         },

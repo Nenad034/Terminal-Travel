@@ -13,18 +13,26 @@ export async function resolveApiContext(
   prisma: PrismaService,
   subagentStub: SubagentStubService,
   userId: string,
-): Promise<{ context: M5CallerContext; ownClientAccountId: string | null }> {
+): Promise<{ context: M5CallerContext; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
   const identity = await resolveCallerIdentity(prisma, userId);
-  if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
+  if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
   if (identity.accountType === 'SUBAGENT_CONTACT') {
     const clientAccountId = identity.ownProfileId
       ? await subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
       : null;
-    return { context: 'B2B', ownClientAccountId: clientAccountId };
+    return { context: 'B2B', ownClientAccountId: clientAccountId, franchiseSubagentId: null };
   }
   // M16 spec §2/§4 — MCP klijent (User.accountType=AI_AGENT) dobija isto B2C maskiranje kao
   // gost (sakriva supplier polja), ali sopstveni ClientAccount predstavlja CEO spoljnog
   // partnera, ne pojedinačnog putnika — User.linked_profile_id je već direktno ClientAccount.id.
-  if (identity.accountType === 'AI_AGENT') return { context: 'B2C', ownClientAccountId: identity.ownProfileId };
-  return { context: 'INTERNAL_PANEL', ownClientAccountId: null };
+  if (identity.accountType === 'AI_AGENT') return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
+  // M1 spec §3.1a / M7 spec §2.0.7 (31.8.2026) — STAFF nalog vezan (linked_profile_id) za
+  // Subagent sa privilegeLevel=FRANCHISE dobija pun INTERNAL_PANEL kontekst, uz dodatnu
+  // franšiznu granicu vidljivosti (M5 spec §6.6) primenjenu u pozivaocu (BookingsService).
+  let franchiseSubagentId: string | null = null;
+  if (identity.ownProfileId) {
+    const subagent = await prisma.subagent.findUnique({ where: { id: identity.ownProfileId } });
+    if (subagent && subagent.privilegeLevel === 'FRANCHISE') franchiseSubagentId = subagent.id;
+  }
+  return { context: 'INTERNAL_PANEL', ownClientAccountId: null, franchiseSubagentId };
 }

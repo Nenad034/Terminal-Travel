@@ -85,6 +85,13 @@ const M5_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M5', resource: 'booking', action: 'VIEW', description: 'Uvid u rezervacije i kalendar rezervacija' },
   { module: 'M5', resource: 'booking', action: 'MODIFY', description: 'Izmena rezervacije/statusa plaćanja' },
   { module: 'M5', resource: 'booking', action: 'CANCEL', description: 'Otkazivanje rezervacije/stavke' },
+  // M5 spec §6.6 (31.8.2026) — VIEW_ALL konvencija (M1 §3.9a): podrazumevano svi sa VIEW imaju i
+  // VIEW_ALL, sužavanje ide preko DENY override-a za pojedinca kome treba.
+  { module: 'M5', resource: 'booking', action: 'VIEW_ALL', description: 'Vidljivost svih rezervacija (ne samo sopstvenih po vlasništvu/zaduženju)' },
+  // M5 spec §6.5 (31.8.2026) — vlasništvo i zaduženje rezervacije.
+  { module: 'M5', resource: 'booking', action: 'TRANSFER_OWNERSHIP', description: 'Prenos vlasništva rezervacije (trenutni vlasnik ili Vlasnik/Direktor, nikad Sales Manager)' },
+  { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT', description: 'Predlog/otkazivanje predaje zaduženja rezervacije' },
+  { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT', description: 'Prihvatanje/odbijanje predloga predaje zaduženja rezervacije' },
   { module: 'M5', resource: 'markup-rule', action: 'VIEW', description: 'Uvid u pravila marže' },
   { module: 'M5', resource: 'markup-rule', action: 'EDIT', description: 'Izmena pravila marže' },
   { module: 'M5', resource: 'supplier-announcement-rule', action: 'VIEW', description: 'Uvid u pravila automatske pripreme najave dobavljaču' },
@@ -431,6 +438,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'booking', action: 'VIEW' },
     { module: 'M5', resource: 'booking', action: 'MODIFY' },
     { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    // M5 spec §6.5/§6.6 (31.8.2026) — Sales Manager dobija VIEW_ALL i predaju zaduženja, ali
+    // NIKAD TRANSFER_OWNERSHIP (nadgleda, ne preraspoređuje vlasništvo — §6.5).
+    { module: 'M5', resource: 'booking', action: 'VIEW_ALL' },
+    { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT' },
+    { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-manifest', action: 'SEND' },
@@ -507,6 +519,13 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'booking', action: 'VIEW' },
     { module: 'M5', resource: 'booking', action: 'MODIFY' },
     { module: 'M5', resource: 'booking', action: 'CANCEL' },
+    // M5 spec §6.5/§6.6 (31.8.2026) — Prodajni agent dobija VIEW_ALL (podrazumevano vidi sve,
+    // §6.6 — sužava se pojedinačno preko DENY), predaju zaduženja, i prenos vlasništva (samo
+    // za rezervacije čiji je trenutno vlasnik — ownership provera u servisu, §6.5).
+    { module: 'M5', resource: 'booking', action: 'VIEW_ALL' },
+    { module: 'M5', resource: 'booking', action: 'TRANSFER_OWNERSHIP' },
+    { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT' },
+    { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },

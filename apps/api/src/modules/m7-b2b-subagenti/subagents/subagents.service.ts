@@ -233,6 +233,9 @@ export class SubagentsService {
         creditLimit: dto.creditLimit,
         creditLimitCurrency: dto.creditLimitCurrency,
         commissionPercentage: isTier1 ? (dto.commissionPercentage ?? subagent.commissionPercentage) : subagent.commissionPercentage,
+        // M7 spec §2.0.7 (31.8.2026) — franšizna privilegija se bira isključivo ovde, pri
+        // odobravanju; podrazumevano ostaje STANDARD ako se ne prosledi.
+        privilegeLevel: dto.privilegeLevel ?? subagent.privilegeLevel,
         approvedBy: actor.userId,
         approvedAt: new Date(),
       },
