@@ -18,7 +18,12 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        # pgvector/pgvector:pg16, ne obican postgres:16-alpine — M21/M23 semanticka pretraga
+        # (docs/00-MASTER-ARHITEKTURA.md poglavlje 6, potvrdjeno 21.8.2026) zahteva pgvector
+        # ekstenziju od migracije 20260821083727_add_pgvector_embeddings. Isti obrazac kao
+        # docker-compose.yml (lokalni dev). Otkriveno 31.8.2026 - CI je tiho bio slomljen na
+        # ovom koraku od tada, niko nije primetio jer se run nije proveravao svaki put.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: terminal
           POSTGRES_PASSWORD: terminal_ci_only
