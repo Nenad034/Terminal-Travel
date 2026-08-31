@@ -349,6 +349,30 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       );
     });
 
+    it('nema značaja KOJI sastojak je fiksan — let fiksan + hotel dinamičan radi isto kao obrnuto', async () => {
+      const { service, prisma, markupRules, integrations } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p2', sourceExternalId: 'ext2', attributes: {} },
+        ]);
+      // samo let (flight1) nosi FIXED/CHARTER period — on jedini određuje termin.
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([flightPeriod('2027-09-03')]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext2', priceAmount: 4000, currency: 'EUR', availableUnits: 2, cancellationPolicy: [], quoteExpiresAt: null,
+      });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results[0].offers).toHaveLength(1);
+      expect(results[0].offers[0].packageDepartureDate).toBe('2027-09-03');
+      // let: 20000 (bez marže); hotel (API): 4000 (bez marže) -> 24000
+      expect(results[0].offers[0].finalPrice).toBe(24000);
+    });
+
     it('termin postaje nedostupan ako API sastojak nema dostupnih jedinica za taj datum', async () => {
       const { service, prisma, markupRules, integrations } = makeService();
       prisma.product.findMany
