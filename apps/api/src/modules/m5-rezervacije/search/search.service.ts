@@ -234,12 +234,11 @@ export class SearchService {
   /**
    * M5 spec §3.0d.6/§3.0d.6a (grupni paket) — `PACKAGE` nikad nema sopstveni `ContractPeriod`;
    * dostupni "termini" (tačni datumi polaska) su PRESEK `stayFrom` vrednosti preko FIXED/CHARTER
-   * perioda njegovih `included_products[]` — samo proizvodi koji sami nose fiksnu/čarter obavezu
-   * određuju termine (§3.0d.6a: "ako nijedan uključeni proizvod nema fiksan period, taj PACKAGE
-   * jednostavno ne kvalifikuje kao grupni"). Obim ovog prolaza: svi sastojci koji određuju termin
-   * moraju biti CONTRACTED (realan slučaj — čarter let + hotel blok, oboje unapred kupljeni);
-   * mešanje sa API sastojkom UNUTAR grupnog paketa nije pokriveno ovde (individualni paket preko
-   * `Itinerary` to već podržava, §3.0.3).
+   * perioda sastojaka koji tu obavezu nose (§3.0d.6a: "ako nijedan uključeni proizvod nema fiksan
+   * period, taj PACKAGE jednostavno ne kvalifikuje kao grupni"). Sastojci BEZ fiksne obaveze —
+   * `API` (M4 živ poziv) — ne određuju termine, ali SE CENUJU za svaki već utvrđen termin (dopuna
+   * 31.8.2026, ispravka: mešanje CONTRACTED+API sastojaka u grupnom paketu je stvaran zahtev, ne
+   * van obima kako je prvobitno pretpostavljeno).
    */
   private async buildPackageOffers(
     product: Prisma.ProductGetPayload<{ include: { translations: true; sourceContract: true } }>,
@@ -330,20 +329,50 @@ export class SearchService {
       restIds.every((id) => perComponentByDate.get(id)!.has(date)),
     );
 
+    // Dinamički (API) sastojci ne određuju termine, ali se cenuju za svaki već utvrđen termin —
+    // isti princip kao mešanje CONTRACTED/API stavki u individualnom paketu (§3.0.3), sad i za
+    // grupni. Datumski prozor za API poziv je izveden iz fiksnih sastojaka tog termina (min
+    // stayFrom = sam termin, max stayTo među njima), pošto API sastojak sam nema svoj period.
+    const dynamicComponents = components.filter((c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId);
+
     const offers: SearchResultOffer[] = [];
     for (const date of candidateDates) {
-      const picks = fixedDateBearingIds.map((id) => perComponentByDate.get(id)!.get(date)!);
+      const fixedPicks = fixedDateBearingIds.map((id) => perComponentByDate.get(id)!.get(date)!);
       // Sabiranje preko sastojaka pretpostavlja istu valutu za sve — ako se sastojci razlikuju
       // po valuti (retko unutar jedne agencije, ali moguće), ovaj termin se ne prikazuje umesto
       // pogrešnog zbira; obračun konverzije je M10 posao, ne ovde (M3 spec poglavlje 8).
-      const currency = picks[0].currency;
-      if (!picks.every((p) => p.currency === currency)) continue;
+      const currency = fixedPicks[0].currency;
+      if (!fixedPicks.every((p) => p.currency === currency)) continue;
+
+      const windowStayTo = new Date(Math.max(...fixedPicks.map((p) => p.period.stayTo.getTime())));
+
+      let dynamicTotal = 0;
+      let dynamicUnavailable = false;
+      for (const dynamicComponent of dynamicComponents) {
+        const quote = await this.integrations.checkAvailabilityAndPrice(dynamicComponent.sourceProvider!, dynamicComponent.sourceExternalId!, {
+          stayFrom: date,
+          stayTo: windowStayTo.toISOString().slice(0, 10),
+          adults: params.occupancy?.adults ?? 1,
+          children: params.occupancy?.children ?? 0,
+        });
+        if (quote.availableUnits <= 0) {
+          dynamicUnavailable = true; // §3.0b.2 — SOLD_OUT sastojak čini ceo termin nedostupnim
+          break;
+        }
+        if (quote.currency !== currency) {
+          dynamicUnavailable = true; // ista ograda kao za fiksne sastojke — ne sabirati različite valute
+          break;
+        }
+        const dynamicMarkupRule = await this.markupRules.resolveForApi({ productId: dynamicComponent.id, providerCode: dynamicComponent.sourceProvider! });
+        dynamicTotal += applyMarkup(quote.priceAmount, dynamicMarkupRule);
+      }
+      if (dynamicUnavailable) continue;
 
       // §3.0d.6a — svaki sastojak već nosi SOPSTVENU maržu (upravo primenjenu iznad); ukupna
       // cena paketa je njihov zbir. Popust/dodatna marža NA NIVOU paketa je otvoreno pitanje
       // (MarkupRule), namerno nije primenjeno ovde dok se ta odluka ne donese.
-      const totalFinalPrice = picks.reduce((sum, p) => sum + p.finalPrice, 0);
-      const cancellationSummaries = picks
+      const totalFinalPrice = fixedPicks.reduce((sum, p) => sum + p.finalPrice, 0) + dynamicTotal;
+      const cancellationSummaries = fixedPicks
         .filter((p) => p.period.cancellationRules.length > 0)
         .map((p) => p.period.cancellationRules.map((r: any) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`).join(', '));
 

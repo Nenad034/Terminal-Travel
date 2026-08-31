@@ -165,7 +165,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('odbija sastojak koji nije CONTRACTED (mešanje sa API sastojkom nije podržano u ovom prolazu)', async () => {
+    it('odbija paket bez ijednog CONTRACTED/fiksnog sastojka (termin mora doći iz fiksne obaveze)', async () => {
       const { service, prisma } = makeService();
       const terminDate = new Date('2027-09-03');
       prisma.product.findUnique.mockResolvedValueOnce({
@@ -174,7 +174,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
         attributes: { included_products: ['transfer1'] },
       });
       prisma.product.findMany = jest.fn().mockResolvedValue([
-        { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, attributes: {} },
+        { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
       ]);
 
       await expect(
@@ -185,6 +185,50 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
           occupancy: { adults: 2, children: 0 },
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('meša CONTRACTED (određuje termin) i API (cenjen uživo za taj termin) sastojak u istom paketu', async () => {
+      const { service, prisma, markupRules, integrations } = makeService();
+      const terminDate = new Date('2027-09-03');
+      prisma.product.findUnique.mockResolvedValueOnce({
+        id: 'pkg1',
+        type: 'PACKAGE',
+        attributes: { included_products: ['hotel1', 'transfer1'] },
+      });
+      prisma.product.findMany = jest.fn().mockResolvedValue([
+        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
+      ]);
+      prisma.contractPeriod.findMany = jest.fn().mockResolvedValue([
+        { id: 'hperiod1', roomType: 'STD', stayFrom: terminDate, stayTo: new Date('2027-09-10'), rateLines: [{ id: 'hrl1' }] },
+      ]);
+      prisma.rateLine.findUnique = jest.fn().mockResolvedValue({
+        id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+      });
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 1, cancellationPolicy: [], quoteExpiresAt: null,
+      });
+
+      const result = await service.build({
+        productId: 'pkg1',
+        stayFrom: terminDate.toISOString(),
+        stayTo: terminDate.toISOString(),
+        occupancy: { adults: 2, children: 0 },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((r) => r.productId).sort()).toEqual(['hotel1', 'transfer1']);
+      const transferItem = result.find((r) => r.productId === 'transfer1')!;
+      expect(transferItem.sourceType).toBe('API');
+      expect(transferItem.finalPrice).toBe(3000);
+      // API sastojak dobija prozor izveden iz fiksnog sastojka (termin -> max stayTo), ne sopstveni.
+      expect(integrations.checkAvailabilityAndPrice).toHaveBeenCalledWith(
+        'p1',
+        'ext1',
+        expect.objectContaining({ stayFrom: '2027-09-03', stayTo: '2027-09-10' }),
+      );
     });
   });
 });

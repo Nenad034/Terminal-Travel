@@ -321,5 +321,51 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       expect(results[0].offers).toHaveLength(1);
       expect(results[0].offers[0].packageDepartureDate).toBe('2027-09-10');
     });
+
+    it('meša CONTRACTED (određuje termin) i API (cenjen uživo za taj termin) sastojak — dopuna 31.8.2026', async () => {
+      const { service, prisma, markupRules, integrations } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+          { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
+        ]);
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 2, cancellationPolicy: [], quoteExpiresAt: null,
+      });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results[0].offers).toHaveLength(1);
+      // hotel: 5000*7=35000 (bez marže); transfer: 3000 (bez marže) -> 38000
+      expect(results[0].offers[0].finalPrice).toBe(38000);
+      expect(integrations.checkAvailabilityAndPrice).toHaveBeenCalledWith(
+        'p1',
+        'ext1',
+        expect.objectContaining({ stayFrom: '2027-09-03', stayTo: '2027-09-10' }),
+      );
+    });
+
+    it('termin postaje nedostupan ako API sastojak nema dostupnih jedinica za taj datum', async () => {
+      const { service, prisma, markupRules, integrations } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+          { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
+        ]);
+      prisma.contractPeriod.findMany.mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1', priceAmount: 3000, currency: 'EUR', availableUnits: 0, cancellationPolicy: [], quoteExpiresAt: null,
+      });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results).toHaveLength(0);
+    });
   });
 });
