@@ -580,6 +580,17 @@ export class BookingsService {
     const bypass = await this.isVlasnikOrDirektor(actor.userId);
     const now = new Date();
 
+    // Dopuna (31.8.2026) — sprečava dva istovremena PENDING predloga za istu rezervaciju
+    // (konkurentski predlozi ka različitim kolegama, samo jedan bi ikad "pobedio" prihvatanjem,
+    // drugi bi ostao zbunjujuće visio). Vlasnik/Direktor put ne prolazi kroz ovo — direktno
+    // izvršava, ne dodaje PENDING stanje.
+    if (!bypass) {
+      const existingPending = await this.prisma.bookingHandoffRequest.findFirst({ where: { bookingId, status: 'PENDING' } });
+      if (existingPending) {
+        throw new BadRequestException('Već postoji predlog predaje na čekanju za ovu rezervaciju — otkažite ga pre novog predloga (M5 spec §6.5).');
+      }
+    }
+
     const request = await this.prisma.bookingHandoffRequest.create({
       data: {
         bookingId,
@@ -672,6 +683,13 @@ export class BookingsService {
       context: { handoffRequestId: handoffId },
     });
     return updated;
+  }
+
+  /** Dopuna (31.8.2026) — lista predloga predaje za jednu rezervaciju, najnoviji prvi. Koristi
+   * istu vidljivost kao findOne (§6.6) da se ne otkrije postojanje tuđe rezervacije. */
+  async listHandoffRequests(bookingId: string, actorUserId: string) {
+    await this.findOne(bookingId, actorUserId);
+    return this.prisma.bookingHandoffRequest.findMany({ where: { bookingId }, orderBy: { createdAt: 'desc' } });
   }
 
   private async getPendingHandoffOrThrow(handoffId: string) {

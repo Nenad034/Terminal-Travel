@@ -218,6 +218,14 @@ export class BookingsController {
     return this.bookings.proposeHandoff(id, dto.toUserId, actor);
   }
 
+  // Dopuna (31.8.2026) — ista dozvola kao pregled same rezervacije (booking/VIEW), nema poseban
+  // gate: ko vidi rezervaciju, sme da vidi i njenu istoriju predaje zaduženja.
+  @Get(':id/handoff-requests')
+  @RequirePermission('M5', 'booking', 'VIEW')
+  listHandoffRequests(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.listHandoffRequests(id, actor.userId);
+  }
+
   @Post('handoff-requests/:handoffId/accept')
   @RequirePermission('M5', 'booking', 'ACCEPT_ASSIGNMENT')
   acceptHandoff(@Param('handoffId') handoffId: string, @CurrentUser() actor: { userId: string }) {

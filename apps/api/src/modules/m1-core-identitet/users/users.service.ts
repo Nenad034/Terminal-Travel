@@ -20,6 +20,21 @@ export class UsersService {
     });
   }
 
+  // Dopuna (31.8.2026, na zahtev vlasnika — M5 spec §6.5 "bilo koji korisnik sme da predloži
+  // predaju zaduženja") — lagan direktorijum kolega, BEZ M1/user/VIEW (koju Prodajni
+  // agent/Sales Manager/Računovođa po difoltu nemaju, isti nalaz kao M19 chat "novi razgovor"
+  // forma). Namerno samo id+fullName (ne email/uloge/MFA status — to ostaje iza pune VIEW
+  // dozvole), i samo za STAFF pozivaoca — gost/subagent/dobavljač ne sme da vidi interni spisak.
+  async directory(callerId: string) {
+    const caller = await this.prisma.user.findUnique({ where: { id: callerId } });
+    if (caller?.accountType !== 'STAFF') return [];
+    return this.prisma.user.findMany({
+      where: { accountType: 'STAFF', status: 'ACTIVE' },
+      select: { id: true, fullName: true },
+      orderBy: { fullName: 'asc' },
+    });
+  }
+
   findOne(id: string) {
     return this.prisma.user.findUniqueOrThrow({
       where: { id },

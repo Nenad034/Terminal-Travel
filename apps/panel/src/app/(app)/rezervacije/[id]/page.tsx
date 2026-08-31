@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
 import BookingHistoryButton from './BookingHistoryButton';
+import BookingOwnershipCard from './BookingOwnershipCard';
 
 interface BookingItem {
   id: string;
@@ -24,6 +25,22 @@ interface Booking {
   currency?: string;
   clientAccountId?: string | null;
   items: BookingItem[];
+  // M5 spec §6.5/§6.6 dopuna (31.8.2026) — vlasništvo/zaduženje/franšizna granica.
+  ownerId?: string | null;
+  assignedToId?: string | null;
+}
+
+interface DirectoryUser {
+  id: string;
+  fullName: string;
+}
+
+interface HandoffRequest {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
+  createdAt: string;
 }
 
 interface TravelGuaranteeRegistration {
@@ -57,6 +74,11 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
   const canViewRegistrations = hasPermission(me, 'M11', 'travel-guarantee-registration', 'VIEW');
   const canViewContracts = hasPermission(me, 'M20', 'client-contract', 'VIEW');
   const canViewClientAccount = hasPermission(me, 'M6', 'client-account', 'VIEW');
+  // M5 spec §6.5 dopuna (31.8.2026).
+  const canTransferOwnership = hasPermission(me, 'M5', 'booking', 'TRANSFER_OWNERSHIP');
+  const canProposeHandoff = hasPermission(me, 'M5', 'booking', 'TRANSFER_ASSIGNMENT');
+  const canAcceptAssignment = hasPermission(me, 'M5', 'booking', 'ACCEPT_ASSIGNMENT');
+  const isVlasnikOrDirektor = Boolean(me?.roles?.some((r) => r === 'VLASNIK' || r === 'DIREKTOR'));
 
   let booking: Booking | null = null;
   let error: string | null = null;
@@ -66,7 +88,7 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
     error = err instanceof ApiError && err.status === 404 ? 'Rezervacija nije pronađena.' : 'Rezervacija trenutno nije dostupna.';
   }
 
-  const [registrations, contracts, clientAccount] = await Promise.all([
+  const [registrations, contracts, clientAccount, directory, handoffRequests] = await Promise.all([
     booking && canViewRegistrations
       ? apiFetch<TravelGuaranteeRegistration[]>(`/compliance/travel-guarantee-registrations?bookingId=${booking.id}`).catch(() => [])
       : Promise.resolve([]),
@@ -74,7 +96,15 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
     booking?.clientAccountId && canViewClientAccount
       ? apiFetch<ClientAccountSummary>(`/crm/client-accounts/${booking.clientAccountId}`).catch(() => null)
       : Promise.resolve(null),
+    // M1 spec §6 dopuna (31.8.2026, GET /iam/users/directory) — lagan spisak kolega, bez
+    // M1/user/VIEW; koristi se i za prikaz imena vlasnika/zaduženog (svi gledaoci), ne samo
+    // za formu prenosa/predaje.
+    booking ? apiFetch<DirectoryUser[]>('/iam/users/directory').catch(() => [] as DirectoryUser[]) : Promise.resolve([] as DirectoryUser[]),
+    booking ? apiFetch<HandoffRequest[]>(`/sales/bookings/${booking.id}/handoff-requests`).catch(() => []) : Promise.resolve([] as HandoffRequest[]),
   ]);
+
+  const pendingHandoff = handoffRequests.find((h) => h.status === 'PENDING') ?? null;
+  const directoryById = new Map(directory.map((u) => [u.id, u.fullName]));
 
   return (
     <div className="p-6">
@@ -100,6 +130,25 @@ export default async function BookingDetailPage({ params }: { params: { id: stri
             </a>
           ) : (
             <p className="mb-4 text-xs text-ink-faint">Vaučer još nije izdat.</p>
+          )}
+
+          {me && (
+            <div className="mb-4">
+              <BookingOwnershipCard
+                bookingId={booking.id}
+                ownerId={booking.ownerId ?? null}
+                assignedToId={booking.assignedToId ?? null}
+                ownerName={booking.ownerId ? (directoryById.get(booking.ownerId) ?? null) : null}
+                assignedName={booking.assignedToId ? (directoryById.get(booking.assignedToId) ?? null) : null}
+                currentUserId={me.userId}
+                isVlasnikOrDirektor={isVlasnikOrDirektor}
+                canTransferOwnership={canTransferOwnership}
+                canProposeHandoff={canProposeHandoff}
+                canAcceptAssignment={canAcceptAssignment}
+                directory={directory}
+                pendingHandoff={pendingHandoff}
+              />
+            </div>
           )}
 
           <div className="overflow-hidden rounded-lg border border-border">

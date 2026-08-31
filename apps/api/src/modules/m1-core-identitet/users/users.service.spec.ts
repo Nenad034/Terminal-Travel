@@ -9,6 +9,7 @@ describe('UsersService', () => {
         update: jest.fn(),
         findUniqueOrThrow: jest.fn(),
         findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn(),
       },
       userRole: {
         upsert: jest.fn(),
@@ -217,6 +218,31 @@ describe('UsersService', () => {
       expect(prisma.user.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ linkedProfileId: 'bilo-koja-fransiza' }) }),
       );
+    });
+  });
+
+  describe('directory (dopuna 31.8.2026 — M5 §6.5, lagan spisak kolega bez M1/user/VIEW)', () => {
+    it('STAFF pozivalac dobija spisak, samo id+fullName (bez email/uloga)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF' });
+      prisma.user.findMany.mockResolvedValue([{ id: 'u1', fullName: 'Ana' }]);
+
+      const result = await service.directory('staff-1');
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { accountType: 'STAFF', status: 'ACTIVE' }, select: { id: true, fullName: true } }),
+      );
+      expect(result).toEqual([{ id: 'u1', fullName: 'Ana' }]);
+    });
+
+    it('gost/subagent/nepostojeći pozivalac dobija praznu listu, ne 500/leak', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'guest-1', accountType: 'GUEST' });
+
+      const result = await service.directory('guest-1');
+
+      expect(result).toEqual([]);
+      expect(prisma.user.findMany).not.toHaveBeenCalled();
     });
   });
 });

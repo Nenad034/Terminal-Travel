@@ -39,6 +39,14 @@ export class UsersController {
     return this.users.findAll();
   }
 
+  // Dopuna (31.8.2026) — mora biti registrovano PRE `:id` (isti obrazac/lekcija kao M3
+  // spec, literalna ruta ispred parametarske rute istog broja segmenata). Bez
+  // @RequirePermission namerno — dostupno svakom STAFF nalogu, provera je u servisu.
+  @Get('directory')
+  directory(@CurrentUser() actor: { userId: string }) {
+    return this.users.directory(actor.userId);
+  }
+
   @Post()
   @RequirePermission('M1', 'user', 'CREATE')
   invite(@Body() dto: CreateUserDto, @CurrentUser() actor: { userId: string }) {

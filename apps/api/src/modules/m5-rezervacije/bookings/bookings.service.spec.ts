@@ -14,7 +14,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       user: { findUnique: jest.fn().mockResolvedValue(null) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
-      bookingHandoffRequest: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
+      bookingHandoffRequest: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null) },
     };
     const auditLog = { write: jest.fn() };
     const eventBus = { emit: jest.fn() };
@@ -545,6 +545,16 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(prisma.booking.update).toHaveBeenCalledWith({ where: { id: 'b1' }, data: { assignedToId: 'novi-zaduzeni' } });
     });
 
+    it('proposeHandoff odbija novi predlog kad već postoji PENDING za istu rezervaciju (ne-bypass put)', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'x', assignedToId: 'x', items: [] });
+      prisma.userRole.findFirst.mockResolvedValue(null);
+      prisma.bookingHandoffRequest.findFirst.mockResolvedValue({ id: 'postojeci', status: 'PENDING' });
+
+      await expect(service.proposeHandoff('b1', 'novi-cilj', { userId: 'agent-1' })).rejects.toThrow(BadRequestException);
+      expect(prisma.bookingHandoffRequest.create).not.toHaveBeenCalled();
+    });
+
     it('proposeHandoff od strane redovnog korisnika ostaje PENDING, ne menja assigned_to_id odmah', async () => {
       const { service, prisma } = makeService();
       prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'x', assignedToId: 'x', items: [] });
@@ -608,6 +618,28 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       prisma.userRole.findFirst.mockResolvedValue(null);
 
       await expect(service.cancelHandoff('h1', { userId: 'trece-lice' })).rejects.toThrow(ForbiddenException);
+    });
+
+    it('listHandoffRequests vraća listu za vidljivu rezervaciju, najnoviji prvi', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'x', assignedToId: 'x', items: [] });
+      permissions.hasPermission.mockResolvedValue(true);
+      prisma.bookingHandoffRequest.findMany = jest.fn().mockResolvedValue([{ id: 'h1' }]);
+
+      const result = await service.listHandoffRequests('b1', 'staff-1');
+
+      expect(prisma.bookingHandoffRequest.findMany).toHaveBeenCalledWith({ where: { bookingId: 'b1' }, orderBy: { createdAt: 'desc' } });
+      expect(result).toEqual([{ id: 'h1' }]);
+    });
+
+    it('listHandoffRequests poštuje istu vidljivost kao findOne — nevidljiva rezervacija baca 404', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi', items: [] });
+      permissions.hasPermission.mockResolvedValue(false);
+
+      await expect(service.listHandoffRequests('b1', 'staff-1')).rejects.toThrow(NotFoundException);
     });
 
     it('accept/decline/cancel odbijaju predlog koji više nije PENDING', async () => {
