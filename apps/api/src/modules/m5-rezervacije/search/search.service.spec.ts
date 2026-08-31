@@ -391,5 +391,25 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
       expect(results).toHaveLength(0);
     });
+
+    it('toleriše 1 dan razlike između leta i hotela — let u 23:30 sleće posle ponoći (§3.0d.6 dopuna 31.8.2026)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        ]);
+      // Let poleće 3.9. uveče; hotelski prijem je "4.9." u sistemu jer se stiže posle ponoći —
+      // NIJE isti kalendarski dan, ali JESTE isti putni termin.
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+        .mockResolvedValueOnce([hotelPeriod('2027-09-04', '2027-09-11')]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      expect(results[0].offers).toHaveLength(1);
+    });
   });
 });

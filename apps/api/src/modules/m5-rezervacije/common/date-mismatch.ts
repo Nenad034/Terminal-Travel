@@ -2,7 +2,10 @@
 // klijenta (brza povratna informacija, RightPanel.tsx) i servera (jedini pravi oslonac, ovde).
 const TRANSIT_TYPES = new Set(['FLIGHT', 'TRANSFER']);
 const STAY_TYPES = new Set(['ACCOMMODATION', 'PACKAGE']);
-const TOLERANCE_MS = 24 * 60 * 60 * 1000;
+// Izvezeno (dopuna 31.8.2026) da ga deli i grupni paket (§3.0d.6, SearchService/QuoteItemBuilderService)
+// — isti razlog: let u 23:30 sleće posle ponoći, pa se datum prevoza i datum smeštaja ne
+// poklapaju tačno iako je putovanje potpuno ispravno.
+export const TOLERANCE_MS = 24 * 60 * 60 * 1000;
 
 export interface DateMismatchItem {
   productId: string;

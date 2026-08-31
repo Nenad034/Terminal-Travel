@@ -223,12 +223,43 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       const transferItem = result.find((r) => r.productId === 'transfer1')!;
       expect(transferItem.sourceType).toBe('API');
       expect(transferItem.finalPrice).toBe(3000);
-      // API sastojak dobija prozor izveden iz fiksnog sastojka (termin -> max stayTo), ne sopstveni.
+      // API sastojak dobija prozor izveden iz duration_days (termin -> termin+7), ne od sastojaka.
       expect(integrations.checkAvailabilityAndPrice).toHaveBeenCalledWith(
         'p1',
         'ext1',
         expect.objectContaining({ stayFrom: '2027-09-03', stayTo: '2027-09-10' }),
       );
+    });
+
+    it('toleriše 1 dan razlike između sastojaka — let u 23:30 sleće posle ponoći (§3.0d.6 dopuna 31.8.2026)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      const terminDate = new Date('2027-09-03'); // termin koji je pretraga vratila (datum leta)
+      prisma.product.findUnique.mockResolvedValueOnce({
+        id: 'pkg1',
+        type: 'PACKAGE',
+        attributes: { included_products: ['hotel1'], duration_days: 7 },
+      });
+      prisma.product.findMany = jest.fn().mockResolvedValue([
+        { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+      ]);
+      // Hotelski period počinje 4.9. (dan POSLE datuma leta) jer se stiže posle ponoći.
+      prisma.contractPeriod.findMany = jest.fn().mockResolvedValue([
+        { id: 'hperiod1', roomType: 'STD', stayFrom: new Date('2027-09-04'), stayTo: new Date('2027-09-11'), rateLines: [{ id: 'hrl1' }] },
+      ]);
+      prisma.rateLine.findUnique = jest.fn().mockResolvedValue({
+        id: 'hrl1', price: 5000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, contractPeriodId: 'hperiod1', agePricing: [], contractPeriod: { id: 'hperiod1', roomType: 'STD' },
+      });
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: 0 });
+
+      const result = await service.build({
+        productId: 'pkg1',
+        stayFrom: terminDate.toISOString(),
+        stayTo: terminDate.toISOString(),
+        occupancy: { adults: 2, children: 0 },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].productId).toBe('hotel1');
     });
   });
 });

@@ -4,6 +4,7 @@ import { MarkupRulesService } from '../markup-rules/markup-rules.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition, AgePolicyEntry } from '../common/occupancy';
+import { TOLERANCE_MS } from '../common/date-mismatch';
 
 const ROOM_BASED_TYPES = ['ACCOMMODATION', 'PACKAGE'];
 
@@ -146,8 +147,12 @@ export class QuoteItemBuilderService {
       // fiksni prozor paketa (npr. čarter let je jednodnevan period, hotel je višednevan; oba
       // su validni fiksni sastojci istog termina). Fiksan datum POVRATKA garantuje `duration_days`
       // (poglavlje 3.0d.6), ne pojedinačni period — zato je `windowStayTo` iznad uvek izveden iz
-      // trajanja paketa, nikad iz `period.stayTo`.
-      const period = candidatePeriods.find((p) => p.stayFrom.toISOString().slice(0, 10) === terminDateKey);
+      // trajanja paketa, nikad iz `period.stayTo`. Poklapanje sa TOLERANCIJOM od 1 dan (dopuna
+      // 31.8.2026, isti razlog kao SearchService.findKeyWithinTolerance — let u 23:30 sleće posle
+      // ponoći, hotelski prijem je legitimno +1 dan u odnosu na termin).
+      const period =
+        candidatePeriods.find((p) => p.stayFrom.toISOString().slice(0, 10) === terminDateKey) ??
+        candidatePeriods.find((p) => Math.abs(p.stayFrom.getTime() - terminDate.getTime()) <= TOLERANCE_MS);
       if (!period || period.rateLines.length === 0) {
         throw new BadRequestException(
           `Sastojak ${component.id} paketa ${product.id} nema FIXED/CHARTER period za termin ${terminDateKey} (M5 spec §3.0d.6).`,

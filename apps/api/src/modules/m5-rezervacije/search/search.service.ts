@@ -6,6 +6,7 @@ import { IntegrationsService } from '../../m4-integracije-api/integrations.servi
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
 import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
+import { TOLERANCE_MS } from '../common/date-mismatch';
 import { SearchResultOffer, SearchResultProduct } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
@@ -128,6 +129,18 @@ export class SearchService {
       });
     }
     return results;
+  }
+
+  // §3.0d.6 dopuna (31.8.2026) — traži ključ (datum) u mapi koji je unutar ±1 dana od `dateKey`,
+  // isti obrazac tolerancije kao §3.0e.3a. Vraća prvo poklapanje (samu tačnu vrednost prvo, radi
+  // determinizma kad tačan datum i dalje postoji).
+  private findKeyWithinTolerance<T>(map: Map<string, T>, dateKey: string): string | undefined {
+    if (map.has(dateKey)) return dateKey;
+    const target = new Date(dateKey).getTime();
+    for (const key of map.keys()) {
+      if (Math.abs(new Date(key).getTime() - target) <= TOLERANCE_MS) return key;
+    }
+    return undefined;
   }
 
   private pickThumbnail(media: { url: string; category: string; order: number }[]): { url: string; category: string } | null {
@@ -331,10 +344,13 @@ export class SearchService {
     const fixedDateBearingIds = [...perComponentByDate.keys()];
     if (fixedDateBearingIds.length === 0) return []; // nijedan sastojak ne nosi fiksnu obavezu — nije grupni paket
 
-    // Presek datuma — termin važi samo ako GA IMAJU svi fiksno-obavezni sastojci.
+    // Presek datuma, sa TOLERANCIJOM od 1 dan (dopuna 31.8.2026, vlasnik primetio: let u 23:30
+    // sleće posle ponoći, pa je datum hotelskog prijema legitimno +1 dan u odnosu na datum leta,
+    // iako je putovanje potpuno ispravno) — isti princip kao §3.0e.3a (findDateMismatches).
+    // Termin važi ako SVI fiksno-obavezni sastojci imaju period čiji je stayFrom unutar ±1 dana.
     const [firstId, ...restIds] = fixedDateBearingIds;
     const candidateDates = [...perComponentByDate.get(firstId)!.keys()].filter((date) =>
-      restIds.every((id) => perComponentByDate.get(id)!.has(date)),
+      restIds.every((id) => this.findKeyWithinTolerance(perComponentByDate.get(id)!, date) !== undefined),
     );
 
     // Dinamički (API) sastojci ne određuju termine, ali se cenuju za svaki već utvrđen termin —
@@ -345,7 +361,11 @@ export class SearchService {
 
     const offers: SearchResultOffer[] = [];
     for (const date of candidateDates) {
-      const fixedPicks = fixedDateBearingIds.map((id) => perComponentByDate.get(id)!.get(date)!);
+      const fixedPicks = fixedDateBearingIds.map((id) => {
+        const map = perComponentByDate.get(id)!;
+        const key = this.findKeyWithinTolerance(map, date)!;
+        return map.get(key)!;
+      });
       // Sabiranje preko sastojaka pretpostavlja istu valutu za sve — ako se sastojci razlikuju
       // po valuti (retko unutar jedne agencije, ali moguće), ovaj termin se ne prikazuje umesto
       // pogrešnog zbira; obračun konverzije je M10 posao, ne ovde (M3 spec poglavlje 8).
