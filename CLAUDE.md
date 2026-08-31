@@ -71,6 +71,8 @@ Prati fazni plan iz `docs/00-MASTER-ARHITEKTURA.md` poglavlje 8 (Faza 0 → Faza
 
 Svaka Nivo 2 specifikacija ima sekciju "Izlazni kriterijum" sa čeklistom. Modul nije završen dok svaka stavka na toj listi ne prođe — ne "uglavnom radi", ne "UI postoji, logika ne". Ovo je direktna pouka iz PrimeTravel iskustva (mnogo funkcija u stanju "delimično"/"nije live" jer ovo pravilo nije striktno sprovođeno).
 
+**Isto pravilo važi i u suprotnom smeru (standing pravilo, 31.8.2026, na zahtev vlasnika): "logika postoji, UI ne" je isto tako nezavršeno.** Kad se doda/izmeni pozadinska logika (API/servis) koju čovek treba da pokrene ili podesi (ne čisto interna/sistemska logika), forma/ekran u panelu (ili odgovarajućem frontend-u) koji to stvarno omogućava pravi se u ISTOM prolazu, ne kao poseban zadatak za kasnije. Ako ekran zaista ne stane u isti prolaz (npr. svesno odložen, nizak prioritet), to se eksplicitno kaže i beleži kao poznat nedostatak — ne ćuti se dok se pozadinski deo prijavljuje kao gotov.
+
 **Nijedna sesija ne sme reći "gotovo" / "provereno" / "usklađeno" dok nalaz nije proveren čitanjem stvarnog sadržaja (ne samo pretragom po ključnoj reči ili sažetkom agenta) i dok promena nije commit-ovana.** Ako je zadatak pokrenut u pozadini (agent, background shell) i sesija se prekine iz bilo kog razloga (gašenje aplikacije, gubitak veze, restart) pre nego što stigne izveštaj, taj rad se smatra **izgubljenim** — ne postoji dokaz gde je stao — i mora se ponovo pokrenuti od početka, ne nastavljati "odakle je verovatno stao". Vidi zamku 8.3 u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`.
 
 ## Otvorena pitanja — jedan indeks za sve module
