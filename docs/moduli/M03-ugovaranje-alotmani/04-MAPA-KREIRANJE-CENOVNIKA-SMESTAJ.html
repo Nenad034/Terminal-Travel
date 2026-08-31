@@ -1,0 +1,537 @@
+<title>Terminal — Mapa: Kreiranje cenovnika (smeštaj)</title>
+<style>
+:root{
+  --ink:#12161d; --ink-2:#1b212b;
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --sans: "Avenir Next", "Century Gothic", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --header-h: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+    --text:#e7e9ed; --text-dim:#98a2b3;
+    --accent:#e7a339; --accent-soft:#3a2c14;
+    --rule:#2b3242;
+    --success:#5cd39a; --success-bg:#173023;
+    --warn:#e7a339; --warn-bg:#332411;
+    --info:#7ab6ec; --info-bg:#122a3d;
+    --purple:#b794f6; --purple-bg:#2a2145;
+    --gray:#8b95a5; --gray-bg:#232a37;
+    --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161d; --paper-2:#161b23; --surface:#1b212b;
+  --text:#e7e9ed; --text-dim:#98a2b3;
+  --accent:#e7a339; --accent-soft:#3a2c14;
+  --rule:#2b3242;
+  --success:#5cd39a; --success-bg:#173023;
+  --warn:#e7a339; --warn-bg:#332411;
+  --info:#7ab6ec; --info-bg:#122a3d;
+  --purple:#b794f6; --purple-bg:#2a2145;
+  --gray:#8b95a5; --gray-bg:#232a37;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 10px 28px rgba(0,0,0,.4);
+  color-scheme: dark;
+}
+:root[data-theme="light"]{
+  --paper:#eef0f4; --paper-2:#ffffff; --surface:#ffffff;
+  --text:#1b212b; --text-dim:#5b6472;
+  --accent:#b8690f; --accent-soft:#f2dfc4;
+  --rule:#d3d8e0;
+  --success:#2f8f5b; --success-bg:#e3f3ea;
+  --warn:#a35b12; --warn-bg:#f7e7d2;
+  --info:#2563a8; --info-bg:#dce8f5;
+  --purple:#7c3aed; --purple-bg:#ede4fd;
+  --gray:#6b7280; --gray-bg:#e7e9ed;
+  --shadow: 0 1px 2px rgba(20,24,31,.06), 0 10px 28px rgba(20,24,31,.07);
+  color-scheme: light;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--paper); color:var(--text);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+}
+a{color:var(--accent);}
+
+.board{
+  position:sticky; top:0; height:var(--header-h); z-index:40;
+  background:linear-gradient(180deg,#171c25,#12161d); color:#eef0f4;
+  display:flex; align-items:center; gap:14px; padding:0 18px;
+  border-bottom:1px solid #05070a; box-shadow:0 2px 0 rgba(0,0,0,.25);
+}
+.board .brand{
+  font-family:var(--mono); font-weight:700; letter-spacing:.14em; font-size:16px;
+  color:#f4f6f9; text-transform:uppercase; display:flex; align-items:baseline; gap:8px; white-space:nowrap;
+}
+.board .brand small{ font-family:var(--sans); font-weight:400; letter-spacing:0; text-transform:none; font-size:12px; color:#9aa6b8; }
+.board .actions{ margin-left:auto; display:flex; gap:10px; align-items:center; }
+.board a.back{ color:#c7ceda; font-size:12.5px; text-decoration:none; border:1px solid #333c4a; padding:6px 10px; border-radius:6px; }
+.board a.back:hover{ background:#1f2530; }
+
+main{ padding:20px 0 60px; }
+.wrap{ width:100%; max-width:1360px; margin:0 auto; padding:0 clamp(16px,2.4vw,40px); }
+
+.intro{
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:16px 20px; margin-bottom:18px; box-shadow:var(--shadow); font-size:14px; color:var(--text-dim);
+}
+.intro b{ color:var(--text); }
+
+.legend{
+  display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+  background:var(--surface); border:1px solid var(--rule); border-radius:10px;
+  padding:12px 18px; margin-bottom:22px; box-shadow:var(--shadow); font-size:12.5px; color:var(--text-dim);
+}
+.legend .item{ display:flex; align-items:center; gap:7px; white-space:nowrap; }
+.swatch{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+
+.example{
+  background:var(--accent-soft); border:1px solid var(--accent); border-radius:10px;
+  padding:14px 20px; margin-bottom:26px; font-size:13.5px; color:var(--text);
+}
+.example b{ font-family:var(--mono); }
+
+.section{
+  background:var(--surface); border:1.5px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow); margin-bottom:26px; overflow:hidden;
+}
+.section .shead{
+  display:flex; align-items:center; gap:10px; padding:14px 20px;
+  border-bottom:1px dashed var(--rule); background:var(--paper-2);
+}
+.section .shead .tag{
+  font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em;
+  padding:3px 9px; border-radius:5px;
+}
+.section .shead h2{ margin:0; font-size:16.5px; font-weight:700; }
+.section .shead .note{ margin-left:auto; font-size:12px; color:var(--text-dim); font-family:var(--mono); }
+.section .sbody{ padding:16px 20px 20px; }
+.section .sdesc{ font-size:13px; color:var(--text-dim); margin-bottom:14px; }
+.section .why{ font-size:13px; color:var(--text); background:var(--paper); border-left:3px solid var(--accent); padding:8px 12px; margin-bottom:14px; border-radius:0 6px 6px 0; }
+.section .why b{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--accent); display:block; margin-bottom:3px; }
+
+.tag.core{ background:var(--info-bg); color:var(--info); }
+.tag.i18n{ background:var(--success-bg); color:var(--success); }
+.tag.attr{ background:var(--warn-bg); color:var(--warn); }
+.tag.nested{ background:var(--purple-bg); color:var(--purple); }
+.tag.ai{ background:var(--gray-bg); color:var(--gray); }
+.tag.optional{ background:var(--gray-bg); color:var(--gray); }
+
+.field-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:10px;
+}
+.field{
+  border:1px solid var(--rule); border-radius:8px; padding:9px 12px; background:var(--paper);
+  position:relative;
+}
+.field .fname{ font-family:var(--mono); font-weight:700; font-size:13px; color:var(--text); display:flex; align-items:center; gap:6px; }
+.field .ftype{ font-family:var(--mono); font-size:10.5px; color:var(--text-dim); margin-top:2px; }
+.field .fex{ font-size:12px; color:var(--accent); margin-top:5px; font-style:italic; }
+.field .fnote{ font-size:11.5px; color:var(--text-dim); margin-top:4px; line-height:1.4; }
+
+.toc{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+.toc a{
+  font-family:var(--mono); font-size:11.5px; text-decoration:none; color:var(--text);
+  background:var(--surface); border:1px solid var(--rule); border-radius:6px; padding:6px 10px;
+}
+.toc a:hover{ border-color:var(--accent); color:var(--accent); }
+
+/* flow strip — linear sequence of steps */
+.flow{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
+.flow .step{
+  font-family:var(--mono); font-size:11.5px; background:var(--paper); border:1px solid var(--rule);
+  padding:5px 10px; border-radius:6px; white-space:nowrap;
+}
+.flow .step.branch-point{ border-color:var(--purple); color:var(--purple); font-weight:700; }
+.flow .arrow{ color:var(--text-dim); }
+
+/* overview chain — the whole causal sequence at a glance */
+.overview{
+  background:var(--surface); border:1.5px solid var(--rule); border-radius:12px;
+  box-shadow:var(--shadow); padding:18px 20px; margin-bottom:26px;
+}
+.overview .ohead{ font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em; color:var(--text-dim); text-transform:uppercase; margin-bottom:12px; }
+.ochain{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.onode{
+  font-family:var(--mono); font-size:12.5px; font-weight:700; padding:8px 13px; border-radius:8px;
+  border:1.5px solid var(--info); background:var(--info-bg); color:var(--info); white-space:nowrap;
+}
+.onode.opt{ border-style:dashed; border-color:var(--gray); background:var(--gray-bg); color:var(--gray); font-weight:600; }
+.onode.end{ border-color:var(--success); background:var(--success-bg); color:var(--success); }
+.oarrow{ color:var(--text-dim); font-size:14px; }
+
+/* branch — one field whose value decides what happens next */
+.branch{
+  border:1.5px solid var(--purple); border-radius:12px; background:var(--purple-bg);
+  padding:16px 20px; margin:16px 0;
+}
+.branch .bhead{ display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.branch .bhead .tag{ font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 9px; border-radius:5px; background:var(--purple); color:#fff; }
+.branch .bhead h3{ margin:0; font-size:14.5px; }
+.branch .bwhy{ font-size:12.5px; color:var(--text-dim); margin:6px 0 12px; }
+.branch .opts{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+.branch-opt{ background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:12px 14px; }
+.branch-opt .oval{ font-family:var(--mono); font-weight:800; font-size:12.5px; color:var(--purple); margin-bottom:7px; }
+.branch-opt .oreq{ font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-dim); font-weight:700; margin-top:8px; }
+.branch-opt ul{ margin:4px 0 0; padding-left:16px; font-size:12px; }
+.branch-opt li{ margin-bottom:3px; }
+.branch-opt .example-cite{ font-size:11px; color:var(--accent); font-style:italic; margin-top:8px; }
+
+.gap{
+  border:1.5px solid var(--warn); border-radius:12px; background:var(--warn-bg);
+  padding:16px 20px; margin-bottom:20px;
+}
+.gap .ghead{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.gap .ghead .tag{ font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.04em; padding:3px 9px; border-radius:5px; background:var(--warn); color:var(--paper-2); }
+.gap .ghead h3{ margin:0; font-size:15px; }
+.gap p{ font-size:13.5px; margin:6px 0; }
+
+.legal{
+  border:1.5px solid var(--info); border-radius:10px; background:var(--info-bg);
+  padding:12px 18px; margin-top:12px; font-size:12.5px; color:var(--text);
+}
+.legal b{ color:var(--info); }
+
+.dep-chain{ display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+.dep-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.dep-node{
+  font-family:var(--mono); font-size:12px; font-weight:700; padding:6px 11px; border-radius:7px;
+  border:1.5px solid var(--rule); background:var(--paper); white-space:nowrap;
+}
+.dep-node.m3{ border-color:var(--warn); color:var(--warn); background:var(--warn-bg); }
+.dep-node.m5{ border-color:var(--purple); color:var(--purple); background:var(--purple-bg); }
+.dep-node.m10{ border-color:var(--success); color:var(--success); background:var(--success-bg); }
+.dep-node.m2{ border-color:var(--info); color:var(--info); background:var(--info-bg); }
+.dep-arrow{ color:var(--text-dim); font-size:13px; white-space:nowrap; }
+.dep-label{ font-size:11.5px; color:var(--text-dim); font-style:italic; flex-basis:100%; margin:-2px 0 8px 2px; }
+
+.mod-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-bottom:16px; font-size:12px; color:var(--text-dim); }
+.mod-legend .item{ display:flex; align-items:center; gap:6px; }
+.pending-badge{ font-family:var(--mono); font-size:10px; font-weight:800; background:var(--gray-bg); color:var(--gray); padding:2px 7px; border-radius:4px; letter-spacing:.03em; }
+</style>
+
+<div class="board">
+  <div class="brand">Terminal <small>Mapa: Kreiranje cenovnika — smeštaj (M3, krug 1)</small></div>
+  <div class="actions">
+    <a class="back" href="https://github.com/Nenad034/Terminal-Travel/blob/main/docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md" target="_blank" rel="noopener">← M3 specifikacija</a>
+  </div>
+</div>
+
+<main>
+  <div class="wrap">
+    <div class="intro">
+      Ovo <b>nije</b> mapa strukture podataka (za to postoji <b>04-SPECIFIKACIJA-M3-...</b> i tabele u njoj) — ovo je mapa <b>redosleda odluka</b> koje tim pravi kad kreira jedan cenovnik za jedan smeštajni objekat, i kako svaka odluka <b>uzrokuje</b> koja polja postaju obavezna dalje niz lanac. Zasnovano na stvarnoj analizi 73 primera cenovnika/ugovora više dobavljača (avgust 2026 — 18 u prvom krugu, 55 u drugom, `Primeri cenovnika/`). <b>Krug 1: samo smeštaj.</b> Ostale vrste turističkih proizvoda (prevoz, izleti, osiguranje…) dobijaju sopstvenu mapu kad na njih dođe red — vidi ⑩ na dnu.
+    </div>
+
+    <div class="toc">
+      <a href="#start">① Polazna tačka</a>
+      <a href="#contract">② Dobavljač i ugovor</a>
+      <a href="#period">③ Period/sezona</a>
+      <a href="#rate">④ Cena po sobi</a>
+      <a href="#cancel">⑤ Otkazivanje</a>
+      <a href="#offer">⑥ Akcije</a>
+      <a href="#ancillary">⑦ Dodatni troškovi</a>
+      <a href="#tax">⑧ Boravišna taksa</a>
+      <a href="#effect">⑨ Šta se dešava dalje</a>
+      <a href="#next">⑩ Sledeći krug</a>
+    </div>
+
+    <div class="overview">
+      <div class="ohead">Ceo lanac na jedan pogled — čitaj sleva nadesno</div>
+      <div class="ochain">
+        <span class="onode">Dobavljač + Ugovor</span><span class="oarrow">→</span>
+        <span class="onode">Period/sezona</span><span class="oarrow">→</span>
+        <span class="onode">Cena po sobi</span><span class="oarrow">→</span>
+        <span class="onode opt">Otkazivanje</span><span class="oarrow">→</span>
+        <span class="onode opt">Akcije (opciono)</span><span class="oarrow">→</span>
+        <span class="onode opt">Dodatni troškovi (opciono)</span><span class="oarrow">→</span>
+        <span class="onode opt">Boravišna taksa (opciono)</span><span class="oarrow">→</span>
+        <span class="onode end">Cenovnik spreman za prodaju</span>
+      </div>
+    </div>
+
+    <!-- ① START -->
+    <div class="section" id="start">
+      <div class="shead"><span class="tag ai">① POLAZNA TAČKA</span><h2>Dva puta, isti cilj</h2><span class="note">poglavlje 4.2</span></div>
+      <div class="sbody">
+        <div class="sdesc">Cenovnik dobavljača stiže u nekom obliku — PDF, Excel, Word, mejl, ponekad skeniran papir. Postoje dva načina da ti podaci uđu u Terminal, ali <b style="color:var(--text)">oba se stiču na potpuno istim poljima</b> iz koraka ②–⑧ ispod, i <b style="color:var(--text)">oba prolaze kroz istu ljudsku potvrdu</b> pre nego što cena postane aktivna.</div>
+        <div class="flow">
+          <span class="step">Ručni unos</span><span class="arrow">→</span><span class="step">tim direktno popunjava formu u panelu, korak po korak (②–⑧)</span>
+        </div>
+        <div class="flow" style="margin-top:6px;">
+          <span class="step">AI uvoz</span><span class="arrow">→</span><span class="step">upload fajla</span><span class="arrow">→</span><span class="step">AI predlaže vrednosti za ista polja</span><span class="arrow">→</span><span class="step branch-point">čovek pregleda i potvrđuje red po red</span><span class="arrow">→</span><span class="step">tek tada se upisuje</span>
+        </div>
+        <div class="why"><b>Zašto ovo pravilo postoji</b>Pogrešno pročitana cena iz PDF-a je direktno pogrešna prodajna cena gostu — zato AI uvoz sme SAM da predloži i mapira (poglavlje 4.2.4, nivo "Autonomno"), ali nikad sam da upiše stvarnu cenu (nivo "Predloži pa čovek odobri"). Isti dobavljač sledeće godine — sistem pamti prošli potvrđen obrazac (`SupplierExtractionProfile`, poglavlje 4.2.5) i predlaže brže, ali gejt ostaje isti.</div>
+      </div>
+    </div>
+
+    <!-- ② CONTRACT -->
+    <div class="section" id="contract">
+      <div class="shead"><span class="tag core">② UGOVOR</span><h2>Dobavljač i ugovor — pre nego što bilo koja cena postoji</h2><span class="note">poglavlje 2.1/2.2/2.2b</span></div>
+      <div class="sbody">
+        <div class="sdesc">Prvi korak nije cena — prvi korak je <b style="color:var(--text)">sa kim</b> i <b style="color:var(--text)">pod kojim opštim uslovima</b>. Ako dobavljač već postoji u sistemu iz ranijeg ugovora, ovaj korak se preskače, otvara se samo nov <span style="font-family:var(--mono)">Contract</span>.</div>
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GRANA</span><h3>commission_model — da li je cenovnik već neto, ili sadrži proviziju</h3></div>
+          <div class="bwhy">Uzrokuje: kako M10 kasnije računa koliko agencija stvarno duguje dobavljaču. Pogrešan izbor ovde = pogrešna obaveza prema dobavljaču, bez obzira što je prodajna cena gostu ispravna.</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">NET</div>
+              Cena u cenovniku je već ono što agencija plaća — bez odbitka.
+              <div class="example-cite">Primer: Ananti, Heritage Grand Perast — "non-commissionable, net rates"</div>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">COMMISSIONABLE</div>
+              Cena je bruto — agencija zadržava <span style="font-family:var(--mono)">commission_percentage</span> pri plaćanju.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>commission_percentage (%)</li></ul>
+              <div class="example-cite">Primer: Aycon portfolio hotela — "Agency commission 5%"</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid" style="margin-top:6px;">
+          <div class="field"><div class="fname">currency</div><div class="ftype">enum</div><div class="fex">EUR</div><div class="fnote">po ugovoru, ne globalno</div></div>
+          <div class="field"><div class="fname">payment_terms_days</div><div class="ftype">integer, nullable</div><div class="fnote">rok plaćanja dobavljaču; 30 dana ako nije uneto</div></div>
+          <div class="field"><div class="fname">default_tip_nastupanja</div><div class="ftype">enum</div><div class="fex">ORGANIZATOR</div><div class="fnote">obavezno pre ACTIVE — poreski/pravni odnos za samouslužne kanale (M8/M7)</div></div>
+        </div>
+        <div class="why"><b>Zašto oba polja (commission_model + default_tip_nastupanja) blokiraju ACTIVE</b>Ugovor bez njih se sme kreirati kao DRAFT (unos u toku), ali ne sme početi da prodaje dok oba nisu eksplicitno postavljena — isti obrazac opreza kao svaka druga "nema pretpostavljene vrednosti za novac/poreze" ograda u sistemu.</div>
+      </div>
+    </div>
+
+    <!-- ③ PERIOD -->
+    <div class="section" id="period">
+      <div class="shead"><span class="tag attr">③ PERIOD/SEZONA</span><h2>ContractPeriod — za koji tip sobe, koji datumi, i po kom modelu</h2><span class="note">poglavlje 2.3</span></div>
+      <div class="sbody">
+        <div class="sdesc">Jedan ugovor obično pokriva više sezona (leto/zima) i više tipova soba — svaka kombinacija je sopstveni <span style="font-family:var(--mono)">ContractPeriod</span>: datumi boravka + šifra tipa sobe (mora odgovarati M2 <span style="font-family:var(--mono)">room_types[].code</span>).</div>
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GLAVNA GRANA</span><h3>allotment_mode — ovo je najveća račvica u celom lancu</h3></div>
+          <div class="bwhy">Uzrokuje: koja polja o kapacitetu/riziku postaju obavezna. Sve četiri vrednosti opisuju suštinski različit poslovni odnos sa dobavljačem, ne samo različitu formu unosa.</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">FIXED</div>
+              Agencija drži kontingent, ali dobavljač snosi rizik neprodatog dela — postoji rok da se višak vrati.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>total_capacity</li><li>release_days_before</li></ul>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">ON_REQUEST</div>
+              Nema garantovanog kapaciteta — svaka rezervacija čeka potvrdu dobavljača.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>ništa od gore — namerno bez kapaciteta</li></ul>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">CHARTER</div>
+              Agencija unapred otkupljuje ceo kapacitet, jednokratno — rizik je sad agencijin, ne dobavljačev.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>ukupna_fiksna_obaveza</li><li>fixed_obligation_currency</li></ul>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">FIXED_LEASE</div>
+              Agencija zakupljuje ceo objekat za sezonu uz fiksnu periodičnu obavezu, nezavisno od popunjenosti.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>ukupna_fiksna_obaveza</li><li>payment_schedule (rate)</li></ul>
+              <div class="example-cite">Primer: "Cjenovnik fiksnog zakupa Slovenska plaža 4"</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid" style="margin-top:6px;">
+          <div class="field"><div class="fname">min_stay_nights / max_stay_nights</div><div class="ftype">integer, nullable</div><div class="fnote">česta pojava u praksi — kad se razlikuje po tipu sobe unutar iste sezone, otvara se drugi ContractPeriod, ne isto polje za oba</div></div>
+          <div class="field"><div class="fname">age_policy_override</div><div class="ftype">niz, nullable</div><div class="fnote">izuzetak od opšte uzrasne politike sobe (M2) SAMO za ovaj cenovnik — npr. "obično dete do 12, ali ova akcija ide do 15"</div></div>
+        </div>
+        <div class="why"><b>Zašto se preklapanje perioda odbija</b>Dva perioda za isti tip sobe i iste datume bi značila dve različite cene za istu stvar — sistem to odbija tehnički (baza), ne samo aplikativno, čim se pokuša unos ili odobrenje AI uvoza.</div>
+      </div>
+    </div>
+
+    <!-- ④ RATE -->
+    <div class="section" id="rate">
+      <div class="shead"><span class="tag core">④ CENA PO SOBI</span><h2>RateLine — usluga, popunjenost, i osnova cene</h2><span class="note">poglavlje 2.4/2.4a</span></div>
+      <div class="sbody">
+        <div class="sdesc">Jedan period ima obično više <span style="font-family:var(--mono)">RateLine</span> stavki — jedna po kombinaciji usluge (polupansion/all-inclusive) i osnovne popunjenosti.</div>
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GRANA</span><h3>price_basis — po sobi ili po osobi</h3></div>
+          <div class="bwhy">Uzrokuje: kako se cena sabira kad u sobi ima više gostiju. Nema jedinstvenog standarda kod dobavljača — oba modela viđena u praksi za isti tip smeštaja.</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">PER_ROOM_PER_NIGHT</div>
+              Cena je za celu sobu pri osnovnoj popunjenosti — dodatni gost se dodaje preko age_pricing[].
+            </div>
+            <div class="branch-opt">
+              <div class="oval">PER_PERSON_PER_NIGHT</div>
+              Cena je po jednom odraslom gostu — ukupna cena sobe = zbir po gostu.
+            </div>
+          </div>
+        </div>
+
+        <div class="branch" style="border-color:var(--info); background:var(--info-bg);">
+          <div class="bhead"><span class="tag" style="background:var(--info);">PODGRANA</span><h3>age_pricing[] — cena po uzrasnoj kategoriji (opciono, po redu)</h3></div>
+          <div class="bwhy">Uzrokuje: da li se dete/beba/tinejdžer naplaćuje po popustu, flat iznosu, ili besplatno. Ako gost pripada kategoriji bez odgovarajućeg reda, sistem <b style="color:var(--text)">odbija</b> ponudu umesto da pretpostavi cenu (nikad "valjda je besplatno").</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">PERCENTAGE_OF_BASE_PRICE</div>
+              % od RateLine.price — <span style="font-family:var(--mono)">0%</span> = eksplicitno besplatno, nikad izostanak reda.
+            </div>
+            <div class="branch-opt">
+              <div class="oval">FLAT_PRICE_PER_NIGHT</div>
+              Fiksan iznos po noći, nezavisno od RateLine.price.
+            </div>
+          </div>
+          <div class="sdesc" style="margin-top:10px; margin-bottom:0;">Dodatna preciznost po redu: <span style="font-family:var(--mono)">occupant_index</span> ("prvo dete −50%, drugo besplatno") i <span style="font-family:var(--mono)">min_adults_present</span> ("dete besplatno samo uz dva roditelja u sobi") — najspecifičniji red pobeđuje kad se više njih poklopi.</div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field"><div class="fname">crib_fee_per_night</div><div class="ftype">integer, nullable</div><div class="fnote">samo kad soba (M2) zahteva krevetac a on nije uključen u cenu</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ CANCELLATION -->
+    <div class="section" id="cancel">
+      <div class="shead"><span class="tag warn" style="background:var(--warn-bg);color:var(--warn);">⑤ OTKAZIVANJE</span><h2>CancellationRule — dve različite situacije, ne jedna</h2><span class="note">poglavlje 2.5</span></div>
+      <div class="sbody">
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GRANA</span><h3>rule_type — gost još nije stigao, ili je već stigao pa skraćuje boravak</h3></div>
+          <div class="bwhy">Uzrokuje: koji skup polja se popunjava. Ovo su dve suštinski različite situacije sa različitom osnovicom kazne, ne varijante iste stvari — zato razdvojena polja, ne jedan zajednički par.</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">PRE_ARRIVAL</div>
+              Gost otkazuje pre dolaska.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>days_before_stay (prag)</li><li>refund_percentage</li></ul>
+              <div class="example-cite">Obično više redova — npr. 30 dana → 100%, 15–29 → 50%, 0–14 → 0%</div>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">EARLY_DEPARTURE</div>
+              Gost je već stigao pa prevremeno odlazi.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>early_departure_basis</li><li>→ percentage ILI flat_amount</li></ul>
+              <div class="example-cite">Primer: Ananti 100% preostalog boravka, Rajska Dolina 50%, Avala "po vaučeru" (flat)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ OFFER -->
+    <div class="section" id="offer">
+      <div class="shead"><span class="tag nested">⑥ AKCIJE <span class="pending-badge" style="margin-left:4px;">opciono</span></span><h2>PricelistOffer — rana rezervacija ili "kupi X, plati Y"</h2><span class="note">poglavlje 2.4b</span></div>
+      <div class="sbody">
+        <div class="sdesc">Ne postoji uvek — ali skoro svaki analizirani cenovnik ima bar jednu. Ima <b style="color:var(--text)">sopstveni prozor prijave</b> (booking_from/booking_to), odvojen od datuma boravka.</div>
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GRANA</span><h3>offer_type</h3></div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">EARLY_BOOKING</div>
+              Popust za rezervaciju unapred.
+              <div class="oreq">Zahteva:</div>
+              <ul><li>discount_type (PERCENTAGE / FIXED_AMOUNT)</li><li>→ discount_percentage ILI discount_amount</li></ul>
+            </div>
+            <div class="branch-opt">
+              <div class="oval">FREE_NIGHTS</div>
+              "Kupi X noćenja, plati Y" (npr. 6=5, 7=6).
+              <div class="oreq">Zahteva:</div>
+              <ul><li>stay_nights</li><li>pay_nights (mora biti manje)</li></ul>
+            </div>
+          </div>
+        </div>
+        <div class="sdesc">Opciono na oba: rok/procenat depozita, uzrasno ograničenje, i <span style="font-family:var(--mono)">combinable_with_other_offers</span> — da li se sabira sa drugom akcijom istog perioda (dobavljači ponekad eksplicitno propišu redosled, npr. "EBD prvo, pa grupni popust").</div>
+      </div>
+    </div>
+
+    <!-- ⑦ ANCILLARY -->
+    <div class="section" id="ancillary">
+      <div class="shead"><span class="tag nested">⑦ DODATNI TROŠKOVI <span class="pending-badge" style="margin-left:4px;">opciono</span></span><h2>AncillaryService — ljubimac, parking, depozit…</h2><span class="note">poglavlje 2.6</span></div>
+      <div class="sbody">
+        <div class="sdesc">Umesto posebnog polja za svaki mogući trošak (previše raznolikosti u praksi — parking, ljubimac, rani check-in, room service, depozit…), svaki trošak je sopstveni red sa slobodnim nazivom.</div>
+
+        <div class="branch">
+          <div class="bhead"><span class="tag">GRANA</span><h3>pricing_mode</h3></div>
+          <div class="bwhy">Uzrokuje: da li je iznos fiksan, ili zavisi od cene sobe (viđeno oba — npr. rani check-in kod nekih dobavljača nije flat iznos nego procenat noćne cene).</div>
+          <div class="opts">
+            <div class="branch-opt">
+              <div class="oval">FLAT_PER_UNIT</div>
+              Fiksan iznos po jedinici (po danu/noći/osobi/ljubimcu/sobi — bira se u <span style="font-family:var(--mono)">unit</span>).
+            </div>
+            <div class="branch-opt">
+              <div class="oval">PERCENTAGE_OF_NIGHTLY_RATE</div>
+              % od RateLine.price te sobe/perioda.
+            </div>
+          </div>
+        </div>
+        <div class="sdesc"><span style="font-family:var(--mono)">is_mandatory</span> — automatski se dodaje svakoj rezervaciji (retko, npr. obavezna usluga vodiča); <span style="font-family:var(--mono)">is_refundable</span> — trošak se vraća pod uslovom (tipično: depozit).</div>
+      </div>
+    </div>
+
+    <!-- ⑧ TAX -->
+    <div class="section" id="tax">
+      <div class="shead"><span class="tag optional">⑧ BORAVIŠNA TAKSA <span class="pending-badge" style="margin-left:4px;">opciono</span></span><h2>TouristTaxInfo — isključivo informativno</h2><span class="note">poglavlje 2.7</span></div>
+      <div class="sbody">
+        <div class="sdesc">Skoro svaki dokument je pominje, uvek sa <b style="color:var(--text)">sopstvenom uzrasnom granicom, drugačijom od granice za popust na sobu</b> (npr. taksa važi do 12 godina, popust na sobu do 11,99 ili do 18).</div>
+        <div class="field-grid">
+          <div class="field"><div class="fname">included_in_price</div><div class="ftype">boolean</div><div class="fnote">da li je već uračunata u RateLine.price</div></div>
+          <div class="field"><div class="fname">collected_by</div><div class="ftype">enum, nullable</div><div class="fnote">PAID_ON_SITE_BY_GUEST ili INVOICED_TO_AGENCY — samo kad nije uključena u cenu</div></div>
+          <div class="field"><div class="fname">tax_exempt_max_age</div><div class="ftype">decimal, nullable</div><div class="fnote">namerno odvojeno od M2 age_policy i RateLine.age_pricing</div></div>
+        </div>
+        <div class="legal"><b>Pravna ograda (nepromenjena od avgusta 2026):</b> boravišna taksa je obaveza smeštajnog objekta, ne agencije. Ovo polje postoji samo da tim/gost imaju tačan podatak unapred — nijedan M3/M10/M11 tok ga ne koristi za fakturu ili prijavu.</div>
+      </div>
+    </div>
+
+    <!-- ⑨ EFFECT -->
+    <div class="section" id="effect">
+      <div class="shead"><span class="tag core" style="background:var(--gray-bg);color:var(--gray);">⑨ EFEKAT DALJE</span><h2>Šta ova cena pokreće u ostatku sistema</h2><span class="note">M3 → M2 → M5 → M10</span></div>
+      <div class="sbody">
+        <div class="mod-legend">
+          <div class="item"><span class="dep-node m3" style="padding:2px 7px;">M3</span> Ugovaranje (ovaj cenovnik)</div>
+          <div class="item"><span class="dep-node m2" style="padding:2px 7px;">M2</span> Katalog (šta gost vidi)</div>
+          <div class="item"><span class="dep-node m5" style="padding:2px 7px;">M5</span> Rezervacije (prodajna cena)</div>
+          <div class="item"><span class="dep-node m10" style="padding:2px 7px;">M10</span> Finansije (obaveza prema dobavljaču)</div>
+        </div>
+        <div class="dep-chain">
+          <div class="dep-row">
+            <span class="dep-node m3">ContractPeriod.room_type</span><span class="dep-arrow">→ referenciše ga →</span><span class="dep-node m2">Product.room_types[].code</span>
+          </div>
+          <div class="dep-label">Gost/subagent u katalogu vidi proizvod (M2) — cena i alotman se čitaju uživo iz M3, nikad duplirani na proizvodu.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m3">RateLine.price + age_pricing[] + PricelistOffer</span><span class="dep-arrow">→ M5 dodaje MarkupRule →</span><span class="dep-node m5">Prodajna cena gostu/subagentu</span>
+          </div>
+          <div class="dep-label">Sve grane iz koraka ④–⑥ se sabiraju u M5 obračunu (van obima ove mape) pre nego što gost vidi konačnu cifru.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m3">RateLine.price × commission_model</span><span class="dep-arrow">→ generiše →</span><span class="dep-node m10">SupplierObligation (rok = payment_terms_days)</span>
+          </div>
+          <div class="dep-label">Ovde se commission_model iz koraka ② stvarno koristi — pogrešno postavljen NET/COMMISSIONABLE znači da agencija duguje pogrešan iznos, čak i kad je gost platio tačnu cenu.</div>
+
+          <div class="dep-row">
+            <span class="dep-node m3">CancellationRule (oba tipa)</span><span class="dep-arrow">→ koristi →</span><span class="dep-node m5">Obračun otkazivanja/skraćenja</span><span class="dep-arrow">→</span><span class="dep-node m10">Obračun povraćaja gostu</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑩ NEXT -->
+    <div class="gap" id="next">
+      <div class="ghead"><span class="tag">⑩ SLEDEĆI KRUG</span><h3>Ova mapa pokriva samo smeštaj</h3></div>
+      <p>Svi primeri korišćeni za ovu mapu (73 dokumenta, avgust 2026) su hoteli/vile/apartmani. Kad vlasnik dostavi primere cenovnika za ostale vrste turističkih proizvoda (prevoz, izleti/aktivnosti, osiguranje…), lanac odluka će verovatno deliti korake ②/⑤/⑥/⑦/⑧ (ugovor, otkazivanje, akcije, dodatni troškovi, takse su generički obrasci), ali će koraci ③/④ (period/alotman i osnova cene) dobiti svoju granu specifičnu za taj tip proizvoda — dopunjuje se ova ista mapa novom sekcijom, ne pravi se od nule.</p>
+    </div>
+
+  </div>
+</main>
