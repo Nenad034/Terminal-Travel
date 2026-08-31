@@ -4,6 +4,9 @@ import RegisterTab from '@/components/RegisterTab';
 import { Badge } from '@/components/ui/badge';
 import RateLinesPanel, { type RateLine } from './RateLinesPanel';
 import CancellationRulesPanel, { type CancellationRule } from './CancellationRulesPanel';
+import OffersPanel, { type PricelistOffer } from './OffersPanel';
+import AncillaryServicesPanel, { type AncillaryService } from './AncillaryServicesPanel';
+import TouristTaxPanel, { type TouristTaxInfo } from './TouristTaxPanel';
 
 
 type AllotmentMode = 'FIXED' | 'ON_REQUEST' | 'CHARTER' | 'FIXED_LEASE';
@@ -28,8 +31,13 @@ interface ContractPeriodDetail {
   ukupnaFiksnaObaveza: number | null;
   fixedObligationCurrency: string | null;
   agePolicyOverride: AgePolicyOverrideEntry[] | null;
+  minStayNights: number | null;
+  maxStayNights: number | null;
   rateLines: RateLine[];
   cancellationRules: CancellationRule[];
+  offers: PricelistOffer[];
+  ancillaryServices: AncillaryService[];
+  touristTaxInfo: TouristTaxInfo | null;
 }
 
 const MODE_LABELS: Record<AllotmentMode, string> = { FIXED: 'Fiksni alotman', ON_REQUEST: 'Na upit', CHARTER: 'Čarter', FIXED_LEASE: 'Fiksni zakup' };
@@ -83,6 +91,16 @@ export default async function ContractPeriodDetailPage(props: { params: Promise<
               <dd className="mt-0.5 text-ink">{period.releaseDaysBefore} dana pre stay_from</dd>
             </div>
           )}
+          {(period.minStayNights != null || period.maxStayNights != null) && (
+            <div>
+              <dt className="text-ink-faint">Broj noćenja</dt>
+              <dd className="mt-0.5 text-ink">
+                {period.minStayNights != null ? `min ${period.minStayNights}` : ''}
+                {period.minStayNights != null && period.maxStayNights != null ? ' · ' : ''}
+                {period.maxStayNights != null ? `max ${period.maxStayNights}` : ''}
+              </dd>
+            </div>
+          )}
           {period.ukupnaFiksnaObaveza != null && (
             <div>
               <dt className="text-ink-faint">Ukupna fiksna obaveza</dt>
@@ -110,6 +128,9 @@ export default async function ContractPeriodDetailPage(props: { params: Promise<
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <RateLinesPanel contractId={params.id} periodId={params.periodId} rateLines={period.rateLines} canEdit={canEdit} />
         <CancellationRulesPanel contractId={params.id} periodId={params.periodId} rules={period.cancellationRules} canEdit={canEdit} />
+        <OffersPanel contractId={params.id} periodId={params.periodId} offers={period.offers} canEdit={canEdit} />
+        <AncillaryServicesPanel contractId={params.id} periodId={params.periodId} services={period.ancillaryServices} canEdit={canEdit} />
+        <TouristTaxPanel contractId={params.id} periodId={params.periodId} taxInfo={period.touristTaxInfo} canEdit={canEdit} />
       </div>
     </div>
   );

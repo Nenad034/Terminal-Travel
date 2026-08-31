@@ -33,6 +33,8 @@ export interface ContractPeriod {
   totalCapacity: number | null;
   unitsSold: number;
   releaseDaysBefore: number | null;
+  minStayNights: number | null;
+  maxStayNights: number | null;
 }
 
 const MODE_LABELS: Record<AllotmentMode, string> = { FIXED: 'Fiksni alotman', ON_REQUEST: 'Na upit', CHARTER: 'Čarter', FIXED_LEASE: 'Fiksni zakup' };
@@ -130,6 +132,15 @@ function NewPeriodForm({ contractId }: { contractId: string }) {
           <input name="releaseDaysBefore" type="number" min={0} className="input w-32" />
         </Field>
       )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Minimalan broj noćenja (opciono, M3 spec §2.3)">
+          <input name="minStayNights" type="number" min={1} className="input w-32" />
+        </Field>
+        <Field label="Maksimalan broj noćenja (opciono, M3 spec §2.3)">
+          <input name="maxStayNights" type="number" min={1} className="input w-32" />
+        </Field>
+      </div>
 
       {(mode === 'CHARTER' || mode === 'FIXED_LEASE') && (
         <div className="grid grid-cols-2 gap-3">

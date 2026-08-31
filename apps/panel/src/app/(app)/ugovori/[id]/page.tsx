@@ -16,6 +16,8 @@ interface Contract {
   cancellationTermsSummary: string;
   documentUrl: string;
   defaultTipNastupanja: string | null;
+  commissionModel: 'NET' | 'COMMISSIONABLE' | null;
+  commissionPercentage: number | null;
   periods: ContractPeriod[];
 }
 
@@ -67,6 +69,16 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
           <div>
             <dt className="text-ink-faint">Podrazumevani tip nastupanja</dt>
             <dd className="mt-0.5 text-ink">{contract.defaultTipNastupanja ?? '— nije postavljen (obavezno pre ACTIVE, M3 spec §2.2) —'}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-faint">Model provizije</dt>
+            <dd className="mt-0.5 text-ink">
+              {contract.commissionModel
+                ? contract.commissionModel === 'COMMISSIONABLE'
+                  ? `Proviziono${contract.commissionPercentage != null ? ` — ${contract.commissionPercentage}%` : ''}`
+                  : 'Neto'
+                : '— nije postavljen (obavezno pre ACTIVE, M3 spec §2.2b) —'}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-faint">Dokument ugovora</dt>
