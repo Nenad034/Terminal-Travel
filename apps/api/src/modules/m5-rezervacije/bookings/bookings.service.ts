@@ -74,6 +74,31 @@ export class BookingsService {
     return Boolean(match);
   }
 
+  // M5 spec §6.2/§6.6 dopuna (31.8.2026, Faza 8 IDOR pregled). Nalaz: ista provera vlasništva/
+  // zaduženja/franšizne granice iz `findOne` NIJE bila primenjena u `cancel`/`modify`/
+  // `updatePaymentStatus`/`voucherOverride`/`assignGuide` — te metode su rezervaciju/stavku
+  // učitavale direktno po ID-u bez ikakve provere konteksta, pa je gost/subagent/Prodajni agent
+  // bez VIEW_ALL mogao pogađanjem/enumeracijom ID-a da izmeni/otkaže TUĐU rezervaciju. Izvučeno
+  // u deljeni proverivač da svaki put koji menja stanje rezervacije prođe kroz isto pravilo.
+  private async assertBookingAccessible(booking: { clientAccountId: string; franchiseSubagentId: string | null; ownerId: string | null; assignedToId: string | null }, actorUserId: string): Promise<void> {
+    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actorUserId);
+    if (context !== 'INTERNAL_PANEL') {
+      if (booking.clientAccountId !== ownClientAccountId) {
+        // Ne otkrivati postojanje tuđe rezervacije — ista "ne otkrivati" filozofija
+        // kao M1 requestPasswordReset (ne kaže da li email postoji).
+        throw new NotFoundException('Rezervacija nije pronađena.');
+      }
+      return;
+    }
+    if (franchiseSubagentId && booking.franchiseSubagentId !== franchiseSubagentId) {
+      throw new NotFoundException('Rezervacija nije pronađena.');
+    }
+    const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW_ALL');
+    if (!hasViewAll && booking.ownerId !== actorUserId && booking.assignedToId !== actorUserId) {
+      throw new NotFoundException('Rezervacija nije pronađena.');
+    }
+  }
+
   // ==========================================================================
   // M5 spec §4 — Quote → Booking
   // ==========================================================================
@@ -521,25 +546,10 @@ export class BookingsService {
   }
 
   async findOne(id: string, actorUserId: string) {
-    const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actorUserId);
+    const { context } = await this.resolveApiContext(actorUserId);
     const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true } });
     if (!booking) throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
-    if (context !== 'INTERNAL_PANEL' && booking.clientAccountId !== ownClientAccountId) {
-      // Ne otkrivati postojanje tuđe rezervacije — ista "ne otkrivati" filozofija
-      // kao M1 requestPasswordReset (ne kaže da li email postoji).
-      throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
-    }
-    if (context === 'INTERNAL_PANEL') {
-      // M5 spec §6.6 (31.8.2026) — franšizna granica uvek važi; van nje, sužavanje na
-      // vlasništvo/zaduženje samo kad korisnik nema M5/booking/VIEW_ALL.
-      if (franchiseSubagentId && booking.franchiseSubagentId !== franchiseSubagentId) {
-        throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
-      }
-      const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW_ALL');
-      if (!hasViewAll && booking.ownerId !== actorUserId && booking.assignedToId !== actorUserId) {
-        throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
-      }
-    }
+    await this.assertBookingAccessible(booking, actorUserId);
     const { serializeBooking } = await import('./booking-visibility');
     return serializeBooking(booking as any, context);
   }
@@ -766,6 +776,7 @@ export class BookingsService {
   async cancel(bookingId: string, dto: CancelBookingDto, actor: { userId: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
 
     const targetItems = booking.items.filter(
       (i) => (dto.itemIds ? dto.itemIds.includes(i.id) : true) && i.itemStatus !== 'CANCELLED',
@@ -892,6 +903,7 @@ export class BookingsService {
   async modify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
     const oldItem = booking.items.find((i) => i.id === dto.bookingItemId);
     if (!oldItem) throw new NotFoundException(`Stavka ${dto.bookingItemId} ne pripada rezervaciji ${bookingId}.`);
     if (oldItem.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je već otkazana.');
@@ -989,6 +1001,7 @@ export class BookingsService {
   async updatePaymentStatus(bookingId: string, paymentStatus: PaymentStatus, actor: { userId: string }) {
     const before = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!before) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(before, actor.userId);
 
     const updated = await this.prisma.booking.update({ where: { id: bookingId }, data: { paymentStatus } });
 
@@ -1041,6 +1054,7 @@ export class BookingsService {
   async voucherOverride(bookingId: string, reason: string, actor: { userId: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
 
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
@@ -1072,6 +1086,8 @@ export class BookingsService {
   async assignGuide(bookingItemId: string, assignedGuideId: string | null, actor: { userId: string }) {
     const before = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
     if (!before) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: before.bookingId } });
+    await this.assertBookingAccessible(parentBooking, actor.userId);
 
     const updated = await this.prisma.bookingItem.update({
       where: { id: bookingItemId },

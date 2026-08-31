@@ -8,8 +8,8 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       product: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
-      booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-      bookingItem: { findMany: jest.fn(), update: jest.fn(), count: jest.fn() },
+      booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+      bookingItem: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
       bookingItemGuest: { findMany: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
@@ -494,6 +494,89 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(prisma.booking.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ franchiseSubagentId: 'subagent-fr-1' }) }),
       );
+    });
+  });
+
+  // Faza 8 IDOR pregled (31.8.2026). Nalaz: `cancel`/`modify`/`updatePaymentStatus`/
+  // `voucherOverride`/`assignGuide` učitavali su rezervaciju/stavku direktno po ID-u bez ikakve
+  // provere konteksta — samo `findOne` je proveravao vlasništvo/zaduženje. Gost/sužen STAFF je
+  // mogao pogađanjem ID-a da izmeni/otkaže TUĐU rezervaciju. Ispravljeno deljenim proverivačem
+  // `assertBookingAccessible`, ovde se proverava da svaka od tih metoda sada odbija tuđu rezervaciju.
+  describe('cancel/modify/updatePaymentStatus/voucherOverride/assignGuide — IDOR ispravka (31.8.2026)', () => {
+    it('gost NE može da otkaže tuđu rezervaciju — vraća 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj', items: [] });
+
+      await expect(service.cancel('b1', {}, { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('gost NE može da izmeni stavku tuđe rezervacije — vraća 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj', items: [] });
+
+      await expect(service.modify('b1', { bookingItemId: 'item-1' } as any, { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+    });
+
+    it('gost NE može da promeni status plaćanja tuđe rezervacije — vraća 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj' });
+
+      await expect(service.updatePaymentStatus('b1', 'PAID' as any, { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('gost NE može da izdejstvuje voucher override na tuđoj rezervaciji — vraća 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj' });
+
+      await expect(service.voucherOverride('b1', 'razlog', { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+
+    it('sužen STAFF (bez VIEW_ALL, nije vlasnik ni zadužen) NE može da dodeli vodiča na stavci tuđe rezervacije — vraća 404', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1', assignedGuideId: null });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi' });
+      permissions.hasPermission.mockResolvedValue(false);
+
+      await expect(service.assignGuide('item-1', 'guide-1', { userId: 'staff-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.bookingItem.update).not.toHaveBeenCalled();
+    });
+
+    it('sužen STAFF I DALJE može da otkaže rezervaciju gde je zadužen (assigned_to_id)', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      const item = {
+        id: 'item-1',
+        bookingId: 'b1',
+        productId: 'p1',
+        sourceType: 'CONTRACTED',
+        rateLineId: 'rl1',
+        itemStatus: 'CONFIRMED',
+        unitCount: 1,
+        stayFrom: new Date(Date.now() + 40 * 86_400_000),
+        stayTo: new Date(Date.now() + 45 * 86_400_000),
+      };
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        ownerId: 'neko-drugi',
+        assignedToId: 'staff-1',
+        items: [item],
+      });
+      prisma.bookingItemGuest.findMany.mockResolvedValue([]);
+      prisma.rateLine.findUnique.mockResolvedValue({ contractPeriodId: 'period-1', contractPeriod: { cancellationRules: [] } });
+      prisma.bookingItem.count.mockResolvedValue(0);
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+      permissions.hasPermission.mockResolvedValue(false);
+
+      await expect(service.cancel('b1', {}, { userId: 'staff-1' })).resolves.toBeDefined();
     });
   });
 
