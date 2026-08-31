@@ -30,6 +30,8 @@ export class ContractsService {
         cancellationTermsSummary: dto.cancellationTermsSummary,
         documentUrl: dto.documentUrl,
         defaultTipNastupanja: dto.defaultTipNastupanja,
+        commissionModel: dto.commissionModel,
+        commissionPercentage: dto.commissionPercentage,
         status: 'DRAFT',
         createdBy: actorId,
       },
@@ -48,6 +50,7 @@ export class ContractsService {
   }
 
   // M3 spec §2.2 — "default_tip_nastupanja obavezno pre nego što Contract može preći u ACTIVE".
+  // §2.2b dopuna v1.12 — isto sprovođenje za commission_model.
   async update(id: string, dto: UpdateContractDto, actorId: string) {
     const before = await this.prisma.contract.findUniqueOrThrow({ where: { id } });
 
@@ -56,6 +59,13 @@ export class ContractsService {
       if (!effectiveTip) {
         throw new BadRequestException(
           'Ugovor ne može preći u ACTIVE bez popunjenog default_tip_nastupanja (M3 spec §2.2)',
+        );
+      }
+
+      const effectiveCommissionModel = dto.commissionModel ?? before.commissionModel;
+      if (!effectiveCommissionModel) {
+        throw new BadRequestException(
+          'Ugovor ne može preći u ACTIVE bez popunjenog commission_model (M3 spec §2.2b)',
         );
       }
     }

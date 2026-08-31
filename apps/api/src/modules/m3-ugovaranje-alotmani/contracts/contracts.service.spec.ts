@@ -48,6 +48,7 @@ describe('ContractsService (M3 spec §2.2/§2.2a)', () => {
         id: 'c1',
         status: 'DRAFT',
         defaultTipNastupanja: 'ORGANIZATOR',
+        commissionModel: 'NET',
       });
       prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'ACTIVE' });
 
@@ -57,7 +58,7 @@ describe('ContractsService (M3 spec §2.2/§2.2a)', () => {
 
     it('dozvoljava prelaz u ACTIVE kad se defaultTipNastupanja postavlja u istom zahtevu', async () => {
       const { service, prisma } = makeService();
-      prisma.contract.findUniqueOrThrow.mockResolvedValue({ id: 'c1', status: 'DRAFT', defaultTipNastupanja: null });
+      prisma.contract.findUniqueOrThrow.mockResolvedValue({ id: 'c1', status: 'DRAFT', defaultTipNastupanja: null, commissionModel: 'NET' });
       prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'ACTIVE', defaultTipNastupanja: 'POSREDNIK' });
 
       const result = await service.update(
@@ -82,6 +83,53 @@ describe('ContractsService (M3 spec §2.2/§2.2a)', () => {
       prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'ACTIVE' });
 
       await expect(service.update('c1', { status: 'ACTIVE' as any }, 'actor-1')).resolves.toBeDefined();
+    });
+  });
+
+  describe('update — commission_model gejt pre ACTIVE (§2.2b, dopuna v1.12)', () => {
+    it('odbija prelaz u ACTIVE bez commissionModel (defaultTipNastupanja je popunjen, ali commissionModel nije)', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findUniqueOrThrow.mockResolvedValue({
+        id: 'c1',
+        status: 'DRAFT',
+        defaultTipNastupanja: 'ORGANIZATOR',
+        commissionModel: null,
+      });
+
+      await expect(service.update('c1', { status: 'ACTIVE' as any }, 'actor-1')).rejects.toThrow(BadRequestException);
+      expect(prisma.contract.update).not.toHaveBeenCalled();
+    });
+
+    it('dozvoljava prelaz u ACTIVE kad je commissionModel već postavljen na ugovoru', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findUniqueOrThrow.mockResolvedValue({
+        id: 'c1',
+        status: 'DRAFT',
+        defaultTipNastupanja: 'ORGANIZATOR',
+        commissionModel: 'NET',
+      });
+      prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'ACTIVE' });
+
+      const result = await service.update('c1', { status: 'ACTIVE' as any }, 'actor-1');
+      expect(result.status).toBe('ACTIVE');
+    });
+
+    it('dozvoljava prelaz u ACTIVE kad se commissionModel postavlja u istom zahtevu', async () => {
+      const { service, prisma } = makeService();
+      prisma.contract.findUniqueOrThrow.mockResolvedValue({
+        id: 'c1',
+        status: 'DRAFT',
+        defaultTipNastupanja: 'ORGANIZATOR',
+        commissionModel: null,
+      });
+      prisma.contract.update.mockResolvedValue({ id: 'c1', status: 'ACTIVE', commissionModel: 'COMMISSIONABLE' });
+
+      const result = await service.update(
+        'c1',
+        { status: 'ACTIVE' as any, defaultTipNastupanja: 'ORGANIZATOR' as any, commissionModel: 'COMMISSIONABLE' as any },
+        'actor-1',
+      );
+      expect(result.status).toBe('ACTIVE');
     });
   });
 });

@@ -6,6 +6,9 @@ import { EventBusService } from '../../../common/events/event-bus.service';
 import { CreateContractPeriodDto } from './dto/create-contract-period.dto';
 import { UpsertRateLineDto } from './dto/upsert-rate-line.dto';
 import { UpsertCancellationRuleDto } from './dto/upsert-cancellation-rule.dto';
+import { UpsertOfferDto } from './dto/upsert-offer.dto';
+import { UpsertAncillaryServiceDto } from './dto/upsert-ancillary-service.dto';
+import { UpsertTouristTaxDto } from './dto/upsert-tourist-tax.dto';
 import { assertNoContractPeriodOverlap } from './overlap';
 
 const CAPACITY_BEARING_MODES: AllotmentMode[] = ['FIXED', 'CHARTER', 'FIXED_LEASE'];
@@ -47,6 +50,8 @@ export class ContractPeriodsService {
         fixedObligationCurrency: dto.fixedObligationCurrency,
         paymentSchedule: dto.paymentSchedule as unknown as Prisma.InputJsonValue,
         agePolicyOverride: dto.agePolicyOverride as unknown as Prisma.InputJsonValue,
+        minStayNights: dto.minStayNights,
+        maxStayNights: dto.maxStayNights,
       },
     });
     await this.auditLog.write({
@@ -104,10 +109,18 @@ export class ContractPeriodsService {
     return this.prisma.rateLine.findMany({ where: { contractPeriodId: periodId }, include: { agePricing: true } });
   }
 
-  // §2.5
+  // §2.5 — dopuna v1.12: rule_type razdvaja PRE_ARRIVAL od EARLY_DEPARTURE (poglavlje 2.5)
   async upsertCancellationRule(periodId: string, dto: UpsertCancellationRuleDto, actorId: string) {
     const rule = await this.prisma.cancellationRule.create({
-      data: { contractPeriodId: periodId, daysBeforeStay: dto.daysBeforeStay, refundPercentage: dto.refundPercentage },
+      data: {
+        contractPeriodId: periodId,
+        ruleType: dto.ruleType ?? 'PRE_ARRIVAL',
+        daysBeforeStay: dto.daysBeforeStay,
+        refundPercentage: dto.refundPercentage,
+        earlyDepartureBasis: dto.earlyDepartureBasis,
+        earlyDeparturePercentage: dto.earlyDeparturePercentage,
+        earlyDepartureFlatAmount: dto.earlyDepartureFlatAmount,
+      },
     });
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -124,6 +137,111 @@ export class ContractPeriodsService {
 
   listCancellationRules(periodId: string) {
     return this.prisma.cancellationRule.findMany({ where: { contractPeriodId: periodId }, orderBy: { daysBeforeStay: 'desc' } });
+  }
+
+  // §2.4b — dopuna v1.12. PUT uvek KREIRA novi red (isti obrazac kao upsertRateLine).
+  async upsertOffer(periodId: string, dto: UpsertOfferDto, actorId: string) {
+    const offer = await this.prisma.pricelistOffer.create({
+      data: {
+        contractPeriodId: periodId,
+        offerType: dto.offerType,
+        bookingFrom: new Date(dto.bookingFrom),
+        bookingTo: new Date(dto.bookingTo),
+        discountType: dto.discountType,
+        discountPercentage: dto.discountPercentage,
+        discountAmount: dto.discountAmount,
+        stayNights: dto.stayNights,
+        payNights: dto.payNights,
+        depositPercentage: dto.depositPercentage,
+        depositDeadline: dto.depositDeadline ? new Date(dto.depositDeadline) : undefined,
+        minAge: dto.minAge,
+        maxAge: dto.maxAge,
+        validArrivalWeekdays: dto.validArrivalWeekdays ?? [],
+        excludedRoomTypes: dto.excludedRoomTypes ?? [],
+        combinableWithOtherOffers: dto.combinableWithOtherOffers ?? false,
+      },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'pricelist_offer.upserted',
+      resourceType: 'PricelistOffer',
+      resourceId: offer.id,
+      afterState: offer,
+      context: { periodId },
+    });
+    return offer;
+  }
+
+  listOffers(periodId: string) {
+    return this.prisma.pricelistOffer.findMany({ where: { contractPeriodId: periodId }, orderBy: { bookingFrom: 'asc' } });
+  }
+
+  // §2.6 — dopuna v1.12. PUT uvek KREIRA novi red (isti obrazac kao upsertRateLine).
+  async upsertAncillaryService(periodId: string, dto: UpsertAncillaryServiceDto, actorId: string) {
+    const service = await this.prisma.ancillaryService.create({
+      data: {
+        contractPeriodId: periodId,
+        name: dto.name,
+        pricingMode: dto.pricingMode,
+        flatAmount: dto.flatAmount,
+        percentageOfNightlyRate: dto.percentageOfNightlyRate,
+        unit: dto.unit,
+        isMandatory: dto.isMandatory ?? false,
+        isRefundable: dto.isRefundable ?? false,
+        maxQuantity: dto.maxQuantity,
+        notes: dto.notes,
+      },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'ancillary_service.upserted',
+      resourceType: 'AncillaryService',
+      resourceId: service.id,
+      afterState: service,
+      context: { periodId },
+    });
+    return service;
+  }
+
+  listAncillaryServices(periodId: string) {
+    return this.prisma.ancillaryService.findMany({ where: { contractPeriodId: periodId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  // §2.7 — dopuna v1.12. 1:1 po periodu — pravi Prisma `upsert`, ne "uvek kreiraj novi red"
+  // (za razliku od offers/ancillary-services, koji su liste). Isključivo informativno (ograda §2.7).
+  async upsertTouristTax(periodId: string, dto: UpsertTouristTaxDto, actorId: string) {
+    const data = {
+      includedInPrice: dto.includedInPrice,
+      collectedBy: dto.collectedBy,
+      amountPerNight: dto.amountPerNight,
+      currency: dto.currency,
+      taxExemptMaxAge: dto.taxExemptMaxAge,
+      notes: dto.notes,
+    };
+    const taxInfo = await this.prisma.touristTaxInfo.upsert({
+      where: { contractPeriodId: periodId },
+      create: { contractPeriodId: periodId, ...data },
+      update: data,
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M3',
+      action: 'tourist_tax_info.upserted',
+      resourceType: 'TouristTaxInfo',
+      resourceId: taxInfo.id,
+      afterState: taxInfo,
+      context: { periodId },
+    });
+    return taxInfo;
+  }
+
+  getTouristTax(periodId: string) {
+    return this.prisma.touristTaxInfo.findUnique({ where: { contractPeriodId: periodId } });
   }
 
   async availability(periodId: string) {

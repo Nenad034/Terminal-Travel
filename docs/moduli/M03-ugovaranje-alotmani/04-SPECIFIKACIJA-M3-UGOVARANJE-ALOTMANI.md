@@ -416,12 +416,12 @@ Prefiks: `/api/v1/contracting`
 - [ ] Upload testnog cenovnika sa uzrasnim tabelama rezultuje `PricelistImportRow` sa popunjenim `extracted_price_basis`/`extracted_age_pricing` kandidatima, ne samo osnovnim poljima (poglavlje 4.2.2). *(čeka AI provajdera, isto obrazloženje kao stavka o PDF/Excel uploadu iznad; model podataka i primena u `RateLineAgePricing` pri odobrenju su dokazani e2e testom)*
 - [ ] Prvi `PricelistImport` za novog dobavljača kreira `SupplierExtractionProfile` tek posle prvog `CONFIRMED` reda; drugi uvoz od istog dobavljača, sa istom strukturom dokumenta, ima viši prosečan `match_confidence` od prvog (poglavlje 4.2.5). *(prva polovina dokazana e2e testom — profil se kreira/ažurira pri odobrenju; druga polovina, da profil podiže `match_confidence` sledećeg uvoza, deo je same ekstrakcije i čeka AI provajdera)*
 - [ ] Test: uvoz od dobavljača sa postojećim profilom, ali sa dokumentom čija se `structure_signature` ne poklapa — profil se ne primenjuje, uvoz ide sa uobičajenom pouzdanošću i vidljivom napomenom da profil nije iskorišćen.
-- [ ] Dopuna v1.12 (talas 1): `Contract` ne može preći u `ACTIVE` bez popunjenog `commission_model` (poglavlje 2.2b), isto sprovođenje kao `default_tip_nastupanja`.
-- [ ] Dopuna v1.12: moguće je kreirati `ContractPeriod` sa `min_stay_nights`/`max_stay_nights` (poglavlje 2.3) i pročitati ih preko API-ja.
-- [ ] Dopuna v1.12: moguće je kreirati `PricelistOffer` tipa `EARLY_BOOKING` i `FREE_NIGHTS` za period (poglavlje 2.4b), sa ispravnim čuvanjem `booking_from/booking_to` odvojeno od `stay_from/stay_to`.
-- [ ] Dopuna v1.12: moguće je kreirati `CancellationRule` sa `rule_type = EARLY_DEPARTURE` nezavisno od postojećih `PRE_ARRIVAL` pravila istog perioda (poglavlje 2.5).
-- [ ] Dopuna v1.12: moguće je kreirati `AncillaryService` sa oba `pricing_mode` (`FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`, poglavlje 2.6).
-- [ ] Dopuna v1.12: moguće je kreirati `TouristTaxInfo` za period (poglavlje 2.7); potvrđeno testom da nijedan M10/M11 endpoint ne čita ovo polje kao osnovu za fakturisanje/prijavu.
+- [x] Dopuna v1.12 (talas 1): `Contract` ne može preći u `ACTIVE` bez popunjenog `commission_model` (poglavlje 2.2b), isto sprovođenje kao `default_tip_nastupanja`. *(dokazano unit + e2e testom, 31.8.2026)*
+- [x] Dopuna v1.12: moguće je kreirati `ContractPeriod` sa `min_stay_nights`/`max_stay_nights` (poglavlje 2.3) i pročitati ih preko API-ja. *(dokazano e2e testom, 31.8.2026)*
+- [x] Dopuna v1.12: moguće je kreirati `PricelistOffer` tipa `EARLY_BOOKING` i `FREE_NIGHTS` za period (poglavlje 2.4b), sa ispravnim čuvanjem `booking_from/booking_to` odvojeno od `stay_from/stay_to`. *(dokazano unit + e2e testom, 31.8.2026)*
+- [x] Dopuna v1.12: moguće je kreirati `CancellationRule` sa `rule_type = EARLY_DEPARTURE` nezavisno od postojećih `PRE_ARRIVAL` pravila istog perioda (poglavlje 2.5). *(dokazano e2e testom, 31.8.2026)*
+- [x] Dopuna v1.12: moguće je kreirati `AncillaryService` sa oba `pricing_mode` (`FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`, poglavlje 2.6). *(dokazano unit + e2e testom, 31.8.2026)*
+- [x] Dopuna v1.12: moguće je kreirati `TouristTaxInfo` za period (poglavlje 2.7); potvrđeno testom da nijedan M10/M11 endpoint ne čita ovo polje kao osnovu za fakturisanje/prijavu. *(dokazano unit + e2e testom, 31.8.2026 — potvrđeno grep-om da nijedan M10/M11 endpoint ne referencira touristTaxInfo/TouristTaxInfo)*
 
 ---
 

@@ -490,6 +490,9 @@ model Contract {
   paymentTermsDays         Int?             @map("payment_terms_days")
   status                   ContractStatus   @default(DRAFT)
   defaultTipNastupanja     TipNastupanja?   @map("default_tip_nastupanja") // §2.2a — obavezno pre ACTIVE
+  // §2.2b dopuna v1.12 — obavezno pre ACTIVE (isto sprovođenje kao defaultTipNastupanja).
+  commissionModel          CommissionModel? @map("commission_model")
+  commissionPercentage     Decimal?         @map("commission_percentage") // samo COMMISSIONABLE
   createdAt                DateTime         @default(now()) @map("created_at")
   updatedAt                DateTime         @updatedAt @map("updated_at")
   createdBy                String?          @map("created_by")
@@ -519,6 +522,12 @@ enum TipNastupanja {
   POSREDNIK
 }
 
+// §2.2b dopuna v1.12
+enum CommissionModel {
+  NET
+  COMMISSIONABLE
+}
+
 // §2.3 `ContractPeriod` — sezona/period unutar ugovora
 model ContractPeriod {
   id                      String        @id @default(uuid())
@@ -534,12 +543,19 @@ model ContractPeriod {
   fixedObligationCurrency String?       @map("fixed_obligation_currency")
   paymentSchedule         Json?         @map("payment_schedule") // samo FIXED_LEASE — niz {due_date, amount}
   agePolicyOverride       Json?         @map("age_policy_override") // M3 spec §2.3c — izuzetak od M2 room_types[].age_policy[] SAMO za ovaj cenovnik/period, isti oblik niza; null = koristi se M2 politika sobe
+  // §2.3 dopuna v1.12 — minimalan/maksimalan broj noćenja za ovu cenu/period; null = bez ograničenja.
+  minStayNights           Int?          @map("min_stay_nights")
+  maxStayNights           Int?          @map("max_stay_nights")
   createdAt               DateTime      @default(now()) @map("created_at")
   updatedAt               DateTime      @updatedAt @map("updated_at")
 
   contract          Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   rateLines         RateLine[]
   cancellationRules CancellationRule[]
+  // §2.4b/§2.6/§2.7 dopuna v1.12
+  offers             PricelistOffer[]
+  ancillaryServices  AncillaryService[]
+  touristTaxInfo     TouristTaxInfo?
   // M5 spec §8.1 — dopuna avgust 2026, back-relacija ka operativnim listama.
   supplierManifests SupplierManifest[]
 
@@ -608,15 +624,128 @@ enum AgePricingMode {
 }
 
 // §2.5 `CancellationRule` — pravila otkazivanja po periodu
+// dopuna v1.12 — rule_type razdvaja PRE_ARRIVAL (postojeća polja, sad opciona) od
+// EARLY_DEPARTURE (nova polja); tačno jedan skup je popunjen zavisno od rule_type,
+// sprovedeno u DTO-u preko @ValidateIf, ne na nivou baze.
 model CancellationRule {
-  id               String @id @default(uuid())
-  contractPeriodId String @map("contract_period_id")
-  daysBeforeStay   Int    @map("days_before_stay")
-  refundPercentage Int    @map("refund_percentage") // 0-100, NIJE novčani iznos
+  id                       String                @id @default(uuid())
+  contractPeriodId         String                @map("contract_period_id")
+  ruleType                 CancellationRuleType  @default(PRE_ARRIVAL) @map("rule_type")
+  daysBeforeStay           Int?                  @map("days_before_stay") // samo PRE_ARRIVAL
+  refundPercentage         Int?                  @map("refund_percentage") // samo PRE_ARRIVAL, 0-100, NIJE novčani iznos
+  earlyDepartureBasis      EarlyDepartureBasis?  @map("early_departure_basis") // samo EARLY_DEPARTURE
+  earlyDeparturePercentage Int?                  @map("early_departure_percentage") // samo PERCENTAGE_OF_REMAINING_STAY, 0-100
+  earlyDepartureFlatAmount Int?                  @map("early_departure_flat_amount") // samo FLAT_AMOUNT, najmanja jedinica valute
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
   @@map("cancellation_rules")
+}
+
+enum CancellationRuleType {
+  PRE_ARRIVAL
+  EARLY_DEPARTURE
+}
+
+enum EarlyDepartureBasis {
+  PERCENTAGE_OF_REMAINING_STAY
+  FLAT_AMOUNT
+}
+
+// §2.4b `PricelistOffer` — rana rezervacija/free-nights akcije, dopuna v1.12
+model PricelistOffer {
+  id                       String              @id @default(uuid())
+  contractPeriodId         String              @map("contract_period_id")
+  offerType                PricelistOfferType  @map("offer_type")
+  bookingFrom              DateTime            @map("booking_from")
+  bookingTo                DateTime            @map("booking_to")
+  discountType             OfferDiscountType?  @map("discount_type") // samo EARLY_BOOKING
+  discountPercentage       Decimal?            @map("discount_percentage") // samo discountType = PERCENTAGE
+  discountAmount           Int?                @map("discount_amount") // samo discountType = FIXED_AMOUNT, najmanja jedinica valute
+  stayNights               Int?                @map("stay_nights") // samo FREE_NIGHTS
+  payNights                Int?                @map("pay_nights") // samo FREE_NIGHTS, mora biti < stayNights
+  depositPercentage        Decimal?            @map("deposit_percentage")
+  depositDeadline          DateTime?           @map("deposit_deadline")
+  minAge                   Decimal?            @map("min_age")
+  maxAge                   Decimal?            @map("max_age")
+  validArrivalWeekdays     Int[]               @map("valid_arrival_weekdays")
+  excludedRoomTypes        String[]            @map("excluded_room_types")
+  combinableWithOtherOffers Boolean            @default(false) @map("combinable_with_other_offers")
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@map("pricelist_offers")
+}
+
+enum PricelistOfferType {
+  EARLY_BOOKING
+  FREE_NIGHTS
+}
+
+enum OfferDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+// §2.6 `AncillaryService` — pomoćni troškovi/usluge po periodu, dopuna v1.12
+model AncillaryService {
+  id                       String                  @id @default(uuid())
+  contractPeriodId         String                  @map("contract_period_id")
+  name                     String
+  pricingMode              AncillaryPricingMode    @map("pricing_mode")
+  flatAmount               Int?                    @map("flat_amount") // samo FLAT_PER_UNIT, najmanja jedinica valute
+  percentageOfNightlyRate  Decimal?                @map("percentage_of_nightly_rate") // samo PERCENTAGE_OF_NIGHTLY_RATE
+  unit                     AncillaryUnit
+  isMandatory              Boolean                 @default(false) @map("is_mandatory")
+  isRefundable             Boolean                 @default(false) @map("is_refundable")
+  maxQuantity              Int?                    @map("max_quantity")
+  notes                    String?
+  createdAt                DateTime                @default(now()) @map("created_at")
+  updatedAt                DateTime                @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@map("ancillary_services")
+}
+
+enum AncillaryPricingMode {
+  FLAT_PER_UNIT
+  PERCENTAGE_OF_NIGHTLY_RATE
+}
+
+enum AncillaryUnit {
+  PER_STAY
+  PER_NIGHT
+  PER_DAY
+  PER_PERSON
+  PER_PET
+  PER_ROOM
+}
+
+// §2.7 `TouristTaxInfo` — isključivo informativan podatak, jedan po periodu (1:1); dopuna v1.12.
+// Ograda §2.7: nijedan M3/M10/M11 endpoint ne sme ovo koristiti kao osnovu za fakturisanje/prijavu.
+model TouristTaxInfo {
+  id               String               @id @default(uuid())
+  contractPeriodId String               @unique @map("contract_period_id")
+  includedInPrice  Boolean              @map("included_in_price")
+  collectedBy      TouristTaxCollectedBy? @map("collected_by") // samo kad includedInPrice = false
+  amountPerNight   Int?                 @map("amount_per_night")
+  currency         String?
+  taxExemptMaxAge  Decimal?             @map("tax_exempt_max_age")
+  notes            String?
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+
+  @@map("tourist_tax_info")
+}
+
+enum TouristTaxCollectedBy {
+  PAID_ON_SITE_BY_GUEST
+  INVOICED_TO_AGENCY
 }
 
 // §4.2.1 `PricelistImport`

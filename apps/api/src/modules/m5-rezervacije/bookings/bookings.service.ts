@@ -878,8 +878,10 @@ export class BookingsService {
 
     const rateLine = await this.prisma.rateLine.findUnique({ where: { id: item.rateLineId }, include: { contractPeriod: { include: { cancellationRules: true } } } });
     if (!rateLine) return null;
+    // M3 spec §2.5 dopuna v1.12 — cancellationRules sad sadrži i EARLY_DEPARTURE pravila
+    // (bez daysBeforeStay); ovaj obračun (otkazivanje pre dolaska) gleda isključivo PRE_ARRIVAL.
     const applicable = rateLine.contractPeriod.cancellationRules
-      .filter((r) => r.daysBeforeStay <= daysUntilStay)
+      .filter((r): r is typeof r & { daysBeforeStay: number; refundPercentage: number } => r.ruleType === 'PRE_ARRIVAL' && r.daysBeforeStay !== null && r.daysBeforeStay <= daysUntilStay)
       .sort((a, b) => b.daysBeforeStay - a.daysBeforeStay)[0];
     return applicable?.refundPercentage ?? 0;
   }

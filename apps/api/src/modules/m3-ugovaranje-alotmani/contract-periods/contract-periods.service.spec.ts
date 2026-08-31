@@ -7,6 +7,9 @@ describe('ContractPeriodsService', () => {
       contractPeriod: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn(), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), create: jest.fn() },
       rateLine: { create: jest.fn(), findMany: jest.fn() },
       cancellationRule: { create: jest.fn(), findMany: jest.fn() },
+      pricelistOffer: { create: jest.fn(), findMany: jest.fn() },
+      ancillaryService: { create: jest.fn(), findMany: jest.fn() },
+      touristTaxInfo: { upsert: jest.fn(), findUnique: jest.fn() },
       $queryRaw: jest.fn(),
     };
     const auditLog = { write: jest.fn() };
@@ -240,6 +243,142 @@ describe('ContractPeriodsService', () => {
 
       const result = await service.availability('p1');
       expect(result).toEqual({ allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 3, remaining: 7 });
+    });
+  });
+
+  describe('upsertOffer / listOffers (M3 spec §2.4b, dopuna v1.12)', () => {
+    it('kreira EARLY_BOOKING ponudu sa discount_type PERCENTAGE', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.pricelistOffer.create.mockResolvedValue({ id: 'o1' });
+
+      await service.upsertOffer(
+        'p1',
+        {
+          offerType: 'EARLY_BOOKING' as any,
+          bookingFrom: '2027-01-01',
+          bookingTo: '2027-03-31',
+          discountType: 'PERCENTAGE' as any,
+          discountPercentage: 15,
+        } as any,
+        'actor-1',
+      );
+
+      expect(prisma.pricelistOffer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ contractPeriodId: 'p1', offerType: 'EARLY_BOOKING', discountPercentage: 15 }),
+        }),
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'pricelist_offer.upserted' }));
+    });
+
+    it('kreira FREE_NIGHTS ponudu sa stay_nights/pay_nights', async () => {
+      const { service, prisma } = makeService();
+      prisma.pricelistOffer.create.mockResolvedValue({ id: 'o2' });
+
+      await service.upsertOffer(
+        'p1',
+        {
+          offerType: 'FREE_NIGHTS' as any,
+          bookingFrom: '2027-01-01',
+          bookingTo: '2027-03-31',
+          stayNights: 6,
+          payNights: 5,
+        } as any,
+        'actor-1',
+      );
+
+      expect(prisma.pricelistOffer.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ stayNights: 6, payNights: 5 }) }),
+      );
+    });
+
+    it('listOffers vraća ponude perioda', async () => {
+      const { service, prisma } = makeService();
+      prisma.pricelistOffer.findMany.mockResolvedValue([{ id: 'o1' }]);
+
+      const result = await service.listOffers('p1');
+      expect(result).toEqual([{ id: 'o1' }]);
+      expect(prisma.pricelistOffer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { contractPeriodId: 'p1' } }),
+      );
+    });
+  });
+
+  describe('upsertAncillaryService / listAncillaryServices (M3 spec §2.6, dopuna v1.12)', () => {
+    it('kreira uslugu sa pricingMode FLAT_PER_UNIT', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.ancillaryService.create.mockResolvedValue({ id: 'a1' });
+
+      await service.upsertAncillaryService(
+        'p1',
+        { name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT' as any, flatAmount: 1000, unit: 'PER_STAY' as any } as any,
+        'actor-1',
+      );
+
+      expect(prisma.ancillaryService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ contractPeriodId: 'p1', name: 'Kućni ljubimac', flatAmount: 1000 }),
+        }),
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'ancillary_service.upserted' }));
+    });
+
+    it('kreira uslugu sa pricingMode PERCENTAGE_OF_NIGHTLY_RATE', async () => {
+      const { service, prisma } = makeService();
+      prisma.ancillaryService.create.mockResolvedValue({ id: 'a2' });
+
+      await service.upsertAncillaryService(
+        'p1',
+        {
+          name: 'Rani check-in',
+          pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE' as any,
+          percentageOfNightlyRate: 30,
+          unit: 'PER_STAY' as any,
+        } as any,
+        'actor-1',
+      );
+
+      expect(prisma.ancillaryService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ percentageOfNightlyRate: 30 }) }),
+      );
+    });
+
+    it('listAncillaryServices vraća usluge perioda', async () => {
+      const { service, prisma } = makeService();
+      prisma.ancillaryService.findMany.mockResolvedValue([{ id: 'a1' }]);
+
+      const result = await service.listAncillaryServices('p1');
+      expect(result).toEqual([{ id: 'a1' }]);
+    });
+  });
+
+  describe('upsertTouristTax / getTouristTax (M3 spec §2.7, dopuna v1.12)', () => {
+    it('koristi Prisma upsert (1:1 po periodu), ne "uvek kreiraj novi red"', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.touristTaxInfo.upsert.mockResolvedValue({ id: 't1', contractPeriodId: 'p1', includedInPrice: false });
+
+      await service.upsertTouristTax(
+        'p1',
+        { includedInPrice: false, collectedBy: 'PAID_ON_SITE_BY_GUEST' as any, amountPerNight: 200, currency: 'EUR' } as any,
+        'actor-1',
+      );
+
+      expect(prisma.touristTaxInfo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { contractPeriodId: 'p1' },
+          create: expect.objectContaining({ contractPeriodId: 'p1', includedInPrice: false }),
+          update: expect.objectContaining({ includedInPrice: false }),
+        }),
+      );
+      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'tourist_tax_info.upserted' }));
+    });
+
+    it('getTouristTax vraća null kad ne postoji zapis za period', async () => {
+      const { service, prisma } = makeService();
+      prisma.touristTaxInfo.findUnique.mockResolvedValue(null);
+
+      const result = await service.getTouristTax('p1');
+      expect(result).toBeNull();
     });
   });
 });

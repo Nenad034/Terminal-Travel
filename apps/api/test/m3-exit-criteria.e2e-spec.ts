@@ -42,6 +42,12 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
           await prisma.rateLineAgePricing.deleteMany({ where: { rateLine: { contractPeriodId: p.id } } });
           await prisma.rateLine.deleteMany({ where: { contractPeriodId: p.id } });
           await prisma.cancellationRule.deleteMany({ where: { contractPeriodId: p.id } });
+          // v1.12 dopuna — nova tabela su FK Cascade od ContractPeriod (onDelete: Cascade),
+          // explicit cleanup je i dalje bezbedan (idempotentan) i sprečava zavisnost od
+          // ponašanja cascade-a u testu ako se šema promeni.
+          await prisma.pricelistOffer.deleteMany({ where: { contractPeriodId: p.id } });
+          await prisma.ancillaryService.deleteMany({ where: { contractPeriodId: p.id } });
+          await prisma.touristTaxInfo.deleteMany({ where: { contractPeriodId: p.id } });
         }
         await prisma.contractPeriod.deleteMany({ where: { contractId: c.id } });
       }
@@ -392,10 +398,14 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
         .send({ status: 'ACTIVE' });
       expect(res.status).toBe(400);
 
+      // dopuna v1.12 (§2.2b) — od ove verzije ACTIVE zahteva i commission_model, ne samo
+      // default_tip_nastupanja; taj gejt ima sopstveni test niže ("commission_model gejt
+      // pre ACTIVE"), ovde se šalje da bi se stavka 13 (default_tip_nastupanja) i dalje
+      // mogla dokazati nezavisno.
       const res2 = await request(app.getHttpServer())
         .patch(`/api/v1/contracting/contracts/${contract.id}`)
         .set(authed(accessToken))
-        .send({ status: 'ACTIVE', defaultTipNastupanja: 'ORGANIZATOR' });
+        .send({ status: 'ACTIVE', defaultTipNastupanja: 'ORGANIZATOR', commissionModel: 'NET' });
       expect(res2.status).toBe(200);
     });
   });
@@ -523,6 +533,219 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
 
       const periodCount = await prisma.contractPeriod.count({ where: { roomType: 'X' } });
       expect(periodCount).toBe(0);
+    });
+  });
+
+  describe('Dopuna v1.12 (talas 1) — commission_model gejt pre ACTIVE (§2.2b)', () => {
+    it('kreira Contract sa commission_model i dozvoljava prelaz u ACTIVE tek kad je popunjeno uz default_tip_nastupanja', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id, {
+        defaultTipNastupanja: 'ORGANIZATOR',
+        commissionModel: 'COMMISSIONABLE',
+        commissionPercentage: 5,
+      });
+      expect(contract.commissionModel).toBe('COMMISSIONABLE');
+      expect(Number(contract.commissionPercentage)).toBe(5);
+
+      const activateRes = await request(app.getHttpServer())
+        .patch(`/api/v1/contracting/contracts/${contract.id}`)
+        .set(authed(accessToken))
+        .send({ status: 'ACTIVE' });
+      expect(activateRes.status).toBe(200);
+    });
+
+    it('odbija prelaz u ACTIVE kad default_tip_nastupanja postoji ali commission_model ne', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id, { defaultTipNastupanja: 'ORGANIZATOR' });
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/contracting/contracts/${contract.id}`)
+        .set(authed(accessToken))
+        .send({ status: 'ACTIVE' });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('Dopuna v1.12 — ContractPeriod.min_stay_nights/max_stay_nights (§2.3)', () => {
+    it('kreira period sa min_stay_nights/max_stay_nights i čita ih preko API-ja', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-31',
+          roomType: 'MIN_MAX_STAY_TEST',
+          allotmentMode: 'ON_REQUEST',
+          minStayNights: 3,
+          maxStayNights: 14,
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.minStayNights).toBe(3);
+      expect(res.body.maxStayNights).toBe(14);
+
+      const getRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${res.body.id}`)
+        .set(authed(accessToken));
+      expect(getRes.body.minStayNights).toBe(3);
+      expect(getRes.body.maxStayNights).toBe(14);
+    });
+  });
+
+  describe('Dopuna v1.12 — PricelistOffer EARLY_BOOKING i FREE_NIGHTS (§2.4b)', () => {
+    it('kreira EARLY_BOOKING ponudu sa booking_from/booking_to odvojenim od stay_from/stay_to', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodRes = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'OFFER_TEST', allotmentMode: 'ON_REQUEST' });
+      const periodId = periodRes.body.id;
+
+      const offerRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/offers`)
+        .set(authed(accessToken))
+        .send({
+          offerType: 'EARLY_BOOKING',
+          bookingFrom: '2027-01-01',
+          bookingTo: '2027-03-31',
+          discountType: 'PERCENTAGE',
+          discountPercentage: 15,
+        });
+      expect(offerRes.status).toBe(200);
+      expect(offerRes.body.bookingFrom).toContain('2027-01-01');
+      expect(offerRes.body.bookingTo).toContain('2027-03-31');
+
+      const freeNightsRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/offers`)
+        .set(authed(accessToken))
+        .send({ offerType: 'FREE_NIGHTS', bookingFrom: '2027-01-01', bookingTo: '2027-03-31', stayNights: 6, payNights: 5 });
+      expect(freeNightsRes.status).toBe(200);
+      expect(freeNightsRes.body.stayNights).toBe(6);
+      expect(freeNightsRes.body.payNights).toBe(5);
+
+      const listRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/offers`)
+        .set(authed(accessToken));
+      expect(listRes.body).toHaveLength(2);
+    });
+  });
+
+  describe('Dopuna v1.12 — CancellationRule rule_type EARLY_DEPARTURE nezavisno od PRE_ARRIVAL (§2.5)', () => {
+    it('kreira PRE_ARRIVAL i EARLY_DEPARTURE pravila za isti period, oba se čitaju', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodRes = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'CANCEL_RULE_TEST', allotmentMode: 'ON_REQUEST' });
+      const periodId = periodRes.body.id;
+
+      const preArrivalRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/cancellation-rules`)
+        .set(authed(accessToken))
+        .send({ ruleType: 'PRE_ARRIVAL', daysBeforeStay: 30, refundPercentage: 100 });
+      expect(preArrivalRes.status).toBe(200);
+      expect(preArrivalRes.body.ruleType).toBe('PRE_ARRIVAL');
+
+      const earlyDepartureRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/cancellation-rules`)
+        .set(authed(accessToken))
+        .send({ ruleType: 'EARLY_DEPARTURE', earlyDepartureBasis: 'PERCENTAGE_OF_REMAINING_STAY', earlyDeparturePercentage: 100 });
+      expect(earlyDepartureRes.status).toBe(200);
+      expect(earlyDepartureRes.body.ruleType).toBe('EARLY_DEPARTURE');
+      expect(earlyDepartureRes.body.daysBeforeStay).toBeNull();
+
+      const listRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/cancellation-rules`)
+        .set(authed(accessToken));
+      expect(listRes.body).toHaveLength(2);
+      expect(listRes.body.map((r: { ruleType: string }) => r.ruleType).sort()).toEqual(['EARLY_DEPARTURE', 'PRE_ARRIVAL']);
+    });
+  });
+
+  describe('Dopuna v1.12 — AncillaryService oba pricing_mode (§2.6)', () => {
+    it('kreira uslugu FLAT_PER_UNIT i uslugu PERCENTAGE_OF_NIGHTLY_RATE', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodRes = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'ANCILLARY_TEST', allotmentMode: 'ON_REQUEST' });
+      const periodId = periodRes.body.id;
+
+      const flatRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
+        .set(authed(accessToken))
+        .send({ name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT', flatAmount: 1000, unit: 'PER_STAY', isMandatory: false });
+      expect(flatRes.status).toBe(200);
+      expect(flatRes.body.flatAmount).toBe(1000);
+
+      const percentageRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
+        .set(authed(accessToken))
+        .send({ name: 'Rani check-in', pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE', percentageOfNightlyRate: 30, unit: 'PER_STAY' });
+      expect(percentageRes.status).toBe(200);
+      expect(Number(percentageRes.body.percentageOfNightlyRate)).toBe(30);
+
+      const listRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
+        .set(authed(accessToken));
+      expect(listRes.body).toHaveLength(2);
+    });
+  });
+
+  describe('Dopuna v1.12 — TouristTaxInfo (§2.7)', () => {
+    it('kreira i čita TouristTaxInfo za period; nijedan M10/M11 endpoint ne postoji da bi ovo pročitao kao osnovu za fakturisanje', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const supplier = await createSupplier(accessToken);
+      const contract = await createContract(accessToken, supplier.id);
+      const periodRes = await request(app.getHttpServer())
+        .post(`/api/v1/contracting/contracts/${contract.id}/periods`)
+        .set(authed(accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-31', roomType: 'TOURIST_TAX_TEST', allotmentMode: 'ON_REQUEST' });
+      const periodId = periodRes.body.id;
+
+      const emptyRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/tourist-tax`)
+        .set(authed(accessToken));
+      expect(emptyRes.status).toBe(200);
+      // Nest ne piše telo odgovora za null/undefined handler rezultat (isNil provera u
+      // RouterResponseController) — supertest tad vraća prazan objekat, ne JSON `null`
+      // token; servisni sloj (contract-periods.service.spec.ts) direktno dokazuje da
+      // getTouristTax() vraća pravi `null` kad zapis ne postoji (M3 spec §6).
+      expect(emptyRes.body).toEqual({});
+
+      const upsertRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/tourist-tax`)
+        .set(authed(accessToken))
+        .send({ includedInPrice: false, collectedBy: 'PAID_ON_SITE_BY_GUEST', amountPerNight: 200, currency: 'EUR', taxExemptMaxAge: 11.99 });
+      expect(upsertRes.status).toBe(200);
+      expect(upsertRes.body.includedInPrice).toBe(false);
+      expect(upsertRes.body.collectedBy).toBe('PAID_ON_SITE_BY_GUEST');
+
+      // 1:1 semantika — drugi PUT ažurira isti zapis, ne kreira novi.
+      const secondUpsertRes = await request(app.getHttpServer())
+        .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/tourist-tax`)
+        .set(authed(accessToken))
+        .send({ includedInPrice: true });
+      expect(secondUpsertRes.status).toBe(200);
+      expect(secondUpsertRes.body.id).toBe(upsertRes.body.id);
+      expect(secondUpsertRes.body.includedInPrice).toBe(true);
+
+      const getRes = await request(app.getHttpServer())
+        .get(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/tourist-tax`)
+        .set(authed(accessToken));
+      expect(getRes.body.id).toBe(upsertRes.body.id);
+      expect(getRes.body.includedInPrice).toBe(true);
     });
   });
 });

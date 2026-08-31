@@ -80,4 +80,15 @@ export class CreateContractPeriodDto {
   @Type(() => AgePolicyOverrideEntryDto)
   @IsOptional()
   agePolicyOverride?: AgePolicyOverrideEntryDto[];
+
+  // M3 spec §2.3 dopuna v1.12 — minimalan/maksimalan broj noćenja; null/nepostavljeno = bez ograničenja.
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  minStayNights?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  maxStayNights?: number;
 }

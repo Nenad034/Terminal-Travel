@@ -4,6 +4,9 @@ import { ContractPeriodsService } from './contract-periods.service';
 import { CreateContractPeriodDto } from './dto/create-contract-period.dto';
 import { UpsertRateLineDto } from './dto/upsert-rate-line.dto';
 import { UpsertCancellationRuleDto } from './dto/upsert-cancellation-rule.dto';
+import { UpsertOfferDto } from './dto/upsert-offer.dto';
+import { UpsertAncillaryServiceDto } from './dto/upsert-ancillary-service.dto';
+import { UpsertTouristTaxDto } from './dto/upsert-tourist-tax.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -69,6 +72,57 @@ export class ContractPeriodsController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.periods.upsertCancellationRule(periodId, dto, actor.userId);
+  }
+
+  // M3 spec §2.4b/§6 — dopuna v1.12
+  @Get('contracts/:contractId/periods/:periodId/offers')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  listOffers(@Param('periodId') periodId: string) {
+    return this.periods.listOffers(periodId);
+  }
+
+  @Put('contracts/:contractId/periods/:periodId/offers')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  upsertOffer(
+    @Param('periodId') periodId: string,
+    @Body() dto: UpsertOfferDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.upsertOffer(periodId, dto, actor.userId);
+  }
+
+  // M3 spec §2.6/§6 — dopuna v1.12
+  @Get('contracts/:contractId/periods/:periodId/ancillary-services')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  listAncillaryServices(@Param('periodId') periodId: string) {
+    return this.periods.listAncillaryServices(periodId);
+  }
+
+  @Put('contracts/:contractId/periods/:periodId/ancillary-services')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  upsertAncillaryService(
+    @Param('periodId') periodId: string,
+    @Body() dto: UpsertAncillaryServiceDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.upsertAncillaryService(periodId, dto, actor.userId);
+  }
+
+  // M3 spec §2.7/§6 — dopuna v1.12, isključivo informativno
+  @Get('contracts/:contractId/periods/:periodId/tourist-tax')
+  @RequirePermission('M3', 'contract-period', 'VIEW')
+  getTouristTax(@Param('periodId') periodId: string) {
+    return this.periods.getTouristTax(periodId);
+  }
+
+  @Put('contracts/:contractId/periods/:periodId/tourist-tax')
+  @RequirePermission('M3', 'contract-period', 'EDIT')
+  upsertTouristTax(
+    @Param('periodId') periodId: string,
+    @Body() dto: UpsertTouristTaxDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.periods.upsertTouristTax(periodId, dto, actor.userId);
   }
 
   @Get('contracts/:contractId/periods/:periodId/availability')
