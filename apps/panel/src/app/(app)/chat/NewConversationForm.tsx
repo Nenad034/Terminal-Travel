@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { createConversation, FormState } from './actions';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ interface StaffUser {
 // M19/conversation/CREATE i backend vratio listu STAFF korisnika (page.tsx) — ako nema
 // M1/user/VIEW za listu, ova forma se ne renderuje uopšte (nema odakle birati učesnike).
 export default function NewConversationForm({ staffUsers }: { staffUsers: StaffUser[] }) {
-  const [state, formAction] = useFormState(createConversation, initialState);
+  const [state, formAction] = useActionState(createConversation, initialState);
   const [type, setType] = useState<'DIRECT' | 'GROUP'>('DIRECT');
   const [open, setOpen] = useState(false);
 

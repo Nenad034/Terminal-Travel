@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { overrideLoyaltyStatus, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -17,7 +18,7 @@ interface Tier {
 // nad automatski izračunatim nivoom (Vlasnik/Direktor, M6/loyalty-status/OVERRIDE).
 export default function LoyaltyOverrideForm({ clientAccountId, tiers }: { clientAccountId: string; tiers: Tier[] }) {
   const boundAction = overrideLoyaltyStatus.bind(null, clientAccountId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="mt-3 flex flex-col gap-2 border-t border-border pt-3">

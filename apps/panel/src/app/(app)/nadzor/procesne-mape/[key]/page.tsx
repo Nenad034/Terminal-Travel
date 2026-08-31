@@ -3,6 +3,7 @@ import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../../NadzorSubnav';
 import ProcessMapView from './ProcessMapView';
 
+
 interface ProcessMapNodeDefinition {
   id: string;
   label: string;
@@ -19,7 +20,8 @@ interface ProcessMapDefinition {
 // M18 spec §9a. Definicija (čvorovi + matchActions) se učitava jednom, server-side — samo
 // BROJEVI se osvežavaju uživo na klijentu (ProcessMapView.tsx, poll na 5s preko
 // /api/ops/process-maps/[key]/live).
-export default async function ProcessMapDetailPage({ params }: { params: { key: string } }) {
+export default async function ProcessMapDetailPage(props: { params: Promise<{ key: string }> }) {
+  const params = await props.params;
   let map: ProcessMapDefinition | null = null;
   let error: string | null = null;
   try {

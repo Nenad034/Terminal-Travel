@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface ArticleRow {
   id: string;
   subjectType: 'PRODUCT' | 'DESTINATION' | 'COUNTRY';
@@ -28,7 +29,10 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'ARCHIVED'];
 // API ne izlaže subjectType/status kao query filtere (§8 tabela — samo `lang`) — filtriranje ide
 // preko celog skupa na ovoj strani, isti obrazac kao M13 klijentsko sortiranje kad backend nema
 // poseban filter endpoint.
-export default async function ZnanjePage({ searchParams }: { searchParams: { subjectType?: string; status?: string } }) {
+export default async function ZnanjePage(
+  props: { searchParams: Promise<{ subjectType?: string; status?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M23', 'article', 'EDIT');
 

@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+
 interface RoleRow {
   id: string;
   name: string;

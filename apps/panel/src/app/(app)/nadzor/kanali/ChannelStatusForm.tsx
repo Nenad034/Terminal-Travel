@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateNotificationChannelStatus, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +10,7 @@ const initialState: FormState = { error: null };
 // M18 spec §3/§9 — PATCH /ops/notification-channels/:id, izmena statusa (ACTIVE/INACTIVE).
 export default function ChannelStatusForm({ id, status }: { id: string; status: string }) {
   const boundAction = updateNotificationChannelStatus.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex items-end gap-2 border-t border-border pt-2 text-[11px]">
       {state.error && <span className="text-danger">{state.error}</span>}

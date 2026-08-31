@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { upsertArticleTranslation, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -78,7 +79,7 @@ function TranslationForm({
   onDone: () => void;
 }) {
   const boundAction = upsertArticleTranslation.bind(null, articleId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="mt-2 flex flex-col gap-2 border-t border-border pt-3">

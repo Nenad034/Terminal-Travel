@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { researchArticle, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 
@@ -15,7 +16,7 @@ const SOURCE_TYPES = ['HOTEL_OFFICIAL_WEBSITE', 'HOTEL_SOCIAL_MEDIA', 'GOVERNMEN
 export default function ResearchForm({ articleId, revisionId }: { articleId: string; revisionId?: string }) {
   const [open, setOpen] = useState(false);
   const boundAction = researchArticle.bind(null, articleId, revisionId ?? null);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   if (!open) {
     return (

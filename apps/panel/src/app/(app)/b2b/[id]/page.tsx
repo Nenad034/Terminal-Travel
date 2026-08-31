@@ -9,6 +9,7 @@ import VolumeTiersPanel from './VolumeTiersPanel';
 import RebatesPanel from '../RebatesPanel';
 import { Badge } from '@/components/ui/badge';
 
+
 interface Subagent {
   id: string;
   clientAccountId: string;
@@ -74,7 +75,8 @@ interface CommissionRebate {
 // (§3/§3.1), mreža sub-subagenata (§6, samo uvid — upravljanje njome je posao roditeljskog
 // subagenta kroz sopstveni, još negrađeni portal, M7 spec §2.0.1 /b2b/moja-mreza — van obima
 // M17), rabati provizije (§3.2). Kompozicija sa M6 (naziv/kontakt naloga) — M17 spec §2.
-export default async function SubagentDetailPage({ params }: { params: { id: string } }) {
+export default async function SubagentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canEdit = hasPermission(me, 'M7', 'subagent', 'EDIT');
   const canApprove = hasPermission(me, 'M7', 'subagent', 'APPROVE');

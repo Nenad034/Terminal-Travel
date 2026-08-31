@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { approveTrendSuggestion, rejectTrendSuggestion, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -12,8 +13,8 @@ const initialState: FormState = { error: null };
 export default function TrendSuggestionActions({ id }: { id: string }) {
   const boundApprove = approveTrendSuggestion.bind(null, id);
   const boundReject = rejectTrendSuggestion.bind(null, id);
-  const [approveState, approveAction] = useFormState(boundApprove, initialState);
-  const [rejectState, rejectAction] = useFormState(boundReject, initialState);
+  const [approveState, approveAction] = useActionState(boundApprove, initialState);
+  const [rejectState, rejectAction] = useActionState(boundReject, initialState);
 
   return (
     <div className="flex items-center gap-2">

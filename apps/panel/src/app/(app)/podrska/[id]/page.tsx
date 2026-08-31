@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import TicketMessagesPanel from './TicketMessagesPanel';
 import TicketStatusForm from './TicketStatusForm';
 
+
 interface Ticket {
   id: string;
   ticketNumber: string;
@@ -35,7 +36,8 @@ interface TicketMessage {
 // M17 spec §4/§7 (Faza 5) — detalj tiketa: kontekst rezervacije uživo iz M5 (§7 izlazni
 // kriterijum, bez dupliranja podataka), zakonski rok reklamacije (§3.1), nit poruka i izmena
 // statusa/prioriteta/dodele/odluke o povraćaju (§6, M14/ticket/RESPOND).
-export default async function TicketDetailPage({ params }: { params: { id: string } }) {
+export default async function TicketDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canRespond = hasPermission(me, 'M14', 'ticket', 'RESPOND');
 

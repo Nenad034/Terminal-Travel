@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { addCancellationRule, FormState } from '../../../actions';
 import { Button } from '@/components/ui/button';
 
@@ -28,7 +29,7 @@ export default function CancellationRulesPanel({
 }) {
   const [showForm, setShowForm] = useState(false);
   const boundAction = addCancellationRule.bind(null, contractId, periodId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   const sorted = [...rules].sort((a, b) => b.daysBeforeStay - a.daysBeforeStay);
 

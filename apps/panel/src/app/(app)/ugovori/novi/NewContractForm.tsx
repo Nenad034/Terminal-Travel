@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createContract, FormState } from '../../dobavljaci/actions';
 import DateField from '@/components/DateField';
 
@@ -9,7 +10,7 @@ const CURRENCIES = ['EUR', 'RSD', 'USD'];
 const initialState: FormState = { error: null };
 
 export default function NewContractForm({ suppliers }: { suppliers: { id: string; name: string }[] }) {
-  const [state, formAction] = useFormState(createContract, initialState);
+  const [state, formAction] = useActionState(createContract, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

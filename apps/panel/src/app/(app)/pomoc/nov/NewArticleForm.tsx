@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createArticle, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -16,7 +17,7 @@ const AUDIENCE_LABELS: Record<string, string> = {
 // M21 spec §2.1/§6 — polja prate CreateHelpArticleDto. generated_by je uvek HUMAN kroz ovaj
 // ekran (AI nacrti nastaju isključivo kroz odobren HelpArticleSuggestion, §5.4).
 export default function NewArticleForm({ allowedAudience }: { allowedAudience: string[] }) {
-  const [state, formAction] = useFormState(createArticle, initialState);
+  const [state, formAction] = useActionState(createArticle, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

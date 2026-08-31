@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ClientContract {
   id: string;
   bookingId: string;
@@ -18,7 +19,8 @@ const STATUSES = ['', 'DRAFT', 'GENERATED', 'ACCEPTED', 'VOIDED'];
 
 // M17 spec §4/§7 (Faza 2) — "Ugovori sa klijentima", M20 §6 GET /client-contracts
 // (filtrirano po statusu — jedini filter koji API podržava jeftino).
-export default async function ClientContractsPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function ClientContractsPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M20', 'client-contract', 'VIEW');
 

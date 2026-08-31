@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import RateLinesPanel, { type RateLine } from './RateLinesPanel';
 import CancellationRulesPanel, { type CancellationRule } from './CancellationRulesPanel';
 
+
 type AllotmentMode = 'FIXED' | 'ON_REQUEST' | 'CHARTER' | 'FIXED_LEASE';
 
 interface AgePolicyOverrideEntry {
@@ -35,7 +36,8 @@ const MODE_LABELS: Record<AllotmentMode, string> = { FIXED: 'Fiksni alotman', ON
 
 // M3 spec §2.4/§2.4a/§2.5 — cenovne stavke i pravila otkazivanja po periodu, poslednji deo
 // gap-a "panel ekran za pojedinačan ugovor/period ne postoji" (backlog M3 sekcija, 28.8.2026).
-export default async function ContractPeriodDetailPage({ params }: { params: { id: string; periodId: string } }) {
+export default async function ContractPeriodDetailPage(props: { params: Promise<{ id: string; periodId: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 

@@ -9,6 +9,7 @@ import RegisterDaySummary from './RegisterDaySummary';
 import { computeRange, enumerateDates, extractFilters, filtersToQueryParams, todayIso, type CalendarView } from './calendar-utils';
 import { EMPTY_DAY_DETAIL, type DayDetail, type DaySummary } from './types';
 
+
 // M17 spec §4 (Faza 1) — "Kalendar rezervacija", M5 §7 calendar-summary/calendar/:date.
 // Rebuild 27.8.2026 (na zahtev vlasnika: "napraviti kao Google Calendar sa svim funkcijama
 // prilagođenim potrebama TT-a, dodati filtere koji postoje u Listi rezervacija") — tri prikaza
@@ -18,7 +19,10 @@ import { EMPTY_DAY_DETAIL, type DayDetail, type DaySummary } from './types';
 // 27.8.2026) — ovaj prolaz je čist pregled, promena datuma rezervacije i dalje ide kroz
 // postojeći tok izmene rezervacije, ne prevlačenjem u kalendaru (izmena datuma zahteva
 // ponovnu proveru kapaciteta/cene, veći, zaseban poduhvat).
-export default async function CalendarPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function CalendarPage(
+  props: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
+  const searchParams = await props.searchParams;
   const view = (typeof searchParams.view === 'string' && ['month', 'week', 'day'].includes(searchParams.view) ? searchParams.view : 'month') as CalendarView;
   const anchor = typeof searchParams.date === 'string' ? searchParams.date : todayIso();
   const filters = extractFilters(searchParams);

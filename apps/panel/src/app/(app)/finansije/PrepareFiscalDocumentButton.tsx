@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { prepareFiscalDocument, FormState } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ const initialState: FormState = { error: null };
 // rezervaciju već postoji, vraća baš njega umesto da pravi duplikat.
 export default function PrepareFiscalDocumentButton({ bookingId }: { bookingId: string }) {
   const boundAction = prepareFiscalDocument.bind(null, bookingId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-1">
       <SubmitButton />

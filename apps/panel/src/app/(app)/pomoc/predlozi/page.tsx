@@ -5,6 +5,7 @@ import ActorLabel from '@/components/ActorLabel';
 import HelpTabs from '../HelpTabs';
 import SuggestionActions from './SuggestionActions';
 
+
 interface Suggestion {
   id: string;
   basedOnQuestionIds: string[];

@@ -5,6 +5,7 @@ import NadzorSubnav from '../NadzorSubnav';
 import TrendSuggestionActions from './TrendSuggestionActions';
 import { Badge } from '@/components/ui/badge';
 
+
 interface TrendSuggestion {
   id: string;
   category: string;

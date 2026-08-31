@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateSubagent, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -18,7 +19,7 @@ interface Subagent {
 // isključivo kroz approve().
 export default function EditSubagentForm({ subagent }: { subagent: Subagent }) {
   const boundAction = updateSubagent.bind(null, subagent.id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">

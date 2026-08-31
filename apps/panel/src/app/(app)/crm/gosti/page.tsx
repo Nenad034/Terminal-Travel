@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { Button } from '@/components/ui/button';
 
+
 interface GuestProfile {
   id: string;
   fullName: string;
@@ -18,7 +19,8 @@ interface GuestProfile {
 }
 
 // M6 spec §2.2, §9 — GET /guest-profiles (opciono filtrirano po linkedClientAccountId).
-export default async function GuestProfilesPage({ searchParams }: { searchParams: { linkedClientAccountId?: string } }) {
+export default async function GuestProfilesPage(props: { searchParams: Promise<{ linkedClientAccountId?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M6', 'guest-profile', 'CREATE');
 

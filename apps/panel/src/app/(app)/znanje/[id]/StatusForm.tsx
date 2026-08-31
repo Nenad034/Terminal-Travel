@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateArticleStatus, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +14,7 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'ARCHIVED'];
 // PUBLISHED.
 export default function StatusForm({ id, status }: { id: string; status: string }) {
   const boundAction = updateArticleStatus.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex items-center gap-2">

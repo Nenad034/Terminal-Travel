@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 
+
 interface Supplier {
   id: string;
   name: string;

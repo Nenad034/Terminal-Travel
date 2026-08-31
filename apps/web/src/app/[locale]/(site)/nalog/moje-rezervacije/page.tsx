@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import { getSession } from '@/lib/session';
 import type { Booking } from '@/lib/types';
 
+
 // M5 spec §6.2 dopuna — GET /sales/bookings vraća samo sopstvene rezervacije za
 // account_type GUEST (ownership sprovodi BookingsService, ne ovaj kod).
 export default async function MyBookingsPage({ params }: { params: Promise<{ locale: string }> }) {

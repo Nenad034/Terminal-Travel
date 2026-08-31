@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicContent } from '@/lib/types';
 
+
 // M8 spec poglavlje 2/6 — blog članak, čita objavljen sadržaj iz M12 preko javnog,
 // negardovanog endpoint-a (M12 spec §7, PublicContentController).
 async function fetchContent(locale: string, slug: string): Promise<PublicContent | null> {

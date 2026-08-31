@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
+
 interface Contract {
   id: string;
   supplierId: string;

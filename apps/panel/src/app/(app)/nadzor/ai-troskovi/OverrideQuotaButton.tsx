@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { overrideAiProviderQuota, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +12,7 @@ const initialState: FormState = { error: null };
 // upisuje AuditLogEntry (M1) na backendu.
 export default function OverrideQuotaButton({ id }: { id: string }) {
   const boundAction = overrideAiProviderQuota.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <SubmitButton />

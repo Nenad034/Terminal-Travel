@@ -5,6 +5,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales } from '@/i18n/config';
 
+
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }

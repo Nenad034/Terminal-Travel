@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
+
 interface UserRow {
   id: string;
   fullName: string;
@@ -20,7 +21,8 @@ interface UserRow {
 
 // M1 spec §7 — GET /iam/users. Pretraga (ime/email) ide klijentski nad punom listom, isti
 // obrazac kao ostatak M17 kad API nema poseban filter parametar za taj resurs.
-export default async function KorisniciPage({ searchParams }: { searchParams: { q?: string } }) {
+export default async function KorisniciPage(props: { searchParams: Promise<{ q?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M1', 'user', 'CREATE');
 

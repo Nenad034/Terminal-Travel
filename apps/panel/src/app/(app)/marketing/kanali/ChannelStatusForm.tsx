@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateChannel, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +10,7 @@ const initialState: FormState = { error: null };
 // M12 spec §7 — PATCH /channels/:code, izmena prikaznog naziva/statusa (aktivan/neaktivan).
 export default function ChannelStatusForm({ channelCode, displayName, status }: { channelCode: string; displayName: string; status: string }) {
   const boundAction = updateChannel.bind(null, channelCode);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex items-end gap-2 border-t border-border pt-2 text-[11px]">
       {state.error && <span className="text-danger">{state.error}</span>}

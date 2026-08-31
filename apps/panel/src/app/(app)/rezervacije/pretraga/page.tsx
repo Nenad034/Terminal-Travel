@@ -9,6 +9,7 @@ import FlightResultsMock from './FlightResultsMock';
 import TransferResultsMock from './TransferResultsMock';
 import ExcursionResultsMock from './ExcursionResultsMock';
 
+
 interface SearchOffer {
   roomTypeCode?: string;
   roomTypeName?: string;
@@ -48,7 +49,10 @@ function normalizeTypes(v: string | string[] | undefined): string[] {
 }
 
 // M17 spec §4 (Faza 1) — "Pretraga i rezervacije", M5 §11 GET /search + §3.1 POST /quotes.
-export default async function SearchPage({ searchParams }: { searchParams: Record<string, string | string[] | undefined> }) {
+export default async function SearchPage(
+  props: { searchParams: Promise<Record<string, string | string[] | undefined>> }
+) {
+  const searchParams = await props.searchParams;
   const types = normalizeTypes(searchParams.type);
   const hasQuery = Boolean(searchParams.destinationCountry || types.length > 0);
 

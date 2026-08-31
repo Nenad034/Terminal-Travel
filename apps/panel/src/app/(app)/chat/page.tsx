@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import NewConversationForm from './NewConversationForm';
 import { PresenceDot } from './PresenceDot';
 
+
 interface ConversationSummary {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { approveRebate, rejectRebate, FormState } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -15,8 +16,8 @@ export default function RebateActions({ subagentId, rebateId }: { subagentId: st
   const [showReject, setShowReject] = useState(false);
   const boundApprove = approveRebate.bind(null, subagentId, rebateId);
   const boundReject = rejectRebate.bind(null, subagentId, rebateId);
-  const [approveState, approveAction] = useFormState(boundApprove, initialState);
-  const [rejectState, rejectAction] = useFormState(boundReject, initialState);
+  const [approveState, approveAction] = useActionState(boundApprove, initialState);
+  const [rejectState, rejectAction] = useActionState(boundReject, initialState);
 
   return (
     <div className="flex flex-col items-end gap-1">

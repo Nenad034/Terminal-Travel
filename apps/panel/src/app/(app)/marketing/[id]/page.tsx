@@ -9,6 +9,7 @@ import TranslationsPanel from './TranslationsPanel';
 import ApproveContentButton from './ApproveContentButton';
 import MediaGallery from './MediaGallery';
 
+
 interface ContentPiece {
   id: string;
   productId: string | null;
@@ -30,7 +31,8 @@ interface ContentPiece {
 // M17 spec §4/§7 (Faza 6) — detalj sadržaja: metapodaci, prevodi (M12 §2.2), odobrenje (§3
 // korak 4, M12/content/APPROVE_PUBLISH). tracking_code (§3a) prikazan radi lakšeg poklapanja
 // sa M13 marketing izveštajem, ne menja se ovde (generiše se automatski pri kreiranju).
-export default async function ContentDetailPage({ params }: { params: { id: string } }) {
+export default async function ContentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canApprove = hasPermission(me, 'M12', 'content', 'APPROVE_PUBLISH');
   const canEdit = hasPermission(me, 'M12', 'content', 'CREATE_DRAFT');

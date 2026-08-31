@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import RebateActions from '../RebateActions';
 import { Badge } from '@/components/ui/badge';
 
+
 interface Subagent {
   id: string;
   clientAccountId: string;
@@ -38,7 +39,8 @@ const STATUSES = ['DRAFT', 'APPROVED', 'APPLIED', 'REJECTED'] as const;
 // (GET /subagents/:id/commission-rebates), bez globalne liste — ovaj ekran je tanak
 // agregacioni sloj (M17 spec §2, "ako kompozicija postane složena... sopstveni BFF sloj koji i
 // dalje samo poziva zvanične API-je"), ne novi M7 endpoint ni nova poslovna logika.
-export default async function CommissionRebatesPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function CommissionRebatesPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M7', 'commission-rebate', 'VIEW');
   const canApprove = hasPermission(me, 'M7', 'commission-rebate', 'APPROVE');

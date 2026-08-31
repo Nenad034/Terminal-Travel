@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicArticle } from '@/lib/types';
 
+
 // M8 spec poglavlje 2/9, M23 spec §5 — jedan javno dostupan članak baze znanja, bez naloga,
 // bez ikakve navigacije ka ostatku baze znanja ili sajta (dostupan isključivo direktnim
 // linkom). Namerno IZVAN app/[locale]/(site)/ route grupe (koja nosi Header/Footer) — vidi

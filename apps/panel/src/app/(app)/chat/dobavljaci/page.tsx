@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import NewSupplierConversationForm from './NewSupplierConversationForm';
 import SupplierConversationRow from './SupplierConversationRow';
 
+
 interface ConversationSummary {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';

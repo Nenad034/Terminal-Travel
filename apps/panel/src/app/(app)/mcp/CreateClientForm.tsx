@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { createMcpClient, FormState } from './actions';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ const initialState: FormState = { error: null };
 // ključa), zato ostaje u ovom klijentskom stanju, ne u bazi.
 export default function CreateClientForm() {
   const [open, setOpen] = useState(false);
-  const [state, formAction] = useFormState(createMcpClient, initialState);
+  const [state, formAction] = useActionState(createMcpClient, initialState);
 
   if (state.credential) {
     return (

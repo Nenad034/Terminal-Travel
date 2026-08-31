@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import ActorLabel from '@/components/ActorLabel';
 import {
@@ -107,9 +108,9 @@ function PendingHandoffRow({
   const boundAccept = acceptHandoff.bind(null, bookingId, handoff.id);
   const boundDecline = declineHandoff.bind(null, bookingId, handoff.id);
   const boundCancel = cancelHandoff.bind(null, bookingId, handoff.id);
-  const [acceptState, acceptAction] = useFormState(boundAccept, initialState);
-  const [declineState, declineAction] = useFormState(boundDecline, initialState);
-  const [cancelState, cancelAction] = useFormState(boundCancel, initialState);
+  const [acceptState, acceptAction] = useActionState(boundAccept, initialState);
+  const [declineState, declineAction] = useActionState(boundDecline, initialState);
+  const [cancelState, cancelAction] = useActionState(boundCancel, initialState);
 
   return (
     <div className="mb-3 rounded border border-border bg-panel2 p-2">
@@ -140,7 +141,7 @@ function PendingHandoffRow({
 
 function TransferOwnershipForm({ bookingId, directory, excludeUserId }: { bookingId: string; directory: DirectoryUser[]; excludeUserId: string | null }) {
   const boundAction = transferOwnership.bind(null, bookingId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const options = directory.filter((u) => u.id !== excludeUserId);
   return (
     <form action={formAction} className="flex flex-col gap-1">
@@ -165,7 +166,7 @@ function TransferOwnershipForm({ bookingId, directory, excludeUserId }: { bookin
 
 function ProposeHandoffForm({ bookingId, directory, excludeUserId }: { bookingId: string; directory: DirectoryUser[]; excludeUserId: string | null }) {
   const boundAction = proposeHandoff.bind(null, bookingId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const options = directory.filter((u) => u.id !== excludeUserId);
   return (
     <form action={formAction} className="flex flex-col gap-1">

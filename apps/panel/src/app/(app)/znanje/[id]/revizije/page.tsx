@@ -9,6 +9,7 @@ import RevisionActions from './RevisionActions';
 import ResearchForm from './ResearchForm';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ProposedTranslation {
   languageCode: string;
   title: string;
@@ -42,7 +43,8 @@ interface ArticleSummary {
 // kriterijum: revizija se NE MOŽE odobriti dok bar jedan referenciran ArticleSource nije APPROVED
 // — backend to sprovodi (400), ova strana unapred izračunava i prikazuje status izvora da tim
 // razume UNAPRED zašto bi odobrenje moglo biti odbijeno, ne tek posle neuspelog pokušaja.
-export default async function RevizijePage({ params }: { params: { id: string } }) {
+export default async function RevizijePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canApprove = hasPermission(me, 'M23', 'article-revision', 'APPROVE');
   const canEdit = hasPermission(me, 'M23', 'article', 'EDIT');

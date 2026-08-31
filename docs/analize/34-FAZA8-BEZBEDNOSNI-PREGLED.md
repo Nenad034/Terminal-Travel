@@ -6,6 +6,23 @@
 
 ---
 
+## 31.8.2026 — četvrti prolaz, `npm audit` — Next.js major nadogradnja (`apps/panel`, `apps/web`)
+
+Nastavak stavke 1 iz "Otvoreno za dalje" (ispod) — `npm audit fix` (bez `--force`) nije rešavao ništa ni u jednom kanalu (`apps/api`/`apps/panel`/`apps/web`) zbog isprepletenih zavisnosti u monorepo-u; svaka preostala ranjivost je zahtevala skok glavne verzije. Vlasnik odlučio da se krene sa Next.js (veći stvaran rizik — mrežno dostupne ranjivosti SSRF/cache poisoning/DoS u App Router-u koji `apps/panel`/`apps/web` već koriste), NestJS v11→v12 (`apps/api`) ostaje namerno odložen.
+
+**Next.js v14.2 → v16.3.3, React v18.3 → v19.2** (`apps/panel` i `apps/web`, preko `@next/codemod upgrade latest`):
+- Ranjivosti: `apps/panel` 9 → 3 preostale, `apps/web` 7 → 1 preostala (`picomatch`, dev-only alat, iza `--force`). `apps/api` namerno netaknut (29 i dalje, odvojen NestJS poduhvat).
+- Codemod automatski: `useFormState` → `useActionState` (67 fajlova `apps/panel`), async `params`/`searchParams` (Next 15+ zahtev), `middleware.ts` → `proxy.ts` preimenovanje (`apps/web`, Next 16 konvencija — funkcionalno identično, provereno uživo: `/en` redirect i `?ref=` kolačić i dalje rade).
+- **Ručne ispravke posle codemod-a** (sve otkrivene i rešene u ovom prolazu, ne ostavljene za kasnije):
+  1. Next 16 "Cache Components" — codemod je dodao `export const instant = false;` u 76+96 ekrana bez da je ta eksperimentalna opcija ikad uključena u `next.config` — nerecognized export je pravio TS grešku na SVAKOM ekranu. Uklonjeno (namerno NE usvajamo Cache Components u ovom prolazu — poseban, veći poduhvat).
+  2. Turbopack (nov podrazumevani dev bundler) stroже poštuje CSS spec — `@import` mora prethoditi SVIM pravilima uključujući `@tailwind` direktive. `apps/panel/src/app/globals.css` (Google Font + Codicons import) pomeren na vrh fajla.
+  3. **Monorepo duplirani `@types/react`/`react`** — `apps/mobile` (React Native) namerno ostaje na React 18, pa je koren monorepo-a i dalje hoistovao stariju verziju dok su `apps/panel`/`apps/web` lokalno imali 19 — ambijentalno spajanje dva različita `ReactNode` tipa davalo je lažne "tip nije dodeljiv" greške svuda gde `children` prelazi granicu paketa (`@radix-ui/react-slot` u dugmadima, `next-intl`'s `NextIntlClientProvider`, pa čak i Next-ov sopstveni generisani validator tipova stranica). Rešeno u tri koraka: (a) `typeRoots: ["./node_modules/@types"]` dodat u `tsconfig.json` oba kanala (sprečava TS da skenira koren), (b) pun brisanje `node_modules`/`package-lock.json` i sveža instalacija (stari lockfile je tiho čuvao zastarelu React 18 rezoluciju iz perioda pre nadogradnje — obično `npm install` to ne ispravlja), (c) sitan `as React.ElementType` cast u `apps/panel/src/components/ui/button.tsx` (Slot komponenta).
+  4. **Otkriven, NEPOVEZAN, pre-postojeći `apps/mobile` (Expo) peer-dependency sukob** (react-native-worklets verzija koju `expo-modules-core` traži u dva različita opsega) — stari `package-lock.json` ga je tiho preskakao; sveža instalacija ga je otkrila. Van obima ovog prolaza (React Native zavisnosti se ne diraju) — rešeno dodavanjem `legacy-peer-deps=true` u nov koren `.npmrc` (važi i za `npm ci` u CI), ne ispravkom samog sukoba.
+- **Provera:** `tsc --noEmit` čist za sva tri kanala (`api`/`panel`/`web`); `next build` (produkcioni) čist za `panel` i `web`; 811 unit + 205/206 e2e (isti pre-postojeći nepovezan M21 timeout) i dalje prolaze za `apps/api`. Uživo kroz pravu VLASNIK sesiju (dev-login): `apps/panel` — puna lista rezervacija, forma "Pozovi korisnika", i M5 §6.5 vlasništvo/zaduženje tok (prenos vlasništva, momentalna predaja, predlog→prihvatanje) ponovo testirani klik-po-klik posle nadogradnje, potvrđeno u bazi da `useActionState` (zamena za `useFormState`) i dalje radi ispravno. `apps/web` — `/en` redirect, jezički prekidač, `?ref=` marketing kolačić potvrđeni uživo.
+- **Otvoreno i dalje:** preostale `picomatch`/`uuid`(exceljs) ranjivosti (dev-only/već svesno odbijena "popravka" unazad), NestJS v11→v12 (`apps/api`, poseban poduhvat), Next.js "Cache Components" usvajanje (svesno NE sada).
+
+---
+
 ## 29.8–30.8.2026 — prvi prolaz, pregled koda
 
 ### Čisto (provereno, bez nalaza)
@@ -79,7 +96,7 @@ Nema nalaza koji zahteva izmenu koda. `SameSite=Lax` + `httpOnly` kolačić + `A
 
 ## Otvoreno za dalje
 
-- Odluka: koje preostale `npm audit fix --force` nadogradnje raditi i kada (posebno Next.js major skok — najveći rizik od nečeg što se pokvari, ali i najozbiljniji preostali nalaz — XSS/path traversal u postcss lancu).
+- ~~Next.js major skok (`apps/panel`/`apps/web`)~~ — urađeno 31.8.2026, vidi četvrti prolaz iznad. Preostaje NestJS v11→v12 (`apps/api`) — odvojen, veći poduhvat (dira DI/guard-ove svih 23 modula), namerno odložen.
 - Kad se izabere hosting: ograničiti `ChatGatewayService` CORS na stvarne domene, zaključati/ugasiti Swagger u produkciji.
 - ~~IDOR pregled (30.8.2026) je pokrio samo module koji koriste `resolveCallerIdentity`~~ — delimično rešeno 31.8.2026: opšta `VIEW_ALL` konvencija (M1 spec §3.9a) sad postoji i primenjena je u M5 (`booking/VIEW_ALL`, poglavlje 6.6) — "podrazumevano svi vide sve, sužavanje pojedinačna opcija", umesto ranije neusklađene/nikad sprovedene "prodajni agent vidi samo svoje". **I dalje otvoreno:** M6/M10/M14/M20 permission tabele referenciraju istu konvenciju (dokumentaciono usklađeno), ali `VIEW_ALL` dozvola i servisno filtriranje nisu tamo stvarno implementirani — samo M5 booking ima pravi kod. Vredi proveriti ove module kad dođu na red, isti obrazac kao M5.
 - ~~CSRF razmatranje za panel/web~~ — pregledano 30.8.2026, čisto (vidi sekciju iznad).

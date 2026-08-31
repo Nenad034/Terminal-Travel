@@ -2,6 +2,7 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import ConfirmQuoteForm from './ConfirmQuoteForm';
 
+
 interface QuoteItem {
   id: string;
   productId: string;
@@ -18,7 +19,8 @@ interface Quote {
 }
 
 // M17 spec §4 (Faza 1), M5 §3.1 GET /quotes/:id + §4 POST /quotes/:id/confirm.
-export default async function QuoteDetailPage({ params }: { params: { id: string } }) {
+export default async function QuoteDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   let quote: Quote | null = null;
   let error: string | null = null;
   try {

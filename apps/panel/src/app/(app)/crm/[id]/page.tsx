@@ -8,6 +8,7 @@ import LoyaltyOverrideForm from './LoyaltyOverrideForm';
 import CommunicationLogPanel from '../CommunicationLogPanel';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ClientAccount {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -72,7 +73,8 @@ interface CommunicationLog {
 // M6 spec §2.1, §3, §4, §5 — profil nalogodavca sa lojalnošću, istorijom putovanja (uživo
 // iz M5), povezanim gostima i komunikacijom. M17 spec §2 — kompozicija na nivou prikaza,
 // nijedan poziv ne piše direktno u tuđu bazu.
-export default async function ClientAccountDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientAccountDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canEdit = hasPermission(me, 'M6', 'client-account', 'EDIT');
   const canViewGuests = hasPermission(me, 'M6', 'guest-profile', 'VIEW');

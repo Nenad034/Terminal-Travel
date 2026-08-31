@@ -8,6 +8,7 @@ import HelpTabs from './HelpTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface HelpArticleRow {
   id: string;
   slug: string;
@@ -32,11 +33,12 @@ const STATUS_OPTIONS = ['PUBLISHED', 'DRAFT', 'PENDING_APPROVAL', 'ARCHIVED'];
 // da traži i DRAFT/PENDING_APPROVAL/ARCHIVED, ograničeno na segmente za koje ima EDIT (ne tuđe
 // DRAFT-ove); bez EDIT dozvole parametar se tiho ignoriše (HelpArticlesService.findVisibleToCaller).
 // Podrazumevani filter ostaje PUBLISHED za sve — status selektor se prikazuje samo uređivačima.
-export default async function PomocPage({
-  searchParams,
-}: {
-  searchParams: { relatedModule?: string; isCriticalExample?: string; lang?: string; status?: string };
-}) {
+export default async function PomocPage(
+  props: {
+    searchParams: Promise<{ relatedModule?: string; isCriticalExample?: string; lang?: string; status?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = SEGMENTS.some((s) => hasPermission(me, 'M21', `article:${s.segment}`, 'EDIT'));
   const showSuggestions = hasPermission(me, 'M21', 'suggestion', 'APPROVE');

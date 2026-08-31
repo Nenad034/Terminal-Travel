@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface Ticket {
   id: string;
   ticketNumber: string;
@@ -26,7 +27,8 @@ const CATEGORIES = ['REZERVACIJA', 'PLACANJE', 'TEHNICKI_PROBLEM', 'REKLAMACIJA'
 // M17 spec §4/§7 (Faza 5) — "Podrška", M14 §6 GET /tickets ("lista, prava po ulozi" — interni
 // tim vidi sve tikete kojima ima pristup, servis sam sužava obim za Prodajni agent po M14 spec
 // §5 ownership pravilu, ova stranica ne dupliramo tu logiku).
-export default async function PodrskaPage({ searchParams }: { searchParams: { status?: string; category?: string } }) {
+export default async function PodrskaPage(props: { searchParams: Promise<{ status?: string; category?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M14', 'ticket', 'CREATE');
 

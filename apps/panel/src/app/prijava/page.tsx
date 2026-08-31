@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getMe } from '@/lib/me';
 import LoginForm from './LoginForm';
 
+
 export default async function LoginPage() {
   const me = await getMe();
   if (me) redirect('/');

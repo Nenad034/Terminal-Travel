@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+
 export const metadata: Metadata = {
   title: 'Terminal — interni panel',
   description: 'M17 — interni radni panel agencije Terminal Travel.',

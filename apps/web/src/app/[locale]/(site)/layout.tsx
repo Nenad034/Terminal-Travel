@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+
 // Route grupa (site) — Header/Footer (standardna navigacija sajta) žive OVDE, ne u
 // app/[locale]/layout.tsx, jer /znanje/[shareToken] (sestrinska ruta, van ove grupe, M23 spec
 // §5) namerno NE SME da nasledi nikakvu navigaciju ka ostatku sajta ("ne izlaže nikakvu

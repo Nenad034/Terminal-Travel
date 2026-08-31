@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateClientAccount, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -25,7 +26,7 @@ interface Account {
 // M6 spec §2.1 — PATCH /client-accounts/:id, isti obrazac kao katalog EditProductForm.
 export default function EditClientAccountForm({ account }: { account: Account }) {
   const boundAction = updateClientAccount.bind(null, account.id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">

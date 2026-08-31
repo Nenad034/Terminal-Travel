@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { addRateLine, FormState } from '../../../actions';
 import { ButtonGroup } from '@/components/ButtonGroup';
 import { Button } from '@/components/ui/button';
@@ -42,7 +43,7 @@ const PRICE_BASIS_LABELS: Record<PriceBasis, string> = { PER_ROOM_PER_NIGHT: 'po
 export default function RateLinesPanel({ contractId, periodId, rateLines, canEdit }: { contractId: string; periodId: string; rateLines: RateLine[]; canEdit: boolean }) {
   const [showForm, setShowForm] = useState(false);
   const boundAction = addRateLine.bind(null, contractId, periodId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const [priceBasis, setPriceBasis] = useState<PriceBasis>('PER_ROOM_PER_NIGHT');
 
   return (

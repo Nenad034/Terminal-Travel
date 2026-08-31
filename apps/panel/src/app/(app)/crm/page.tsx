@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface ClientAccount {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -23,7 +24,8 @@ interface ClientAccount {
 // (filtrirano po email/taxId — jedini pretražljivi filter koji API podržava jeftino).
 // Gosti (GuestProfile) žive na /crm/gosti, ankete posle putovanja na /crm/ankete — isti
 // obrazac razdvajanja resursa unutar jedne nav stavke kao "Dobavljači i ugovori" (M3).
-export default async function CrmPage({ searchParams }: { searchParams: { email?: string; taxId?: string } }) {
+export default async function CrmPage(props: { searchParams: Promise<{ email?: string; taxId?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M6', 'client-account', 'CREATE');
   const canViewGuests = hasPermission(me, 'M6', 'guest-profile', 'VIEW');

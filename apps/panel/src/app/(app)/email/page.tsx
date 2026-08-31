@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface EmailThread {
   id: string;
   mailboxId: string;
@@ -28,11 +29,12 @@ const CORRESPONDENT_TYPES = ['GUEST', 'SUBAGENT', 'SUPPLIER', 'OTHER'];
 // `mailbox.displayName` (čisto proširenje payload-a već autorizovanog upita — pozivalac već ima
 // MailboxAccess na svako sanduče koje ovde vidi), pa se GET /email/mailboxes (M22/mailbox/VIEW,
 // Vlasnik/Direktor) više ne mora pozivati samo da bi se ime sandučeta prikazalo.
-export default async function EmailInboxPage({
-  searchParams,
-}: {
-  searchParams: { mailboxId?: string; status?: string; correspondentType?: string };
-}) {
+export default async function EmailInboxPage(
+  props: {
+    searchParams: Promise<{ mailboxId?: string; status?: string; correspondentType?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canManageMailboxes = hasPermission(me, 'M22', 'mailbox', 'VIEW');
 

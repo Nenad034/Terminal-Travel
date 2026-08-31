@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { createVolumeTier, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ interface VolumeTier {
 export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: string; tiers: VolumeTier[] }) {
   const [showForm, setShowForm] = useState(false);
   const boundAction = createVolumeTier.bind(null, subagentId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <div className="mb-4 rounded-lg border border-border bg-panel p-4">

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { createSupplierConversation, FormState } from './actions';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ const initialState: FormState = { error: null };
 // M19/supplier-conversation/GRANT_ACCESS (page.tsx) — kreiranje ODMAH daje tvorcu pristup
 // (self-grant, ConversationsService.create komentar), pa je isti krug dozvola dovoljan.
 export default function NewSupplierConversationForm({ suppliers }: { suppliers: { id: string; name: string }[] }) {
-  const [state, formAction] = useFormState(createSupplierConversation, initialState);
+  const [state, formAction] = useActionState(createSupplierConversation, initialState);
   const [open, setOpen] = useState(false);
 
   if (!open) {

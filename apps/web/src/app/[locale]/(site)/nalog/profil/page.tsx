@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session';
 import type { ClientAccount } from '@/lib/types';
 import { updateProfileAction } from './actions';
 
+
 // M6 spec §7 dopuna — GET /crm/client-accounts vraća samo [sopstveni nalog] za Gosta
 // (ClientAccountsService.findMany ownership, avgust 2026).
 export default async function ProfilePage({ params }: { params: Promise<{ locale: string }> }) {

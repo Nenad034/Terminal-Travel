@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createProduct, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +10,7 @@ const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLI
 const initialState: FormState = { error: null };
 
 export default function NewProductForm() {
-  const [state, formAction] = useFormState(createProduct, initialState);
+  const [state, formAction] = useActionState(createProduct, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

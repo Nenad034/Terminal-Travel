@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateTicket, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -26,7 +27,7 @@ export default function TicketStatusForm({
   refundDecision: boolean;
 }) {
   const boundAction = updateTicket.bind(null, ticketId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const [selectedStatus, setSelectedStatus] = useState(status);
 
   return (

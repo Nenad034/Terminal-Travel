@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { CATEGORY_TYPES, typeToSlug } from '@/lib/categories';
 
+
 // M8 spec poglavlje 1a — paleta "Zalazak", uobičajen izgled turističkog sajta.
 // "/" čita M2 /products?featured=true — M2 nema koncept "featured" (proverено pri
 // implementaciji), dok se ta dopuna ne doda specifikaciji prikazuju se najnovije

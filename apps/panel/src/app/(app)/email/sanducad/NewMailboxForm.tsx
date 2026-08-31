@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { createMailbox, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ const initialState: FormState = { error: null };
 // zahteva ownerUserId (backend auto-upisuje REPLY vlasniku, §2.2); SHARED ga ne sme imati —
 // validacija je u backend DTO/servisu, ovaj obrazac je isti kao M19 NewSupplierConversationForm.
 export default function NewMailboxForm() {
-  const [state, formAction] = useFormState(createMailbox, initialState);
+  const [state, formAction] = useActionState(createMailbox, initialState);
   const [open, setOpen] = useState(false);
   const [mailboxType, setMailboxType] = useState<'SHARED' | 'PERSONAL'>('SHARED');
 

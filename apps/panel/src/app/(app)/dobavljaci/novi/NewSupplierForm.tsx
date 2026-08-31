@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createSupplier, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +10,7 @@ const SUPPLIER_TYPES = ['HOTEL', 'PREVOZNIK', 'OSIGURAVAC', 'DRUGO'];
 const initialState: FormState = { error: null };
 
 export default function NewSupplierForm() {
-  const [state, formAction] = useFormState(createSupplier, initialState);
+  const [state, formAction] = useActionState(createSupplier, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

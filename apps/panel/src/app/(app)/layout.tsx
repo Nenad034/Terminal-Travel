@@ -3,6 +3,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import { visibleNavItems } from '@/lib/nav-visible';
 import Shell from '@/components/Shell';
 
+
 // M17 spec §3 — "Navigacija i vidljivost akcija na svakom ekranu potpuno prate M1 model
 // prava". Ovaj layout obavija SVE autentifikovane ekrane (route group "(app)"), učitava
 // sopstveni profil+prava jednom (getMe je react cache()) i filtrira navigaciju pre nego

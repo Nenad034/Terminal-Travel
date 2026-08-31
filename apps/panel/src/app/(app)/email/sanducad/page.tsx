@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import NewMailboxForm from './NewMailboxForm';
 import GrantAccessForm from './GrantAccessForm';
 
+
 interface Mailbox {
   id: string;
   address: string;

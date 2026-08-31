@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { reviewSuggestion, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -11,8 +12,8 @@ const initialState: FormState = { error: null };
 export default function SuggestionActions({ id }: { id: string }) {
   const approveAction = reviewSuggestion.bind(null, id, 'APPROVE');
   const rejectAction = reviewSuggestion.bind(null, id, 'REJECT');
-  const [approveState, approveFormAction] = useFormState(approveAction, initialState);
-  const [rejectState, rejectFormAction] = useFormState(rejectAction, initialState);
+  const [approveState, approveFormAction] = useActionState(approveAction, initialState);
+  const [rejectState, rejectFormAction] = useActionState(rejectAction, initialState);
 
   return (
     <div className="flex flex-col gap-1.5">

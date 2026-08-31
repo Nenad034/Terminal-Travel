@@ -6,6 +6,7 @@ import CreateClientForm from './CreateClientForm';
 import { ActivateButton, ApproveReadWriteButton, SuspendButton } from './ClientActionButtons';
 import { Badge } from '@/components/ui/badge';
 
+
 interface McpClient {
   id: string;
   clientName: string;

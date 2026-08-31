@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import AuditLogRows, { type AuditLogEntry } from './AuditLogRows';
 import AuditLogSearchForm from './AuditLogSearchForm';
 
+
 // M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
 // (M1/audit-log/VIEW) se već proverava na nivou apps/api (AuditLogController) — ako
 // korisnik nema pravo, apiFetch baca 403 i stranica prikazuje grešku umesto podataka
@@ -29,7 +30,8 @@ interface AuditLogSearchParams {
   backLabel?: string;
 }
 
-export default async function AuditLogPage({ searchParams }: { searchParams: AuditLogSearchParams }) {
+export default async function AuditLogPage(props: { searchParams: Promise<AuditLogSearchParams> }) {
+  const searchParams = await props.searchParams;
   let entries: AuditLogEntry[] = [];
   let error: string | null = null;
   try {

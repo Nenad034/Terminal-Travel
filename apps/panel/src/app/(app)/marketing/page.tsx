@@ -7,6 +7,7 @@ import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface ContentPiece {
   id: string;
   type: string;
@@ -24,7 +25,8 @@ const STATUSES = ['DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED'];
 
 // M17 spec §4/§7 (Faza 6) — "Marketing sadržaj", M12 §7 GET /content ("kalendar = sortirano po
 // scheduled_publish_at" — servis već sortira tako, ova lista je taj kalendar).
-export default async function MarketingPage({ searchParams }: { searchParams: { type?: string; status?: string } }) {
+export default async function MarketingPage(props: { searchParams: Promise<{ type?: string; status?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canCreate = hasPermission(me, 'M12', 'content', 'CREATE_DRAFT');
   const canChannels = hasPermission(me, 'M12', 'channel-config', 'VIEW');

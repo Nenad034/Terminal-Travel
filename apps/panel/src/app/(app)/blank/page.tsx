@@ -1,6 +1,7 @@
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 
+
 // Dopuna (23.8.2026, na zahtev vlasnika: "kada se klikne na + ... treba da se otvori prazan
 // tab a mi cemo tu dalje da odlucimo sta cemo da radimo") — jedna statična, bez-stanja ruta.
 // Više klikova na "+" otvara više zapisa sa OVOM istom putanjom (TabBar.tsx, `openTab(...,

@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
@@ -11,13 +15,37 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [{ "name": "next" }],
+    // Dopuna 31.8.2026 (Next 14→16/React 18→19 nadogradnja) — bez ovoga TS podrazumevano
+    // skenira SVAKI node_modules/@types od ovog foldera pa naviše, uključujući koren
+    // monorepo-a gde apps/mobile i dalje drži react@18 tipove (React Native namerno nije deo
+    // ove nadogradnje). Dva `@types/react` u istom projektu (koren 18 + lokalni 19) su se
+    // ambijentalno spajala u global JSX namespace, dajući lažne "ReactNode nije dodeljiv"
+    // greške na svakom layout.tsx koji prosleđuje `children`. Ograničava tipove isključivo na
+    // ovaj workspace.
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateUser, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -8,7 +9,7 @@ const initialState: FormState = { error: null };
 
 export default function EditUserForm({ id, fullName, phone }: { id: string; fullName: string; phone: string | null }) {
   const boundAction = updateUser.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">

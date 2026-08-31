@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { payByBankTransferAction, payByCardAction } from '../actions';
 
+
 // M8 spec poglavlje 3, korak 5 — plaćanje. quoteId dolazi iz koraka 4 (Quote već
 // postoji, contract_terms_accepted = true).
 export default async function PaymentPage({

@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { apiFetch } from '@/lib/api-client';
 import type { Booking } from '@/lib/types';
 
+
 export default async function ConfirmationPage({
   params,
   searchParams,

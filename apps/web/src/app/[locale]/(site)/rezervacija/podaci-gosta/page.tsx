@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import { getSession } from '@/lib/session';
 import GuestCheckoutForm from './GuestCheckoutForm';
 
+
 // M8 spec poglavlje 3, korak 3 — podaci gosta. Gost bira: prijava, registracija, ili
 // "nastavi bez naloga" (dopuna avgust 2026 — GuestCheckoutForm, POST /crm/client-accounts/
 // guest-checkout preko M6). Ovaj korak i dalje traži samo ime putnika za ugovor/vaučer

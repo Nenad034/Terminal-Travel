@@ -5,6 +5,7 @@ import NadzorSubnav from '../NadzorSubnav';
 import OverrideQuotaButton from './OverrideQuotaButton';
 import { Badge } from '@/components/ui/badge';
 
+
 // `budgetLimitEur`/`consumedEur` su Prisma `Decimal` na backendu (schema.prisma) — preko JSON-a
 // stižu kao STRING, ne broj (Decimal.toJSON() vraća string), otud `string | null` ovde, ne
 // `number`. Nalaz iz stvarne greške u produkciji (29.8.2026): `q.consumedEur.toFixed is not a

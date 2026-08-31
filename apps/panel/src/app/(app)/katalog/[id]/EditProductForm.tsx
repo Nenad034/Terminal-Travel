@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateProductTranslation, FormState } from '../actions';
 import { usePathname } from 'next/navigation';
 import { useTabs } from '@/components/TabsContext';
@@ -18,7 +19,7 @@ export default function EditProductForm({
   productId: string;
   translation?: { name: string; description: string; slug: string };
 }) {
-  const [state, formAction] = useFormState(updateProductTranslation, initialState);
+  const [state, formAction] = useActionState(updateProductTranslation, initialState);
   const pathname = usePathname();
   const { markDirty } = useTabs();
 

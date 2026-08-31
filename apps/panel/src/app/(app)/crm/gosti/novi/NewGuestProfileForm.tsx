@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createGuestProfile, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // M6 spec §2.2 — polja prate CreateGuestProfileDto tačno (apps/api/src/modules/m6-crm/
 // guest-profiles/dto/create-guest-profile.dto.ts).
 export default function NewGuestProfileForm({ linkedClientAccountId }: { linkedClientAccountId?: string }) {
-  const [state, formAction] = useFormState(createGuestProfile, initialState);
+  const [state, formAction] = useActionState(createGuestProfile, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

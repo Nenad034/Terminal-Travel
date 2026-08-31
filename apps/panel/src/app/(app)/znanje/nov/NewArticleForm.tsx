@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createArticle, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -18,7 +19,7 @@ type Mode = 'empty' | 'manual' | 'research';
 // tekstom koji zaposleni ovde nalepi, nema žive web pretrage u v1). Oba opciona — prazan DRAFT
 // je takođe validan.
 export default function NewArticleForm() {
-  const [state, formAction] = useFormState(createArticle, initialState);
+  const [state, formAction] = useActionState(createArticle, initialState);
   const [subjectType, setSubjectType] = useState<SubjectType>('DESTINATION');
   const [mode, setMode] = useState<Mode>('research');
 

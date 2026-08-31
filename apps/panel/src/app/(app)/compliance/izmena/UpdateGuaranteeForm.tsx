@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateGuarantee, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
@@ -23,7 +24,7 @@ const initialState: FormState = { error: null };
 // bez toga menja postojeći "trenutni" zapis. Podrazumevano createNew čekiran ako još nema
 // nijedne garancije (nema šta da se izmeni).
 export default function UpdateGuaranteeForm({ guarantee }: { guarantee: TravelGuarantee | null }) {
-  const [state, formAction] = useFormState(updateGuarantee, initialState);
+  const [state, formAction] = useActionState(updateGuarantee, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

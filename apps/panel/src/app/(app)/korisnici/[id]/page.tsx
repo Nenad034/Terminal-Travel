@@ -10,6 +10,7 @@ import RoleAssignment from './RoleAssignment';
 import PermissionOverrides from './PermissionOverrides';
 import SuspendUserButton from './SuspendUserButton';
 
+
 interface UserDetail {
   id: string;
   fullName: string;
@@ -48,7 +49,8 @@ interface PermissionOption {
 // M1 spec §7 — "Korisnik — detalji": GET /iam/users/:id, GET/POST/DELETE .../permission-overrides.
 // Uloge/dozvole se dovlače odvojeno (GET /iam/roles, GET /iam/permissions) da forme za dodelu
 // imaju pun katalog izbora, ne samo ono što je korisnik već ima.
-export default async function KorisnikDetailPage({ params }: { params: { id: string } }) {
+export default async function KorisnikDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canView = hasPermission(me, 'M1', 'user', 'VIEW');
   const canEdit = hasPermission(me, 'M1', 'user', 'EDIT');

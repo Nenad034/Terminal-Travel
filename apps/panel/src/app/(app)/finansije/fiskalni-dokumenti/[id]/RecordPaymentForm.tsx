@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { recordPayment, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // preko webhook-a i namerno nije ponuđeno ovde. Gotovina namerno bez sistemskog limita (§5.2).
 export default function RecordPaymentForm({ bookingId, currency, revalidatePath: path }: { bookingId: string; currency: string; revalidatePath: string }) {
   const boundAction = recordPayment.bind(null, bookingId, path);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2 rounded-lg border border-border bg-panel p-3">

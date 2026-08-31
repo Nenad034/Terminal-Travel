@@ -6,6 +6,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import ChatPanel from './ChatPanel';
 
+
 interface ConversationDetail {
   id: string;
   type: 'DIRECT' | 'GROUP' | 'EXTERNAL_SUPPLIER';
@@ -37,7 +38,8 @@ interface MessageItem {
 // server+klijent split kao apps/panel/src/app/(app)/podrska/[id]/page.tsx + TicketMessagesPanel.tsx.
 // Nevidljivost za ne-učesnike je namerno 404, ne 403 (ConversationsService.assertParticipant,
 // M19 spec §9.2/§9.4) — notFound() ovde prati taj isti obrazac.
-export default async function ConversationPage({ params }: { params: { conversationId: string } }) {
+export default async function ConversationPage(props: { params: Promise<{ conversationId: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   if (!me) notFound();
 

@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import type { SearchResultProduct } from '@/lib/types';
 import { typeToSlug } from '@/lib/categories';
 
+
 // M8 spec poglavlje 3, korak 1 — anonimna pretraga, poziva M5 GET /search (javno od
 // avgust 2026 dopune — vidi M5 spec §11 changelog v1.22).
 export default async function SearchPage({

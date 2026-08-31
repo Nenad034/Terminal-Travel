@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { createEmailMessage, sendEmailDraft, FormState } from '../actions';
@@ -74,7 +75,7 @@ function actorPropsFor(m: EmailMessage) {
 
 function NewMessageForm({ threadId }: { threadId: string }) {
   const boundAction = createEmailMessage.bind(null, threadId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
@@ -100,7 +101,7 @@ function SubmitButton() {
 
 function SendDraftButton({ threadId, messageId }: { threadId: string; messageId: string }) {
   const boundAction = sendEmailDraft.bind(null, threadId, messageId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <SendSubmit />

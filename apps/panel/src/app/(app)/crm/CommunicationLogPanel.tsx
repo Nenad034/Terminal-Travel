@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { createCommunicationLog, markCommunicationSent, FormState } from './actions';
@@ -84,7 +85,7 @@ export default function CommunicationLogPanel({
 
 function NewCommunicationLogForm({ target }: { target: Target }) {
   const boundAction = createCommunicationLog.bind(null, target);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
@@ -119,7 +120,7 @@ function SubmitButton() {
 
 function MarkSentButton({ id, target }: { id: string; target: Target }) {
   const boundAction = markCommunicationSent.bind(null, id, target);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <MarkSentSubmit />

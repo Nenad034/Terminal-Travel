@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { activateMcpClient, approveReadWriteMcpClient, suspendMcpClient, FormState } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // READ_WRITE (APPROVE_READ_WRITE, odvojena dozvola od MANAGE) i suspendovanje (MANAGE).
 export function ActivateButton({ id, canManage }: { id: string; canManage: boolean }) {
   const boundAction = activateMcpClient.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   if (!canManage) return null;
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
@@ -22,7 +23,7 @@ export function ActivateButton({ id, canManage }: { id: string; canManage: boole
 
 export function ApproveReadWriteButton({ id, canApprove }: { id: string; canApprove: boolean }) {
   const boundAction = approveReadWriteMcpClient.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   if (!canApprove) return null;
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
@@ -34,7 +35,7 @@ export function ApproveReadWriteButton({ id, canApprove }: { id: string; canAppr
 
 export function SuspendButton({ id, canManage }: { id: string; canManage: boolean }) {
   const boundAction = suspendMcpClient.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   if (!canManage) return null;
   return (
     <form action={formAction} className="inline-flex items-center gap-2">

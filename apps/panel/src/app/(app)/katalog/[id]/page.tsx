@@ -4,6 +4,7 @@ import EditProductForm from './EditProductForm';
 import RoomTypesEditor, { type RoomType } from './RoomTypesEditor';
 import HotelAttributesEditor, { type HotelAttributes } from './HotelAttributesEditor';
 
+
 interface Product {
   id: string;
   type: string;
@@ -15,7 +16,8 @@ interface Product {
   translations?: { languageCode: string; name: string; description: string; slug: string }[];
 }
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+export default async function ProductDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const product = await apiFetch<Product>(`/catalog/products/${params.id}`);
   const sr = product.translations?.find((t) => t.languageCode === 'sr');
   const name = sr?.name ?? '(bez naziva)';

@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { publishArticle, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ const initialState: FormState = { error: null };
 // sa pozivaocem — nikad se ne šalje kroz telo, nikad AI.
 export default function PublishButton({ id }: { id: string }) {
   const boundAction = publishArticle.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col items-start gap-1">
       <Btn />

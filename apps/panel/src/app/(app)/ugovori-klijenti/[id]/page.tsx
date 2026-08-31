@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import { AcceptButton, VoidButton } from './ContractActions';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ClientContract {
   id: string;
   bookingId: string;
@@ -20,7 +21,8 @@ interface ClientContract {
 
 // M20 spec §6 GET /client-contracts/:id — detalji, uključujući document_url i content_snapshot
 // (§2.1 — snimak svih popunjenih obaveznih elemenata, drži mock document_url proverljivim).
-export default async function ClientContractDetailPage({ params }: { params: { id: string } }) {
+export default async function ClientContractDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canAccept = hasPermission(me, 'M20', 'client-contract', 'ACCEPT');
   const canVoid = hasPermission(me, 'M20', 'client-contract', 'VOID');

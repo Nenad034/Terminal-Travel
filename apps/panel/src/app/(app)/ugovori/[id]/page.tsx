@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import { Badge } from '@/components/ui/badge';
 import PeriodsPanel, { type ContractPeriod } from './PeriodsPanel';
 
+
 interface Contract {
   id: string;
   supplierId: string;
@@ -28,7 +29,8 @@ interface Supplier {
 // ugovor/period. Ovaj ekran je taj detalj — periodi/cenovnici ostaju posebna podstranica
 // (periods/[periodId]/page.tsx) jer je taj model (RateLine/CancellationRule/uzrasna politika)
 // sam po sebi dovoljno velik da ne stane u jedan pregled bez gubitka preglednosti.
-export default async function ContractDetailPage({ params }: { params: { id: string } }) {
+export default async function ContractDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canEdit = hasPermission(me, 'M3', 'contract-period', 'EDIT');
 

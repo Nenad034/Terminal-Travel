@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createContent, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +14,7 @@ const SLUG_REQUIRED_TYPES = ['STATIC_PAGE', 'BLOG_POST'];
 // M12 spec §2.1/§7 — polja prate CreateContentDto. slug je obavezan za STATIC_PAGE/BLOG_POST
 // (§3b) — servis to i dalje proverava, ovde je samo UI napomena.
 export default function NewContentForm() {
-  const [state, formAction] = useFormState(createContent, initialState);
+  const [state, formAction] = useActionState(createContent, initialState);
   const [type, setType] = useState('BLOG_POST');
   const slugRequired = SLUG_REQUIRED_TYPES.includes(type);
 

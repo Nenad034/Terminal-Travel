@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { updateGuestProfile, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
@@ -22,7 +23,7 @@ interface Guest {
 // M6 spec §2.2 — PATCH /guest-profiles/:id.
 export default function EditGuestProfileForm({ guest }: { guest: Guest }) {
   const boundAction = updateGuestProfile.bind(null, guest.id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3">

@@ -9,6 +9,7 @@ import SourceActions from './SourceActions';
 import ProposeSourceForm from './ProposeSourceForm';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ArticleSource {
   id: string;
   url: string;
@@ -28,7 +29,8 @@ interface ArticleSummary {
 // nađe više od jednog validnog kandidata, svaki ulazi kao CANDIDATE — nijedan se ne koristi dok
 // čovek eksplicitno ne odobri (revizija se ne može odobriti sa referencom na neAPPROVED izvor,
 // sprovedeno na backend-u, ova strana samo prikazuje status).
-export default async function IzvoriPage({ params }: { params: { id: string } }) {
+export default async function IzvoriPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canPropose = hasPermission(me, 'M23', 'article', 'EDIT');
   const canApprove = hasPermission(me, 'M23', 'article-source', 'APPROVE');

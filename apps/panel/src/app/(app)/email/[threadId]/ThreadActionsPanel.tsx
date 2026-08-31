@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import { linkBooking, linkSupplierAnnouncement, convertToTicket, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ export default function ThreadActionsPanel({
 
 function LinkBookingForm({ threadId }: { threadId: string }) {
   const boundAction = linkBooking.bind(null, threadId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
@@ -48,7 +49,7 @@ function LinkBookingForm({ threadId }: { threadId: string }) {
 
 function LinkSupplierAnnouncementForm({ threadId }: { threadId: string }) {
   const boundAction = linkSupplierAnnouncement.bind(null, threadId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
@@ -68,7 +69,7 @@ function LinkSupplierAnnouncementForm({ threadId }: { threadId: string }) {
 
 function ConvertToTicketForm({ threadId }: { threadId: string }) {
   const boundAction = convertToTicket.bind(null, threadId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">
       <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">

@@ -5,7 +5,8 @@ const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
 
 // M12 spec §2.5/§7 (23.8.2026) — isti obrazac kao M19 `/api/chat/attachments/[attachmentId]`:
 // preuzimanje se provlači kroz panel server, M1 pristupni token nikad ne ide klijentu.
-export async function GET(_req: NextRequest, { params }: { params: { mediaId: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ mediaId: string }> }) {
+  const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ message: 'Nema aktivne sesije' }, { status: 401 });
 

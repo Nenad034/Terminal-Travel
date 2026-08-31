@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
 
+
 interface PostTripSurvey {
   id: string;
   bookingId: string;
@@ -20,7 +21,8 @@ const STATUSES = ['', 'PENDING', 'SENT', 'COMPLETED'];
 
 // M6 spec §4.3, §9 — GET /post-trip-surveys, filtrirano po statusu (bookingId filter nije
 // koristan na ovom pregledu, koristi se samo za /crm/[id] kompoziciju ako zatreba kasnije).
-export default async function PostTripSurveysPage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function PostTripSurveysPage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams;
   let surveys: PostTripSurvey[] = [];
   let error: string | null = null;
   try {

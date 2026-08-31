@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { proposeSource, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +14,7 @@ const SOURCE_TYPES = ['HOTEL_OFFICIAL_WEBSITE', 'HOTEL_SOCIAL_MEDIA', 'GOVERNMEN
 // M23/article/EDIT). Predlog ostaje CANDIDATE dok neko sa M23/article-source/APPROVE ne odobri.
 export default function ProposeSourceForm({ articleId }: { articleId: string }) {
   const boundAction = proposeSource.bind(null, articleId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 rounded-lg border border-border bg-panel p-4">

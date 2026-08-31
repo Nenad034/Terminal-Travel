@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createTicket, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +12,7 @@ const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 // M14 spec §2.1/§6 — polja prate CreateTicketDto (channel je uvek PHONE ovde, requesterType
 // uvek STAFF_ON_BEHALF — postavljeno u actions.ts, ne u ovoj formi).
 export default function NewTicketForm() {
-  const [state, formAction] = useFormState(createTicket, initialState);
+  const [state, formAction] = useActionState(createTicket, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-3 rounded-lg border border-border bg-panel p-5">

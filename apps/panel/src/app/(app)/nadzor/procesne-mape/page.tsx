@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import NadzorSubnav from '../NadzorSubnav';
 import Icon from '@/components/Icon';
 
+
 interface ProcessMapDefinition {
   key: string;
   label: string;

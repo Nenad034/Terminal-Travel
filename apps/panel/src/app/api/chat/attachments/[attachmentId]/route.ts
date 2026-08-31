@@ -9,7 +9,8 @@ const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:3000/api/v1';
 // ne vidi bearer token. API (`ConversationsService.getAttachmentForDownload`) i dalje sam proverava
 // da je pozivalac učesnik razgovora kom prilog pripada — ova ruta samo prenosi Authorization
 // zaglavlje sa servera, ne zaobilazi tu proveru.
-export async function GET(_req: NextRequest, { params }: { params: { attachmentId: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ attachmentId: string }> }) {
+  const params = await props.params;
   const session = await getSession();
   if (!session) return NextResponse.json({ message: 'Nema aktivne sesije' }, { status: 401 });
 

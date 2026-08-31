@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { acceptTermsAndCreateQuoteAction } from '../actions';
 
+
 // M8 spec poglavlje 3, korak 4 — clickwrap. Submit ovde kreira M5 Quote sa
 // contract_terms_accepted = true (vidi napomenu u rezervacija/actions.ts).
 export default async function TermsPage({

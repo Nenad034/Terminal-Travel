@@ -1,6 +1,7 @@
 import RegisterTab from '@/components/RegisterTab';
 import AiChatBox from '@/components/AiChatBox';
 
+
 // Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika: "ko zeli da se fokusira samo na rad
 // u ai agentu... kao ovde sada u VS Code") — "Fokus" režim, otvoren klikom na ikonicu u
 // dokovanom AI chat-u (RightPanel.tsx). Ista `AiChatBox` komponenta kao dokovan prikaz — samo

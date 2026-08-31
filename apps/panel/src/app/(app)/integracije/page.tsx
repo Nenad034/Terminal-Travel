@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ProviderConfigRow {
   providerCode: string;
   displayName: string;

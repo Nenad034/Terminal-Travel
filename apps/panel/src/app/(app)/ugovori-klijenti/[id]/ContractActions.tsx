@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { acceptContract, voidContract, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -8,7 +9,7 @@ const initialState: FormState = { error: null };
 
 export function AcceptButton({ id }: { id: string }) {
   const boundAction = acceptContract.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <Btn label="Evidentiraj prihvatanje (skenirani potpis)" pendingLabel="Beležim…" tone="accent" />
@@ -19,7 +20,7 @@ export function AcceptButton({ id }: { id: string }) {
 
 export function VoidButton({ id }: { id: string }) {
   const boundAction = voidContract.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <Btn label="Poništi ugovor" pendingLabel="Poništavam…" tone="danger" />

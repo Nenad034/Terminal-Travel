@@ -1,6 +1,7 @@
 import RegisterTab from '@/components/RegisterTab';
 import NewProductForm from './NewProductForm';
 
+
 export default function NewProductPage() {
   return (
     <div className="p-6">

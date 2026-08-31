@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { approveSupplierObligation, paySupplierObligation, FormState } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -8,7 +9,7 @@ const initialState: FormState = { error: null };
 
 export function ApproveButton({ id }: { id: string }) {
   const boundAction = approveSupplierObligation.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <Btn label="Odobri" pendingLabel="Odobravam…" />
@@ -19,7 +20,7 @@ export function ApproveButton({ id }: { id: string }) {
 
 export function PayButton({ id }: { id: string }) {
   const boundAction = paySupplierObligation.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <Btn label="Označi plaćeno" pendingLabel="Beležim…" />

@@ -7,6 +7,7 @@ import RecordPaymentForm from './RecordPaymentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface FiscalDocument {
   id: string;
   bookingId: string | null;
@@ -40,7 +41,8 @@ interface Payment {
 
 // M10 spec §5.1/§10 GET /fiscal-documents/:id — detalji jednog fiskalnog dokumenta, i mesto gde
 // Računovođa izvršava izlazni kriterijum M17 Faze 2 ("pripremi i pošalji fiskalni dokument").
-export default async function FiscalDocumentDetailPage({ params }: { params: { id: string } }) {
+export default async function FiscalDocumentDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canSubmit = hasPermission(me, 'M10', 'fiscal-document', 'SUBMIT');
   const canViewPayments = hasPermission(me, 'M10', 'payment', 'VIEW');

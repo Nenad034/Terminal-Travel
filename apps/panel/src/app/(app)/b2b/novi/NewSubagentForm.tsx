@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createSubagent, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -18,7 +19,7 @@ interface ClientAccountSummary {
 // dozvoljava da se postavi i kasnije, pri odobravanju (ApproveSubagentForm) — ali je korisno
 // da agencija odmah unese dogovoreni procenat ako ga već zna.
 export default function NewSubagentForm({ account }: { account: ClientAccountSummary }) {
-  const [state, formAction] = useFormState(createSubagent, initialState);
+  const [state, formAction] = useActionState(createSubagent, initialState);
   const [expanded, setExpanded] = useState(false);
 
   return (

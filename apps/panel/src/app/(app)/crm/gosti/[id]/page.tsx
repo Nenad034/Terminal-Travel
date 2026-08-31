@@ -7,6 +7,7 @@ import EditGuestProfileForm from './EditGuestProfileForm';
 import CommunicationLogPanel from '../../CommunicationLogPanel';
 import { Badge } from '@/components/ui/badge';
 
+
 interface GuestProfile {
   id: string;
   fullName: string;
@@ -47,7 +48,8 @@ interface CommunicationLog {
 
 // M6 spec §2.2, §5 — profil gosta, istorija putovanja preko BookingItemGuest (uživo iz M5),
 // veza ka nalogodavcu (§2.2 linked_client_account_id) i komunikacija.
-export default async function GuestProfileDetailPage({ params }: { params: { id: string } }) {
+export default async function GuestProfileDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canEdit = hasPermission(me, 'M6', 'guest-profile', 'EDIT');
   const canViewLinkedAccount = hasPermission(me, 'M6', 'client-account', 'VIEW');

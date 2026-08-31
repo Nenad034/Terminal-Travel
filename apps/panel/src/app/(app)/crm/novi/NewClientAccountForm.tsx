@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createClientAccount, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ const LANGUAGES = ['sr', 'en', 'hr', 'sl', 'es', 'de', 'ru', 'fr'];
 // client-accounts/dto/create-client-account.dto.ts). accountType određuje da li se prikazuje
 // "puno ime" ili "naziv firme"/PIB (§2.1 napomena).
 export default function NewClientAccountForm() {
-  const [state, formAction] = useFormState(createClientAccount, initialState);
+  const [state, formAction] = useActionState(createClientAccount, initialState);
   const [accountType, setAccountType] = useState<'INDIVIDUAL' | 'LEGAL_ENTITY'>('INDIVIDUAL');
 
   return (

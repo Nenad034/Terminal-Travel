@@ -41,7 +41,13 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : 'button';
+    // `as React.ElementType` (31.8.2026, Next 16/React 19 nadogradnja) — @radix-ui/react-slot
+    // je hoistovan na koren monorepo-a (samo apps/panel ga koristi) i tamo i dalje vidi
+    // react@18 tipove (apps/mobile ih drži na 18), dok apps/panel lokalno ima react@19 — dva
+    // strukturno različita `ReactNode` tipa iz istog paketa. Čisto tip-level sukob (potvrđeno
+    // uživo, radi ispravno u pregledaču), ne runtime greška — ista tehnika kao shadcn/ui
+    // referentna implementacija za monorepo sa mešovitim React verzijama.
+    const Comp = (asChild ? Slot : 'button') as React.ElementType;
     return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
   },
 );

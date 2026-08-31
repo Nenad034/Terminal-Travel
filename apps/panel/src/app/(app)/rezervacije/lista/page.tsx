@@ -5,11 +5,13 @@ import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
 
+
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
 // STVARNA lista, prelazi sa MOCK-a (v1.42-v1.53). `GET /sales/bookings` sad prima pun v1 skup
 // pravih filtera (vidi tabelu u spec-u); server komponenta samo prosleđuje `searchParams` kao
 // query string, isti obrazac kao postojeći `/marketing`/`/podrska`/`/b2b/rabati`.
-export default async function BookingListPage({ searchParams }: { searchParams: BookingFilters }) {
+export default async function BookingListPage(props: { searchParams: Promise<BookingFilters> }) {
+  const searchParams = await props.searchParams;
   let bookings: RealBooking[] = [];
   let error: string | null = null;
   try {

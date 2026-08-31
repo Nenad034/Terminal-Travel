@@ -7,6 +7,7 @@ import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentBu
 import BookingHistoryButton from './BookingHistoryButton';
 import BookingOwnershipCard from './BookingOwnershipCard';
 
+
 interface BookingItem {
   id: string;
   productId: string;
@@ -68,7 +69,8 @@ interface ClientAccountSummary {
 // M17 spec §2 — ova stranica je direktan primer "kompozicije na nivou prikaza": pored M5
 // (status, stavke) dodaje M10 (status fiskalnog dokumenta i plaćanja) i M11 (status garancije
 // putovanja) na istom ekranu, poziva samo njihove postojeće API-je, ne uvodi novu logiku.
-export default async function BookingDetailPage({ params }: { params: { id: string } }) {
+export default async function BookingDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canPrepareFiscal = hasPermission(me, 'M10', 'fiscal-document', 'CREATE_DRAFT');
   const canViewRegistrations = hasPermission(me, 'M11', 'travel-guarantee-registration', 'VIEW');

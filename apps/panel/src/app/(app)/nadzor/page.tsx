@@ -7,6 +7,7 @@ import RunWeeklyReviewButton from './RunWeeklyReviewButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface HealthSignal {
   id: string;
   sourceModule: string;
@@ -47,7 +48,10 @@ const SIGNAL_TYPES = [
 // (dozvola M18/health-signal/VIEW), GET /ops/weekly-reviews (M18/weekly-review/VIEW) za
 // najskoriji nedeljni pregled na vrhu ekrana — M18 spec §4 ("push" obaveštenje ide preko
 // NotificationChannel, ovaj panel je "pull" prikaz istog izvora, spec §2.1 napomena).
-export default async function NadzorPage({ searchParams }: { searchParams: { module?: string; type?: string; severity?: string } }) {
+export default async function NadzorPage(
+  props: { searchParams: Promise<{ module?: string; type?: string; severity?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canViewReview = hasPermission(me, 'M18', 'weekly-review', 'VIEW');
 

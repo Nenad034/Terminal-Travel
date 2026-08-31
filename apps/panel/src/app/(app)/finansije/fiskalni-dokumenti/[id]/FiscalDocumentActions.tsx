@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { submitFiscalDocument, stornoFiscalDocument, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 
@@ -11,7 +12,7 @@ const initialState: FormState = { error: null };
 // automatski okidač — ovo dugme je taj eksplicitan, svestan klik.
 export function SubmitButton({ id }: { id: string }) {
   const boundAction = submitFiscalDocument.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-1">
       <Btn label="Potvrdi i pošalji fakturu" pendingLabel="Šaljem…" tone="accent" />
@@ -22,7 +23,7 @@ export function SubmitButton({ id }: { id: string }) {
 
 export function StornoButton({ id }: { id: string }) {
   const boundAction = stornoFiscalDocument.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex flex-col gap-1">
       <Btn label="Storniraj" pendingLabel="Storniram…" tone="danger" />

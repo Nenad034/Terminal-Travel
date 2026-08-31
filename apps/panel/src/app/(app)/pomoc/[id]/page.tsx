@@ -8,6 +8,7 @@ import TranslationsPanel from './TranslationsPanel';
 import PublishButton from './PublishButton';
 import StatusForm from './StatusForm';
 
+
 interface Translation {
   languageCode: string;
   title: string;
@@ -41,7 +42,8 @@ const AUDIENCE_TO_SEGMENT: Record<string, 'staff' | 'subagent' | 'business' | 'p
 // kao M19 razgovori — nevidljivo, ne samo zabranjeno). Odgovor sada uz `translation` (rešen
 // fallback) nosi i `translations` (pun niz svih postojećih prevoda) — jedan poziv, bez ranijeg
 // zaobilaženja (poziv po jeziku da se rekonstruiše lista).
-export default async function HelpArticleDetailPage({ params }: { params: { id: string } }) {
+export default async function HelpArticleDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
 
   const article = await apiFetch<HelpArticleDetail>(`/help/articles/${params.id}`).catch(() => null);

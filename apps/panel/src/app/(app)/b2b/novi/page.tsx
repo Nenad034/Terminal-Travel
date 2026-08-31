@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import NewSubagentForm from './NewSubagentForm';
 
+
 interface ClientAccountSummary {
   id: string;
   accountType: 'INDIVIDUAL' | 'LEGAL_ENTITY';
@@ -15,7 +16,8 @@ interface ClientAccountSummary {
 // account_type = LEGAL_ENTITY (M6). Nema poseban M6 endpoint za filter po accountType (samo
 // email/taxId, isti kao CRM lista), pa se ovde traži nalogodavac preko istog filtera kao
 // /crm, a rezultat se suzi na LEGAL_ENTITY na nivou prikaza — kompozicija, ne novi M6 API.
-export default async function NewSubagentPage({ searchParams }: { searchParams: { email?: string; taxId?: string } }) {
+export default async function NewSubagentPage(props: { searchParams: Promise<{ email?: string; taxId?: string }> }) {
+  const searchParams = await props.searchParams;
   const hasQuery = Boolean(searchParams?.email || searchParams?.taxId);
   let matches: ClientAccountSummary[] = [];
   let error: string | null = null;

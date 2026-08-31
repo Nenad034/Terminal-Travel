@@ -6,6 +6,7 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
 
+
 // M8 spec §5.1 — SEOMeta, dopuna avgust 2026: naslov po kategoriji/jeziku.
 export async function generateMetadata({
   params,

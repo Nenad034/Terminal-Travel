@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createPeriod, FormState } from '../actions';
 import { ButtonGroup, ToggleButton } from '@/components/ButtonGroup';
 import { Button } from '@/components/ui/button';
@@ -87,7 +88,7 @@ export default function PeriodsPanel({ contractId, periods, canEdit }: { contrac
 
 function NewPeriodForm({ contractId }: { contractId: string }) {
   const boundAction = createPeriod.bind(null, contractId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const [mode, setMode] = useState<AllotmentMode>('FIXED');
   const [agePolicy, setAgePolicy] = useState<AgePolicyOverrideEntry[]>([]);
 

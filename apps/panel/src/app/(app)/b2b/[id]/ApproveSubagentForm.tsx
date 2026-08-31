@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { approveSubagent, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // "namerna kontrola rizika — sistem ne dozvoljava automatsko samoodobravanje kreditne linije").
 export default function ApproveSubagentForm({ id, isTier1 }: { id: string; isTier1: boolean }) {
   const boundAction = approveSubagent.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-3">

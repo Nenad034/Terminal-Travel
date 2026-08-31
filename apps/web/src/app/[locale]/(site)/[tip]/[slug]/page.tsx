@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
 
+
 // M8 spec poglavlje 2 — /[tip]/[slug]. M2 public endpoint pretražuje samo po :id, nema
 // slug lookup (dopuna po potrebi, zavedeno u backlogu) — ova stranica zato učita ceo
 // javni katalog za jezik i pronađe proizvod po ProductTranslation.slug, tehnika manje

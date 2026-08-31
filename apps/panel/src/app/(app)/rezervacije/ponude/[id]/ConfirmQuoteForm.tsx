@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { confirmQuote, ConfirmState } from './actions';
 
 const initialState: ConfirmState = { error: null };
 
 export default function ConfirmQuoteForm({ quoteId, itemCount }: { quoteId: string; itemCount: number }) {
   const boundAction = confirmQuote.bind(null, quoteId, itemCount);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   const [buyerType, setBuyerType] = useState<'FIZICKO_LICE' | 'PRAVNO_LICE'>('FIZICKO_LICE');
 
   return (

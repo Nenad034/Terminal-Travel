@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { assignRole, removeRole, FormState } from '../actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,7 +45,7 @@ export default function RoleAssignment({
 
 function RemoveRoleButton({ userId, roleId }: { userId: string; roleId: string }) {
   const boundAction = removeRole.bind(null, userId, roleId);
-  const [, formAction] = useFormState(boundAction, initialState);
+  const [, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction}>
       <Button type="submit" variant="ghost" size="sm" className="h-auto p-0.5 text-danger hover:text-danger" title="Ukloni ulogu">
@@ -56,7 +57,7 @@ function RemoveRoleButton({ userId, roleId }: { userId: string; roleId: string }
 
 function AssignRoleForm({ userId, roles }: { userId: string; roles: RoleRef[] }) {
   const boundAction = assignRole.bind(null, userId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="flex items-end gap-2 border-t border-border pt-2 text-xs">
       <label className="text-ink-faint">

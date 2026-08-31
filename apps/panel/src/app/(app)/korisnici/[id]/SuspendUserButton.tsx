@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { suspendUser, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -12,7 +13,7 @@ const initialState: FormState = { error: null };
 export default function SuspendUserButton({ id }: { id: string }) {
   const [confirming, setConfirming] = useState(false);
   const boundAction = suspendUser.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   if (!confirming) {
     return (

@@ -22,7 +22,8 @@ interface ProductDetail {
 // koje već koristi `/katalog/[id]` forma), trimovan na ono što kartica prikazuje. Klijentska
 // komponenta ne može direktno da pozove `apiFetch`/`getMe()` (server-only) — isti obrazac kao
 // `/api/home-summary`.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   if (!me) return NextResponse.json({ message: 'Nije prijavljen' }, { status: 401 });
   if (!hasPermission(me, 'M2', 'product', 'VIEW')) return NextResponse.json({ message: 'Nema dozvolu za katalog.' }, { status: 403 });

@@ -6,6 +6,7 @@ import TabLink from '@/components/TabLink';
 import { ApproveButton, PayButton } from './SupplierObligationActions';
 import { Badge } from '@/components/ui/badge';
 
+
 interface Mismatch {
   bookingId: string;
   reason: 'MISSING_FISCAL_DOCUMENT' | 'PARTIAL_PAYMENT_STALE';

@@ -8,6 +8,7 @@ import RetryRegistrationButton from './RetryRegistrationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface TravelGuarantee {
   id: string;
   provider: string;
@@ -43,7 +44,8 @@ interface Registration {
 // M17 spec §4/§7 (Faza 2) — "Compliance (garancija putovanja)", M11 §2/§2.2/§2.3. Izlazni
 // kriterijum M17 Faza 2: "tim vidi status garancije putovanja" — čitanje, radnje ograničene
 // na ono što M11 spec eksplicitno dozvoljava (§2.1 izmena je uvek ljudska, §2.3 retry).
-export default async function CompliancePage({ searchParams }: { searchParams: { status?: string } }) {
+export default async function CompliancePage(props: { searchParams: Promise<{ status?: string }> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const canView = hasPermission(me, 'M11', 'travel-guarantee', 'VIEW');
   const canEdit = hasPermission(me, 'M11', 'travel-guarantee', 'EDIT');

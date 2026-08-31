@@ -6,6 +6,7 @@ import HelpTabs from '../HelpTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
+
 interface HelpQuestion {
   id: string;
   askedBy: string;
@@ -26,7 +27,10 @@ const CONFIDENCES = ['HIGH', 'LOW', 'NONE'];
 // Vlasnik) — uvid u istoriju pitanja radi kvaliteta sadržaja i bezbednosnog pregleda (§3). Svaki
 // red pokazuje odgovor, pouzdanost, koji su članci korišćeni (sledljivost, isto načelo kao M13
 // "svaki izveštaj pokazuje izvor") i povratnu informaciju korisnika.
-export default async function PitanjaPage({ searchParams }: { searchParams: { audienceContext?: string; confidence?: string } }) {
+export default async function PitanjaPage(
+  props: { searchParams: Promise<{ audienceContext?: string; confidence?: string }> }
+) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const showSuggestions = hasPermission(me, 'M21', 'suggestion', 'APPROVE');
 

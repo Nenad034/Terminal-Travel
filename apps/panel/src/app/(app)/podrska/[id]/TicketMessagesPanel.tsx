@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import ActorLabel from '@/components/ActorLabel';
 import { createTicketMessage, sendTicketMessage, FormState } from '../actions';
@@ -71,7 +72,7 @@ function actorPropsFor(m: TicketMessage) {
 
 function NewMessageForm({ ticketId }: { ticketId: string }) {
   const boundAction = createTicketMessage.bind(null, ticketId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 border-t border-border pt-3">
@@ -97,7 +98,7 @@ function SubmitButton() {
 
 function SendDraftButton({ ticketId, messageId }: { ticketId: string; messageId: string }) {
   const boundAction = sendTicketMessage.bind(null, ticketId, messageId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
       <SendSubmit />

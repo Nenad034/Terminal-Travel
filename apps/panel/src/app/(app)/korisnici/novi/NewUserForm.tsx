@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { inviteUser, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +10,7 @@ const initialState: FormState = { error: null };
 // M1 spec §7 — POST /iam/users, kreira nalog u statusu INVITED (nema lozinku dok pozvani
 // korisnik ne završi sopstvenu registraciju preko inviteToken-a, van obima ovog ekrana).
 export default function NewUserForm({ roles }: { roles: { id: string; name: string }[] }) {
-  const [state, formAction] = useFormState(inviteUser, initialState);
+  const [state, formAction] = useActionState(inviteUser, initialState);
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5">

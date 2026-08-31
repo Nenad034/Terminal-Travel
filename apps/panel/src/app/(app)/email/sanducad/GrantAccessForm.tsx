@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { grantMailboxAccess, FormState } from '../actions';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // gate). Pristup se NIKAD ne izvodi iz opšte uloge — svaki zaposleni mora biti eksplicitno dodat.
 export default function GrantAccessForm({ mailboxId }: { mailboxId: string }) {
   const boundAction = grantMailboxAccess.bind(null, mailboxId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">

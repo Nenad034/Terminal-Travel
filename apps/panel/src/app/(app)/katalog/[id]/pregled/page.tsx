@@ -3,6 +3,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import { Badge } from '@/components/ui/badge';
 
+
 interface ProductMedia {
   url: string;
   category: string;
@@ -37,7 +38,8 @@ interface ProductDetail {
 // stranica (`[locale]/(site)/[tip]/[slug]`) trenutno nema pravu galeriju (samo placeholder) —
 // ova stranica gradi sopstveni prikaz direktno iz `Product.media[]` (M2 spec §2.3a), ne
 // kopira apps/web bukvalno.
-export default async function ProductGalleryPage({ params }: { params: { id: string } }) {
+export default async function ProductGalleryPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const product = await apiFetch<ProductDetail>(`/catalog/products/${params.id}`);
   const name = product.translation?.name ?? '(bez naziva)';
   const attrs = product.attributes ?? {};

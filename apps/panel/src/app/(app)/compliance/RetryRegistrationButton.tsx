@@ -1,6 +1,7 @@
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { retryRegistration, FormState } from './actions';
 import { Button } from '@/components/ui/button';
 
@@ -10,7 +11,7 @@ const initialState: FormState = { error: null };
 // (dozvola M11/travel-guarantee-registration/RETRY), nikad automatski.
 export default function RetryRegistrationButton({ id }: { id: string }) {
   const boundAction = retryRegistration.bind(null, id);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="inline-flex items-center gap-2">

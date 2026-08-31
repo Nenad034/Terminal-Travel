@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import { grantSupplierAccess, inviteSupplierContact, revokeSupplierAccess, FormState } from './actions';
@@ -123,7 +124,7 @@ export default function SupplierConversationRow({
 
 function GrantAccessForm({ conversationId }: { conversationId: string }) {
   const boundAction = grantSupplierAccess.bind(null, conversationId);
-  const [state, formAction] = useFormState(boundAction, initialGrantState);
+  const [state, formAction] = useActionState(boundAction, initialGrantState);
   return (
     <form action={formAction} className="flex gap-2">
       {state.error && <p className="w-full rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>}
@@ -154,7 +155,7 @@ function RevokeButton({ conversationId, userId }: { conversationId: string; user
 
 function InviteContactForm({ conversationId, contacts }: { conversationId: string; contacts: SupplierContactRow[] }) {
   const boundAction = inviteSupplierContact.bind(null, conversationId);
-  const [state, formAction] = useFormState(boundAction, initialInviteState);
+  const [state, formAction] = useActionState(boundAction, initialInviteState);
   return (
     <form action={formAction} className="flex flex-col gap-2">
       {state.error && <p className="rounded bg-danger-bg p-1.5 text-[11px] text-danger">{state.error}</p>}

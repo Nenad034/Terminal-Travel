@@ -7,6 +7,7 @@ import Icon from '@/components/Icon';
 import EmailMessagesPanel from './EmailMessagesPanel';
 import ThreadActionsPanel from './ThreadActionsPanel';
 
+
 interface EmailMessage {
   id: string;
   direction: 'INBOUND' | 'OUTBOUND';
@@ -39,7 +40,8 @@ interface EmailThreadDetail {
 // nit ne postoji, 403 ako pozivalac nema MailboxAccess za sanduče (bez obzira na ulogu, isti
 // obrazac kao M19 SupplierConversationAccess). Odgovor sada uključuje `mailbox.address`/
 // `mailbox.displayName` (isti proširen payload kao lista niti).
-export default async function EmailThreadDetailPage({ params }: { params: { threadId: string } }) {
+export default async function EmailThreadDetailPage(props: { params: Promise<{ threadId: string }> }) {
+  const params = await props.params;
   const me = await getMe();
   const canReply = hasPermission(me, 'M22', 'email-thread', 'REPLY');
   const canConvert = hasPermission(me, 'M22', 'email-thread', 'CONVERT_TO_TICKET');

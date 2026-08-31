@@ -1,7 +1,9 @@
 import RegisterTab from '@/components/RegisterTab';
 import NewGuestProfileForm from './NewGuestProfileForm';
 
-export default function NewGuestProfilePage({ searchParams }: { searchParams: { linkedClientAccountId?: string } }) {
+
+export default async function NewGuestProfilePage(props: { searchParams: Promise<{ linkedClientAccountId?: string }> }) {
+  const searchParams = await props.searchParams;
   return (
     <div className="p-6">
       <RegisterTab label="Novi gost" />

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
+import { useActionState } from 'react';
 import { createPermissionOverride, deletePermissionOverride, FormState } from '../actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -84,7 +85,7 @@ export default function PermissionOverrides({
 
 function RemoveOverrideButton({ userId, overrideId }: { userId: string; overrideId: string }) {
   const boundAction = deletePermissionOverride.bind(null, userId, overrideId);
-  const [, formAction] = useFormState(boundAction, initialState);
+  const [, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction}>
       <Button type="submit" variant="ghost" size="sm" className="h-auto px-2 py-1 text-[11px] text-danger hover:text-danger">
@@ -96,7 +97,7 @@ function RemoveOverrideButton({ userId, overrideId }: { userId: string; override
 
 function CreateOverrideForm({ userId, permissions, onDone }: { userId: string; permissions: PermissionOption[]; onDone: () => void }) {
   const boundAction = createPermissionOverride.bind(null, userId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [state, formAction] = useActionState(boundAction, initialState);
 
   return (
     <form action={formAction} className="flex flex-col gap-2 rounded border border-border bg-panel2 p-3 text-xs">

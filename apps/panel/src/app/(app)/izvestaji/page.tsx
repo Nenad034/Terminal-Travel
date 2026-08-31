@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
 
+
 interface Bucket {
   key: string;
   count: number;
@@ -95,7 +96,8 @@ interface SearchParams {
 // pet postojećih GET endpoint-a i po jedan POST za ručnu rekonsilijaciju, filtrirano prema
 // M13/report:*/VIEW dozvolama trenutnog korisnika (isti princip kao ostatak M17 — sekcija se
 // ne prikazuje bez dozvole, ne samo onemogući).
-export default async function IzvestajiPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function IzvestajiPage(props: { searchParams: Promise<SearchParams> }) {
+  const searchParams = await props.searchParams;
   const me = await getMe();
   const perms: Record<TabKey, boolean> = {
     profitabilnost: hasPermission(me, 'M13', 'report:profitability', 'VIEW'),

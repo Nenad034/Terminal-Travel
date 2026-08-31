@@ -11,6 +11,7 @@ import StatusForm from './StatusForm';
 import ShareLinkBox from './ShareLinkBox';
 import TranslationsList from './TranslationsList';
 
+
 interface Translation {
   languageCode: string;
   title: string;
@@ -39,7 +40,8 @@ interface ArticleDetail {
 // PUNU listu translations (ne samo jedan rešen prevod) — ArticlesService.withResolvedTranslation
 // vraća i `translation` (rešen fallback za prikaz) i `translations` (svi postojeći redovi), pa
 // ovde nije potreban M21-stil "pitaj po svakom jeziku" zaobilazak.
-export default async function ZnanjeDetailPage({ params }: { params: { id: string } }) {
+export default async function ZnanjeDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const me = await getMe();
 
   let article: ArticleDetail;
