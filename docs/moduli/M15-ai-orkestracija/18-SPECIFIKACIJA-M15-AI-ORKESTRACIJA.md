@@ -218,7 +218,7 @@ Dopuna `AIAgent.agent_role` (poglavlje 2.1): treći mogući enum, `OMNISEARCH_AG
 `OmnisearchAgent` **nikad** ne čita direktno iz baze — poziva iste interne API-je kao i sam kanal koji ga je pozvao (princip #1/#3, poglavlje 3 Master dokumenta), sa identitetom i pravima **korisnika koji pretražuje**, ne sopstvenim širim pristupom. Posledica: rezultati pretrage automatski poštuju već postojeća ograničenja bez ijedne nove provere —
 
 - identitet dobavljača se ne pojavljuje u rezultatima za M7/M8 kontekst (M2 poglavlje 5.1, M5 poglavlje 6.2);
-- prodajni agent u M17 vidi u rezultatima samo svoje klijente, ne tuđe (M1 RBAC, M5 poglavlje 10);
+- prodajni agent u M17 podrazumevano vidi sve klijente/rezervacije u rezultatima (M1 §3.9a, M5 poglavlje 6.6, izmenjeno 31.8.2026); ako je pojedinačno sužen na sopstvene (`DENY` na `M5/booking/VIEW_ALL`), omnisearch to poštuje isto kao i redovan ekran — nema posebnog izuzetka za pretragu;
 - subagent u M7 ne vidi rezervacije/goste svog sub-subagenta (M7 poglavlje 6);
 - gost na M8 vidi samo sopstvene rezervacije.
 

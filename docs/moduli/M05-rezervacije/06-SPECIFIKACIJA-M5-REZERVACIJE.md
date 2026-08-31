@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.84 — Vlasništvo i zaduženje rezervacije, nova vidljivost `VIEW_ALL` (31.8.2026, na zahtev vlasnika, isti prolaz kao M1 §3.9a/M7 §2.0.7). Novo poglavlje 6.5: `Booking` dobija `owner_id` (ko dobija zaslugu u statistici/proviziji, prenosivo samo od vlasnika ili Vlasnika/Direktora) i `assigned_to_id` (ko trenutno vodi rezervaciju, predaja preko novog `BookingHandoffRequest` zahteva prihvatanje primaoca, Vlasnik/Direktor mogu bez prihvatanja). Novo poglavlje 6.6: `M5/booking/VIEW` menja podrazumevano ponašanje sa "Prodajni agent vidi samo svoje" (nikad sprovedeno u kodu — Faza 8 nalaz, 30.8.2026) na "svi vide sve", sužavanje ide preko nove `M5/booking/VIEW_ALL` dozvole (M1 §3.9a konvencija). Nov `Booking.franchise_subagent_id` (poglavlje 4.1) za buduće M7 franšizno filtriranje. Poglavlje 10 dopunjeno sa 4 nove dozvole. Čisto specifikaciona dopuna, bez koda u ovom prolazu.
 **Verzija:** 1.83 — Ožičen izbor tipa putovanja za pretragu letova (29.8.2026, na zahtev vlasnika: "kod pretrage letova nema opcije da se bira jedan pravac, povratna i multidestinacije") — §3.0d.1 je tip putovanja opisivao od 17.8.2026, ali `SearchCriteriaPopup.tsx` (M17) ga nikad nije izlagao u UI. Dodato: segmentovan prekidač Jednosmerno/Povratno/Multidestinacija (`SearchCriteriaValues.tripType`, podrazumevano `ROUND_TRIP`), polje `originCity` (nedostajalo u potpunosti — do sada je forma imala samo odredište), `returnDate` za povratni let, i novi `FlightLegsEditor` (dodaj/ukloni nogu puta, svaka sa sopstvenim odakle/dokle/datum) za multidestinaciju čija vrednost putuje kao JSON string kroz `flightLegs` URL parametar (isti obrazac kao `occupancy`). `FlightResultsMock.tsx` (i dalje MOCK, čeka pravu M4 avio žicu) sad prikazuje po jednu listu letova po nozi puta (1 za jednosmerno, 2 za povratno, N za multidestinaciju), svaka sa sopstvenim odakle/dokle/datumom — mock kodovi aerodroma izvedeni skraćivanjem unetog naziva grada (nema pravog IATA registra u ovoj fazi).
 **Verzija:** 1.82 — Sačuvane GRUPNE pretrage (29.8.2026, na zahtev vlasnika: "omogućiti čuvanje i grupnih pretraga") — isti mehanizam kao pojedinačne sačuvane pretrage (v1.70), samo čuva NIZ pojedinačnih pretraga (svaka sa sopstvenim `type[]`/filterima) pod jednim imenom, tako da se ceo skup ponovo pokreće odjednom (svaka sopstvena pretraga otvara se u sopstvenom tabu M17 panela) — npr. "Letovanje Grčka avgust" = let + hotel + transfer sačuvani zajedno. Čisto M17/M1 `UserPreference` mehanizam (nov ključ `saved_views.rezervacije_grupna_pretraga`), bez izmene M5 API-ja — isti razlog zašto v1.70 nema sopstvenu numerisanu podsekciju, samo changelog unos. Max 10 grupa, max 6 pojedinačnih pretraga po grupi (ista veličina reda kao postojećih 10 pojedinačnih pretraga).
 **Verzija:** 1.81 — Upozorenje na neusklađene datume u selekciji, novo poglavlje 3.0e.3a (29.8.2026, na zahtev vlasnika: "kod individualnih/grupnih putovanja sistem treba da upozori da se ne poklapaju datumi... može se to dozvoliti ali uz eksplicitno odobrenje"). Za razliku od postojećeg §3.0.7 (informativno, nikad ne blokira `Itinerary`), ovo NOVO upozorenje BLOKIRA `POST /quotes` kad selekcija sadrži i PREVOZ (`FLIGHT`/`TRANSFER`) i BORAVAK (`ACCOMMODATION`/`PACKAGE`) stavke čiji se datumi uopšte ne preklapaju (uz toleranciju 1 dan) — zahteva novo opciono polje `date_mismatch_acknowledged` pre nego što dozvoli nastavak, i upisuje `AuditLogEntry` (`quote.date_mismatch_override`) kad se neusklađenost svesno prihvati. Detalji u §3.0e.3a.
@@ -651,6 +652,9 @@ Korak po korak:
 | created_at / confirmed_at / cancelled_at | timestamp | |
 | created_by | UUID | user ili "GOST_SELF" |
 | referral_tracking_code | string, nullable | dopuna avgust 2026 (M12 poglavlje 3a) — kopirano iz `Quote.referral_tracking_code` pri potvrdi, isti obrazac kao `channel`/`client_account_id`; M13 ga razrešava ka `ContentPiece` pri izgradnji projekcije |
+| owner_id | UUID (FK → M1 User) | dopuna 31.8.2026, poglavlje 6.5 — pri kreiranju jednako `created_by` (kad je user, ne "GOST_SELF"), zatim prenosivo |
+| assigned_to_id | UUID (FK → M1 User) | dopuna 31.8.2026, poglavlje 6.5 — pri kreiranju jednako `owner_id`, menja se isključivo kroz `BookingHandoffRequest` |
+| franchise_subagent_id | UUID, nullable (FK → M7 Subagent) | dopuna 31.8.2026, poglavlje 6.6/M7 poglavlje 2.0.7 — kopirano iz `created_by` korisnikovog `User.linked_profile_id` pri kreiranju (prazno za rezervacije matične agencije); koristi ga isključivo filter vidljivosti u poglavlju 6.6, ne utiče na cenu/proviziju (to već rešava `client_account_id`) |
 
 ### 4.2 `BookingItem`
 | Polje | Tip | Napomena |
@@ -772,6 +776,31 @@ Nivo autonomije: **"Predloži pa čovek odobri"** (Master dokument poglavlje 7) 
 **Primena na subagentski kanal (M7):** pošto B2B subagenti otkazuju rezervacije kroz isti `POST /bookings/:id/cancel` tok (bilo direktno kroz portal, bilo preko internog panela u njihovo ime), provera duplikata iz ovog poglavlja se automatski primenjuje i tamo — nije potreban poseban mehanizam u M7 specifikaciji, samo referenca (vidi `12-SPECIFIKACIJA-M7-B2B-SUBAGENTI.md`).
 
 **Otvoreno za dalje:** ova provera rešava trenutak storna, ali ne i uzrok — da isti fizički gost stoji iza dva različita `ClientAccount`-a (direktan gost i klijent subagenta) bez povezanog profila u M6. Dugoročno rešenje (predlog spajanja/povezivanja gostiju u M6 kad se otkrije podudaranje identiteta) ostaje otvoreno pitanje za M6 specifikaciju.
+
+### 6.5 Vlasništvo i zaduženje rezervacije (dopuna, 31.8.2026, na zahtev vlasnika — "kako bi se i merilo koliko ko realno ima svojih rezervacija")
+
+Uvode se **dva odvojena pojma**, namerno razdvojena jer služe različitoj svrsi i menjaju se po različitim pravilima:
+
+**Vlasništvo (`owner_id`).** Ko dobija "zaslugu" za rezervaciju u statistici/proviziji. Formalizuje polje koje `Booking.created_by` (poglavlje 4.1) već nosi — pri kreiranju rezervacije `owner_id = created_by`, i za razliku od `created_by` (istorijska činjenica, nikad se ne menja), `owner_id` je **prenosivo**:
+- prenosi ga isključivo **trenutni vlasnik** (`M5/booking/TRANSFER_OWNERSHIP`, ownership provera kao i svuda u sistemu) **ili** Vlasnik/Direktor agencije (bezuslovno, bez obzira ko je trenutni vlasnik) — **nikad** Sales Manager, iako Sales Manager ima `VIEW_ALL` (poglavlje 6 dole) — nadgleda, ne preraspoređuje vlasništvo;
+- naredna uplata, izmena ili bilo koja druga radnja nad rezervacijom **ne menja** `owner_id` — ostaje kod onog ko je otvorio rezervaciju (ili kome je naknadno prebačeno), dok god se eksplicitno ne prenese;
+- svaki prenos upisuje `AuditLogEntry` (isti mehanizam kao poglavlje 6.1, "istorija rezervacije") — vidi se ko je, kad, kome prebacio.
+
+**Zaduženje (`assigned_to_id`).** Ko je TRENUTNO odgovoran da vodi rezervaciju dalje (odgovara gostu, prati uplatu, rešava probleme) — nezavisno od vlasništva. Tačno jedan zadužen u svakom trenutku; pri kreiranju `assigned_to_id = owner_id`.
+- **Bilo koji korisnik** (bez obzira na ulogu) sme da predloži predaju zaduženja drugom korisniku — predaja **zahteva prihvatanje** primaoca, ne izvršava se odmah.
+- Novi entitet `BookingHandoffRequest`: `id`, `booking_id`, `from_user_id`, `to_user_id`, `status` (`PENDING`, `ACCEPTED`, `DECLINED`, `CANCELLED`), `created_at`, `resolved_at`. Dok god je `status = PENDING`, `assigned_to_id` **ostaje nepromenjen** (kod trenutnog zaduženog) — nema praznog perioda bez ikog zaduženog. `to_user_id` prihvata (`assigned_to_id` se tek tada menja) ili odbija; onaj ko je predložio (`from_user_id`) sme da otkaže dok je `PENDING`.
+- **Izuzetak:** Vlasnik/Direktor smeju da izvrše zaduženje **bez čekanja na prihvatanje** (hitna preraspodela) — `BookingHandoffRequest` se u tom slučaju upisuje direktno kao `ACCEPTED`, sa `resolved_at = created_at`, radi jednoobraznog traga u istoriji.
+- Svaka promena (predlog/prihvatanje/odbijanje/otkazivanje/direktno izvršenje) upisuje `AuditLogEntry`.
+
+**Zašto ovo nije "Nikad autonomno" pitanje (poglavlje 7 Master dokumenta):** ni vlasništvo ni zaduženje ne diraju novac, fiskalizaciju ili pravno obavezujuću komunikaciju — čisto interna organizacija rada. AI agent zadužen za M5 ne pokreće nijednu od ovih radnji sam (nema poslovni razlog da ikad predlaže preraspodelu tima), ali to nije bezbednosno ograničena akcija kao vaučer/fiskalni dokument.
+
+### 6.6 Vidljivost `M5/booking/VIEW` — podrazumevano sve, podesivo na "samo svoje" (dopuna, 31.8.2026, zamenjuje raniju formulaciju poglavlja 10)
+
+Primenjuje opštu M1 konvenciju (M1 spec §3.9a) na `Booking`: `M5/booking/VIEW` **podrazumevano pokazuje sve rezervacije** unutar pozivaočevog konteksta (matična agencija ili sopstvena franšiza — M7 poglavlje 2.0.7), bez obzira na ulogu. Ovo menja i zamenjuje raniju formulaciju poglavlja 10 ("Prodajni agent — podrazumevano samo sopstveni klijenti"), koja nikad nije bila sprovedena u kodu (Faza 8 bezbednosni pregled, 30.8.2026, `docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md`) i koju je vlasnik ovim izričito zamenio.
+
+Sužavanje na "samo svoje" (za korisnika kome to treba, iz bilo kog razloga) ide preko `DENY` na `M5/booking/VIEW_ALL` (M1 §3.9a) — kad korisnik nema `VIEW_ALL`, `BookingsService.findAll()`/`findOne()` filtriraju na `owner_id = actor.userId OR assigned_to_id = actor.userId` (obe uloge iz poglavlja 6.5 broje se kao "svoje" — vlasnik koji je prebacio zaduženje i dalje želi da vidi svoju statistiku, novi zaduženi mora da vidi rezervaciju koju je upravo prihvatio).
+
+Za `STAFF` naloge vezane za franšizu (M1 §3.1a), `VIEW_ALL` je uvek dodatno filtriran na `franchise_subagent_id = actor.linked_profile_id` (poglavlje 4.1, M7 poglavlje 2.0.7) — franšiza nikad ne dobija uvid u rezervacije matične agencije ili druge franšize kroz ovaj mehanizam, bez obzira na ALLOW/DENY podešavanje.
 
 ---
 
@@ -952,8 +981,11 @@ Priprema `DRAFT` je nivo **"Autonomno"** (čisto informativna priprema teksta, i
 | `M5/itinerary/CREATE`, `VIEW`, `EDIT` | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samo sopstveni, preko sajta) |
 | `M5/quote/CREATE`, `VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samo sopstvene, preko sajta) |
 | `M5/booking/CREATE` (potvrda) | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (samostalna rezervacija na sajtu) |
-| `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager (sve); Prodajni agent (podrazumevano samo sopstveni klijenti — širi se pojedinačnim izuzetkom iz M1 ako treba); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
-| `M5/booking/MODIFY`, `CANCEL` | Vlasnik, Direktor, Sales Manager, Prodajni agent (sopstveni klijenti); Gost (sopstvena rezervacija, u skladu sa pravilima otkazivanja) |
+| `M5/booking/VIEW` | Vlasnik, Direktor, Sales Manager, Prodajni agent (svi podrazumevano vide sve — poglavlje 6.6, izmenjeno 31.8.2026); Gost (samo sopstvene) — **koristi i kalendar rezervacija, poglavlje 7.3** |
+| `M5/booking/VIEW_ALL` (dopuna 31.8.2026, poglavlje 6.6) | Podrazumevano svi sa `VIEW` (Vlasnik, Direktor, Sales Manager, Prodajni agent); pojedinačno se uklanja preko `DENY` (M1 §3.9a) kad neko treba da bude sužen na sopstvene (vlasništvo ili zaduženje, poglavlje 6.5) |
+| `M5/booking/TRANSFER_OWNERSHIP` (dopuna 31.8.2026, poglavlje 6.5) | Vlasnik, Direktor (bezuslovno); trenutni `owner_id` rezervacije (samo za tu rezervaciju, ownership provera) — **nikad Sales Manager** |
+| `M5/booking/TRANSFER_ASSIGNMENT`, `ACCEPT_ASSIGNMENT` (dopuna 31.8.2026, poglavlje 6.5) | Svi sa `M5/booking/VIEW` nad tom rezervacijom (bilo koja uloga sme da predloži/prihvati/odbije predaju zaduženja); Vlasnik, Direktor dodatno smeju direktno izvršenje bez prihvatanja |
+| `M5/booking/MODIFY`, `CANCEL` | Vlasnik, Direktor, Sales Manager, Prodajni agent; Gost (sopstvena rezervacija, u skladu sa pravilima otkazivanja) |
 | `M5/markup-rule/VIEW`, `EDIT` | Vlasnik, Direktor — cenovna politika je osetljiva, ne deli se šire podrazumevano |
 | `M5/supplier-announcement-rule/VIEW`, `EDIT` | Vlasnik, Direktor — vidi poglavlje 8.7 |
 | `M5/voucher/OVERRIDE_ISSUE` (izdavanje bez pune uplate) | Vlasnik, Direktor — **nikad AI agent, nikad Sales Manager/Prodajni agent**, u skladu sa poglavljem 6 (finansijski rizik) |
