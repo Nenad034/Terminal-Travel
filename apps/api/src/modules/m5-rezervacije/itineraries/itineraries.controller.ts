@@ -18,8 +18,8 @@ export class ItinerariesController {
 
   @Get()
   @RequirePermission('M5', 'itinerary', 'VIEW')
-  findAll(@Query('clientAccountId') clientAccountId?: string) {
-    return this.itineraries.findAll(clientAccountId);
+  findAll(@Query('clientAccountId') clientAccountId: string | undefined, @CurrentUser() actor: { userId: string }) {
+    return this.itineraries.findAll(clientAccountId, actor.userId);
   }
 
   @Post()
@@ -30,14 +30,14 @@ export class ItinerariesController {
 
   @Get(':id')
   @RequirePermission('M5', 'itinerary', 'VIEW')
-  findOne(@Param('id') id: string) {
-    return this.itineraries.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.itineraries.findOne(id, actor.userId);
   }
 
   @Patch(':id')
   @RequirePermission('M5', 'itinerary', 'EDIT')
-  update(@Param('id') id: string, @Body() dto: UpdateItineraryDto) {
-    return this.itineraries.update(id, dto);
+  update(@Param('id') id: string, @Body() dto: UpdateItineraryDto, @CurrentUser() actor: { userId: string }) {
+    return this.itineraries.update(id, dto, actor.userId);
   }
 
   @Post(':id/to-quote')

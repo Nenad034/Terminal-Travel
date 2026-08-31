@@ -3,6 +3,9 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from '../quotes/quote-item-builder.service';
 import { CreateItineraryDto } from './dto/create-itinerary.dto';
 import { UpdateItineraryDto } from './dto/update-itinerary.dto';
+import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { resolveApiContext } from '../common/resolve-api-context';
+import { SubagentStubService } from '../common/subagent-stub.service';
 
 const DEFAULT_QUOTE_EXPIRY_MINUTES = 30;
 
@@ -11,42 +14,75 @@ export class ItinerariesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly builder: QuoteItemBuilderService,
+    private readonly subagentStub: SubagentStubService,
   ) {}
 
-  // M5 spec §3.0.1
-  create(dto: CreateItineraryDto, actor: { userId?: string } | null) {
+  // M5 spec §3.0.1 dopuna (31.8.2026, IDOR pregled — Itinerary nije bio obuhvaćen ranijim
+  // Faza 8 prolazom jer tad još nije bio na dnevnom redu). GUEST/SUBAGENT_CONTACT/AI_AGENT
+  // pozivalac dobija client_account_id PRIMORAN na sopstveni nalog, isti razlog i isti obrazac
+  // kao QuotesService.create — bez ovoga bi gost mogao da pripiše Itinerary tuđem nalogu prostim
+  // slanjem tuđeg clientAccountId parametra.
+  async create(dto: CreateItineraryDto, actor: { userId?: string } | null) {
+    let clientAccountId = dto.clientAccountId;
+    if (actor?.userId) {
+      const identity = await resolveCallerIdentity(this.prisma, actor.userId);
+      if (identity.accountType === 'GUEST' || identity.accountType === 'AI_AGENT') {
+        clientAccountId = identity.ownProfileId ?? undefined;
+      } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
+        clientAccountId = (await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+      }
+    }
     return this.prisma.itinerary.create({
       data: {
         channel: dto.channel,
         title: dto.title,
-        clientAccountId: dto.clientAccountId,
+        clientAccountId,
         createdBy: actor?.userId ?? null,
         status: 'DRAFT',
       },
     });
   }
 
-  findAll(clientAccountId?: string) {
+  // M5 spec §3.0.1 dopuna (31.8.2026, IDOR pregled) — isti obrazac kao BookingsService.findAll:
+  // van INTERNAL_PANEL, klijentski `clientAccountId` parametar se IGNORIŠE i zamenjuje
+  // pozivaočevim sopstvenim nalogom — bez ovoga bi gost mogao da vidi tuđe itinerare menjajući
+  // query parametar.
+  async findAll(clientAccountId: string | undefined, actorUserId?: string) {
+    let effectiveClientAccountId = clientAccountId;
+    if (actorUserId) {
+      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      if (context !== 'INTERNAL_PANEL') effectiveClientAccountId = ownClientAccountId ?? undefined;
+    }
     return this.prisma.itinerary.findMany({
-      where: clientAccountId ? { clientAccountId } : undefined,
+      where: effectiveClientAccountId ? { clientAccountId: effectiveClientAccountId } : undefined,
       orderBy: { createdAt: 'desc' },
       include: { segments: { orderBy: { sequenceOrder: 'asc' } } },
     });
   }
 
-  async findOne(id: string) {
+  // M5 spec §3.0.1 dopuna (31.8.2026, IDOR pregled) — isti obrazac kao QuotesService.findOne:
+  // van INTERNAL_PANEL, itinerar koji ne pripada pozivaocu vraća 404 (ne otkriva postojanje).
+  async findOne(id: string, actorUserId?: string) {
     const itinerary = await this.prisma.itinerary.findUnique({
       where: { id },
       include: { segments: { orderBy: { sequenceOrder: 'asc' } } },
     });
     if (!itinerary) throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
+    if (actorUserId) {
+      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      if (context !== 'INTERNAL_PANEL' && itinerary.clientAccountId !== ownClientAccountId) {
+        throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
+      }
+    }
     return itinerary;
   }
 
   // M5 spec §3.0.2 — "dodavanje/brisanje/preslagivanje segmenata" kroz PATCH; kad su
   // segments poslati, ZAMENJUJU ceo postojeći skup (isti obrazac dokumentovan u DTO).
-  async update(id: string, dto: UpdateItineraryDto) {
-    await this.findOne(id);
+  // IDOR pregled (31.8.2026) — findOne sad nosi proveru vlasništva, `update` je nasleđuje
+  // pozivom findOne(id, actorUserId) umesto golog findOne(id).
+  async update(id: string, dto: UpdateItineraryDto, actorUserId?: string) {
+    await this.findOne(id, actorUserId);
 
     return this.prisma.$transaction(async (tx) => {
       if (dto.segments) {
@@ -80,7 +116,7 @@ export class ItinerariesService {
    * Segmenti bez product_id se PRESKAČU uz eksplicitno upozorenje, ne tiho.
    */
   async convertToQuote(id: string, actor: { userId?: string } | null) {
-    const itinerary = await this.findOne(id);
+    const itinerary = await this.findOne(id, actor?.userId);
     if (itinerary.status !== 'DRAFT') {
       throw new BadRequestException(`Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`);
     }
