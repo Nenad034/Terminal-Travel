@@ -117,7 +117,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       prisma.product.findUnique.mockResolvedValueOnce({
         id: 'pkg1',
         type: 'PACKAGE',
-        attributes: { included_products: ['flight1', 'hotel1'] },
+        attributes: { included_products: ['flight1', 'hotel1'], duration_days: 7 },
       });
       prisma.product.findMany = jest.fn().mockResolvedValue([
         { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
@@ -148,7 +148,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       prisma.product.findUnique.mockResolvedValueOnce({
         id: 'pkg1',
         type: 'PACKAGE',
-        attributes: { included_products: ['flight1'] },
+        attributes: { included_products: ['flight1'], duration_days: 7 },
       });
       prisma.product.findMany = jest.fn().mockResolvedValue([
         { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
@@ -171,7 +171,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       prisma.product.findUnique.mockResolvedValueOnce({
         id: 'pkg1',
         type: 'PACKAGE',
-        attributes: { included_products: ['transfer1'] },
+        attributes: { included_products: ['transfer1'], duration_days: 7 },
       });
       prisma.product.findMany = jest.fn().mockResolvedValue([
         { id: 'transfer1', type: 'TRANSFER', sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'p1', sourceExternalId: 'ext1', attributes: {} },
@@ -193,7 +193,7 @@ describe('QuoteItemBuilderService (M5 spec §3.0b.3/§3.2)', () => {
       prisma.product.findUnique.mockResolvedValueOnce({
         id: 'pkg1',
         type: 'PACKAGE',
-        attributes: { included_products: ['hotel1', 'transfer1'] },
+        attributes: { included_products: ['hotel1', 'transfer1'], duration_days: 7 },
       });
       prisma.product.findMany = jest.fn().mockResolvedValue([
         { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },

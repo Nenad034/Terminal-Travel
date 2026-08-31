@@ -109,6 +109,15 @@ export class QuoteItemBuilderService {
       throw new BadRequestException(`PACKAGE ${product.id} nema included_products[] (M2 spec §2.3).`);
     }
 
+    // §3.0d.6 dopuna (31.8.2026, vlasnik precizirao) — grupni paket mora imati FIKSAN datum I
+    // polaska I povratka. `duration_days` (M2 poglavlje 2.3) je jedini pravi izvor te dužine —
+    // isti obrazac kao SearchService.buildPackageOffers, da se dva mesta ne razminu.
+    const durationDays = (product.attributes as any)?.duration_days;
+    if (typeof durationDays !== 'number' || durationDays <= 0) {
+      throw new BadRequestException(`PACKAGE ${product.id} nema duration_days (M2 spec §2.3) — fiksan datum povratka se ne može garantovati.`);
+    }
+    const windowStayTo = new Date(terminDate.getTime() + durationDays * 86_400_000);
+
     const components = await this.prisma.product.findMany({
       where: { id: { in: includedIds } },
       include: { sourceContract: true },
@@ -118,11 +127,8 @@ export class QuoteItemBuilderService {
     // SearchService.buildPackageOffers (dateKey), da se izbegne promašaj zbog vremenske komponente.
     const terminDateKey = terminDate.toISOString().slice(0, 10);
 
-    // Prvi prolaz — CONTRACTED/fiksni sastojci: određuju termin I datumski prozor (max stayTo)
-    // za API sastojke koji nemaju sopstveni period.
     const fixedItems: BuiltQuoteItemData[] = [];
     const dynamicComponents: typeof components = [];
-    let windowStayTo: Date | null = null;
 
     for (const component of components) {
       if (component.sourceType === 'API') {
@@ -136,27 +142,31 @@ export class QuoteItemBuilderService {
         where: { contractId: component.sourceContractId, allotmentMode: { in: ['FIXED', 'CHARTER', 'FIXED_LEASE'] } },
         include: { rateLines: { include: { agePricing: true } } },
       });
+      // Sastojak određuje termin preko svog POLASKA (stayFrom) — ne mora sam pokrivati ceo
+      // fiksni prozor paketa (npr. čarter let je jednodnevan period, hotel je višednevan; oba
+      // su validni fiksni sastojci istog termina). Fiksan datum POVRATKA garantuje `duration_days`
+      // (poglavlje 3.0d.6), ne pojedinačni period — zato je `windowStayTo` iznad uvek izveden iz
+      // trajanja paketa, nikad iz `period.stayTo`.
       const period = candidatePeriods.find((p) => p.stayFrom.toISOString().slice(0, 10) === terminDateKey);
       if (!period || period.rateLines.length === 0) {
         throw new BadRequestException(
           `Sastojak ${component.id} paketa ${product.id} nema FIXED/CHARTER period za termin ${terminDateKey} (M5 spec §3.0d.6).`,
         );
       }
-      if (!windowStayTo || period.stayTo > windowStayTo) windowStayTo = period.stayTo;
       fixedItems.push(
         await this.buildContracted(component, period.stayFrom, period.stayTo, occupancy, roomConfig, period.rateLines[0].id, unitCount),
       );
     }
 
-    if (!windowStayTo) {
+    if (fixedItems.length === 0) {
       throw new BadRequestException(
         `PACKAGE ${product.id} nema nijedan CONTRACTED sastojak sa FIXED/CHARTER periodom za termin ${terminDateKey} — grupni paket zahteva bar jednu fiksnu obavezu (M5 spec §3.0d.6).`,
       );
     }
 
-    // Drugi prolaz — API sastojci, cenjeni uživo za isti termin/prozor kao fiksni sastojci.
+    // Drugi prolaz — API sastojci, cenjeni uživo za isti fiksan prozor kao fiksni sastojci.
     const dynamicItems = await Promise.all(
-      dynamicComponents.map((component) => this.buildApi(component, terminDate, windowStayTo!, occupancy, null, unitCount)),
+      dynamicComponents.map((component) => this.buildApi(component, terminDate, windowStayTo, occupancy, null, unitCount)),
     );
 
     return [...fixedItems, ...dynamicItems];

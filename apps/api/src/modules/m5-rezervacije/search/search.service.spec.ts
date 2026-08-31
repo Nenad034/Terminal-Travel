@@ -217,7 +217,7 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       destinationCountry: 'Grčka',
       destinationCity: 'Zakintos',
       media: [],
-      attributes: { included_products: ['flight1', 'hotel1'] },
+      attributes: { included_products: ['flight1', 'hotel1'], duration_days: 7 },
       translations: [{ languageCode: 'sr', name: 'Grčka čarter 7 dana', description: '' }],
     };
 

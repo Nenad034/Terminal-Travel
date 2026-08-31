@@ -247,6 +247,14 @@ export class SearchService {
     const includedIds = ((product.attributes as any)?.included_products ?? []) as string[];
     if (includedIds.length === 0) return [];
 
+    // §3.0d.6 dopuna (31.8.2026, vlasnik precizirao) — grupni paket mora imati FIKSAN datum
+    // I polaska I povratka, ne samo polaska. `duration_days` (M2 poglavlje 2.3) je jedini pravi
+    // izvor te dužine — bez njega se povratak ne bi mogao garantovati (razlikovao bi se u
+    // zavisnosti od toga koji su sastojci slučajno fiksni), pa se paket bez ovog polja ne
+    // prikazuje kao grupni.
+    const durationDays = (product.attributes as any)?.duration_days;
+    if (typeof durationDays !== 'number' || durationDays <= 0) return [];
+
     const components = await this.prisma.product.findMany({
       where: { id: { in: includedIds } },
       include: { sourceContract: true },
@@ -331,8 +339,8 @@ export class SearchService {
 
     // Dinamički (API) sastojci ne određuju termine, ali se cenuju za svaki već utvrđen termin —
     // isti princip kao mešanje CONTRACTED/API stavki u individualnom paketu (§3.0.3), sad i za
-    // grupni. Datumski prozor za API poziv je izveden iz fiksnih sastojaka tog termina (min
-    // stayFrom = sam termin, max stayTo među njima), pošto API sastojak sam nema svoj period.
+    // grupni. Datumski prozor za API poziv je TAČNO polazak + duration_days — isti fiksan prozor
+    // koji smo upravo garantovali za fiksne sastojke (ne "pogađanje" iz najdužeg fiksnog perioda).
     const dynamicComponents = components.filter((c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId);
 
     const offers: SearchResultOffer[] = [];
@@ -344,7 +352,7 @@ export class SearchService {
       const currency = fixedPicks[0].currency;
       if (!fixedPicks.every((p) => p.currency === currency)) continue;
 
-      const windowStayTo = new Date(Math.max(...fixedPicks.map((p) => p.period.stayTo.getTime())));
+      const windowStayTo = new Date(new Date(date).getTime() + durationDays * 86_400_000);
 
       let dynamicTotal = 0;
       let dynamicUnavailable = false;
