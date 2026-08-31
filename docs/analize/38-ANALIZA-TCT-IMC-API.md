@@ -64,6 +64,16 @@ Dva ID-a po hotelu: GIATA-spojen (`hid`) i sirov, po dobavljaču (`hid_undedupli
 
 Deluje redundantno (ista informacija na dva načina). Vredi proveriti (van obima ovog dokumenta) da li TT M5/M6 čuva tačan datum rođenja gosta ili samo uzrast u trenutku rezervacije — datum rođenja je precizniji za višegodišnje ugovore gde se uzrast gosta menja.
 
+### 3.8 Tri principa iz opisa metoda (Postman collection), ne iz podataka — najozbiljniji nalazi
+
+Za razliku od §3.1-3.7 (poređenje polja/oblika podataka), ova tri su izvučena iz **teksta objašnjenja zašto je API tako dizajniran**, ne iz šeme odgovora. Opšti su, nezavisni od TCT-a kao dobavljača, i direktno se tiču već otvorenih TT pitanja:
+
+**a) Jedan trag-ID kroz ceo tok, uključujući pozive ka spoljnom dobavljaču.** `auditData.group_uuid` prati SVAKI korak (searchSync/search/results/valuation/hotelDetails/book) — "Use this to filter and trace the complete booking journey in logs." TT M5 ima `Quote.id`/`Booking.id` za interne zapise, ali otvoreno je da li postoji jedan zajednički trag-ID koji povezuje i same M4 pozive ka spoljnom dobavljaču sa internim zapisima — bez toga, dijagnostika "šta se tačno desilo tokom pokušaja rezervacije ovog gosta" zahteva ručno spajanje više izvora loga. Vredna dopuna za M4/M18.
+
+**b) Eksplicitno odricanje odgovornosti za podatak preuzet od trećeg izvora.** Opis `refundable` polja: "considered refundable based on information provided by our partners... We do not assume responsibility for any discrepancies... We recommend reviewing the specific cancellation terms before finalizing." TT M3/M4 sprovodi ovo implicitno (ljudska potvrda pri uvozu, revalidacija pre potvrde), ali nema eksplicitno zapisanu klauzulu da je podatak od dobavljača informativan dok se ne revalidira na izvoru — pravno relevantno ako gost ospori uslove otkazivanja prikazane na osnovu tuđeg podatka.
+
+**c) Prikaz na pretrazi nije garantovan entitet posle zaključavanja ponude.** `Hotel Details` je namerno odvojen od `Valuation` jer "initial search results are grouped under a unique hotel profile that may not fully reflect the evaluated offer" — GIATA-spojen prikaz je zgodan za oko pri pretrazi, ali posle revalidacije mora se povući sirov detalj vezan tačno za zaključanu ponudu. Relevantno ako TT ikad radi agregaciju/spajanje sadržaja preko više izvora u M2 (već otvoreno pitanje iz `hid`/`hid_undeduplicated`, §3.4) — prikaz radi lepote pretrage nikad ne sme biti izvor istine za već zaključanu stavku.
+
 ### 3.7a `bookingDetails` — dupliran, delimično neusklađen sadržaj (dodatna potvrda §3.2)
 
 Primer `bookingDetails` odgovora nosi i **strukturirano** `cxl_policies[]` (napomena: ovde množina, dok je `valuation` odgovor koristio jedninu `cxl_policy` — neusklađen naziv polja između endpoint-a iste platforme) **i** istu informaciju ponovo kao slobodan tekst unutar `aditional_info` ("Cancellation Policy: Cancellation 7-1 day prior to arrival - 50% of total cost will be charged..."). Ista redundancija kao u §3.2 (structured + free-text duplikat iste činjenice), sada sa konkretnim potvrđenim primerima vrednim beleženja kao stvaran presedan za M3/M3 §8 talas 2 stavke:
