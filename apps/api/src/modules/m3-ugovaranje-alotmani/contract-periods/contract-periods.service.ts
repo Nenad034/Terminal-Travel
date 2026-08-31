@@ -28,7 +28,13 @@ export class ContractPeriodsService {
   findOne(id: string) {
     return this.prisma.contractPeriod.findUniqueOrThrow({
       where: { id },
-      include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
+      include: {
+        rateLines: { include: { agePricing: true } },
+        cancellationRules: true,
+        offers: true,
+        ancillaryServices: true,
+        touristTaxInfo: true,
+      },
     });
   }
 
