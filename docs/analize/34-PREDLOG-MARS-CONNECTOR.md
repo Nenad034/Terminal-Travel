@@ -14,7 +14,7 @@
 4. **Nova tehnologija van poglavlja 6.** `node-cron` (ili queue infrastruktura "za M-24") — M-24 kao pomenuta zavisnost ne postoji kao stvarni modul (vidi tačku 2). Ako se ide na prostu cron šemu (bez queue), to je verovatno u skladu sa postojećim stekom (Node.js/NestJS već je stek); ako se uvodi prava queue infrastruktura (npr. BullMQ), to je novi element steka i zahteva potvrdu vlasnika po CLAUDE.md tvrdom pravilu.
 5. **`mars_cache` i `audit_log` kao odvojene šeme/tabele van Prisma modela.** Ostatak Terminal koda ide kroz Prisma (`apps/api/prisma/schema.prisma`, deljen paket). Predlog piše sirov SQL DDL za `mars_cache.*` i `mars_connector.audit_log` — treba uskladiti sa postojećim obrascem (Prisma modeli + migracije), ne paralelna ručna šema, osim ako postoji poseban razlog (npr. odvojena baza/schema zbog izolacije rizika) koji vlasnik svesno potvrdi.
 6. **Postoji li već sličan audit-log/human-in-the-loop obrazac u kodu koji treba ponovo iskoristiti, ne izmisliti?** M18 (operativni nadzor) i M19 (real-time chat sa dobavljačima) već imaju uspostavljene obrasce za "sistem javlja, čovek odobrava" tokove (npr. CRITICAL health signal → in-app notifikacija). Pre pisanja M-26 write-flow logike, proveriti da li se taj obrazac može ponovo iskoristiti umesto građenja paralelnog.
-7. **Sekcije 6 i 7 dokumenta su sam autor označio kao placeholder** ("Čeka listu MARS API endpoint-a") — nema TTA-internih endpoint detalja niti stvarnog MARS API contract-a. Nijedan kod se ne može pisati pre nego što ove dve sekcije budu popunjene iz stvarne Stoplight dokumentacije (`marsapi.stoplight.io`).
+7. **[DELIMIČNO REŠENO 31.8.2026]** Sekcije 6 i 7 dokumenta su sam autor označio kao placeholder ("Čeka listu MARS API endpoint-a") — nema TTA-internih endpoint detalja niti stvarnog MARS API contract-a. Javna Stoplight stranica (`marsapi.stoplight.io`) je sad pročitana — GET/read strana (Index, Details, pun model podataka) je dokumentovana u sekciji 7 ispod. Write strana (POST/PATCH) i dalje nije vidljiva javno — zahteva Neolab kredencijale koje TT još nema. Nijedan kod se i dalje ne može pisati pre nego što write strana bude poznata.
 8. **Pet pitanja iz sekcije 11 dokumenta** (da li MARS vraća `updated_at`, obavezna polja za novu rezervaciju, rate limit, da li Metabase/Open Notebook dele Docker host, ko su odobravaoci) ostaju otvorena i njih je sam vlasnik označio kao pitanja za sebe — nisu ponovljena ovde, ali blokiraju Fazu 1+ iz sekcije 10 dokumenta.
 
 ---
@@ -161,17 +161,38 @@ CREATE TABLE mars_connector.audit_log (
 | `/api/mars/sync/trigger` | POST | Ručno pokretanje sync-a (admin only) |
 | `/api/mars/audit-log` | GET | Pregled audit traga (RBAC: samo ovlašćeni) |
 
-### 7. MARS API integracija (PLACEHOLDER — čeka dokumentaciju)
+### 7. MARS API integracija (delimično popunjeno 31.8.2026 — javna Stoplight stranica `marsapi.stoplight.io` pročitana; i dalje nedostaje write strana)
 
-> Ovde treba popuniti kada se dobije pun pristup Stoplight dokumentaciji:
-> - Tačan base URL MARS API-ja
-> - Lista GET endpoint-a po entitetu (path, query parametri, paginacija)
-> - Lista POST/PUT/PATCH endpoint-a (koji entiteti podržavaju write, koja polja su obavezna)
-> - Rate limit pravila (ako postoje)
-> - Format grešaka (error response shape)
-> - Da li MARS vraća `updated_at`/`modified_at` polje po zapisu (bitno za concurrency check iz 5.1)
+**Status: GET/read strana dokumentovana. POST/PATCH write strana i dalje PLACEHOLDER** — javna Stoplight stranica pokazuje isključivo dva GET servisa (Index, Details); ne postoji vidljiv write endpoint. Pristup zahteva da TT postane Neolab klijent i zatraži API kredencijale (stranica eksplicitno kaže "Before using MARS API you have to be Neolab customer and contact us for API credentials") — dok se to ne desi, sekcija 5 (write flow) ostaje pretpostavka, ne potvrđena.
 
-Autentikacija: **HTTP Basic Auth** (potvrđeno iz dokumentacije) — kredencijali se čuvaju u backend secrets store-u (npr. `.env` van git repo-a, ili dedicated secrets manager ako TTA infra to već koristi).
+**GET endpoint-i (potvrđeno):**
+
+| Endpoint | Metod | Svrha |
+|---|---|---|
+| `https://YourMarsDomain/mapi/v1/objects/index` | GET | Lista svih smeštajnih objekata vezanih za korisnikovu kompaniju — vraća `id` + `last_modified` (YYYY-MM-DD) po objektu. Namena: uporediti sa lokalnim `last_modified` da se zna šta treba sinhronizovati (odgovara `mars_cache` upsert obrascu iz §4.1). |
+| `https://YourMarsDomain/mapi/v1/objects/details` | GET | Pun detalj jednog objekta — naziv, lokacija, slike, amenities, `units[]`, `pricelist`, `common_items`. |
+
+Autentikacija: **HTTP Basic Auth** (potvrđeno). `responseType` query parametar bira `json`/`xml` odgovor (podrazumevano `json`). Nema vidljivih rate-limit pravila niti dokumentovanog error-response oblika osim generičkih HTTP statusa (200/400/401) — i dalje otvoreno.
+
+**Model podataka po objektu (potvrđeno, `Details` odgovor):**
+
+```
+Accommodation (name, id, location{address,lat,lng,place}, images[], amenities[])
+  └── Units[] (id, name, type, baseService, basicBeds, extraBeds, minOccupancy, images[], amenities po grupama Room_1..Room_9)
+        ├── Availabilities[] (dateFrom, dateTo, type, validUntil, quantity)
+        └── Pricelist { baseRate[], supplement[], discount[], touristTax[] }
+  └── CommonItems[] (isti oblik kao Pricelist, bez baseRate — važi za sve units zajedno)
+```
+
+Svaka stavka `Pricelist`/`CommonItems` ima: `dateFrom`/`dateTo`, `price`, `currency`, `percent`, `arrivalDays`/`departureDays` (dani u nedelji 1-7 na koje je dolazak/odlazak moguć), `ageFrom`/`ageTo`, `minAdult`/`minChild`/`maxAdult`, `validFrom`/`validUntil`, `minStay`/`maxStay`, `release` (min dana pre dolaska), `onSpot` (plaća se na licu mesta), `subtractDays` (samo za `definitionId=28`, "Specijalna ponuda" — npr. boravak 10 noći, `subtractDays=3` znači gost plaća 7), `numberOfPersons`, `paymentType` (`perPersonPerDay`, `perPerson`, `Once`, `perUnitPerWeek`, `perHour`), `definitionId`+`type`+`title` (generički identifikator vrste stavke).
+
+**Poređenje sa već specificiranim M3 modelom** (`docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`) — potvrđuje većinu M3 pretpostavki iz stvarnog produkcionog hotelskog ERP-a, i otvara jednu konkretnu prazninu:
+
+- **Potvrđeno, ne otvara novo:** `Availability.quantity` po datumskom opsegu = isti "period/opseg" model kao `ContractPeriod.total_capacity` (ne dnevni kalendar-grid); `release` = `release_days_before`; `subtractDays` na `definitionId=28` = `PricelistOffer.FREE_NIGHTS`; `arrivalDays`/`departureDays` = već otvoreno pitanje u M3 §8 talas 2 ("Rok povrata... ili ograničen na određene dane u nedelji"), sad potvrđeno stvarnim poljem; `definitionId`+`type`+`title` generički red = ista arhitektura kao `AncillaryService`; `ageFrom`/`ageTo` po stavci = `age_pricing[]`.
+- **Novo, vredno pažnje ako se MARS ikad poveže:** `paymentType` ima **tri vrednosti koje M3 `price_basis` danas ne pokriva** — `Once` (jednokratna naplata, ne po noći), `perUnitPerWeek` (nedeljna, ne dnevna cena po jedinici), `perHour` (satna, npr. spa/sat rentiranja) — M3 `price_basis` enum ima samo `PER_ROOM_PER_NIGHT`/`PER_PERSON_PER_NIGHT`. Ne menja se M3 spec sad (MARS konektor nije ni odlučen kao prioritet, poglavlje 3 ovog dokumenta), ali ako MARS ili bilo koji budući dobavljač stvarno pošalje ovakvu stavku, `price_basis` enum treba proširiti pre nego što se taj red odbaci ili pogrešno protumači.
+- **Otvoreno, van obima M3 (M10 pitanje):** MARS tretira `touristTax` kao punu `Pricelist` sekciju (sopstveni datumski/uzrasni opseg, cena, `onSpot` zastavica) — M3 `TouristTaxInfo` (poglavlje 2.7) je namerno samo informativan podatak, ne stavka cene. Ako se MARS poveže, treba odlučiti da li se taj deo mapira u `TouristTaxInfo` kao i danas, ili zahteva strukturu bliže MARS-ovoj — nije prošlo kroz `tt-architecture-core` proveru.
+
+I dalje nedostaje pre bilo kakvog koda: POST/PATCH write endpoint-i (nisu vidljivi na javnoj stranici — verovatno otključani tek posle dobijanja kredencijala), rate-limit pravila, format grešaka, i da li MARS vraća `updated_at` na nivou pojedinačnog `unit`/`pricelist` reda (Index servis ga vraća samo na nivou celog objekta) — bitno za concurrency check iz §5.1.
 
 ### 8. Sync servis — tehnički detalji
 
