@@ -362,6 +362,19 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       finalPriceCurrency: 'EUR',
       itemStatus: 'CONFIRMED',
       cancellationRefundPercentage: null,
+      unitCount: 2,
+      // §4.5 dopuna (1.9.2026) — šta je kupljeno i ko putuje; `findOne` ih uključuje u upit.
+      product: {
+        id: 'p1',
+        type: 'ACCOMMODATION',
+        destinationCity: 'Budva',
+        destinationCountry: 'ME',
+        translations: [
+          { languageCode: 'sr', name: 'Hotel Slovenska Plaža' },
+          { languageCode: 'en', name: 'Hotel Slovenska Plaza' },
+        ],
+      },
+      guests: [{ id: 'g1', guestFirstName: 'Marko', guestLastName: 'Marković', guestProfileId: 'gp1' }],
     };
 
     it('interno osoblje (nema User zapis sa account_type GUEST/SUBAGENT_CONTACT) dobija pun prikaz bilo koje rezervacije', async () => {
@@ -386,6 +399,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(result.items[0]).not.toHaveProperty('markupRuleId');
       expect(result.items[0]).not.toHaveProperty('rateLineId');
       expect(result.items[0].finalPrice).toBe(8000);
+      // §4.5 — gost SME da vidi šta je kupio i ko putuje (prirodan sadržaj vaučera);
+      // maskira se isključivo identitet dobavljača i nabavna cena.
+      expect((result.items[0] as any).product.name).toBe('Hotel Slovenska Plaža');
+      expect((result.items[0] as any).guests).toHaveLength(1);
     });
 
     it('gost NE može da vidi tuđu rezervaciju — vraća 404, ne otkriva postojanje', async () => {

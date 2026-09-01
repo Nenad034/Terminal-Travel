@@ -35,7 +35,29 @@ export interface RawBookingItem {
   announcedAt: Date | null;
   supplierConfirmedAt: Date | null;
   supplierConfirmedBy: string | null;
+  // §4.5 dopuna (1.9.2026) — šta je STVARNO kupljeno i ko putuje. Do ove dopune je
+  // `GET /bookings/:id` vraćao samo `productId` (sirov UUID) i nijednog putnika, pa ni
+  // interni panel ni gost nisu mogli da vide naziv aranžmana ni spisak putnika.
+  product?: BookingItemProduct | null;
+  guests?: BookingItemGuestView[];
   [key: string]: unknown;
+}
+
+/** Naziv/tip/destinacija kupljenog proizvoda. Naziv je već razrešen po jeziku (M2 §2.2
+ * fallback), pa pozivalac ne mora da zna za `ProductTranslation`. */
+export interface BookingItemProduct {
+  id: string;
+  type: string;
+  name: string | null;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+}
+
+export interface BookingItemGuestView {
+  id: string;
+  guestFirstName: string;
+  guestLastName: string;
+  guestProfileId: string | null;
 }
 
 // Polja koja SME da vidi gost/B2B subagent — "proizvod, datumi, cena za gosta/subagenta i
@@ -51,6 +73,13 @@ export function toPublicBookingItem(item: RawBookingItem) {
     finalPriceCurrency: item.finalPriceCurrency,
     itemStatus: item.itemStatus,
     cancellationRefundPercentage: item.cancellationRefundPercentage,
+    unitCount: item.unitCount,
+    // §6.2 dozvoljava gostu/subagentu "proizvod, datume, cenu i status" — naziv proizvoda i
+    // spisak putnika su prirodan sadržaj vaučera, isti podatak koji gost ionako drži u ruci.
+    // Identitet DOBAVLJAČA i dalje ne izlazi (`supplierReference`, `baseCost`, `markupRuleId`
+    // ostaju van ove liste), što je ono što §6.2 zapravo štiti.
+    product: item.product ?? null,
+    guests: item.guests ?? [],
   };
 }
 

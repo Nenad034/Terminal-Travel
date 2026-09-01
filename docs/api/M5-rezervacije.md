@@ -192,6 +192,8 @@ Pokreće tok Ponuda → Rezervacija (poglavlje 4). Sve-ili-ništa — ako bilo k
 ### GET /bookings/:id
 Poziv iz internog panela (M17) vraća pun sadržaj, uključujući `supplier_reference`. Isti poziv iz B2C/B2B/gost konteksta (M8/M9/M7) NIKAD ne sadrži `supplierReference`, `rateLineId`, `markupRuleId`, `baseCost` (poglavlje 6.2).
 
+Dopuna 1.9.2026 (M5 spec §4.5): po stavci se sada vraćaju i `product` (naziv **već razrešen po jeziku**, M2 §2.2 fallback sr→en, pa pozivalac ne mora zvati M2), `guests` (imena putnika sa te stavke) i `unitCount`. Sva tri su prisutna i u maskiranom B2C/B2B prikazu — §6.2 štiti identitet dobavljača i nabavnu cenu, ne naziv proizvoda koji gost ionako ima na vaučeru.
+
 **Odgovor `200` (INTERNAL_PANEL):**
 ```json
 {
@@ -201,10 +203,28 @@ Poziv iz internog panela (M17) vraća pun sadržaj, uključujući `supplier_refe
   "paymentStatus": "UNPAID",
   "voucherUrl": null,
   "items": [
-    { "id": "bi-1", "productId": "prod-hotel-1", "supplierReference": "period-88", "baseCost": 70000, "rateLineId": "c1a9-...", "finalPrice": 84000, "itemStatus": "CONFIRMED" }
+    {
+      "id": "bi-1",
+      "productId": "prod-hotel-1",
+      "product": { "id": "prod-hotel-1", "type": "ACCOMMODATION", "name": "Hotel Slovenska Plaža", "destinationCity": "Budva", "destinationCountry": "ME" },
+      "stayFrom": "2027-06-10T00:00:00.000Z",
+      "stayTo": "2027-06-17T00:00:00.000Z",
+      "unitCount": 2,
+      "guests": [
+        { "id": "big-1", "guestFirstName": "Marko", "guestLastName": "Marković", "guestProfileId": "gp-1" },
+        { "id": "big-2", "guestFirstName": "Ana", "guestLastName": "Anić", "guestProfileId": null }
+      ],
+      "supplierReference": "period-88",
+      "baseCost": 70000,
+      "rateLineId": "c1a9-...",
+      "finalPrice": 84000,
+      "itemStatus": "CONFIRMED"
+    }
   ]
 }
 ```
+
+**Odgovor `200` (B2C/B2B/gost — maskirano, §6.2):** ista stavka bez `supplierReference`/`baseCost`/`rateLineId`/`markupRuleId`; `product`, `guests`, `stayFrom`/`stayTo`, `unitCount`, `finalPrice`, `itemStatus` ostaju.
 
 ### POST /bookings/:id/modify
 Tretira se interno kao otkazivanje pogođene stavke + nova stavka po novom zahtevu, prikazano kao jedna radnja.

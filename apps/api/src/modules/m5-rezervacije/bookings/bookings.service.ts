@@ -18,6 +18,7 @@ import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
+import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
 import { SubagentStubService } from '../common/subagent-stub.service';
 import { resolveApiContext } from '../common/resolve-api-context';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
@@ -552,11 +553,46 @@ export class BookingsService {
 
   async findOne(id: string, actorUserId: string) {
     const { context } = await this.resolveApiContext(actorUserId);
-    const booking = await this.prisma.booking.findUnique({ where: { id }, include: { items: true } });
+    // §4.5 dopuna (1.9.2026) — bez `product`/`guests` odgovor je sadržao samo sirov
+    // `productId`, pa se na ekranu rezervacije nije videlo ŠTA je kupljeno ni KO putuje.
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            guests: { select: { id: true, guestFirstName: true, guestLastName: true, guestProfileId: true } },
+            product: {
+              select: {
+                id: true,
+                type: true,
+                destinationCity: true,
+                destinationCountry: true,
+                translations: { select: { languageCode: true, name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
     if (!booking) throw new NotFoundException(`Rezervacija ${id} nije pronađena.`);
     await this.assertBookingAccessible(booking, actorUserId);
+
+    // Naziv se razrešava OVDE (M2 §2.2 fallback sr→en), da pozivalac ne mora da poznaje
+    // `ProductTranslation` niti da pravi dodatan poziv ka M2 po svakoj stavci.
+    const withResolvedProduct = {
+      ...booking,
+      items: booking.items.map((item) => {
+        if (!item.product) return item;
+        const { translations, ...product } = item.product;
+        return {
+          ...item,
+          product: { ...product, name: resolveTranslation(translations ?? [], 'sr')?.name ?? null },
+        };
+      }),
+    };
+
     const { serializeBooking } = await import('./booking-visibility');
-    return serializeBooking(booking as any, context);
+    return serializeBooking(withResolvedProduct as any, context);
   }
 
   // ==========================================================================
