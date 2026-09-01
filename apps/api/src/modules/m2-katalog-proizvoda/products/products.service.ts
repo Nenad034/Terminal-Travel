@@ -7,6 +7,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpsertTranslationDto } from './dto/upsert-translation.dto';
 import { PublishProductDto } from './dto/publish-product.dto';
+import { CreatePackageDepartureDto } from './dto/create-package-departure.dto';
 import { resolveTranslation, hasRequiredTranslationsForPublish } from './language-fallback';
 import { applyDefaultAgePolicyToRoomTypes } from './age-policy';
 import { toPublicProduct } from './public-product.serializer';
@@ -248,6 +249,63 @@ export class ProductsService {
       await this.eventBus.emit('M2', 'product.published', { productId: id });
     }
 
+    return after;
+  }
+
+  // M5 spec §3.0d.6 (v1.94) — CRUD termina grupnog paketa živi u M2 (strukturni podatak o
+  // proizvodu, isto mesto kao ostali PACKAGE atributi), M5 samo čita ACTIVE redove.
+  async listPackageDepartures(productId: string) {
+    return this.prisma.packageDeparture.findMany({
+      where: { productId },
+      orderBy: { departureDate: 'asc' },
+    });
+  }
+
+  async createPackageDeparture(productId: string, dto: CreatePackageDepartureDto, actorId: string) {
+    const product = await this.prisma.product.findUniqueOrThrow({ where: { id: productId } });
+    if (product.type !== 'PACKAGE') {
+      throw new BadRequestException('Termini polaska postoje samo za PACKAGE proizvode (M5 spec §3.0d.6)');
+    }
+    const durationDays = (product.attributes as any)?.duration_days;
+    if (typeof durationDays !== 'number' || durationDays <= 0) {
+      throw new BadRequestException('Proizvod mora imati attributes.duration_days pre dodavanja termina (M5 spec §3.0d.6)');
+    }
+    const departureDate = new Date(dto.departureDate);
+    const returnDate = new Date(departureDate.getTime() + durationDays * 86_400_000);
+
+    const departure = await this.prisma.packageDeparture.create({
+      data: { productId, departureDate, returnDate, status: 'ACTIVE' },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M2',
+      action: 'package_departure.created',
+      resourceType: 'PackageDeparture',
+      resourceId: departure.id,
+      afterState: departure,
+      context: { productId },
+    });
+    return departure;
+  }
+
+  async cancelPackageDeparture(productId: string, departureId: string, actorId: string) {
+    const before = await this.prisma.packageDeparture.findFirstOrThrow({ where: { id: departureId, productId } });
+    const after = await this.prisma.packageDeparture.update({
+      where: { id: departureId },
+      data: { status: 'CANCELLED' },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId,
+      module: 'M2',
+      action: 'package_departure.cancelled',
+      resourceType: 'PackageDeparture',
+      resourceId: departureId,
+      beforeState: { status: before.status },
+      afterState: { status: after.status },
+      context: { productId },
+    });
     return after;
   }
 

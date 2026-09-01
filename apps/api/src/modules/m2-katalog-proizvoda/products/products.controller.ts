@@ -6,6 +6,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpsertTranslationDto } from './dto/upsert-translation.dto';
 import { PublishProductDto } from './dto/publish-product.dto';
+import { CreatePackageDepartureDto } from './dto/create-package-departure.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
@@ -76,6 +77,33 @@ export class ProductsController {
   @RequirePermission('M2', 'product', 'PUBLISH')
   publish(@Param('id') id: string, @Body() dto: PublishProductDto, @CurrentUser() actor: { userId: string }) {
     return this.products.publish(id, dto, actor.userId);
+  }
+
+  // M5 spec §3.0d.6 (v1.94) — termini grupnog paketa, isti dozvolski par kao ostali attributes (EDIT).
+  @Get(':id/package-departures')
+  @RequirePermission('M2', 'product', 'VIEW')
+  listPackageDepartures(@Param('id') id: string) {
+    return this.products.listPackageDepartures(id);
+  }
+
+  @Post(':id/package-departures')
+  @RequirePermission('M2', 'product', 'EDIT')
+  createPackageDeparture(
+    @Param('id') id: string,
+    @Body() dto: CreatePackageDepartureDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.products.createPackageDeparture(id, dto, actor.userId);
+  }
+
+  @Delete(':id/package-departures/:departureId')
+  @RequirePermission('M2', 'product', 'EDIT')
+  cancelPackageDeparture(
+    @Param('id') id: string,
+    @Param('departureId') departureId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.products.cancelPackageDeparture(id, departureId, actor.userId);
   }
 
   @Post('cache/sync')

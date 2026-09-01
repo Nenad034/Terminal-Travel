@@ -255,8 +255,34 @@ model Product {
   itinerarySegments ItinerarySegment[]
   quoteItems        QuoteItem[]
   bookingItems      BookingItem[]
+  // M5 spec §3.0d.6 (ispravka 31.8.2026, vlasnik precizirao) — grupni paket UNAPRED definiše
+  // sopstvene datume polaska (ne izvodi ih presekom perioda sastojaka kao ranija verzija).
+  packageDepartures PackageDeparture[]
 
   @@map("products")
+}
+
+// M5 spec §3.0d.6 — jedan red = jedan konkretan termin (polazak) grupnog paketa. `returnDate`
+// se računa na ADD (polazak + Product.attributes.duration_days) i ostaje fiksan i ako se
+// `duration_days` kasnije promeni na proizvodu (već prodati/ponuđeni termin ne sme tiho da
+// pomeri datum povratka ispod nekoga ko ga je već video u ponudi).
+model PackageDeparture {
+  id            String                 @id @default(uuid())
+  productId     String                 @map("product_id")
+  departureDate DateTime               @map("departure_date") @db.Date
+  returnDate    DateTime               @map("return_date") @db.Date
+  status        PackageDepartureStatus @default(ACTIVE)
+  createdAt     DateTime               @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("package_departures")
+}
+
+enum PackageDepartureStatus {
+  ACTIVE
+  CANCELLED
 }
 
 enum ProductType {

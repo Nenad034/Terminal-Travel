@@ -3,6 +3,8 @@ import RegisterTab from '@/components/RegisterTab';
 import EditProductForm from './EditProductForm';
 import RoomTypesEditor, { type RoomType } from './RoomTypesEditor';
 import HotelAttributesEditor, { type HotelAttributes } from './HotelAttributesEditor';
+import PackageAttributesEditor, { type PackageAttributes, type PickableProduct } from './PackageAttributesEditor';
+import PackageDeparturesEditor, { type PackageDeparture } from './PackageDeparturesEditor';
 
 
 interface Product {
@@ -12,7 +14,7 @@ interface Product {
   destinationCity: string;
   status: string;
   sourceType: string;
-  attributes?: (HotelAttributes & { room_types?: RoomType[] }) | null;
+  attributes?: (HotelAttributes & PackageAttributes & { room_types?: RoomType[] }) | null;
   translations?: { languageCode: string; name: string; description: string; slug: string }[];
 }
 
@@ -47,6 +49,42 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
           />
         </div>
       )}
+      {product.type === 'PACKAGE' && (
+        <PackageEditorSection
+          productId={product.id}
+          initial={{
+            duration_days: product.attributes?.duration_days ?? null,
+            included_products: product.attributes?.included_products ?? [],
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// M5 spec §3.0d.6a — grupni paket bira sastojke iz CELOG kataloga (nije ograničen na jedan tip
+// proizvoda ni na jedan izvor cene, presek FIXED/CHARTER perioda odlučuje termin, ne Product.type).
+// PACKAGE proizvodi su isključeni iz liste kandidata (paket unutar paketa nije pokriveno spec-om).
+async function PackageEditorSection({ productId, initial }: { productId: string; initial: PackageAttributes }) {
+  const [all, departures] = await Promise.all([
+    apiFetch<{ id: string; type: string; destinationCity: string; destinationCountry: string; translations?: { languageCode: string; name: string }[] }[]>(
+      '/catalog/products',
+    ),
+    apiFetch<PackageDeparture[]>(`/catalog/products/${productId}/package-departures`),
+  ]);
+  const candidates: PickableProduct[] = all
+    .filter((p) => p.id !== productId && p.type !== 'PACKAGE')
+    .map((p) => ({
+      id: p.id,
+      type: p.type,
+      name: p.translations?.find((t) => t.languageCode === 'sr')?.name ?? '(bez naziva)',
+      destinationCity: p.destinationCity,
+      destinationCountry: p.destinationCountry,
+    }));
+  return (
+    <>
+      <PackageAttributesEditor productId={productId} initial={initial} candidates={candidates} />
+      <PackageDeparturesEditor productId={productId} initialDepartures={departures} hasDurationDays={typeof initial.duration_days === 'number'} />
+    </>
   );
 }

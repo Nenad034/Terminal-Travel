@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { RoomType } from './[id]/RoomTypesEditor';
 import type { HotelAttributes } from './[id]/HotelAttributesEditor';
+import type { PackageAttributes } from './[id]/PackageAttributesEditor';
+import type { PackageDeparture } from './[id]/PackageDeparturesEditor';
 
 export interface FormState {
   error: string | null;
@@ -86,6 +88,31 @@ export async function saveHotelAttributes(productId: string, patch: HotelAttribu
   await apiFetch(`/catalog/products/${productId}`, { method: 'PATCH', body: { attributes } });
   revalidatePath(`/katalog/${productId}`);
   revalidatePath(`/katalog/${productId}/pregled`);
+}
+
+// M2 spec §2.3e / M5 spec §3.0d.6a, standing pravilo 31.8.2026 (logika+forma u istom prolazu)
+// — isti obrazac čuvanja kao saveHotelAttributes iznad.
+export async function savePackageAttributes(productId: string, patch: PackageAttributes): Promise<void> {
+  const product = await apiFetch<{ attributes?: Record<string, unknown> | null }>(`/catalog/products/${productId}`);
+  const attributes = { ...(product.attributes ?? {}), ...patch };
+  await apiFetch(`/catalog/products/${productId}`, { method: 'PATCH', body: { attributes } });
+  revalidatePath(`/katalog/${productId}`);
+  revalidatePath(`/katalog/${productId}/pregled`);
+}
+
+// M5 spec §3.0d.6 (v1.94) — termini polaska paketa, M2 CRUD (isti dozvolski krug kao attributes/EDIT).
+export async function addPackageDeparture(productId: string, departureDate: string): Promise<PackageDeparture> {
+  const departure = await apiFetch<PackageDeparture>(`/catalog/products/${productId}/package-departures`, {
+    method: 'POST',
+    body: { departureDate },
+  });
+  revalidatePath(`/katalog/${productId}`);
+  return departure;
+}
+
+export async function cancelPackageDeparture(productId: string, departureId: string): Promise<void> {
+  await apiFetch(`/catalog/products/${productId}/package-departures/${departureId}`, { method: 'DELETE' });
+  revalidatePath(`/katalog/${productId}`);
 }
 
 function extractMessage(err: ApiError): string {

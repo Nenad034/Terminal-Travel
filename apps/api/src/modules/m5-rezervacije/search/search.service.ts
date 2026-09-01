@@ -146,18 +146,6 @@ export class SearchService {
     return results;
   }
 
-  // §3.0d.6 dopuna (31.8.2026) — traži ključ (datum) u mapi koji je unutar ±1 dana od `dateKey`,
-  // isti obrazac tolerancije kao §3.0e.3a. Vraća prvo poklapanje (samu tačnu vrednost prvo, radi
-  // determinizma kad tačan datum i dalje postoji).
-  private findKeyWithinTolerance<T>(map: Map<string, T>, dateKey: string): string | undefined {
-    if (map.has(dateKey)) return dateKey;
-    const target = new Date(dateKey).getTime();
-    for (const key of map.keys()) {
-      if (Math.abs(new Date(key).getTime() - target) <= TOLERANCE_MS) return key;
-    }
-    return undefined;
-  }
-
   private pickThumbnail(media: { url: string; category: string; order: number }[]): { url: string; category: string } | null {
     if (media.length === 0) return null;
     const sorted = [...media].sort((a, b) => a.order - b.order);
@@ -270,6 +258,13 @@ export class SearchService {
    * 31.8.2026, ispravka: mešanje CONTRACTED+API sastojaka u grupnom paketu je stvaran zahtev, ne
    * van obima kako je prvobitno pretpostavljeno).
    */
+  // §3.0d.6/§3.0d.6a (v1.94, vlasnikova korekcija) — termin dolazi SA paketa (`PackageDeparture`),
+  // ne izvodi se presekom perioda sastojaka. Sastojci se proveravaju PROTIV već zadatog prozora
+  // `[departureDate, returnDate]`: fiksni (CONTRACTED) sastojak mora imati `ContractPeriod` koji
+  // taj prozor POKRIVA (isti obrazac kao `buildContractedOffers`, ne poklapanje tačnog datuma),
+  // dinamički (API) sastojak se ceni uživo za isti prozor. Broj noćenja za cenu je uvek
+  // `duration_days` paketa, NIKAD dužina sastojkovog sopstvenog perioda (ranija verzija je to
+  // mešala — sezonski hotelski period bi bio naplaćen kao da je jedan dugačak boravak).
   private async buildPackageOffers(
     product: Prisma.ProductGetPayload<{ include: { translations: true; sourceContract: true } }>,
     params: SearchParamsInput,
@@ -277,13 +272,25 @@ export class SearchService {
     const includedIds = ((product.attributes as any)?.included_products ?? []) as string[];
     if (includedIds.length === 0) return [];
 
-    // §3.0d.6 dopuna (31.8.2026, vlasnik precizirao) — grupni paket mora imati FIKSAN datum
-    // I polaska I povratka, ne samo polaska. `duration_days` (M2 poglavlje 2.3) je jedini pravi
-    // izvor te dužine — bez njega se povratak ne bi mogao garantovati (razlikovao bi se u
-    // zavisnosti od toga koji su sastojci slučajno fiksni), pa se paket bez ovog polja ne
-    // prikazuje kao grupni.
     const durationDays = (product.attributes as any)?.duration_days;
     if (typeof durationDays !== 'number' || durationDays <= 0) return [];
+
+    const departures = await this.prisma.packageDeparture.findMany({
+      where: {
+        productId: product.id,
+        status: 'ACTIVE',
+        ...(params.stayFrom
+          ? {
+              departureDate: {
+                gte: new Date(new Date(params.stayFrom).getTime() - TOLERANCE_MS),
+                lte: new Date(new Date(params.stayFrom).getTime() + TOLERANCE_MS),
+              },
+            }
+          : {}),
+      },
+      orderBy: { departureDate: 'asc' },
+    });
+    if (departures.length === 0) return [];
 
     const components = await this.prisma.product.findMany({
       where: { id: { in: includedIds } },
@@ -291,162 +298,147 @@ export class SearchService {
     });
     if (components.length === 0) return [];
 
+    const contractedComponents = components.filter((c) => c.sourceType === 'CONTRACTED');
+    const dynamicComponents = components.filter((c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId);
+    if (contractedComponents.length === 0 && dynamicComponents.length === 0) return [];
+
     const roomsRequested = params.occupancy?.roomConfig?.length ?? 1;
+    const offers: SearchResultOffer[] = [];
 
-    // Za svaku komponentu koja nosi fiksnu/čarter obavezu, mapiraj datum polaska (stayFrom, kao
-    // ISO datum) -> najjeftinija dostupna kombinacija perioda/RateLine za taj datum.
-    const perComponentByDate = new Map<
-      string,
-      Map<string, { period: any; rateLine: any; finalPrice: number; currency: string }>
-    >();
+    for (const departure of departures) {
+      const windowFrom = departure.departureDate;
+      const windowTo = departure.returnDate;
 
-    for (const component of components) {
-      if (component.sourceType !== 'CONTRACTED' || !component.sourceContractId || !component.sourceContract) continue;
+      let currency: string | null = null;
+      let unavailable = false;
+      let fixedTotal = 0;
+      const cancellationSummaries: string[] = [];
+      const fixedRefundableFlags: boolean[] = [];
 
-      const periods = await this.prisma.contractPeriod.findMany({
-        where: { contractId: component.sourceContractId, allotmentMode: { in: CAPACITY_BEARING_MODES } },
-        include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
-      });
-      if (periods.length === 0) continue; // ova komponenta ne nosi fiksnu obavezu — ne određuje termine
+      for (const component of contractedComponents) {
+        if (!component.sourceContractId || !component.sourceContract) {
+          unavailable = true; // §3.0b.2 — sastojak bez ugovora ne može pokriti nijedan prozor
+          break;
+        }
 
-      const roomTypes = ((component.attributes as any)?.roomTypes ?? (component.attributes as any)?.room_types ?? []) as RoomTypeDefinition[];
-      const byDate = new Map<string, { period: any; rateLine: any; finalPrice: number; currency: string }>();
-
-      for (const period of periods) {
-        const remaining = (period.totalCapacity ?? 0) - period.unitsSold;
-        if (remaining < roomsRequested) continue; // SOLD_OUT za ovaj termin, §3.0b.2
-        if (period.rateLines.length === 0) continue;
-
-        const dateKey = period.stayFrom.toISOString().slice(0, 10);
-        if (params.stayFrom && dateKey !== params.stayFrom.slice(0, 10)) continue; // §3.0d.6 — tačan datum, ne opseg
-
-        const nights = Math.round((period.stayTo.getTime() - period.stayFrom.getTime()) / 86_400_000) || 1;
-        const markupRule = await this.markupRules.resolveForContracted({
-          productId: component.id,
-          contractPeriodId: period.id,
-          contractId: component.sourceContractId,
-          supplierId: component.sourceContract.supplierId,
+        // Noćenje-zasnovani sastojak (smeštaj) mora imati period koji POKRIVA ceo prozor
+        // `[departureDate, returnDate]` (isti obrazac kao `buildContractedOffers`). "Tačkasti"
+        // sastojak (let, transfer...) nema pojam noćenja — dovoljno je da mu POLAZAK (stayFrom)
+        // padne unutar tolerancije termina, isto poređenje kao stara verzija ovog metoda pre
+        // v1.94. Oba tolerišu ±1 dan (§3.0e.3a).
+        const isRoomBased = ROOM_BASED_TYPES.includes(component.type);
+        const periods = await this.prisma.contractPeriod.findMany({
+          where: {
+            contractId: component.sourceContractId,
+            allotmentMode: { in: CAPACITY_BEARING_MODES },
+            ...(isRoomBased
+              ? { stayFrom: { lte: new Date(windowFrom.getTime() + TOLERANCE_MS) }, stayTo: { gte: new Date(windowTo.getTime() - TOLERANCE_MS) } }
+              : { stayFrom: { gte: new Date(windowFrom.getTime() - TOLERANCE_MS), lte: new Date(windowFrom.getTime() + TOLERANCE_MS) } }),
+          },
+          include: { rateLines: { include: { agePricing: true } }, cancellationRules: true },
         });
-        for (const rateLine of period.rateLines) {
-          let baseCost: number;
-          if (ROOM_BASED_TYPES.includes(component.type) && params.occupancy) {
-            const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
-            const roomType = roomTypes.find((r) => r.code === period.roomType) ?? { code: period.roomType, capacityAdults: 99, capacityChildren: 99 };
-            baseCost = roomConfig.reduce(
-              (sum, room) =>
-                sum +
-                computeRoomBaseCost({
-                  room,
-                  roomType,
-                  rateLine: { price: rateLine.price, priceBasis: rateLine.priceBasis, occupancy: rateLine.occupancy, cribFeePerNight: rateLine.cribFeePerNight },
-                  agePricingCandidates: rateLine.agePricing,
-                  nights,
-                }),
-              0,
-            );
-          } else {
-            baseCost = rateLine.price * nights;
-          }
-          const finalPrice = applyMarkup(baseCost, markupRule);
-          const existing = byDate.get(dateKey);
-          if (!existing || finalPrice < existing.finalPrice) {
-            byDate.set(dateKey, { period, rateLine, finalPrice, currency: component.sourceContract.currency });
+
+        const roomTypes = ((component.attributes as any)?.roomTypes ?? (component.attributes as any)?.room_types ?? []) as RoomTypeDefinition[];
+        let best: { finalPrice: number; period: (typeof periods)[number] } | null = null;
+
+        for (const period of periods) {
+          const remaining = (period.totalCapacity ?? 0) - period.unitsSold;
+          if (remaining < roomsRequested) continue; // SOLD_OUT za ovaj period, §3.0b.2
+          if (period.rateLines.length === 0) continue;
+
+          const markupRule = await this.markupRules.resolveForContracted({
+            productId: component.id,
+            contractPeriodId: period.id,
+            contractId: component.sourceContractId,
+            supplierId: component.sourceContract.supplierId,
+          });
+          for (const rateLine of period.rateLines) {
+            let baseCost: number;
+            if (isRoomBased && params.occupancy) {
+              const roomConfig = assertRoomConfigMatchesTotals(params.occupancy);
+              const roomType = roomTypes.find((r) => r.code === period.roomType) ?? { code: period.roomType, capacityAdults: 99, capacityChildren: 99 };
+              baseCost = roomConfig.reduce(
+                (sum, room) =>
+                  sum +
+                  computeRoomBaseCost({
+                    room,
+                    roomType,
+                    rateLine: { price: rateLine.price, priceBasis: rateLine.priceBasis, occupancy: rateLine.occupancy, cribFeePerNight: rateLine.cribFeePerNight },
+                    agePricingCandidates: rateLine.agePricing,
+                    nights: durationDays,
+                  }),
+                0,
+              );
+            } else if (isRoomBased) {
+              // Noćenje-zasnovan sastojak bez detaljne popune (occupancy) — i dalje se cени po
+              // noćenju, samo bez raščlanjivanja po sobama (nema roomConfig da se primeni).
+              baseCost = rateLine.price * durationDays;
+            } else {
+              // Tačkasti sastojak — flat cena, bez množenja noćenjima (isti obrazac kao
+              // `buildContractedOffers` za ne-paket FLIGHT/TRANSFER proizvode).
+              baseCost = rateLine.price;
+            }
+            const finalPrice = applyMarkup(baseCost, markupRule);
+            if (!best || finalPrice < best.finalPrice) best = { finalPrice, period };
           }
         }
+
+        if (!best) {
+          unavailable = true; // nijedan period ne pokriva ovaj prozor — §3.0b.2 SOLD_OUT princip
+          break;
+        }
+        if (currency === null) currency = component.sourceContract.currency;
+        else if (currency !== component.sourceContract.currency) {
+          // Sabiranje preko sastojaka pretpostavlja istu valutu — obračun konverzije je M10 posao.
+          unavailable = true;
+          break;
+        }
+        fixedTotal += best.finalPrice;
+        fixedRefundableFlags.push(isRefundableFromCancellationRules(best.period.cancellationRules));
+        if (best.period.cancellationRules.length > 0) {
+          cancellationSummaries.push(best.period.cancellationRules.map((r) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`).join(', '));
+        }
       }
-      if (byDate.size === 0) continue;
-      perComponentByDate.set(component.id, byDate);
-    }
-
-    const fixedDateBearingIds = [...perComponentByDate.keys()];
-    if (fixedDateBearingIds.length === 0) return []; // nijedan sastojak ne nosi fiksnu obavezu — nije grupni paket
-
-    // Presek datuma, sa TOLERANCIJOM od 1 dan (dopuna 31.8.2026, vlasnik primetio: let u 23:30
-    // sleće posle ponoći, pa je datum hotelskog prijema legitimno +1 dan u odnosu na datum leta,
-    // iako je putovanje potpuno ispravno) — isti princip kao §3.0e.3a (findDateMismatches).
-    // Termin važi ako SVI fiksno-obavezni sastojci imaju period čiji je stayFrom unutar ±1 dana.
-    const [firstId, ...restIds] = fixedDateBearingIds;
-    const candidateDates = [...perComponentByDate.get(firstId)!.keys()].filter((date) =>
-      restIds.every((id) => this.findKeyWithinTolerance(perComponentByDate.get(id)!, date) !== undefined),
-    );
-
-    // Dinamički (API) sastojci ne određuju termine, ali se cenuju za svaki već utvrđen termin —
-    // isti princip kao mešanje CONTRACTED/API stavki u individualnom paketu (§3.0.3), sad i za
-    // grupni. Datumski prozor za API poziv je TAČNO polazak + duration_days — isti fiksan prozor
-    // koji smo upravo garantovali za fiksne sastojke (ne "pogađanje" iz najdužeg fiksnog perioda).
-    const dynamicComponents = components.filter((c) => c.sourceType === 'API' && c.sourceProvider && c.sourceExternalId);
-
-    const offers: SearchResultOffer[] = [];
-    for (const date of candidateDates) {
-      const fixedPicks = fixedDateBearingIds.map((id) => {
-        const map = perComponentByDate.get(id)!;
-        const key = this.findKeyWithinTolerance(map, date)!;
-        return map.get(key)!;
-      });
-      // Sabiranje preko sastojaka pretpostavlja istu valutu za sve — ako se sastojci razlikuju
-      // po valuti (retko unutar jedne agencije, ali moguće), ovaj termin se ne prikazuje umesto
-      // pogrešnog zbira; obračun konverzije je M10 posao, ne ovde (M3 spec poglavlje 8).
-      const currency = fixedPicks[0].currency;
-      if (!fixedPicks.every((p) => p.currency === currency)) continue;
-
-      const windowStayTo = new Date(new Date(date).getTime() + durationDays * 86_400_000);
+      if (unavailable) continue;
 
       let dynamicTotal = 0;
-      let dynamicUnavailable = false;
       const dynamicRefundableFlags: boolean[] = [];
       for (const dynamicComponent of dynamicComponents) {
         const quote = await this.integrations.checkAvailabilityAndPrice(dynamicComponent.sourceProvider!, dynamicComponent.sourceExternalId!, {
-          stayFrom: date,
-          stayTo: windowStayTo.toISOString().slice(0, 10),
+          stayFrom: windowFrom.toISOString().slice(0, 10),
+          stayTo: windowTo.toISOString().slice(0, 10),
           adults: params.occupancy?.adults ?? 1,
           children: params.occupancy?.children ?? 0,
         });
-        if (quote.availableUnits <= 0) {
-          dynamicUnavailable = true; // §3.0b.2 — SOLD_OUT sastojak čini ceo termin nedostupnim
-          break;
-        }
-        if (quote.currency !== currency) {
-          dynamicUnavailable = true; // ista ograda kao za fiksne sastojke — ne sabirati različite valute
-          break;
-        }
+        if (quote.availableUnits <= 0) { unavailable = true; break; } // §3.0b.2
+        if (currency !== null && quote.currency !== currency) { unavailable = true; break; }
+        if (currency === null) currency = quote.currency;
         const dynamicMarkupRule = await this.markupRules.resolveForApi({ productId: dynamicComponent.id, providerCode: dynamicComponent.sourceProvider! });
         dynamicTotal += applyMarkup(quote.priceAmount, dynamicMarkupRule);
         dynamicRefundableFlags.push(
           isRefundableFromQuoteCancellationPolicy(quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage }))),
         );
       }
-      if (dynamicUnavailable) continue;
-
-      // §3.0d.6a — svaki sastojak već nosi SOPSTVENU maržu (upravo primenjenu iznad); ukupna
-      // cena paketa je njihov zbir. Popust/dodatna marža NA NIVOU paketa je otvoreno pitanje
-      // (MarkupRule), namerno nije primenjeno ovde dok se ta odluka ne donese.
-      const totalFinalPrice = fixedPicks.reduce((sum, p) => sum + p.finalPrice, 0) + dynamicTotal;
-      const cancellationSummaries = fixedPicks
-        .filter((p) => p.period.cancellationRules.length > 0)
-        .map((p) => p.period.cancellationRules.map((r: any) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`).join(', '));
-      // §3.0d.6/refundability.ts — vlasnikova odluka (1.9.2026): najstroži sastojak odlučuje za CEO paket.
-      const componentRefundableFlags = [
-        ...fixedPicks.map((p) => isRefundableFromCancellationRules(p.period.cancellationRules)),
-        ...dynamicRefundableFlags,
-      ];
+      if (unavailable || currency === null) continue;
 
       offers.push({
         roomTypeCode: null,
         roomTypeName: null,
         boardType: null,
         priceBasis: null,
-        finalPrice: totalFinalPrice,
+        finalPrice: fixedTotal + dynamicTotal,
         finalPriceCurrency: currency,
         availabilityStatus: 'AVAILABLE',
         rateLineId: null,
         providerQuoteReference: null,
         quoteExpiresAt: null,
         cancellationPolicySummary: cancellationSummaries.length > 0 ? cancellationSummaries.join(' | ') : null,
-        isRefundable: isRefundableForPackage(componentRefundableFlags),
-        packageDepartureDate: date,
+        // §3.0d.6/refundability.ts — vlasnikova odluka (1.9.2026): najstroži sastojak odlučuje za CEO paket.
+        isRefundable: isRefundableForPackage([...fixedRefundableFlags, ...dynamicRefundableFlags]),
+        packageDepartureDate: windowFrom.toISOString().slice(0, 10),
       });
     }
-    return offers.sort((a, b) => (a.packageDepartureDate! < b.packageDepartureDate! ? -1 : 1));
+    return offers;
   }
 
   private async buildApiOffers(
