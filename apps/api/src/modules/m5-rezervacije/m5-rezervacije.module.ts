@@ -4,6 +4,7 @@ import { SearchModule } from './search/search.module';
 import { QuotesModule } from './quotes/quotes.module';
 import { ItinerariesModule } from './itineraries/itineraries.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { BookingNotesModule } from './booking-notes/booking-notes.module';
 import { SupplierManifestsModule } from './supplier-manifests/supplier-manifests.module';
 import { SupplierAnnouncementRulesModule } from './supplier-announcement-rules/supplier-announcement-rules.module';
 import { RemindersModule } from './reminders/reminders.module';
@@ -14,6 +15,7 @@ import { RemindersModule } from './reminders/reminders.module';
     MarkupRulesModule,
     SearchModule,
     BookingsModule,
+    BookingNotesModule,
     QuotesModule,
     ItinerariesModule,
     SupplierManifestsModule,

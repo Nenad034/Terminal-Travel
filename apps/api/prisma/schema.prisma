@@ -1172,8 +1172,26 @@ model Booking {
   clientContracts             ClientContract[]
   postTripSurvey               PostTripSurvey?
   handoffRequests              BookingHandoffRequest[]
+  notes                        BookingNote[]
 
   @@map("bookings")
+}
+
+// M5 spec §4.6 (dopuna 1.9.2026) — interne beleške zaposlenog uz rezervaciju. Namerno odvojeno
+// od AuditLogEntry (M1 beleži IZMENE sistema, ne zapažanja čoveka) i od CommunicationLog (M6
+// beleži POSLATU poruku, ne internu napomenu). Append-only: nema izmene postojeće beleške,
+// pogrešna se briše i dopisuje nova — isto obrazloženje kao za audit zapis.
+model BookingNote {
+  id        String   @id @default(uuid())
+  bookingId String   @map("booking_id")
+  body      String
+  createdBy String   @map("created_by") // M1 User id; nikad AI nalog (§4.6)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+  @@map("booking_notes")
 }
 
 // M5 spec §6.5 (31.8.2026) — predlog predaje zaduženja, zahteva prihvatanje primaoca osim kad

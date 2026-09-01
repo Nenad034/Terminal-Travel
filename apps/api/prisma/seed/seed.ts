@@ -92,6 +92,9 @@ const M5_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M5', resource: 'booking', action: 'TRANSFER_OWNERSHIP', description: 'Prenos vlasništva rezervacije (trenutni vlasnik ili Vlasnik/Direktor, nikad Sales Manager)' },
   { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT', description: 'Predlog/otkazivanje predaje zaduženja rezervacije' },
   { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT', description: 'Prihvatanje/odbijanje predloga predaje zaduženja rezervacije' },
+  // M5 spec §4.6 (1.9.2026) — interne beleške uz rezervaciju; nikad AI nalog.
+  { module: 'M5', resource: 'booking-note', action: 'CREATE', description: 'Dodavanje interne beleške uz rezervaciju' },
+  { module: 'M5', resource: 'booking-note', action: 'DELETE', description: 'Brisanje interne beleške (autor sopstvenu, Vlasnik/Direktor bilo koju)' },
   { module: 'M5', resource: 'markup-rule', action: 'VIEW', description: 'Uvid u pravila marže' },
   { module: 'M5', resource: 'markup-rule', action: 'EDIT', description: 'Izmena pravila marže' },
   { module: 'M5', resource: 'supplier-announcement-rule', action: 'VIEW', description: 'Uvid u pravila automatske pripreme najave dobavljaču' },
@@ -453,6 +456,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'booking', action: 'VIEW_ALL' },
     { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT' },
     { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT' },
+    // M5 spec §4.6/§10 (1.9.2026) — interne beleške uz rezervaciju.
+    { module: 'M5', resource: 'booking-note', action: 'CREATE' },
+    { module: 'M5', resource: 'booking-note', action: 'DELETE' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-manifest', action: 'SEND' },
@@ -540,6 +546,9 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M5', resource: 'booking', action: 'TRANSFER_OWNERSHIP' },
     { module: 'M5', resource: 'booking', action: 'TRANSFER_ASSIGNMENT' },
     { module: 'M5', resource: 'booking', action: 'ACCEPT_ASSIGNMENT' },
+    // M5 spec §4.6/§10 (1.9.2026) — interne beleške uz rezervaciju.
+    { module: 'M5', resource: 'booking-note', action: 'CREATE' },
+    { module: 'M5', resource: 'booking-note', action: 'DELETE' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },
