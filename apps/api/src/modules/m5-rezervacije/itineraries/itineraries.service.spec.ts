@@ -117,6 +117,45 @@ describe('ItinerariesService — vlasništvo (§3.0.1 dopuna, 31.8.2026)', () =>
 
       await expect(service.convertToQuote('it1', { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
     });
+
+    it('abandon odbija napuštanje tuđeg itinerara sa 404', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'acc-own' });
+      prisma.itinerary.findUnique.mockResolvedValue({ id: 'it1', clientAccountId: 'acc-tudj', status: 'DRAFT', segments: [] });
+
+      await expect(service.abandon('it1', 'guest-1')).rejects.toThrow(NotFoundException);
+      expect(prisma.itinerary.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // M5 spec §3.0.3a (1.9.2026) — vlasnikova odluka: samo ručna akcija, bez automatskog isteka.
+  describe('abandon (§3.0.3a)', () => {
+    it('prevodi DRAFT nacrt u ABANDONED', async () => {
+      const { service, prisma } = makeService();
+      prisma.itinerary.findUnique.mockResolvedValue({ id: 'it1', clientAccountId: null, status: 'DRAFT', segments: [] });
+      prisma.itinerary.update.mockResolvedValue({ id: 'it1', status: 'ABANDONED' });
+
+      const result = await service.abandon('it1', undefined);
+
+      expect(prisma.itinerary.update).toHaveBeenCalledWith({ where: { id: 'it1' }, data: { status: 'ABANDONED' } });
+      expect(result.status).toBe('ABANDONED');
+    });
+
+    it('odbija napuštanje nacrta koji je već CONVERTED', async () => {
+      const { service, prisma } = makeService();
+      prisma.itinerary.findUnique.mockResolvedValue({ id: 'it1', clientAccountId: null, status: 'CONVERTED', segments: [] });
+
+      await expect(service.abandon('it1', undefined)).rejects.toThrow(BadRequestException);
+      expect(prisma.itinerary.update).not.toHaveBeenCalled();
+    });
+
+    it('odbija napuštanje nacrta koji je već ABANDONED (nema duplog prelaza)', async () => {
+      const { service, prisma } = makeService();
+      prisma.itinerary.findUnique.mockResolvedValue({ id: 'it1', clientAccountId: null, status: 'ABANDONED', segments: [] });
+
+      await expect(service.abandon('it1', undefined)).rejects.toThrow(BadRequestException);
+      expect(prisma.itinerary.update).not.toHaveBeenCalled();
+    });
   });
 
   // M5 spec §3.0.2/§3.0.3 dopuna (31.8.2026) — occupancy po segmentu (Marko-ov scenario: 4

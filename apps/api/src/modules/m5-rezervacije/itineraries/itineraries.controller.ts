@@ -45,4 +45,10 @@ export class ItinerariesController {
   toQuote(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.itineraries.convertToQuote(id, actor);
   }
+
+  @Post(':id/abandon')
+  @RequirePermission('M5', 'itinerary', 'EDIT')
+  abandon(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.itineraries.abandon(id, actor.userId);
+  }
 }

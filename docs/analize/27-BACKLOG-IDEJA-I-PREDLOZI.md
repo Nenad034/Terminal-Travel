@@ -178,7 +178,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - Vizuelni prikaz/UI za sastavljanje putovanja (itinerar) — dizajnersko pitanje.
 - **Rešeno (23.8.2026, M5 spec v1.48):** "Pun zapis" forma za rezervaciju — predlog potvrđen ("Da gradi po predlogu, s tim sto cemo sigurno imati izmene i dorade"), prvi prolaz implementiran (`rezervacije/lista/[bookingNumber]/page.tsx`, mock, otvara se u novom app-tabu klikom na broj rezervacije ili dugmetom "Otvori pun zapis" iz sažetka). Dalje izmene/dorade najavljene, nisu još tražene — ne treba ponovo otvarati ovu stavku dok vlasnik ne zatraži konkretnu izmenu.
 - AI predlozi za popunu praznina u itineraru — čekaju M15.
-- Da li `Itinerary` treba sopstveni rok isteka (ABANDONED).
+- ~~Da li `Itinerary` treba sopstveni rok isteka (ABANDONED).~~ **Rešeno (1.9.2026, M5 spec §3.0.3a)** — samo ručna akcija (`POST /itineraries/:id/abandon`), bez automatskog isteka po neaktivnosti.
 - Tačna semantika `stay_from`/`stay_to`/`occupancy` za `TRANSPORT`/`TICKET`/`EVENT` po pod-tipu.
 - ~~Automatski podsetnik gostu o roku za potvrdu/uplatu opcije kod dobavljača.~~ **Rešeno (1.9.2026, M5 spec §6.1b)** — `BookingItem.supplier_option_deadline` + dnevni email podsetnik gostu preko nove `CommunicationLog.category = TRANSAKCIONO` (M6 spec §4.1), mimo `marketing_consent`.
 - ~~Prag za ponovnu proveru `API` cene pri `POST /quotes`~~ — **Vlasnikova odluka (1.9.2026, M5 spec §13)**: ostaje bez praga, uvek proveri ponovo kod M4.

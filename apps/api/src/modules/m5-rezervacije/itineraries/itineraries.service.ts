@@ -205,4 +205,17 @@ export class ItinerariesService {
           : null,
     };
   }
+
+  /**
+   * M5 spec §3.0.3a — POST /itineraries/:id/abandon. Vlasnikova odluka (1.9.2026): samo ručna
+   * akcija, bez automatskog isteka po neaktivnosti (Itinerary ne drži kapacitet niti cenu).
+   * Napušten nacrt ostaje u bazi kao istorijski zapis — ova akcija ne briše ništa.
+   */
+  async abandon(id: string, actorUserId?: string) {
+    const itinerary = await this.findOne(id, actorUserId);
+    if (itinerary.status !== 'DRAFT') {
+      throw new BadRequestException(`Itinerary ${id} nije u statusu DRAFT (već konvertovan ili napušten).`);
+    }
+    return this.prisma.itinerary.update({ where: { id }, data: { status: 'ABANDONED' } });
+  }
 }
