@@ -7,6 +7,7 @@ import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language
 import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
+import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from '../common/refundability';
 import { SearchResultOffer, SearchResultProduct } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
@@ -188,6 +189,7 @@ export class SearchService {
               .map((r) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`)
               .join(', ')
           : null;
+      const isRefundable = isRefundableFromCancellationRules(period.cancellationRules);
 
       for (const rateLine of period.rateLines) {
         let baseCost: number;
@@ -237,6 +239,7 @@ export class SearchService {
           providerQuoteReference: null,
           quoteExpiresAt: null,
           cancellationPolicySummary: cancellationSummary,
+          isRefundable,
           packageDepartureDate: null,
         });
       }
@@ -376,6 +379,7 @@ export class SearchService {
 
       let dynamicTotal = 0;
       let dynamicUnavailable = false;
+      const dynamicRefundableFlags: boolean[] = [];
       for (const dynamicComponent of dynamicComponents) {
         const quote = await this.integrations.checkAvailabilityAndPrice(dynamicComponent.sourceProvider!, dynamicComponent.sourceExternalId!, {
           stayFrom: date,
@@ -393,6 +397,9 @@ export class SearchService {
         }
         const dynamicMarkupRule = await this.markupRules.resolveForApi({ productId: dynamicComponent.id, providerCode: dynamicComponent.sourceProvider! });
         dynamicTotal += applyMarkup(quote.priceAmount, dynamicMarkupRule);
+        dynamicRefundableFlags.push(
+          isRefundableFromQuoteCancellationPolicy(quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage }))),
+        );
       }
       if (dynamicUnavailable) continue;
 
@@ -403,6 +410,11 @@ export class SearchService {
       const cancellationSummaries = fixedPicks
         .filter((p) => p.period.cancellationRules.length > 0)
         .map((p) => p.period.cancellationRules.map((r: any) => `${r.daysBeforeStay} dana: ${r.refundPercentage}%`).join(', '));
+      // §3.0d.6/refundability.ts — vlasnikova odluka (1.9.2026): najstroži sastojak odlučuje za CEO paket.
+      const componentRefundableFlags = [
+        ...fixedPicks.map((p) => isRefundableFromCancellationRules(p.period.cancellationRules)),
+        ...dynamicRefundableFlags,
+      ];
 
       offers.push({
         roomTypeCode: null,
@@ -416,6 +428,7 @@ export class SearchService {
         providerQuoteReference: null,
         quoteExpiresAt: null,
         cancellationPolicySummary: cancellationSummaries.length > 0 ? cancellationSummaries.join(' | ') : null,
+        isRefundable: isRefundableForPackage(componentRefundableFlags),
         packageDepartureDate: date,
       });
     }
@@ -456,6 +469,9 @@ export class SearchService {
         providerQuoteReference: quote.externalId,
         quoteExpiresAt: quote.quoteExpiresAt,
         cancellationPolicySummary: cancellationSummary,
+        isRefundable: isRefundableFromQuoteCancellationPolicy(
+          quote.cancellationPolicy.map((r) => ({ refundPercentage: r.refund_percentage })),
+        ),
         packageDepartureDate: null,
       },
     ];

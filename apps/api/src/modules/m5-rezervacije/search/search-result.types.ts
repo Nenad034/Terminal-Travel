@@ -14,6 +14,9 @@ export interface SearchResultOffer {
   providerQuoteReference: string | null;
   quoteExpiresAt: string | null;
   cancellationPolicySummary: string | null;
+  // M5 spec §3.0b.2/§3.0c.3a — deterministički izračunato, isto za CONTRACTED i API (oba imaju
+  // strukturisan cancellationPolicy dostupan u trenutku pretrage, common/refundability.ts).
+  isRefundable: boolean;
   // M5 spec §3.0d.6 — samo za PACKAGE (grupni paket): tačan datum polaska ove ponude, iz
   // preseka `included_products[]` FIXED/CHARTER ContractPeriod-a (§3.0d.6a). UI prikazuje
   // dostupne datume kao izbor, ne slobodan opseg. `null` za sve ostale tipove proizvoda.

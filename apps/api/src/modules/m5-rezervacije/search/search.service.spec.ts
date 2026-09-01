@@ -124,6 +124,86 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
     expect(results[0].offers[0].finalPrice).toBe(6000);
   });
 
+  // M5 spec §3.0b.2/§3.0c.3a dopuna 1.9.2026 — is_refundable, sada izračunato i za API (ne
+  // ostaje null) jer checkAvailabilityAndPrice već vraća cancellationPolicy za svaki poziv.
+  describe('is_refundable (§3.0b.2, dopuna 1.9.2026)', () => {
+    it('CONTRACTED — true kad bar jedan PRE_ARRIVAL prozor ima refund_percentage > 0', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([baseProduct]);
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        {
+          id: 'period1',
+          roomType: 'STD',
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          unitsSold: 0,
+          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          cancellationRules: [{ ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 50 }],
+        },
+      ]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 10, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE' });
+      expect(results[0].offers[0].isRefundable).toBe(true);
+    });
+
+    it('CONTRACTED — false kad su svi PRE_ARRIVAL prozori 0% ili nema nijednog pravila', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([baseProduct]);
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        {
+          id: 'period1',
+          roomType: 'STD',
+          allotmentMode: 'FIXED',
+          totalCapacity: 10,
+          unitsSold: 0,
+          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          cancellationRules: [],
+        },
+      ]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 10, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE' });
+      expect(results[0].offers[0].isRefundable).toBe(false);
+    });
+
+    it('API — true kad checkAvailabilityAndPrice vrati bar jedan prozor sa refund_percentage > 0', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+      prisma.product.findMany.mockResolvedValue([apiProduct]);
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1',
+        priceAmount: 5000,
+        currency: 'EUR',
+        availableUnits: 3,
+        cancellationPolicy: [{ days_before_stay: 5, refund_percentage: 100 }],
+        quoteExpiresAt: new Date().toISOString(),
+      });
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 20, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+      expect(results[0].offers[0].isRefundable).toBe(true);
+    });
+
+    it('API — false kad je cancellationPolicy prazna (bez pravila)', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      const apiProduct = { ...baseProduct, sourceType: 'API', sourceContractId: null, sourceContract: null, sourceProvider: 'travelgate', sourceExternalId: 'ext1' };
+      prisma.product.findMany.mockResolvedValue([apiProduct]);
+      integrations.checkAvailabilityAndPrice.mockResolvedValue({
+        externalId: 'ext1',
+        priceAmount: 5000,
+        currency: 'EUR',
+        availableUnits: 3,
+        cancellationPolicy: [],
+        quoteExpiresAt: new Date().toISOString(),
+      });
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 20, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15' });
+      expect(results[0].offers[0].isRefundable).toBe(false);
+    });
+  });
+
   // M5 spec §11 v1.28 ožičen 22.8.2026 — filteri specifični po tipu (M2 spec §2.3 konvencije).
   // Dva API-sourced proizvoda koji se razlikuju SAMO po `attributes`, da se izoluje da filter
   // stvarno bira po tom polju, ne po nečem drugom.
@@ -287,6 +367,25 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
 
       expect(results[0].offers[0].finalPrice).toBe(22000 + 35500);
+    });
+
+    it('is_refundable za paket — najstroži sastojak odlučuje (vlasnikova odluka 1.9.2026)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany
+        .mockResolvedValueOnce([packageProduct])
+        .mockResolvedValueOnce([
+          { id: 'flight1', type: 'FLIGHT', sourceType: 'CONTRACTED', sourceContractId: 'fc1', sourceContract: { id: 'fc1', supplierId: 's1', currency: 'EUR' }, attributes: {} },
+          { id: 'hotel1', type: 'ACCOMMODATION', sourceType: 'CONTRACTED', sourceContractId: 'hc1', sourceContract: { id: 'hc1', supplierId: 's2', currency: 'EUR' }, attributes: { roomTypes: [{ code: 'STD', capacityAdults: 4, capacityChildren: 2 }] } },
+        ]);
+      prisma.contractPeriod.findMany
+        .mockResolvedValueOnce([{ ...flightPeriod('2027-09-03'), cancellationRules: [] }]) // let: bez pravila => nerefundabilan
+        .mockResolvedValueOnce([{ ...hotelPeriod('2027-09-03', '2027-09-10'), cancellationRules: [{ ruleType: 'PRE_ARRIVAL', daysBeforeStay: 10, refundPercentage: 100 }] }]); // hotel: refundabilan
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+      // Hotel je refundabilan, ali let nije — paket kao celina mora biti nerefundabilan.
+      expect(results[0].offers[0].isRefundable).toBe(false);
     });
 
     it('sastojak bez FIXED/CHARTER perioda ne određuje termine — ako NIJEDAN sastojak nema, paket se ne prikazuje', async () => {
