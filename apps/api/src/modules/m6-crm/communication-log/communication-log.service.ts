@@ -28,6 +28,7 @@ export class CommunicationLogService {
         guestProfileId: dto.guestProfileId ?? null,
         channel: dto.channel,
         direction: dto.direction,
+        category: dto.category ?? 'MARKETING',
         summary: dto.summary,
         draftedByAi,
         sentBy: draftedByAi ? null : (dto.sentBy ?? null),

@@ -33,6 +33,7 @@ interface Draft {
   marginPercent: string;
   marginAmount: string;
   finalPrice: string;
+  supplierOptionDeadline: string;
 }
 
 function toDraft(item: MockBookingItem): Draft {
@@ -47,7 +48,17 @@ function toDraft(item: MockBookingItem): Draft {
     marginPercent: item.marginPercent.toString(),
     marginAmount: toUnits(item.marginAmount),
     finalPrice: toUnits(item.finalPrice),
+    supplierOptionDeadline: item.supplierOptionDeadline ? item.supplierOptionDeadline.slice(0, 10) : '',
   };
+}
+
+// M5 spec §6.1b — isti 48h prag kao SUPPLIER_OPTION_DEADLINE_REMINDER_HOURS u backend RemindersService.
+const SUPPLIER_OPTION_DEADLINE_WARNING_HOURS = 48;
+
+function isSupplierOptionDeadlineApproaching(item: MockBookingItem): boolean {
+  if (!item.supplierOptionDeadline || item.supplierOptionReminderSentAt) return false;
+  const hoursLeft = (new Date(item.supplierOptionDeadline).getTime() - Date.now()) / (60 * 60 * 1000);
+  return hoursLeft <= SUPPLIER_OPTION_DEADLINE_WARNING_HOURS;
 }
 
 // "Izmeni" — modul po segmentu (23.8.2026, na zahtev vlasnika, videti komentar u mock-data.ts za
@@ -114,6 +125,7 @@ export default function BookingItemsEditor({
       marginPercent: Number(draft.marginPercent.replace(',', '.')) || 0,
       marginAmount: toCents(draft.marginAmount),
       finalPrice: toCents(draft.finalPrice),
+      supplierOptionDeadline: draft.supplierOptionDeadline || undefined,
     };
     const changes: string[] = [];
     if (patch.hotelName !== item.hotelName) changes.push(`hotel: "${item.hotelName}" → "${patch.hotelName}"`);
@@ -121,6 +133,9 @@ export default function BookingItemsEditor({
     if (patch.finalPrice !== item.finalPrice) changes.push(`izlazna cena: ${money(item.finalPrice, item.currency)} → ${money(patch.finalPrice!, item.currency)}`);
     if (patch.baseCost !== item.baseCost) changes.push(`ulazna cena: ${money(item.baseCost, item.currency)} → ${money(patch.baseCost!, item.currency)}`);
     if (patch.sourceType !== item.sourceType) changes.push(`način unosa: ${SOURCE_LABEL[item.sourceType]} → ${SOURCE_LABEL[patch.sourceType!]}`);
+    if (patch.supplierOptionDeadline !== item.supplierOptionDeadline) {
+      changes.push(`rok za opciju kod dobavljača: ${item.supplierOptionDeadline ?? '(nije unet)'} → ${patch.supplierOptionDeadline ?? '(uklonjen)'}`);
+    }
     const summary = changes.length > 0 ? changes.join('; ') : 'izmena sačuvana bez promene vrednosti';
     onSaveItem(item.id, patch, summary);
     cancelEdit();
@@ -179,6 +194,19 @@ export default function BookingItemsEditor({
                   <Field label="Izlazna cena" value={draft.finalPrice} onChange={(v) => updatePrice('finalPrice', v)} disabled={draft.sourceType === 'API'} numeric />
                 </div>
 
+                <label className="flex flex-col gap-1">
+                  <span className="text-ink-faint">Rok za opciju kod dobavljača (ako je dat)</span>
+                  <input
+                    type="date"
+                    value={draft.supplierOptionDeadline}
+                    onChange={(e) => setDraft({ ...draft, supplierOptionDeadline: e.target.value })}
+                    className="rounded border border-ink-faint bg-panel px-2 py-1 text-xs text-ink outline-none focus:border-accent"
+                  />
+                  <span className="text-[10px] text-ink-faint">
+                    Rok koji je dao dobavljač posle kog sam otkazuje ako ne izdamo vaučer/ne potvrdimo — ne interni prag tima. Gost dobija jedan automatski podsetnik 48h pre ovog roka (M5 spec §6.1b).
+                  </span>
+                </label>
+
                 <div className="mt-1 flex justify-end gap-1.5">
                   <button onClick={cancelEdit} className="rounded px-2 py-1 text-[11px] text-ink-faint hover:text-ink">
                     Otkaži
@@ -198,6 +226,11 @@ export default function BookingItemsEditor({
                   <div className="mt-0.5 text-xs text-ink-faint">
                     {item.destinationCity}, {item.country} · {SOURCE_LABEL[item.sourceType]}
                   </div>
+                  {isSupplierOptionDeadlineApproaching(item) && (
+                    <div className="mt-1 flex items-center gap-1 rounded bg-warn-bg px-1.5 py-0.5 text-[10px] font-semibold text-warn">
+                      <Icon name="warning" /> Rok za opciju kod dobavljača ističe {new Date(item.supplierOptionDeadline!).toLocaleDateString('sr-RS')} — gost dobija automatski podsetnik
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">

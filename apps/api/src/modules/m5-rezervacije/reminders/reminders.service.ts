@@ -6,6 +6,7 @@ import { EventBusService } from '../../../common/events/event-bus.service';
 const SUPPLIER_CONFIRMATION_THRESHOLD_HOURS = 48; // §6.1, podrazumevano
 const UNANNOUNCED_STAY_THRESHOLD_DAYS = 7; // §6.1, problem #2
 const ANNOUNCED_WITHOUT_CONFIRMATION_THRESHOLD_DAYS = 5; // §6.1, problem #2
+const SUPPLIER_OPTION_DEADLINE_REMINDER_HOURS = 48; // §6.1b, podrazumevano
 
 /**
  * M5 spec §6.1 — "praćenje posle potvrde: podsetnici i alarmi." Nivo "Autonomno" (Master
@@ -33,6 +34,7 @@ export class RemindersService {
       this.checkUnannouncedBeforeStay(),
       this.checkAnnouncedWithoutSupplierConfirmation(),
       this.completeFinishedBookings(),
+      this.sendSupplierOptionDeadlineReminders(),
     ]);
   }
 
@@ -112,5 +114,53 @@ export class RemindersService {
       await this.eventBus.emit('M5', 'reminder.announced_without_confirmation', { bookingItemId: item.id, bookingId: item.bookingId });
     }
     return items.length;
+  }
+
+  // §6.1b — podsetnik GOSTU (ne timu) o roku koji je dao dobavljač za opciju. Tačno jedan
+  // email, 48h pre supplierOptionDeadline, sprečeno ponavljanje preko supplierOptionReminderSentAt.
+  // TRANSAKCIONO kategorija (M6 spec §4.1 dopuna) — šalje se bez obzira na marketing_consent,
+  // isti mock-slanje sloj kao svuda u kodu (SMTP čeka odluku vlasnika o biblioteci).
+  async sendSupplierOptionDeadlineReminders() {
+    const horizon = new Date(Date.now() + SUPPLIER_OPTION_DEADLINE_REMINDER_HOURS * 60 * 60 * 1000);
+    const items = await this.prisma.bookingItem.findMany({
+      where: {
+        supplierOptionDeadline: { not: null, lte: horizon },
+        supplierOptionReminderSentAt: null,
+        itemStatus: { not: 'CANCELLED' },
+      },
+      select: { id: true, bookingId: true, supplierOptionDeadline: true },
+    });
+
+    let sent = 0;
+    for (const item of items) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: item.bookingId },
+        select: { bookingNumber: true, clientAccountId: true },
+      });
+      if (!booking) continue;
+
+      await this.prisma.communicationLog.create({
+        data: {
+          clientAccountId: booking.clientAccountId,
+          channel: 'EMAIL',
+          direction: 'OUTBOUND',
+          category: 'TRANSAKCIONO',
+          summary: `Podsetnik: rok za opciju kod dobavljača (rezervacija ${booking.bookingNumber}) ističe ${item.supplierOptionDeadline?.toISOString()} — automatski poslato.`,
+          draftedByAi: true,
+          sentBy: 'SYSTEM_AUTO',
+        },
+      });
+      await this.prisma.bookingItem.update({
+        where: { id: item.id },
+        data: { supplierOptionReminderSentAt: new Date() },
+      });
+      await this.eventBus.emit('M5', 'reminder.supplier_option_deadline_approaching', {
+        bookingItemId: item.id,
+        bookingId: item.bookingId,
+        supplierOptionDeadline: item.supplierOptionDeadline,
+      });
+      sent++;
+    }
+    return sent;
   }
 }

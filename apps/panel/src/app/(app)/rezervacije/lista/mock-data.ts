@@ -56,6 +56,10 @@ export interface MockBookingItem {
   /** Izlazna cena (final_price). */
   finalPrice: number;
   currency: string;
+  /** M5 spec §6.1b/§4.2 — rok koji je dao DOBAVLJAČ za opciju, ISO datum. Prazno = dobavljač nije dao poseban rok. */
+  supplierOptionDeadline?: string;
+  /** M5 spec §6.1b — popunjeno kad je (mock) podsetnik gostu već "poslat", sprečava ponovni prikaz upozorenja. */
+  supplierOptionReminderSentAt?: string;
 }
 
 export interface MockBookingRow {

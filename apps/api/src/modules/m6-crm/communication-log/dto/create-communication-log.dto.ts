@@ -20,6 +20,12 @@ export class CreateCommunicationLogDto {
   @IsIn(['INBOUND', 'OUTBOUND'])
   direction!: 'INBOUND' | 'OUTBOUND';
 
+  // §4.1 dopuna (1.9.2026) — podrazumevano MARKETING (postojeći marketing_consent gejt),
+  // TRANSAKCIONO zaobilazi taj gejt (vidi napomenu u schema.prisma/spec).
+  @IsOptional()
+  @IsIn(['MARKETING', 'TRANSAKCIONO'])
+  category?: 'MARKETING' | 'TRANSAKCIONO';
+
   @IsString()
   summary!: string;
 

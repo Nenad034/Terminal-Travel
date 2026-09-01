@@ -529,4 +529,75 @@ describe('M6 — izlazni kriterijum (e2e)', () => {
       expect(updated.status).toBe('COMPLETED');
     });
   });
+
+  describe('M5 §6.1b / M6 §4.1 — podsetnik gostu o roku za opciju kod dobavljača (TRANSAKCIONO, mimo marketing_consent)', () => {
+    it('šalje jedan podsetnik gostu BEZ marketing_consent i ne duplira ga pri ponovnom pozivu', async () => {
+      const account = await createClientAccount({ marketingConsent: false });
+      const booking = await createBooking(account.id, { status: 'CONFIRMED' });
+      const { product, rateLine, markupRule } = await createBookableProductFixture();
+      const deadline = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h od sad, unutar 48h praga
+      const item = await prisma.bookingItem.create({
+        data: {
+          bookingId: booking.id,
+          productId: product.id,
+          sourceType: 'CONTRACTED',
+          supplierReference: 'e2e-6.1b',
+          stayFrom: new Date('2027-01-01'),
+          stayTo: new Date('2027-01-08'),
+          baseCost: 10000,
+          baseCostCurrency: 'EUR',
+          rateLineId: rateLine.id,
+          markupRuleId: markupRule.id,
+          finalPrice: 12000,
+          finalPriceCurrency: 'EUR',
+          itemStatus: 'CONFIRMED',
+          supplierOptionDeadline: deadline,
+        },
+      });
+
+      const sentFirstRun = await reminders.sendSupplierOptionDeadlineReminders();
+      expect(sentFirstRun).toBeGreaterThanOrEqual(1);
+
+      const logs = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      expect(logs).toHaveLength(1);
+      expect(logs[0].sentBy).toBe('SYSTEM_AUTO');
+      expect(logs[0].channel).toBe('EMAIL');
+
+      const updatedItem = await prisma.bookingItem.findUniqueOrThrow({ where: { id: item.id } });
+      expect(updatedItem.supplierOptionReminderSentAt).not.toBeNull();
+
+      // Drugi poziv istog dana ne sme da duplira podsetnik (supplierOptionReminderSentAt već popunjeno).
+      await reminders.sendSupplierOptionDeadlineReminders();
+      const logsAfterSecondRun = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      expect(logsAfterSecondRun).toHaveLength(1);
+    });
+
+    it('ne šalje podsetnik kad rok nije unutar 48h praga', async () => {
+      const account = await createClientAccount({ marketingConsent: false });
+      const booking = await createBooking(account.id, { status: 'CONFIRMED' });
+      const { product, rateLine, markupRule } = await createBookableProductFixture();
+      await prisma.bookingItem.create({
+        data: {
+          bookingId: booking.id,
+          productId: product.id,
+          sourceType: 'CONTRACTED',
+          supplierReference: 'e2e-6.1b-far',
+          stayFrom: new Date('2027-02-01'),
+          stayTo: new Date('2027-02-08'),
+          baseCost: 10000,
+          baseCostCurrency: 'EUR',
+          rateLineId: rateLine.id,
+          markupRuleId: markupRule.id,
+          finalPrice: 12000,
+          finalPriceCurrency: 'EUR',
+          itemStatus: 'CONFIRMED',
+          supplierOptionDeadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 dana, van praga
+        },
+      });
+
+      await reminders.sendSupplierOptionDeadlineReminders();
+      const logs = await prisma.communicationLog.findMany({ where: { clientAccountId: account.id, category: 'TRANSAKCIONO' } });
+      expect(logs).toHaveLength(0);
+    });
+  });
 });

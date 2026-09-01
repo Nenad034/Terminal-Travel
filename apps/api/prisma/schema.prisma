@@ -1225,6 +1225,10 @@ model BookingItem {
   announcedAt                  DateTime?         @map("announced_at")
   supplierConfirmedAt          DateTime?         @map("supplier_confirmed_at")
   supplierConfirmedBy          String?           @map("supplier_confirmed_by")
+  // §6.1b dopuna (1.9.2026) — rok koji je dao DOBAVLJAČ (ručni unos), različit od internog
+  // 48h praga §6.1 (SUPPLIER_CONFIRMATION_THRESHOLD_HOURS, koji upozorava tim, ne gosta).
+  supplierOptionDeadline       DateTime?         @map("supplier_option_deadline")
+  supplierOptionReminderSentAt DateTime?         @map("supplier_option_reminder_sent_at")
 
   booking             Booking                @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   product             Product                @relation(fields: [productId], references: [id])
@@ -1951,17 +1955,26 @@ enum CommunicationDirection {
 // ClientLoyaltyStatus iznad (M6TriggersService/PostTripSurveysService kreiraju zapise iz
 // booking.client_account_id, koji nema DB-nivo FK).
 model CommunicationLog {
-  id              String                 @id @default(uuid())
-  clientAccountId String?                @map("client_account_id")
-  guestProfileId  String?                @map("guest_profile_id")
+  id              String                   @id @default(uuid())
+  clientAccountId String?                  @map("client_account_id")
+  guestProfileId  String?                  @map("guest_profile_id")
   channel         CommunicationChannel
   direction       CommunicationDirection
+  // §4.1 dopuna (1.9.2026) — MARKETING zadržava postojeći marketing_consent gejt (§4.2/§4.3)
+  // nepromenjen; TRANSAKCIONO (npr. M5 §6.1b podsetnik o roku opcije) šalje se bez obzira na
+  // saglasnost jer nije reklama, isto obrazloženje kao vaučer/potvrda rezervacije.
+  category        CommunicationLogCategory @default(MARKETING)
   summary         String
-  draftedByAi     Boolean                @default(false) @map("drafted_by_ai")
-  sentBy          String?                @map("sent_by")
-  createdAt       DateTime               @default(now()) @map("created_at")
+  draftedByAi     Boolean                  @default(false) @map("drafted_by_ai")
+  sentBy          String?                  @map("sent_by")
+  createdAt       DateTime                 @default(now()) @map("created_at")
 
   @@map("communication_logs")
+}
+
+enum CommunicationLogCategory {
+  MARKETING
+  TRANSAKCIONO
 }
 
 enum PostTripSurveyStatus {
