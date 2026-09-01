@@ -7,6 +7,8 @@ import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentBu
 import BookingHistoryButton from './BookingHistoryButton';
 import BookingOwnershipCard from './BookingOwnershipCard';
 import BookingNotesCard, { BookingNote } from './BookingNotesCard';
+import BookingChangesCard from './BookingChangesCard';
+import BookingRepsCard, { RepCheckIn } from './BookingRepsCard';
 import ActorLabel from '@/components/ActorLabel';
 
 
@@ -38,6 +40,8 @@ interface BookingItem {
   unitCount?: number;
   product?: BookingItemProduct | null;
   guests?: BookingItemGuest[];
+  // M9 spec §4 — predstavnik (vodič) na destinaciji za tu stavku.
+  assignedGuideId?: string | null;
 }
 
 interface Booking {
@@ -106,6 +110,16 @@ interface CommunicationEntry {
   createdAt: string;
 }
 
+interface Ticket {
+  id: string;
+  ticketNumber: string;
+  subject: string;
+  status: string;
+  category: string;
+  priority: string;
+  zzpResponseDeadline: string | null;
+}
+
 interface GuestProfileSummary {
   id: string;
   fullName: string;
@@ -135,6 +149,9 @@ const TABS = [
   { id: 'komunikacija', label: 'Komunikacija', icon: 'comment' },
   { id: 'dokumenti', label: 'Dokumenti', icon: 'file' },
   { id: 'beleske', label: 'Beleške', icon: 'note' },
+  { id: 'reklamacije', label: 'Reklamacije', icon: 'law' },
+  { id: 'predstavnici', label: 'Predstavnici', icon: 'account' },
+  { id: 'izmene', label: 'Izmene', icon: 'edit' },
 ] as const;
 
 export default async function BookingDetailPage(props: {
@@ -159,6 +176,13 @@ export default async function BookingDetailPage(props: {
   // M5 spec §4.6 — beleške se VIDE sa rezervacijom (nema zasebne VIEW dozvole).
   const canCreateNote = hasPermission(me, 'M5', 'booking-note', 'CREATE');
   const canDeleteNote = hasPermission(me, 'M5', 'booking-note', 'DELETE');
+  // M5 spec §6/§6.4 — otkazivanje i izmena; do 1.9.2026 su postojale samo na API-ju.
+  const canCancelBooking = hasPermission(me, 'M5', 'booking', 'CANCEL');
+  const canModifyBooking = hasPermission(me, 'M5', 'booking', 'MODIFY');
+  // M5 spec §4.5 — kartice Reklamacije (M14) i Predstavnici (M9).
+  const canViewTickets = hasPermission(me, 'M14', 'ticket', 'VIEW');
+  const canCreateTicket = hasPermission(me, 'M14', 'ticket', 'CREATE');
+  const canViewCheckIns = hasPermission(me, 'M9', 'field-checkin', 'VIEW');
   const canTransferOwnership = hasPermission(me, 'M5', 'booking', 'TRANSFER_OWNERSHIP');
   const canProposeHandoff = hasPermission(me, 'M5', 'booking', 'TRANSFER_ASSIGNMENT');
   const canAcceptAssignment = hasPermission(me, 'M5', 'booking', 'ACCEPT_ASSIGNMENT');
@@ -201,6 +225,19 @@ export default async function BookingDetailPage(props: {
     booking && activeTab === 'beleske'
       ? apiFetch<BookingNote[]>(`/sales/bookings/${booking.id}/notes`).catch(() => [] as BookingNote[])
       : Promise.resolve([] as BookingNote[]),
+  ]);
+
+  const [tickets, checkIns, guides] = await Promise.all([
+    booking && canViewTickets && activeTab === 'reklamacije'
+      ? apiFetch<Ticket[]>(`/helpdesk/tickets?relatedBookingId=${booking.id}`).catch(() => [] as Ticket[])
+      : Promise.resolve([] as Ticket[]),
+    booking && canViewCheckIns && activeTab === 'predstavnici'
+      ? apiFetch<RepCheckIn[]>(`/mobile/staff/check-ins?bookingId=${booking.id}`).catch(() => [] as RepCheckIn[])
+      : Promise.resolve([] as RepCheckIn[]),
+    // Spisak isključivo VODIC naloga — dodela predstavnika ne sme da nudi ceo tim.
+    booking && activeTab === 'predstavnici'
+      ? apiFetch<DirectoryUser[]>('/iam/users/directory?role=VODIC').catch(() => [] as DirectoryUser[])
+      : Promise.resolve([] as DirectoryUser[]),
   ]);
 
   // Profili gostiju (M6) — samo za karticu Putnici i samo uz dozvolu; jedan poziv po
@@ -600,6 +637,93 @@ export default async function BookingDetailPage(props: {
               canCreate={canCreateNote}
               canDelete={canDeleteNote}
               isVlasnikOrDirektor={isVlasnikOrDirektor}
+            />
+          )}
+
+          {/* M5 spec §6/§6.4 — Izmene: otkazivanje i izmena datuma/broja osoba. */}
+          {activeTab === 'izmene' && (
+            <BookingChangesCard
+              bookingId={booking.id}
+              items={booking.items.map((i) => ({
+                id: i.id,
+                name: i.product?.name ?? `stavka ${i.id.slice(0, 8)}…`,
+                stayFrom: i.stayFrom,
+                stayTo: i.stayTo,
+                itemStatus: i.itemStatus,
+                guestCount: i.guests?.length ?? 0,
+              }))}
+              canCancel={canCancelBooking}
+              canModify={canModifyBooking}
+            />
+          )}
+
+          {/* M5 spec §4.5 — Reklamacije: prikaz nad M14 `Ticket.related_booking_id`, koji je u
+              modelu postojao od početka ali se nigde nije prikazivao na rezervaciji. */}
+          {activeTab === 'reklamacije' &&
+            (!canViewTickets ? (
+              <p className="text-xs text-ink-faint">
+                Nemate dozvolu za uvid u tikete (<code>M14/ticket/VIEW</code>).
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {canCreateTicket && (
+                  <Link
+                    href={`/podrska/novi?bookingId=${booking.id}`}
+                    className="inline-flex items-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong"
+                  >
+                    <Icon name="add" /> Otvori reklamaciju za ovu rezervaciju
+                  </Link>
+                )}
+                {tickets.length === 0 ? (
+                  <p className="text-xs text-ink-faint">Nema nijedne reklamacije ni tiketa vezanog za ovu rezervaciju.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {tickets.map((t) => (
+                      <li key={t.id} className="rounded-lg border border-border bg-panel p-3">
+                        <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px]">
+                          <span className="font-mono text-ink">{t.ticketNumber}</span>
+                          <Badge label={t.status} />
+                          <Badge label={t.category} />
+                          <Badge label={t.priority} />
+                          {/* §3.1 — zakonski rok za odgovor na reklamaciju (8 dana). */}
+                          {t.zzpResponseDeadline && (
+                            <span className={new Date(t.zzpResponseDeadline) < new Date() ? 'text-danger' : 'text-warn'}>
+                              rok po ZZP: {new Date(t.zzpResponseDeadline).toLocaleDateString('sr-RS')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-ink">{t.subject}</span>
+                          <Link href={`/podrska/${t.id}`} className="shrink-0 text-xs text-accent hover:underline">
+                            otvori tiket →
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+
+          {/* M5 spec §4.5 / M9 §4 — Predstavnici: dodela vodiča po stavci + prijave sa terena. */}
+          {activeTab === 'predstavnici' && (
+            <BookingRepsCard
+              bookingId={booking.id}
+              items={booking.items
+                .filter((i) => i.itemStatus !== 'CANCELLED')
+                .map((i) => ({
+                  id: i.id,
+                  name: i.product?.name ?? `stavka ${i.id.slice(0, 8)}…`,
+                  stayFrom: i.stayFrom,
+                  stayTo: i.stayTo,
+                  assignedGuideId: i.assignedGuideId ?? null,
+                  guestCount: i.guests?.length ?? 0,
+                }))}
+              guides={guides}
+              checkIns={checkIns}
+              namesById={Object.fromEntries([...directoryById, ...guides.map((g) => [g.id, g.fullName] as const)])}
+              canAssign={canModifyBooking}
+              canViewCheckIns={canViewCheckIns}
             />
           )}
         </>

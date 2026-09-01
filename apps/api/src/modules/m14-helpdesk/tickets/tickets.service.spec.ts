@@ -24,7 +24,17 @@ describe('TicketsService — findMany/findOne VIEW_ALL za interni tim (§6 dopun
 
     await service.findMany('staff-1');
 
-    expect(prisma.ticket.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: undefined }));
+    // `where: {}` je Prisma-ekvivalent za "bez filtera" (dopuna 1.9.2026 — filter po
+    // relatedBookingId se spaja u isti objekat, pa `undefined` više nije oblik koji se šalje).
+    expect(prisma.ticket.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+  });
+
+  it('filter relatedBookingId sužava već dozvoljen skup, ne zaobilazi vidljivost (dopuna 1.9.2026)', async () => {
+    const { service, prisma } = makeService();
+
+    await service.findMany('staff-1', { relatedBookingId: 'b1' });
+
+    expect(prisma.ticket.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { relatedBookingId: 'b1' } }));
   });
 
   it('STAFF sužen (VIEW_ALL=false) vidi samo tikete gde je assigned_to = pozivalac', async () => {

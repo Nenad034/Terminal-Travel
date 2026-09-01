@@ -59,12 +59,16 @@ export class TicketsService {
   // account_id == ownAccountId); interni tim (M14/ticket/VIEW) vidi sve.
   // M14 spec §6 dopuna (31.8.2026, M1 §3.9a konvencija) — interni tim bez
   // `M14/ticket/VIEW_ALL` vidi samo tikete na kojima je zadužen (`Ticket.assigned_to`).
-  async findMany(actorUserId?: string) {
+  /** `relatedBookingId` (dopuna 1.9.2026, M14 spec §7) — filter, ne novo pravo: dodatno sužava
+   *  već dozvoljen skup, pa se vidljivost (ownership / VIEW_ALL) primenjuje nepromenjeno pre njega.
+   *  Traženo za karticu "Reklamacije" na ekranu rezervacije (M5 spec §4.5). */
+  async findMany(actorUserId?: string, filters?: { relatedBookingId?: string }) {
+    const bookingFilter = filters?.relatedBookingId ? { relatedBookingId: filters.relatedBookingId } : {};
     const ownership = await this.resolveOwnershipContext(actorUserId);
     if (ownership.isRestricted) {
       if (!ownership.ownAccountId) return [];
       return this.prisma.ticket.findMany({
-        where: { requesterClientAccountId: ownership.ownAccountId },
+        where: { requesterClientAccountId: ownership.ownAccountId, ...bookingFilter },
         orderBy: { createdAt: 'desc' },
       });
     }
@@ -74,7 +78,7 @@ export class TicketsService {
       scopedToAssignee = !hasViewAll;
     }
     return this.prisma.ticket.findMany({
-      where: scopedToAssignee ? { assignedTo: actorUserId } : undefined,
+      where: { ...(scopedToAssignee ? { assignedTo: actorUserId } : {}), ...bookingFilter },
       orderBy: { createdAt: 'desc' },
     });
   }

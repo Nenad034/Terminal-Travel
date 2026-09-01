@@ -75,6 +75,38 @@ export class FieldStaffService {
   // §3.2 — POST /mobile/staff/sync. Idempotentno po klijentski generisanom id (isti obrazac
   // kao M4/M10 idempotency_key): ponovljen isti id ne pravi duplikat, samo potvrđuje synced_at.
   // "Poslednji upis pobeđuje" po vremenskoj oznaci ako se isti id pošalje sa različitim sadržajem.
+  /**
+   * §3.2 dopuna (1.9.2026) — pregled prijava sa terena ZA JEDNU REZERVACIJU, iz kancelarije.
+   * Do ove dopune je `FieldCheckIn` mogao samo da se UPIŠE (POST /sync sa telefona vodiča) i
+   * nikad da se pročita — pa kartica "Predstavnici" na ekranu rezervacije (M5 spec §4.5) nije
+   * imala odakle da prikaže da li je iko stvarno preuzeo goste na destinaciji.
+   *
+   * Ne uvodi novo pravo nad rezervacijom: pozivalac mora imati `M9/field-checkin/VIEW`, a
+   * prikazuju se isključivo prijave za stavke TE rezervacije.
+   */
+  async checkInsForBooking(bookingId: string) {
+    const guests = await this.prisma.bookingItemGuest.findMany({
+      where: { bookingItem: { bookingId } },
+      select: { id: true, bookingItemId: true, guestFirstName: true, guestLastName: true },
+    });
+    if (guests.length === 0) return [];
+
+    const checkIns = await this.prisma.fieldCheckIn.findMany({
+      where: { bookingItemGuestId: { in: guests.map((g) => g.id) } },
+      orderBy: { checkedInAt: 'desc' },
+    });
+    const guestById = new Map(guests.map((g) => [g.id, g]));
+
+    return checkIns.map((c) => ({
+      id: c.id,
+      bookingItemId: guestById.get(c.bookingItemGuestId)?.bookingItemId ?? null,
+      guestName: `${guestById.get(c.bookingItemGuestId)?.guestFirstName ?? ''} ${guestById.get(c.bookingItemGuestId)?.guestLastName ?? ''}`.trim(),
+      checkedInAt: c.checkedInAt,
+      checkedInBy: c.checkedInBy,
+      syncedAt: c.syncedAt,
+    }));
+  }
+
   async sync(guideUserId: string, dto: SyncFieldDataDto) {
     if (dto.incidentNotes?.length) {
       const allowed = await this.permissions.hasPermission(guideUserId, 'M9', 'field-incident', 'CREATE');

@@ -25,11 +25,18 @@ export class UsersService {
   // agent/Sales Manager/Računovođa po difoltu nemaju, isti nalaz kao M19 chat "novi razgovor"
   // forma). Namerno samo id+fullName (ne email/uloge/MFA status — to ostaje iza pune VIEW
   // dozvole), i samo za STAFF pozivaoca — gost/subagent/dobavljač ne sme da vidi interni spisak.
-  async directory(callerId: string) {
+  /** `role` (dopuna 1.9.2026) — sužava već dozvoljen skup, nije novo pravo: koristi ga panel
+   *  kad treba spisak SAMO jedne uloge (npr. vodiči/predstavnici za dodelu na stavku
+   *  rezervacije, M5 spec §4.5). Bez parametra ponašanje je nepromenjeno. */
+  async directory(callerId: string, role?: string) {
     const caller = await this.prisma.user.findUnique({ where: { id: callerId } });
     if (caller?.accountType !== 'STAFF') return [];
     return this.prisma.user.findMany({
-      where: { accountType: 'STAFF', status: 'ACTIVE' },
+      where: {
+        accountType: 'STAFF',
+        status: 'ACTIVE',
+        ...(role ? { roles: { some: { role: { name: role } } } } : {}),
+      },
       select: { id: true, fullName: true },
       orderBy: { fullName: 'asc' },
     });

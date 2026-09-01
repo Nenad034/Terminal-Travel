@@ -11,7 +11,7 @@ const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 
 // M14 spec §2.1/§6 — polja prate CreateTicketDto (channel je uvek PHONE ovde, requesterType
 // uvek STAFF_ON_BEHALF — postavljeno u actions.ts, ne u ovoj formi).
-export default function NewTicketForm() {
+export default function NewTicketForm({ defaultBookingId = '' }: { defaultBookingId?: string }) {
   const [state, formAction] = useActionState(createTicket, initialState);
 
   return (
@@ -42,8 +42,16 @@ export default function NewTicketForm() {
       <Field label="nalogodavac (M6 ClientAccount ID, opciono)">
         <input name="requesterClientAccountId" className="input" placeholder="UUID — ostavite prazno ako nije poznat" />
       </Field>
+      {/* Predpopunjeno kad se dolazi sa ekrana rezervacije (kartica "Reklamacije",
+          M5 spec §4.5) — ručno kucanje UUID-a je bio jedini raniji način. */}
       <Field label="vezana rezervacija (M5 Booking ID, opciono)">
-        <input name="relatedBookingId" className="input" placeholder="UUID — ostavite prazno ako nije relevantno" />
+        <input
+          name="relatedBookingId"
+          defaultValue={defaultBookingId}
+          readOnly={Boolean(defaultBookingId)}
+          className="input"
+          placeholder="UUID — ostavite prazno ako nije relevantno"
+        />
       </Field>
 
       <SubmitButton />

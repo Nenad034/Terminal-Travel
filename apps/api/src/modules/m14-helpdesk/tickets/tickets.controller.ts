@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
@@ -21,8 +21,8 @@ export class TicketsController {
 
   @Get()
   @RequirePermission('M14', 'ticket', 'VIEW')
-  findMany(@CurrentUser() actor: { userId: string }) {
-    return this.tickets.findMany(actor.userId);
+  findMany(@CurrentUser() actor: { userId: string }, @Query('relatedBookingId') relatedBookingId?: string) {
+    return this.tickets.findMany(actor.userId, { relatedBookingId });
   }
 
   @Post()

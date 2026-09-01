@@ -22,6 +22,15 @@ export class FieldStaffController {
     return this.fieldStaff.myItinerary(actor.userId, new Date(from), new Date(to));
   }
 
+  // §3.2 dopuna (1.9.2026) — kancelarijski pregled prijava sa terena za jednu rezervaciju
+  // (kartica "Predstavnici", M5 spec §4.5). Zasebna VIEW dozvola: vodič na terenu ima CREATE,
+  // ali ne mora imati uvid u ceo tok kancelarije, i obrnuto.
+  @Get('check-ins')
+  @RequirePermission('M9', 'field-checkin', 'VIEW')
+  checkIns(@Query('bookingId') bookingId: string) {
+    return this.fieldStaff.checkInsForBooking(bookingId);
+  }
+
   // Gejtovano na field-checkin/CREATE (uvek dodeljena uz field-incident/CREATE za VODIC, §6) —
   // granularna provera za incidentNotes se radi u servisu (PermissionsService direktno), jer
   // jedan zahtev može nositi oba tipa zapisa istovremeno (§3.2 "šalje ceo red čekanja odjednom").

@@ -4,7 +4,8 @@ import NewTicketForm from './NewTicketForm';
 
 // M17 spec §4/§7 (Faza 5) — novi tiket, uvek requesterType=STAFF_ON_BEHALF (M14 spec §2.1) —
 // vidi actions.ts createTicket.
-export default function NoviTicketPage() {
+export default async function NoviTicketPage(props: { searchParams: Promise<{ bookingId?: string }> }) {
+  const searchParams = await props.searchParams;
   return (
     <div className="p-6">
       <RegisterTab label="Novi tiket" />
@@ -12,7 +13,7 @@ export default function NoviTicketPage() {
         <span className="text-accent">$</span> podrska/tiketi/novi
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Unos tiketa u ime gosta/subagenta koji je zvao telefonom (M14 spec §2.1).</p>
-      <NewTicketForm />
+      <NewTicketForm defaultBookingId={searchParams.bookingId ?? ''} />
     </div>
   );
 }

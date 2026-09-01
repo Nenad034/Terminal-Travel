@@ -244,6 +244,8 @@ const M9_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M9', resource: 'field-itinerary', action: 'VIEW', description: 'Uvid u sopstveni dodeljeni itinerar (GET /mobile/staff/my-itinerary)' },
   { module: 'M9', resource: 'field-checkin', action: 'CREATE', description: 'Slanje FieldCheckIn zapisa pri sinhronizaciji (POST /mobile/staff/sync)' },
   { module: 'M9', resource: 'field-incident', action: 'CREATE', description: 'Slanje FieldIncidentNote zapisa pri sinhronizaciji (POST /mobile/staff/sync)' },
+  // §3.2 dopuna (1.9.2026) — kancelarijski uvid u prijave sa terena po rezervaciji.
+  { module: 'M9', resource: 'field-checkin', action: 'VIEW', description: 'Uvid u prijave sa terena za rezervaciju (GET /mobile/staff/check-ins)' },
 ];
 
 // M15 spec §8 — dozvole AI agentske orkestracije. module-activation/ACTIVATE je namerno uska:
@@ -364,6 +366,8 @@ const M23_PERMISSIONS: { module: string; resource: string; action: string; descr
 // Sales Manager/Prodajni agent dobijaju samo VIEW nivoe iz M2/M3 (M2 spec §6, M3 spec §5).
 const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: string; action: string }[]> = {
   [SYSTEM_ROLES.VLASNIK]: [
+    // M9 §3.2 dopuna (1.9.2026) — kancelarijski uvid u prijave sa terena (kartica "Predstavnici").
+    { module: 'M9', resource: 'field-checkin', action: 'VIEW' },
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -388,6 +392,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     ...M15_BI_TERMINAL_PERMISSION.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
   ],
   [SYSTEM_ROLES.DIREKTOR]: [
+    // M9 §3.2 dopuna (1.9.2026) — kancelarijski uvid u prijave sa terena (kartica "Predstavnici").
+    { module: 'M9', resource: 'field-checkin', action: 'VIEW' },
     ...M1_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M2_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
     ...M3_PERMISSIONS.map((p) => ({ module: p.module, resource: p.resource, action: p.action })),
@@ -459,6 +465,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M5 spec §4.6/§10 (1.9.2026) — interne beleške uz rezervaciju.
     { module: 'M5', resource: 'booking-note', action: 'CREATE' },
     { module: 'M5', resource: 'booking-note', action: 'DELETE' },
+    // M9 §3.2 dopuna (1.9.2026) — kancelarijski uvid u prijave sa terena (kartica "Predstavnici").
+    { module: 'M9', resource: 'field-checkin', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-manifest', action: 'SEND' },
@@ -549,6 +557,8 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     // M5 spec §4.6/§10 (1.9.2026) — interne beleške uz rezervaciju.
     { module: 'M5', resource: 'booking-note', action: 'CREATE' },
     { module: 'M5', resource: 'booking-note', action: 'DELETE' },
+    // M9 §3.2 dopuna (1.9.2026) — kancelarijski uvid u prijave sa terena (kartica "Predstavnici").
+    { module: 'M9', resource: 'field-checkin', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
     { module: 'M5', resource: 'supplier-manifest', action: 'CREATE' },
     { module: 'M5', resource: 'supplier-confirmation', action: 'CONFIRM' },

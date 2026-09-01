@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, UseGuards, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UserPreferencesService } from './user-preferences.service';
@@ -43,8 +43,8 @@ export class UsersController {
   // spec, literalna ruta ispred parametarske rute istog broja segmenata). Bez
   // @RequirePermission namerno — dostupno svakom STAFF nalogu, provera je u servisu.
   @Get('directory')
-  directory(@CurrentUser() actor: { userId: string }) {
-    return this.users.directory(actor.userId);
+  directory(@CurrentUser() actor: { userId: string }, @Query('role') role?: string) {
+    return this.users.directory(actor.userId, role);
   }
 
   @Post()
