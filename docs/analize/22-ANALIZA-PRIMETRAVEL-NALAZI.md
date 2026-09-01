@@ -115,6 +115,63 @@ Ovo **nije deo Terminal arhitekture** (to je uputstvo za AI asistenta koji piše
 
 Ovo ne zahteva akciju sada — beležim ga jer je koncept koji ćemo verovatno želeti kad implementacija stvarno počne.
 
+## 14. Forma za unos rezervacije ("Reservation Architect") — detaljan nalaz, 1.9.2026
+
+Prethodna poglavlja su opšta. Ovo je pregled JEDNOG ekrana — forme za unos rezervacije — jer je to ekran na kojem PrimeTravel provodi najviše radnog vremena i jer je M5 njegov direktan pandan u Terminalu. Pregled je rađen čitanjem koda (`D:\PrimeTravel-17.04.2026`), ne po sećanju.
+
+### 14.1 Koja je forma zapravo živa
+
+Ruta `reservationArchitect` (`src/router/index.tsx`) ne vodi na formu nego na `RedirectToSandboxReservation` → `/sandbox/reservation` → **`src/sandbox/pages/ReservationArchitect_SB.tsx`**. Ekran u zaglavlju nosi natpis `SANDBOX ARCHITECT`, `EXPERIMENTAL`, `LAB MODE`, a dugme "SAVE EXPERIMENT" izvršava samo `alert('Experiment data is locally cached.')`.
+
+**Proizvodni rad se svakodnevno unosi na ekranu koji je označen kao eksperiment.** Ovo je najčistiji primer stanja "delimično / nije live" iz poglavlja o PrimeTravel bolesti — verzija je postala proizvodnja slučajno, jer je bila poslednja koju je neko dirao, a ne odlukom.
+
+### 14.2 Šest paralelnih verzija iste forme
+
+| Fajl | Linija | Status u ruteru |
+|---|---|---|
+| `pages/booking/ReservationArchitect_Classic.tsx` | 3.876 | nije rutiran, ali živ (uvoze ga drugi) |
+| `pages/booking/ReservationsDashboard.tsx` | 2.655 | rutiran na DVE putanje (`reservations`, `my-reservations`) |
+| `sandbox/pages/ReservationArchitect_SB.tsx` | 443 | **živa forma** (preusmerenje sa glavne rute) |
+| `pages/booking/BookingForm.tsx` | 355 | `booking/:source/:hotelCode` |
+| `pages/booking/ReservationArchitectV5.tsx` | 347 | preusmerava na sandbox |
+| `pages/booking/ReservationArchitect.tsx` | 316 | rutiran kao "Legacy" |
+
+Uz njih `archive/pages/ReservationArchitectV2.css` i `V4.css`, `ReservationArchitectV5.css`, i arhivirani `PublicBookingPortal`. **Živa sandbox forma uvozi izgled iz arhive** (`import '../../archive/pages/ReservationArchitectV4.css'`) — folder koji se zove "arhiva" se zato nikad ne može obrisati.
+
+### 14.3 Nalazi u podacima i logici (redom po ozbiljnosti)
+
+1. **Zakonska/poreska odluka se donosi u pretraživaču.** `handleConfirmAndPost` odlučuje `sendToSef` i `issueFiscalReceipt` po tome da li `dossier.customerType` počinje sa "B2B"/"B2C" — u React komponenti. Tu su i ukucani IBAN (`RS123456789012345678`), naziv firme, rezervni kurs (`p.exchangeRate || 117.2`), i `documentId = 'MOCK-DOC-123'` kao fallback **u putanji koja vodi u fiskalizaciju**. *Terminal: ovo je razlog zašto M10 mora ostati jedini nosilac fiskalne odluke, a M17 samo prikaz.*
+2. **Cela rezervacija se čuva kao jedna gruda teksta.** `saveDossierToDatabase` (`services/travel/reservationService.ts`) upisuje ceo dosije u kolonu `guests_data` jedne ravne tabele `reservations`. Posledica: baza ne ume da odgovori na "koliko izleta smo prodali u julu" ili "kojim putnicima ističe pasoš" — to za nju nije podatak nego tekst. Dodatno, kolone za listu (`destination`, `accommodation_name`, `check_in`) uzimaju **samo `tripItems[0]`** — višestavna rezervacija se u listi prikazuje kao da ima jednu uslugu. *Terminal: M5 §4.2 `BookingItem` kao pravi red u bazi je direktan odgovor na ovo — ne popuštati.*
+3. **Dva izvora istine pri čuvanju.** Snima se i u `localStorage` (`active_reservation_dossier`) i u bazu, uz komentar u kodu `// Simulating actual DB save`. Učitavanje po ID-ju prvo gleda `localStorage`. Ista rezervacija na dva računara može izgledati različito.
+4. **Uplata se prvo upiše lokalno, pa se šalje u knjigovodstvo.** Ako API padne, korisnik je već video potvrdu, a u zapisniku stoji "Uplata je sačuvana samo LOKALNO. API nije odgovorio."
+
+### 14.4 Šta je dobro i vredi preneti — 12 kartica dosijea
+
+Koncept je bolji od onoga što Terminal danas ima: **jedna rezervacija = jedan ekran sa 12 kartica** koje pokrivaju ceo život posla. Ovo je mapa izvučena iz stvarnog rada agencije i vredi je koristiti kao **proveru kompletnosti** za M5, ne kao kod za prepisivanje.
+
+| # | Kartica u PrimeTravel-u | Stanje u Terminalu |
+|---|---|---|
+| 1 | REZIME | **postoji** — M5 §4.1, panel `rezervacije/lista/[bookingNumber]` (`BookingRecordClient.tsx`, 161 linija — znatno siromašniji prikaz) |
+| 2 | REZ. TOK (FLOW) | **postoji** — `BookingTimelineModal.tsx` + `GET .../history` |
+| 3 | USLUGE | **postoji** — M5 §4.2 `BookingItem`, `BookingItemsEditor.tsx` |
+| 4 | PUTNICI | **postoji** — M5 §4.3 `BookingItemGuest`; u panelu zasad samo prikaz, bez uređivanja |
+| 5 | FINANSIJE | **postoji, ali drugde** — M5 §5 svesno prepušta detalje M10; nije prikazano NA rezervaciji |
+| 6 | CRM / KOMUNIKACIJA | **postoji, ali drugde** — M6 `CommunicationLog`; nije prikazano NA rezervaciji |
+| 7 | DOKUMENTI | **rasuto, bez jednog mesta** — vaučer M5 §6.3, ugovor M20, faktura M10, lista za dobavljača M5 §8, PDF nacrta §3.0.8. Nema hub-a na rezervaciji, i **nema izbora jezika po dokumentu** |
+| 8 | BELEŠKE | **ne postoji** — nula pojavljivanja u M5 spec-u |
+| 9 | LEGAL / REKLAMACIJE | **ne postoji kao veza sa rezervacijom** — reklamacija postoji u M10/M14, ali nije zakačena na `Booking` |
+| 10 | PREDSTAVNICI | **ne postoji** — M9 ima vodiče na terenu, ali nigde nema "predstavnik na destinaciji je proverio ovu rezervaciju" (`rep_checked_by`/`rep_checked_at`) |
+| 11 | AUDIT | **postoji** — M1 audit log, referenciran iz M5 |
+| 12 | PODEŠAVANJA / OTKAZIVANJE | **postoji** — M5 §6.4 (provera duplikata pre otkazivanja) |
+
+Tri poslovna pravila iz te forme koja **nisu** u Terminalu i vredi ih razmotriti (zabeleženo u `27-BACKLOG-IDEJA-I-PREDLOZI.md`, čeka odluku vlasnika pre bilo kakve dopune spec-a):
+
+- **Jezik po dokumentu, ne po rezervaciji** — ugovor na srpskom, vaučer na engleskom, program na nemačkom, svaki zasebno bira. Terminal ima 8 jezika; danas jezik dokumenta ima samo `SupplierManifest` (§8.3, srpski/engleski).
+- **Rok za klijenta = rok dobavljaču minus 2 dana** — praktično pravilo, danas u M5 §6.1 postoje rokovi ali ne i taj automatski razmak.
+- **Predstavnik na destinaciji potvrđuje rezervaciju** — sa potpisom ko i kada, plus interna napomena.
+
+Zaštita vaučera (ne izdaje se dok postoji dug, "master" može da pregazi uz upis u audit) — **Terminal ovo već ima**, M5 §6.3, i to u boljem obliku (sistemski izuzetak za subagenta unutar odobrenog kredita, umesto `window.confirm` dijaloga).
+
 ---
 
 ## Prioritetni rezime — šta bih ja prvo ugradio
