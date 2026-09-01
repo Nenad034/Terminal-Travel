@@ -35,8 +35,29 @@ describe('BookingNotesService (M5 spec §4.6)', () => {
     await service.create('b1', 'gost traži sobu na višem spratu', { userId: 'u1' });
 
     expect(prisma.bookingNote.create).toHaveBeenCalledWith({
-      data: { bookingId: 'b1', body: 'gost traži sobu na višem spratu', createdBy: 'u1' },
+      data: { bookingId: 'b1', body: 'gost traži sobu na višem spratu', createdBy: 'u1', origin: 'OFFICE' },
     });
+  });
+
+  // §4.6 dopuna (1.9.2026) — poreklo se izvodi iz uloge autora, ne iz tela zahteva.
+  it('beleška zaposlenog u kancelariji dobija origin OFFICE', async () => {
+    const { service, prisma } = makeService();
+    prisma.userRole.findFirst.mockResolvedValue(null); // nije VODIC
+    prisma.bookingNote.create.mockResolvedValue({ id: 'n1', bookingId: 'b1' });
+
+    await service.create('b1', 'tekst', { userId: 'u1' });
+
+    expect(prisma.bookingNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ origin: 'OFFICE' }) }));
+  });
+
+  it('beleška predstavnika na destinaciji (VODIC) dobija origin FIELD_REP', async () => {
+    const { service, prisma } = makeService();
+    prisma.userRole.findFirst.mockResolvedValue({ id: 'ur-vodic' }); // ima VODIC ulogu
+    prisma.bookingNote.create.mockResolvedValue({ id: 'n1', bookingId: 'b1' });
+
+    await service.create('b1', 'gosti preuzeti na aerodromu', { userId: 'vodic-1' });
+
+    expect(prisma.bookingNote.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ origin: 'FIELD_REP' }) }));
   });
 
   it('kreiranje beleške upisuje audit zapis', async () => {

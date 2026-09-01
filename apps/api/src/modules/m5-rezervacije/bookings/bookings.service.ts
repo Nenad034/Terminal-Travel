@@ -81,7 +81,7 @@ export class BookingsService {
   // učitavale direktno po ID-u bez ikakve provere konteksta, pa je gost/subagent/Prodajni agent
   // bez VIEW_ALL mogao pogađanjem/enumeracijom ID-a da izmeni/otkaže TUĐU rezervaciju. Izvučeno
   // u deljeni proverivač da svaki put koji menja stanje rezervacije prođe kroz isto pravilo.
-  private async assertBookingAccessible(booking: { clientAccountId: string; franchiseSubagentId: string | null; ownerId: string | null; assignedToId: string | null }, actorUserId: string): Promise<void> {
+  private async assertBookingAccessible(booking: { id?: string; clientAccountId: string; franchiseSubagentId: string | null; ownerId: string | null; assignedToId: string | null }, actorUserId: string): Promise<void> {
     const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actorUserId);
     if (context !== 'INTERNAL_PANEL') {
       if (booking.clientAccountId !== ownClientAccountId) {
@@ -96,7 +96,19 @@ export class BookingsService {
     }
     const hasViewAll = await this.permissions.hasPermission(actorUserId, 'M5', 'booking', 'VIEW_ALL');
     if (!hasViewAll && booking.ownerId !== actorUserId && booking.assignedToId !== actorUserId) {
-      throw new NotFoundException('Rezervacija nije pronađena.');
+      // §4.6/§6.6 dopuna (1.9.2026) — predstavnik na destinaciji (VODIC) nije ni `owner_id` ni
+      // `assigned_to_id` (to su prodajne uloge), pa bi bez ovog izuzetka video 404 na rezervaciju
+      // koju stvarno vodi na terenu — i ne bi mogao da upiše napomenu koju vlasnik traži.
+      // Uže od VIEW_ALL: važi isključivo za rezervacije gde mu je stavka stvarno dodeljena.
+      // Fail-closed: pristup se odobrava SAMO kad je broj dodeljenih stavki dokazano > 0.
+      // Provera oblika `=== 0` bi propustila svaku vrednost koja nije broj (npr. greška upita),
+      // što je za proveru pristupa pogrešan smer greške.
+      const guidesThisBooking = booking.id
+        ? await this.prisma.bookingItem.count({ where: { bookingId: booking.id, assignedGuideId: actorUserId } })
+        : 0;
+      if (!(guidesThisBooking > 0)) {
+        throw new NotFoundException('Rezervacija nije pronađena.');
+      }
     }
   }
 

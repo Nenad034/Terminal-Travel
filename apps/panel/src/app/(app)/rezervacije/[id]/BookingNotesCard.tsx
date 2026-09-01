@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import ActorLabel from '@/components/ActorLabel';
@@ -11,6 +11,9 @@ export interface BookingNote {
   body: string;
   createdBy: string;
   createdAt: string;
+  /** §4.6 (1.9.2026) — poreklo: kancelarija ili predstavnik na destinaciji. Izvedeno iz uloge
+   *  autora na API strani, ne bira se u formi. */
+  origin?: 'OFFICE' | 'FIELD_REP';
   /** Razrešeno ime autora (iz M1 /iam/users/directory) — sirov ID se nikad ne ispisuje (§6a.3). */
   authorName: string | null;
 }
@@ -35,6 +38,11 @@ export default function BookingNotesCard({
   isVlasnikOrDirektor: boolean;
 }) {
   const [state, formAction] = useActionState(createBookingNote.bind(null, bookingId), initialState);
+  // §4.6 — vlasnikova odluka (1.9.2026): predstavnik piše u ISTE beleške, ali se njegove moraju
+  // videti izdvojeno. Otuda jedna lista sa jasnom oznakom + prekidač da se izdvoje samo terenske.
+  const [samoTeren, setSamoTeren] = useState(false);
+  const fieldCount = notes.filter((n) => n.origin === 'FIELD_REP').length;
+  const shown = samoTeren ? notes.filter((n) => n.origin === 'FIELD_REP') : notes;
 
   return (
     <div className="space-y-4">
@@ -66,12 +74,32 @@ export default function BookingNotesCard({
       {notes.length === 0 ? (
         <p className="text-xs text-ink-faint">Nema beleški uz ovu rezervaciju.</p>
       ) : (
-        <ul className="space-y-2">
-          {notes.map((note) => (
-            <li key={note.id} className="rounded-lg border border-border bg-panel p-3">
+        <>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-ink-faint">
+            <span>
+              Ukupno {notes.length} · sa terena {fieldCount}
+            </span>
+            {fieldCount > 0 && (
+              <label className="flex cursor-pointer items-center gap-1.5">
+                <input type="checkbox" checked={samoTeren} onChange={(e) => setSamoTeren(e.target.checked)} />
+                prikaži samo napomene sa terena
+              </label>
+            )}
+          </div>
+          <ul className="space-y-2">
+          {shown.map((note) => (
+            <li
+              key={note.id}
+              className={`rounded-lg border bg-panel p-3 ${
+                note.origin === 'FIELD_REP' ? 'border-l-4 border-l-warn border-y-border border-r-border' : 'border-border'
+              }`}
+            >
               <div className="mb-1.5 flex items-center justify-between gap-3 text-[11px] text-ink-faint">
-                <span className="flex items-center gap-1.5">
+                <span className="flex flex-wrap items-center gap-1.5">
                   <ActorLabel name={note.authorName} origin="STAFF" />
+                  {note.origin === 'FIELD_REP' && (
+                    <span className="rounded bg-warn-bg px-1.5 py-0.5 font-medium text-warn">sa terena — predstavnik</span>
+                  )}
                   <span>· {new Date(note.createdAt).toLocaleString('sr-RS')}</span>
                 </span>
                 {canDelete && (note.createdBy === currentUserId || isVlasnikOrDirektor) && (
@@ -81,7 +109,8 @@ export default function BookingNotesCard({
               <p className="whitespace-pre-wrap text-sm text-ink">{note.body}</p>
             </li>
           ))}
-        </ul>
+          </ul>
+        </>
       )}
     </div>
   );

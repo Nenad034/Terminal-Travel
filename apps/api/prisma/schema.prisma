@@ -1181,12 +1181,21 @@ model Booking {
 // od AuditLogEntry (M1 beleži IZMENE sistema, ne zapažanja čoveka) i od CommunicationLog (M6
 // beleži POSLATU poruku, ne internu napomenu). Append-only: nema izmene postojeće beleške,
 // pogrešna se briše i dopisuje nova — isto obrazloženje kao za audit zapis.
+enum BookingNoteOrigin {
+  OFFICE // zaposleni u kancelariji
+  FIELD_REP // predstavnik/vodič na destinaciji (§4.6 dopuna 1.9.2026)
+}
+
 model BookingNote {
-  id        String   @id @default(uuid())
-  bookingId String   @map("booking_id")
+  id        String            @id @default(uuid())
+  bookingId String            @map("booking_id")
   body      String
-  createdBy String   @map("created_by") // M1 User id; nikad AI nalog (§4.6)
-  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String            @map("created_by") // M1 User id; nikad AI nalog (§4.6)
+  // §4.6 dopuna (1.9.2026, vlasnikova odluka: "predstavnik može napomenu da upisuje u
+  // postojeće beleške ali mora da se vidi izdvojeno"). Izvodi se iz ULOGE autora u trenutku
+  // upisa, nikad iz tela zahteva — da se poreklo ne može lažirati.
+  origin    BookingNoteOrigin @default(OFFICE)
+  createdAt DateTime          @default(now()) @map("created_at")
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 

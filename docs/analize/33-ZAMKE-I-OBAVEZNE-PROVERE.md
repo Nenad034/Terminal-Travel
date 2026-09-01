@@ -192,6 +192,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* obe sesije su rešavale ISTI zadatak (termini grupnog paketa) različitim dizajnom; git spaja po linijama, ne po nameri.
 - *Provera:* (a) pre bilo čega, `git add -A && git commit` nedovršen rad i napravi `backup/…` granu — tek onda `rebase`; (b) konflikt u funkciji koju su obe strane strukturno prepravile **ne rešavati biranjem hunk-ova** (`--ours`/`--theirs` ili brisanjem markera) — pročitati celu funkciju u obe verzije (`git show <grana>:<fajl>`), odlučiti koja struktura ostaje, pa u nju ručno ugraditi funkcionalnost druge strane; (c) generisane fajlove (`00-PREGLED-DOKUMENTACIJE.html`) nikad ne spajati ručno — uzeti bilo koju stranu pa ponovo pokrenuti `python tools/sync-html-overview.py`; (d) posle spajanja obavezno pun `npx jest` + `npx tsc --noEmit` za SVAKU aplikaciju (`apps/api` i `apps/panel`), ne samo za fajl koji je bio u konfliktu.
 
+**6.5 Provera pristupa pisana kao `=== 0` umesto `> 0` — propušta sve što nije broj (fail-open)**
+- *Simptom:* (1.9.2026, uhvaćeno testovima, ne u produkciji) nov izuzetak vidljivosti u `assertBookingAccessible` bio je napisan kao `if (guidesThisBooking === 0) throw 404`. Kad upit ne vrati broj (u testu lažiran Prisma sloj, u životu greška upita/`undefined`), poređenje je netačno → **izuzetak se ne baci → pristup se odobrava**. Tri postojeća testa vidljivosti su odmah pala i otkrila to; da nisu postojali, prošlo bi kao tiho otvaranje tuđih rezervacija.
+- *Uzrok:* provera pristupa napisana kao "odbij ako je tačno nula" umesto "dozvoli samo ako je dokazano više od nule". Prva formulacija greši u korist pristupa, druga u korist odbijanja.
+- *Provera:* svaka provera pristupa mora biti **fail-closed** — uslov koji ODOBRAVA piše se pozitivno i strogo (`if (!(n > 0)) throw`), nikad kao negacija jedne konkretne vrednosti. Isto važi za `!== 'CANCELLED'`, `!= null` i slične oblike u putanjama koje odlučuju o pristupu. Kad se dodaje nov izuzetak u postojeću proveru pristupa, **obavezno pokrenuti ceo postojeći set testova vidljivosti** pre commit-a — oni su i uhvatili ovaj slučaj.
+
 ---
 
 ## 7. Kad je nešto "gotovo"

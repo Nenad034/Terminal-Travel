@@ -279,13 +279,13 @@ Interne beleške uz rezervaciju (M5 spec §4.6, dopuna 1.9.2026). Zahteva `M5/bo
 **Odgovor `200`:**
 ```json
 [
-  { "id": "note-2", "bookingId": "booking-1", "body": "Zvao suprug, menjaju datum povratka na 18.6.", "createdBy": "user-3", "createdAt": "2027-01-07T11:22:00.000Z" },
-  { "id": "note-1", "bookingId": "booking-1", "body": "Gost traži sobu na višem spratu.", "createdBy": "user-1", "createdAt": "2027-01-06T09:15:00.000Z" }
+  { "id": "note-2", "bookingId": "booking-1", "body": "Gosti preuzeti na aerodromu u 23:40.", "createdBy": "vodic-1", "origin": "FIELD_REP", "createdAt": "2027-01-07T11:22:00.000Z" },
+  { "id": "note-1", "bookingId": "booking-1", "body": "Gost traži sobu na višem spratu.", "createdBy": "user-1", "origin": "OFFICE", "createdAt": "2027-01-06T09:15:00.000Z" }
 ]
 ```
 
 ### POST /bookings/:id/notes
-Zahteva `M5/booking-note/CREATE` (nikad AI nalog — M5 spec §4.6). `createdBy` se uvek uzima iz tokena; ako se pošalje u telu, zahtev se odbija sa `400` (`forbidNonWhitelisted`).
+Zahteva `M5/booking-note/CREATE` (nikad AI nalog — M5 spec §4.6). `createdBy` se uvek uzima iz tokena; ako se pošalje u telu, zahtev se odbija sa `400` (`forbidNonWhitelisted`). `origin` se takođe **ne prima iz tela** — izvodi se iz uloge autora (`VODIC` → `FIELD_REP`, inače `OFFICE`), M5 spec §4.6.
 **Zahtev:**
 ```json
 { "body": "Gost traži sobu na višem spratu." }

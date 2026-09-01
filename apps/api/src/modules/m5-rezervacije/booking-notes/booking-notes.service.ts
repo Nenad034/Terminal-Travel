@@ -13,6 +13,16 @@ export class BookingNotesService {
     private readonly bookings: BookingsService,
   ) {}
 
+  /** §4.6 dopuna (1.9.2026, vlasnikova odluka) — poreklo beleške se IZVODI iz uloge autora u
+   * trenutku upisa, nikad se ne prima iz tela zahteva: da predstavnik ne bi mogao da se
+   * predstavi kao kancelarija, ni obrnuto. Ista logika kao `created_by` iz tokena. */
+  private async resolveOrigin(userId: string): Promise<'OFFICE' | 'FIELD_REP'> {
+    const isGuide = await this.prisma.userRole.findFirst({
+      where: { userId, role: { name: SYSTEM_ROLES.VODIC } },
+    });
+    return isGuide ? 'FIELD_REP' : 'OFFICE';
+  }
+
   private async isVlasnikOrDirektor(userId: string): Promise<boolean> {
     const match = await this.prisma.userRole.findFirst({
       where: { userId, role: { name: { in: [SYSTEM_ROLES.VLASNIK, SYSTEM_ROLES.DIREKTOR] } } },
@@ -32,8 +42,9 @@ export class BookingNotesService {
 
   async create(bookingId: string, body: string, actor: { userId: string }) {
     await this.bookings.findOne(bookingId, actor.userId);
+    const origin = await this.resolveOrigin(actor.userId);
     const note = await this.prisma.bookingNote.create({
-      data: { bookingId, body, createdBy: actor.userId },
+      data: { bookingId, body, createdBy: actor.userId, origin },
     });
     await this.auditLog.write({
       actorType: 'HUMAN',
@@ -43,7 +54,7 @@ export class BookingNotesService {
       resourceType: 'BookingNote',
       resourceId: note.id,
       beforeState: null,
-      afterState: { bookingId },
+      afterState: { bookingId, origin },
       context: {},
     });
     return note;

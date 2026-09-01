@@ -213,6 +213,48 @@ describe('M5 §4.5 — aranžman i putnici na rezervaciji (e2e)', () => {
     expect(item.guests.map((g: { guestLastName: string }) => g.guestLastName).sort()).toEqual(['Anić', 'Marković']);
   });
 
+  // §4.6 dopuna (1.9.2026, vlasnikova odluka: "predstavnik može napomenu da upisuje u postojeće
+  // beleške ali mora da se vidi izdvojeno") — poreklo se izvodi iz uloge autora, ne iz tela zahteva.
+  it('predstavnik (VODIC) piše u ISTU listu beleški, obeleženu kao FIELD_REP, i tek posle dodele', async () => {
+    const { user: prodavac, accessToken: prodavacToken } = await createUser(SYSTEM_ROLES.PRODAJNI_AGENT);
+    const { user: vodic, accessToken: vodicToken } = await createUser(SYSTEM_ROLES.VODIC);
+    const { booking } = await createBookingWithItem(prodavac.id);
+    const item = await prisma.bookingItem.findFirstOrThrow({ where: { bookingId: booking.id } });
+
+    // Pre dodele: predstavnik nije ni owner ni assignedTo, pa rezervaciju ne vidi — 404, ne 403
+    // (ne otkrivamo ni da postoji, isti princip kao §6.2).
+    const preDodele = await request(app.getHttpServer())
+      .post(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(vodicToken))
+      .send({ body: 'ne bi trebalo da prođe' });
+    expect(preDodele.status).toBe(404);
+
+    // Dodela — isti poziv koji panel kartica "Predstavnici" koristi.
+    const assign = await request(app.getHttpServer())
+      .patch(`/api/v1/sales/bookings/items/${item.id}/assign-guide`)
+      .set(authed(prodavacToken))
+      .send({ assignedGuideId: vodic.id });
+    expect(assign.status).toBe(200);
+
+    const saTerena = await request(app.getHttpServer())
+      .post(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(vodicToken))
+      .send({ body: 'gosti preuzeti na aerodromu u 23:40' });
+    expect(saTerena.status).toBe(201);
+    expect(saTerena.body.origin).toBe('FIELD_REP');
+
+    const izKancelarije = await request(app.getHttpServer())
+      .post(`/api/v1/sales/bookings/${booking.id}/notes`)
+      .set(authed(prodavacToken))
+      .send({ body: 'gost zvao, traži kasniji check-out' });
+    expect(izKancelarije.body.origin).toBe('OFFICE');
+
+    // Jedna lista, dva porekla — to je ono što ekran razdvaja vizuelno.
+    const lista = await request(app.getHttpServer()).get(`/api/v1/sales/bookings/${booking.id}/notes`).set(authed(prodavacToken));
+    expect(lista.body).toHaveLength(2);
+    expect(lista.body.filter((n: { origin: string }) => n.origin === 'FIELD_REP')).toHaveLength(1);
+  });
+
   it('gost vidi naziv aranžmana i putnike, ali NE i identitet dobavljača ni nabavnu cenu (§6.2)', async () => {
     const { user: staff } = await createUser(SYSTEM_ROLES.VLASNIK);
     const { booking, accountId } = await createBookingWithItem(staff.id);

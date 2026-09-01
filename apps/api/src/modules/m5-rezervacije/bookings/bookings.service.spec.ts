@@ -483,6 +483,29 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       await expect(service.findOne('b1', 'staff-1')).rejects.toThrow(NotFoundException);
     });
 
+    // §4.6/§6.6 dopuna (1.9.2026) — predstavnik na destinaciji nije ni owner ni assignedTo
+    // (to su prodajne uloge), pa mu je pristup vezan isključivo za stvarnu dodelu na stavci.
+    it('findOne — predstavnik (VODIC) VIDI rezervaciju na kojoj mu je stavka dodeljena', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi', items: [] });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.bookingItem.count.mockResolvedValue(1);
+
+      await expect(service.findOne('b1', 'vodic-1')).resolves.toBeDefined();
+      expect(prisma.bookingItem.count).toHaveBeenCalledWith({ where: { bookingId: 'b1', assignedGuideId: 'vodic-1' } });
+    });
+
+    it('findOne — predstavnik NE vidi rezervaciju na kojoj mu ništa nije dodeljeno (404)', async () => {
+      const { service, prisma, permissions } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', ownerId: 'neko-drugi', assignedToId: 'neko-drugi', items: [] });
+      permissions.hasPermission.mockResolvedValue(false);
+      prisma.bookingItem.count.mockResolvedValue(0);
+
+      await expect(service.findOne('b1', 'vodic-2')).rejects.toThrow(NotFoundException);
+    });
+
     it('findOne — sužen korisnik I DALJE vidi rezervaciju gde je zadužen (assigned_to_id), iako nije vlasnik', async () => {
       const { service, prisma, permissions } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });

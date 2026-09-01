@@ -728,6 +728,12 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M9', resource: 'field-itinerary', action: 'VIEW' },
     { module: 'M9', resource: 'field-checkin', action: 'CREATE' },
     { module: 'M9', resource: 'field-incident', action: 'CREATE' },
+    // M5 spec §4.6 dopuna (1.9.2026) — predstavnik na destinaciji upisuje napomenu u iste
+    // beleške rezervacije, samo obeleženu kao "sa terena". NAMERNO bez `booking/VIEW_ALL`:
+    // vidi isključivo rezervacije na kojima mu je stavka stvarno dodeljena (§6.6 izuzetak).
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking-note', action: 'CREATE' },
+    { module: 'M5', resource: 'booking-note', action: 'DELETE' },
   ],
 };
 
