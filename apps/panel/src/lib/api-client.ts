@@ -108,13 +108,29 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     });
   }
 
-  let res = await doFetch(session?.accessToken ?? null);
+  // BAG (1.9.2026, prijava na panel — vidi zamku u docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md)
+  // — fetch ka apps/api baca TypeError (ECONNREFUSED i sl., npr. API server se u tom trenutku
+  // restartuje) kad servis nije dostupan. Ta greška NIJE ApiError, pa je svaki pozivalac (login,
+  // MFA route...) samo prosleđivao dalje (`throw err`) → Next.js dev vraća 500 sa PRAZNIM telom
+  // za neuhvaćenu grešku u route handler-u → klijent puca na `res.json()` ("Unexpected end of
+  // JSON input"), umesto da vidi razumljivu poruku. Hvatanje ovde, na jednom mestu, pretvara svaku
+  // takvu mrežnu grešku u ApiError(503) koju svaki pozivalac već ume da obradi.
+  let res: Response;
+  try {
+    res = await doFetch(session?.accessToken ?? null);
+  } catch {
+    throw new ApiError(503, { message: 'Servis trenutno nedostupan, pokušajte ponovo.' });
+  }
 
   if (res.status === 401 && session) {
     const refreshed = await refreshSession(session.refreshToken);
     if (refreshed) {
       session = refreshed;
-      res = await doFetch(session.accessToken);
+      try {
+        res = await doFetch(session.accessToken);
+      } catch {
+        throw new ApiError(503, { message: 'Servis trenutno nedostupan, pokušajte ponovo.' });
+      }
     }
   }
 
@@ -151,14 +167,24 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
     return fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: formData, cache: 'no-store' });
   }
 
-  let res = await doFetch(session?.accessToken ?? null);
+  // Isti mrežna-greška popravak kao apiFetch iznad — vidi komentar tamo.
+  let res: Response;
+  try {
+    res = await doFetch(session?.accessToken ?? null);
+  } catch {
+    throw new ApiError(503, { message: 'Servis trenutno nedostupan, pokušajte ponovo.' });
+  }
 
   // Isti istekao-token popravak kao apiFetch iznad — vidi komentar tamo.
   if (res.status === 401 && session) {
     const refreshed = await refreshSession(session.refreshToken);
     if (refreshed) {
       session = refreshed;
-      res = await doFetch(session.accessToken);
+      try {
+        res = await doFetch(session.accessToken);
+      } catch {
+        throw new ApiError(503, { message: 'Servis trenutno nedostupan, pokušajte ponovo.' });
+      }
     }
   }
 

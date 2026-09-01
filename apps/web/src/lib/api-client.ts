@@ -46,12 +46,21 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     }
   }
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    cache: 'no-store',
-  });
+  // BAG (1.9.2026, isti nalaz kao apps/panel/src/lib/api-client.ts, vidi komentar tamo) — fetch
+  // baca TypeError (npr. ECONNREFUSED) kad apps/api nije trenutno dostupan; hvatanje ovde
+  // pretvara to u ApiError(503) koju svaki pozivalac (login route i sl.) već ume da obradi,
+  // umesto da neuhvaćena greška izađe iz route handler-a kao 500 sa praznim telom.
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError(503, { message: 'Servis trenutno nedostupan, pokušajte ponovo.' });
+  }
 
   if (!res.ok) {
     let parsedBody: unknown = null;
