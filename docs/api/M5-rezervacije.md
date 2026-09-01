@@ -254,6 +254,35 @@ Zahteva `M5/voucher/OVERRIDE_ISSUE` (isključivo Vlasnik/Direktor).
 { "id": "booking-1", "voucherUrl": "https://vouchers.internal.terminal-travel/booking-1.pdf", "voucherOverrideApprovedBy": "user-1", "voucherOverrideReason": "...", "voucherOverrideAt": "2027-01-06T09:00:00.000Z" }
 ```
 
+### GET /bookings/:id/notes
+Interne beleške uz rezervaciju (M5 spec §4.6, dopuna 1.9.2026). Zahteva `M5/booking/VIEW` — beleška se vidi sa rezervacijom, nema zasebne VIEW dozvole. Najnovija prva.
+**Odgovor `200`:**
+```json
+[
+  { "id": "note-2", "bookingId": "booking-1", "body": "Zvao suprug, menjaju datum povratka na 18.6.", "createdBy": "user-3", "createdAt": "2027-01-07T11:22:00.000Z" },
+  { "id": "note-1", "bookingId": "booking-1", "body": "Gost traži sobu na višem spratu.", "createdBy": "user-1", "createdAt": "2027-01-06T09:15:00.000Z" }
+]
+```
+
+### POST /bookings/:id/notes
+Zahteva `M5/booking-note/CREATE` (nikad AI nalog — M5 spec §4.6). `createdBy` se uvek uzima iz tokena; ako se pošalje u telu, zahtev se odbija sa `400` (`forbidNonWhitelisted`).
+**Zahtev:**
+```json
+{ "body": "Gost traži sobu na višem spratu." }
+```
+**Odgovor `201`:**
+```json
+{ "id": "note-1", "bookingId": "booking-1", "body": "Gost traži sobu na višem spratu.", "createdBy": "user-1", "createdAt": "2027-01-06T09:15:00.000Z" }
+```
+Prazna beleška ili duža od 4000 znakova vraća `400`.
+
+### DELETE /bookings/:id/notes/:noteId
+Zahteva `M5/booking-note/DELETE`. Autor sme sopstvenu belešku, Vlasnik/Direktor bilo koju (inače `403`). Beleška koja pripada drugoj rezervaciji vraća `404`, i kad `noteId` postoji. Sadržaj se stvarno briše; u M1 audit logu ostaje samo trag da je beleška postojala (`resource_type = BookingNote`), bez teksta.
+**Odgovor `200`:**
+```json
+{ "deleted": true }
+```
+
 ### GET /bookings/calendar-summary?from=2027-06-01&to=2027-06-30
 Isti v1 filter-skup kao `GET /bookings` (status/paymentStatus/tipNastupanja/buyerName/bookingNumber/currency/createdFrom/createdTo/productType/productId/destinationCity/destinationCountry/hasTravelGuarantee), BEZ datumskih opsega — `from`/`to` već zadaju taj opseg (M5 spec §7.4, dopuna 27.8.2026).
 **Odgovor `200`:**
