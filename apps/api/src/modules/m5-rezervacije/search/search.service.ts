@@ -22,6 +22,9 @@ export interface SearchParamsInput {
   lang?: LanguageCode;
   /** M2 spec §2.3 `attributes.cabin_class` — samo FLIGHT. */
   cabinClass?: string;
+  /** M5 spec §3.0d.1/3.0d.2/3.0d.3, dopuna 1.9.2026 — FLIGHT/TRANSFER/opšti TRANSPORT čitaju
+   * `attributes.route.origin_city`; TRANSPORT/RENT_A_CAR čita `attributes.pickup_location`. */
+  originCity?: string;
   /** M2 spec §2.3 `attributes.min_driver_age` — samo TRANSPORT/RENT_A_CAR; proizvod prolazi ako nema
    * ovaj atribut ili ako je tražena starost >= minimalne. */
   minDriverAge?: number;
@@ -74,6 +77,17 @@ export class SearchService {
     // nizom (`cabin_types[]`) i izbegava dupliranje `where` grananja za svaki od 4 parametra.
     if (params.cabinClass) {
       products = products.filter((p) => (p.attributes as any)?.cabin_class === params.cabinClass);
+    }
+    if (params.originCity) {
+      products = products.filter((p) => {
+        const attrs = p.attributes as any;
+        // TRANSPORT/RENT_A_CAR ima sopstvena imenovana polja (M2 spec §2.3) — origin_city
+        // filtrira mesto preuzimanja, ne ugnježđen `route` (koji taj podtip uopšte nema).
+        if (p.type === 'TRANSPORT' && attrs?.transport_mode === 'RENT_A_CAR') {
+          return attrs?.pickup_location === params.originCity;
+        }
+        return attrs?.route?.origin_city === params.originCity;
+      });
     }
     if (params.minDriverAge) {
       products = products.filter((p) => {

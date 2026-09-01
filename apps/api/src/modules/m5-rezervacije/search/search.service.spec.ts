@@ -258,6 +258,33 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       expect(results.map((r) => r.productId)).toEqual(['noMin']); // 21 < 25, needs25 isključen; proizvod bez atributa uvek prolazi
     });
 
+    // M5 spec §3.0d.1/3.0d.2/3.0d.3 dopuna 1.9.2026 — origin_city, poslednji od 6 parametara iz v1.28.
+    it('originCity (FLIGHT/TRANSFER/opšti TRANSPORT) — poklapa attributes.route.origin_city', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        { ...apiProduct('bg', { route: { origin_city: 'Beograd' } }), type: 'FLIGHT' },
+        { ...apiProduct('ny', { route: { origin_city: 'Novi Sad' } }), type: 'FLIGHT' },
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', originCity: 'Beograd' });
+      expect(results.map((r) => r.productId)).toEqual(['bg']);
+    });
+
+    it('originCity (TRANSPORT/RENT_A_CAR) — poklapa attributes.pickup_location, ne route', async () => {
+      const { service, prisma, integrations, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([
+        { ...apiProduct('bg', { transport_mode: 'RENT_A_CAR', pickup_location: 'Beograd' }), type: 'TRANSPORT' },
+        { ...apiProduct('ny', { transport_mode: 'RENT_A_CAR', pickup_location: 'Novi Sad' }), type: 'TRANSPORT' },
+      ]);
+      mockAvailable(integrations);
+      markupRules.resolveForApi.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+      const results = await service.search({ channel: 'B2C_SITE', stayFrom: '2027-01-10', stayTo: '2027-01-15', originCity: 'Beograd' });
+      expect(results.map((r) => r.productId)).toEqual(['bg']);
+    });
+
     it('durationNights (CRUISE) — tačno poklapanje', async () => {
       const { service, prisma, integrations, markupRules } = makeService();
       prisma.product.findMany.mockResolvedValue([

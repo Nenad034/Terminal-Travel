@@ -49,14 +49,16 @@ export class SearchQueryDto {
   @IsOptional() @IsEnum(LanguageCode) lang?: LanguageCode;
 
   // M5 spec §11 v1.28 je ove parametre najavio za svih 8 dodatnih tipova (17.8.2026), ali nikad
-  // nije stigao do ovog DTO-a — dopunjeno 22.8.2026 povodom rada na M17 popup pretrazi. `origin_city`
-  // i `trip_cost` NAMERNO nisu dodati ovde: `origin_city` bi filtrirao ugnježđen `attributes.route`
-  // objekat čiji tačan oblik podataka (`route.origin` vs. neki drugi naziv ključa) M2 spec §2.3 nikad
-  // nije precizirao za FLIGHT/TRANSFER/TRANSPORT (samo kaže "strukturirano polazište/odredište");
-  // `trip_cost` (INSURANCE) M2 spec §2.3 eksplicitno kaže da NIJE svojstvo Product-a nego parametar
-  // ponude/kvota — filtriranje PROIZVODA po njemu ne bi imalo smisla (svaka polisa bi "odgovarala"
-  // bilo kojoj vrednosti). Oba ostaju otvorena u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md` (M5).
+  // nije stigao do ovog DTO-a — dopunjeno 22.8.2026 povodom rada na M17 popup pretrazi.
+  // `trip_cost` (INSURANCE) je UKLONJEN iz spec-a 1.9.2026 (vlasnikova odluka) — M2 spec §2.3
+  // eksplicitno kaže da NIJE svojstvo Product-a nego parametar ponude/kvota, filtriranje
+  // PROIZVODA po njemu ne bi imalo smisla (svaka polisa bi "odgovarala" bilo kojoj vrednosti).
   @IsOptional() @IsString() cabinClass?: string; // FLIGHT — M2 spec §2.3 `attributes.cabin_class`
+
+  // FLIGHT/TRANSFER/TRANSPORT — M5 spec §3.0d.1/3.0d.2/3.0d.3, dopuna 1.9.2026 (vlasnikova
+  // odluka o konvenciji): `attributes.route.origin_city` za FLIGHT/TRANSFER/opšti TRANSPORT,
+  // `attributes.pickup_location` za TRANSPORT/RENT_A_CAR (koji ima sopstvena imenovana polja).
+  @IsOptional() @IsString() originCity?: string;
 
   @IsOptional()
   @Transform(({ value }) => Number(value))

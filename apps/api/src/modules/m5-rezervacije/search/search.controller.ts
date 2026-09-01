@@ -62,6 +62,7 @@ export class SearchController {
       channel: query.channel,
       lang: query.lang,
       cabinClass: query.cabinClass,
+      originCity: query.originCity,
       minDriverAge: query.minDriverAge,
       durationNights: query.durationNights,
       cabinType: query.cabinType,
