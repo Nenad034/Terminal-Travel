@@ -187,6 +187,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 **6.3 `git pull --rebase` pada kad drugi ima nesnimljene izmene**
 - *Provera:* ne stashuj tuđe izmene. Ako se remote nije pomerio, dovoljan je `git push`; ako se pomerio, čekaj da on commit-uje.
 
+**6.4 Remote se pomerio a lokalno ima nedovršen rad NA ISTIM fajlovima — automatsko spajanje napravi kod koji izgleda ispravno a nije**
+- *Simptom:* (1.9.2026) `git push` odbijen (`non-fast-forward`) — druga sesija je push-ovala 5 commit-ova na `main` dok je lokalno radno stablo imalo nesačuvan rad na `search.service.ts`, `schema.prisma` i M5 spec-u. Pri `rebase`, git je uspešno auto-spojio delove van konflikta, ali je rezultat mešao DVE različite strukture iste funkcije: hunk sa jedne strane koristio je `fixedPicks`/`date` (remote verzija, termin izveden presekom perioda), a okolni auto-spojen kod `fixedTotal`/`windowFrom` (lokalna verzija, termin iz nove tabele `PackageDeparture`). Kod bi se referencirao na promenljive koje u toj verziji ne postoje — `tsc` bi pukao, ali **da su imena slučajno bila ista, prošlo bi tiho sa pogrešnom logikom**.
+- *Uzrok:* obe sesije su rešavale ISTI zadatak (termini grupnog paketa) različitim dizajnom; git spaja po linijama, ne po nameri.
+- *Provera:* (a) pre bilo čega, `git add -A && git commit` nedovršen rad i napravi `backup/…` granu — tek onda `rebase`; (b) konflikt u funkciji koju su obe strane strukturno prepravile **ne rešavati biranjem hunk-ova** (`--ours`/`--theirs` ili brisanjem markera) — pročitati celu funkciju u obe verzije (`git show <grana>:<fajl>`), odlučiti koja struktura ostaje, pa u nju ručno ugraditi funkcionalnost druge strane; (c) generisane fajlove (`00-PREGLED-DOKUMENTACIJE.html`) nikad ne spajati ručno — uzeti bilo koju stranu pa ponovo pokrenuti `python tools/sync-html-overview.py`; (d) posle spajanja obavezno pun `npx jest` + `npx tsc --noEmit` za SVAKU aplikaciju (`apps/api` i `apps/panel`), ne samo za fajl koji je bio u konfliktu.
+
 ---
 
 ## 7. Kad je nešto "gotovo"
