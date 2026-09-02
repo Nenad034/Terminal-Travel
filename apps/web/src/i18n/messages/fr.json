@@ -84,6 +84,22 @@
       "bookingNumber": "Booking number",
       "voucherPending": "The voucher will be available once generated.",
       "voucherLink": "Download voucher"
+    },
+    "voucher": {
+      "title": "Bon de voyage",
+      "bookingNumber": "Numéro de réservation",
+      "buyer": "Titulaire de la réservation",
+      "print": "Imprimer",
+      "notFound": "Bon non trouvé ou pas encore émis.",
+      "service": "Service",
+      "dates": "Dates",
+      "units": "Nombre d'unités",
+      "guests": "Voyageurs",
+      "representative": "Représentant local",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "destination": "Destination",
+      "noRepresentative": "Aucun représentant assigné pour l'instant."
     }
   },
   "account": {

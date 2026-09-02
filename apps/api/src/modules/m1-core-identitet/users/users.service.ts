@@ -27,7 +27,12 @@ export class UsersService {
   // dozvole), i samo za STAFF pozivaoca — gost/subagent/dobavljač ne sme da vidi interni spisak.
   /** `role` (dopuna 1.9.2026) — sužava već dozvoljen skup, nije novo pravo: koristi ga panel
    *  kad treba spisak SAMO jedne uloge (npr. vodiči/predstavnici za dodelu na stavku
-   *  rezervacije, M5 spec §4.5). Bez parametra ponašanje je nepromenjeno. */
+   *  rezervacije, M5 spec §4.5). Bez parametra ponašanje je nepromenjeno.
+   *  Dopuna (2.9.2026, na zahtev vlasnika — kartica Predstavnici: "kontakt telefon, email
+   *  adresa") — `phone`/`email` se izlažu SAMO kad je `role` dat (upit je već sužen na
+   *  konkretnu ulogu, npr. VODIC, ne opšti spisak kolega). Opšti direktorijum (bez `role`)
+   *  ostaje namerno id+fullName, nepromenjeno — kontakt podaci kolega van uže tražene uloge i
+   *  dalje idu isključivo preko pune `M1/user/VIEW` dozvole. */
   async directory(callerId: string, role?: string) {
     const caller = await this.prisma.user.findUnique({ where: { id: callerId } });
     if (caller?.accountType !== 'STAFF') return [];
@@ -37,7 +42,7 @@ export class UsersService {
         status: 'ACTIVE',
         ...(role ? { roles: { some: { role: { name: role } } } } : {}),
       },
-      select: { id: true, fullName: true },
+      select: role ? { id: true, fullName: true, phone: true, email: true } : { id: true, fullName: true },
       orderBy: { fullName: 'asc' },
     });
   }

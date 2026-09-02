@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
+import { PublicVoucherController } from './public-voucher.controller';
 import { QuoteItemBuilderService } from '../quotes/quote-item-builder.service';
 import { ComplianceStubsService } from '../common/compliance-stubs.service';
 import { ClientContractStubService } from '../common/client-contract-stub.service';
@@ -36,7 +37,7 @@ import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.m
     SubagentsModule,
     CommissionModule,
   ],
-  controllers: [BookingsController],
+  controllers: [BookingsController, PublicVoucherController],
   providers: [BookingsService, QuoteItemBuilderService, ComplianceStubsService, ClientContractStubService, SubagentStubService],
   exports: [BookingsService],
 })

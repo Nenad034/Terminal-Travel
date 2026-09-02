@@ -84,6 +84,22 @@
       "bookingNumber": "Booking number",
       "voucherPending": "The voucher will be available once generated.",
       "voucherLink": "Download voucher"
+    },
+    "voucher": {
+      "title": "Vaučer",
+      "bookingNumber": "Broj rezervacije",
+      "buyer": "Nositelj rezervacije",
+      "print": "Ispiši",
+      "notFound": "Vaučer nije pronađen ili još nije izdan.",
+      "service": "Usluga",
+      "dates": "Termin",
+      "units": "Broj jedinica",
+      "guests": "Putnici",
+      "representative": "Predstavnik na destinaciji",
+      "phone": "Telefon",
+      "email": "Email",
+      "destination": "Destinacija",
+      "noRepresentative": "Predstavnik još nije dodijeljen."
     }
   },
   "account": {

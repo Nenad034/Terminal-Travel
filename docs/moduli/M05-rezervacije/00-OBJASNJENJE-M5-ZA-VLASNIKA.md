@@ -54,6 +54,18 @@ Ekran jedne rezervacije ima deset kartica (ko putuje, šta je kupljeno, uplate, 
 
 Na kartici "Aranžman" (šta je gost stvarno kupio) sad se, pored prikaza, može i **promeniti usluga** — na primer zameniti jedan hotel drugim, ili pomeriti datume — direktno na toj kartici, ne samo kroz posebnu karticu "Izmene". Pre nego što se izmena stvarno primeni, sistem prvo **pokaže novu cenu** ("trenutno 1.176 € → novo 1.240 €") i čeka da čovek to vidi i svesno potvrdi — cena se nikad ne menja "iza leđa". Zamena je dozvoljena samo unutar iste vrste usluge (hotel za drugi hotel, ne hotel za avionsku kartu) — to je smisleno "menjam istu stvar", ne pravljenje potpuno nove rezervacije.
 
+## Putnici, uplate, prepiska i predstavnici — četiri manje dopune istog dana
+
+**Putnici se sad mogu ispraviti direktno na kartici.** Ako je gost dao pogrešno ime pri rezervaciji, ili se naknadno pridruži još neko, na kartici "Putnici" se sad može dodati novi putnik, ispraviti postojeće ime, ili ukloniti pogrešan unos — bez odlaska na profil gosta (to je i dalje odvojeno, u M6, i ostaje netaknuto).
+
+**Uplata se unosi tamo gde se rezervacija gleda.** Ranije se svaka uplata morala uneti na posebnom mestu (ekran "Fiskalni dokumenti"), pa se za rezervaciju koju baš gledate moralo prelaziti tamo. Sad postoji ista forma i direktno na kartici "Finansije" te rezervacije — unosi se na istom mestu, ide u istu evidenciju (M10), samo je unos bliži poslu koji se u tom trenutku radi.
+
+**Komunikacija dobija filter, uz jasno upozorenje.** Kartica "Komunikacija" pokazuje CELU prepisku sa nalogodavcem, ne samo o ovoj rezervaciji (sistem to danas ne zna da razdvoji — objašnjeno već ranije u ovom dokumentu). Novi prekidač "Prikaži samo poruke o ovoj rezervaciji" pokušava da pogodi koje poruke pominju baš ovu rezervaciju, tako što traži broj rezervacije u tekstu poruke — nije prava veza, samo pretraga teksta. Ikonica pored prekidača to i kaže, da ne izgleda preciznije nego što jeste.
+
+**Predstavnik na destinaciji sad ima punu vizit-kartu.** Kad se nekome dodeli da bude predstavnik na destinaciji za jednu stavku, sad se odmah vidi: ime, telefon, email, koju destinaciju pokriva i od kada do kada je tamo — sve na jednom mestu, i na kartici "Predstavnici" i u pregledu cele rezervacije. Ništa od ovoga nije novi podatak koji neko mora ručno da unosi na dva mesta — telefon/email dolaze sa naloga te osobe, destinacija i period sa same stavke rezervacije.
+
+**I ovo se pojavljuje na vaučeru — vaučer je istog dana prvi put postao stvaran dokument.** Do sada je "vaučer" bio samo prazan link, bez sadržaja iza njega. Sad je to stvarna stranica koju gost otvara (bez prijavljivanja, isti link kao pre) — pokazuje šta je kupio, kad, ko putuje, i baš ono što je vlasnik tražio: ime, telefon i email predstavnika na destinaciji. Štampa se direktno iz browsera (Ctrl+P → sačuvaj kao PDF) — nije uveden nijedan novi spoljni servis za to. Ako se kasnije pokaže da treba lepše/profesionalnije oblikovan PDF, to je poseban, kasniji korak.
+
 ## Šta još čeka (namerno, ne propust)
 
 Neki delovi sistema koji su spomenuti u ovom modulu (garancija putovanja, kreditni limit B2B partnera, ugovor sa klijentom, zajedničko sanduče za mejlove ka dobavljačima) **još nisu izgrađeni kao posebni moduli** — kad M5 treba da ih pita nešto, trenutno dobija unapred dogovoren, bezopasan odgovor ("da, prođi") umesto da blokira ceo tok. Ovo je namerno privremeno rešenje, jasno obeleženo u kodu, koje će biti zamenjeno pravom logikom čim ti moduli dođu na red po faznom planu — ne slučajna rupa koja je "ispala".

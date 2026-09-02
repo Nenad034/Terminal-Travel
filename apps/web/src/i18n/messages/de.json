@@ -84,6 +84,22 @@
       "bookingNumber": "Booking number",
       "voucherPending": "The voucher will be available once generated.",
       "voucherLink": "Download voucher"
+    },
+    "voucher": {
+      "title": "Gutschein",
+      "bookingNumber": "Buchungsnummer",
+      "buyer": "Buchungsinhaber",
+      "print": "Drucken",
+      "notFound": "Gutschein nicht gefunden oder noch nicht ausgestellt.",
+      "service": "Leistung",
+      "dates": "Zeitraum",
+      "units": "Einheiten",
+      "guests": "Gäste",
+      "representative": "Örtlicher Vertreter",
+      "phone": "Telefon",
+      "email": "E-Mail",
+      "destination": "Reiseziel",
+      "noRepresentative": "Noch kein Vertreter zugewiesen."
     }
   },
   "account": {

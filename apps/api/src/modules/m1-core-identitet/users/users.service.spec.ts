@@ -244,5 +244,21 @@ describe('UsersService', () => {
       expect(result).toEqual([]);
       expect(prisma.user.findMany).not.toHaveBeenCalled();
     });
+
+    it('sa `role` filterom (npr. VODIC) vraća i phone/email — dopuna 2.9.2026, kartica Predstavnici', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ id: 'staff-1', accountType: 'STAFF' });
+      prisma.user.findMany.mockResolvedValue([{ id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' }]);
+
+      const result = await service.directory('staff-1', 'VODIC');
+
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { accountType: 'STAFF', status: 'ACTIVE', roles: { some: { role: { name: 'VODIC' } } } },
+          select: { id: true, fullName: true, phone: true, email: true },
+        }),
+      );
+      expect(result).toEqual([{ id: 'u1', fullName: 'Ana', phone: '+381601234567', email: 'ana@tt.rs' }]);
+    });
   });
 });

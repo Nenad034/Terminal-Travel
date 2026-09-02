@@ -9,10 +9,18 @@ import { GuideFormState, emptyGuideState } from './guide-form-state';
 export interface RepItem {
   id: string;
   name: string;
+  destination?: string | null;
   stayFrom?: string;
   stayTo?: string;
   assignedGuideId: string | null;
   guestCount: number;
+}
+
+export interface Guide {
+  id: string;
+  fullName: string;
+  phone?: string | null;
+  email?: string | null;
 }
 
 export interface RepCheckIn {
@@ -37,18 +45,21 @@ export default function BookingRepsCard({
 }: {
   bookingId: string;
   items: RepItem[];
-  guides: { id: string; fullName: string }[];
+  guides: Guide[];
   checkIns: RepCheckIn[];
   namesById: Record<string, string>;
   canAssign: boolean;
   canViewCheckIns: boolean;
 }) {
+  const guidesById = new Map(guides.map((g) => [g.id, g]));
+
   return (
     <div className="space-y-3">
       {items.length === 0 && <p className="text-xs text-ink-faint">Rezervacija nema stavki.</p>}
 
       {items.map((item) => {
         const itemCheckIns = checkIns.filter((c) => c.bookingItemId === item.id);
+        const assignedGuide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
         return (
           <div key={item.id} className="rounded-lg border border-border bg-panel p-4">
             <div className="mb-2 text-sm font-semibold text-ink">
@@ -72,6 +83,32 @@ export default function BookingRepsCard({
                   <span className="text-ink-faint">nije dodeljen</span>
                 )}
               </p>
+            )}
+
+            {/* Dopuna (2.9.2026, na zahtev vlasnika) — puni podaci predstavnika: ime, kontakt
+                telefon, email, destinacija koju pokriva i termin od-do na destinaciji. Destinacija/
+                termin dolaze sa STAVKE (Product.destinationCity/Country + stayFrom/stayTo), ne sa
+                korisničkog naloga — isti predstavnik može na drugoj stavci pokrivati drugu
+                destinaciju/period. */}
+            {item.assignedGuideId && (
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded border border-border bg-panel2 p-2.5 text-xs sm:grid-cols-4">
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Ime i prezime</dt>
+                  <dd className="text-ink">{assignedGuide?.fullName ?? namesById[item.assignedGuideId] ?? 'nepoznat korisnik'}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Telefon</dt>
+                  <dd className="text-ink">{assignedGuide?.phone ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Email</dt>
+                  <dd className="text-ink">{assignedGuide?.email ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Destinacija</dt>
+                  <dd className="text-ink">{item.destination ?? '—'}</dd>
+                </div>
+              </dl>
             )}
 
             <div className="mt-3 border-t border-border pt-3">

@@ -84,6 +84,22 @@
       "bookingNumber": "Booking number",
       "voucherPending": "The voucher will be available once generated.",
       "voucherLink": "Download voucher"
+    },
+    "voucher": {
+      "title": "Vavčer",
+      "bookingNumber": "Številka rezervacije",
+      "buyer": "Imetnik rezervacije",
+      "print": "Natisni",
+      "notFound": "Vavčer ni najden ali še ni izdan.",
+      "service": "Storitev",
+      "dates": "Termin",
+      "units": "Število enot",
+      "guests": "Potniki",
+      "representative": "Predstavnik na destinaciji",
+      "phone": "Telefon",
+      "email": "E-pošta",
+      "destination": "Destinacija",
+      "noRepresentative": "Predstavnik še ni dodeljen."
     }
   },
   "account": {

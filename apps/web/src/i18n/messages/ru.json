@@ -84,6 +84,22 @@
       "bookingNumber": "Booking number",
       "voucherPending": "The voucher will be available once generated.",
       "voucherLink": "Download voucher"
+    },
+    "voucher": {
+      "title": "Ваучер",
+      "bookingNumber": "Номер бронирования",
+      "buyer": "Держатель бронирования",
+      "print": "Печать",
+      "notFound": "Ваучер не найден или еще не выдан.",
+      "service": "Услуга",
+      "dates": "Период",
+      "units": "Количество единиц",
+      "guests": "Гости",
+      "representative": "Представитель на месте",
+      "phone": "Телефон",
+      "email": "Эл. почта",
+      "destination": "Направление",
+      "noRepresentative": "Представитель еще не назначен."
     }
   },
   "account": {

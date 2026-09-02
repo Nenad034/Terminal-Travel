@@ -24,6 +24,18 @@ import { resolveApiContext } from '../common/resolve-api-context';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { SYSTEM_ROLES } from '../../m1-core-identitet/roles/system-roles.constants';
 
+// M5 spec §6 dopuna (2.9.2026, na zahtev vlasnika) — vaučer prvi put dobija stvaran sadržaj
+// (`GET /sales/bookings/public/:id/voucher`, `PublicVoucherController`), umesto mock spoljnog
+// URL-a bez ijednog reda sadržaja. `WEB_APP_BASE_URL` (podrazumevano lokalni apps/web port iz
+// .claude/launch.json) — namerno BEZ shareToken-a: `Booking.id` (UUID, 122 bita entropije) je
+// isti "kapacitetski link" obrazac koji je mock URL već koristio (id direktno u putanji).
+function buildVoucherUrl(bookingId: string): string {
+  const base = process.env.WEB_APP_BASE_URL ?? 'http://localhost:3200';
+  // apps/web nema middleware koji sam preusmerava bez lokala (`src/i18n/request.ts` baca 404
+  // za putanju bez [locale] segmenta) — `sr` je `defaultLocale` (`src/i18n/config.ts`).
+  return `${base}/sr/rezervacija/vaucer/${bookingId}`;
+}
+
 // M5 spec §7 dopuna (27.8.2026) — isti filter-oblik kao `findAll` iznad, minus datumski opseg
 // (kalendar prikaz sam zadaje opseg). Deljen između `calendarSummary`/`calendarDay`.
 export interface CalendarFilters {
@@ -1147,9 +1159,7 @@ export class BookingsService {
   }
 
   private async issueVoucher(bookingId: string) {
-    // Format vaučera je van obima ove specifikacije (§13) — referenca/URL šablon je dovoljan
-    // da izlazni kriterijum (§12) bude proverljiv ("vaučer se generiše").
-    await this.prisma.booking.update({ where: { id: bookingId }, data: { voucherUrl: `https://vouchers.internal.terminal-travel/${bookingId}.pdf` } });
+    await this.prisma.booking.update({ where: { id: bookingId }, data: { voucherUrl: buildVoucherUrl(bookingId) } });
   }
 
   // M5 spec §6/§4.1/§11 — POST /bookings/:id/voucher/override, zahteva M5/voucher/OVERRIDE_ISSUE
@@ -1162,7 +1172,7 @@ export class BookingsService {
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
-        voucherUrl: `https://vouchers.internal.terminal-travel/${bookingId}.pdf`,
+        voucherUrl: buildVoucherUrl(bookingId),
         voucherOverrideApprovedBy: actor.userId,
         voucherOverrideReason: reason,
         voucherOverrideAt: new Date(),
@@ -1181,6 +1191,57 @@ export class BookingsService {
     });
 
     return updated;
+  }
+
+  // ==========================================================================
+  // M5 spec §6 dopuna (2.9.2026, na zahtev vlasnika: "podaci predstavnika treba automatski da
+  // se pojave na vaučeru") — javan, neautentifikovan sadržaj vaučera. Isti obrazac kao M23
+  // PublicKnowledgeController: ODVOJEN kontroler bez guard-a, ovaj servisni metod fizički
+  // učitava/vraća SAMO ono što gost sme da vidi (§6.2 maskiranje — nikad supplier_reference/
+  // base_cost/markup_rule_id/rate_line_id), i SAMO kad je vaučer stvarno izdat (voucher_url
+  // postavljen) — rezervacija pre toga nema šta da pokaže kao "dokument".
+  // ==========================================================================
+  async getVoucherContent(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        items: {
+          where: { itemStatus: { not: 'CANCELLED' } },
+          include: {
+            guests: { select: { guestFirstName: true, guestLastName: true } },
+            product: {
+              select: { type: true, destinationCity: true, destinationCountry: true, translations: { select: { languageCode: true, name: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!booking || !booking.voucherUrl) throw new NotFoundException('Vaučer nije pronađen ili još nije izdat.');
+
+    const guideIds = [...new Set(booking.items.map((i) => i.assignedGuideId).filter((id): id is string => Boolean(id)))];
+    const guides = guideIds.length > 0 ? await this.prisma.user.findMany({ where: { id: { in: guideIds } }, select: { id: true, fullName: true, phone: true, email: true } }) : [];
+    const guidesById = new Map(guides.map((g) => [g.id, g]));
+
+    return {
+      bookingNumber: booking.bookingNumber,
+      buyerName: booking.buyerName,
+      totalPrice: booking.totalPrice,
+      currency: booking.currency,
+      items: booking.items.map((item) => {
+        const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
+        return {
+          productName: resolveTranslation(item.product?.translations ?? [], 'sr')?.name ?? null,
+          productType: item.product?.type ?? null,
+          destinationCity: item.product?.destinationCity ?? null,
+          destinationCountry: item.product?.destinationCountry ?? null,
+          stayFrom: item.stayFrom,
+          stayTo: item.stayTo,
+          unitCount: item.unitCount,
+          guests: item.guests.map((g) => ({ guestFirstName: g.guestFirstName, guestLastName: g.guestLastName })),
+          representative: guide ? { fullName: guide.fullName, phone: guide.phone, email: guide.email } : null,
+        };
+      }),
+    };
   }
 
   // ==========================================================================
@@ -1210,6 +1271,96 @@ export class BookingsService {
     });
 
     return updated;
+  }
+
+  // ==========================================================================
+  // M5 spec §4.3 dopuna (2.9.2026, na zahtev vlasnika: "u tabu Putnici treba omogućiti
+  // dodavanje i brisanje putnika i vršiti izmene... ovo nema veze sa profilom putnika") —
+  // CRUD nad `BookingItemGuest` na već potvrđenoj stavci. Menja SAMO ime/prezime na M5 stub
+  // polju, nikad `guestProfileId`/M6 `GuestProfile` — isti IDOR obrazac kao `assignGuide`
+  // iznad (učitaj stavku → učitaj roditeljsku rezervaciju → assertBookingAccessible).
+  // ==========================================================================
+  async addGuest(bookingItemId: string, dto: { guestFirstName: string; guestLastName: string }, actor: { userId: string }) {
+    const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
+    if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    await this.assertBookingAccessible(parentBooking, actor.userId);
+
+    const duplicate = await this.prisma.bookingItemGuest.findFirst({
+      where: { bookingItemId, guestFirstName: dto.guestFirstName, guestLastName: dto.guestLastName },
+    });
+    if (duplicate) throw new BadRequestException('Putnik sa tim imenom i prezimenom već postoji na ovoj stavci.');
+
+    const guest = await this.prisma.bookingItemGuest.create({
+      data: { bookingItemId, guestFirstName: dto.guestFirstName, guestLastName: dto.guestLastName },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking_item_guest.added',
+      resourceType: 'BookingItemGuest',
+      resourceId: guest.id,
+      afterState: guest,
+      context: { bookingItemId },
+    });
+
+    return guest;
+  }
+
+  async updateGuest(bookingItemId: string, guestId: string, dto: { guestFirstName: string; guestLastName: string }, actor: { userId: string }) {
+    const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
+    if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    await this.assertBookingAccessible(parentBooking, actor.userId);
+
+    const before = await this.prisma.bookingItemGuest.findUnique({ where: { id: guestId } });
+    if (!before || before.bookingItemId !== bookingItemId) throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
+
+    const updated = await this.prisma.bookingItemGuest.update({
+      where: { id: guestId },
+      data: { guestFirstName: dto.guestFirstName, guestLastName: dto.guestLastName },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking_item_guest.updated',
+      resourceType: 'BookingItemGuest',
+      resourceId: guestId,
+      beforeState: { guestFirstName: before.guestFirstName, guestLastName: before.guestLastName },
+      afterState: { guestFirstName: updated.guestFirstName, guestLastName: updated.guestLastName },
+      context: { bookingItemId },
+    });
+
+    return updated;
+  }
+
+  async removeGuest(bookingItemId: string, guestId: string, actor: { userId: string }) {
+    const item = await this.prisma.bookingItem.findUnique({ where: { id: bookingItemId } });
+    if (!item) throw new NotFoundException(`Stavka rezervacije ${bookingItemId} nije pronađena.`);
+    const parentBooking = await this.prisma.booking.findUniqueOrThrow({ where: { id: item.bookingId } });
+    await this.assertBookingAccessible(parentBooking, actor.userId);
+
+    const before = await this.prisma.bookingItemGuest.findUnique({ where: { id: guestId } });
+    if (!before || before.bookingItemId !== bookingItemId) throw new NotFoundException(`Putnik ${guestId} ne pripada stavci ${bookingItemId}.`);
+
+    await this.prisma.bookingItemGuest.delete({ where: { id: guestId } });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking_item_guest.removed',
+      resourceType: 'BookingItemGuest',
+      resourceId: guestId,
+      beforeState: before,
+      context: { bookingItemId },
+    });
+
+    return { removed: true };
   }
 
   // ==========================================================================

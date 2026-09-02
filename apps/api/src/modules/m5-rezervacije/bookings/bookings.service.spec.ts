@@ -10,8 +10,8 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       bookingItem: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
-      bookingItemGuest: { findMany: jest.fn() },
-      user: { findUnique: jest.fn().mockResolvedValue(null) },
+      bookingItemGuest: { findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
+      user: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
       userRole: { findFirst: jest.fn().mockResolvedValue(null) },
       bookingHandoffRequest: { create: jest.fn(), update: jest.fn(), findUnique: jest.fn(), findFirst: jest.fn().mockResolvedValue(null) },
@@ -620,6 +620,49 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     });
   });
 
+  // Dopuna (2.9.2026, na zahtev vlasnika — "podaci predstavnika treba automatski da se pojave
+  // na vaučeru"): javan sadržaj vaučera, uklj. kontakt predstavnika po stavci.
+  describe('getVoucherContent (§6, dopuna 2.9.2026)', () => {
+    it('baca 404 kad vaučer još nije izdat (voucher_url prazan)', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', voucherUrl: null, items: [] });
+
+      await expect(service.getVoucherContent('b1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('vraća maskiran sadržaj sa kontaktom predstavnika, bez supplier polja', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        bookingNumber: 'TT-2027-000123',
+        buyerName: 'Jovana Marković',
+        totalPrice: 120000,
+        currency: 'EUR',
+        voucherUrl: 'http://localhost:3200/rezervacija/vaucer/b1',
+        items: [
+          {
+            id: 'item-1',
+            assignedGuideId: 'guide-1',
+            stayFrom: new Date('2027-08-10'),
+            stayTo: new Date('2027-08-17'),
+            unitCount: 1,
+            guests: [{ guestFirstName: 'Ana', guestLastName: 'Anić' }],
+            product: { type: 'ACCOMMODATION', destinationCity: 'Sitonija', destinationCountry: 'GR', translations: [{ languageCode: 'sr', name: 'Hotel Test' }] },
+          },
+        ],
+      });
+      prisma.user.findMany.mockResolvedValue([{ id: 'guide-1', fullName: 'Ana Vodić', phone: '+381601234567', email: 'ana@tt.rs' }]);
+
+      const result = await service.getVoucherContent('b1');
+
+      expect(result.bookingNumber).toBe('TT-2027-000123');
+      expect(result.items[0].productName).toBe('Hotel Test');
+      expect(result.items[0].representative).toEqual({ fullName: 'Ana Vodić', phone: '+381601234567', email: 'ana@tt.rs' });
+      expect(result).not.toHaveProperty('supplierReference');
+      expect(JSON.stringify(result)).not.toMatch(/rateLine|markupRule|baseCost/i);
+    });
+  });
+
   // Dopuna (2.9.2026, na zahtev vlasnika — kartica Aranžman): `modify` sad prima opcioni
   // `productId` (zamena USLUGE, ne samo datuma) i postoji `previewModify` (ista logika, ništa
   // ne upisuje — "provera cene" pre potvrde).
@@ -717,6 +760,67 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(contractPeriods.reserve).not.toHaveBeenCalled();
       expect(prisma.bookingItem.create).not.toHaveBeenCalled();
       expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // Dopuna (2.9.2026, na zahtev vlasnika — kartica Putnici): dodavanje/izmena/brisanje putnika
+  // na već potvrđenoj stavci, nikad ne dira M6 GuestProfile.
+  describe('addGuest/updateGuest/removeGuest (§4.3, dopuna 2.9.2026)', () => {
+    it('addGuest dodaje putnika na stavku', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1' });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'c1' });
+      prisma.bookingItemGuest.findFirst.mockResolvedValue(null);
+      prisma.bookingItemGuest.create.mockResolvedValue({ id: 'g1', bookingItemId: 'item-1', guestFirstName: 'Ana', guestLastName: 'Anić' });
+
+      const result = await service.addGuest('item-1', { guestFirstName: 'Ana', guestLastName: 'Anić' }, { userId: 'staff-1' });
+
+      expect(prisma.bookingItemGuest.create).toHaveBeenCalledWith({
+        data: { bookingItemId: 'item-1', guestFirstName: 'Ana', guestLastName: 'Anić' },
+      });
+      expect(result.id).toBe('g1');
+    });
+
+    it('addGuest odbija duplikat imena/prezimena na istoj stavci', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1' });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'c1' });
+      prisma.bookingItemGuest.findFirst.mockResolvedValue({ id: 'g-postojeci' });
+
+      await expect(service.addGuest('item-1', { guestFirstName: 'Ana', guestLastName: 'Anić' }, { userId: 'staff-1' })).rejects.toThrow(BadRequestException);
+      expect(prisma.bookingItemGuest.create).not.toHaveBeenCalled();
+    });
+
+    it('updateGuest menja ime/prezime, odbija putnika koji ne pripada stavci', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1' });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'c1' });
+      prisma.bookingItemGuest.findUnique.mockResolvedValue({ id: 'g1', bookingItemId: 'item-drugi', guestFirstName: 'Ana', guestLastName: 'Anić' });
+
+      await expect(service.updateGuest('item-1', 'g1', { guestFirstName: 'Ana', guestLastName: 'Marić' }, { userId: 'staff-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.bookingItemGuest.update).not.toHaveBeenCalled();
+    });
+
+    it('removeGuest briše putnika i piše audit trag', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1' });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'c1' });
+      prisma.bookingItemGuest.findUnique.mockResolvedValue({ id: 'g1', bookingItemId: 'item-1', guestFirstName: 'Ana', guestLastName: 'Anić' });
+
+      await service.removeGuest('item-1', 'g1', { userId: 'staff-1' });
+
+      expect(prisma.bookingItemGuest.delete).toHaveBeenCalledWith({ where: { id: 'g1' } });
+      expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'booking_item_guest.removed', resourceId: 'g1' }));
+    });
+
+    it('gost NE može da doda putnika na tuđu rezervaciju — vraća 404 (IDOR)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'GUEST', linkedProfileId: 'client-1' });
+      prisma.bookingItem.findUnique.mockResolvedValue({ id: 'item-1', bookingId: 'b1' });
+      prisma.booking.findUniqueOrThrow.mockResolvedValue({ id: 'b1', clientAccountId: 'client-tudj' });
+
+      await expect(service.addGuest('item-1', { guestFirstName: 'Ana', guestLastName: 'Anić' }, { userId: 'guest-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.bookingItemGuest.create).not.toHaveBeenCalled();
     });
   });
 

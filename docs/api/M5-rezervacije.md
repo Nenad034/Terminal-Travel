@@ -287,7 +287,32 @@ Zahteva `M5/voucher/OVERRIDE_ISSUE` (isključivo Vlasnik/Direktor).
 ```
 **Odgovor `200`:**
 ```json
-{ "id": "booking-1", "voucherUrl": "https://vouchers.internal.terminal-travel/booking-1.pdf", "voucherOverrideApprovedBy": "user-1", "voucherOverrideReason": "...", "voucherOverrideAt": "2027-01-06T09:00:00.000Z" }
+{ "id": "booking-1", "voucherUrl": "http://localhost:3200/sr/rezervacija/vaucer/booking-1", "voucherOverrideApprovedBy": "user-1", "voucherOverrideReason": "...", "voucherOverrideAt": "2027-01-06T09:00:00.000Z" }
+```
+
+### GET /sales/bookings/public/:id/voucher
+Dopuna 2.9.2026 — **javan, neautentifikovan** (nema `Authorization` header, nema `M5/booking/*` dozvolu; poziva ga `apps/web` stranica `/rezervacija/vaucer/:id`, ne panel). Vraća `404` ako rezervacija ne postoji ILI vaučer još nije izdat (`voucherUrl` prazan). Odgovor je već maskiran (M5 spec §6.2) — nikad `supplierReference`/`baseCost`/`markupRuleId`/`rateLineId`.
+**Odgovor `200`:**
+```json
+{
+  "bookingNumber": "TT-2027-000123",
+  "buyerName": "Jovana Marković",
+  "totalPrice": 120000,
+  "currency": "EUR",
+  "items": [
+    {
+      "productName": "Hotel Alexander The Great 4*",
+      "productType": "ACCOMMODATION",
+      "destinationCity": "Sitonija",
+      "destinationCountry": "GR",
+      "stayFrom": "2027-08-10T00:00:00.000Z",
+      "stayTo": "2027-08-17T00:00:00.000Z",
+      "unitCount": 1,
+      "guests": [{ "guestFirstName": "Jovana", "guestLastName": "Marković" }],
+      "representative": { "fullName": "Ana Vodić", "phone": "+381601234567", "email": "ana.vodic@terminal-travel.rs" }
+    }
+  ]
+}
 ```
 
 ### GET /bookings/:id/notes
@@ -317,6 +342,40 @@ Zahteva `M5/booking-note/DELETE`. Autor sme sopstvenu belešku, Vlasnik/Direktor
 **Odgovor `200`:**
 ```json
 { "deleted": true }
+```
+
+### PATCH /bookings/items/:itemId/assign-guide
+Zahteva `M5/booking/MODIFY`. Dodeljuje/uklanja predstavnika (vodiča na destinaciji) za jednu stavku — M9 spec §4.
+**Zahtev:**
+```json
+{ "assignedGuideId": "guide-1" }
+```
+**Odgovor `200`:** ažurirana `BookingItem`. `assignedGuideId: null` uklanja dodelu.
+
+### POST /bookings/items/:itemId/guests
+Dopuna 2.9.2026 (kartica Putnici — "dodavanje i brisanje putnika i izmene... ovo nema veze sa profilom putnika"). Zahteva `M5/booking/MODIFY`. Menja isključivo M5 `BookingItemGuest.guestFirstName`/`guestLastName`, nikad M6 `GuestProfile`.
+**Zahtev:**
+```json
+{ "guestFirstName": "Ana", "guestLastName": "Anić" }
+```
+**Odgovor `201`:**
+```json
+{ "id": "guest-3", "bookingItemId": "bi-1", "guestFirstName": "Ana", "guestLastName": "Anić", "guestProfileId": null }
+```
+**Odgovor `400`** kad isto ime+prezime već postoji na toj stavci: `{ "message": "Putnik sa tim imenom i prezimenom već postoji na ovoj stavci.", "statusCode": 400 }`.
+
+### PATCH /bookings/items/:itemId/guests/:guestId
+Ista dozvola, isto ograničenje (nikad `guestProfileId`).
+**Zahtev:**
+```json
+{ "guestFirstName": "Ana", "guestLastName": "Marić" }
+```
+**Odgovor `200`:** ažuriran `BookingItemGuest`.
+
+### DELETE /bookings/items/:itemId/guests/:guestId
+**Odgovor `200`:**
+```json
+{ "removed": true }
 ```
 
 ### GET /bookings/calendar-summary?from=2027-06-01&to=2027-06-30

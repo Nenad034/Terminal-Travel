@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
@@ -6,6 +6,8 @@ import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
 import { AssignGuideDto } from './dto/assign-guide.dto';
+import { CreateBookingItemGuestDto } from './dto/create-booking-item-guest.dto';
+import { UpdateBookingItemGuestDto } from './dto/update-booking-item-guest.dto';
 import { PrepareSupplierManifestsDto } from './dto/prepare-supplier-manifests.dto';
 import { TransferOwnershipDto } from './dto/transfer-ownership.dto';
 import { ProposeHandoffDto } from './dto/propose-handoff.dto';
@@ -210,6 +212,32 @@ export class BookingsController {
   @RequirePermission('M5', 'booking', 'MODIFY')
   assignGuide(@Param('itemId') itemId: string, @Body() dto: AssignGuideDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.assignGuide(itemId, dto.assignedGuideId ?? null, actor);
+  }
+
+  // M5 spec §4.3 dopuna (2.9.2026, na zahtev vlasnika — kartica Putnici) — dodavanje/izmena/
+  // brisanje putnika na već potvrđenoj stavci. Ista dozvola kao ostale izmene rezervacije
+  // (booking/MODIFY), nikad ne dira M6 GuestProfile.
+  @Post('items/:itemId/guests')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  addGuest(@Param('itemId') itemId: string, @Body() dto: CreateBookingItemGuestDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.addGuest(itemId, dto, actor);
+  }
+
+  @Patch('items/:itemId/guests/:guestId')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  updateGuest(
+    @Param('itemId') itemId: string,
+    @Param('guestId') guestId: string,
+    @Body() dto: UpdateBookingItemGuestDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.bookings.updateGuest(itemId, guestId, dto, actor);
+  }
+
+  @Delete('items/:itemId/guests/:guestId')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  removeGuest(@Param('itemId') itemId: string, @Param('guestId') guestId: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.removeGuest(itemId, guestId, actor);
   }
 
   // M5 spec §6.5 (31.8.2026) — prenos vlasništva; ownership provera (trenutni vlasnik ili

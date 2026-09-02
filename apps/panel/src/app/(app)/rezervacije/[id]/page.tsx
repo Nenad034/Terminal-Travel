@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
+import RecordPaymentForm from '../../finansije/fiskalni-dokumenti/[id]/RecordPaymentForm';
 import BookingHistoryButton from './BookingHistoryButton';
 import BookingOwnershipCard from './BookingOwnershipCard';
 import BookingNotesCard, { BookingNote } from './BookingNotesCard';
@@ -11,6 +12,8 @@ import BookingChangesCard from './BookingChangesCard';
 import BookingRepsCard, { RepCheckIn } from './BookingRepsCard';
 import ActorLabel from '@/components/ActorLabel';
 import AranzmanItemCard, { CandidateProduct } from './AranzmanItemCard';
+import BookingItemGuestsEditor from './BookingItemGuestsEditor';
+import CommunicationFilterList from './CommunicationFilterList';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
 
 
@@ -64,6 +67,10 @@ interface Booking {
 interface DirectoryUser {
   id: string;
   fullName: string;
+  // M1 dopuna (2.9.2026) — popunjeno samo kad je poziv sužen preko `?role=` (npr. VODIC za
+  // karticu Predstavnici); opšti direktorijum bez role i dalje vraća samo id+fullName.
+  phone?: string | null;
+  email?: string | null;
 }
 
 interface HandoffRequest {
@@ -172,6 +179,8 @@ export default async function BookingDetailPage(props: {
   // M5 spec §4.5 — kartica se prikazuje samo uz dozvolu matičnog modula; odsustvo dozvole
   // znači da kartice nema, ne da je prazna.
   const canViewPayments = hasPermission(me, 'M10', 'payment', 'VIEW');
+  // Dopuna (2.9.2026, na zahtev vlasnika) — unos uplate direktno u kartici Finansije.
+  const canRecordPayment = hasPermission(me, 'M10', 'payment', 'RECORD');
   const canViewCommunication = hasPermission(me, 'M6', 'communication-log', 'VIEW');
   // §4.5 — dokument/državljanstvo/datum rođenja su M6 podatak, ne M5.
   const canViewGuestProfiles = hasPermission(me, 'M6', 'guest-profile', 'VIEW');
@@ -245,8 +254,9 @@ export default async function BookingDetailPage(props: {
       ? apiFetch<RepCheckIn[]>(`/mobile/staff/check-ins?bookingId=${booking.id}`).catch(() => [] as RepCheckIn[])
       : Promise.resolve([] as RepCheckIn[]),
     // Spisak isključivo VODIC naloga — dodela predstavnika ne sme da nudi ceo tim. Pregled ne
-    // dodeljuje (samo prikazuje), pa mu ovaj spisak ne treba.
-    booking && activeTab === 'predstavnici'
+    // dodeljuje, ali TREBA mu isti spisak radi kontakt podataka (telefon/email) dodeljenog
+    // predstavnika u read-only prikazu (dopuna 2.9.2026).
+    booking && (activeTab === 'predstavnici' || onOverview)
       ? apiFetch<DirectoryUser[]>('/iam/users/directory?role=VODIC').catch(() => [] as DirectoryUser[])
       : Promise.resolve([] as DirectoryUser[]),
   ]);
@@ -449,7 +459,7 @@ export default async function BookingDetailPage(props: {
               )}
 
               <Section title="Predstavnici">
-                <RepsSummaryList items={booking.items} checkIns={checkIns} directoryById={directoryById} canViewCheckIns={canViewCheckIns} />
+                <RepsSummaryList items={booking.items} checkIns={checkIns} directoryById={directoryById} guides={guides} canViewCheckIns={canViewCheckIns} />
               </Section>
             </div>
           )}
@@ -495,65 +505,44 @@ export default async function BookingDetailPage(props: {
             </div>
           )}
 
-          {/* M5 spec §4.5/§4.3 — Putnici: `BookingItemGuest` po stavci. Ime/prezime dolaze iz M5;
-              dokument/državljanstvo/datum rođenja su M6 podatak i dohvataju se samo uz
+          {/* M5 spec §4.5/§4.3 — Putnici: `BookingItemGuest` po stavci. Ime/prezime dolaze iz M5 i
+              sad se mogu dodavati/menjati/brisati direktno ovde (dopuna 2.9.2026, na zahtev
+              vlasnika — "ovo nema veze sa profilom putnika"); dokument/državljanstvo/datum
+              rođenja su M6 podatak, i dalje samo za čitanje, dohvataju se samo uz
               `M6/guest-profile/VIEW` (isti obrazac kao ostale kartice — bez dozvole se ne prikazuju). */}
           {activeTab === 'putnici' && (
             <div className="space-y-3">
-              {booking.items.every((i) => (i.guests?.length ?? 0) === 0) ? (
-                <p className="text-xs text-ink-faint">Na rezervaciji nema unetih putnika.</p>
-              ) : (
-                booking.items
-                  .filter((i) => (i.guests?.length ?? 0) > 0)
-                  .map((item) => (
-                    <div key={item.id} className="rounded-lg border border-border bg-panel p-4">
-                      <div className="mb-2 text-xs font-semibold text-ink">
-                        {item.product?.name ?? 'stavka'}{' '}
-                        <span className="font-normal text-ink-faint">
-                          · {item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'}
-                          {' – '}
-                          {item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'}
-                        </span>
-                      </div>
-                      <ul className="divide-y divide-border">
-                        {(item.guests ?? []).map((g) => {
-                          const profile = g.guestProfileId ? guestProfilesById.get(g.guestProfileId) : null;
-                          return (
-                            <li key={g.id} className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
-                              <span className="text-ink">
-                                {g.guestFirstName} {g.guestLastName}
-                              </span>
-                              {profile ? (
-                                <span className="flex flex-wrap items-center gap-3 text-xs text-ink-faint">
-                                  <span>
-                                    {profile.documentType} {profile.documentNumber}
-                                  </span>
-                                  <span>{profile.nationality}</span>
-                                  <span>{new Date(profile.dateOfBirth).toLocaleDateString('sr-RS')}</span>
-                                  <Link href={`/crm/gosti/${profile.id}`} className="text-accent hover:underline">
-                                    profil →
-                                  </Link>
-                                </span>
-                              ) : (
-                                <span className="text-xs text-ink-faint">
-                                  {g.guestProfileId
-                                    ? canViewGuestProfiles
-                                      ? 'profil gosta nije dostupan'
-                                      : 'podaci dokumenta zahtevaju M6/guest-profile/VIEW'
-                                    : 'nema povezan profil gosta (samo ime i prezime)'}
-                                </span>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
+              {booking.items
+                .filter((i) => i.itemStatus !== 'CANCELLED')
+                .map((item) => (
+                  <div key={item.id} className="rounded-lg border border-border bg-panel p-4">
+                    <div className="mb-2 text-xs font-semibold text-ink">
+                      {item.product?.name ?? 'stavka'}{' '}
+                      <span className="font-normal text-ink-faint">
+                        · {item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'}
+                        {' – '}
+                        {item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'}
+                      </span>
                     </div>
-                  ))
-              )}
+                    <BookingItemGuestsEditor
+                      bookingId={booking.id}
+                      bookingItemId={item.id}
+                      guests={item.guests ?? []}
+                      profilesById={guestProfilesById}
+                      canViewGuestProfiles={canViewGuestProfiles}
+                      canModify={canModifyBooking}
+                    />
+                  </div>
+                ))}
             </div>
           )}
 
-          {/* M5 spec §4.5 — Finansije: prikaz nad M10 `Payment`, bez ijednog novog polja u M5. */}
+          {/* M5 spec §4.5/§5 dopuna (2.9.2026, na zahtev vlasnika: "Loša je odluka da se uplate
+              unose na nekom drugom mestu... uplate treba evidentirati u svakoj rezervaciji u
+              tabu Finansije, a te informacije posle treba da idu dalje gde treba") — unos ostaje
+              M10 (`POST /finance/payments`, isti zapis kao ekran "Fiskalni dokumenti" pod
+              /finansije — JEDAN izvor istine, dva mesta unosa u NJEGA), samo se sad forma za
+              unos nalazi i ovde, ne samo tamo. */}
           {activeTab === 'finansije' &&
             (!canViewPayments ? (
               <p className="text-xs text-ink-faint">
@@ -570,6 +559,7 @@ export default async function BookingDetailPage(props: {
                     tone={(booking.totalPrice ?? 0) - paidTotal > 0 ? 'danger' : 'ok'}
                   />
                 </div>
+                {canRecordPayment && <RecordPaymentForm bookingId={booking.id} currency={booking.currency ?? 'EUR'} revalidatePath={`/rezervacije/${booking.id}?tab=finansije`} />}
                 {payments.length === 0 ? (
                   <p className="text-xs text-ink-faint">Nema evidentiranih uplata za ovu rezervaciju.</p>
                 ) : (
@@ -592,7 +582,7 @@ export default async function BookingDetailPage(props: {
                   </div>
                 )}
                 <p className="text-[11px] text-ink-faint">
-                  Uplate se unose i knjiže u M10 (Finansije) — ovaj prikaz ih samo čita, M5 ne drži sopstvenu evidenciju plaćanja (M5 spec §5).
+                  Uplata zabeležena ovde ide u M10 (Finansije) — isti zapis se odatle dalje koristi za fiskalizaciju i izveštaje; M5 ne drži sopstvenu evidenciju plaćanja (M5 spec §5).
                 </p>
               </div>
             ))}
@@ -610,28 +600,11 @@ export default async function BookingDetailPage(props: {
                 <p className="rounded border border-warn/30 bg-warn-bg px-3 py-2 text-[11px] text-warn">
                   Ovo je celokupna prepiska sa <strong>nalogodavcem</strong> ove rezervacije, ne samo o ovoj rezervaciji — M6 zapis komunikacije danas nema vezu ka pojedinačnoj rezervaciji (M5 spec §4.5).
                 </p>
-                {communications.length === 0 ? (
-                  <p className="text-xs text-ink-faint">Nema zabeležene komunikacije sa ovim nalogodavcem.</p>
-                ) : (
-                  <ul className="space-y-2">
-                    {communications.map((c) => (
-                      <li key={c.id} className="rounded-lg border border-border bg-panel p-3">
-                        <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
-                          <Badge label={c.channel} />
-                          <Badge label={c.direction} />
-                          <Badge label={c.category} />
-                          <ActorLabel
-                            name={c.sentBy ? (directoryById.get(c.sentBy) ?? (c.sentBy === 'SYSTEM_AUTO' ? 'automatski' : null)) : null}
-                            origin={c.sentBy === 'SYSTEM_AUTO' ? 'SYSTEM' : 'STAFF'}
-                            draftedByAi={c.draftedByAi}
-                          />
-                          <span>· {new Date(c.createdAt).toLocaleString('sr-RS')}</span>
-                        </div>
-                        <p className="text-sm text-ink">{c.summary}</p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <CommunicationFilterList
+                  communications={communications}
+                  bookingNumber={booking.bookingNumber}
+                  directoryNames={Object.fromEntries(directoryById)}
+                />
               </div>
             ))}
 
@@ -777,6 +750,7 @@ export default async function BookingDetailPage(props: {
                 .map((i) => ({
                   id: i.id,
                   name: i.product?.name ?? `stavka ${i.id.slice(0, 8)}…`,
+                  destination: [i.product?.destinationCity, i.product?.destinationCountry].filter(Boolean).join(', ') || null,
                   stayFrom: i.stayFrom,
                   stayTo: i.stayTo,
                   assignedGuideId: i.assignedGuideId ?? null,
@@ -1023,26 +997,38 @@ function RepsSummaryList({
   items,
   checkIns,
   directoryById,
+  guides,
   canViewCheckIns,
 }: {
   items: BookingItem[];
   checkIns: RepCheckIn[];
   directoryById: Map<string, string>;
+  guides: DirectoryUser[];
   canViewCheckIns: boolean;
 }) {
+  const guidesById = new Map(guides.map((g) => [g.id, g]));
   const active = items.filter((i) => i.itemStatus !== 'CANCELLED');
   if (active.length === 0) return <p className="text-xs text-ink-faint">Nema aktivnih stavki.</p>;
   return (
     <div className="space-y-2">
       {active.map((item) => {
         const itemCheckIns = canViewCheckIns ? checkIns.filter((c) => c.bookingItemId === item.id) : [];
+        const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
+        const destination = [item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ');
         return (
-          <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-panel px-4 py-2.5 text-sm">
-            <span className="text-ink">{item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`}</span>
-            <span className="text-xs text-ink-faint">
-              {item.assignedGuideId ? (directoryById.get(item.assignedGuideId) ?? 'predstavnik dodeljen') : 'bez predstavnika'}
-              {canViewCheckIns && ` · prijave sa terena: ${itemCheckIns.length}/${item.guests?.length ?? 0}`}
-            </span>
+          <div key={item.id} className="rounded-lg border border-border bg-panel px-4 py-2.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-ink">{item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`}</span>
+              <span className="text-xs text-ink-faint">
+                {item.assignedGuideId ? (guide?.fullName ?? directoryById.get(item.assignedGuideId) ?? 'predstavnik dodeljen') : 'bez predstavnika'}
+                {canViewCheckIns && ` · prijave sa terena: ${itemCheckIns.length}/${item.guests?.length ?? 0}`}
+              </span>
+            </div>
+            {item.assignedGuideId && (guide?.phone || guide?.email || destination) && (
+              <div className="mt-1 text-[11px] text-ink-faint">
+                {[guide?.phone, guide?.email, destination].filter(Boolean).join(' · ')}
+              </div>
+            )}
           </div>
         );
       })}
