@@ -13,3 +13,10 @@ coverage/
 apps/web/.next/
 apps/panel/.next/
 apps/api/uploads/
+# Dnevnici lokalnog dev servera
+*-dev.log
+
+# Privremena ruta za ulazak jednim klikom u lokalnom pregledu (2.9.2026).
+# Sadrzi lozinku i MFA tajnu test naloga i sama u sebi kaze da nikad ne sme
+# da bude deo commit-a — zato stoji ovde, a ne u istoriji repozitorijuma.
+apps/panel/src/app/api/session/dev-login/
