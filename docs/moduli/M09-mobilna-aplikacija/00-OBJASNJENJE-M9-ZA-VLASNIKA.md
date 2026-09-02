@@ -41,6 +41,18 @@ Kad vodič označi belešku kao "hitna" (npr. "autobus se pokvario, kasnimo dva 
 
 Napravljena je nova uloga u sistemu, "Vodič" — potpuno odvojena od prodajnog agenta, menadžera i ostalih uloga. Vodič vidi isključivo svoj sopstveni raspored, ne može da uđe u interni panel (taj alat je za tim u kancelariji, ne za teren), i ne može da vidi ničije tuđe rezervacije. Ko je kome dodeljen kao vodič turi — to i dalje odlučuje tim iz kancelarije, kroz postojeći sistem rezervacija (dodat je jedan mali "prekidač" u tom sistemu baš za ovu svrhu).
 
+## Fotografisanje pasoša — gost sam popunjava svoj profil (novo, 2.9.2026)
+
+Gost pri prvom unosu svojih putnih podataka (broj pasoša, državljanstvo, datum rođenja) sad bira: kucati sve ručno, kao i do sada, ili **fotografisati pasoš** — telefon pošalje sliku, AI je pročita i sam popuni polja, gost samo pregleda i, ako treba, ispravi pre nego što sačuva. Isti princip kao svuda u sistemu: AI predlaže, čovek potvrđuje — ništa se ne upisuje bez gosta.
+
+Dve stvari su namerno stroge, na tvoj izričit zahtev:
+- **Slika se nikad ne čuva.** Ni na trenutak na disku servera, ni trajno bilo gde — obradi se u memoriji dok traje jedan poziv, i odmah nestane. Nema nigde u sistemu zapisa "ovo je slika pasoša gosta X" — pasoš je osetljiv dokument, pa je najsigurniji odgovor na pitanje "gde se čuva" da ga uopšte i nema.
+- **Radi samo za PRVI unos, ne za izmenu postojećeg profila.** Ako gost već ima unet profil i, recimo, promeni pasoš, ova opcija se ne nudi — to ostaje za kasnije, ako se pokaže da je stvarno potrebno.
+
+Kamera je uvek samo pogodnost, nikad prepreka — ako telefon nema kameru, gost odbije dozvolu, ili je fotografija nečitljiva, ručan unos je uvek tu, potpuno ravnopravno.
+
+**Napomena o proveri:** ova funkcija je napravljena i logika koja čita fotografiju je detaljno testirana (8 automatskih provera — uspešno čitanje, nečitljiva slika, delimično pročitani podaci, pogrešan format...). Sama telefonska aplikacija je pregledana i proverena da se ispravno "sklapa" (bez grešaka u kodu), ali **nije isprobana uživo na pravom telefonu sa pravom kamerom** — u ovoj sesiji nije bio dostupan fizički uređaj. Isto ograničenje kao i ranija napomena o preklopnom telefonu ispod — vredi isprobati uživo pri prvoj prilici.
+
 ## Šta još čeka (namerno, ne propust)
 
 - **Objavljivanje u App Store/Google Play** — aplikacija radi i testira se preko Expo alata, ali još nije predata prodavnicama aplikacija (to zahteva razvojne naloge kod Apple/Google i vlasnikovu odluku o budžetu za to).

@@ -26,7 +26,13 @@
       "expo-router",
       "expo-sqlite",
       "expo-secure-store",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Terminal Travel koristi kameru da fotografišete pasoš i sami popunite putni profil."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "http://localhost:3000/api/v1"

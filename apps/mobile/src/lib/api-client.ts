@@ -84,3 +84,36 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
+
+// M9 spec §2a (dopuna 2.9.2026) — jedini pozivalac je skeniranje pasoša (slika ide kao
+// multipart, ne JSON telo). Bez `Content-Type` header-a — `fetch` ga sam postavlja sa tačnom
+// `boundary` vrednošću kad je telo `FormData`; ručno postavljanje bi ga pokvarilo.
+async function doFetchMultipart(path: string, formData: FormData, accessToken: string | null): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+  return fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: formData });
+}
+
+export async function apiFetchMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const session = await getSession();
+  let accessToken = session?.accessToken ?? null;
+
+  let res = await doFetchMultipart(path, formData, accessToken);
+
+  if (res.status === 401 && accessToken) {
+    const refreshed = await tryRefresh();
+    if (refreshed) res = await doFetchMultipart(path, formData, refreshed);
+  }
+
+  if (!res.ok) {
+    let parsedBody: unknown = null;
+    try {
+      parsedBody = await res.json();
+    } catch {
+      // odgovor bez tela — ignoriši
+    }
+    throw new ApiError(res.status, parsedBody);
+  }
+
+  return res.json() as Promise<T>;
+}

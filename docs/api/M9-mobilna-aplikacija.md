@@ -2,7 +2,7 @@
 
 **Namena:** ovaj dokument je za svakoga ko se povezuje sa Terminal-om spolja ili programski — pre svega React Native (Expo) mobilni klijent, `apps/mobile` (v1.4, avgust 2026). Interni oslonac za implementaciju (poslovna pravila, redosled provera, izlazni kriterijum) ostaje `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md` — ovaj dokument ga ne zamenjuje.
 
-**Namerno uzak obim ovog dokumenta (avgust 2026):** pokriva isključivo deo za vodiče na terenu (poglavlje 3/4 specifikacije). Deo za goste (poglavlje 2) nema sopstvene M9 endpoint-e — koristi identične API-je kao M8 (sajt), vidi `docs/api/M5-rezervacije.md` i pripadajuće M6/M10/M20 dokumente.
+**Namerno uzak obim ovog dokumenta (avgust 2026):** pokriva isključivo deo za vodiče na terenu (poglavlje 3/4 specifikacije). Deo za goste (poglavlje 2) uglavnom koristi identične API-je kao M8 (sajt), vidi `docs/api/M5-rezervacije.md` i pripadajuće M6/M10/M20 dokumente — izuzetak je skeniranje pasoša (poglavlje 2a, dopuna 2.9.2026), koje zahteva kameru uređaja i zato ima sopstvenu M9 rutu (dole).
 
 **Prefiks:** `/api/v1/mobile`
 **Autentikacija:** `Authorization: Bearer <JWT>` na svakom pozivu (M1).
@@ -123,9 +123,38 @@ Dozvola: `M5/booking/MODIFY` (ista dozvola kao ostale izmene rezervacije — M9 
 
 ---
 
-## Deo za goste (poglavlje 2 specifikacije) — nema sopstvene M9 rute
+## Deo za goste (poglavlje 2 specifikacije)
 
-Pretraga, ponuda, rezervacija, kartično plaćanje, "moje rezervacije", vaučeri — isti API-ji kao M8 (`docs/api/M5-rezervacije.md`, `M6-crm.md`, i M10/M20 tokovi plaćanja/prihvatanja ugovora), `channel: "MOBILE"` (M5 `M5Channel` enum) umesto `B2C_SITE`. QR prikaz vaučera je mobilna specifičnost bez sopstvenog API-ja (kodira postojeći `voucherUrl`).
+Pretraga, ponuda, rezervacija, kartično plaćanje, "moje rezervacije", vaučeri — isti API-ji kao M8 (`docs/api/M5-rezervacije.md`, `M6-crm.md`, i M10/M20 tokovi plaćanja/prihvatanja ugovora), `channel: "MOBILE"` (M5 `M5Channel` enum) umesto `B2C_SITE`. QR prikaz vaučera je mobilna specifičnost bez sopstvenog API-ja (kodira postojeći `voucherUrl`). Kreiranje samog `GuestProfile` ide preko postojećeg `POST /crm/guest-profiles` (`docs/api/M6-crm.md`) — nepromenjeno, bez obzira da li su polja unesena ručno ili predpopunjena skeniranjem ispod.
+
+## Skeniranje pasoša (`POST /mobile/guest-profile/scan-document`) — dopuna 2.9.2026
+
+Poglavlje 2a specifikacije / M15 spec §6.5.6e. Gost fotografiše pasoš u mobilnoj aplikaciji, slika se šalje kao `multipart/form-data` (**nikad ne dodiruje disk servera, nikad se ne čuva** — obrađuje se u memoriji i odmah odbacuje), Claude Vision izvuče strukturisana polja koja **predpopunjavaju** formu — ništa se ne upisuje u bazu ovim pozivom, gost sam čuva preko `POST /crm/guest-profiles` iznad. Samo `JwtAuthGuard` (bez posebne dozvole) — bilo koji autentikovan mobilni korisnik sme da pozove za SEBE, isti obrazac kao `/mobile/push-token`.
+
+**Zahtev:**
+```
+POST /api/v1/mobile/guest-profile/scan-document
+Authorization: Bearer <JWT>
+Content-Type: multipart/form-data
+
+image: <JPEG/PNG/WEBP fajl, maks 5MB>
+```
+
+**Odgovor `201`** — sva polja `null` ako model nije pouzdano pročitao vrednost (nikad izmišljeno), `warning` objašnjava razlog kad nešto nedostaje ili slika uopšte nije prepoznata kao putni dokument:
+```json
+{
+  "documentDetected": true,
+  "fullName": "Petar Petrović",
+  "documentType": "PASSPORT",
+  "documentNumber": "P1234567",
+  "nationality": "Srbija",
+  "dateOfBirth": "1990-05-12",
+  "warning": null
+}
+```
+Primer nečitljive slike: `{ "documentDetected": false, "fullName": null, "documentType": null, "documentNumber": null, "nationality": null, "dateOfBirth": null, "warning": "Fotografija ne izgleda kao čitljiv putni dokument — unesite podatke ručno." }`.
+
+**Greške:** `400` ako slika nedostaje u telu zahteva. Nepodržan format slike (nije JPEG/PNG/WEBP) i pad samog AI poziva **ne** vraćaju HTTP grešku — dolaze kao `200`/`201` sa `documentDetected: false` i objašnjenjem u `warning`, jer je skeniranje uvek opciona pogodnost: klijent uvek ostaje spreman za ručan unos, nikad blokiran greškom.
 
 ---
 
