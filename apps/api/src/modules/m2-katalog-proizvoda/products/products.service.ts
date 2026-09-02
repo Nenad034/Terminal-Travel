@@ -11,6 +11,7 @@ import { CreatePackageDepartureDto } from './dto/create-package-departure.dto';
 import { resolveTranslation, hasRequiredTranslationsForPublish } from './language-fallback';
 import { applyDefaultAgePolicyToRoomTypes } from './age-policy';
 import { toPublicProduct } from './public-product.serializer';
+import { normalizeDestinationCountry } from '../../../common/destination-country';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 
@@ -105,7 +106,10 @@ export class ProductsService {
         type: dto.type,
         sourceType: 'CONTRACTED',
         sourceContractId: dto.sourceContractId,
-        destinationCountry: dto.destinationCountry,
+        // M2 spec §2.1 — naziv države se svodi na jedan oblik pri UPISU (`RS` → `Srbija`).
+        // Bez ovoga se katalog ponovo raslojava: filter po jednom obliku ne nalazi proizvode
+        // upisane pod drugim (zatečeno 3.9.2026: `RS` 24 proizvoda naspram `Srbija` 2).
+        destinationCountry: normalizeDestinationCountry(dto.destinationCountry),
         destinationCity: dto.destinationCity,
         status: 'DRAFT',
         cacheStatus: 'N_A',
@@ -130,7 +134,7 @@ export class ProductsService {
     const after = await this.prisma.product.update({
       where: { id },
       data: {
-        destinationCountry: dto.destinationCountry,
+        destinationCountry: normalizeDestinationCountry(dto.destinationCountry),
         destinationCity: dto.destinationCity,
         geoLat: dto.geoLat,
         geoLng: dto.geoLng,

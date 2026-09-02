@@ -129,6 +129,17 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 **3.5 Puna širina važi za liste, ne za stranice koje se čitaju**
 - *Provera:* nova stranica sajta — ako se **čita** (opis, blog, pravni tekst, forma), ograniči širinu na samoj stranici; ako se **pregleda** (lista, pretraga), pusti punu širinu i dodaj kolone na širokim ekranima. Pravilo: `29-DIZAJN-SISTEM-UI.md` §6b.
 
+**3.6 Ista država upisana na dva načina = dve različite države za pretragu (i za AI agenta)**
+- *Simptom:* filter po „Srbija" ne nalazi 24 proizvoda koji stvarno postoje; AI agent na pitanje „koliko hotela imamo u Crnoj Gori" samouvereno odgovara da ih nemamo, a imamo.
+- *Uzrok:* `Product.destination_country` je slobodan tekst — zatečeno `RS` (24) i `Srbija` (2) kao dve vrednosti, plus `ME` u `FactBooking` pored `Crna Gora`. Pretraga i predlaganje rade po TAČNOJ vrednosti; agent gleda ista polja i nasleđuje isti nered.
+- *Provera:* pre nego što se bilo koja tvrdnja o „nema rezultata" pripiše kodu ili modelu, prebroj različite vrednosti tog polja u bazi (`groupBy`). Za nove upise koristi `normalizeDestinationCountry` (`apps/api/src/common/destination-country.ts`); za zatečene podatke `npm run normalize:countries -- --dry-run` pa bez `--dry-run`.
+- *Napomena zašto ovo boli više od običnog neurednog podatka:* agent koji ćuti se vidi, agent koji tvrdi netačno se ne vidi — dok se ne izgubi gost.
+
+**3.7 Opis AI alata obećava više nego što alat radi**
+- *Simptom:* agent uredno pozove alat, dobije prazan rezultat i odgovori „nemamo" — iako podatak postoji.
+- *Uzrok:* `search_catalog` je u opisu tvrdio da pretražuje „naziv proizvoda ili destinacije", a u kodu je poredio ISKLJUČIVO prevedeni naziv. Model veruje opisu; prazan odgovor tumači kao činjenicu, ne kao ograničenje alata.
+- *Provera:* kad se menja ponašanje alata, u istom prolazu izmeni i njegov `description` — i obrnuto. Opis alata je ugovor sa modelom, isto koliko je tip ugovor sa kompajlerom.
+
 ---
 
 ## 4. Obeležavanje AI poteza (cross-modularno)

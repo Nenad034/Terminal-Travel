@@ -168,7 +168,6 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
 - **Mapa — slova i ikonice se povlače sa javnog Protomaps skladišta** (§3.0h.5, 2.9.2026) — sami podaci mape su kod nas, ali fontovi i sprite idu sa GitHub Pages. Jedini deo mape koji izlazi van naše infrastrukture; za produkciju se preseljava, inače odluka o EU hostingu nije dosledno sprovedena.
-- **`destination_country` meša ISO kodove i srpske nazive** (§3.0c.2, nalaz 2.9.2026 pri izradi predlaganja destinacija) — `RS` (24 proizvoda) i `Srbija` (2) stoje kao dve različite države, uz `Grčka`, `Crna Gora`, `Italija`, `Turska`. Predlaganje i pretraga rade po tačnoj vrednosti, pa je pretraga po "Srbija" slepa za 24 proizvoda pod "RS". Traži odluku o kanonskom obliku (ISO alpha-2 ili pun naziv) i jednokratno sređivanje podataka; dok traje, ništa se ne normalizuje u letu jer bi predlog vraćao vrednost koja ništa ne nalazi.
 - **Mapa — povezivanje kartice i tačke** (§3.0h.5, 2.9.2026) — prelaz mišem preko rezultata da istakne tačku i obrnuto (Airbnb obrazac). Traži da lista i mapa stoje jedna pored druge; danas se smenjuju.
 - **Mapa — gde fajl živi u produkciji** (§3.0h.5, 2.9.2026) — lokalno radi iz `apps/panel/public/maps/`, produkciono skladište čeka izbor hosting provajdera (namerno odložen, CLAUDE.md).
 - **Let i transfer nemaju prikaz na mapi** (§3.0h.3, 2.9.2026) — nisu tačka nego ruta, pa im prekidač lista/mapa nije ni ponuđen. Prikaz rute je zaseban zadatak.

@@ -514,7 +514,17 @@ export class OmnisearchService {
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
     const all = await this.products.findAll({});
     const lowerQuery = query.toLowerCase();
-    const matches = (all as any[]).filter((p) => p.translation?.name?.toLowerCase().includes(lowerQuery));
+    // Poklapanje ide po nazivu I PO DESTINACIJI (država/grad). Do 3.9.2026 se gledao samo naziv,
+    // iako opis alata izričito kaže „naziv proizvoda ili destinacije" — pitanje „koliko hotela
+    // imamo u Crnoj Gori" tako nije nalazilo ništa, pa je agent samouvereno odgovarao da hotela
+    // nema, a ima ih. Agent koji ćuti se vidi; agent koji tvrdi netačno se ne vidi (zamka 3.1).
+    const matches = (all as any[]).filter((p) => {
+      const haystack = [p.translation?.name, p.destinationCountry, p.destinationCity]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(lowerQuery);
+    });
 
     return matches.slice(0, 10).map((p) => {
       const media = (p.media as { url: string; category: string; order: number }[] | null) ?? null;
@@ -623,7 +633,10 @@ export class OmnisearchService {
           },
           {
             name: 'search_catalog',
-            description: 'Pretraži katalog proizvoda (hoteli, paket aranžmani) po nazivu.',
+            description:
+              'Pretraži katalog proizvoda (hoteli, paket aranžmani) po nazivu proizvoda ILI po destinaciji ' +
+              '(država ili grad, npr. „Crna Gora", „Budva"). Vraća do 10 poklapanja. Ako se vrati manje od 10, ' +
+              'to su SVI proizvodi koji odgovaraju upitu — slobodno ih prebroj u odgovoru.',
             input_schema: {
               type: 'object' as const,
               properties: { query: { type: 'string' as const, description: 'Naziv proizvoda ili destinacije' } },
