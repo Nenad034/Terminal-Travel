@@ -142,6 +142,41 @@ export default function Shell({
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  // Pomeraj trake tabova kad je centralni sadržaj sužen (2.9.2026, na zahtev vlasnika: "pozicija
+  // tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%"). Na punoj širini prvi
+  // tab stoji tačno na levoj ivici sadržaja — to poravnanje je bilo cilj cele `leftColumnWidth`
+  // računice (v1.65→v1.95, tri pokušaja). Čim `<main>` dobije `max-width` i `mx-auto`, njegova
+  // leva ivica se pomeri udesno, a traka tabova ostane gde je bila — pa se poravnanje gubi tačno
+  // kod korisnika koji je izabrao užu širinu.
+  //
+  // MERI SE, NE RAČUNA. Isti zaključak kao kod `leftColumnWidth` iznad: leva ivica `<main>`-a
+  // zavisi od previše promenljivih stanja (širina bočne trake, otvoren/zatvoren desni panel,
+  // `push` naspram `overlay` režima, izabrana granica širine) da bi se pouzdano izračunala.
+  // `ResizeObserver` nad samim `<main>`-om hvata svaku od tih promena, jer svaka menja njegovu
+  // širinu; pozicija se onda čita iz stvarnog `getBoundingClientRect()`.
+  //
+  // Poravnava se SAMO leva ivica — namerno. I na punoj širini traka tabova ide do polja za
+  // pretragu, dakle preko prostora desnog panela; to je "logika kao u prikazu 100%" i ne menja se.
+  const mainRef = useRef<HTMLElement>(null);
+  const [tabOffset, setTabOffset] = useState(0);
+  useEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    function measure() {
+      const main = mainRef.current;
+      const column = leftColumnRef.current;
+      if (!main) return;
+      // Traka tabova u `TopBar`-u počinje tačno na `leftColumnWidth` (spacer + padding + gap se
+      // međusobno ponište, vidi HEADER_PADDING_GAP tamo). Razlika do stvarne leve ivice sadržaja
+      // je pomeraj koji traci treba dodati.
+      const columnRight = column ? column.getBoundingClientRect().right : 0;
+      setTabOffset(Math.max(0, Math.round(main.getBoundingClientRect().left - columnRight)));
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Desni panel se pojavljuje prema potrebi (dizajn dok. §5b — sažetak reda/"Povezano" traka),
   // ne podrazumevano otvoren. Jedini namerni auto-otvarač je M5 selekcija pretrage (§3.0e.3,
@@ -286,6 +321,7 @@ export default function Shell({
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
           <TopBar
             leftColumnWidth={leftColumnWidth}
+            tabOffset={tabOffset}
             rightPanelOpen={rightPanelOpen}
             onToggleRightPanel={toggleRightPanelForCurrentModule}
             layoutProps={{
@@ -378,6 +414,7 @@ export default function Shell({
                     pa se pri užoj širini vidi `--bg` sa strane i granica čita kao namerna, ne kao
                     prazan hod. */}
                 <main
+                  ref={mainRef}
                   id="tt-main-content"
                   style={mainWidth === 'full' ? undefined : { maxWidth: `${mainWidth}px` }}
                   className="mx-auto w-full flex-1 overflow-y-auto bg-panel"

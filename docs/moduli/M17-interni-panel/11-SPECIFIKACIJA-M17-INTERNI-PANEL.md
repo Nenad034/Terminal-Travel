@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.47 — Traka tabova prati suženi centralni sadržaj (2.9.2026, isti dan kao v2.46, na zahtev vlasnika: "pozicija tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%"). Dopuna izbora širine iz v2.46: prvi tab ostaje poravnat sa levom ivicom sadržaja u svakoj od četiri širine. Obrazloženje i način merenja: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6b.1.
+
 **Verzija:** 2.46 — Lični izbor širine centralnog sadržaja (2.9.2026, na zahtev vlasnika: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu"). Puna širina ostaje podrazumevana i nepromenjena; korisnik može da izabere gornju granicu 1680 / 1440 / 1280px iz postojećeg "Customize Layout" menija. Vrednosti, obrazloženje i razlog zašto je to granica a ne procenat: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6b.1 (novo). Pamti se u `UserPreference` (M1 §3.9, ključ `main_content_max_width`), dakle po nalogu a ne po browseru — isti mehanizam kao `right_panel_display_mode`. Implementirano u istom prolazu (`Shell.tsx`, `CustomizeLayoutButton.tsx`), nije spec-pre-koda.
 
 **Verzija:** 2.45 — Napomena predstavnika sa terena izdvojeno vidljiva u kartici Beleške (1.9.2026, vlasnikova odluka, M5 spec v2.02 §4.6). Jedna lista, ne drugi ekran: beleška čiji je `origin = FIELD_REP` dobija bojenu levu ivicu i oznaku "sa terena — predstavnik", iznad liste stoji brojač ("ukupno N · sa terena M") i prekidač "prikaži samo napomene sa terena". Poreklo se ne bira u formi — izvodi se iz uloge autora na API strani, pa ekran nema šta da pogreši.

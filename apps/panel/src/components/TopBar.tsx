@@ -92,11 +92,15 @@ const HEADER_PADDING_GAP = 12; // header `px-2` (8px) + `gap-1` (4px) pre spacer
 
 export default function TopBar({
   leftColumnWidth,
+  tabOffset,
   rightPanelOpen,
   onToggleRightPanel,
   layoutProps,
 }: {
   leftColumnWidth: number;
+  /** Razmak od leve ivice centralne kolone do leve ivice suženog sadržaja (Shell.tsx,
+   * 2.9.2026) — 0 kad je izabrana puna širina, pa je ponašanje tada nepromenjeno. */
+  tabOffset: number;
   rightPanelOpen: boolean;
   onToggleRightPanel: () => void;
   layoutProps: Omit<ComponentProps<typeof CustomizeLayoutButton>, 'rightPanelOpen' | 'onToggleRightPanel'>;
@@ -182,7 +186,11 @@ export default function TopBar({
           )}
         </button>
       </div>
-      <div className="flex h-full min-w-0 flex-1">
+      {/* Traka tabova prati levu ivicu sadržaja kad je on sužen (2.9.2026, na zahtev vlasnika:
+          "pozicija tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%").
+          `paddingLeft` umesto pomeranja celog kontejnera — tabovi se pomeraju udesno, a prostor
+          koji ostaje levo i dalje pripada istom flex-detetu, pa se ništa iza njega ne pomera. */}
+      <div className="flex h-full min-w-0 flex-1" style={tabOffset > 0 ? { paddingLeft: tabOffset } : undefined}>
         <TabBar />
       </div>
       <button
