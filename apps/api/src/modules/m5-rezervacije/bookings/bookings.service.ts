@@ -585,6 +585,23 @@ export class BookingsService {
         items: {
           include: {
             guests: { select: { id: true, guestFirstName: true, guestLastName: true, guestProfileId: true } },
+            // §4.5 dopuna (2.9.2026, na zahtev vlasnika: "kod aranžmana treba da se navede i tip
+            // smeštajne jedinice i usluga koja je uplaćena") — tip sobe i usluga (pansion) NISU
+            // polja na `BookingItem`, nego žive u ugovoru: `RateLine.boardType` i
+            // `ContractPeriod.roomType` (M3). Zato se dohvataju kroz `rateLine`, ne dodaju kao
+            // nova kolona — snapshot cene već pokazuje na tačan red cenovnika, pa je to i
+            // jedini tačan izvor onoga što je STVARNO ugovoreno i naplaćeno.
+            //
+            // `rateLineId` je opcion: stavke koje dolaze preko M4 (spoljni API) nemaju red
+            // cenovnika, pa za njih ova polja ostaju `null`. To NIJE greška nego stvarno stanje
+            // — panel tada ne prikazuje ništa umesto da pogađa (M5 spec §4.5).
+            rateLine: {
+              select: {
+                boardType: true,
+                occupancy: true,
+                contractPeriod: { select: { roomType: true } },
+              },
+            },
             product: {
               select: {
                 id: true,
@@ -606,10 +623,22 @@ export class BookingsService {
     const withResolvedProduct = {
       ...booking,
       items: booking.items.map((item) => {
-        if (!item.product) return item;
+        // `rateLine` se izravnava u tri polja na samoj stavci umesto da se prosledi ugnežden —
+        // pozivalac (panel, M7 portal, spoljni integrator) ne treba da poznaje strukturu M3
+        // ugovora da bi prikazao "dvokrevetna soba, polupansion".
+        const { rateLine, ...itemWithoutRateLine } = item as typeof item & {
+          rateLine?: { boardType: string; occupancy: string; contractPeriod: { roomType: string } } | null;
+        };
+        const contracted = {
+          roomType: rateLine?.contractPeriod?.roomType ?? null,
+          boardType: rateLine?.boardType ?? null,
+          occupancy: rateLine?.occupancy ?? null,
+        };
+        if (!item.product) return { ...itemWithoutRateLine, ...contracted };
         const { translations, ...product } = item.product;
         return {
-          ...item,
+          ...itemWithoutRateLine,
+          ...contracted,
           product: { ...product, name: resolveTranslation(translations ?? [], 'sr')?.name ?? null },
         };
       }),

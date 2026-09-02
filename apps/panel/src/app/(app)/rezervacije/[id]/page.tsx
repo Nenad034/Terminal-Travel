@@ -16,6 +16,7 @@ import AranzmanItemCard, { CandidateProduct } from './AranzmanItemCard';
 import BookingItemGuestsEditor from './BookingItemGuestsEditor';
 import CommunicationFilterList from './CommunicationFilterList';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
+import { formatCountry, formatBoard, formatRoomType, formatOccupancy } from '@/lib/travel-labels';
 import OverviewLayoutSwitch from './OverviewLayoutSwitch';
 // Ključ i tip dolaze iz NEUTRALNOG modula, ne iz `OverviewLayoutSwitch.tsx` — vidi obrazloženje
 // u `overview-layout.ts`; uvoz konstante iz `'use client'` fajla ovde tiho daje pogrešnu vrednost.
@@ -49,6 +50,12 @@ interface BookingItem {
   stayFrom?: string;
   stayTo?: string;
   unitCount?: number;
+  // M5 spec §4.5 dopuna (2.9.2026) — tip smeštajne jedinice i usluga (pansion) iz ugovora
+  // (`RateLine`/`ContractPeriod`, M3). `null` za stavke koje dolaze preko M4 spoljnog API-ja —
+  // one nemaju red cenovnika, pa se ništa ne prikazuje umesto da se pogađa.
+  roomType?: string | null;
+  boardType?: string | null;
+  occupancy?: string | null;
   product?: BookingItemProduct | null;
   guests?: BookingItemGuest[];
   // M9 spec §4 — predstavnik (vodič) na destinaciji za tu stavku.
@@ -625,7 +632,11 @@ export default async function BookingDetailPage(props: {
                   (novac, veze ka drugim modulima). Bez ovoga oko putuje preko cele širine
                   ekrana za svaki red. `xl:` a ne `lg:` — na 1024px dve kolone stisnu tabelu
                   uplata do prelamanja iznosa. */}
-              <div className="grid gap-x-7 gap-y-6 xl:grid-cols-[1.5fr_1fr]">
+              {/* Jednake kolone (2.9.2026, na zahtev vlasnika: "leva i desna strana neka budu
+                  iste širine") — poništava raniji odnos 1.5:1. Desna kolona je u međuvremenu
+                  dobila dovoljno sadržaja (uplate, povezano, reklamacije, predstavnici,
+                  vlasništvo) da uža kolona više nije bila opravdana. */}
+              <div className="grid gap-x-7 gap-y-6 xl:grid-cols-2">
                 <div className="space-y-6">
                   <div>
                     <SectionHeading
@@ -1193,9 +1204,21 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
               {/* Destinacija, termin, noćenja i broj putnika u JEDNOM redu sitnog teksta umesto
                   u mreži od četiri polja sa sopstvenim oznakama — na Pregledu se ti podaci
                   čitaju kao rečenica, ne porede se kolonski. */}
+              {/* Tip smeštajne jedinice i usluga stoje u SVOM redu, iznad reda sa destinacijom i
+                  datumima (2.9.2026, na zahtev vlasnika) — to je ono što je stvarno kupljeno i
+                  ono oko čega gost najčešće zove ("da li imam doručak?"), pa ne sme da se izgubi
+                  na kraju niza tačkica sa ostalim detaljima. Prikazuje se samo kad postoji: za
+                  stavke iz spoljnog API-ja (M4) ovih podataka nema i red se ne crta. */}
+              {(item.roomType || item.boardType) && (
+                <div className="mt-0.5 text-[11px] text-ink-dim">
+                  {[formatRoomType(item.roomType), formatBoard(item.boardType), formatOccupancy(item.occupancy)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              )}
               <div className="mt-0.5 text-[11px] text-ink-faint">
                 {[
-                  [item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ') || null,
+                  [item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ') || null,
                   item.stayFrom
                     ? `${new Date(item.stayFrom).toLocaleDateString('sr-RS')}${item.stayTo && item.stayTo !== item.stayFrom ? ` — ${new Date(item.stayTo).toLocaleDateString('sr-RS')}` : ''}`
                     : null,
@@ -1230,7 +1253,18 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
               </span>
               <div>
                 <div className="text-sm font-semibold text-ink">{item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}</div>
-                <div className="mt-0.5 text-xs text-ink-faint">{[item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ')}</div>
+                <div className="mt-0.5 text-xs text-ink-faint">
+                  {[item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
+                </div>
+                {/* Isti podaci i u zatečenom izgledu — dva izgleda iste kartice ne smeju da se
+                    raziđu po SADRŽAJU, samo po rasporedu (vidi `OverviewLayoutSwitch.tsx`). */}
+                {(item.roomType || item.boardType) && (
+                  <div className="mt-0.5 text-xs text-ink-dim">
+                    {[formatRoomType(item.roomType), formatBoard(item.boardType), formatOccupancy(item.occupancy)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
