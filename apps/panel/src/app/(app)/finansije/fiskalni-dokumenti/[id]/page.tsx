@@ -148,6 +148,11 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
                     <span className="flex items-center gap-2 text-xs text-ink-faint">
                       {p.receivedAt && new Date(p.receivedAt).toLocaleDateString('sr-RS')}
                       <StatusBadge status={p.status} />
+                      {p.checkDetails && p.checkDetails.length > 0 && (
+                        <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                          specifikacija →
+                        </a>
+                      )}
                     </span>
                   </div>
                 ))}

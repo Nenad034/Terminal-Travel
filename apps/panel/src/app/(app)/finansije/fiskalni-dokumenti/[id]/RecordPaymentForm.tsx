@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react';
 import { recordPayment, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
+import DateField from '@/components/DateField';
 
 const initialState: FormState = { error: null };
 
@@ -72,7 +73,11 @@ export default function RecordPaymentForm({
         <Field label="poziv na broj (opciono)">
           <input name="reference" className="input w-full" />
         </Field>
-        <div className="flex items-end">
+        {/* Dopuna (2.9.2026, na zahtev vlasnika: "dugme zabeleži uplatu nije u pravcu polja
+            pored") — nevidljiva labela iste visine kao kod suseda (Field ispod) da dugme sedi
+            na istoj visini kao sadržaj input polja, ne poravnato uz vrh reda. */}
+        <div>
+          <span className="mb-1 block text-xs invisible">.</span>
           <SubmitButton />
         </div>
       </div>
@@ -100,22 +105,36 @@ export default function RecordPaymentForm({
 // M10 spec §5.2 dopuna (2.9.2026) — "specifikacija čekova": jedna uplata metodom ČEK može biti
 // pokrivena više fizičkih čekova (banka/iznos/broj čeka/datum realizacije po redu), zbir mora
 // pokriti ceo iznos uplate (proveren na serveru, `PaymentsService.recordManualPayment`).
+// Redovi drže SOPSTVENU `bankId` u state (kontrolisan select) — ne zato što forma treba React
+// state za slanje (i dalje šalje preko `name="checkBankId"`), nego isključivo da "dodaj ček"
+// može da predloži banku iz prethodnog reda (vlasnikov zahtev — čekovi iste specifikacije su
+// najčešće iz iste banke).
+let nextRowId = 1;
 function CheckDetailsFields({ banks }: { banks: BankOption[] }) {
-  const [rows, setRows] = useState([0]);
-  let nextKey = rows.length;
+  const [rows, setRows] = useState<{ id: number; bankId: string }[]>([{ id: 0, bankId: '' }]);
+
+  function addRow() {
+    setRows((r) => [...r, { id: nextRowId++, bankId: r[r.length - 1]?.bankId ?? '' }]);
+  }
 
   return (
     <div className="space-y-2 rounded border border-border bg-panel2 p-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-ink">Specifikacija čekova</span>
-        <button type="button" onClick={() => setRows((r) => [...r, nextKey++])} className="flex items-center gap-1 text-xs text-accent hover:underline">
+        <button type="button" onClick={addRow} className="flex items-center gap-1 text-xs text-accent hover:underline">
           <Icon name="add" /> dodaj ček
         </button>
       </div>
-      {rows.map((rowKey, i) => (
-        <div key={rowKey} className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      {rows.map((row) => (
+        <div key={row.id} className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Field label="banka">
-            <select name="checkBankId" required className="input w-full">
+            <select
+              name="checkBankId"
+              value={row.bankId}
+              onChange={(e) => setRows((r) => r.map((x) => (x.id === row.id ? { ...x, bankId: e.target.value } : x)))}
+              required
+              className="input w-full"
+            >
               <option value="">— izaberite banku —</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -131,11 +150,11 @@ function CheckDetailsFields({ banks }: { banks: BankOption[] }) {
             <input name="checkNumber" required className="input w-full" />
           </Field>
           <Field label="datum realizacije">
-            <input name="checkClearanceDate" type="date" required className="input w-full" />
+            <DateField name="checkClearanceDate" required />
           </Field>
           <div className="flex items-end">
             {rows.length > 1 && (
-              <button type="button" onClick={() => setRows((r) => r.filter((k) => k !== rowKey))} className="text-xs text-danger hover:underline">
+              <button type="button" onClick={() => setRows((r) => r.filter((x) => x.id !== row.id))} className="text-xs text-danger hover:underline">
                 ukloni
               </button>
             )}

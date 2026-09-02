@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 
 describe('PaymentsService (M10 spec §5.2/§7)', () => {
@@ -6,7 +6,7 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
     const prisma: any = {
       booking: { findUnique: jest.fn() },
       quote: { findUnique: jest.fn() },
-      payment: { create: jest.fn(), findFirst: jest.fn(), update: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() },
+      payment: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
     const bookings = { confirmQuote: jest.fn(), updatePaymentStatus: jest.fn() };
@@ -114,6 +114,28 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
       );
 
       expect(prisma.payment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ bankId: 'bank-1' }) }));
+    });
+  });
+
+  // Dopuna (2.9.2026, na zahtev vlasnika — pregled/štampa specifikacije čekova).
+  describe('findOne (§5.2 dopuna 2.9.2026)', () => {
+    it('vraća uplatu sa bankom, specifikacijom čekova i rezervacijom', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue({ id: 'pay-1', method: 'CHECK', checkDetails: [{ id: 'c1' }], booking: { bookingNumber: 'TT-1' } });
+
+      const result = await service.findOne('pay-1');
+
+      expect(prisma.payment.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'pay-1' } }),
+      );
+      expect(result.id).toBe('pay-1');
+    });
+
+    it('baca 404 kad uplata ne postoji', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOne('nepostojeca')).rejects.toThrow(NotFoundException);
     });
   });
 

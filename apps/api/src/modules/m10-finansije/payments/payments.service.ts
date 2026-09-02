@@ -31,6 +31,18 @@ export class PaymentsService {
     });
   }
 
+  // Dopuna (2.9.2026, na zahtev vlasnika — "omogućiti pregled i štampanje specifikacije
+  // čekova") — jedna uplata sa punom specifikacijom, uklj. rezervaciju (za broj rezervacije na
+  // štampanoj strani) i banku po svakom redu specifikacije.
+  async findOne(id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: { bank: true, checkDetails: { include: { bank: true } }, booking: { select: { bookingNumber: true, buyerName: true } } },
+    });
+    if (!payment) throw new NotFoundException(`Uplata ${id} nije pronađena.`);
+    return payment;
+  }
+
   // §5.2, §9 — ručan unos; CARD (webhook) se beleži isključivo preko /payments/card/*.
   // Dopuna (2.9.2026, na zahtev vlasnika) — CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN dodati; zbir
   // `checkDetails` (specifikacija čekova) mora pokrivati ceo `amount` — provera ovde, ne u DTO-u

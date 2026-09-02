@@ -591,6 +591,11 @@ export default async function BookingDetailPage(props: {
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-sm font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>
                           <Badge label={p.status} />
+                          {p.checkDetails && p.checkDetails.length > 0 && (
+                            <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">
+                              specifikacija →
+                            </a>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -943,6 +948,11 @@ function PaymentsSummaryBlock({ payments, totalPrice, paidTotal, currency }: { p
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>
                 <Badge label={p.status} />
+                {p.checkDetails && p.checkDetails.length > 0 && (
+                  <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">
+                    specifikacija →
+                  </a>
+                )}
               </div>
             </div>
           ))}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
@@ -24,6 +24,14 @@ export class PaymentsController {
   @RequirePermission('M10', 'payment', 'VIEW')
   findAll(@Query('bookingId') bookingId: string | undefined) {
     return this.payments.findAll({ bookingId });
+  }
+
+  // Dopuna (2.9.2026) — pregled/štampa specifikacije čekova (kartica "Specifikacija čekova").
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('M10', 'payment', 'VIEW')
+  findOne(@Param('id') id: string) {
+    return this.payments.findOne(id);
   }
 
   @Post()
