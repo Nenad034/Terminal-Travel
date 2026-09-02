@@ -93,6 +93,18 @@
      elementi 3:1) pre primene, isti princip kao ranija "Horizont"/GitHub paleta. */
   --bg: #fafafa;
   --panel: #ffffff;
+  /* "Utonula" površina (2.9.2026, na zahtev vlasnika: "sektori — naslovni deo tamnija nijansa a
+     sadržaj ispod svetlija"). ČETVRTA nijansa, pored --bg / --panel / --panel-2.
+
+     Zašto nije mogao `--panel-2`: on je "traka/hrom", pa je u SVETLOM modu tamniji od sadržaja, a
+     u dim/tamnom SVETLIJI (nasleđena VS Code logika — trake su svetlije od editora). Vlasnik traži
+     jedinstven odnos u sva tri moda: naslov uvek tone, sadržaj se uvek diže. To je Material logika
+     visine — što je bliže čitaocu, to je svetlije.
+
+     `--sunken` je zato UVEK tamniji od `--panel`. Koristi ga traka naslova sekcije i sažetak na
+     vrhu kartice Pregled (dizajn dok. §6h). `--panel-2` ostaje nepromenjen i dalje služi bočnim
+     panelima i zaglavljima tabela — dve različite uloge, dve boje. */
+  --sunken: #eeeef0;
   --panel-2: #f4f4f5;
   --bar: #f4f4f5;
   /* Vraćeno iznad 3:1 praga (2.9.2026, na zahtev vlasnika, posle uporednog prikaza četiri jačine).
@@ -156,6 +168,7 @@
   :root:not([data-theme='light']) {
     --bg: #09090b;
     --panel: #18181b;
+    --sunken: #131316;
     --panel-2: #27272a;
     --bar: #27272a;
     /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
@@ -186,6 +199,7 @@
 :root[data-theme='dark'] {
   --bg: #09090b;
   --panel: #18181b;
+  --sunken: #131316;
   --panel-2: #27272a;
   --bar: #27272a;
   /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
@@ -213,6 +227,7 @@
 :root[data-theme='light'] {
   --bg: #fafafa;
   --panel: #ffffff;
+  --sunken: #eeeef0;
   --panel-2: #f4f4f5;
   --bar: #f4f4f5;
   /* Mora ostati identično bloku `:root` iznad (zamka 1.7). Obrazloženje: komentar uz `--border`
@@ -250,6 +265,7 @@
 :root[data-theme='dim'] {
   --bg: #0f172a;
   --panel: #1e293b;
+  --sunken: #16202f;
   --panel-2: #334155;
   --bar: #334155;
   /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind

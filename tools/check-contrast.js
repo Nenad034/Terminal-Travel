@@ -113,7 +113,7 @@ function readTokenBlocks(css) {
 /* --- šta se meri protiv čega ------------------------------------------------------------- */
 
 /** Pozadine uz koje se tekst stvarno pojavljuje u panelu. */
-const SURFACES = ['--bg', '--panel', '--panel-2', '--bar'];
+const SURFACES = ['--bg', '--panel', '--panel-2', '--bar', '--sunken'];
 
 /**
  * Parovi tekst/pozadina koji nisu "svaki tekst na svakoj površini":

@@ -20,6 +20,9 @@ const config: Config = {
         // tamnije od svega") — TopBar.tsx/StatusBar.tsx (i ono što je unutar njih, npr.
         // TabBar.tsx), NIJE isto što i `panel-2` (Sidebar.tsx/RightPanel.tsx), vidi globals.css.
         bar: 'var(--bar)',
+        // "Utonula" povrsina (2.9.2026) — traka naslova sekcije i sazetak na kartici Pregled.
+        // UVEK tamnija od `panel`, u sva tri moda; obrazlozenje uz :root u globals.css.
+        sunken: 'var(--sunken)',
         border: 'var(--border)',
         ink: {
           DEFAULT: 'var(--text)',

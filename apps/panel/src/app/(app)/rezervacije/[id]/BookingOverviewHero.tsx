@@ -37,8 +37,11 @@ export default function BookingOverviewHero({
   badges: { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' }[];
   facts: HeroFact[];
 }) {
+  // Sažetak stoji na "utonuloj" površini (2.9.2026, na zahtev vlasnika: "centralni sektor
+  // unutra u tamnijoj nijansi") — ista uloga kao traka naslova sekcije ispod: to je okvir oko
+  // podataka, ne sami podaci. Sadržaj sekcija je jedina površina koja se "diže".
   return (
-    <div className="mb-5 rounded-lg border border-border bg-panel p-4">
+    <div className="mb-5 rounded-lg border border-border bg-sunken p-4">
       <div className="mb-3.5 flex flex-wrap items-start gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 font-mono text-base font-semibold text-ink">
@@ -127,7 +130,7 @@ export function SectionHeading({
   linkTitle?: string;
 }) {
   return (
-    <h2 className="mb-2 flex items-center gap-2 rounded-t border-b border-border bg-panel-2 px-2.5 py-1.5 text-[13px] font-semibold text-ink">
+    <h2 className="flex items-center gap-2 border-b border-border bg-sunken px-2.5 py-1.5 text-[13px] font-semibold text-ink">
       {title}
       {meta && <span className="font-mono text-[10px] font-normal text-ink-faint">{meta}</span>}
       {href && (
@@ -148,6 +151,35 @@ export function SectionHeading({
   );
 }
 
+// Sekcija kartice Pregled kao JEDAN objekat (2.9.2026, na zahtev vlasnika: "naslovni deo tamnija
+// nijansa a sadržaj ispod svetlija"). Do sada je traka naslova imala boju a sadržaj ispod nje je
+// sedeo direktno na pozadini strane — sekcija je čitala kao "traka, pa ništa", ne kao celina.
+//
+// Zajednički okvir sa `overflow-hidden` je ono što drži oblik: traka i telo nemaju sopstvena
+// zaobljenja nego ih dobijaju od roditelja, pa se ne mogu razići kad se nekoj sekciji promeni
+// sadržaj. Telo nosi `bg-panel` (jedina površina koja se "diže"), traka `bg-sunken`.
+export function OverviewSection({
+  title,
+  meta,
+  href,
+  linkLabel,
+  linkTitle,
+  children,
+}: {
+  title: string;
+  meta?: string;
+  href?: string;
+  linkLabel?: string;
+  linkTitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-panel">
+      <SectionHeading title={title} meta={meta} href={href} linkLabel={linkLabel} linkTitle={linkTitle} />
+      <div className="px-2.5 py-2">{children}</div>
+    </div>
+  );
+}
 // Sekcija sa više od pet redova se skraćuje na skrol umesto da razvuče ekran (2.9.2026, na
 // zahtev vlasnika: "u sektorima gde ima više od 5 redova uvesti nevidljivi skroler i link prema
 // tabu gde se nalaze sve informacije za taj sektor").
