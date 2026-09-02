@@ -5,11 +5,15 @@ import { useState } from 'react';
 import Icon from './Icon';
 import DateField from './DateField';
 
-// M5 spec §3.0c/§3.0d ("vođena pretraga za 9 vrsta proizvoda") + vlasnikov predlog 22.8.2026
-// ("ikone... popup u kom definišemo vrednosti... klik na pretraži... dugme izmeni"). Šest opštih
-// polja važi za sve tipove; četiri tip-specifična polja (dopunjeno 22.8.2026, M5 spec §11 v1.28
-// konačno ožičen u `SearchQueryDto`/`SearchService`) prikazuju se SAMO za tip kom pripadaju —
-// nikad sva odjednom, da forma ne postane duga lista polja koja većini upita ne znače ništa.
+// M5 spec §3.0c/§3.0d ("vođena pretraga za 9 vrsta proizvoda"). Šest opštih polja važi za sve
+// tipove; tip-specifična polja (M5 spec §11 v1.28, ožičena u `SearchQueryDto`/`SearchService`)
+// prikazuju se SAMO za tip kom pripadaju — nikad sva odjednom, da forma ne postane duga lista
+// polja koja većini upita ne znače ništa.
+//
+// Do 2.9.2026 je ovo bio iskačući prozor (popup) koji se otvarao iz ikonice u LEVOM panelu.
+// M5 spec §3.0g.1 / dizajn dok. §6d.1 (vlasnikova odluka) seli formu u CENTRALNI panel, ispod
+// reda ikonica: forma više ne preklapa ekran, stoji u toku stranice i skuplja se u čitljiv red
+// kriterijuma čim rezultati stignu (§3.0g.2, SearchCriteriaChip.tsx).
 // Namerno IZOSTAJU `origin_city`/`trip_cost` — `origin_city` bi filtrirao ugnježđen
 // `attributes.route` čiji tačan oblik M2 spec §2.3 nikad nije precizirao, `trip_cost` (M2 spec
 // §2.3) eksplicitno NIJE svojstvo proizvoda nego parametar ponude — filtriranje proizvoda po
@@ -58,16 +62,20 @@ export function valuesFromSearchParams(sp: { get(key: string): string | null }):
   };
 }
 
-export default function SearchCriteriaPopup({
+export default function SearchCriteriaForm({
   label,
   types,
   initialValues,
-  onClose,
+  onSubmitted,
+  onCancel,
 }: {
   label: string;
   types: string[];
   initialValues: SearchCriteriaValues;
-  onClose: () => void;
+  /** Pozvano posle uspešnog `pretraži` — roditelj skuplja formu (§3.0g.2). */
+  onSubmitted?: (values: SearchCriteriaValues) => void;
+  /** Prikazuje "otkaži" samo kad ima šta da se vrati (već postoji aktivna pretraga). */
+  onCancel?: () => void;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -89,20 +97,23 @@ export default function SearchCriteriaPopup({
       else next.delete(key);
     }
     router.push(`/rezervacije/pretraga?${next.toString()}`);
-    onClose();
+    onSubmitted?.(values);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg border border-border bg-panel p-4 shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Pretraga — {label}</h2>
-          <button onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
+    <div className="mx-auto mb-4 w-full max-w-3xl rounded-lg border border-border bg-panel p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-ink">Pretraga — {label}</h2>
+        {onCancel && (
+          <button onClick={onCancel} title="Zatvori formu, zadrži postojeće rezultate" className="text-ink-faint hover:text-ink">
             <Icon name="close" />
           </button>
-        </div>
+        )}
+      </div>
 
-        <div className="flex flex-col gap-3 text-xs">
+      {/* Dve kolone od `sm` naviše — forma je sad u centralnom panelu, ima širine; jedna
+          kolona kao u nekadašnjem uskom popup-u bi je bez razloga izdužila. */}
+      <div className="grid gap-3 text-xs sm:grid-cols-2">
           <label className="text-ink-faint">
             država odredišta <span className="text-danger">*</span>
             <input
@@ -274,15 +285,14 @@ export default function SearchCriteriaPopup({
           )}
         </div>
 
-        {!destinationValid && <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>}
-        <button
-          onClick={submit}
-          disabled={!destinationValid}
-          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Icon name="search" /> pretraži
-        </button>
-      </div>
+      {!destinationValid && <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>}
+      <button
+        onClick={submit}
+        disabled={!destinationValid}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <Icon name="search" /> pretraži
+      </button>
     </div>
   );
 }

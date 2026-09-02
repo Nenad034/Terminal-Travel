@@ -3,18 +3,19 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
-import SearchCriteriaPopup, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaPopup';
-import { PRODUCT_ICONS, type ProductIconDef } from '@/lib/search-product-types';
 
-// Dizajn dok. §5b/§6d — vođena pretraga i filteri žive u levom panelu, ne u centru (centar
-// ostaje isključivo prikaz rezultata). Prvi, uzak rez (19.8.2026, na zahtev vlasnika):
-// jedan zajednički <form> (bez toga bi drugi deo izgubio polja prvog na submit), dve
-// sklopive sekcije. NAMERNO van obima ovog rezanja (upisano u M17/M5 spec, sledeći koraci):
-// devet ikonica po tipu proizvoda (§5b), sačuvani prikazi. "Refundabilno/Nerefundabilno" brzi
-// filter iz §6d i dalje nije uključen — `SearchResultOffer.is_refundable` je specificiran (M5
-// spec v1.32) ali nikad implementiran na `search.service.ts` (proverено 26.8.2026 pri dopuni
-// ispod) — zahteva zaseban prolaz (izračunavanje iz `CancellationRule` prozora za CONTRACTED,
-// M5 spec §3.0c.3a), zabeleženo u backlogu, ne prećutno izostavljeno.
+// M5 spec §3.0g.1 / dizajn dok. §6d.1 (vlasnikova odluka, 2.9.2026) — levi panel sadrži
+// ISKLJUČIVO filtere. Ikonice devet vrsta proizvoda i sama forma pretrage su se do tada nalazile
+// ovde; sad žive u centralnom panelu (SearchPanel.tsx). Razlog je vlasnikov: forma je bila jedan
+// zajednički iskačući prozor sa devetak polja za svih devet vrsta, a "ovo nam je među
+// najvažnijim modulima, odavde sve kreće".
+//
+// Filteri se menjaju prema AKTIVNOJ vrsti proizvoda (§3.0g.1 tačka 3) — broj presedanja i
+// udaljenost od plaže nemaju šta jedno kraj drugog. "Refundabilno/Nerefundabilno" brzi filter iz
+// §6d i dalje nije uključen — `SearchResultOffer.is_refundable` je specificiran (M5 spec v1.32)
+// ali nikad implementiran na `search.service.ts` — zahteva zaseban prolaz (izračunavanje iz
+// `CancellationRule` prozora za CONTRACTED, M5 spec §3.0c.3a), zabeleženo u backlogu, ne
+// prećutno izostavljeno.
 //
 // Dopuna (26.8.2026, na zahtev vlasnika: "u levom panelu za smeštaj dodajte još filtera") —
 // dva filtera iz M5 spec §3.0c.2/§3.0c.3 koja su bila specificirana ali nikad ožičena:
@@ -66,57 +67,16 @@ export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(true);
-  // Popup po tipu (22.8.2026, na zahtev vlasnika) — zamenjuje raniji "Pretraga" formular koji
-  // je uvek stajao otvoren u traci; polja se sad unose u modalu, aktivna pretraga se prikazuje
-  // kao chip na vrhu centralnog panela (SearchCriteriaChip.tsx u page.tsx), sa dugmetom "izmeni"
-  // koje ponovo otvara ISTI ovaj popup, samo iz drugog mesta (isti obrazac, deljena komponenta).
-  const [popup, setPopup] = useState<ProductIconDef | null>(null);
-
   const currentTypes = sp.getAll('type');
+  const showAccommodationFilters = currentTypes.includes('ACCOMMODATION');
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
-      <div className="grid grid-cols-3 gap-1 border-b border-border pb-2">
-        {PRODUCT_ICONS.map((p) => {
-          const active = p.types.length > 0 && p.types.length === currentTypes.length && p.types.every((t) => currentTypes.includes(t));
-          if (p.locked) {
-            return (
-              <span
-                key={p.label}
-                title={`${p.label} — ${p.locked}`}
-                className="flex h-9 flex-col items-center justify-center gap-0.5 rounded text-ink-faint opacity-40"
-              >
-                <Icon name={p.icon} />
-                <span className="truncate text-xs leading-none">{p.label}</span>
-              </span>
-            );
-          }
-          return (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setPopup(p)}
-              title={p.label}
-              className={`flex h-9 flex-col items-center justify-center gap-0.5 rounded ${
-                active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
-              }`}
-            >
-              <Icon name={p.icon} />
-              <span className="truncate text-xs leading-none">{p.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {popup && (
-        <SearchCriteriaPopup
-          label={popup.label}
-          types={popup.types}
-          initialValues={active(popup, currentTypes) ? valuesFromSearchParams(sp) : emptyValues()}
-          onClose={() => setPopup(null)}
-        />
+      {currentTypes.length === 0 && (
+        <p className="text-ink-faint">Izaberite vrstu proizvoda u centralnom panelu — filteri se pojavljuju uz aktivnu pretragu.</p>
       )}
 
+      {currentTypes.length > 0 && (
       <form
         className="contents"
         onSubmit={(e) => {
@@ -154,7 +114,7 @@ export default function SearchSidebarPanel() {
             </select>
           </label>
 
-          {currentTypes.includes('ACCOMMODATION') && (
+          {showAccommodationFilters && (
             <>
               <label className="text-ink-faint">
                 vrsta usluge
@@ -205,31 +165,9 @@ export default function SearchSidebarPanel() {
           </button>
         </Section>
       </form>
+      )}
     </div>
   );
-}
-
-function active(p: ProductIconDef, currentTypes: string[]): boolean {
-  return p.types.length > 0 && p.types.length === currentTypes.length && p.types.every((t) => currentTypes.includes(t));
-}
-
-function emptyValues(): SearchCriteriaValues {
-  return {
-    destinationCountry: '',
-    destinationCity: '',
-    stayFrom: '',
-    stayTo: '',
-    adults: '2',
-    children: '0',
-    cabinClass: '',
-    minDriverAge: '',
-    durationNights: '',
-    cabinType: '',
-    tripType: 'ROUND_TRIP',
-    originCity: '',
-    returnDate: '',
-    flightLegs: '',
-  };
 }
 
 function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {

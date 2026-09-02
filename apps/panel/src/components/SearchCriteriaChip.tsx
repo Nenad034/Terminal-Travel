@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Icon from './Icon';
-import SearchCriteriaPopup, { valuesFromSearchParams } from './SearchCriteriaPopup';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from './SavedViewsSidebarPanel';
 import { useGroupSearchBuilder } from './GroupSearchBuilderContext';
@@ -24,10 +23,16 @@ function newViewId(): string {
   return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `v${Date.now()}${Math.random()}`;
 }
 
-// Sažetak aktivne pretrage na vrhu centralnog panela (22.8.2026, na zahtev vlasnika: "kreira
-// se link u kom se vidi šta se pretražuje i na kraju linka je dugme izmeni... klikom na izmeni
-// ponovo se otvara popup"). Deli ISTI `SearchCriteriaPopup` sa ikonicama u levom panelu
-// (SearchSidebarPanel.tsx) — samo drugi okidač (ovde: "izmeni" dugme, tamo: klik na ikonicu).
+// SKUPLJEN RED PRETRAGE (M5 spec §3.0g.2 / dizajn dok. §6d.1). Čim rezultati stignu, forma se
+// skuplja u ovaj jedan red — ali red MORA i dalje čitko prikazivati kriterijume. Skupljanje na
+// golo "+" je specifikacijom izričito ZABRANJENO: agent je u tom trenutku na telefonu sa gostom
+// i najčešće pitanje koje dobija je "šta ste ono uneli"; ekran koji to sakriva tera ga da otvara
+// formu samo da bi pročitao sopstveni upit.
+//
+// Uz kriterijume stoje dve radnje iz §3.0g.2 — "Poništi pretragu" (briše kriterijume i rezultate
+// SAMO ove vrste proizvoda, ne dira ostale ni desni panel, §3.0g.4) i "Osveži podatke" (§3.0g.3,
+// ponavlja isti upit i PRIJAVLJUJE razliku umesto da tiho zameni cenu) — plus ranije dogovoreni
+// "sačuvaj" i "dodaj u grupu", koji ostaju nepromenjeni.
 //
 // Dugme "Sačuvaj" (26.8.2026, na zahtev vlasnika: "omogućite čuvanje filtera pretrage kako bi
 // se vratili po želji, max 10 pretraga") — isti mehanizam/`UserPreference` ključ kao "Sačuvaj
@@ -39,9 +44,19 @@ function newViewId(): string {
 // Naziv se generiše SAM (dopuna, na zahtev vlasnika: "naziv sačuvanog filtera treba sam da se
 // generiše iz odabranih filtera") — isti sažetak koji već piše na samom chip-u (tip · destinacija
 // · datumi · broj osoba), bez posebnog polja za kucanje/popover-a — jedan klik čuva.
-export default function SearchCriteriaChip() {
+export default function SearchCriteriaChip({
+  onExpand,
+  onReset,
+  onRefresh,
+  refreshing,
+}: {
+  /** Otvara ugrađenu formu u centralnom panelu (SearchPanel.tsx) — zamena za nekadašnji popup. */
+  onExpand: () => void;
+  onReset: () => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   const sp = useSearchParams();
-  const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -142,8 +157,23 @@ export default function SearchCriteriaChip() {
         {destination && <span className="text-ink-dim">· {destination}</span>}
         {dates && <span className="text-ink-dim">· {dates}</span>}
         <span className="text-ink-dim">· {occupancy}</span>
-        <button onClick={() => setOpen(true)} className="ml-1 flex items-center gap-1 text-accent-strong hover:underline">
-          <Icon name="edit" /> izmeni
+        <button
+          onClick={onExpand}
+          title="Otvori formu pretrage"
+          className="ml-1 flex items-center gap-1 rounded border border-accent px-1.5 text-accent-strong hover:bg-accent hover:text-accent-ink"
+        >
+          <Icon name="add" />
+        </button>
+        <button onClick={onReset} title="Briše kriterijume i rezultate SAMO ove vrste proizvoda" className="flex items-center gap-1 text-ink-dim hover:text-danger">
+          <Icon name="clear-all" /> poništi pretragu
+        </button>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          title="Ponavlja isti upit i prijavljuje šta se promenilo (M5 §3.0g.3)"
+          className="flex items-center gap-1 text-accent-strong hover:underline disabled:opacity-50"
+        >
+          <Icon name="refresh" /> {refreshing ? 'osvežavam…' : 'osveži podatke'}
         </button>
         <div className="relative">
           <button
@@ -201,10 +231,6 @@ export default function SearchCriteriaChip() {
             </button>
           </div>
         </div>
-      )}
-
-      {open && (
-        <SearchCriteriaPopup label={label} types={types} initialValues={valuesFromSearchParams(sp)} onClose={() => setOpen(false)} />
       )}
     </>
   );

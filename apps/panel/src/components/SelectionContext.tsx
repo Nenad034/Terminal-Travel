@@ -40,6 +40,12 @@ export interface SelectionItem {
   destinationCountry?: string;
   boardTypeLabel?: string;
   roomLines?: SelectionRoomLine[];
+  /**
+   * M5 spec §3.0g.3 — nalaz poslednjeg "Osveži podatke": cena ove izabrane stavke se promenila
+   * ili je ponuda nestala iz odgovora. Prikazuje se NA STAVCI u desnom panelu, ne samo u listi
+   * rezultata — inače agent vidi upozorenje na mestu koje je već napustio.
+   */
+  priceChange?: { previous: number; current: number } | 'GONE';
 }
 
 interface SelectionContextValue {
@@ -47,6 +53,8 @@ interface SelectionContextValue {
   addItem: (item: SelectionItem) => void;
   removeItem: (key: string) => void;
   clear: () => void;
+  /** §3.0g.3 — upisuje nalaz osvežavanja na izabrane stavke; prazan objekat briše ranije nalaze. */
+  markPriceChanges: (changes: Record<string, { previous: number; current: number } | 'GONE'>) => void;
 }
 
 const SelectionContext = createContext<SelectionContextValue | null>(null);
@@ -70,7 +78,23 @@ export function SelectionProvider({ children, onFirstAdd }: { children: React.Re
     setItems([]);
   }
 
-  return <SelectionContext.Provider value={{ items, addItem, removeItem, clear }}>{children}</SelectionContext.Provider>;
+  function markPriceChanges(changes: Record<string, { previous: number; current: number } | 'GONE'>) {
+    setItems((prev) =>
+      prev.map((i) => {
+        const change = changes[i.key];
+        // Cena stavke se AŽURIRA na novu (stara ostaje vidljiva kroz `priceChange.previous`) —
+        // ne sme ostati prikazana cena koju provajder više ne garantuje. Ono što spec zabranjuje
+        // je TIHA zamena, ne zamena uz jasnu prijavu; upravo to `priceChange` i jeste.
+        if (change && change !== 'GONE') return { ...i, finalPrice: change.current, priceChange: change };
+        if (change === 'GONE') return { ...i, priceChange: 'GONE' as const };
+        return i.priceChange ? { ...i, priceChange: undefined } : i;
+      })
+    );
+  }
+
+  return (
+    <SelectionContext.Provider value={{ items, addItem, removeItem, clear, markPriceChanges }}>{children}</SelectionContext.Provider>
+  );
 }
 
 export function useSelection() {

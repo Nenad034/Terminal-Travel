@@ -681,7 +681,26 @@ function SummaryRow({ label, value, strong, tone }: { label: string; value: stri
 function SelectionRow({ item, onRemove }: { item: import('./SelectionContext').SelectionItem; onRemove: () => void }) {
   const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${item.finalPriceCurrency}`;
   return (
-    <div className="rounded-lg border border-border bg-panel p-2 text-xs">
+    <div
+      className={`rounded-lg border bg-panel p-2 text-xs ${item.priceChange ? 'border-warn ring-1 ring-warn' : 'border-border'}`}
+    >
+      {/* M5 spec §3.0g.3, poslednji pasus — ako osvežavanje pokaže da je cena IZABRANE stavke
+          promenjena, to se prikazuje NA TOJ STAVCI u desnom panelu, ne samo u listi rezultata:
+          inače agent vidi upozorenje na mestu koje je već napustio. */}
+      {item.priceChange === 'GONE' && (
+        <div className="mb-1 rounded bg-danger-bg px-1.5 py-1 text-[11px] font-semibold text-danger">
+          Ova ponuda više nije dostupna kod dobavljača.
+        </div>
+      )}
+      {item.priceChange && item.priceChange !== 'GONE' && (
+        <div className="mb-1 rounded bg-warn-bg px-1.5 py-1 text-[11px] text-ink">
+          <span className="font-semibold">Cena je promenjena:</span>{' '}
+          <span className="text-ink-faint line-through">{money(item.priceChange.previous)}</span>{' → '}
+          <span className={`font-mono font-semibold ${item.priceChange.current > item.priceChange.previous ? 'text-danger' : 'text-ok'}`}>
+            {money(item.priceChange.current)}
+          </span>
+        </div>
+      )}
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">

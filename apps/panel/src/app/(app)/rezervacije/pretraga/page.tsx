@@ -1,7 +1,10 @@
 import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
-import SearchCriteriaChip from '@/components/SearchCriteriaChip';
+import SearchPanel from '@/components/SearchPanel';
+import SearchRefreshNotice from '@/components/SearchRefreshNotice';
+import { findIconByTypes } from '@/lib/search-product-types';
+import { offerKey } from '@/lib/search-offer-key';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import AccommodationResultsMock from './AccommodationResultsMock';
@@ -125,6 +128,27 @@ export default async function SearchPage(
     children: Number(first(searchParams.children) ?? '0'),
   };
 
+  const isThingsToDo = types.length === 3 && ['EXCURSION', 'EVENT', 'TICKET'].every((t) => types.includes(t));
+  const singleType = types.length === 1 ? types[0] : null;
+  // Četiri kombinacije danas idu kroz hardkodovan mock prikaz (vidi napomenu niže), ostalo kroz
+  // pravi `GET /search`. Za skupljanje forme (§3.0g.2) oba se broje kao "ima rezultata".
+  const usesMock = ['ACCOMMODATION', 'FLIGHT', 'TRANSFER'].includes(singleType ?? '') || isThingsToDo;
+  const showsResults = hasQuery && !error && (usesMock || results.length > 0);
+
+  const activeIcon = findIconByTypes(types);
+
+  // M5 spec §3.0g.3 — snimak ponuda koji "Osveži podatke" poredi sa prethodnim. Gradi se samo iz
+  // PRAVIH `GET /search` rezultata; mock prikazi imaju hardkodovane cene koje se između dva
+  // poziva ne mogu promeniti, pa nemaju šta da prijave.
+  const offerSnapshots = results.flatMap((r) =>
+    r.offers.map((o) => ({
+      key: offerKey(r.productId, o.rateLineId, o.providerQuoteReference),
+      label: `${r.name}${o.roomTypeName ? ` · ${o.roomTypeName}` : ''}${o.boardType ? ` · ${o.boardType}` : ''}`,
+      price: o.finalPrice,
+      currency: o.finalPriceCurrency,
+    }))
+  );
+
   return (
     <div className="p-6">
       <RegisterTab label="Pretraga" />
@@ -133,11 +157,21 @@ export default async function SearchPage(
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4).</p>
 
-      <SearchCriteriaChip />
+      <SearchPanel hasResults={showsResults} />
+
+      {!usesMock && <SearchRefreshNotice offers={offerSnapshots} />}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {hasQuery && !error && results.length === 0 && <p className="text-center text-xs text-ink-faint">Nema rezultata za zadate kriterijume.</p>}
-      {!hasQuery && <p className="text-center text-xs text-ink-faint">Podesite kriterijume u levom panelu.</p>}
+
+      {/* M5 spec §3.0g.5 — vrsta proizvoda bez izvora podataka dobija IZRIČITU rečenicu, ne
+          praznu listu: prazna lista uči korisnika da je aplikacija pokvarena, rečenica ga uči da
+          posao tek dolazi. Poruka se pojavljuje samo kad pretraga stvarno vrati nula rezultata,
+          pa ne može tiho da zastari kad izvor jednom stigne. */}
+      {hasQuery && !error && !usesMock && results.length === 0 && (
+        <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-dim">
+          {activeIcon?.emptyMessage ?? 'Nema rezultata za zadate kriterijume.'}
+        </p>
+      )}
 
       {/* MOCK prikazi po tipu pretrage (26.8.2026 ACCOMMODATION, prošireno 29.8.2026 na zahtev
           vlasnika: "dodajte mock podatke za pretragu letova, transfera i izleta da bih video
@@ -147,10 +181,9 @@ export default async function SearchPage(
           ostalih 5 vrsta (RENT-A-CAR, PACKAGE, CRUISE, INSURANCE, individualni paketi) i dalje
           idu kroz pravi `GET /search` prikaz ispod, bez mock-a. */}
       {(() => {
-        const isThingsToDo = types.length === 3 && ['EXCURSION', 'EVENT', 'TICKET'].every((t) => types.includes(t));
         if (!hasQuery || error) return null;
 
-        if (types.length === 1 && types[0] === 'ACCOMMODATION') {
+        if (singleType === 'ACCOMMODATION') {
           return (
             <AccommodationResultsMock
               stayFrom={quoteDefaults.stayFrom}
@@ -161,7 +194,7 @@ export default async function SearchPage(
             />
           );
         }
-        if (types.length === 1 && types[0] === 'FLIGHT') {
+        if (singleType === 'FLIGHT') {
           const tripType = first(searchParams.tripType) || 'ROUND_TRIP';
           const originCity = first(searchParams.originCity) || null;
           const returnDate = first(searchParams.returnDate) || null;
@@ -190,7 +223,7 @@ export default async function SearchPage(
             />
           );
         }
-        if (types.length === 1 && types[0] === 'TRANSFER') {
+        if (singleType === 'TRANSFER') {
           return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;
         }
         if (isThingsToDo) {
@@ -244,7 +277,13 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
         </div>
         <div className="flex flex-col gap-2">
           {r.offers.slice(0, 3).map((o, i) => (
-            <div key={i} className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs">
+            <div
+              key={i}
+              // §3.0g.3 — obeležavanje promenjenih redova posle osvežavanja radi
+              // SearchRefreshNotice.tsx nad ovim atributom (isti ključ kao selekcija, §3.0e.3).
+              data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
+              className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs"
+            >
               <span className="text-ink-dim">{o.roomTypeName ?? o.roomTypeCode ?? r.type}</span>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-semibold text-ink">
@@ -285,7 +324,11 @@ function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; qu
       </div>
       <div className="flex flex-col gap-2">
         {r.offers.map((o, i) => (
-          <div key={i} className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm">
+          <div
+            key={i}
+            data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
+            className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm"
+          >
             <div>
               <div className="text-ink">
                 {o.roomTypeName ?? o.roomTypeCode} {o.boardType ? `· ${o.boardType}` : ''}

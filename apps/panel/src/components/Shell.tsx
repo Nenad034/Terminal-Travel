@@ -18,6 +18,7 @@ import { PanelCollectionProvider } from './PanelCollectionContext';
 import { AiContextProvider } from './AiContextContext';
 import { ProductPreviewProvider } from './ProductPreviewContext';
 import { GroupSearchBuilderProvider } from './GroupSearchBuilderContext';
+import { SearchStateProvider } from './SearchStateContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
 import { WIDTH_CHOICES, type MainWidth } from './CustomizeLayoutButton';
 
@@ -300,6 +301,7 @@ export default function Shell({
       <ProductPreviewProvider onFirstShow={openRightPanelForCurrentModule}>
       <PanelCollectionProvider onFirstAdd={(moduleId) => setRightPanelOpenModules((prev) => (prev.has(moduleId) ? prev : new Set(prev).add(moduleId)))}>
       <GroupSearchBuilderProvider>
+      <SearchStateProvider>
       {/* `onFirstAdd` NE otvara desni panel dok je korisnik u Fokus tabu (dopuna 25.8.2026, na
           zahtev vlasnika: "kada se klikne na # otvara se odmah desni panel iako je vec ai agent
           u celom tabu. To ukinite") — AI chat je tamo već preko celog centralnog prostora
@@ -485,6 +487,7 @@ export default function Shell({
         <CommandPalette items={items} />
         <NotificationStack />
       </AiContextProvider>
+      </SearchStateProvider>
       </GroupSearchBuilderProvider>
       </PanelCollectionProvider>
       </ProductPreviewProvider>
