@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Icon from './Icon';
+import { describeRooms, parseRooms } from '@/lib/search-rooms';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from './SavedViewsSidebarPanel';
 import { useGroupSearchBuilder } from './GroupSearchBuilderContext';
@@ -71,7 +72,11 @@ export default function SearchCriteriaChip({
   const label = icon?.label ?? types.join(', ');
   const destination = [sp.get('destinationCity'), sp.get('destinationCountry')].filter(Boolean).join(', ');
   const dates = sp.get('stayFrom') && sp.get('stayTo') ? `${sp.get('stayFrom')} – ${sp.get('stayTo')}` : null;
-  const occupancy = `${sp.get('adults') ?? '2'} odr.${Number(sp.get('children') ?? '0') > 0 ? ` + ${sp.get('children')} dece` : ''}`;
+  // Sobe se prikazuju sa uzrastima kad postoje (§3.2a) — „2 sobe · 4 odr. + 1 dete (7)";
+  // starije pretrage bez `rooms` ostaju na zbirnim brojevima, isti tekst kao ranije.
+  const occupancy = sp.get('rooms')
+    ? describeRooms(parseRooms(sp.get('rooms')))
+    : `${sp.get('adults') ?? '2'} odr.${Number(sp.get('children') ?? '0') > 0 ? ` + ${sp.get('children')} dece` : ''}`;
   const autoName = [label, destination || null, dates, occupancy].filter(Boolean).join(' · ');
 
   function currentFilters(): Record<string, string | string[]> {

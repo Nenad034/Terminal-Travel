@@ -9,6 +9,7 @@ import { flightFiltersFromParams } from '@/lib/mock-flights';
 import SortBar from '@/components/SortBar';
 import SearchResultsMap from '@/components/SearchResultsMap';
 import { resolveSort, compareName } from '@/lib/search-sort';
+import { parseRooms, roomsFromTotals, toOccupancy } from '@/lib/search-rooms';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import AccommodationResultsMock from './AccommodationResultsMock';
@@ -93,9 +94,15 @@ export default async function SearchPage(
     if (destinationCity) params.set('destinationCity', destinationCity);
     if (stayFrom) params.set('stayFrom', stayFrom);
     if (stayTo) params.set('stayTo', stayTo);
-    const adults = Number(first(searchParams.adults) ?? '2');
-    const children = Number(first(searchParams.children) ?? '0');
-    params.set('occupancy', JSON.stringify({ adults, children, roomConfig: [{ adults, children, childrenAges: [] }] }));
+    // M5 spec §3.2a — popuna ide po sobama, sa uzrastom svakog deteta. Do 3.9.2026 je ovde
+    // stajala jedna izmišljena soba sa praznim `childrenAges`, pa je cena deteta uvek išla kao
+    // da uzrast nije poznat; sada dolazi iz forme (`rooms`). Pretraga bez `rooms` u adresi
+    // (stariji sačuvan link) i dalje radi — pretvara se u jednu sobu iz zbirnih brojeva.
+    const roomsParam = first(searchParams.rooms);
+    const rooms = roomsParam
+      ? parseRooms(roomsParam)
+      : roomsFromTotals(first(searchParams.adults) ?? '2', first(searchParams.children) ?? '0');
+    params.set('occupancy', JSON.stringify(toOccupancy(rooms)));
     params.set('channel', 'INTERNAL_PANEL');
     // M5 spec §3.0c.3 (dopuna 26.8.2026) — jedini filter iz vođene pretrage smeštaja koji ide
     // kao pravi upitni parametar (I-logika na serveru); ostali (cena/dostupnost/vrsta usluge)

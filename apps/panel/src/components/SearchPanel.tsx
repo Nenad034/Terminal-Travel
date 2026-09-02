@@ -21,7 +21,7 @@ import { PRODUCT_ICONS, findIconByTypes, type ProductIconDef } from '@/lib/searc
 const CRITERIA_KEYS = [
   'destinationCountry', 'destinationCity', 'stayFrom', 'stayTo', 'adults', 'children',
   'cabinClass', 'minDriverAge', 'durationNights', 'cabinType', 'tripType', 'originCity',
-  'returnDate', 'flightLegs',
+  'returnDate', 'flightLegs', 'rooms',
   // Filteri iz levog panela — i oni su "ono što je korisnik uneo za ovu vrstu", pa se pamte
   // zajedno sa kriterijumima; §3.0g.1 tačka 3 ionako traži da se filteri menjaju po vrsti.
   'priceMin', 'priceMax', 'availability', 'boardTypes', 'amenityTags',

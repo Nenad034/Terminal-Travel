@@ -5,6 +5,17 @@ import { useState } from 'react';
 import Icon from './Icon';
 import DateField from './DateField';
 import SuggestField, { type Suggestion } from './SuggestField';
+import RoomsField from './RoomsField';
+import {
+  isRoomBased,
+  parseRooms,
+  roomsFromTotals,
+  serializeRooms,
+  totalAdults,
+  totalChildren,
+  validateRooms,
+  type SearchRoom,
+} from '@/lib/search-rooms';
 
 // M5 spec §3.0c/§3.0d ("vođena pretraga za 9 vrsta proizvoda"). Šest opštih polja važi za sve
 // tipove; tip-specifična polja (M5 spec §11 v1.28, ožičena u `SearchQueryDto`/`SearchService`)
@@ -42,6 +53,12 @@ export interface SearchCriteriaValues {
   originCity: string;
   returnDate: string;
   flightLegs: string; // JSON-encoded FlightLeg[], samo za MULTI_CITY
+  /**
+   * JSON-encoded `SearchRoom[]` (`lib/search-rooms.ts`) — samo za tipove koji se cene po sobi
+   * (M5 spec §3.2a). `adults`/`children` iznad OSTAJU i za njih, kao izvedeni zbir: sažetak
+   * kriterijuma, podrazumevane vrednosti ponude i ostalih 7 vrsta proizvoda ih i dalje čitaju.
+   */
+  rooms: string;
 }
 
 export function valuesFromSearchParams(sp: { get(key: string): string | null }): SearchCriteriaValues {
@@ -60,6 +77,7 @@ export function valuesFromSearchParams(sp: { get(key: string): string | null }):
     originCity: sp.get('originCity') ?? '',
     returnDate: sp.get('returnDate') ?? '',
     flightLegs: sp.get('flightLegs') ?? '',
+    rooms: sp.get('rooms') ?? '',
   };
 }
 
@@ -108,7 +126,27 @@ export default function SearchCriteriaForm({
 }) {
   const router = useRouter();
   const sp = useSearchParams();
-  const [values, setValues] = useState(initialValues);
+  const [values, setValues] = useState(() => ({
+    ...initialValues,
+    // Pretraga sačuvana pre nego što je unos po sobama postojao nosi samo zbirne brojeve —
+    // pretvara se u jednu sobu umesto da se odbaci (`roomsFromTotals`).
+    rooms: initialValues.rooms || serializeRooms(roomsFromTotals(initialValues.adults, initialValues.children)),
+  }));
+  const roomBased = isRoomBased(types);
+  const rooms = parseRooms(values.rooms);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
+
+  function setRooms(next: SearchRoom[]) {
+    // Zbirni `adults`/`children` se izvode iz soba i ostaju u adresi — sažetak kriterijuma,
+    // podrazumevane vrednosti ponude i mock ekrani ih čitaju i ne znaju za sobe.
+    setValues((v) => ({
+      ...v,
+      rooms: serializeRooms(next),
+      adults: String(totalAdults(next)),
+      children: String(totalChildren(next)),
+    }));
+    setRoomsError(null);
+  }
 
   // Destinacija postaje OBAVEZNA (dopuna 26.8.2026, na zahtev vlasnika: "treba da piše i koja
   // je destinacija" — sažetak pretrage/naziv sačuvane pretrage nije imao šta da prikaže kad je
@@ -118,6 +156,15 @@ export default function SearchCriteriaForm({
 
   function submit() {
     if (!destinationValid) return;
+    // Uzrast svakog deteta mora biti unet pre slanja (§3.0g.6) — inače bi greška stigla kao
+    // prazna lista, koju korisnik čita kao "nema smeštaja", a ne kao "fali podatak".
+    if (roomBased) {
+      const problem = validateRooms(rooms);
+      if (problem) {
+        setRoomsError(problem);
+        return;
+      }
+    }
     const next = new URLSearchParams(sp.toString());
     next.delete('type');
     for (const t of types) next.append('type', t);
@@ -125,6 +172,9 @@ export default function SearchCriteriaForm({
       if (val) next.set(key, val);
       else next.delete(key);
     }
+    // Sobe se šalju samo za tipove koji se po sobama i cene — na letu ili transferu parametar
+    // ne znači ništa i samo bi zatrpavao adresu.
+    if (!roomBased) next.delete('rooms');
     router.push(`/rezervacije/pretraga?${next.toString()}`);
     onSubmitted?.(values);
   }
@@ -193,25 +243,36 @@ export default function SearchCriteriaForm({
               </div>
             </label>
           </div>
-          <label className="text-ink-faint">
-            odrasli / deca
-            <div className="mt-1 flex gap-1">
-              <input
-                type="number"
-                min={1}
-                value={values.adults}
-                onChange={(e) => setValues((v) => ({ ...v, adults: e.target.value }))}
-                className="input w-1/2"
-              />
-              <input
-                type="number"
-                min={0}
-                value={values.children}
-                onChange={(e) => setValues((v) => ({ ...v, children: e.target.value }))}
-                className="input w-1/2"
-              />
-            </div>
-          </label>
+          {/* Smeštaj i paket se cene po sobi (M5 spec §3.2a) — unos ide soba po soba, sa
+              uzrastom svakog deteta. Ostalih 7 vrsta nema sobe, pa ostaju dva zbirna broja. */}
+          {roomBased ? (
+            <>
+              <RoomsField rooms={rooms} onChange={setRooms} />
+              {roomsError && (
+                <p className="sm:col-span-2 rounded border border-danger bg-danger-bg px-2 py-1.5 text-[11px] text-danger">{roomsError}</p>
+              )}
+            </>
+          ) : (
+            <label className="text-ink-faint">
+              odrasli / deca
+              <div className="mt-1 flex gap-1">
+                <input
+                  type="number"
+                  min={1}
+                  value={values.adults}
+                  onChange={(e) => setValues((v) => ({ ...v, adults: e.target.value }))}
+                  className="input w-1/2"
+                />
+                <input
+                  type="number"
+                  min={0}
+                  value={values.children}
+                  onChange={(e) => setValues((v) => ({ ...v, children: e.target.value }))}
+                  className="input w-1/2"
+                />
+              </div>
+            </label>
+          )}
 
           {types.length === 1 && types[0] === 'FLIGHT' && (
             <>
