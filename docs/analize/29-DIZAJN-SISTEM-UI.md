@@ -12,6 +12,8 @@
 **Verzija:** 1.50 — ispravka i dve dopune poglavlja 6c.0, isti dan kao v1.49, na osnovu uživo probe uz snimak ekrana: red za unos je pogrešno ostao pri vrhu (ispravljeno), istorija razgovora sad raste odozdo nagore, 4 brze prečice uklonjene i zamenjene novim poglavljem 6c.0a ("Otvori modul" — popup sa svim modulima, nagore), novo poglavlje 6c.0b (sklapanje jedne od dve naslagane sekcije u desnom panelu), strelica "Pošalji" u bojama loga (fiksan preliv, isti kao TopBar logo). M17 spec v2.13.
 **Verzija:** 1.49 — novo poglavlje 6c.0 (25.8.2026, na zahtev vlasnika, posle razgovora o nekoliko alternativa — centrirani modal odbačen, ovo je konačna odluka): AI chat napušta plutajući prozor u uglu i postaje STALAN, dokovan deo desnog panela (poglavlje 5b), naslagan ISPOD postojećeg sažetka/podsetnika (ne tabovi, oba vidljiva odjednom). Dva nova mehanizma: (a) izbor po korisniku "sužava sadržaj" naspram "prelazi preko sadržaja" (`UserPreference` ključ `right_panel_display_mode`); (b) "Fokus" režim — ikonica otvara AI chat u punom, novom tabu (ceo centralni prostor), isti obrazac kao Claude Code panel u VS Code kad zauzima ceo ekran. `CommandPalette` ostaje nepromenjen i odvojen (vlasnikova eksplicitna odluka) — AI chat ne dobija duplikat spiska menija. M17 spec v2.12.
 **Verzija:** 1.48 — novo poglavlje 6c.1a (25.8.2026, na zahtev vlasnika: "da li mozete na desni klik da ubacite u ai agenta bilo koju rezervaciju iz liste rezervacija kao kontekst... prosirite ovo i na sve module... umesto desnog klika moze i neka oznaka"): mala, generička ikonica "Dodaj u AI kontekst" na SVAKOM redu/kartici u SVAKOM modulu (ne desni klik — nema dodirni ekvivalent, nije vidljiv bez znanja da postoji), podržava dodavanje VIŠE zapisa pre postavljanja pitanja (poređenje) i prilaganje sačuvanog/trenutno filtriranog prikaza cele liste kao posebne kontekstne stavke. Podatkovni deo (šta se šalje agentu, ograničenja): M15 spec §6.5.4.3 (v1.40). M17 spec v2.11.
+**Verzija:** 1.48 — novo poglavlje 5c.1 (2.9.2026, na zahtev vlasnika: "kada je levi panel zatvoren i u bočnoj levoj traci se pojave samo ikone, kada prelazimo mišem preko ikona, pojaviti i plutajuće podmenije"): skupljena leva traka dobija plutajući meni sa sekcijama grupe na prelazak mišem ili fokus tastaturom. Do sada se, dok je traka skupljena, spisak sekcija nije mogao videti bez ponovnog širenja — pa je skupljanje trake značilo dobijen prostor uz izgubljenu navigaciju. Meni poštuje prava pristupa (M17 spec §3) i redosled iz proširene trake; grupa sa jednom sekcijom dobija meni od jednog reda koji zamenjuje sistemski tooltip (koji se tada namerno ne postavlja, da se ne pojave dva prikaza iste stvari).
+
 **Verzija:** 1.47 — poglavlje 5b "sažetak reda" implementiran za rezervacije (23.8.2026), M5 spec v1.46. Nova otvorena stavka: dizajn "pun zapis" forme za rezervacije, čeka predlog.
 **Verzija:** 1.47 — dopuna poglavlja 6b.1 (2.9.2026, isti dan, na zahtev vlasnika: "pozicija tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%"): traka tabova dobija isti pomeraj kao suženi centralni sadržaj, pa prvi tab i dalje stoji tačno na njegovoj levoj ivici. Bez ovoga je izbor uže širine razbijao poravnanje koje je §5c gradio kroz tri pokušaja 23.8.2026. Poravnava se samo leva ivica — traka i na punoj širini ide do polja za pretragu, preko prostora desnog panela, i to se ne menja. Pomeraj se MERI (`ResizeObserver` nad `<main>`-om), ne računa iz širine bočne trake i stanja desnog panela — isti zaključak i isti razlog kao kod merenja širine leve kolone.
 
@@ -459,6 +461,23 @@ Ovaj obrazac važi identično za M17 i M7 (poglavlje 7) — grupisanje/spisak M7
 
 ---
 
+### 5c.1 Skupljena leva traka — plutajući podmeni na prelazak mišem (dopuna, 2.9.2026, na zahtev vlasnika)
+
+*(vlasnik: "kada je levi panel zatvoren i u bočnoj levoj traci se pojave samo ikone, kada prelazimo mišem preko ikona, pojaviti i plutajuće podmenije")*
+
+Dok je leva traka skupljena, od cele navigacije na ekranu ostaje samo kolona ikonica. Do sada se spisak sekcija te grupe nije mogao videti bez ponovnog širenja trake — što skupljenu traku delimično obesmišljava: dobije se prostor, izgubi se mogućnost da se stigne bilo gde bez dva koraka. Zato **prelazak mišem preko ikonice otvara plutajući meni** sa sekcijama te grupe, iz kog se ide pravo na željenu sekciju.
+
+**Pravila:**
+
+- **Samo dok je traka skupljena.** Kad je proširena, isti spisak već stoji u levoj traci (§5c, korak 2) — meni preko njega bio bi suvišan i smetao bi.
+- **Meni prikazuje samo sekcije koje taj korisnik sme da vidi** (M17 spec §3). Isto pravilo kao svuda drugde: stavka bez prava ne postoji, ne prikazuje se onemogućena. Redosled je isti kao u proširenoj traci — ista grupa ne sme da izgleda drugačije skupljena nego proširena.
+- **Grupa sa jednom sekcijom dobija meni sa jednim redom**, bez zaglavlja (naziv grupe i naziv jedine sekcije su tu ista stvar). Tada meni služi kao stilizovana zamena za sistemski tooltip — koji se dok je traka skupljena namerno **ne** postavlja, da se preko menija ne pojavi i drugi, sivi oblačić sa istim tekstom.
+- **Otvara se i tastaturom.** Fokus na ikonicu (Tab) otvara isti meni — korisnik koji ne koristi miša ne sme da ostane bez pristupa sekcijama dok je traka skupljena.
+- **Bez praznine u putanji miša.** Meni naleže na ivicu trake, a vizuelni odmak se pravi njegovim unutrašnjim razmakom — inače nestaje dok miš prelazi prazan prostor do njega.
+
+Ovaj obrazac važi identično za M17 i M7 (poglavlje 7), isto kao ostatak §5c.
+
+---
 ## 5d. Donja traka i lična podešavanja (dopuna, 18.8.2026, na zahtev vlasnika — referenca: VS Code status bar/nalog/split)
 
 **Donja traka** (nova zona, ispod centralnog panela, preko cele širine):

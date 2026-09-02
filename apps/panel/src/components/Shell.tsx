@@ -349,6 +349,7 @@ export default function Shell({
             <div ref={leftColumnRef} className="flex">
               <ActivityBar
                 groups={groups}
+                items={items}
                 activeGroupId={activeGroup?.id ?? ''}
                 // ISPRAVKA (26.8.2026, na zahtev vlasnika: "kad se skupi levi panel ima neki bag
                 // i treba više puta da se klikne kako bi se ponovo otvorio") — dok je traka

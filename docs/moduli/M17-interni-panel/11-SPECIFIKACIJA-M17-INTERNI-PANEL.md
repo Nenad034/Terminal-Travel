@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.48 — Plutajući podmeni na ikonicama skupljene leve trake (2.9.2026, na zahtev vlasnika). Dok je leva traka skupljena, prelazak mišem preko ikonice grupe (ili fokus tastaturom) otvara meni sa sekcijama te grupe — samo onima koje korisnik sme da vidi (§3), u istom redosledu kao u proširenoj traci. Ponašanje i pravila: `docs/analize/29-DIZAJN-SISTEM-UI.md` §5c.1 (novo). Implementirano u istom prolazu (`ActivityBar.tsx`).
+
 **Verzija:** 2.47 — Traka tabova prati suženi centralni sadržaj (2.9.2026, isti dan kao v2.46, na zahtev vlasnika: "pozicija tabova treba da prati veličinu prikaza, logika kao i u prikazu 100%"). Dopuna izbora širine iz v2.46: prvi tab ostaje poravnat sa levom ivicom sadržaja u svakoj od četiri širine. Obrazloženje i način merenja: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6b.1.
 
 **Verzija:** 2.46 — Lični izbor širine centralnog sadržaja (2.9.2026, na zahtev vlasnika: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu"). Puna širina ostaje podrazumevana i nepromenjena; korisnik može da izabere gornju granicu 1680 / 1440 / 1280px iz postojećeg "Customize Layout" menija. Vrednosti, obrazloženje i razlog zašto je to granica a ne procenat: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6b.1 (novo). Pamti se u `UserPreference` (M1 §3.9, ključ `main_content_max_width`), dakle po nalogu a ne po browseru — isti mehanizam kao `right_panel_display_mode`. Implementirano u istom prolazu (`Shell.tsx`, `CustomizeLayoutButton.tsx`), nije spec-pre-koda.
