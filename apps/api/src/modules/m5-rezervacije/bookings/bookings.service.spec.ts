@@ -9,7 +9,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-      bookingItem: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn() },
+      bookingItem: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
       bookingItemGuest: { findMany: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
@@ -49,7 +49,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       subagentStub as any,
       permissions as any,
     );
-    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions };
+    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions, builder };
   }
 
   describe('confirmQuote — sve ili ništa (§4, korak 3)', () => {
@@ -617,6 +617,106 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       permissions.hasPermission.mockResolvedValue(false);
 
       await expect(service.cancel('b1', {}, { userId: 'staff-1' })).resolves.toBeDefined();
+    });
+  });
+
+  // Dopuna (2.9.2026, na zahtev vlasnika — kartica Aranžman): `modify` sad prima opcioni
+  // `productId` (zamena USLUGE, ne samo datuma) i postoji `previewModify` (ista logika, ništa
+  // ne upisuje — "provera cene" pre potvrde).
+  describe('modify — izmena usluge + previewModify (§6, dopuna 2.9.2026)', () => {
+    function baseItem() {
+      return {
+        id: 'item-1',
+        bookingId: 'b1',
+        productId: 'p-old',
+        sourceType: 'CONTRACTED' as const,
+        rateLineId: null, // bez rate_line_id — releaseItemCapacity je no-op, testu ne treba dodatan mock
+        itemStatus: 'CONFIRMED' as const,
+        unitCount: 1,
+        finalPrice: 10000,
+        finalPriceCurrency: 'EUR',
+        stayFrom: new Date(Date.now() + 40 * 86_400_000),
+        stayTo: new Date(Date.now() + 45 * 86_400_000),
+      };
+    }
+    function builtReplacement(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        productId: 'p-new',
+        sourceType: 'CONTRACTED',
+        stayFrom: new Date(),
+        stayTo: new Date(),
+        baseCost: 9000,
+        baseCostCurrency: 'EUR',
+        rateLineId: 'rl-new',
+        markupRuleId: 'mr-1',
+        finalPrice: 12000,
+        finalPriceCurrency: 'EUR',
+        unitCount: 1,
+        cancellationPolicySnapshot: null,
+        occupancy: { adults: 2, children: 0 },
+        ...overrides,
+      };
+    }
+
+    it('odbija izmenu kad nova usluga nije istog tipa proizvoda kao postojeća stavka', async () => {
+      const { service, prisma, builder } = makeService();
+      const item = baseItem();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', items: [item] });
+      prisma.product.findUnique.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.id === 'p-old' ? { id: 'p-old', type: 'ACCOMMODATION' } : { id: 'p-new', type: 'TRANSFER' }),
+      );
+
+      await expect(
+        service.modify('b1', { bookingItemId: 'item-1', productId: 'p-new', stayFrom: '2027-01-01', stayTo: '2027-01-05', occupancy: { adults: 2, children: 0 } } as any, {
+          userId: 'staff-1',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(builder.build).not.toHaveBeenCalled();
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+    });
+
+    it('modify prosleđuje novi productId builder-u kad je dat (izmena usluge, isti tip)', async () => {
+      const { service, prisma, builder, contractPeriods } = makeService();
+      const item = baseItem();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', items: [item] });
+      prisma.product.findUnique.mockImplementation(({ where }: any) =>
+        Promise.resolve(where.id === 'p-old' ? { id: 'p-old', type: 'ACCOMMODATION' } : { id: 'p-new', type: 'ACCOMMODATION' }),
+      );
+      const built = builtReplacement();
+      builder.build.mockResolvedValue([built]);
+      prisma.rateLine.findUniqueOrThrow.mockResolvedValue({ contractPeriodId: 'period-new' });
+      contractPeriods.reserve.mockResolvedValue({ reserved: true });
+      prisma.bookingItem.create.mockResolvedValue({ id: 'item-2', ...built });
+      prisma.bookingItem.aggregate.mockResolvedValue({ _sum: { finalPrice: 12000 } });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.modify(
+        'b1',
+        { bookingItemId: 'item-1', productId: 'p-new', stayFrom: '2027-01-01', stayTo: '2027-01-05', occupancy: { adults: 2, children: 0 } } as any,
+        { userId: 'staff-1' },
+      );
+
+      expect(builder.build).toHaveBeenCalledWith(expect.objectContaining({ productId: 'p-new' }));
+      expect(prisma.bookingItem.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ productId: 'p-new' }) }));
+    });
+
+    it('previewModify vraća novu cenu bez ijedne rezervacije/upisa', async () => {
+      const { service, prisma, builder, contractPeriods } = makeService();
+      const item = baseItem();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', items: [item] });
+      const built = builtReplacement({ finalPrice: 15000 });
+      builder.build.mockResolvedValue([built]);
+
+      const result = await service.previewModify(
+        'b1',
+        { bookingItemId: 'item-1', stayFrom: '2027-02-01', stayTo: '2027-02-10', occupancy: { adults: 2, children: 0 } } as any,
+        { userId: 'staff-1' },
+      );
+
+      expect(result).toEqual({ currentPrice: 10000, currentCurrency: 'EUR', newPrice: 15000, newCurrency: 'EUR', priceDifference: 5000 });
+      expect(contractPeriods.reserve).not.toHaveBeenCalled();
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+      expect(prisma.booking.update).not.toHaveBeenCalled();
     });
   });
 

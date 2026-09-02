@@ -2,17 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { GuideFormState } from './guide-form-state';
 
 // M5 spec §4.5 / M9 spec §4 — dodela predstavnika (vodiča) na stavku rezervacije.
 // `PATCH /sales/bookings/items/:itemId/assign-guide` postoji od avgusta 2026, ali do
 // 1.9.2026 nijedan ekran ga nije zvao — kancelarija nije imala kako da dodeli predstavnika.
-
-export interface GuideFormState {
-  error: string | null;
-  ok: string | null;
-}
-
-export const emptyGuideState: GuideFormState = { error: null, ok: null };
+//
+// `GuideFormState`/`emptyGuideState` žive u `guide-form-state.ts`, NE ovde — isti razlog kao
+// `change-form-state.ts` (Next.js "use server" fajl sme da izvozi isključivo async funkcije).
 
 function extractMessage(err: ApiError): string {
   const body = err.body as { message?: string | string[] } | null;

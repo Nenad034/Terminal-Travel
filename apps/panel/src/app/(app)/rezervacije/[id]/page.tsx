@@ -10,6 +10,8 @@ import BookingNotesCard, { BookingNote } from './BookingNotesCard';
 import BookingChangesCard from './BookingChangesCard';
 import BookingRepsCard, { RepCheckIn } from './BookingRepsCard';
 import ActorLabel from '@/components/ActorLabel';
+import AranzmanItemCard, { CandidateProduct } from './AranzmanItemCard';
+import { PRODUCT_ICONS } from '@/lib/search-product-types';
 
 
 interface BookingItemProduct {
@@ -187,6 +189,9 @@ export default async function BookingDetailPage(props: {
   const canProposeHandoff = hasPermission(me, 'M5', 'booking', 'TRANSFER_ASSIGNMENT');
   const canAcceptAssignment = hasPermission(me, 'M5', 'booking', 'ACCEPT_ASSIGNMENT');
   const isVlasnikOrDirektor = Boolean(me?.roles?.some((r) => r === 'VLASNIK' || r === 'DIREKTOR'));
+  // Dopuna (2.9.2026, na zahtev vlasnika) — kartica Aranžman: spisak kandidata za "izmeni
+  // uslugu" dolazi iz M2 kataloga, zahteva istu dozvolu kao svaki drugi uvid u katalog.
+  const canViewProducts = hasPermission(me, 'M2', 'product', 'VIEW');
 
   let booking: Booking | null = null;
   let error: string | null = null;
@@ -212,44 +217,70 @@ export default async function BookingDetailPage(props: {
   ]);
 
   // Podaci kartica se dohvataju samo za otvorenu karticu — ekran rezervacije se otvara desetinama
-  // puta dnevno, nema razloga zvati M10/M6 kad se gleda Pregled.
+  // puta dnevno, nema razloga zvati M10/M6 kad se gleda neka DRUGA kartica. Dopuna (2.9.2026, na
+  // zahtev vlasnika: "u tabu Pregled treba da se vide svi bitni podaci... ovde se ništa ne menja
+  // samo se prikazuje") — Pregled sad dohvata ISTO što i svaka pojedinačna kartica (svaka
+  // sopstvena VIEW dozvola i dalje važi, isto kao i pre), samo ih prikazuje bez interaktivnih
+  // formi (nema kreiranja beleške, dodele vodiča, otvaranja tiketa — samo čitanje).
+  const onOverview = activeTab === 'pregled';
   const [payments, communications, notes] = await Promise.all([
-    booking && canViewPayments && activeTab === 'finansije'
+    booking && canViewPayments && (activeTab === 'finansije' || onOverview)
       ? apiFetch<Payment[]>(`/finance/payments?bookingId=${booking.id}`).catch(() => [] as Payment[])
       : Promise.resolve([] as Payment[]),
     // M5 spec §4.5 poznato ograničenje: `CommunicationLog` nema `booking_id`, pa je ovo prepiska
     // sa NALOGODAVCEM te rezervacije, ne prepiska o toj rezervaciji — tako je i označeno u prikazu.
-    booking?.clientAccountId && canViewCommunication && activeTab === 'komunikacija'
+    booking?.clientAccountId && canViewCommunication && (activeTab === 'komunikacija' || onOverview)
       ? apiFetch<CommunicationEntry[]>(`/crm/communication-log?clientAccountId=${booking.clientAccountId}`).catch(() => [] as CommunicationEntry[])
       : Promise.resolve([] as CommunicationEntry[]),
-    booking && activeTab === 'beleske'
+    booking && (activeTab === 'beleske' || onOverview)
       ? apiFetch<BookingNote[]>(`/sales/bookings/${booking.id}/notes`).catch(() => [] as BookingNote[])
       : Promise.resolve([] as BookingNote[]),
   ]);
 
   const [tickets, checkIns, guides] = await Promise.all([
-    booking && canViewTickets && activeTab === 'reklamacije'
+    booking && canViewTickets && (activeTab === 'reklamacije' || onOverview)
       ? apiFetch<Ticket[]>(`/helpdesk/tickets?relatedBookingId=${booking.id}`).catch(() => [] as Ticket[])
       : Promise.resolve([] as Ticket[]),
-    booking && canViewCheckIns && activeTab === 'predstavnici'
+    booking && canViewCheckIns && (activeTab === 'predstavnici' || onOverview)
       ? apiFetch<RepCheckIn[]>(`/mobile/staff/check-ins?bookingId=${booking.id}`).catch(() => [] as RepCheckIn[])
       : Promise.resolve([] as RepCheckIn[]),
-    // Spisak isključivo VODIC naloga — dodela predstavnika ne sme da nudi ceo tim.
+    // Spisak isključivo VODIC naloga — dodela predstavnika ne sme da nudi ceo tim. Pregled ne
+    // dodeljuje (samo prikazuje), pa mu ovaj spisak ne treba.
     booking && activeTab === 'predstavnici'
       ? apiFetch<DirectoryUser[]>('/iam/users/directory?role=VODIC').catch(() => [] as DirectoryUser[])
       : Promise.resolve([] as DirectoryUser[]),
   ]);
 
-  // Profili gostiju (M6) — samo za karticu Putnici i samo uz dozvolu; jedan poziv po
+  // Profili gostiju (M6) — samo za karticu Putnici/Pregled i samo uz dozvolu; jedan poziv po
   // JEDINSTVENOM profilu, ne po putniku (isti gost može biti na više stavki rezervacije).
   const guestProfileIds =
-    booking && activeTab === 'putnici' && canViewGuestProfiles
+    booking && (activeTab === 'putnici' || onOverview) && canViewGuestProfiles
       ? [...new Set(booking.items.flatMap((i) => (i.guests ?? []).map((g) => g.guestProfileId).filter((id): id is string => Boolean(id))))]
       : [];
   const guestProfiles = (
     await Promise.all(guestProfileIds.map((id) => apiFetch<GuestProfileSummary>(`/crm/guest-profiles/${id}`).catch(() => null)))
   ).filter((p): p is GuestProfileSummary => p !== null);
   const guestProfilesById = new Map(guestProfiles.map((p) => [p.id, p]));
+
+  // M5 spec §6 dopuna (2.9.2026) — kartica Aranžman: spisak kandidata "za izmenu usluge" po
+  // tipu proizvoda prisutnom na aktivnim stavkama. Samo kad je izmena uopšte moguća (dozvola +
+  // aktivna stavka postoji) — ne poziva se M2 katalog kad na Aranžmanu nema šta da se menja.
+  const activeItems = booking?.items.filter((i) => i.itemStatus !== 'CANCELLED') ?? [];
+  const modifiableTypes = [...new Set(activeItems.map((i) => i.product?.type).filter((t): t is string => Boolean(t)))];
+  const candidatesByType = new Map<string, CandidateProduct[]>();
+  if (booking && activeTab === 'aranzman' && canModifyBooking && canViewProducts) {
+    await Promise.all(
+      modifiableTypes.map(async (type) => {
+        const list = await apiFetch<{ id: string; destinationCity: string; destinationCountry: string; translation: { name: string } | null }[]>(
+          `/catalog/products?type=${type}&status=ACTIVE&lang=sr`,
+        ).catch(() => []);
+        candidatesByType.set(
+          type,
+          list.map((p) => ({ id: p.id, name: p.translation?.name ?? p.id.slice(0, 8), destinationCity: p.destinationCity, destinationCountry: p.destinationCountry })),
+        );
+      }),
+    );
+  }
 
   // Samo evidentirane (ne otkazane/neuspele) uplate ulaze u zbir — status dolazi iz M10.
   // M10 `PaymentRecordStatus`: PENDING/RECEIVED/FAILED/REFUNDED/VOIDED — samo RECEIVED je novac
@@ -278,8 +309,13 @@ export default async function BookingDetailPage(props: {
 
           {/* M5 spec §4.5 — kartice dosijea. Stanje se drži u URL-u (`?tab=`), ne u klijentskom
               state-u, da se pojedinačna kartica može podeliti linkom i da stranica ostane
-              server-komponenta (bez povlačenja podataka koje ta kartica ne traži). */}
-          <nav className="mb-4 flex flex-wrap gap-1 border-b border-border">
+              server-komponenta (bez povlačenja podataka koje ta kartica ne traži). Dopuna
+              (2.9.2026, na zahtev vlasnika: "u kom god tabu da se nalazimo... svi tabovi treba
+              da budu uvek vidljivi") — `sticky top-0`, isti obrazac kao filter traka u
+              `rezervacije/lista/BookingsListClient.tsx`; `<main>` (Shell.tsx) je scroll
+              kontejner, pa `top-0` lepi traku za njegov vrh bez obzira koliko je sadržaj kartice
+              dugačak. */}
+          <nav className="sticky top-0 z-20 mb-4 flex flex-wrap gap-1 border-b border-border bg-panel pt-1">
             {TABS.map((t) => (
               <Link
                 key={t.id}
@@ -312,25 +348,18 @@ export default async function BookingDetailPage(props: {
             </div>
           )}
 
+          {/* Dopuna (2.9.2026, na zahtev vlasnika: "u tabu Pregled treba da se vide svi bitni
+              podaci... ovde se ništa ne menja samo se prikazuje") — Pregled od sada agregira
+              ISTO što svaka pojedinačna kartica prikazuje, u čisto read-only obliku (bez formi za
+              kreiranje/dodelu/otkazivanje — za to se i dalje ide na tu karticu). */}
           {activeTab === 'pregled' && (
-          <div className="overflow-hidden rounded-lg border border-border">
-            {booking.items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
-                <div>
-                  <div className="text-ink">proizvod {item.productId.slice(0, 8)}…</div>
-                  {item.supplierReference && <div className="text-xs text-ink-faint">ref. dobavljača: {item.supplierReference}</div>}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-sm font-semibold text-ink">{(item.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}</span>
-                  <Badge label={item.itemStatus} />
-                </div>
-              </div>
-            ))}
-          </div>
-          )}
+            <div className="space-y-6">
+              <Section title="Aranžman">
+                <ItemsSummaryList items={booking.items} currency={booking.currency} />
+              </Section>
 
-          {activeTab === 'pregled' && (canPrepareFiscal || canViewRegistrations || canViewContracts || canViewClientAccount) && (
-            <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {(canPrepareFiscal || canViewRegistrations || canViewContracts || canViewClientAccount) && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {canViewClientAccount && (
                 <CompositionCard icon="organization" title="M6 — nalogodavac">
                   {clientAccount ? (
@@ -390,44 +419,78 @@ export default async function BookingDetailPage(props: {
                   )}
                 </CompositionCard>
               )}
+                </div>
+              )}
+
+              <Section title="Putnici">
+                <GuestsSummaryList items={booking.items} guestProfilesById={guestProfilesById} canViewGuestProfiles={canViewGuestProfiles} />
+              </Section>
+
+              {canViewPayments && (
+                <Section title="Finansije">
+                  <PaymentsSummaryBlock payments={payments} totalPrice={booking.totalPrice ?? 0} paidTotal={paidTotal} currency={booking.currency} />
+                </Section>
+              )}
+
+              {canViewCommunication && booking.clientAccountId && (
+                <Section title="Komunikacija">
+                  <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                </Section>
+              )}
+
+              <Section title="Beleške">
+                <NotesSummaryList notes={notes} directoryById={directoryById} />
+              </Section>
+
+              {canViewTickets && (
+                <Section title="Reklamacije">
+                  <TicketsSummaryList tickets={tickets} />
+                </Section>
+              )}
+
+              <Section title="Predstavnici">
+                <RepsSummaryList items={booking.items} checkIns={checkIns} directoryById={directoryById} canViewCheckIns={canViewCheckIns} />
+              </Section>
             </div>
           )}
 
-          {/* M5 spec §4.5 — Aranžman: šta je stvarno kupljeno. Do 1.9.2026 je ovaj ekran
-              prikazivao samo skraćen `productId` (sirov UUID), bez naziva, datuma i broja jedinica. */}
+          {/* M5 spec §4.5/§6 — Aranžman: šta je stvarno kupljeno. Do 1.9.2026 je ovaj ekran
+              prikazivao samo skraćen `productId` (sirov UUID), bez naziva, datuma i broja jedinica.
+              Dopuna (2.9.2026, na zahtev vlasnika) — ikonica tipa proizvoda umesto teksta, ukupno
+              zaduženje svih stavki, i izmena usluge/datuma po stavci uz prethodnu proveru cene
+              (isti `POST /bookings/:id/modify` kao kartica Izmene, prošireno opcionim `productId`). */}
           {activeTab === 'aranzman' && (
             <div className="space-y-3">
               {booking.items.length === 0 ? (
                 <p className="text-xs text-ink-faint">Rezervacija nema nijednu stavku.</p>
               ) : (
-                booking.items.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-border bg-panel p-4">
-                    <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-ink">
-                          {item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}
-                        </div>
-                        <div className="mt-0.5 text-xs text-ink-faint">
-                          {[item.product?.type, [item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ')]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-sm font-semibold text-ink">{formatMoney(item.finalPrice, item.finalPriceCurrency ?? booking.currency)}</span>
-                        <Badge label={item.itemStatus} />
-                      </div>
-                    </div>
-                    <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
-                      <Field label="Od" value={item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} />
-                      <Field label="Do" value={item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'} />
-                      <Field label="Noćenja" value={nightsBetween(item.stayFrom, item.stayTo)} />
-                      <Field label="Jedinica" value={String(item.unitCount ?? 1)} />
-                      <Field label="Putnika na stavci" value={String(item.guests?.length ?? 0)} />
-                      {item.supplierReference && <Field label="Ref. dobavljača" value={item.supplierReference} />}
-                    </dl>
-                  </div>
-                ))
+                <>
+                  <StatCard label="Ukupno zaduženje (aktivne stavke)" value={formatMoney(booking.totalPrice ?? 0, booking.currency)} />
+                  {booking.items.map((item) => (
+                    <AranzmanItemCard
+                      key={item.id}
+                      bookingId={booking.id}
+                      item={{
+                        id: item.id,
+                        productId: item.productId,
+                        name: item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`,
+                        type: item.product?.type ?? '',
+                        destinationCity: item.product?.destinationCity ?? null,
+                        destinationCountry: item.product?.destinationCountry ?? null,
+                        finalPrice: item.finalPrice,
+                        finalPriceCurrency: item.finalPriceCurrency ?? booking.currency,
+                        itemStatus: item.itemStatus,
+                        stayFrom: item.stayFrom,
+                        stayTo: item.stayTo,
+                        unitCount: item.unitCount,
+                        guestCount: item.guests?.length ?? 0,
+                        supplierReference: item.supplierReference,
+                      }}
+                      candidates={item.product?.type ? (candidatesByType.get(item.product.type) ?? []) : []}
+                      canModify={canModifyBooking}
+                    />
+                  ))}
+                </>
               )}
             </div>
           )}
@@ -776,4 +839,213 @@ function CompositionCard({ icon, title, children }: { icon: string; title: strin
 function Badge({ label }: { label: string }) {
   const tone = ['CONFIRMED', 'PAID'].includes(label) ? 'text-ok bg-ok-bg' : ['CANCELLED', 'UNPAID'].includes(label) ? 'text-danger bg-danger-bg' : 'text-ink-faint bg-panel2';
   return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{label}</span>;
+}
+
+// ==========================================================================
+// M5 spec §4.5 dopuna (2.9.2026, na zahtev vlasnika) — kartica Pregled agregira sve ostale
+// kartice u čisto read-only obliku. Funkcije ispod se koriste ISKLJUČIVO tu (svaka sopstvena
+// kartica zadržava sopstveni, interaktivni prikaz nepromenjeno) — nema forme, dugmeta za
+// kreiranje/dodelu/otkazivanje ovde, samo prikaz.
+// ==========================================================================
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function ItemsSummaryList({ items, currency }: { items: BookingItem[]; currency?: string }) {
+  if (items.length === 0) return <p className="text-xs text-ink-faint">Rezervacija nema nijednu stavku.</p>;
+  return (
+    <div className="space-y-2">
+      {items.map((item) => (
+        <div key={item.id} className="rounded-lg border border-border bg-panel p-3">
+          <div className="mb-1.5 flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <span title={item.product?.type} className="mt-0.5 text-accent">
+                <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(item.product?.type ?? ''))?.icon ?? 'question'} />
+              </span>
+              <div>
+                <div className="text-sm font-semibold text-ink">{item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}</div>
+                <div className="mt-0.5 text-xs text-ink-faint">{[item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ')}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-sm font-semibold text-ink">{formatMoney(item.finalPrice, item.finalPriceCurrency ?? currency)}</span>
+              <Badge label={item.itemStatus} />
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
+            <Field label="Od" value={item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} />
+            <Field label="Do" value={item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'} />
+            <Field label="Noćenja" value={nightsBetween(item.stayFrom, item.stayTo)} />
+            <Field label="Putnika" value={String(item.guests?.length ?? 0)} />
+          </dl>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GuestsSummaryList({
+  items,
+  guestProfilesById,
+  canViewGuestProfiles,
+}: {
+  items: BookingItem[];
+  guestProfilesById: Map<string, GuestProfileSummary>;
+  canViewGuestProfiles: boolean;
+}) {
+  const withGuests = items.filter((i) => (i.guests?.length ?? 0) > 0);
+  if (withGuests.length === 0) return <p className="text-xs text-ink-faint">Na rezervaciji nema unetih putnika.</p>;
+  return (
+    <div className="space-y-2">
+      {withGuests.map((item) => (
+        <div key={item.id} className="rounded-lg border border-border bg-panel p-3">
+          <div className="mb-1.5 text-xs font-semibold text-ink">{item.product?.name ?? 'stavka'}</div>
+          <ul className="divide-y divide-border">
+            {(item.guests ?? []).map((g) => {
+              const profile = g.guestProfileId ? guestProfilesById.get(g.guestProfileId) : null;
+              return (
+                <li key={g.id} className="flex flex-wrap items-center justify-between gap-3 py-1.5 text-sm">
+                  <span className="text-ink">
+                    {g.guestFirstName} {g.guestLastName}
+                  </span>
+                  {profile ? (
+                    <span className="text-xs text-ink-faint">
+                      {profile.documentType} {profile.documentNumber} · {profile.nationality}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-ink-faint">{g.guestProfileId ? (canViewGuestProfiles ? '—' : 'zahteva M6/guest-profile/VIEW') : 'bez povezanog profila'}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PaymentsSummaryBlock({ payments, totalPrice, paidTotal, currency }: { payments: Payment[]; totalPrice: number; paidTotal: number; currency?: string }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard label="Ukupna cena" value={formatMoney(totalPrice, currency)} />
+        <StatCard label="Uplaćeno" value={formatMoney(paidTotal, currency)} />
+        <StatCard label="Preostalo" value={formatMoney(totalPrice - paidTotal, currency)} tone={totalPrice - paidTotal > 0 ? 'danger' : 'ok'} />
+      </div>
+      {payments.length === 0 ? (
+        <p className="text-xs text-ink-faint">Nema evidentiranih uplata za ovu rezervaciju.</p>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border">
+          {payments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2.5 text-sm last:border-b-0">
+              <span className="text-ink">
+                {p.method} <span className="text-xs text-ink-faint">· {new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}</span>
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-sm font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>
+                <Badge label={p.status} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommunicationSummaryList({ communications, directoryById }: { communications: CommunicationEntry[]; directoryById: Map<string, string> }) {
+  if (communications.length === 0) return <p className="text-xs text-ink-faint">Nema zabeležene komunikacije sa ovim nalogodavcem.</p>;
+  return (
+    <ul className="space-y-2">
+      {communications.map((c) => (
+        <li key={c.id} className="rounded-lg border border-border bg-panel p-3">
+          <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+            <Badge label={c.channel} />
+            <Badge label={c.direction} />
+            <ActorLabel
+              name={c.sentBy ? (directoryById.get(c.sentBy) ?? (c.sentBy === 'SYSTEM_AUTO' ? 'automatski' : null)) : null}
+              origin={c.sentBy === 'SYSTEM_AUTO' ? 'SYSTEM' : 'STAFF'}
+              draftedByAi={c.draftedByAi}
+            />
+            <span>· {new Date(c.createdAt).toLocaleDateString('sr-RS')}</span>
+          </div>
+          <p className="text-sm text-ink">{c.summary}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function NotesSummaryList({ notes, directoryById }: { notes: BookingNote[]; directoryById: Map<string, string> }) {
+  if (notes.length === 0) return <p className="text-xs text-ink-faint">Nema beleški uz ovu rezervaciju.</p>;
+  return (
+    <ul className="space-y-2">
+      {notes.map((n) => (
+        <li key={n.id} className={`rounded-lg border p-3 ${n.origin === 'FIELD_REP' ? 'border-warn/40 bg-warn-bg' : 'border-border bg-panel'}`}>
+          <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+            <span className="font-medium text-ink">{directoryById.get(n.createdBy) ?? n.createdBy}</span>
+            {n.origin === 'FIELD_REP' && <span className="rounded bg-warn-bg px-1.5 py-0.5 font-medium text-warn">sa terena</span>}
+            <span>· {new Date(n.createdAt).toLocaleDateString('sr-RS')}</span>
+          </div>
+          <p className="text-sm text-ink">{n.body}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TicketsSummaryList({ tickets }: { tickets: Ticket[] }) {
+  if (tickets.length === 0) return <p className="text-xs text-ink-faint">Nema nijedne reklamacije ni tiketa vezanog za ovu rezervaciju.</p>;
+  return (
+    <ul className="space-y-2">
+      {tickets.map((t) => (
+        <li key={t.id} className="rounded-lg border border-border bg-panel p-3">
+          <div className="mb-1 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="font-mono text-ink">{t.ticketNumber}</span>
+            <Badge label={t.status} />
+            <Badge label={t.priority} />
+          </div>
+          <span className="text-sm text-ink">{t.subject}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RepsSummaryList({
+  items,
+  checkIns,
+  directoryById,
+  canViewCheckIns,
+}: {
+  items: BookingItem[];
+  checkIns: RepCheckIn[];
+  directoryById: Map<string, string>;
+  canViewCheckIns: boolean;
+}) {
+  const active = items.filter((i) => i.itemStatus !== 'CANCELLED');
+  if (active.length === 0) return <p className="text-xs text-ink-faint">Nema aktivnih stavki.</p>;
+  return (
+    <div className="space-y-2">
+      {active.map((item) => {
+        const itemCheckIns = canViewCheckIns ? checkIns.filter((c) => c.bookingItemId === item.id) : [];
+        return (
+          <div key={item.id} className="flex items-center justify-between rounded-lg border border-border bg-panel px-4 py-2.5 text-sm">
+            <span className="text-ink">{item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`}</span>
+            <span className="text-xs text-ink-faint">
+              {item.assignedGuideId ? (directoryById.get(item.assignedGuideId) ?? 'predstavnik dodeljen') : 'bez predstavnika'}
+              {canViewCheckIns && ` · prijave sa terena: ${itemCheckIns.length}/${item.guests?.length ?? 0}`}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }

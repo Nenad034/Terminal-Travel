@@ -181,6 +181,16 @@ export class BookingsController {
     return this.bookings.modify(id, dto, actor);
   }
 
+  // Dopuna (2.9.2026, na zahtev vlasnika — kartica Aranžman: "promena usluge/datuma uz
+  // prethodnu proveru cene") — isti ulaz kao `modify`, ali ništa ne izvršava, samo računa novu
+  // cenu za prikaz pre nego što čovek potvrdi. Ista dozvola kao stvarna izmena — pregled cene
+  // otkriva iste podatke (npr. koje su usluge dostupne) koje bi otkrila i sama izmena.
+  @Post(':id/modify/preview')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  previewModify(@Param('id') id: string, @Body() dto: ModifyBookingDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.previewModify(id, dto, actor);
+  }
+
   @Post(':id/cancel')
   @RequirePermission('M5', 'booking', 'CANCEL')
   cancel(@Param('id') id: string, @Body() dto: CancelBookingDto, @CurrentUser() actor: { userId: string }) {

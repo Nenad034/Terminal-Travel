@@ -227,12 +227,28 @@ Dopuna 1.9.2026 (M5 spec §4.5): po stavci se sada vraćaju i `product` (naziv *
 **Odgovor `200` (B2C/B2B/gost — maskirano, §6.2):** ista stavka bez `supplierReference`/`baseCost`/`rateLineId`/`markupRuleId`; `product`, `guests`, `stayFrom`/`stayTo`, `unitCount`, `finalPrice`, `itemStatus` ostaju.
 
 ### POST /bookings/:id/modify
-Tretira se interno kao otkazivanje pogođene stavke + nova stavka po novom zahtevu, prikazano kao jedna radnja.
+Tretira se interno kao otkazivanje pogođene stavke + nova stavka po novom zahtevu, prikazano kao jedna radnja. `productId` (dopuna 2.9.2026) je opciono — izostavljeno zadržava postojeću uslugu, popunjeno je menja (mora biti isti `ProductType` kao stavka koja se menja, inače `400`).
 **Zahtev:**
 ```json
 { "bookingItemId": "bi-1", "stayFrom": "2027-06-12", "stayTo": "2027-06-16", "occupancy": { "adults": 2, "children": 0 } }
 ```
+**Zahtev — izmena usluge (isti tip proizvoda):**
+```json
+{ "bookingItemId": "bi-1", "productId": "prod-drugi-hotel", "stayFrom": "2027-06-12", "stayTo": "2027-06-16", "occupancy": { "adults": 2, "children": 0 } }
+```
 **Odgovor `200`:** ažuriran `Booking`, status `MODIFIED`, sa novom aktivnom stavkom i starom u statusu `CANCELLED`.
+**Odgovor `400` (nova usluga je drugog tipa proizvoda):**
+```json
+{ "message": "Nova usluga mora biti istog tipa kao postojeća stavka (ACCOMMODATION) — izmena tipa proizvoda nije \"izmena usluge\" (M5 spec §6), pravi se nova rezervacija.", "statusCode": 400 }
+```
+
+### POST /bookings/:id/modify/preview
+Dopuna 2.9.2026 (kartica Aranžman — "provera cene" pre potvrde). Isti ulaz kao `POST /bookings/:id/modify` (uklj. opcioni `productId`), ista dozvola (`M5/booking/MODIFY`) — ali NIŠTA ne rezerviše niti upisuje, samo računa novu cenu za prikaz.
+**Zahtev:** isti oblik kao `/modify`.
+**Odgovor `200`:**
+```json
+{ "currentPrice": 84000, "currentCurrency": "EUR", "newPrice": 91200, "newCurrency": "EUR", "priceDifference": 7200 }
+```
 
 ### POST /bookings/:id/cancel
 **Zahtev:**

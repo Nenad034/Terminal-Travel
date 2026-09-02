@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { BookingItem, PaymentStatus, Prisma, QuoteItem, TipNastupanja } from '@prisma/client';
+import { Booking, BookingItem, PaymentStatus, Prisma, QuoteItem, TipNastupanja } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
 import { EventBusService } from '../../../common/events/event-bus.service';
@@ -951,21 +951,40 @@ export class BookingsService {
   }
 
   // ==========================================================================
-  // M5 spec §6 — izmena (cancel pogođene stavke + nova stavka po novom zahtevu)
+  // M5 spec §6 — izmena (cancel pogođene stavke + nova stavka po novom zahtevu). Dopuna
+  // (2.9.2026, na zahtev vlasnika — kartica Aranžman): `dto.productId` opciono menja i USLUGU,
+  // ne samo datume/broj gostiju — mora ostati isti `ProductType` kao stavka koja se menja
+  // (zamena hotela za drugi hotel je "izmena usluge"; zamena hotela za let nije, to je nova
+  // rezervacija). Zajedničko sa `previewModify` ispod — jedina razlika je da preview NIŠTA
+  // ne rezerviše/upisuje (koristi se za "proveru cene" pre nego što čovek potvrdi).
   // ==========================================================================
-  async modify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
-    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
-    await this.assertBookingAccessible(booking, actor.userId);
+  private async resolveModifiedItem(
+    booking: Booking & { items: BookingItem[] },
+    dto: ModifyBookingDto,
+  ): Promise<{ oldItem: BookingItem; built: BuiltQuoteItemData }> {
     const oldItem = booking.items.find((i) => i.id === dto.bookingItemId);
-    if (!oldItem) throw new NotFoundException(`Stavka ${dto.bookingItemId} ne pripada rezervaciji ${bookingId}.`);
+    if (!oldItem) throw new NotFoundException(`Stavka ${dto.bookingItemId} ne pripada rezervaciji ${booking.id}.`);
     if (oldItem.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je već otkazana.');
+
+    const targetProductId = dto.productId ?? oldItem.productId;
+    if (dto.productId && dto.productId !== oldItem.productId) {
+      const [oldProduct, newProduct] = await Promise.all([
+        this.prisma.product.findUnique({ where: { id: oldItem.productId } }),
+        this.prisma.product.findUnique({ where: { id: dto.productId } }),
+      ]);
+      if (!newProduct) throw new NotFoundException(`Proizvod ${dto.productId} nije pronađen.`);
+      if (oldProduct && newProduct.type !== oldProduct.type) {
+        throw new BadRequestException(
+          `Nova usluga mora biti istog tipa kao postojeća stavka (${oldProduct.type}) — izmena tipa proizvoda nije "izmena usluge" (M5 spec §6), pravi se nova rezervacija.`,
+        );
+      }
+    }
 
     // M5 spec §3.0d.6a — build() sad vraća niz (PACKAGE gradi više stavki odjednom); izmena
     // menja TAČNO JEDNU postojeću stavku za jednu novu, pa PACKAGE proizvod ovde nije podržan
     // u ovom prolazu (zamena cele grupe paketa je van obima §6 izmene pojedinačne stavke).
     const builtItems = await this.builder.build({
-      productId: oldItem.productId,
+      productId: targetProductId,
       stayFrom: dto.stayFrom,
       stayTo: dto.stayTo,
       occupancy: dto.occupancy,
@@ -973,7 +992,31 @@ export class BookingsService {
     if (builtItems.length !== 1) {
       throw new BadRequestException('Izmena PACKAGE proizvoda (grupni paket) nije podržana kroz izmenu pojedinačne stavke (M5 spec §6).');
     }
-    const built = builtItems[0];
+    return { oldItem, built: builtItems[0] };
+  }
+
+  /** Dopuna (2.9.2026) — "provera cene" PRE nego što se izmena stvarno izvrši: poziva isti
+   *  builder kao `modify`, ali ništa ne rezerviše niti upisuje — čist izračun za prikaz. */
+  async previewModify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    const { oldItem, built } = await this.resolveModifiedItem(booking, dto);
+
+    return {
+      currentPrice: oldItem.finalPrice,
+      currentCurrency: oldItem.finalPriceCurrency,
+      newPrice: built.finalPrice,
+      newCurrency: built.finalPriceCurrency,
+      priceDifference: built.finalPrice - oldItem.finalPrice,
+    };
+  }
+
+  async modify(bookingId: string, dto: ModifyBookingDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    const { oldItem, built } = await this.resolveModifiedItem(booking, dto);
 
     // rezerviši novu stavku PRE oslobađanja stare — izbegava trenutak bez pokrivenog kapaciteta
     // ako oba koraka ciljaju isti period; oslobađanje stare stavke sledi tek posle uspeha.

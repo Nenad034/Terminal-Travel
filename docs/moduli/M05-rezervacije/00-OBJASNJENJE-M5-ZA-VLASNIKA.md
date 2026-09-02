@@ -48,6 +48,12 @@ Ako se rezervacija na već poslatoj listi izmeni ili otkaže posle slanja, siste
 
 Vaučer bez pune uplate (ručni izuzetak) i slanje liste dobavljaču mogu samo Vlasnik/Direktor/Sales Manager (i to poslednje ne prodajni agent) — osetljive, novčane ili spoljne komunikacije imaju uži krug. Prodajni agent vidi i radi sa sopstvenim klijentima; Vlasnik/Direktor/Sales Manager vide sve. AI agent nikad ne sme sam da klikne "pošalji" ili "odobri vaučer" — može samo da pripremi nacrt, čovek uvek povlači poslednji potez.
 
+## Pregled rezervacije sad pokazuje sve na jednom mestu, izmena usluge proverava cenu unapred
+
+Ekran jedne rezervacije ima deset kartica (ko putuje, šta je kupljeno, uplate, prepiska, beleške...). Do sada je kartica "Pregled" pokazivala samo osnovno, a za sve ostalo je trebalo prelaziti na drugu karticu. Sad "Pregled" radi kao **sažetak celog dosijea** — sve što postoji na ostalim karticama vidi se odmah, na jednom mestu, bez klikanja. Ova kartica i dalje ništa ne menja — samo prikazuje; za izmenu bilo čega se i dalje ide na tu konkretnu karticu.
+
+Na kartici "Aranžman" (šta je gost stvarno kupio) sad se, pored prikaza, može i **promeniti usluga** — na primer zameniti jedan hotel drugim, ili pomeriti datume — direktno na toj kartici, ne samo kroz posebnu karticu "Izmene". Pre nego što se izmena stvarno primeni, sistem prvo **pokaže novu cenu** ("trenutno 1.176 € → novo 1.240 €") i čeka da čovek to vidi i svesno potvrdi — cena se nikad ne menja "iza leđa". Zamena je dozvoljena samo unutar iste vrste usluge (hotel za drugi hotel, ne hotel za avionsku kartu) — to je smisleno "menjam istu stvar", ne pravljenje potpuno nove rezervacije.
+
 ## Šta još čeka (namerno, ne propust)
 
 Neki delovi sistema koji su spomenuti u ovom modulu (garancija putovanja, kreditni limit B2B partnera, ugovor sa klijentom, zajedničko sanduče za mejlove ka dobavljačima) **još nisu izgrađeni kao posebni moduli** — kad M5 treba da ih pita nešto, trenutno dobija unapred dogovoren, bezopasan odgovor ("da, prođi") umesto da blokira ceo tok. Ovo je namerno privremeno rešenje, jasno obeleženo u kodu, koje će biti zamenjeno pravom logikom čim ti moduli dođu na red po faznom planu — ne slučajna rupa koja je "ispala".

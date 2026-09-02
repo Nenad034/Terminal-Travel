@@ -2,27 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import { apiFetch, ApiError } from '@/lib/api-client';
+import { ChangeFormState, emptyChangeState } from './change-form-state';
 
 // M5 spec §6/§6.4/§11 — otkazivanje i izmena rezervacije.
 //
 // Zašto je ovo poseban fajl akcija, a ne deo booking-ownership-actions.ts: prenos vlasništva
 // menja KO vodi rezervaciju, ovo menja SAMU rezervaciju (kapacitet kod dobavljača, povraćaj,
 // najava izmene). Nikad ne mešati u istu formu — isti princip kao M7 "odobri rabat" dugme.
-
-export interface ChangeFormState {
-  error: string | null;
-  ok: string | null;
-  /** §6.4 — API vratio upozorenje o mogućem duplikatu; otkazivanje NIJE izvršeno dok
-   *  čovek eksplicitno ne potvrdi. Nikad se ne potvrđuje automatski. */
-  duplicateWarning: {
-    bookingItemId: string;
-    conflictBookingNumber: string | null;
-    conflictPaymentStatus: string | null;
-    message: string;
-  } | null;
-}
-
-export const emptyChangeState: ChangeFormState = { error: null, ok: null, duplicateWarning: null };
+//
+// `ChangeFormState`/`emptyChangeState` žive u `change-form-state.ts`, NE ovde — Next.js "use
+// server" fajl sme da izvozi isključivo async funkcije; izvoz običnog objekta (bio je ovde do
+// 2.9.2026) ruši build čim ga NOVA klijentska komponenta uveze (`AranzmanItemCard.tsx`):
+// "A 'use server' file can only export async functions, found object."
 
 function extractMessage(err: ApiError): string {
   const body = err.body as { message?: string | string[] } | null;
@@ -81,9 +72,12 @@ export async function cancelBooking(bookingId: string, _prev: ChangeFormState, f
 }
 
 /** §6 — izmena se interno izvodi kao otkazivanje stare stavke + nova provera dostupnosti/cene
- *  za novi zahtev. Nova cena može biti različita; API je vraća, ekran je prikazuje. */
+ *  za novi zahtev. Nova cena može biti različita; API je vraća, ekran je prikazuje. Dopuna
+ *  (2.9.2026) — `productId` je opciono: prazno zadržava postojeću uslugu, popunjeno je menja
+ *  (mora biti isti tip proizvoda, proverava API). */
 export async function modifyBookingItem(bookingId: string, _prev: ChangeFormState, formData: FormData): Promise<ChangeFormState> {
   const bookingItemId = String(formData.get('bookingItemId') ?? '');
+  const productId = String(formData.get('productId') ?? '').trim();
   const stayFrom = String(formData.get('stayFrom') ?? '');
   const stayTo = String(formData.get('stayTo') ?? '');
   const adults = Number(formData.get('adults') ?? 0);
@@ -97,7 +91,7 @@ export async function modifyBookingItem(bookingId: string, _prev: ChangeFormStat
   try {
     await apiFetch(`/sales/bookings/${bookingId}/modify`, {
       method: 'POST',
-      body: { bookingItemId, stayFrom, stayTo, occupancy: { adults, children } },
+      body: { bookingItemId, ...(productId ? { productId } : {}), stayFrom, stayTo, occupancy: { adults, children } },
     });
   } catch (err) {
     return { ...emptyChangeState, error: err instanceof ApiError ? extractMessage(err) : 'Izmena nije uspela.' };
@@ -105,4 +99,47 @@ export async function modifyBookingItem(bookingId: string, _prev: ChangeFormStat
 
   revalidatePath(`/rezervacije/${bookingId}`);
   return { ...emptyChangeState, ok: 'Izmena je izvršena — stara stavka je otkazana, nova je potvrđena.' };
+}
+
+// Dopuna (2.9.2026, na zahtev vlasnika — kartica Aranžman: "promena usluge/datuma uz
+// prethodnu proveru cene") — čist izračun, ništa ne menja; koristi se za "Proveri cenu" korak
+// pre nego što čovek klikne stvarnu potvrdu (`modifyBookingItem` iznad). Obična async funkcija,
+// ne `useActionState` reducer — poziva se iz `onClick`, ne iz `<form action>`, jer nema
+// smisla da "provera" ostavi trag u istoriji forme.
+export interface ModifyPreviewResult {
+  error: string | null;
+  currentPrice: number | null;
+  currentCurrency: string | null;
+  newPrice: number | null;
+  newCurrency: string | null;
+  priceDifference: number | null;
+}
+
+export async function previewModifyPrice(
+  bookingId: string,
+  input: { bookingItemId: string; productId?: string; stayFrom: string; stayTo: string; adults: number; children: number },
+): Promise<ModifyPreviewResult> {
+  const empty: ModifyPreviewResult = { error: null, currentPrice: null, currentCurrency: null, newPrice: null, newCurrency: null, priceDifference: null };
+  if (!input.bookingItemId) return { ...empty, error: 'Izaberite stavku koja se menja.' };
+  if (!input.stayFrom || !input.stayTo) return { ...empty, error: 'Unesite oba datuma.' };
+  if (new Date(input.stayTo) <= new Date(input.stayFrom)) return { ...empty, error: 'Datum završetka mora biti posle datuma početka.' };
+
+  try {
+    const res = await apiFetch<{ currentPrice: number; currentCurrency: string; newPrice: number; newCurrency: string; priceDifference: number }>(
+      `/sales/bookings/${bookingId}/modify/preview`,
+      {
+        method: 'POST',
+        body: {
+          bookingItemId: input.bookingItemId,
+          ...(input.productId ? { productId: input.productId } : {}),
+          stayFrom: input.stayFrom,
+          stayTo: input.stayTo,
+          occupancy: { adults: input.adults, children: input.children },
+        },
+      },
+    );
+    return { error: null, ...res };
+  } catch (err) {
+    return { ...empty, error: err instanceof ApiError ? extractMessage(err) : 'Provera cene nije uspela.' };
+  }
 }
