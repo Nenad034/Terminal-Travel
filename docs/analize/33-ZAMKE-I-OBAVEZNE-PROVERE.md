@@ -279,6 +279,10 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 
 ---
 
+**9.4 Konstanta uvezena iz `'use client'` modula u server komponentu nije ta konstanta**
+- *Simptom:* preferenca je u bazi tačno postavljena (provereno `GET`-om), server komponenta je čita bez ijedne greške u logu, i **svejedno uvek prikazuje podrazumevanu vrednost**. Ništa ne pukne, `tsc` je čist, `catch` grana se nikad ne okine — izgleda kao da vrednost prosto "ne stiže". Uhvaćeno 2.9.2026 na prekidaču izgleda kartice Pregled: `booking_overview_layout` je bio `klasicni`, ekran je uporno crtao `novi`.
+- *Uzrok:* modul označen sa `'use client'` se u server komponenti ne uvozi kao običan JavaScript — bundler sve njegove izvoze pretvara u "client reference" objekte. Za komponentu je to tačno ono što treba. Za običnu konstantu nije: umesto stringa `'booking_overview_layout'` server dobije objekat, pa `prefs[KLJUČ]` postane `prefs['[object Object]']` → `undefined`. Poređenje tiho ispadne netačno, bez ijedne greške.
+- *Provera:* `'use client'` fajl izvozi **samo komponentu**. Sve što server komponenta treba da pročita — ključevi preferenci, konstante, tipovi, čiste pomoćne funkcije — živi u neutralnom modulu (bez direktive) koji uvoze obe strane. Kad podešavanje "ne radi" a greške nema, prvo proveriti odakle je uvezen ključ, pre nego što se sumnja na keš, bazu ili mrežu.
 ## 10. Prisma `Decimal` polja preko JSON-a (backend ↔ panel/web ugovor)
 
 **10.1 `Decimal` stiže na frontend kao STRING, ne broj — `.toFixed()`/aritmetika puca u produkciji, `tsc` to ne hvata**

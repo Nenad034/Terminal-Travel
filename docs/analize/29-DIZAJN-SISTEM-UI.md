@@ -11,6 +11,8 @@
 **Verzija:** 1.51 — dopuna poglavlja 6c.0a, isti dan kao v1.50 (uživo nalaz uz snimak ekrana): popup "Otvori modul" je bio ravna lista svih modula — sad grupisan po `NAV_GROUPS` (isto kao Sidebar), naziv grupe podebljan i bez linka, klikaju se samo stavke unutar grupe. M17 spec v2.14.
 **Verzija:** 1.50 — ispravka i dve dopune poglavlja 6c.0, isti dan kao v1.49, na osnovu uživo probe uz snimak ekrana: red za unos je pogrešno ostao pri vrhu (ispravljeno), istorija razgovora sad raste odozdo nagore, 4 brze prečice uklonjene i zamenjene novim poglavljem 6c.0a ("Otvori modul" — popup sa svim modulima, nagore), novo poglavlje 6c.0b (sklapanje jedne od dve naslagane sekcije u desnom panelu), strelica "Pošalji" u bojama loga (fiksan preliv, isti kao TopBar logo). M17 spec v2.13.
 **Verzija:** 1.49 — novo poglavlje 6c.0 (25.8.2026, na zahtev vlasnika, posle razgovora o nekoliko alternativa — centrirani modal odbačen, ovo je konačna odluka): AI chat napušta plutajući prozor u uglu i postaje STALAN, dokovan deo desnog panela (poglavlje 5b), naslagan ISPOD postojećeg sažetka/podsetnika (ne tabovi, oba vidljiva odjednom). Dva nova mehanizma: (a) izbor po korisniku "sužava sadržaj" naspram "prelazi preko sadržaja" (`UserPreference` ključ `right_panel_display_mode`); (b) "Fokus" režim — ikonica otvara AI chat u punom, novom tabu (ceo centralni prostor), isti obrazac kao Claude Code panel u VS Code kad zauzima ceo ekran. `CommandPalette` ostaje nepromenjen i odvojen (vlasnikova eksplicitna odluka) — AI chat ne dobija duplikat spiska menija. M17 spec v2.12.
+**Verzija:** 1.49 — novo poglavlje 6h (2.9.2026, na zahtev vlasnika: "da li smatrate da je ovo malo teško za oko šta gde da gleda jer je vizuelno sve isto"): ekran pojedinačnog zapisa dobija tvrdo pravilo o **tri nivoa težine** (sažetak → sekcija → red) umesto desetak jednakih kartica, sa odnosom veličina brojeva i oznaka najmanje 2:1, dve kolone na širokom ekranu i retkim radnjama van vrha ekrana. Prvo primenjeno SAMO na karticu Pregled ekrana rezervacije, uz privremen prekidač koji vraća zatečeni izgled dok vlasnik ne odluči — izgled koji izgubi se briše iz koda zajedno sa prekidačem. Uz to i jedan nalaz koji nije estetski: "PREOSTALO −256,00 EUR" bilo je prikazano zelenom bojom, iako negativan ostatak znači da je gost preplatio i da neko mora da reaguje — boja je saopštavala suprotno od stvarnog stanja, sada je zasebna oznaka `PREPLAĆENO` u boji upozorenja.
+
 **Verzija:** 1.48 — novo poglavlje 6c.1a (25.8.2026, na zahtev vlasnika: "da li mozete na desni klik da ubacite u ai agenta bilo koju rezervaciju iz liste rezervacija kao kontekst... prosirite ovo i na sve module... umesto desnog klika moze i neka oznaka"): mala, generička ikonica "Dodaj u AI kontekst" na SVAKOM redu/kartici u SVAKOM modulu (ne desni klik — nema dodirni ekvivalent, nije vidljiv bez znanja da postoji), podržava dodavanje VIŠE zapisa pre postavljanja pitanja (poređenje) i prilaganje sačuvanog/trenutno filtriranog prikaza cele liste kao posebne kontekstne stavke. Podatkovni deo (šta se šalje agentu, ograničenja): M15 spec §6.5.4.3 (v1.40). M17 spec v2.11.
 **Verzija:** 1.48 — novo poglavlje 5c.1 (2.9.2026, na zahtev vlasnika: "kada je levi panel zatvoren i u bočnoj levoj traci se pojave samo ikone, kada prelazimo mišem preko ikona, pojaviti i plutajuće podmenije"): skupljena leva traka dobija plutajući meni sa sekcijama grupe na prelazak mišem ili fokus tastaturom. Do sada se, dok je traka skupljena, spisak sekcija nije mogao videti bez ponovnog širenja — pa je skupljanje trake značilo dobijen prostor uz izgubljenu navigaciju. Meni poštuje prava pristupa (M17 spec §3) i redosled iz proširene trake; grupa sa jednom sekcijom dobija meni od jednog reda koji zamenjuje sistemski tooltip (koji se tada namerno ne postavlja, da se ne pojave dva prikaza iste stvari).
 
@@ -779,6 +781,35 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 
 ---
 
+## 6h. Ekran zapisa — tri nivoa težine, ne deset jednakih kartica (dopuna, 2.9.2026, na zahtev vlasnika)
+
+*(vlasnik, uz snimak ekrana rezervacije: "da li smatrate da je ovo malo teško za oko šta gde da gleda jer je vizuelno sve isto? da li imate predlog kako ovo da popravimo")*
+
+Ekran rezervacije (kartica **Pregled**) nije bio pretrpan — imao je tačno onoliko podataka koliko treba. Problem je bio što su svi bili na **istom nivou**: `rounded-lg border border-border bg-panel p-4` ponavljao se desetak puta na istom ekranu, a naslovi sekcija su bili `text-xs uppercase text-ink-faint` — dakle **najsitniji i najbleđi tekst na ekranu bilo je ono što treba da orijentiše**. Kad je sve jednako istaknuto, ništa nije istaknuto.
+
+**Pravilo: svaki ekran pojedinačnog zapisa ima tačno tri nivoa težine.**
+
+| Nivo | Šta je | Kako izgleda |
+| :---- | :---- | :---- |
+| 1 — sažetak | Ono što se traži u prve dve sekunde: koja je stvar, za koga, kada, koliko | Jedina kartica sa okvirom na vrhu; brojevi ~18px, oznake ~9px. **Tačno jedan po ekranu** — ako ga dobije i druga sekcija, nivoa opet nema |
+| 2 — sekcija | Skup srodnih podataka (usluge, putnici, uplate) | Naslov u punoj boji teksta sa linijom ispod, **bez okvira oko sadržaja** |
+| 3 — red | Pojedinačan podatak u sekciji | Red liste razdvojen tankom linijom, bez sopstvene pozadine |
+
+**Okvir dobija samo ono što je zaseban entitet ili nešto na šta se klikne.** Isti podatak sme da ima okvir na jednom ekranu a da ga nema na drugom: stavka aranžmana je kartica na kartici *Aranžman* (tamo se menja) i običan red na *Pregledu* (tamo se samo čita).
+
+**Odnos veličina brojeva i oznaka je najmanje 2:1.** Zatečeno stanje je bilo 13px naspram 9px, pa su se iznosi čitali kao još jedan red teksta.
+
+**Dve kolone na širokom ekranu** — levo ono što jeste sam zapis, desno ono što je oko njega (novac, veze ka drugim modulima, retke radnje). Bez toga oko putuje preko cele širine za svaki red. Prelom na jednu kolonu ide na `xl`, ne na `lg` — na 1024px dve kolone stisnu tabelu iznosa do prelamanja.
+
+**Retko korišćene radnje ne stoje na vrhu.** Forme za prenos vlasništva i predaju zaduženja zauzimale su prvi ekran iznad svega, a koriste se retko; sam podatak (ko je vlasnik, ko je zadužen) ostaje vidljiv u sažetku, forme silaze na dno.
+
+**Ponavljanje se objedinjuje, ne skraćuje.** Isti putnik pod svakom uslugom je bio četiri reda za dve osobe; sada je dva reda, uz napomenu "isti putnici na svim uslugama". Podatak "ko putuje na čemu" se prikazuje tek kad se stvarno razlikuje.
+
+**Boja ostaje isključivo semantička — i mora govoriti istinu.** Nalaz iz istog prolaza: "PREOSTALO **−256,00 EUR**" bilo je prikazano **zelenom** bojom. Zelena znači "u redu, plaćeno", a negativan ostatak znači da je gost **preplatio** i da neko mora da reaguje (povraćaj, prebijanje, ispravka knjiženja). Boja je saopštavala suprotno od stvarnog stanja. Sada je zasebna oznaka `PREPLAĆENO` u boji upozorenja, sa napomenom šta dalje.
+
+**Sprovođenje.** Pravilo je prvo primenjeno SAMO na karticu Pregled ekrana rezervacije (2.9.2026, na vlasnikov zahtev — "hajde uradite samo za rezervacije da vidim kako uživo izgleda"), uz prekidač koji vraća zatečeni izgled dok vlasnik ne odluči. Kad odluči, izgled koji je izgubio se **briše iz koda** zajedno sa prekidačem — dva paralelna izgleda istog ekrana su tačno ono što je u prethodnom projektu dalo četiri dashboard-a koji rade isti posao (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`). Tek posle toga se pravilo primenjuje na ostale ekrane zapisa (gost, ugovor, faktura, proizvod), da se ne prepravlja tri puta.
+
+---
 ## 7. Obim primene — M17 i M7 istim obrascem, M8/M9 zasebno
 
 *(izmenjeno 17.8.2026 — ranije "samo M17 za sada")*

@@ -16,6 +16,11 @@ import AranzmanItemCard, { CandidateProduct } from './AranzmanItemCard';
 import BookingItemGuestsEditor from './BookingItemGuestsEditor';
 import CommunicationFilterList from './CommunicationFilterList';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
+import OverviewLayoutSwitch from './OverviewLayoutSwitch';
+// Ključ i tip dolaze iz NEUTRALNOG modula, ne iz `OverviewLayoutSwitch.tsx` — vidi obrazloženje
+// u `overview-layout.ts`; uvoz konstante iz `'use client'` fajla ovde tiho daje pogrešnu vrednost.
+import { OVERVIEW_LAYOUT_PREFERENCE_KEY, DEFAULT_OVERVIEW_LAYOUT, type OverviewLayout } from './overview-layout';
+import BookingOverviewHero, { SectionHeading, RelatedRow, type HeroFact } from './BookingOverviewHero';
 
 
 interface BookingItemProduct {
@@ -206,6 +211,17 @@ export default async function BookingDetailPage(props: {
   // uslugu" dolazi iz M2 kataloga, zahteva istu dozvolu kao svaki drugi uvid u katalog.
   const canViewProducts = hasPermission(me, 'M2', 'product', 'VIEW');
 
+  // Izgled kartice "Pregled" (2.9.2026) — nov je podrazumevan, zatečeni ostaje dostupan preko
+  // prekidača dok vlasnik ne odluči koji ostaje. Vidi `OverviewLayoutSwitch.tsx` za razlog zašto
+  // ovo postoji i zašto je privremeno. Neuspelo čitanje ne sme da obori ekran — pada na nov.
+  let overviewLayout: OverviewLayout = DEFAULT_OVERVIEW_LAYOUT;
+  try {
+    const prefs = await apiFetch<Record<string, unknown>>('/iam/users/me/preferences');
+    if (prefs?.[OVERVIEW_LAYOUT_PREFERENCE_KEY] === 'klasicni') overviewLayout = 'klasicni';
+  } catch {
+    // podešavanja nisu dostupna — ostaje podrazumevani izgled
+  }
+
   let booking: Booking | null = null;
   let error: string | null = null;
   try {
@@ -310,6 +326,99 @@ export default async function BookingDetailPage(props: {
   const pendingHandoff = handoffRequests.find((h) => h.status === 'PENDING') ?? null;
   const directoryById = new Map(directory.map((u) => [u.id, u.fullName]));
 
+
+  // ---- Izvedene vrednosti za sažetak na vrhu novog izgleda (dizajn dok. §6h) ----
+  // Računaju se ovde, a ne u `BookingOverviewHero`, da komponenta ostane čisto prikazna —
+  // isti obrazac kao ostatak ovog ekrana (podaci se dohvate i izvedu u server komponenti).
+  const stayFroms = (booking?.items ?? []).map((i) => i.stayFrom).filter((d): d is string => Boolean(d));
+  const stayTos = (booking?.items ?? []).map((i) => i.stayTo).filter((d): d is string => Boolean(d));
+  const tripFrom = stayFroms.length > 0 ? stayFroms.sort()[0] : null;
+  const tripTo = stayTos.length > 0 ? stayTos.sort()[stayTos.length - 1] : null;
+  // Broj putnika je broj RAZLIČITIH ljudi na rezervaciji, ne zbir po stavkama — isti putnik
+  // na hotelu i na transferu je jedan putnik, a zbir bi ga brojao dvaput (na primeru sa dva
+  // putnika i dve usluge to bi dalo "4 putnika", što je pogrešan podatak, ne samo ružan).
+  const uniqueGuestKeys = new Set(
+    (booking?.items ?? []).flatMap((i) =>
+      (i.guests ?? []).map((g) => g.guestProfileId ?? `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim().toLowerCase()),
+    ),
+  );
+  const guestCount = uniqueGuestKeys.size;
+  const itemsWithGuests = (booking?.items ?? []).filter((i) => (i.guests?.length ?? 0) > 0).length;
+  const guestSummaryMeta =
+    guestCount === 0
+      ? undefined
+      : itemsWithGuests > 1
+        ? `${guestCount} · na ${itemsWithGuests} usluge`
+        : String(guestCount);
+
+  const balance = (booking?.totalPrice ?? 0) - paidTotal;
+  const overviewSubtitle = [
+    clientAccount ? (clientAccount.accountType === 'LEGAL_ENTITY' ? clientAccount.companyName : clientAccount.fullName) : null,
+    booking?.ownerId ? `vlasnik ${directoryById.get(booking.ownerId) ?? '—'}` : null,
+    booking?.assignedToId ? `zadužen ${directoryById.get(booking.assignedToId) ?? '—'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  // Preplaćeno je posebno stanje, ne "plaćeno sa viškom": traži povraćaj, prebijanje na drugu
+  // rezervaciju ili ispravku knjiženja. Zatečeni izgled ga je prikazivao ZELENOM bojom kao
+  // negativan "preostalo" iznos — zeleno saopštava "sve u redu", dakle suprotno od stvarnog
+  // stanja. Zato ovde ima sopstvenu oznaku i boju upozorenja (2.9.2026, nalaz uz redizajn).
+  const overpaid = balance < 0;
+  const overviewBadges: { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' }[] = booking
+    ? [
+        {
+          label: booking.status,
+          tone: booking.status === 'CONFIRMED' ? 'ok' : booking.status === 'CANCELLED' ? 'danger' : 'neutral',
+        },
+        overpaid
+          ? { label: 'PREPLAĆENO', tone: 'warn' as const }
+          : {
+              label: booking.paymentStatus,
+              tone: booking.paymentStatus === 'PAID' ? ('ok' as const) : booking.paymentStatus === 'UNPAID' ? ('danger' as const) : ('neutral' as const),
+            },
+      ]
+    : [];
+
+  const overviewFacts: HeroFact[] = booking
+    ? [
+        {
+          label: 'Termin',
+          value: tripFrom ? `${new Date(tripFrom).toLocaleDateString('sr-RS')} — ${tripTo ? new Date(tripTo).toLocaleDateString('sr-RS') : '—'}` : '—',
+          note: tripFrom && tripTo ? `${nightsBetween(tripFrom, tripTo)} noćenja` : undefined,
+          compact: true,
+        },
+        {
+          label: 'Putnika',
+          value: guestCount > 0 ? String(guestCount) : '—',
+          note: `${booking.items.length} ${booking.items.length === 1 ? 'usluga' : 'usluge'}`,
+        },
+        ...(canViewPayments
+          ? [
+              { label: 'Ukupna cena', value: formatMoney(booking.totalPrice ?? 0), note: booking.currency },
+              {
+                label: 'Uplaćeno',
+                value: formatMoney(paidTotal),
+                note: `${booking.currency ?? ''}${payments.length > 0 ? ` · ${payments.length} ${payments.length === 1 ? 'uplata' : 'uplate'}` : ''}`,
+              },
+              overpaid
+                ? {
+                    label: 'Preplaćeno',
+                    value: formatMoney(Math.abs(balance)),
+                    note: `${booking.currency ?? ''} · traži povraćaj ili prebijanje`,
+                    tone: 'warn' as const,
+                  }
+                : {
+                    label: 'Preostalo',
+                    value: formatMoney(balance),
+                    note: booking.currency,
+                    tone: balance > 0 ? ('danger' as const) : ('default' as const),
+                  },
+            ]
+          : []),
+      ]
+    : [];
+
   return (
     <div className="p-6">
       <RegisterTab label={booking?.bookingNumber ?? params.id.slice(0, 8)} />
@@ -350,7 +459,7 @@ export default async function BookingDetailPage(props: {
             ))}
           </nav>
 
-          {activeTab === 'pregled' && me && (
+          {activeTab === 'pregled' && me && overviewLayout === 'klasicni' && (
             <div className="mb-4">
               <BookingOwnershipCard
                 bookingId={booking.id}
@@ -373,7 +482,15 @@ export default async function BookingDetailPage(props: {
               podaci... ovde se ništa ne menja samo se prikazuje") — Pregled od sada agregira
               ISTO što svaka pojedinačna kartica prikazuje, u čisto read-only obliku (bez formi za
               kreiranje/dodelu/otkazivanje — za to se i dalje ide na tu karticu). */}
+          {/* Prekidač izgleda — stoji na samom vrhu kartice Pregled, ne u globalnim
+              podešavanjima: tiče se samo ovog ekrana i postoji samo dok traje poređenje. */}
           {activeTab === 'pregled' && (
+            <div className="mb-3 flex justify-end">
+              <OverviewLayoutSwitch current={overviewLayout} />
+            </div>
+          )}
+
+          {activeTab === 'pregled' && overviewLayout === 'klasicni' && (
             <div className="space-y-6">
               <Section title="Aranžman">
                 <ItemsSummaryList items={booking.items} currency={booking.currency} />
@@ -472,6 +589,183 @@ export default async function BookingDetailPage(props: {
               <Section title="Predstavnici">
                 <RepsSummaryList items={booking.items} checkIns={checkIns} directoryById={directoryById} guides={guides} canViewCheckIns={canViewCheckIns} />
               </Section>
+            </div>
+          )}
+
+          {/* ============================================================================
+              NOV IZGLED kartice Pregled (2.9.2026, dizajn dok. §6h) — isti podaci i iste
+              dozvole kao klasičan blok iznad, promenjena je isključivo težina svakog dela:
+              sažetak (krupno) → sekcija sa naslovom → red u listi. Okvir nose samo sažetak i
+              ono na šta se klikne. Vidi `OverviewLayoutSwitch.tsx` — jedan od dva izgleda se
+              briše čim vlasnik odluči, ovo nije trajno stanje kod-baze.
+              ============================================================================ */}
+          {activeTab === 'pregled' && overviewLayout === 'novi' && (
+            <div>
+              <BookingOverviewHero
+                bookingNumber={booking.bookingNumber}
+                subtitle={overviewSubtitle}
+                badges={overviewBadges}
+                facts={overviewFacts}
+              />
+
+              {/* Levo ono što JESTE rezervacija (usluge, putnici), desno ono što je oko nje
+                  (novac, veze ka drugim modulima). Bez ovoga oko putuje preko cele širine
+                  ekrana za svaki red. `xl:` a ne `lg:` — na 1024px dve kolone stisnu tabelu
+                  uplata do prelamanja iznosa. */}
+              <div className="grid gap-x-7 gap-y-6 xl:grid-cols-[1.5fr_1fr]">
+                <div className="space-y-6">
+                  <div>
+                    <SectionHeading
+                      title="Aranžman"
+                      meta={`${booking.items.length} ${booking.items.length === 1 ? 'usluga' : 'usluge'} · ${formatMoney(booking.totalPrice ?? 0, booking.currency)}`}
+                    />
+                    <ItemsSummaryList items={booking.items} currency={booking.currency} flat />
+                  </div>
+
+                  <div>
+                    <SectionHeading title="Putnici" meta={guestSummaryMeta} />
+                    <GuestsSummaryList
+                      items={booking.items}
+                      guestProfilesById={guestProfilesById}
+                      canViewGuestProfiles={canViewGuestProfiles}
+                      flat
+                    />
+                  </div>
+
+                  <div>
+                    <SectionHeading title="Beleške" />
+                    <NotesSummaryList notes={notes} directoryById={directoryById} />
+                  </div>
+
+                  {canViewCommunication && booking.clientAccountId && (
+                    <div>
+                      <SectionHeading title="Komunikacija" />
+                      <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  {canViewPayments && (
+                    <div>
+                      <SectionHeading
+                        title="Uplate"
+                        meta={`${payments.length} · ${formatMoney(paidTotal, booking.currency)}`}
+                      />
+                      {/* Tri velika iznosa (ukupno/uplaćeno/preostalo) su preseljena u sažetak
+                          na vrhu — ovde ostaje samo spisak pojedinačnih uplata, da isti broj ne
+                          stoji dvaput na istom ekranu u dve različite veličine. */}
+                      <PaymentsSummaryBlock
+                        payments={payments}
+                        totalPrice={booking.totalPrice ?? 0}
+                        paidTotal={paidTotal}
+                        currency={booking.currency}
+                        flat
+                      />
+                      {canPrepareFiscal && (
+                        <div className="mt-2.5">
+                          <PrepareFiscalDocumentButton bookingId={booking.id} />
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {(canViewClientAccount || canViewRegistrations || canViewContracts) && (
+                    <div>
+                      <SectionHeading title="Povezano" />
+                      <div className="-mx-2">
+                        {canViewClientAccount &&
+                          (clientAccount ? (
+                            <RelatedRow
+                              code="M6"
+                              title={
+                                (clientAccount.accountType === 'LEGAL_ENTITY' ? clientAccount.companyName : clientAccount.fullName) ?? 'nalogodavac'
+                              }
+                              href={`/crm/${clientAccount.id}`}
+                              actionLabel="profil"
+                            />
+                          ) : (
+                            <RelatedRow code="M6" title="Nalogodavac nije povezan ili nije dostupan." />
+                          ))}
+
+                        {canViewRegistrations &&
+                          (registrations.length === 0 ? (
+                            <RelatedRow code="M11" title="Bez CIS registracije (nije ORGANIZATOR tip)." />
+                          ) : (
+                            registrations.map((r) => (
+                              <RelatedRow
+                                key={r.id}
+                                code="M11"
+                                title="Garancija putovanja"
+                                meta={`${r.status}${r.cisRegistrationNumber ? ` · ${r.cisRegistrationNumber}` : ''}`}
+                                href="/compliance"
+                                actionLabel="otvori"
+                              />
+                            ))
+                          ))}
+
+                        {canViewContracts &&
+                          (contracts.filter((c) => c.status !== 'VOIDED').length === 0 ? (
+                            <RelatedRow code="M20" title="Ugovor još nije generisan." />
+                          ) : (
+                            contracts
+                              .filter((c) => c.status !== 'VOIDED')
+                              .map((c) => (
+                                <RelatedRow
+                                  key={c.id}
+                                  code="M20"
+                                  title="Ugovor sa klijentom"
+                                  meta={`${c.status} · ${c.contractType}`}
+                                  href={`/ugovori-klijenti/${c.id}`}
+                                  actionLabel="otvori"
+                                />
+                              ))
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {canViewTickets && (
+                    <div>
+                      <SectionHeading title="Reklamacije" />
+                      <TicketsSummaryList tickets={tickets} />
+                    </div>
+                  )}
+
+                  <div>
+                    <SectionHeading title="Predstavnici" />
+                    <RepsSummaryList
+                      items={booking.items}
+                      checkIns={checkIns}
+                      directoryById={directoryById}
+                      guides={guides}
+                      canViewCheckIns={canViewCheckIns}
+                    />
+                  </div>
+
+                  {/* Prenos vlasništva / predaja zaduženja — iste forme, samo više nisu na vrhu
+                      ekrana. Koriste se retko, a zauzimale su prvi ekran iznad svega. */}
+                  {me && (
+                    <div>
+                      <SectionHeading title="Vlasništvo i zaduženje" />
+                      <BookingOwnershipCard
+                        bookingId={booking.id}
+                        ownerId={booking.ownerId ?? null}
+                        assignedToId={booking.assignedToId ?? null}
+                        ownerName={booking.ownerId ? (directoryById.get(booking.ownerId) ?? null) : null}
+                        assignedName={booking.assignedToId ? (directoryById.get(booking.assignedToId) ?? null) : null}
+                        currentUserId={me.userId}
+                        isVlasnikOrDirektor={isVlasnikOrDirektor}
+                        canTransferOwnership={canTransferOwnership}
+                        canProposeHandoff={canProposeHandoff}
+                        canAcceptAssignment={canAcceptAssignment}
+                        directory={directory}
+                        pendingHandoff={pendingHandoff}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -840,8 +1134,53 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ItemsSummaryList({ items, currency }: { items: BookingItem[]; currency?: string }) {
+// `flat` (2.9.2026, nov izgled Pregleda — dizajn dok. §6h): isti podaci bez sopstvenog okvira,
+// kao redovi liste razdvojeni tankom linijom. Okvir po stavci je smislen na kartici Aranžman,
+// gde je svaka stavka nešto što se menja; na Pregledu je stavka samo podatak koji se čita, pa
+// deset okvira na ekranu čini da ništa ne izgleda važnije od bilo čega drugog.
+function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; currency?: string; flat?: boolean }) {
   if (items.length === 0) return <p className="text-xs text-ink-faint">Rezervacija nema nijednu stavku.</p>;
+  if (flat) {
+    return (
+      <div className="divide-y divide-border">
+        {items.map((item) => (
+          <div key={item.id} className="flex flex-wrap items-start gap-2.5 py-2.5">
+            <span title={item.product?.type} className="mt-0.5 flex-shrink-0 text-accent">
+              <Icon name={PRODUCT_ICONS.find((p) => p.types.includes(item.product?.type ?? ''))?.icon ?? 'question'} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold text-ink">
+                {item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}
+              </div>
+              {/* Destinacija, termin, noćenja i broj putnika u JEDNOM redu sitnog teksta umesto
+                  u mreži od četiri polja sa sopstvenim oznakama — na Pregledu se ti podaci
+                  čitaju kao rečenica, ne porede se kolonski. */}
+              <div className="mt-0.5 text-[11px] text-ink-faint">
+                {[
+                  [item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ') || null,
+                  item.stayFrom
+                    ? `${new Date(item.stayFrom).toLocaleDateString('sr-RS')}${item.stayTo && item.stayTo !== item.stayFrom ? ` — ${new Date(item.stayTo).toLocaleDateString('sr-RS')}` : ''}`
+                    : null,
+                  nightsBetween(item.stayFrom, item.stayTo) !== '—' ? `${nightsBetween(item.stayFrom, item.stayTo)} noćenja` : null,
+                  (item.guests?.length ?? 0) > 0 ? `${item.guests?.length} putnika` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
+            </div>
+            <div className="flex-shrink-0 text-right">
+              <div className="font-mono text-[13px] font-semibold text-ink">
+                {formatMoney(item.finalPrice, item.finalPriceCurrency ?? currency)}
+              </div>
+              <div className="mt-1">
+                <Badge label={item.itemStatus} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       {items.map((item) => (
@@ -877,13 +1216,61 @@ function GuestsSummaryList({
   items,
   guestProfilesById,
   canViewGuestProfiles,
+  flat,
 }: {
   items: BookingItem[];
   guestProfilesById: Map<string, GuestProfileSummary>;
   canViewGuestProfiles: boolean;
+  flat?: boolean;
 }) {
   const withGuests = items.filter((i) => (i.guests?.length ?? 0) > 0);
   if (withGuests.length === 0) return <p className="text-xs text-ink-faint">Na rezervaciji nema unetih putnika.</p>;
+  if (flat) {
+    // Isti putnik se u zatečenom izgledu ponavljao pod SVAKOM uslugom (dva putnika na dve
+    // usluge = četiri reda), pa je spisak izgledao duplo duži nego što stvarno jeste. Ovde se
+    // objedinjuje po osobi, a razlika između usluga se prikazuje samo ako stvarno postoji —
+    // podatak "ko putuje na čemu" se ne gubi, samo ne zauzima prostor kad je svuda isti.
+    const byPerson = new Map<string, { first?: string; last?: string; profileId?: string | null; items: string[] }>();
+    for (const item of withGuests) {
+      for (const g of item.guests ?? []) {
+        const key = g.guestProfileId ?? `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim().toLowerCase();
+        const entry = byPerson.get(key) ?? { first: g.guestFirstName, last: g.guestLastName, profileId: g.guestProfileId, items: [] };
+        entry.items.push(item.product?.name ?? 'stavka');
+        byPerson.set(key, entry);
+      }
+    }
+    const people = [...byPerson.values()];
+    const naSvima = people.every((p) => p.items.length === withGuests.length);
+    return (
+      <div>
+        <div className="divide-y divide-border">
+          {people.map((p, idx) => {
+            const profile = p.profileId ? guestProfilesById.get(p.profileId) : null;
+            return (
+              <div key={p.profileId ?? idx} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                <span className="text-[13px] text-ink">
+                  {p.first} {p.last}
+                  {!naSvima && <span className="ml-1.5 text-[11px] text-ink-faint">· {p.items.join(', ')}</span>}
+                </span>
+                {profile ? (
+                  <span className="font-mono text-[10px] text-ink-faint">
+                    {profile.documentType} {profile.documentNumber} · {profile.nationality}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-ink-faint">
+                    {p.profileId ? (canViewGuestProfiles ? '—' : 'zahteva M6/guest-profile/VIEW') : 'bez povezanog profila'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {naSvima && withGuests.length > 1 && (
+          <div className="mt-1.5 text-[10px] text-ink-faint">Isti putnici na svim uslugama.</div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       {withGuests.map((item) => (
@@ -914,7 +1301,48 @@ function GuestsSummaryList({
   );
 }
 
-function PaymentsSummaryBlock({ payments, totalPrice, paidTotal, currency }: { payments: Payment[]; totalPrice: number; paidTotal: number; currency?: string }) {
+function PaymentsSummaryBlock({
+  payments,
+  totalPrice,
+  paidTotal,
+  currency,
+  flat,
+}: {
+  payments: Payment[];
+  totalPrice: number;
+  paidTotal: number;
+  currency?: string;
+  flat?: boolean;
+}) {
+  // `flat` izostavlja tri velike brojke (ukupno/uplaćeno/preostalo) jer one u novom izgledu
+  // stoje u sažetku na vrhu ekrana — bez ovoga bi isti iznos stajao dvaput na istom ekranu,
+  // u dve različite veličine, što je gore nego da nije nigde istaknut.
+  if (flat) {
+    if (payments.length === 0) return <p className="text-xs text-ink-faint">Nema evidentiranih uplata za ovu rezervaciju.</p>;
+    return (
+      <div className="divide-y divide-border">
+        {payments.map((p) => (
+          <div key={p.id} className="flex flex-wrap items-baseline justify-between gap-2 py-1.5 text-[13px]">
+            <span className="text-ink-dim">
+              {p.method}
+              {p.bank && ` · ${p.bank.name}`}
+              {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}
+              <span className="ml-1 text-[11px] text-ink-faint">{new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="font-mono font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>
+              <Badge label={p.status} />
+              {p.checkDetails && p.checkDetails.length > 0 && (
+                <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-[11px] text-accent hover:underline">
+                  specifikacija →
+                </a>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
