@@ -22,9 +22,15 @@ export interface ProductIconDef {
   emptyMessage?: string;
   /**
    * Vrsta koja nema ni sopstveni ekran, ne samo izvor podataka — klik ne pokreće pretragu.
-   * Danas samo "Individualni paketi" (otvara nacrt putovanja, M5 spec §3.0d.5, ekran ne postoji).
+   * Danas nijedna; polje ostaje jer je "ikonica postoji, ekran ne" stanje koje se ponavlja.
    */
   locked?: string;
+  /**
+   * Ikonica koja ne pokreće pretragu nego uključuje SASTAVLJANJE paketa (M5 spec §3.0d.5a) —
+   * ostale ikonice tada menjaju značenje u "ova usluga ulazi u paket". Samo "Individualni
+   * paketi"; paket nije `Product.type` (§3.0d.5), zato mu `types` i ostaje prazan.
+   */
+  packageMode?: boolean;
 }
 
 export const PRODUCT_ICONS: ProductIconDef[] = [
@@ -38,7 +44,7 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     emptyMessage: 'Rent-a-car još nema ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   { label: 'Things to do', icon: 'compass', types: ['EXCURSION', 'EVENT', 'TICKET'] },
-  { label: 'Individualni paketi', icon: 'map', types: [], locked: 'Itinerar builder još nije izgrađen (M5 spec §3.0d.5)' },
+  { label: 'Individualni paketi', icon: 'map', types: [], packageMode: true },
   {
     label: 'Grupni paketi',
     icon: 'gift',

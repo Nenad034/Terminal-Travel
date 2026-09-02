@@ -7,6 +7,8 @@ import SearchCriteriaForm, { valuesFromSearchParams, type SearchCriteriaValues }
 import SearchCriteriaChip from './SearchCriteriaChip';
 import { useSearchState } from './SearchStateContext';
 import { PRODUCT_ICONS, findIconByTypes, type ProductIconDef } from '@/lib/search-product-types';
+import { useSelection } from './SelectionContext';
+import { inheritedStayFrom, isPackageMode } from '@/lib/search-package';
 
 // EKRAN PRETRAGE — gornji deo centralnog panela (M5 spec §3.0g.1, dizajn dok. §6d.1).
 // Vlasnikova odluka (2.9.2026) seli pretragu iz levog panela u centralni:
@@ -50,10 +52,14 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
   const router = useRouter();
   const sp = useSearchParams();
   const { criteriaFor, rememberCriteria, forgetCriteria, armRefresh } = useSearchState();
+  const { items } = useSelection();
 
   const types = sp.getAll('type');
   const activeIcon = findIconByTypes(types);
   const typeKey = typeKeyOf(types);
+  // M5 spec §3.0d.5a — „Individualni paketi" je jedan prekidač, ne poseban ekran: dok je
+  // uključen, svaka sledeća pretraga preuzima datum poslednje stavke iz desnog panela.
+  const packageMode = isPackageMode(sp);
   const criteria = criteriaFromParams(new URLSearchParams(sp.toString()));
 
   // §3.0g.2 — forma je otvorena dok nema rezultata; čim stignu, skuplja se u red sa kriterijumima.
@@ -83,7 +89,19 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
     setExpanded(false);
   }, [typeKey, criteria]);
 
+  /** §3.0d.5a — uključuje/isključuje praćenje datuma; ne menja vrstu pretrage niti briše išta. */
+  function togglePackageMode() {
+    const next = new URLSearchParams(sp.toString());
+    if (packageMode) next.delete('paket');
+    else next.set('paket', '1');
+    router.push(`/rezervacije/pretraga?${next.toString()}`);
+  }
+
   function selectType(p: ProductIconDef) {
+    if (p.packageMode) {
+      togglePackageMode();
+      return;
+    }
     if (p.locked || p.types.length === 0) return;
     const target = typeKeyOf(p.types);
     if (target === typeKey) {
@@ -93,7 +111,17 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
     // §3.0g.4 — kriterijumi prethodne vrste se NE brišu; ako izabrana vrsta ima upamćene
     // kriterijume, vraćaju se u adresu i rezultati se ponovo prikazuju sami.
     if (criteria) rememberCriteria(typeKey, criteria);
-    router.push(urlFor(p.types, criteriaFor(target) ?? ''));
+
+    const nextCriteria = new URLSearchParams(criteriaFor(target) ?? '');
+    // §3.0d.5a — datum se PREUZIMA samo u prazno polje: već unet datum ostaje netaknut, inače bi
+    // uključen paket tiho pomerao ono što je korisnik pažljivo podesio. Prazna selekcija znači
+    // da nema od čega da se nasledi — prekidač tada ne radi ništa, i to je tačno.
+    if (packageMode && !nextCriteria.get('stayFrom')) {
+      const inherited = inheritedStayFrom(items[items.length - 1]);
+      if (inherited) nextCriteria.set('stayFrom', inherited);
+    }
+    if (packageMode) nextCriteria.set('paket', '1');
+    router.push(urlFor(p.types, nextCriteria.toString()));
   }
 
   function reset() {
@@ -120,15 +148,19 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
              page.tsx (§3.0g.5), ne izostavljena ikonica. */}
       <div className="mb-4 flex flex-wrap items-start justify-center gap-1">
         {PRODUCT_ICONS.map((p) => {
-          const active = p.types.length > 0 && typeKeyOf(p.types) === typeKey;
-          const disabled = Boolean(p.locked) || p.types.length === 0;
+          const active = p.packageMode ? packageMode : p.types.length > 0 && typeKeyOf(p.types) === typeKey;
+          const disabled = p.packageMode ? false : Boolean(p.locked) || p.types.length === 0;
           return (
             <button
               key={p.label}
               type="button"
               onClick={() => selectType(p)}
               disabled={disabled}
-              title={p.locked ?? p.label}
+              title={
+                p.packageMode
+                  ? 'Individualni paket — svaka sledeća usluga preuzima datum poslednje dodate stavke (M5 §3.0d.5a)'
+                  : (p.locked ?? p.label)
+              }
               className={`flex w-24 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-[11px] leading-none transition-colors ${
                 disabled
                   ? 'cursor-not-allowed text-ink-faint opacity-40'
@@ -146,6 +178,14 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
 
       {/* 2. Forma ispod ikonica, u centralnom panelu, različita po vrsti (§3.0g.1 tačka 2) —
              ili skupljen red sa kriterijumima kad rezultati postoje (§3.0g.2). */}
+      {packageMode && (
+        <p className="mb-3 text-center text-[11px] text-accent-strong">
+          {items.length > 0
+            ? `Individualni paket: sledeća usluga kreće od ${inheritedStayFrom(items[items.length - 1]) || 'datuma poslednje stavke'}. Datum koji sami unesete ostaje.`
+            : 'Individualni paket: čim dodate prvu stavku u desni panel, sledeća usluga preuzima njen datum.'}
+        </p>
+      )}
+
       {activeIcon && showForm && (
         <SearchCriteriaForm
           label={activeIcon.label}

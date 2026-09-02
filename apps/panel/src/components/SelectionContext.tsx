@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 // M5 spec §3.0e.3 — selekcija stavki iz pretrage pre kreiranja Ponude, prikazana u desnom
 // panelu (dizajn dok. §5b/§6d). Čisto klijentsko stanje (ne preživljava osvežavanje stranice),
@@ -64,13 +64,20 @@ const SelectionContext = createContext<SelectionContextValue | null>(null);
 export function SelectionProvider({ children, onFirstAdd }: { children: React.ReactNode; onFirstAdd?: () => void }) {
   const [items, setItems] = useState<SelectionItem[]>([]);
 
+  // `onFirstAdd` otvara desni panel, što je izmena stanja RODITELJA (Shell). Zvao se ranije
+  // unutar `setItems` funkcije — a ta funkcija se izvršava u toku renderovanja, pa je React
+  // prijavljivao "Cannot update a component while rendering a different component" (i sme da je
+  // pozove dvaput). Zato se sad prati prelaz iz prazne u nepraznu selekciju u efektu, posle
+  // renderovanja: isto ponašanje za korisnika, bez izmene tuđeg stanja usred crtanja.
   function addItem(item: SelectionItem) {
-    setItems((prev) => {
-      if (prev.some((i) => i.key === item.key)) return prev;
-      if (prev.length === 0) onFirstAdd?.();
-      return [...prev, item];
-    });
+    setItems((prev) => (prev.some((i) => i.key === item.key) ? prev : [...prev, item]));
   }
+
+  const wasEmpty = useRef(true);
+  useEffect(() => {
+    if (wasEmpty.current && items.length > 0) onFirstAdd?.();
+    wasEmpty.current = items.length === 0;
+  }, [items.length]); // eslint-disable-line react-hooks/exhaustive-deps
   function removeItem(key: string) {
     setItems((prev) => prev.filter((i) => i.key !== key));
   }
