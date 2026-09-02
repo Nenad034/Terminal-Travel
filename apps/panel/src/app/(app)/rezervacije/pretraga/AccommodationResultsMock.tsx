@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
+import { compareName } from '@/lib/search-sort';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mock
 // podatke da vidim kako sve izgleda", dorađeno kroz dva naredna prolaza istog dana). Pravi
@@ -153,6 +154,7 @@ export default function AccommodationResultsMock({
   boardType,
   priceMin,
   priceMax,
+  sort,
 }: {
   stayFrom?: string;
   stayTo?: string;
@@ -163,6 +165,8 @@ export default function AccommodationResultsMock({
   boardType?: string | null;
   priceMin?: number | null;
   priceMax?: number | null;
+  /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
+  sort: string;
 }) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -181,7 +185,14 @@ export default function AccommodationResultsMock({
       .sort((a, b) => offerTotal(a) - offerTotal(b)),
   }))
     .filter((h) => h.offers.length > 0)
-    .sort((a, b) => offerTotal(a.offers[0]) - offerTotal(b.offers[0]));
+    // M5 spec §3.0g.8 — redosled bira korisnik (SortBar.tsx). Ponude UNUTAR hotela ostaju
+    // poređane po ceni rastuće bez obzira na izbor: tu se bira soba, ne hotel.
+    .sort((a, b) => {
+      if (sort === 'PRICE_DESC') return offerTotal(b.offers[0]) - offerTotal(a.offers[0]);
+      if (sort === 'NAME_ASC') return compareName(a.name, b.name);
+      if (sort === 'STARS_DESC') return b.stars - a.stars || offerTotal(a.offers[0]) - offerTotal(b.offers[0]);
+      return offerTotal(a.offers[0]) - offerTotal(b.offers[0]);
+    });
 
   function toggle(id: string) {
     setExpanded((prev) => {

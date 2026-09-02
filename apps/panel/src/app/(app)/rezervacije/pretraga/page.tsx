@@ -5,6 +5,9 @@ import SearchPanel from '@/components/SearchPanel';
 import SearchRefreshNotice from '@/components/SearchRefreshNotice';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { offerKey } from '@/lib/search-offer-key';
+import { flightFiltersFromParams } from '@/lib/mock-flights';
+import SortBar from '@/components/SortBar';
+import { resolveSort, compareName } from '@/lib/search-sort';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import AccommodationResultsMock from './AccommodationResultsMock';
@@ -118,6 +121,16 @@ export default async function SearchPage(
       .filter((r) => r.offers.length > 0);
   }
 
+  // Cena proizvoda za sortiranje = njegova NAJJEFTINIJA ponuda (isti princip kao "od X din"
+  // prikaz na svakom portalu) — proizvod bez ponuda ne postoji u rezultatima, filter iznad ga
+  // je već uklonio.
+  const cheapest = (r: SearchResult) => Math.min(...r.offers.map((o) => o.finalPrice));
+  results = [...results].sort((a, b) => {
+    if (sort === 'PRICE_DESC') return cheapest(b) - cheapest(a);
+    if (sort === 'NAME_ASC') return compareName(a.name, b.name);
+    return cheapest(a) - cheapest(b);
+  });
+
   const cardResults = results.filter((r) => CARD_TYPES.has(r.type));
   const rowResults = results.filter((r) => !CARD_TYPES.has(r.type));
 
@@ -136,6 +149,18 @@ export default async function SearchPage(
   const showsResults = hasQuery && !error && (usesMock || results.length > 0);
 
   const activeIcon = findIconByTypes(types);
+
+  // M5 spec §3.0d.1 — filteri letova iz levog panela. Čitaju se iz iste `searchParams` strukture
+  // kao ostali filteri (cena/dostupnost), pa nema novog mehanizma prenosa.
+  // M5 spec §3.0g.8 — redosled prikaza. `resolveSort` odbacuje vrednost koja ne postoji za
+  // aktivnu vrstu proizvoda (npr. "najkraće" kod smeštaja) i vraća podrazumevanu, umesto da
+  // prikaz ostane u stanju koje nijedno dugme ne pokazuje kao aktivno.
+  const sort = resolveSort(first(searchParams.sort), types);
+
+  const flightFilters = flightFiltersFromParams(
+    (k) => first(searchParams[k]) ?? null,
+    (k) => normalizeTypes(searchParams[k])
+  );
 
   // M5 spec §3.0g.3 — snimak ponuda koji "Osveži podatke" poredi sa prethodnim. Gradi se samo iz
   // PRAVIH `GET /search` rezultata; mock prikazi imaju hardkodovane cene koje se između dva
@@ -160,6 +185,8 @@ export default async function SearchPage(
       <SearchPanel hasResults={showsResults} />
 
       {!usesMock && <SearchRefreshNotice offers={offerSnapshots} />}
+
+      {showsResults && <SortBar resultCount={usesMock ? 0 : results.length} />}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
@@ -191,6 +218,7 @@ export default async function SearchPage(
               boardType={boardType}
               priceMin={priceMin}
               priceMax={priceMax}
+              sort={sort}
             />
           );
         }
@@ -220,14 +248,16 @@ export default async function SearchPage(
               cabinClass={cabinClass}
               priceMin={priceMin}
               priceMax={priceMax}
+              filters={flightFilters}
+              sort={sort}
             />
           );
         }
         if (singleType === 'TRANSFER') {
-          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;
+          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} sort={sort} />;
         }
         if (isThingsToDo) {
-          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} />;
+          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} sort={sort} />;
         }
         return (
           <>

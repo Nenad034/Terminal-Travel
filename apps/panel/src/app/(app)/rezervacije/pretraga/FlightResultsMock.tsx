@@ -2,6 +2,8 @@
 
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
+import { MOCK_FLIGHTS, applyFlightFilters, minutesOfDay, type MockFlight, type FlightFilterValues } from '@/lib/mock-flights';
+import { flightBestScore } from '@/lib/search-sort';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (29.8.2026, na zahtev vlasnika: "dodajte mock
 // podatke za pretragu letova, transfera i izleta da bih video kako sve radi", isti obrazac kao
@@ -10,96 +12,12 @@ import { useSelection } from '@/components/SelectionContext';
 // razlikuje ova polja od ostalih tipova (isti `SearchResultOffer` oblik za sve), zato mock ovde
 // hardkoduje sopstveni, bogatiji oblik dok prava žica (M4 provajder odgovor za FLIGHT) ne stigne
 // do istog nivoa detalja.
-interface MockFlight {
-  id: string;
-  airline: string;
-  flightNumber: string;
-  fromCity: string;
-  fromCode: string;
-  toCity: string;
-  toCode: string;
-  departTime: string;
-  arriveTime: string;
-  durationLabel: string;
-  stops: number;
-  cabinClass: string;
-  price: number;
-  currency: string;
-}
-
 const CABIN_CLASS_LABELS: Record<string, string> = {
   ECONOMY: 'Economy',
   PREMIUM_ECONOMY: 'Premium Economy',
   BUSINESS: 'Business',
   FIRST: 'First',
 };
-
-const MOCK_FLIGHTS: MockFlight[] = [
-  {
-    id: 'mock-f1',
-    airline: 'Air Serbia',
-    flightNumber: 'JU 322',
-    fromCity: 'Beograd',
-    fromCode: 'BEG',
-    toCity: 'Atina',
-    toCode: 'ATH',
-    departTime: '07:15',
-    arriveTime: '09:05',
-    durationLabel: '1h 50min',
-    stops: 0,
-    cabinClass: 'ECONOMY',
-    price: 18900,
-    currency: 'EUR',
-  },
-  {
-    id: 'mock-f2',
-    airline: 'Aegean Airlines',
-    flightNumber: 'A3 812',
-    fromCity: 'Beograd',
-    fromCode: 'BEG',
-    toCity: 'Atina',
-    toCode: 'ATH',
-    departTime: '13:40',
-    arriveTime: '15:35',
-    durationLabel: '1h 55min',
-    stops: 0,
-    cabinClass: 'ECONOMY',
-    price: 16700,
-    currency: 'EUR',
-  },
-  {
-    id: 'mock-f3',
-    airline: 'Wizz Air',
-    flightNumber: 'W6 4301',
-    fromCity: 'Beograd',
-    fromCode: 'BEG',
-    toCity: 'Atina',
-    toCode: 'ATH',
-    departTime: '19:20',
-    arriveTime: '23:10',
-    durationLabel: '3h 50min',
-    stops: 1,
-    cabinClass: 'ECONOMY',
-    price: 9900,
-    currency: 'EUR',
-  },
-  {
-    id: 'mock-f4',
-    airline: 'Air Serbia',
-    flightNumber: 'JU 322',
-    fromCity: 'Beograd',
-    fromCode: 'BEG',
-    toCity: 'Atina',
-    toCode: 'ATH',
-    departTime: '07:15',
-    arriveTime: '09:05',
-    durationLabel: '1h 50min',
-    stops: 0,
-    cabinClass: 'BUSINESS',
-    price: 42300,
-    currency: 'EUR',
-  },
-];
 
 function money(amountCents: number, currency: string): string {
   return `${(amountCents / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${currency}`;
@@ -125,6 +43,8 @@ export default function FlightResultsMock({
   cabinClass,
   priceMin,
   priceMax,
+  filters,
+  sort,
 }: {
   /** Datum poletanja prve/jedine noge (M5 spec §3.0d.1 — `stay_from` = datum leta). */
   stayFrom?: string;
@@ -140,17 +60,34 @@ export default function FlightResultsMock({
   cabinClass?: string | null;
   priceMin?: number | null;
   priceMax?: number | null;
+  /** M5 spec §3.0d.1 — filteri iz levog panela, klijentski nad već dobijenim rezultatima. */
+  filters: FlightFilterValues;
+  /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
+  sort: string;
 }) {
   const { items, addItem } = useSelection();
 
   function legFlights(from: string, to: string, idSuffix: string): MockFlight[] {
-    return MOCK_FLIGHTS.filter((f) => {
+    const base = MOCK_FLIGHTS.filter((f) => {
       if (cabinClass && f.cabinClass !== cabinClass) return false;
       if (priceMin != null && f.price < priceMin) return false;
       if (priceMax != null && f.price > priceMax) return false;
       return true;
-    })
-      .sort((a, b) => a.price - b.price)
+    });
+    return applyFlightFilters(base, filters)
+      // M5 spec §3.0g.8 / §3.0d.1 — "Najjeftiniji" ili "Najbolji" (kombinacija cene, trajanja i
+      // presedanja), isti princip kao Google Flights. Formula je u `flightBestScore`.
+      .sort((a, b) => {
+        if (sort === 'BEST') {
+          return (
+            flightBestScore(a.price, a.durationMinutes, a.stops) - flightBestScore(b.price, b.durationMinutes, b.stops)
+          );
+        }
+        if (sort === 'DURATION_ASC') return a.durationMinutes - b.durationMinutes;
+        if (sort === 'DEPART_ASC') return minutesOfDay(a.departTime) - minutesOfDay(b.departTime);
+        if (sort === 'PRICE_DESC') return b.price - a.price;
+        return a.price - b.price;
+      })
       .map((f) => ({
         ...f,
         id: `${f.id}-${idSuffix}`,

@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.09 — Nova poglavlja 3.0g.8 (sortiranje) i 3.0g.9 (poređenje sa velikim portalima), 2.9.2026, na zahtev vlasnika ("istražite dobro filtere pretrage u TT-u za smeštaj, letove i transfer u odnosu na velike portale pa mi recite da li smo sva polja predvideli"). **Sortiranje nije postojalo nigde u aplikaciji** — dodato kao traka iznad rezultata, sa opcijama po vrsti proizvoda i pravilom da se nudi samo ono za šta postoji podatak; implementirano u istom prolazu (`lib/search-sort.ts`, `components/SortBar.tsx`). Poređenje (3.0g.9) deli nalaze na tri vrste: **(a) bilo specificirano a nenapravljeno** — devet filtera letova iz §3.0d.1 (panel je za letove imao samo filter cene) i šesnaest neprikazanih `AmenityTag` vrednosti uklj. `FREE_CANCELLATION`/`PAY_AT_PROPERTY`; **oboje zatvoreno u ovom prolazu, bez izmene modela**; **(b) postoji u katalogu ali pretraga ne izlaže** — `accommodation_type` i `stars` (traži dopunu `GET /search`, ne novo polje); **(c) ne postoji nigde** — ocena gostiju, udaljenost od centra, hotelski lanac, pristupačnost, pet filtera letova (basic economy/odvojene karte/alijansa/noćni letovi/CO2), i pet transfernih (privatan naspram deljenog, klasa vozila, broj i uzrast za dečja sedišta, meet & greet, jezik vozača). Potvrđeno da je odluka iz 3.0g.6 o državljanstvu i valuti kao dva odvojena polja ispravna (LiteAPI traži oba kao obavezna; Booking izvodi valutu iz `booker.country`), uz nalaz da je valuta upisana samo kod smeštaja a važi za sve strane dobavljače. Stavke (b) i (c) nisu implementirane, čekaju odluku.
+
 **Verzija:** 2.08 — Poglavlje 3.0g **implementirano** u panelu (2.9.2026, isti dan kao specifikacija): raspored i sva četiri pravila ponašanja iz §3.0g.1–§3.0g.5 sad stvarno rade. Pretraga je preseljena iz levog panela u centralni — devet ikonica centrirano pri vrhu (`SearchPanel.tsx`), forma po vrsti ispod njih (`SearchCriteriaForm.tsx`, nekadašnji `SearchCriteriaPopup.tsx` — više nije modal), levi panel (`SearchSidebarPanel.tsx`) sveden isključivo na filtere. Skupljen red (§3.0g.2) je dograđen `SearchCriteriaChip.tsx` — i dalje ispisuje kriterijume (golo "+" ostaje zabranjeno), sad uz "Poništi pretragu" i "Osveži podatke". Poređenje pri osvežavanju (§3.0g.3) je klijentsko, bez novog endpointa, po ključu `product_id` + `rate_line_id`/`provider_quote_reference` izdvojenom u `@/lib/search-offer-key` (isti ključ koji koristi selekcija §3.0e.3); razlika se prijavljuje trakom (`SearchRefreshNotice.tsx`), promenjeni redovi ostaju obeleženi, a promena na već izabranoj stavci se prikazuje i u desnom panelu preko novog `SelectionItem.priceChange`. Pamćenje kriterijuma po vrsti (§3.0g.4) ide kroz nov `SearchStateContext.tsx`, montiran u `Shell.tsx` iznad stranice (isti razlog i isto mesto kao `GroupSearchBuilderContext` — stranica je server komponenta i gubi lokalno stanje pri svakoj promeni query stringa); desni panel je već bio iznad stranice (`SelectionProvider`), pa ga prelazak vrste nikad nije ni dirao. **Namerno van ovog prolaza:** tabela novih polja iz §3.0g.6 — svako od tih polja povlači izmenu u drugom modulu (§3.0g.7: M2 `attributes`, M4 avio ugovor, M6 `GuestProfile`), pa je to zaseban zadatak; ovaj prolaz radi nad podacima koji već postoje. Takođe ispravljen netačan navod u §3.0g.5 (`CRUISE` **postoji** u `ProductType` enumu od 21.8.2026, commit `8a52578`). Novo otvoreno pitanje u §13: automatsko osvežavanje bez klika.
 
 **Verzija:** 2.07 — Novo poglavlje 3.0g: ekran vođene pretrage dobija raspored, polja po vrsti proizvoda i ponašanje (2.9.2026, na zahtev vlasnika — "ovo nam je među najvažnijim modulima, odavde sve kreće"). Pretraga se seli iz levog panela u centralni: devet ikonica proizvoda centrirano pri vrhu, sopstvena forma po vrsti, levi panel ostaje samo za filtere. Četiri pravila ponašanja: skupljen red pretrage MORA da prikazuje kriterijume (ne golo "+"), "Osveži podatke" MORA da prijavi razliku u ceni umesto da je tiho zameni, prelazak taba ne briše ni stanje ni desni panel (to je razlika između devet pretraživača i jednog sastavljača putovanja), vrsta bez izvora podataka daje poruku umesto prazne liste. Poglavlje 3.0g.6 nosi tabelu polja za svih devet vrsta, provereno naspram Booking.com Demand/LiteAPI, Google Flights, Blacklane, Avis/Trip.com, Viator/GetYourGuide, Cruise Critic i Squaremouth/InsureMyTrip (septembar 2026) — nalazi uključuju državljanstvo/prebivalište gosta kao cenovni parametar smeštaja, avio-kategorije putnika (beba na krilu ne zauzima sedište), vreme uz datum za transfer i rent-a-car, broj komada prtljaga, jezik vođenja izleta, i povratak `trip_cost` za osiguranje — ne kao filter pretrage (v1.98 odluka ostaje tačna) nego kao ulaz u cenovanje police. Poglavlje 3.0g.7 vodi spisak posledica van M5 (M2 attributes, M4 avio ugovor, M6 `GuestProfile` — rok važenja dokumenta, pol, mesto rođenja). **Ništa od NOVIH polja nije implementirano** — ovo je specifikacija pre koda, po pravilu iz CLAUDE.md.
@@ -617,6 +619,53 @@ Nijedno NOVO polje iznad nije implementirano niti upisano u druge module. Redom,
 - **M4 (integracije):** avio-kategorije putnika (odrasli/deca/bebe na krilu/bebe na sedištu) su ugovor prema provajderu, ne samo oblik forme — razrađuje se kad M4 dobije avio adapter (§3.0d.1 već beleži isto ograničenje za multi-segment let).
 
 Nijedna od ovih izmena se **ne izvodi u istom prolazu** kao ekran pretrage — svaka traži dopunu svoje specifikacije i potvrdu vlasnika, po istom pravilu kao i ova.
+
+### 3.0g.8 Sortiranje rezultata (dopuna, 2.9.2026, vlasnikova odluka)
+
+Do ovog datuma sortiranje **nije postojalo nigde u aplikaciji**. Rezultati su se prikazivali redom kojim stignu iz baze, a mock ekrani su interno uvek ređali po ceni rastuće — bez ikakvog izbora za korisnika. Nalaz je nastao poređenjem sa velikim portalima: Booking.com sortira po ceni, oceni gostiju, udaljenosti i kategoriji; Google Flights nudi "najjeftinije" i "najbolje". Poglavlje 3.0d.1 je sortiranje letova pominjalo od 17.8.2026, ali nikad nije bilo napravljeno niti prošireno na ostale vrste.
+
+**Gde stoji:** traka iznad rezultata u centralnom panelu, ne u levom panelu među filterima. Filter menja **koji** se rezultati vide, sortiranje samo **redosled** — dve različite radnje, pa i dva različita mesta. Isti razlog zašto je i na velikim portalima traka nad listom.
+
+**Pravilo koje se drži:** nudi se isključivo ono za šta stvarno postoji podatak. Booking ima "po oceni gostiju" i "po udaljenosti od centra" — TT nijedno od toga danas nema kao svojstvo proizvoda (§3.0g.9), pa se te opcije **ne prikazuju kao siva, neupotrebljiva dugmad**. Kad polja budu dodata u M2, dodaju se i opcije.
+
+| Vrsta proizvoda | Opcije |
+| :---- | :---- |
+| sve vrste | najjeftinije (podrazumevano), najskuplje, naziv A–Š |
+| `ACCOMMODATION` | + kategorija (zvezdice) — `attributes.stars`, M2 §2.3 |
+| `FLIGHT` | najbolje (podrazumevano), najjeftinije, najkraće, najranije poletanje, najskuplje |
+
+**"Najbolje" za letove** je kombinacija cene, trajanja i presedanja, isti princip kao Google Flights — ne čista cena. Formula: cena + 1 EUR po minutu puta + 30 EUR po presedanju, sve u parama, da poređenje ostane u jednoj jedinici. Brojevi su procena za redosled prikaza unutar iste pretrage, **ne poslovno pravilo i ne cena** — menjaju se na jednom mestu (`lib/search-sort.ts`) ako se pokaže da ne odgovaraju načinu na koji tim stvarno bira letove.
+
+Cena proizvoda za sortiranje je njegova **najjeftinija** ponuda (isti princip kao "od X" prikaz na svakom portalu). Kod smeštaja, ponude **unutar** hotela ostaju poređane po ceni rastuće bez obzira na izbor — tu se bira soba, ne hotel.
+
+Sortiranje je klijentsko/prikazno, nad već dobijenim rezultatima — `GET /search` se ne menja.
+
+### 3.0g.9 Poređenje sa velikim portalima — šta i dalje nedostaje (nalaz, 2.9.2026, na zahtev vlasnika)
+
+Vlasnik je tražio proveru da li su sva polja pretrage predviđena. Poređeno sa Booking.com Demand API i LiteAPI (smeštaj), Google Flights (letovi), Kiwitaxi/Suntransfers/Welcome Pickups (transferi). Nalaz se deli na tri vrste, i **razlika među njima je važnija od samog spiska**.
+
+**(a) Bilo specificirano, nije bilo napravljeno — zatvoreno 2.9.2026, bez ijedne izmene modela.**
+
+- **Devet filtera letova iz §3.0d.1** (presedanja, aerodrom presedanja, čekanje na presedanju, avio-kompanija, vreme poletanja/sletanja, ukupno trajanje, predati prtljag) postojali su na papiru od 17.8.2026 i nisu bili napravljeni — panel je za letove imao **samo filter cene**. Sada rade.
+- **Šesnaest vrednosti `AmenityTag` enuma** (M2 §2.3c) nije bilo prikazano u panelu: cele grupe "Plaža", "Soba" i "Politika", i tri od osam iz "Sadržaji objekta". Među neprikazanima su bili `FREE_CANCELLATION` i `PAY_AT_PROPERTY` — filteri koje Booking izdvaja kao istaknute. Nijedna vrednost nije nova; sve su bile definisane od 17.8.2026.
+
+**(b) Podatak postoji u katalogu, ali pretraga ga ne izlaže — traži dopunu `GET /search`, ne novo polje.**
+
+- **`accommodation_type`** (`HOTEL`/`VILA`/`APARTMAN`/`HOSTEL`/`KAMP`/`KABINA_NA_BRODU`/`DRUGO`, M2 §2.3) — Booking ovo ima kao osnovni filter. Kod nas postoji u katalogu od početka, ali `GET /search` nema parametar, a `SearchResultProduct` (§3.0b.1) ga ne vraća.
+- **`stars`** (M2 §2.3) — isto: postoji u katalogu, ne vraća se u rezultatima pretrage. Zbog toga sortiranje po kategoriji (§3.0g.8) danas radi samo nad mock podacima.
+
+**(c) Ne postoji nigde — traži novo polje u M2 i vlasnikovu odluku.**
+
+- **Ocena gostiju (`review_score`).** Booking-ov najkorišćeniji filter, skala 1–10. TT nema **nikakvu** ocenu proizvoda — ni u M2 atributima, ni bilo gde drugde. Kategorija (zvezdice) je zvanična kategorizacija, ocena je iskustvo gostiju; gost bira po drugom. Otvoreno pre bilo kakve izmene: odakle ocena dolazi (spoljni provajder kroz M4, sopstvena M6 anketa posle putovanja, ili oboje uz jasno razdvajanje), i sme li se tuđa ocena uopšte prikazivati po uslovima korišćenja tog provajdera.
+- **Udaljenost od centra ili znamenitosti.** Imamo samo udaljenost od plaže (`BEACH_UNDER_*`). Booking filtrira po udaljenosti od centra grada, aerodroma i pojedinačnih znamenitosti. `Product.geo_lat`/`geo_lng` postoje (M2 §2.1), pa je izračunavanje moguće — ali referentna tačka (šta je "centar") nigde nije definisana.
+- **Hotelski lanac / brend.** Booking ima filter po lancu. Za korporativnog klijenta sa ugovorom sa lancem to je presudno, a TT nema polje.
+- **Pristupačnost za osobe sa invaliditetom.** `AmenityTag` enum je nema nijednu vrednost. Ovo nije udobnost nego uslov putovanja.
+- **Letovi:** isključivanje "basic economy" tarifa, odvojene karte (dve kompanije jeftinije od jedne), alijansa (Star Alliance/Oneworld/SkyTeam), izbegavanje noćnih letova, CO2 emisije. Sve pet su standardni Google Flights filteri; poslednji je već obavezan kod korporativnih klijenata sa ESG politikom.
+- **Transferi — ovde je specifikacija najtanja od svih.** §3.0d.2 ima ukupno četiri polja (odakle, dokle, datum, broj putnika); §3.0g.6 je dodao vreme, prtljag, broj leta i dečje sedište. I dalje nedostaje: **privatan naspram deljenog transfera** (najveća razlika u ceni i iskustvu na celom proizvodu — mock ekran je već prikazuje, model je nema), klasa vozila kao filter (sedan/minivan/minibus/biznis), **broj** dečjih sedišta i **uzrast** deteta (§3.0g.6 ima samo "da/ne", a Kiwitaxi traži oboje), dočekivanje sa tablom (meet & greet), i jezik vozača.
+
+**Jedna potvrda, ne nalaz:** §3.0g.6 traži državljanstvo gosta i valutu kao **dva odvojena polja**. Provereno na oba izvora — LiteAPI zaista traži `guestNationality` i `currency` kao dva odvojena **obavezna** parametra; Booking.com Demand to rešava drugačije, kroz obavezan `booker.country` iz kog izvodi valutu. Odluka da budu dva polja je ispravna jer pokriva oba slučaja. Ali valuta je u §3.0g.6 upisana **samo kod smeštaja** — važi za svaki proizvod od stranog dobavljača.
+
+Stavke pod (b) i (c) **nisu implementirane** i čekaju vlasnikovu odluku, po istom pravilu kao §3.0g.7.
 
 ---
 

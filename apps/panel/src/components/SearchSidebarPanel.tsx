@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
+import { airlineOptions, connectionAirportOptions } from '@/lib/mock-flights';
 
 // M5 spec §3.0g.1 / dizajn dok. §6d.1 (vlasnikova odluka, 2.9.2026) — levi panel sadrži
 // ISKLJUČIVO filtere. Ikonice devet vrsta proizvoda i sama forma pretrage su se do tada nalazile
@@ -32,6 +33,16 @@ const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] 
       { value: 'BEACH_UNDER_100M', label: 'do 100m' },
       { value: 'BEACH_UNDER_250M', label: 'do 250m' },
       { value: 'BEACH_UNDER_500M', label: 'do 500m' },
+      { value: 'BEACH_OVER_500M', label: 'preko 500m' },
+    ],
+  },
+  {
+    label: 'Plaža',
+    tags: [
+      { value: 'BEACH_SAND', label: 'peščana' },
+      { value: 'BEACH_PEBBLE', label: 'šljunkovita' },
+      { value: 'BEACH_ROCK', label: 'stenovita' },
+      { value: 'BEACH_PRIVATE', label: 'privatna' },
     ],
   },
   {
@@ -48,9 +59,24 @@ const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] 
     tags: [
       { value: 'WIFI_FREE', label: 'besplatan WiFi' },
       { value: 'PARKING', label: 'parking' },
+      { value: 'GYM', label: 'teretana' },
       { value: 'SPA_WELLNESS', label: 'spa/wellness' },
       { value: 'RESTAURANT', label: 'restoran' },
+      { value: 'AIRPORT_SHUTTLE', label: 'prevoz do aerodroma' },
       { value: 'RECEPTION_24H', label: 'recepcija 24h' },
+      { value: 'ROOM_SERVICE', label: 'usluga u sobi' },
+    ],
+  },
+  {
+    label: 'Soba',
+    tags: [
+      { value: 'AC', label: 'klima' },
+      { value: 'TV', label: 'TV' },
+      { value: 'KITCHENETTE', label: 'čajna kuhinja' },
+      { value: 'MINIBAR', label: 'minibar' },
+      { value: 'BALCONY', label: 'balkon' },
+      { value: 'SEA_VIEW', label: 'pogled na more' },
+      { value: 'MOUNTAIN_VIEW', label: 'pogled na planinu' },
     ],
   },
   {
@@ -61,6 +87,14 @@ const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] 
       { value: 'PETS_ALLOWED', label: 'kućni ljubimci' },
     ],
   },
+  {
+    label: 'Politika',
+    tags: [
+      { value: 'FREE_CANCELLATION', label: 'besplatno otkazivanje' },
+      { value: 'PAY_AT_PROPERTY', label: 'plaćanje u objektu' },
+      { value: 'NON_SMOKING', label: 'nepušački' },
+    ],
+  },
 ];
 const BOARD_TYPES = ['BB', 'HB', 'FB', 'AI', 'UAI'];
 export default function SearchSidebarPanel() {
@@ -69,6 +103,7 @@ export default function SearchSidebarPanel() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const currentTypes = sp.getAll('type');
   const showAccommodationFilters = currentTypes.includes('ACCOMMODATION');
+  const showFlightFilters = currentTypes.includes('FLIGHT');
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
@@ -87,13 +122,21 @@ export default function SearchSidebarPanel() {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
           const next = new URLSearchParams(sp.toString());
-          for (const key of ['priceMin', 'priceMax', 'availability', 'boardType']) {
+          // Skalarni filteri — prazna vrednost briše parametar umesto da ga postavi na "".
+          const scalarKeys = [
+            'priceMin', 'priceMax', 'availability', 'boardType',
+            // M5 spec §3.0d.1 — filteri letova.
+            'stops', 'maxLayover', 'maxDuration', 'departFrom', 'departTo', 'arriveFrom', 'arriveTo', 'minCheckedBags',
+          ];
+          for (const key of scalarKeys) {
             const val = String(data.get(key) ?? '');
             if (val) next.set(key, val);
             else next.delete(key);
           }
-          next.delete('amenityTags');
-          for (const tag of data.getAll('amenityTags')) next.append('amenityTags', String(tag));
+          for (const key of ['amenityTags', 'airlines', 'connAirports']) {
+            next.delete(key);
+            for (const val of data.getAll(key)) next.append(key, String(val));
+          }
           router.push(`/rezervacije/pretraga?${next.toString()}`);
         }}
       >
@@ -157,6 +200,90 @@ export default function SearchSidebarPanel() {
               </div>
             </>
           )}
+          {showFlightFilters && (
+            <>
+              {/* M5 spec §3.0d.1 — devet filtera letova, istraženo naspram Google Flights.
+                  Svi klijentski, nad već dobijenim rezultatima; ne menjaju poziv GET /search. */}
+              <PillRadioGroup
+                name="stops"
+                label="presedanja"
+                current={sp.get('stops') ?? ''}
+                options={[
+                  { value: '', label: 'svejedno' },
+                  { value: 'DIRECT', label: 'direktno' },
+                  { value: 'MAX1', label: 'do 1' },
+                ]}
+              />
+
+              <PillCheckboxGroup
+                name="airlines"
+                label="avio-kompanija"
+                current={sp.getAll('airlines')}
+                options={airlineOptions.map((a) => ({ value: a, label: a }))}
+              />
+
+              {connectionAirportOptions.length > 0 && (
+                <PillCheckboxGroup
+                  name="connAirports"
+                  label="aerodrom presedanja"
+                  current={sp.getAll('connAirports')}
+                  options={connectionAirportOptions.map((a) => ({ value: a, label: a }))}
+                />
+              )}
+
+              <PillRadioGroup
+                name="maxLayover"
+                label="najduže čekanje na presedanju"
+                current={sp.get('maxLayover') ?? ''}
+                options={[
+                  { value: '', label: 'svejedno' },
+                  { value: '90', label: 'do 1.5h' },
+                  { value: '180', label: 'do 3h' },
+                  { value: '300', label: 'do 5h' },
+                ]}
+              />
+
+              <PillRadioGroup
+                name="maxDuration"
+                label="najduže ukupno trajanje"
+                current={sp.get('maxDuration') ?? ''}
+                options={[
+                  { value: '', label: 'svejedno' },
+                  { value: '120', label: 'do 2h' },
+                  { value: '300', label: 'do 5h' },
+                  { value: '480', label: 'do 8h' },
+                ]}
+              />
+
+              <label className="text-ink-faint">
+                poletanje između
+                <div className="mt-1 flex gap-1">
+                  <input type="time" name="departFrom" defaultValue={sp.get('departFrom') ?? ''} className="input w-1/2" />
+                  <input type="time" name="departTo" defaultValue={sp.get('departTo') ?? ''} className="input w-1/2" />
+                </div>
+              </label>
+
+              <label className="text-ink-faint">
+                sletanje između
+                <div className="mt-1 flex gap-1">
+                  <input type="time" name="arriveFrom" defaultValue={sp.get('arriveFrom') ?? ''} className="input w-1/2" />
+                  <input type="time" name="arriveTo" defaultValue={sp.get('arriveTo') ?? ''} className="input w-1/2" />
+                </div>
+              </label>
+
+              <PillRadioGroup
+                name="minCheckedBags"
+                label="predati prtljag u ceni"
+                current={sp.get('minCheckedBags') ?? ''}
+                options={[
+                  { value: '', label: 'svejedno' },
+                  { value: '1', label: 'bar 1 kofer' },
+                  { value: '2', label: 'bar 2 kofera' },
+                ]}
+              />
+            </>
+          )}
+
           <button
             type="submit"
             className="mt-1 flex items-center justify-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 font-semibold text-ink-dim hover:border-accent hover:text-ink"
@@ -178,6 +305,69 @@ function Section({ title, open, onToggle, children }: { title: string; open: boo
         {title}
       </button>
       {open && <div className="flex flex-col gap-2 pl-1 pt-1">{children}</div>}
+    </div>
+  );
+}
+
+
+// Dizajn dok. §6f — izbor iz malog, poznatog skupa opcija ide kao grupa dugmadi, ne padajući
+// meni. Ispod su `<input type="radio">`/`<input type="checkbox">` sakriveni iza `sr-only` i
+// stilizovani kroz `has-[:checked]` — isti obrazac koji sekcija sadržaja (amenityTags) već
+// koristi, i koji radi unutar postojeće nativne forme bez ijednog novog komada React stanja.
+function PillRadioGroup({
+  name,
+  label,
+  current,
+  options,
+}: {
+  name: string;
+  label: string;
+  current: string;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="text-ink-faint">
+      {label}
+      <div className="mt-1 flex flex-wrap gap-1">
+        {options.map((o) => (
+          <label
+            key={o.value || 'any'}
+            className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+          >
+            <input type="radio" name={name} value={o.value} defaultChecked={current === o.value} className="sr-only" />
+            {o.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PillCheckboxGroup({
+  name,
+  label,
+  current,
+  options,
+}: {
+  name: string;
+  label: string;
+  current: string[];
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="text-ink-faint">
+      {label}
+      <div className="mt-1 flex flex-wrap gap-1">
+        {options.map((o) => (
+          <label
+            key={o.value}
+            className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+          >
+            <input type="checkbox" name={name} value={o.value} defaultChecked={current.includes(o.value)} className="sr-only" />
+            {o.label}
+          </label>
+        ))}
+      </div>
     </div>
   );
 }
