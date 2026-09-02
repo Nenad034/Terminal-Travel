@@ -308,6 +308,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
 - ~~Obeležavanje autora radnje (§3.1)~~ **Rešeno (17.8.2026)** — `ActorLabel` na osam ekrana, live-provera dovršena u oba moda; usput ispravljen pad kontrasta AI bedža i "Invalid Date" u audit logu.
+- **Vidljivost panela iz "Customize Layout" prebaciti sa `localStorage` na `UserPreference`** (nalaz 2.9.2026, `29-DIZAJN-SISTEM-UI.md` §5f/§8) — privremeno rešenje iz 23.8.2026 kad taj backend nije postojao u kodu; sada postoji i koristi se za `main_content_max_width` i `right_panel_display_mode`. Dok se ne prebaci, korisnik koji sakrije bočnu traku na jednom računaru zatiče je otvorenu na drugom.
+- **Trake (`--bar`) u svetlom modu vratiti za nijansu tamnije od bočnih panela** (nalaz 2.9.2026, `29-DIZAJN-SISTEM-UI.md` §2.0e/§8) — vlasnikov zahtev od 23.8.2026 delimično poništen prelaskom na shadcn paletu; `--panel-2` i `--bar` su ponovo iste boje.
 
 ## M18 — Operativni nadzor i AI optimizacija
 *(§11, `docs/moduli/M18-operativni-nadzor/19-SPECIFIKACIJA-M18-OPERATIVNI-NADZOR.md`)*

@@ -19,6 +19,7 @@ import { AiContextProvider } from './AiContextContext';
 import { ProductPreviewProvider } from './ProductPreviewContext';
 import { GroupSearchBuilderProvider } from './GroupSearchBuilderContext';
 import { NAV_GROUPS, groupForHref, moduleCodeForHref, type NavItem } from '@/lib/nav';
+import { WIDTH_CHOICES, type MainWidth } from './CustomizeLayoutButton';
 
 const SIDEBAR_COLLAPSED_KEY = 'tt-panel-sidebar-collapsed';
 // Dizajn dok. §5f — "Customize Layout" (23.8.2026) — jedan localStorage ključ za sve panele koji
@@ -31,6 +32,30 @@ interface LayoutVisibility {
   terminal: boolean;
 }
 const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = { sidebar: true, statusBar: true, terminal: false };
+
+// Gornja granica širine centralnog sadržaja (2.9.2026, na zahtev vlasnika: "omogućiti ko to želi
+// da se u centralnom panelu širina prikaza podesi na manju širinu", dizajn dok. §6b.1 / M17 spec
+// §5f). Namerno GRANICA (`max-width`), ne procenat — procenat oduzima prostor i na malom ekranu,
+// što je bio razlog zašto je raniji `w-[90%]` ukinut 29.8.2026 na vlasnikovu prijavu. Granica
+// deluje SAMO kad raspoloživog prostora ima više od nje; na užem ekranu se ponaša identično kao
+// `full`, bez ijednog izgubljenog piksela.
+//
+// Zašto baš ove tri vrednosti (vlasnik potvrdio posle predloga):
+//   1680 — deluje tek na velikim/ultraširokim monitorima; na 1920px sa otvorenim bočnim
+//          panelima je praktično neprimetno.
+//   1440 — osetno mirniji ekran, a najšira tabela u panelu (lista rezervacija, 11 kolona,
+//          `RealBookingsTable.tsx`) i dalje staje bez stiskanja kolona.
+//   1280 — donja granica koja se preporučuje. Ispod ~1250px ta ista tabela počinje da stiska
+//          kolone ili traži horizontalno skrolovanje — gora šteta po preglednost nego predugačak
+//          red teksta. Ako zatreba uže, rešenje je manje kolona u tabeli, ne uža granica.
+const MAIN_WIDTH_PREFERENCE_KEY = 'main_content_max_width';
+const DEFAULT_MAIN_WIDTH: MainWidth = 'full';
+// Vrednost iz `UserPreference` dolazi sa servera i može biti bilo šta (ručno upisana, zaostala
+// posle promene spiska) — proverava se protiv ISTOG spiska koji meni prikazuje, ne protiv
+// zasebne kopije koja bi vremenom mogla da se raziđe sa njim.
+function isMainWidth(value: unknown): value is MainWidth {
+  return typeof value === 'string' && WIDTH_CHOICES.some((c) => c.value === value);
+}
 
 export default function Shell({
   fullName,
@@ -195,6 +220,9 @@ export default function Shell({
       .then((data) => {
         const value = data?.right_panel_display_mode;
         if (value === 'overlay' || value === 'push') setRightPanelMode(value);
+        // Isti odgovor nosi SVE preference korisnika (`GET /iam/users/me/preferences` vraća mapu),
+        // pa se širina centralnog sadržaja čita iz njega — bez drugog mrežnog poziva.
+        if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY])) setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
       })
       .catch(() => {
         // Podrazumevano ostaje "push" — ne blokira prikaz panela zbog neuspelog čitanja podešavanja.
@@ -209,6 +237,22 @@ export default function Shell({
       body: JSON.stringify({ value: next }),
     }).catch(() => {
       // Ponašanje za OVU sesiju i dalje radi (lokalno stanje već promenjeno) — samo se ne pamti.
+    });
+  }
+
+  // Širina centralnog sadržaja — isti obrazac kao `rightPanelMode` iznad: podrazumevana vrednost
+  // na serveru i prvom klijentskom renderu (nema neusklađenosti pri hidrataciji), stvarna se čita
+  // posle montiranja i pamti u `UserPreference` (M1 §3.9), dakle po NALOGU a ne po browseru —
+  // korisnik zatiče svoju širinu i na drugom računaru.
+  const [mainWidth, setMainWidth] = useState<MainWidth>(DEFAULT_MAIN_WIDTH);
+  function changeMainWidth(next: MainWidth) {
+    setMainWidth(next);
+    fetch(`/api/preferences/${MAIN_WIDTH_PREFERENCE_KEY}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: next }),
+    }).catch(() => {
+      // Kao i kod `rightPanelMode` — izmena važi za ovu sesiju, samo se ne pamti trajno.
     });
   }
 
@@ -252,6 +296,8 @@ export default function Shell({
               showTerminal: showBiTerminal,
               terminalOpen: layoutVisibility.terminal,
               onToggleTerminal: () => toggleLayout('terminal'),
+              mainWidth,
+              onChangeMainWidth: changeMainWidth,
             }}
           />
           <div className="flex flex-1 overflow-hidden">
@@ -322,7 +368,22 @@ export default function Shell({
                     potomak, pa čitanje ostaje bezbedno (nema rizika od rekurzivnog čitanja
                     sopstvene istorije). Izuzetak: `/ai-asistent` Fokus tab, gde AiChatBox JESTE
                     ovaj `<main>` sadržaj — `fokus` prop tamo isključuje čitanje (AiChatBox.tsx). */}
-                <main id="tt-main-content" className="w-full flex-1 overflow-y-auto bg-panel">{children}</main>
+                {/* Gornja granica širine (2.9.2026, §6b.1) — postavljena kao `maxWidth` na sam
+                    `<main>`, uz `mx-auto` da se sadržaj centrira kad granica stvarno deluje.
+                    `w-full` ostaje: bez njega bi `max-width` na flex-detetu davao širinu po
+                    sadržaju, ne po raspoloživom prostoru. Kad je izabrano `full`, `maxWidth` je
+                    `undefined` i ponašanje je BAJT ZA BAJT isto kao pre ove izmene — podrazumevano
+                    stanje nikome ne menja ekran dok sam ne izabere užu širinu. Granica se namerno
+                    postavlja na `<main>`, ne na neki omotač iznad: `bg-panel` tada prati sadržaj,
+                    pa se pri užoj širini vidi `--bg` sa strane i granica čita kao namerna, ne kao
+                    prazan hod. */}
+                <main
+                  id="tt-main-content"
+                  style={mainWidth === 'full' ? undefined : { maxWidth: `${mainWidth}px` }}
+                  className="mx-auto w-full flex-1 overflow-y-auto bg-panel"
+                >
+                  {children}
+                </main>
                 {/* Terminal panel (dizajn dok. §5f, M15 spec §6.9) — VS Code pozicija, ispod
                     sadržaja, iznad statusne trake, span samo centralne kolone (ne ide ispod
                     bočne trake/desnog panela, isto kao pravi VS Code Panel). Montira se SAMO uz

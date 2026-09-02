@@ -14,6 +14,8 @@
 **Verzija:** 1.48 — novo poglavlje 6c.1a (25.8.2026, na zahtev vlasnika: "da li mozete na desni klik da ubacite u ai agenta bilo koju rezervaciju iz liste rezervacija kao kontekst... prosirite ovo i na sve module... umesto desnog klika moze i neka oznaka"): mala, generička ikonica "Dodaj u AI kontekst" na SVAKOM redu/kartici u SVAKOM modulu (ne desni klik — nema dodirni ekvivalent, nije vidljiv bez znanja da postoji), podržava dodavanje VIŠE zapisa pre postavljanja pitanja (poređenje) i prilaganje sačuvanog/trenutno filtriranog prikaza cele liste kao posebne kontekstne stavke. Podatkovni deo (šta se šalje agentu, ograničenja): M15 spec §6.5.4.3 (v1.40). M17 spec v2.11.
 **Verzija:** 1.47 — poglavlje 5b "sažetak reda" implementiran za rezervacije (23.8.2026), M5 spec v1.46. Nova otvorena stavka: dizajn "pun zapis" forme za rezervacije, čeka predlog.
 **Verzija:** 1.46 — novo poglavlje 2.0e (23.8.2026): svetli mod dobija treću nijansu (`--bar`, trake tamnije od bočnih panela, centralni sadržaj tamniji od čiste bele ali svetliji od bočnih panela), `apps/panel/tailwind.config.ts` i `TopBar.tsx`/`StatusBar.tsx`/`TerminalPanel.tsx` ožičeni.
+**Verzija:** 1.46 — novo poglavlje 6b.1 (2.9.2026, na zahtev vlasnika: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu"): centralni sadržaj panela dobija lični izbor gornje granice širine — Puna širina (podrazumevano, nepromenjeno ponašanje) / 1680 / 1440 / 1280px. Namerno **granica**, ne procenat: procenat oduzima prostor i na uskom ekranu, što je bio razlog zašto je raniji `w-[90%]` ukinut 29.8.2026 — granica deluje samo kad prostora ima više od nje. Donja vrednost (1280px) nije birana po osećaju nego po najširem stvarnom sadržaju u panelu: lista rezervacija ima 11 kolona i ispod ~1250px počinje da ih stiska. Izbor stoji u postojećem "Customize Layout" meniju (§5f) kao zasebna grupa i pamti se u `UserPreference` (M1 §3.9, ključ `main_content_max_width`), dakle po nalogu a ne po browseru. Usput ispravljena netačnost u §5f: taj odlomak je tvrdio da se vidljivost panela pamti kroz `UserPreference`, a u kodu je `localStorage` — tačno stanje sada upisano, prelazak na backend zaveden kao otvorena stavka (§8).
+
 **Verzija:** 1.45 — poglavlje 5f dopunjeno (23.8.2026): podela terminal panela na dva nezavisna panela (VS Code "Split Terminal" obrazac), M17 spec v1.97.
 **Verzija:** 1.45 — `--border` vraćen iznad 3:1 praga u sva tri moda (2.9.2026, vlasnik izabrao "Prag" varijantu posle uporednog prikaza četiri jačine po modu). Zatvara regresiju otkrivenu u v1.44: prelaz na shadcn 29.8.2026. vratio je granice na doslovne Tailwind vrednosti i time poništio ispravku od 21.8.2026, koja je nastala na vlasnikovu prijavu "jedva se vide okvirne linije sadržaja u centralnom delu". Svetli (`#858c92`) i tamni (`#748088`) vraćaju istu vrednost koja je stajala od 21. do 29.8.2026 — stanje koje je vlasnik već prihvatio, ne novo pooštravanje; dim mod nije postojao u avgustu, pa je za njega birana prva stepenica slate skale koja prolazi na sve tri podloge (`#94a3b8`, slate-400 — slate-500 pada na `--panel-2`). **Usput ispravljena greška u sopstvenom merenju iz v1.44:** kontrast granice je bio meren samo protiv `--panel` i `--bg`, a granica se pojavljuje i na `--panel-2` (bočni panel) gde je najslabija — u svetlom modu 1.15:1, ne 1.27:1 kako je v1.44 prijavila. Isti propust protiv kog upozorava §2a; `tools/check-contrast.js` je od tada meri protiv sve tri podloge. Vrednosti upisane u svih pet blokova tokena, uz komentar u `globals.css` da je to namerno odstupanje od doslovne Tailwind vrednosti (bez njega sledeća zamena palete ponavlja isti krug — zamka 1.9). Posle ove izmene **sve provere prolaze**. Preostala otvorena stavka iz iste porodice: `--bar` u svetlom modu (§2.0e).
 
@@ -490,7 +492,15 @@ Isto važi identično za M7 portal (poglavlje 7), filtrirano na obim tog subagen
 
 ## 5f. Terminal panel (BI, isključivo Vlasnik) i "Customize Layout" dugme (dopuna, 23.8.2026, na zahtev vlasnika)
 
-**"Customize Layout" dugme** — nova ikonica u gornjoj traci (pored postojećeg admin zupčanika, poglavlje 5c), isti duh kao VS Code istoimeno dugme: klik otvara mali padajući meni sa čekiranim/nečekiranim stavkama za **sve postojeće panele koji se mogu sakriti** — bočna traka (poglavlje 5c), desni panel (poglavlje 5b), donja statusna traka (poglavlje 5d), AI chat (poglavlje 6c), i **novi terminal panel** (ispod). Stanje svake stavke pamti se po korisniku kroz `UserPreference` (M1 §3.9, isti mehanizam kao poglavlje 5d "lična podešavanja") — panel se ne vraća u podrazumevano stanje pri svakoj prijavi.
+**"Customize Layout" dugme** — nova ikonica u gornjoj traci (pored postojećeg admin zupčanika, poglavlje 5c), isti duh kao VS Code istoimeno dugme: klik otvara mali padajući meni sa čekiranim/nečekiranim stavkama za **sve postojeće panele koji se mogu sakriti** — bočna traka (poglavlje 5c), desni panel (poglavlje 5b, od 25.8.2026 isti prekidač pokriva i AI chat, §6c.0), donja statusna traka (poglavlje 5d), i **terminal panel** (ispod). Stanje svake stavke pamti se po korisniku — panel se ne vraća u podrazumevano stanje pri svakoj prijavi.
+
+**Meni nosi i izbor širine centralnog sadržaja** (dopuna, 2.9.2026) — zasebna grupa ispod prekidača, razdvojena linijom i naslovom "Širina sadržaja", jer se tu bira **jedna** od četiri vrednosti umesto da se nešto pali i gasi. Vrednosti, obrazloženje i razlog zašto je to granica a ne procenat: **§6b.1**.
+
+> **Gde se šta stvarno pamti (stanje koda, 2.9.2026).** Ovaj odlomak je do 2.9.2026. tvrdio da se vidljivost panela pamti kroz `UserPreference` — u kodu to nije tako. Tačno stanje:
+> - **vidljivost panela** — `localStorage` (`tt-panel-layout-visibility`, `Shell.tsx`), privremeno rešenje iz 23.8.2026 kad `UserPreference` backend nije postojao u kodu. Pamti se **po browseru**, ne po nalogu; korisnik na drugom računaru zatiče podrazumevano stanje.
+> - **širina sadržaja** i **način prikaza desnog panela** — pravi `UserPreference` (M1 §3.9, ključevi `main_content_max_width` i `right_panel_display_mode`), dakle **po nalogu**.
+>
+> Backend sada postoji i koristi se, pa je prelazak vidljivosti panela na njega samo neurađen posao, ne prepreka — otvorena stavka, §8.
 
 **Terminal panel — pozicija i izgled.** VS Code pozicija (dno ekrana, ispod centralnog panela, preko cele širine kao statusna traka poglavlje 5d, ali iznad nje) — vizuelno stilizovan kao terminal: monospace font, `$` prompt ispred svakog pitanja (isti `$` znak koji već otvara naslove ekrana, poglavlje 6), tamna/svetla pozadina prateći temu (poglavlje 2), istorija pitanja/odgovora koja raste naviše (najnovije na dnu, isti obrazac kao poglavlje 5e), polje za unos na dnu samog panela. **Nije stvaran shell** (M15 spec poglavlje 6.9 — obrazloženje zašto) — svaki unos je pitanje na prirodnom jeziku ka `BiTerminalAgent`, ne komanda operativnog sistema; UI to ne krije (nema lažnog utiska da se izvršava proizvoljna komanda), samo pozajmljuje vizuelni jezik terminala jer je to vlasnikov mentalni model za ovu vrstu rada.
 
@@ -558,7 +568,33 @@ Da puna širina ne bi samo naduvala kartice, liste proizvoda dobijaju **više ko
 
 **Izuzetak — stranice koje se čitaju, ne pregledaju:** pojedinačan hotel/putovanje (izričito izuzeto na vlasnikov zahtev), blog i opšte stranice, tok rezervacije, prijava/registracija, deljena stranica članka znanja. Razlog je čitljivost: red teksta preko celog širokog ekrana ima 200+ znakova i oko izgubi početak sledećeg reda. **Ograničenje stoji na samoj stranici, ne u zajedničkom rasporedu** — da izuzetak bude vidljiv tamo gde se traži, a ne skriven na mestu koje važi za sve.
 
-Ovo pravilo se odnosi **samo na M8**; panel (M17) je uvek koristio punu širinu jer je radna površina, ne štampana strana.
+Ovo pravilo se odnosi **samo na M8**; panel (M17) ima sopstveno pravilo — §6b.1 ispod.
+
+### 6b.1 Panel (M17) — puna širina podrazumevano, ali korisnik sme da je suzi (dopuna, 2.9.2026, na zahtev vlasnika)
+
+*(vlasnik: "omogućiti ko to želi da se u centralnom panelu širina prikaza podesi na manju širinu")*
+
+Panel je radna površina, ne štampana strana, i **podrazumevano ostaje na punoj širini** — to se ovom dopunom ne menja ni za jednog korisnika koji ništa ne dira. Ali isti argument o čitljivosti koji važi za tekstualne stranice sajta (gore) važi i ovde na velikom monitoru: red koji ide preko celog ekrana zamara, a oko mora da putuje od kraja do kraja da poveže početak i kraj istog reda. Zato širina postaje **lični izbor**, ne jedinstvena odluka za sve.
+
+**Granica širine, ne procenat.** Ovo je suština rešenja i razlog zašto se ne ponavlja greška iz avgusta:
+
+| Pristup | Ponašanje |
+| :---- | :---- |
+| Procenat (npr. 80%) | Oduzima prostor **uvek**, i na uskom ekranu gde ga ionako nema. Tako je radio raniji `w-[90%]`, koji je zato ukinut 29.8.2026 na vlasnikovu prijavu da margina postaje sve primetnija kad bočni paneli oduzmu prostor. |
+| Gornja granica (`max-width`) | Deluje **samo kad raspoloživog prostora ima više od nje**. Na užem ekranu se ponaša identično kao puna širina, bez ijednog izgubljenog piksela. Ista postavka radi ispravno na svakom uređaju. |
+
+**Četiri ponuđene vrednosti** (vlasnik potvrdio posle predloga sa obrazloženjem):
+
+| Izbor | Granica | Zašto baš tu |
+| :---- | :---- | :---- |
+| Puna širina | — | Podrazumevano. Nepromenjeno ponašanje za sve koji ništa ne biraju. |
+| Široko | 1680px | Deluje tek na velikim/ultraširokim monitorima; na 1920px sa otvorenim bočnim panelima praktično neprimetno. |
+| Srednje | 1440px | Osetno mirniji ekran, a najšira tabela u panelu (lista rezervacija, 11 kolona) i dalje staje bez stiskanja kolona. |
+| Usko | 1280px | **Donja granica koja se preporučuje.** Ispod ~1250px ta tabela počinje da stiska kolone ili traži horizontalno skrolovanje — gora šteta po preglednost nego predugačak red teksta. |
+
+Donja granica nije proizvoljna: **određena je najširim stvarnim sadržajem u panelu**, ne osećajem. Ako se ikad pokaže potreba za užim prikazom, rešenje je manje kolona u toj tabeli (zaseban zahtev), ne uža granica koja bi tabelu pokvarila.
+
+**Gde stoji i gde se pamti.** Izbor živi u već postojećem meniju "Customize Layout" (§5f), kao zasebna grupa ispod prekidača za panele — razdvojena linijom i naslovom, jer se tu bira **jedna** vrednost, a gore se pale i gase delovi ekrana. Pamti se u `UserPreference` (M1 §3.9, ključ `main_content_max_width`), dakle **po nalogu, ne po browseru** — korisnik zatiče svoju širinu i na drugom računaru. To je razlika u odnosu na vidljivost panela iz §5f, koja je i dalje u `localStorage` iz vremena kad taj backend nije postojao u kodu (otvorena stavka, §8).
 
 ---
 
@@ -750,6 +786,7 @@ I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt
 
   Merenja su rađena protiv **stvarnih** podloga uz koje se svaka boja koristi (`bg`, `panel`, `panel-2`, `accent-soft`, `ok-bg`, `warn-bg`), ne jedne pretpostavljene — po pravilu iz poglavlja 2a.
 - ~~`--border` pada 3:1 prag u sva tri moda panela (§2.0d).~~ **Rešeno 2.9.2026** — vlasnik izabrao "Prag" varijantu (najmanja vrednost koja prolazi na sve tri podloge) posle uporednog prikaza četiri jačine po modu; §2.0d dopuna.
+- **Vidljivost panela ("Customize Layout", §5f) i dalje je u `localStorage`, ne u `UserPreference`.** Privremeno rešenje iz 23.8.2026 kad taj backend nije postojao u kodu; sada postoji i koristi se za druga dva podešavanja rasporeda (`main_content_max_width`, `right_panel_display_mode`). Posledica dok se ne prebaci: korisnik koji sakrije bočnu traku na jednom računaru zatiče je otvorenu na drugom. Nije rešeno uz izmenu od 2.9.2026 da se ta izmena ne pomeša sa migracijom postojećeg podešavanja.
 - **`--bar` u svetlom modu je izgubio treću nijansu (§2.0e) — čeka vlasnikovu odluku.** Traka i bočni panel su posle prelaza na shadcn ponovo iste boje (`#f4f4f5`), iako je vlasnik 23.8.2026. tražio da trake budu za nijansu tamnije od svega. Manje vidljivo od granica, pa nije rešeno u istom prolazu; vraća se čim vlasnik potvrdi da mu i dalje smeta.
 - **Paleta sajta (M8) nije proveravana od prelaska panela na shadcn** — `tools/check-contrast.js` trenutno čita samo `apps/panel`. Sajt ima sopstvenu paletu (tabela ispod, poslednja provera 17.8.2026) i vlasnik je 2.9.2026. rekao da se njime bavimo kasnije; kad dođe na red, skriptu proširiti na oba fajla umesto pisanja druge.
 - ~~Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 7): identičan obrazac, razlikovanje ide kroz podatke (M7 spec poglavlje 2.0), ne kroz interfejs.
