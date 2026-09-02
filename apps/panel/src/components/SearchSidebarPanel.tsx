@@ -172,11 +172,10 @@ export default function SearchSidebarPanel() {
               </label>
 
               <div className="text-ink-faint">
-                sadržaji
-                <div className="mt-1 flex flex-col gap-2">
+                <div className="flex flex-col gap-2">
                   {AMENITY_GROUPS.map((group) => (
                     <div key={group.label}>
-                      <div className="mb-1 text-xs uppercase text-ink-faint/70">{group.label}</div>
+                      <div className="mb-1 text-xs font-bold uppercase text-ink-dim">{group.label}</div>
                       <div className="flex flex-wrap gap-1">
                         {group.tags.map((tag) => (
                           <label

@@ -3,6 +3,9 @@
 import { useMemo, useState } from 'react';
 import { savePackageAttributes } from '../actions';
 import { Button } from '@/components/ui/button';
+import Icon from '@/components/Icon';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 
 // M2 spec §2.3e (PACKAGE — `attributes.included_products[]`, `attributes.duration_days`),
 // M5 spec §3.0d.6a (grupni paket: termin = presek FIXED/CHARTER perioda sastojaka, povratak =
@@ -34,7 +37,7 @@ export default function PackageAttributesEditor({
 }) {
   const [durationDays, setDurationDays] = useState<string>(initial.duration_days != null ? String(initial.duration_days) : '');
   const [includedIds, setIncludedIds] = useState<string[]>(initial.included_products ?? []);
-  const [search, setSearch] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -42,12 +45,9 @@ export default function PackageAttributesEditor({
   const byId = useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates]);
   const selected = includedIds.map((id) => byId.get(id)).filter((p): p is PickableProduct => !!p);
 
-  const filtered = candidates.filter((p) => {
-    if (includedIds.includes(p.id)) return false;
-    if (!search.trim()) return true;
-    const q = search.trim().toLowerCase();
-    return p.name.toLowerCase().includes(q) || p.destinationCity.toLowerCase().includes(q) || p.destinationCountry.toLowerCase().includes(q);
-  });
+  // Filtriranje po tekstu radi `cmdk` sam (`CommandItem.value`) — ovde ostaje samo pravilo
+  // koje nije pretraga: već dodat proizvod se ne nudi ponovo.
+  const available = candidates.filter((p) => !includedIds.includes(p.id));
 
   function addProduct(id: string) {
     setIncludedIds([...includedIds, id]);
@@ -120,29 +120,47 @@ export default function PackageAttributesEditor({
         ))}
       </div>
 
+      {/* Birač proizvoda — shadcn Command u Popover-u (2.9.2026). Do tada je ovde stajala ručno
+          pisana lista sa sopstvenim `<input>` i `.filter()`-om, zato što `npm install` na ovoj
+          mašini nije radio pa `cmdk` nije mogao da se instalira. Razlika nije samo izgled:
+          `cmdk` daje kretanje strelicama i Enter za potvrdu, što ručna lista nije imala —
+          unos deset sastojaka paketa je pre toga tražio deset odlazaka na miš. */}
       <h3 className="mb-2 text-xs font-semibold text-ink-faint">Dodaj proizvod</h3>
-      <input
-        className="input mb-2 text-xs"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="pretraga po nazivu ili destinaciji…"
-      />
-      <div className="flex max-h-56 flex-col gap-1 overflow-y-auto rounded border border-border p-1.5">
-        {filtered.length === 0 && <p className="p-2 text-xs text-ink-faint">Nema rezultata.</p>}
-        {filtered.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => addProduct(p.id)}
-            className="flex items-center justify-between rounded px-2 py-1.5 text-left text-xs text-ink hover:bg-accent2-soft"
-          >
-            <span>
-              {p.name} <span className="text-ink-faint">— {p.type} · {p.destinationCity}, {p.destinationCountry}</span>
+      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" size="sm" className="w-full justify-between">
+            <span className="text-ink-dim">
+              {available.length > 0 ? 'Izaberi proizvod…' : 'Nema više proizvoda za dodavanje'}
             </span>
-            <span className="text-[11px] text-accent">+ dodaj</span>
-          </button>
-        ))}
-      </div>
+            <Icon name="chevron-down" className="text-ink-faint" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[420px] max-w-[90vw] p-0">
+          <Command>
+            <CommandInput placeholder="pretraga po nazivu ili destinaciji…" />
+            <CommandList>
+              <CommandEmpty>Nema rezultata.</CommandEmpty>
+              {available.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  // `value` je ono nad čim cmdk pretražuje — naziv, destinacija i tip, isti
+                  // skup polja koji je ranije ručni filter obuhvatao.
+                  value={`${p.name} ${p.destinationCity} ${p.destinationCountry} ${p.type}`}
+                  onSelect={() => {
+                    addProduct(p.id);
+                    // Popover ostaje otvoren: sastojci paketa se dodaju u nizu, pa zatvaranje
+                    // posle svakog izbora znači ponovno otvaranje za svaki sledeći.
+                  }}
+                >
+                  <span className="truncate">
+                    {p.name} <span className="text-ink-faint">— {p.type} · {p.destinationCity}, {p.destinationCountry}</span>
+                  </span>
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
