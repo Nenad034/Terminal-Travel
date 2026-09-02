@@ -239,6 +239,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 **7.2 Prazan ekran je često prazna baza, ne pokvaren kod**
 - *Provera:* pre traženja greške u prikazu, proveri da podaci uopšte postoje i zadovoljavaju filtere (vidi 3.1 i 3.2).
 
+**7.3 Provera nad jednim (ili istovetnim) rezultatom ne dokazuje sortiranje ni poređenje**
+- *Simptom:* (2.9.2026) sortiranje pravih rezultata pretrage provereno je uživo, prošlo je, i **srušilo ekran kod korisnika** čim je rezultata bilo više od jednog: `ReferenceError: Cannot access 'sort' before initialization`.
+- *Uzrok:* `const sort` je bio deklarisan ISPOD mesta gde se koristi. Greška se nije pojavila u proveri jer je upit vraćao **jedan** rezultat, a `Array.prototype.sort` nad nizom od jednog elementa **nikad ne poziva funkciju poređenja** — kod u kom je greška se prosto nije izvršio. Ista zamka postoji i kad rezultata ima više ali su im vrednosti **istovetne**: poređenje vrati 0, redosled ostane isti, i pogrešna logika izgleda kao ispravna.
+- *Provera:* svako sortiranje/poređenje se proverava nad skupom sa **bar tri stavke i stvarno različitim vrednostima**, i tako da se **redosled vidljivo razlikuje** između opcija. Ako sve opcije daju isti redosled, to nije potvrda nego znak da test ne razdvaja — nađi drugi skup podataka. Isto važi za filtere: filter koji ništa ne izbacuje nije proveren filter.
+
 ---
 
 ## 8. Poverenje u tvrdnje o potpunosti (dokumenta, registri, sažeci)

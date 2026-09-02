@@ -60,6 +60,13 @@ export default async function SearchPage(
 ) {
   const searchParams = await props.searchParams;
   const types = normalizeTypes(searchParams.type);
+  // M5 spec §3.0g.8 — redosled prikaza. Mora stajati OVDE, uz `types`, jer se koristi već pri
+  // sortiranju pravih rezultata niže (JavaScript `const` se ne može čitati pre svoje linije —
+  // ranija verzija ga je deklarisala ispod i rušila ekran čim rezultata ima više od jednog).
+  // `resolveSort` odbacuje vrednost koja ne postoji za aktivnu vrstu proizvoda (npr. "najkraće"
+  // kod smeštaja) i vraća podrazumevanu, umesto da prikaz ostane u stanju koje nijedno dugme ne
+  // pokazuje kao aktivno.
+  const sort = resolveSort(first(searchParams.sort), types);
   const hasQuery = Boolean(searchParams.destinationCountry || types.length > 0);
 
   let results: SearchResult[] = [];
@@ -152,11 +159,6 @@ export default async function SearchPage(
 
   // M5 spec §3.0d.1 — filteri letova iz levog panela. Čitaju se iz iste `searchParams` strukture
   // kao ostali filteri (cena/dostupnost), pa nema novog mehanizma prenosa.
-  // M5 spec §3.0g.8 — redosled prikaza. `resolveSort` odbacuje vrednost koja ne postoji za
-  // aktivnu vrstu proizvoda (npr. "najkraće" kod smeštaja) i vraća podrazumevanu, umesto da
-  // prikaz ostane u stanju koje nijedno dugme ne pokazuje kao aktivno.
-  const sort = resolveSort(first(searchParams.sort), types);
-
   const flightFilters = flightFiltersFromParams(
     (k) => first(searchParams[k]) ?? null,
     (k) => normalizeTypes(searchParams[k])
