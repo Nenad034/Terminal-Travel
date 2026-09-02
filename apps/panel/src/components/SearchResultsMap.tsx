@@ -77,6 +77,13 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    // MapLibre inače sam računa adresu svog radnog procesa iz `import.meta.url` — pod
+    // Turbopack-om to pokazuje na spakovan chunk, pa izračunata adresa workera ne postoji i
+    // browser dobije HTML umesto JavaScript-a ("Failed to load module script: non-JavaScript
+    // MIME type"). Mapa se tada uopšte ne iscrtava. Zato se adresa zadaje izričito; fajlove
+    // na tu adresu stavlja `scripts/copy-maplibre-worker.mjs` (postinstall). M5 spec §3.0h.6.
+    maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
+
     // `pmtiles:` protokol mora biti registrovan pre nego što se stil učita.
     const protocol = new Protocol();
     maplibregl.addProtocol('pmtiles', protocol.tile);

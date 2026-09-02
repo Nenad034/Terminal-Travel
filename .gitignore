@@ -25,3 +25,4 @@ apps/panel/src/app/api/session/dev-login/
 # Pravi se lokalno: npm run map:extract --workspace=apps/panel (vidi M5 spec §3.0h).
 apps/panel/public/maps/
 *.pmtiles
+apps/panel/public/maplibre/

@@ -3339,6 +3339,16 @@ Okvir namerno prelazi Balkan u užem smislu — hvata i Rim i Antaliju, jer su u
 
 3. Provera da radi: `curl -r 0-127 http://localhost:3100/maps/balkan.pmtiles` mora vratiti `206 Partial Content` — PMTiles čita delove fajla, pa bez podrške za opsege mapa ostaje prazna.
 
+### 3.0h.6 MapLibre radni proces (worker) mora dobiti izričitu adresu
+
+**Simptom pri prvom pokretanju (2.9.2026, prijavio vlasnik):** mapa se ne iscrtava, u konzoli `Failed to load module script: The server responded with a non-JavaScript MIME type of "text/html"`.
+
+**Uzrok:** MapLibre svoj radni proces učitava sa adrese koju sam izračuna iz `import.meta.url` — uzme adresu sopstvenog fajla i zameni ime u `maplibre-gl-worker.mjs`. Pod Turbopack-om ta adresa pokazuje na spakovan chunk (`/_next/static/chunks/...`), pa izračunata adresa workera ne postoji; server vrati HTML stranicu greške, a browser je odbije jer očekuje JavaScript. Mapa se tada ne iscrtava uopšte — ništa drugo u konzoli ne ukazuje na mapu.
+
+**Rešenje:** adresa se zadaje izričito (`maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs')`), a fajlove na tu adresu stavlja `apps/panel/scripts/copy-maplibre-worker.mjs`, koji se pokreće automatski posle `npm install` (`postinstall`) — tako kopije ne mogu da zastare u odnosu na instaliranu verziju MapLibre-a. Kopiraju se **dva** fajla, ne jedan: worker uvozi `./maplibre-gl-shared.mjs` relativno, pa oba moraju stajati jedan pored drugog. Kopije nisu u git-u.
+
+**Provereno uz to (2.9.2026),** jer bi svaka od ovih stvari dala praznu mapu bez jasne greške: podaci i stil su ista šema (fajl je Protomaps v4.15.2, `@protomaps/basemaps` v5 očekuje v4), slojevi u fajlu se poklapaju sa onim što stil traži (`boundaries, buildings, earth, landcover, landuse, places, pois, roads, water`), stil se stvarno gradi (71 sloj, fontovi Noto Sans), fontovi i sprite su dostupni, a `.pmtiles` odgovara na zahteve za delove fajla (`206 Partial Content`).
+
 ### 3.0h.5 Šta i dalje nije urađeno
 
 1. **Slova i ikonice mape se povlače sa Protomaps javnog skladišta** (GitHub Pages). To je jedini deo mape koji izlazi van naše infrastrukture — sami podaci mape su kod nas. Za produkciju se preseljava, inače odluka o EU hostingu (Master dokument poglavlje 6/9) nije dosledno sprovedena.
