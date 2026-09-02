@@ -689,7 +689,7 @@ export default async function BookingDetailPage(props: {
                       </ScrollableRows>
                       {canPrepareFiscal && (
                         <div className="mt-2.5">
-                          <PrepareFiscalDocumentButton bookingId={booking.id} />
+                          <PrepareFiscalDocumentButton bookingId={booking.id} quiet />
                         </div>
                       )}
                     </OverviewSection>

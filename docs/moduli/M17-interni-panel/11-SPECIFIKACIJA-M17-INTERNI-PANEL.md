@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.56 — Dugme "Pripremi/prikaži fiskalni dokument" u kartici Pregled prelazi na tihu varijantu (2.9.2026, na zahtev vlasnika) — bilo je puno akcentno dugme preko cele širine, dakle najglasniji element na ekranu koji se samo čita. Na kartici Dokumenti i u zatečenom izgledu Pregleda ostaje nepromenjeno. Pravilo: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6h.
+
 **Verzija:** 2.55 — Sekcije kartice Pregled postaju jedan objekat (2.9.2026, isti dan, na zahtev vlasnika): traka naslova i sažetak na vrhu na novoj "utonuloj" nijansi (`--sunken`), telo sekcije na `--panel` u zajedničkom okviru. Zatečeni izgled kartice ostaje nepromenjen. Pravilo, obrazloženje izbora tokena i poznata cena u tamnim modovima: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6h.
 
 **Verzija:** 2.54 — Desna kolona kartice Pregled prelazi na ravan prikaz (2.9.2026, isti dan, na zahtev vlasnika) — Beleške, Komunikacija, Reklamacije, Predstavnici i Vlasništvo više ne crtaju okvir po redu, isto kao leva kolona. Beleška sa terena zadržava izdvojenost (M5 §4.6) levom trakom umesto kartice. Zatečeni izgled kartice ostaje nepromenjen. Pravilo: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6h.
