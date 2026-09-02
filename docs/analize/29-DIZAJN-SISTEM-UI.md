@@ -16,6 +16,8 @@
 **Verzija:** 1.46 — novo poglavlje 2.0e (23.8.2026): svetli mod dobija treću nijansu (`--bar`, trake tamnije od bočnih panela, centralni sadržaj tamniji od čiste bele ali svetliji od bočnih panela), `apps/panel/tailwind.config.ts` i `TopBar.tsx`/`StatusBar.tsx`/`TerminalPanel.tsx` ožičeni.
 **Verzija:** 1.45 — poglavlje 5f dopunjeno (23.8.2026): podela terminal panela na dva nezavisna panela (VS Code "Split Terminal" obrazac), M17 spec v1.97.
 **Verzija:** 1.44 — poglavlje 5a dopunjeno (23.8.2026): "+" pojednostavljen na prazan tab (ne direktno pretraga), više tabova iste putanje kao opšta sposobnost, M17 spec v1.94. Logo premešten sa dna Sidebar-a u gornju traku (isti M17 spec unos) — ovaj dokument nema poseban logo-odeljak, samo M17 changelog.
+**Verzija:** 1.44 — usklađivanje poglavlja 2 sa stvarnim kodom (2.9.2026, na zahtev vlasnika: "Uskladi"). Dokument je od 29.8.2026. opisivao paletu koju aplikacija više ne koristi — prelaz na **shadcn/ui (Tailwind zinc + indigo)** nije bio upisan u prolazu u kom je napravljen, pa su §2, §2.0a–§2.0e i §8 pokazivali maslinasti/GitHub Light/amber vrednosti iz tri prethodne generacije palete. Dodato **novo poglavlje 2.0f** kao jedini izvor istine za boje panela: puna tabela tokena za sva **tri** moda (svetli/dim/tamni — dim je dodat 29.8.2026, dokument je do sad znao samo za dva) sa izmerenim kontrastom po paru. Poglavlja 2.0a–2.0e zadržana kao istorija, ali svako sa uvodnom oznakom šta je u njemu potisnuto a šta i dalje važi (obrazloženja i pravila važe, HEX vrednosti ne). Iz §8 uklonjena tabela palete "Horizont" sa amber akcentom — vrednosti potisnute još 17.8.2026, nikad ažurirane. Ispravljene i tri manje netačnosti zatečene usput: "panel ostaje na jednoj akcentnoj boji" (u kodu postoji i `--accent2` teal sa sopstvenom ulogom), "svaki kanal ima jednu tamnu i jednu svetlu varijantu" (panel ih ima tri), i odlomljen red tabele u §2.0 bez zaglavlja. Dodata skripta **`tools/check-contrast.js`** — dokument je od 17.8.2026. pominjao "kontrast-skriptu" koja nikad nije bila u repozitorijumu (pisana iznova u svakoj sesiji i bacana, pa nijedan raniji rezultat nije bio ponovljiv); sada čita tokene direktno iz `globals.css`, meri svaki par u sva tri moda, kompozituje poluprovidne vrednosti preko podloge i poredi dva svetla bloka međusobno (zamka 1.7). **Nalaz iz prvog pokretanja te skripte:** `--border` pada 3:1 prag u sva tri moda (1.27:1 / 1.70:1 / 1.93:1) — prelaz na shadcn je poništio ispravku od 21.8.2026. koja je nastala na vlasnikovu prijavu da se okvirne linije jedva vide; isto je delimično poništeno i sa `--bar` (§2.0e). Nije ispravljeno u ovom prolazu jer menja izgled svakog ekrana i traži vlasnikovu odluku — upisano kao otvorena stavka u §8 i kao zamka 1.9.
+
 **Verzija:** 1.43 — poglavlje 5f dopunjeno (23.8.2026): kopiranje poruka + segmentacija po turi + kartica odobrenja za web fetch, M15 spec §6.9.6/§6.9.7, M17 spec v1.92. Ostatak poglavlja 5f nepromenjen.
 **Verzija:** 1.43 — dopuna poglavlja 2.0 (2.9.2026, na zahtev vlasnika: "u Light modu sve ikone i sva slova treba da budu za 30% tamnija"): zahtev primenjen CILJANO umesto ravnomerno — `--text-dim` i `--text-faint` potamnjeni ×0,7, `--text` i `--icon-line` namerno nepromenjeni, sa izmerenom tabelom kontrasta po tokenu i obrazloženjem (ravnomerno tamnjenje skuplja razmake među nivoima teksta i ruši hijerarhiju; najtamniji token je već na 16.97:1 pa ne dobija ništa vidljivo). Vlasnik izabrao ovu varijantu posle uporednog prikaza sve četiri. Dve nove zamke upisane u `33-ZAMKE-I-OBAVEZNE-PROVERE.md` (1.7 — svetli mod se definiše u DVA bloka `globals.css`, izmena jednog radi samo pola vremena; 1.8 — "sve za X% tamnije" ruši hijerarhiju teksta). Zabeležen i poznat nedostatak zatečen u ovom prolazu: §2.0a/§2.0 i dalje opisuju maslinasti akcent i GitHub Light neutralne boje, dok je implementacija 29.8.2026 prešla na shadcn/ui paletu — taj prelaz nikad nije upisan u ovaj dokument i traži zaseban prolaz.
 
@@ -39,27 +41,32 @@ Aplikacija treba da izgleda **prepoznatljivo drugačije** od bilo koje druge pos
 
 ## 2. Paleta boja
 
-**Ispravka, 19.8.2026, na zahtev vlasnika** ("vizuelno identično najnovijoj verziji VS Code-a") — raniji opis ispod je pričao o toploj narandžastoj/amber akcentnoj boji, ali konkretne HEX vrednosti nikad nisu tako upisane (poglavlje 2.0a uvek je nosio teal/plavu, direktno iz stvarnih VS Code tema — Material Theme za tamni mod, ugrađena "Light 2026" za svetli). Vlasnik je potvrdio (19.8.2026) da važe **brojevi**, ne raniji narativ — tekst ispod je usklađen sa poglavljem 2.0a, ne obrnuto.
+> **Gde je izvor istine.** Tekuća paleta panela (M17/M7) je **shadcn/ui — Tailwind "zinc" neutralne + "indigo" akcent**, u tri moda (svetli / dim / tamni). Sve stvarne vrednosti, sa izmerenim kontrastom, su u **§2.0f**. Poglavlja 2.0a–2.0e ispod ostaju kao **zapis istorije** (kako se do tekuće palete došlo i koje greške su usput ispravljene) — njihove HEX vrednosti više NISU tekuće; njihova **pravila i obrazloženja jesu** i dalje na snazi. Paleta sajta (M8, "Zalazak") je odvojena i nije dirana ovim prelazom — §2.0.
 
-Polazna tačka: hladna teal/plava porodica, direktno iz dve stvarne VS Code teme (Material Theme High Contrast za tamni mod, ugrađena "Light 2026" za svetli mod — poglavlje 2.0a, vlasnikov nameran izbor, ne dve teme iz iste zvanične porodice) — ne izmišljena kombinacija.
+Panel je do 29.8.2026. prošao kroz tri izvora inspiracije (VS Code teme → GitHub Light → shadcn/ui). To nije lutanje nego posledica pravila iz ovog istog poglavlja ("paleta ostaje promenljiva, ne zaključana") — svaki prelaz je vlasnikova odluka, svaki je prošao proveru iz §2a. Ono što se **nije** menjalo ni jednom: boje žive isključivo kao centralni sloj CSS promenljivih, pa je svaki od tih prelaza bio izmena vrednosti tokena, ne prepravka UI koda.
 
-| Uloga | Ton | Napomena |
+| Uloga | Tekuća vrednost (svetli / tamni) | Napomena |
 | :---- | :---- | :---- |
-| Osnovna pozadina (tamni mod) | Dubok teget/teal (topliji od crne) | Direktno iz Material Theme High Contrast (`#263238`) — zamenjuje čisto crnu, miran za oči tokom celog radnog dana |
-| Osnovna pozadina (svetli mod) | Čisto bela / vrlo blago hladno-bela bočna traka | Direktno iz VS Code "Light 2026" |
-| Akcentna boja (glavna, **ista u oba moda** — ispravka 19.8.2026, poglavlje 2.0b) | Maslinasta, `#8A8A5E` | Dugmad, aktivna stavka u bočnoj traci, otvorena `Ctrl+K` paleta, ivica aktivnog taba, statusi koji traže pažnju — **više nije literalna VS Code vrednost teme** (bila `#80CBC4` tamni / `#0069CC` svetli), sad jedinstvena boja brenda, ista u oba moda, poglavlje 2.0b |
-| Druga boja — **samo na sajtu (M8)**, boja šljive | Modro-plava (šljiva) | Vlasnikova odluka 17.8.2026. Uloga: **sve što nije glavna radnja** — sekundarna dugmad, oznake, akcenti na deljenim stranicama. Glavna radnja ("Rezerviši", "Plati") ostaje amber, jer ona mora da vuče oko; kad bi obe boje vukle jednako, ni jedna ne bi. Zamenila je zelenu (`--accent2`), **nije se dodala kao treća** — zelena je do tada bila upotrebljena na jednom jedinom mestu, pa nije bila stvarna druga boja identiteta nego ostatak. Topla amber + hladna šljiva se međusobno pojačavaju; amber + zelena su bila dva srednje topla tona koja se blago tuku. |
+| Osnovna pozadina | `#fafafa` / `#09090b` | Tailwind zinc-50 / zinc-950. Treći mod "dim" koristi slate skalu, §2.0f |
+| Akcentna boja (glavna, **različita po modu**) | `#4f46e5` / `#818cf8` | Tailwind indigo-600 / indigo-400. Dugmad, aktivna stavka u bočnoj traci, otvorena `Ctrl+K` paleta, ivica aktivnog taba. **Zamenila maslinastu `#8A8A5E`** 29.8.2026 (§2.0f) — time je i pravilo "ista u oba moda" iz §2.0b prestalo da važi za panel |
+| Sekundarni akcent (panel) | `#0f766e` / `#5eead4` | Tailwind teal. Kalendar, katalog, audit log — namerno drugi ton od indigo brenda da ostane razdvojiv kao drugi signal |
+| Boja linija ikonica (samo svetli mod) | `#1f3a5f` "navy teget" | Vlasnikov zahtev 21.8.2026; **preživelo sve promene palete** kao zasebna odluka, §3a |
+| Druga boja — **samo na sajtu (M8)**, boja šljive | Modro-plava (šljiva) | Vlasnikova odluka 17.8.2026, **nepromenjeno** — sajt ima sopstvenu paletu. Uloga: sve što nije glavna radnja — sekundarna dugmad, oznake, akcenti na deljenim stranicama. Glavna radnja ("Rezerviši", "Plati") ostaje topla, jer ona mora da vuče oko; kad bi obe boje vukle jednako, ni jedna ne bi. Zamenila je zelenu (`--accent2`), **nije se dodala kao treća** — zelena je do tada bila upotrebljena na jednom jedinom mestu, pa nije bila stvarna druga boja identiteta nego ostatak. |
 
-**Koliko akcentnih boja:** panel (M17) ostaje na **jednoj** — tamo je gustina informacija visoka i druga boja bi proizvela šaren, haotičan utisak. Sajt (M8) ima **dve** sa jasno razdvojenim ulogama (gore). Više od dve nema ni jedan kanal — treća boja obesmišljava pravilo o hijerarhiji pažnje, jer čitalac više ne zna šta je važno.
+**Koliko akcentnih boja:** panel (M17) ima **jednu brend boju** (indigo) i **jedan sekundarni signal** (teal, `--accent2`) sa usko određenom ulogom — kalendar/katalog/audit log. Ranija formulacija ovog poglavlja ("panel ostaje na jednoj") opisivala je stanje pre nego što je `--accent2` dobio stvarne potrošače; ispravljeno 2.9.2026 prema kodu. Pravilo iza toga se nije promenilo: druga boja sme da postoji samo dok ima **sopstvenu, imenovanu ulogu** — čim bi počela da se koristi "za lepše", vratili bismo se na šaren ekran na kom čitalac ne zna šta je važno. Sajt (M8) ima dve sa jasno razdvojenim ulogama (gore). Treće nema ni jedan kanal.
+
+**Komponentna biblioteka.** Od 29.8.2026. panel koristi **shadcn/ui + Radix UI** nad Tailwind-om (master dokument, poglavlje 6) — generator koji kopira izvorni kod komponente u repo (`apps/panel/src/components/ui/`), ne zatvorena biblioteka sa tuđim CSS-om. Zato paleta i komponente sad dolaze iz istog vizuelnog jezika, umesto da se tuđe komponente premazuju sopstvenim bojama.
 
 ### 2.0 Dve palete, ne jedna — i zašto se to skoro izgubilo
 
-Panel i sajt **imaju odvojene palete** i to je namerno (različita publika, različit utisak): panel je "Horizont" (hladan teget/teal, poglavlje 8), sajt je "Zalazak" (topla peščana, `apps/web/src/app/globals.css`). Ovaj dokument je do 17.8.2026. beležio **samo panelovu** — i to je bio deo razloga zašto paleta sajta nikad nije prošla proveru iz poglavlja 2a i zašto je sedam parova padalo AA prag (vidi poglavlje 8). **Svaka nova paleta se upisuje ovde u istom prolazu kad nastane**, ne posle.
-| Tekst / sekundarni elementi / ivice | Neutralni sivi tonovi izvedeni iz teget osnove — svetli u tamnom modu, tamni u svetlom | Cela paleta deluje kao jedna porodica boja, ne nabacane komponente, u oba moda |
+Panel i sajt **imaju odvojene palete** i to je namerno (različita publika, različit utisak): panel je shadcn/ui paleta (neutralan zinc + indigo akcent, §2.0f — ranije nazivana "Horizont", ime je prestalo da odgovara sadržaju posle prelaza 29.8.2026. i više se ne koristi), sajt je "Zalazak" (topla peščana, `apps/web/src/app/globals.css`, nepromenjena). Ovaj dokument je do 17.8.2026. beležio **samo panelovu** — i to je bio deo razloga zašto paleta sajta nikad nije prošla proveru iz poglavlja 2a i zašto je sedam parova padalo AA prag (vidi poglavlje 8). **Svaka nova paleta se upisuje ovde u istom prolazu kad nastane**, ne posle.
+Tekst, sekundarni elementi i ivice u obe palete su neutralni sivi tonovi izvedeni iz osnove tog kanala — svetli u tamnom modu, tamni u svetlom — da paleta deluje kao jedna porodica boja, ne kao nabacane komponente. *(Ovaj red je do 2.9.2026. stajao kao odlomljen red tabele iz poglavlja 2, bez zaglavlja i van konteksta — posledica ranije izmene koja je tabelu skratila a red ostavila; pretvoren u rečenicu, sadržaj nepromenjen.)*
 
-Tačne HEX vrednosti nisu fiksirane ovim dokumentom — biraju se/fino podešavaju pri izradi UI kod-baze na osnovu ove polazne tačke i **obavezno prema pravilu kontrasta iz poglavlja 2a**, ne izmišljaju se unapred bez stvarnog ekrana na kom se proveravaju.
+Tačne HEX vrednosti panela **jesu** fiksirane, u §2.0f — ranija formulacija ("nisu fiksirane ovim dokumentom, biraju se pri izradi UI kod-baze") bila je tačna dok koda nije bilo, i upravo je ona omogućila da se paleta u kodu tri puta promeni bez ijednog traga u ovom dokumentu. Od 2.9.2026. važi obrnuto: **svaka promena vrednosti tokena u `globals.css` upisuje se u §2.0f u istom prolazu**, sa izmerenim kontrastom, isto pravilo kao za svaku drugu cross-referencu u repozitorijumu.
 
 ### 2.0a Konkretan izvor za Horizont v2 — dve postojeće VS Code teme (vlasnikova odluka, 17.8.2026; potvrđeno 19.8.2026)
+
+> **ISTORIJA (nadživelo prelaz na shadcn/ui, 29.8.2026 — vidi §2.0f).** HEX vrednosti u ovom poglavlju **nisu tekuće**. Ostaje kao zapis odakle je paleta krenula i, važnije, kao izvor za **strukturne** odluke koje shadcn prelaz NIJE dirao — kako izgleda aktivan tab, kako se boji selekcija/hover u listama, zašto je aktivna ivica taba u svetlom modu crna a ne akcentna. Ti obrasci i dalje važe; samo boje kojima su ispunjeni dolaze sad iz §2.0f.
 
 **Ispravka (19.8.2026):** prethodna verzija ovog poglavlja je pogrešno protumačila zahtev za VS Code vernost kao znak da izvor treba menjati, i privremeno zamenila Material Theme sa zvaničnom "Dark 2026" temom. Vlasnik je potvrdio da je originalni izbor nameran — **Material Theme ostaje izvor za tamni mod**, vraćeno u istom prolazu. "Light 2026" (zvanična, ugrađena) ostaje za svetli mod, nepromenjeno — dva različita izvora po modu je svesna odluka (vlasnik koristi/preferira Material Theme za tamni rad), ne greška koju treba uskladiti u jednu porodicu.
 
@@ -83,14 +90,16 @@ Vrednosti ispod ponovo izvučene **19.8.2026 direktno iz instaliranih fajlova** 
 | :---- | :---- | :---- |
 | Aktivan tab — pozadina | `#263238` (ista kao glavna pozadina) | `#FFFFFF` |
 | Neaktivan tab — pozadina | `#263238` (**ista kao aktivan** — razlika nije u pozadini nego u ivici/boji teksta ispod) | `#FAFAFD` |
-| Aktivan tab — ivica/tekst | Ivica `#80CBC4` **(izvorna VS Code vrednost — u implementaciji zamenjena maslinastom `#8A8A5E`, poglavlje 2.0b)**, tekst `#FFFFFF`; neaktivan tab tekst `#5f7a87` | Gornja ivica `#000000` (**crna, ne akcentna** — VS Code svetli mod signalizira aktivan tab crnom linijom, ovo ostaje nepromenjeno) |
-| Selekcija teksta (pozadinsko bojenje) | `#80CBC420` **(izvorno — u implementaciji `#8A8A5E20`, ista logika, nova boja)** | `#0069CC40` **(izvorno — u implementaciji `#8A8A5E40`)** |
+| Aktivan tab — ivica/tekst | Ivica `#80CBC4` **(izvorna VS Code vrednost — u implementaciji zamenjena bojom brenda: maslinastom do 29.8.2026, indigo od tada, §2.0f)**, tekst `#FFFFFF`; neaktivan tab tekst `#5f7a87` | Gornja ivica `#000000` (**crna, ne akcentna** — VS Code svetli mod signalizira aktivan tab crnom linijom, ovo ostaje nepromenjeno) |
+| Selekcija teksta (pozadinsko bojenje) | `#80CBC420` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)** | `#0069CC40` **(izvorno — u implementaciji ista logika sa bojom brenda, §2.0f)** |
 | Red pod hoverom (lista/stablo) | `#192227` (**puna boja**, ista kao bočna traka — ne providan sloj; hover ne koristi akcent, nepromenjeno) | `#00000014` (crna, providna, 8%; nepromenjeno) |
 | Izabran red (lista/stablo) | Pozadina `#192227` (puna), **tekst postaje akcentna boja** — izvorno `#80CBC4`, u implementaciji zahteva po-modu nijansu maslinaste (poglavlje 2.0b, jedini izuzetak) | Pozadina `#00000025` (crna, providna, 15%), tekst ostaje `#202020` (nepromenjeno) |
 
-Razlika u aktivnoj ivici taba (akcent u tamnom, crna u svetlom) i providno-crno/belo pravilo za hover/selekciju su namerno preuzeti tačno ovako — to je stvarna VS Code odluka, ne nešto što bi ovaj dokument sam izmislio da izgleda slično. Redovi označeni "izvorno" ostaju tačan opis kako VS Code to radi (reference), ali stvarna implementacija koristi maslinastu boju brenda umesto literalne VS Code akcentne boje — poglavlje 2.0b niže.
+Razlika u aktivnoj ivici taba (akcent u tamnom, crna u svetlom) i providno-crno/belo pravilo za hover/selekciju su namerno preuzeti tačno ovako — to je stvarna VS Code odluka, ne nešto što bi ovaj dokument sam izmislio da izgleda slično. Redovi označeni "izvorno" ostaju tačan opis kako VS Code to radi (reference); stvarna implementacija koristi boju brenda umesto literalne VS Code akcentne boje — do 29.8.2026. maslinastu (§2.0b), od tada indigo (§2.0f).
 
 ### 2.0b Akcentna boja postaje jedinstvena, maslinasta — ne više po VS Code temi (dopuna, 19.8.2026, na zahtev vlasnika)
+
+> **ISTORIJA (potisnuto 29.8.2026 — vidi §2.0f).** Maslinasta `#8A8A5E` **više nije brend boja panela**; zamenio ju je indigo `#4f46e5` / `#818cf8`. Time je palo i pravilo "ista akcentna boja u oba moda" — shadcn paleta namerno koristi tamniju indigo nijansu u svetlom i svetliju u tamnom modu, jer jedna te ista zasićena boja ne može istovremeno da nosi beo tekst na sebi u jednom modu i taman u drugom (isti problem koji je ovo poglavlje ispod opisuje kao "jedini izuzetak"). Deo koji **i dalje važi**: princip da je akcent boja brenda, a ne literalna vrednost preuzeta iz izvorne teme — zato indigo nije "shadcn-ova vrednost" nego Terminal-ov izbor koji se ne menja sa svakom promenom izvorne inspiracije.
 
 **Odluka:** akcentna boja (uloga iz poglavlja 2 — dugmad, aktivna stavka, ivica aktivnog taba, `Ctrl+K` paleta, značke) prestaje da bude literalna VS Code vrednost po modu (`#80CBC4` tamni / `#0069CC` svetli) i postaje **jedna, ista maslinasta boja u oba moda: `#8A8A5E`**. Ovo je svesno odstupanje od "doslovno VS Code" pravila iz poglavlja 2.0a — **struktura/ponašanje** (raspored, tabovi, hover/selekcija mehanika) ostaje VS Code vernost, ali **boja** postaje Terminal-ova sopstvena, tačno onako kako vodeća ideja dokumenta oduvek kaže (poglavlje 1: "razlikovanje ide kroz vizuelni identitet, ne kroz interakciona pravila").
 
@@ -103,9 +112,11 @@ Razlika u aktivnoj ivici taba (akcent u tamnom, crna u svetlom) i providno-crno/
 
 **Van obima ove odluke** — pozadine, granice i tekst boje (poglavlje 2.0a glavna tabela) ostaju nepromenjene, literalno iz Material Theme/Light 2026 — menja se isključivo uloga "akcentna boja".
 
-Ova tabela je konkretna polazna vrednost ("Horizont v2") — ne menja pravilo ispod da paleta ostaje promenljiva, ne novo zaključavanje.
+Ova tabela je bila konkretna polazna vrednost ("Horizont v2") — nije menjala pravilo ispod da paleta ostaje promenljiva, ne novo zaključavanje. Da je to pravilo stvarno važilo pokazuju tri kasnija prelaza; tekuće vrednosti su u §2.0f.
 
 ### 2.0c Semantička "upozorenje" (warn) boja ispravljena (21.8.2026, na zahtev vlasnika)
+
+> **ISTORIJA (vrednosti potisnute 29.8.2026 — vidi §2.0f).** Maslinasto-zlatni `#6b6b1f` zamenjen je Tailwind amber-700 (`#b45309` svetli / `#fbbf24` tamni) uz prelaz na shadcn paletu. **Nalaz zbog kog ovo poglavlje postoji i dalje je aktuelan i najvredniji deo:** tekst semantičke oznake mora se meriti protiv **sopstvene pill pozadine** (`--warn-bg`), ne protiv `--bg`/`--panel` — propust koji je tada dao 3.82:1. Tekuća vrednost je ponovo merena upravo tako (4.84:1, §2.0f) i `tools/check-contrast.js` sada tu proveru radi automatski, da se isti propust ne može ponoviti tiho.
 
 `--warn`/`--warn-bg` (`globals.css`) nisu izvučeni iz VS Code tema (poglavlje 2.0a) kao ostatak palete — birani su nezavisno kao standardan amber semantički par, uz `--ok`/`--danger`. Vlasnik je, uz snimak ekrana (dashboard kartice sa upozorenjima o rokovima), prijavio da svetla verzija (`#a86a12` na `#f9edd3`) "ne uklapaju se ni u jedan mod" — previše zasićena/"kandi žuta" naspram ostatka hladne palete. Pri proveri je usput otkriven i **stvaran WCAG propust**: tekst na sopstvenoj pill pozadini (`#a86a12` na `#f9edd3`) davao je samo `3.82:1`, ispod 4.5:1 praga iz poglavlja 2a — nije bilo uočeno pri ranijem prolazu jer je tada mereno samo protiv `bg`/`panel` pozadine, ne i protiv `warn-bg` pill pozadine na kojoj se tekst stvarno prikazuje.
 
@@ -129,6 +140,16 @@ Ovo su finalne vrednosti u `globals.css` (zamenjuju tabelu iznad, koja ostaje ka
 
 ### 2.0d `--border` potamnjen — bio praktično nevidljiv (21.8.2026, na zahtev vlasnika)
 
+> **⚠ OVA ISPRAVKA JE PONIŠTENA PRELAZOM NA shadcn — regresija, otkrivena 2.9.2026.** Prelaz 29.8.2026. vratio je `--border` na doslovne Tailwind vrednosti (`#e4e4e7` zinc-200 svetli, `#3f3f46` zinc-700 tamni, `#475569` slate-600 dim), čime je **ponovo uveden tačno onaj problem koji je vlasnik prijavio 21.8.2026** ("jedva se vide okvirne linije sadržaja u centralnom delu"). Izmereno `tools/check-contrast.js`-om:
+>
+> | Mod | Tekuće | Kontrast na `--panel` | Prag §2a | Bilo posle ispravke 21.8. |
+> | :---- | :---- | :---- | :---- | :---- |
+> | Svetli | `#e4e4e7` | **1.27:1 ❌** | 3:1 | `#858c92` — 3.41:1 |
+> | Tamni | `#3f3f46` | **1.70:1 ❌** | 3:1 | `#748088` — 3.25:1 |
+> | Dim | `#475569` | **1.93:1 ❌** | 3:1 | *(mod nije postojao)* |
+>
+> Nije ispravljeno u prolazu u kom je otkriveno, jer tamnije granice vidljivo menjaju izgled svakog ekrana panela, a suptilne granice su namerna crta shadcn izgleda — to je vlasnikova odluka, ne tehnička. **Otvorena stavka, §8.** Poučak koji je već upisan u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`: zamena cele palete mora ponovo proći svaku raniju token-ispravku, jer "usvoji ceo vizuelni jezik biblioteke" tiho gazi ručne ispravke koje ta biblioteka ne zna da postoje.
+
 Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis), prijavio: "Jedva se vide okvirne linije sadrzaja u centralno delu. Potamnite ih za 15%." Provera je pokazala da `--border` (`#f0f1f2` svetli mod) daje samo **1.13:1** na belu pozadinu — daleko ispod 3:1 praga za granice iz poglavlja 2a, stvaran propust koji je postojao od uvođenja Horizont v2 palete, ne samo suptilna pritužba. Doslovnih "-15%" na vrednost ovoliko blizu bele (`240→204` po RGB kanalu) bi dalo tek **1.57:1** — praktično nepromenjeno, jer procenat od skoro-bele vrednosti ne pomera kontrast dovoljno da bude vidljiv. Umesto doslovnog izračuna, izabrana je vrednost koja stvarno prolazi 3:1 prag (isti standard primenjen na svaku drugu granicu u ovom dokumentu):
 
 | Mod | Bilo | Sad | Kontrast na `bg` |
@@ -139,6 +160,8 @@ Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis
 Tamni mod nije bio deo pritužbe (snimak je svetli mod), ali je imao isti stvaran propust pri proveri — ispravljen u istom prolazu, ista logika kao svaka druga token-ispravka ovog dana (jedan izvor istine, nema mod koji ostaje slučajno drugačiji). Ovo je deljen token — primenjeno svuda gde se `--border` koristi (kartice, forme, padajući meniji, `kbd` oznake), ne samo dashboard kartice sa snimka.
 
 ### 2.0e Svetli mod dobija TREĆU nijansu — trake tamnije od bočnih panela (23.8.2026, na zahtev vlasnika)
+
+> **ISTORIJA (vrednosti potisnute 29.8.2026 — vidi §2.0f).** Sam **zahtev i dalje važi i sprovoden je**: `--bar` postoji kao poseban token i u shadcn paleti. Ali se tri nijanse svetlog moda više ne razlikuju kao tada — tekuće vrednosti su `--panel` `#ffffff`, a `--panel-2` i `--bar` **oba** `#f4f4f5`, dakle traka i bočni panel su ponovo iste boje. Vlasnikov zahtev iz 23.8.2026 ("sve trake neka budu za nijansu tamnije od svega") time je delimično poništen prelazom, isto kao granica u §2.0d. Manje vidljivo od granica, pa je i to otvorena stavka (§8), ne tiho prećutano.
 
 Vlasnik je, posle uživo pregleda: "previse je svetla bela pozadina centralnog panela u ligjht modu, zatamnite ga malo a da bide svetlije od levog i desnog panela. sve trake neka budu za nijansu tamnije od svega." Do sada je svetli mod imao samo DVE nijanse — `--panel` čisto bela (`#FFFFFF`, centralni sadržaj) i `--panel-2` (`#FAFAFD`, praktično nerazlučivo od bele) za SVE ostalo, trake I bočne panele zajedno. Sad tri, namerno odstupanje od poglavlja 2.0a glavne tabele (koja i dalje beleži izvorne VS Code "Light 2026" vrednosti kao referentnu tačku, ne kao trenutno stanje ovog tokena):
 
@@ -163,9 +186,54 @@ Tamni mod nije tražio treću nijansu — `--bar` tamo dobija istu vrednost kao 
 
 Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak od nje. `--text` je već na 16.97:1 — ×0,7 bi dao 18.07:1, razliku koju oko ne registruje, a sva tri nivoa teksta bi se stisnula ka crnom i **hijerarhija (glavni / prigušen / slab) bi se izgubila**; to je jedini realan rizik ovakve izmene i jedini razlog da se ne primeni ravnomerno. `--icon-line` bi tamnjenjem izgubio prepoznatljiv "navy teget" ton koji je sam po sebi bio vlasnikov zahtev (21.8.2026, §3a) — to je estetska, ne kontrastna odluka i traži poseban zahtev. Smer izmene je isključivo naviše, pa nijedan AA prag (§2a) ne može da padne. Izmena je upisana u **oba** svetla bloka u `globals.css` — `:root` (prati OS) i `:root[data-theme='light']` (ručni prekidač); prepisivanje samo prvog je zamka koja daje promenu koja nestane čim korisnik izabere svetli mod dugmetom (zabeleženo u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`).
 
-> **Poznat nedostatak ovog dokumenta (zatečeno stanje, 2.9.2026):** §2.0a i dopuna od 26.8.2026 iznad i dalje opisuju maslinasti akcent `#8A8A5E` i GitHub Light neutralne boje, dok je implementacija 29.8.2026 prešla na **shadcn/ui paletu** (Tailwind "zinc" neutralne + indigo `#4f46e5` akcent) — vidi komentar uz `:root` u `apps/panel/src/app/globals.css`. Taj prelaz nije upisan u ovaj dokument u prolazu u kom je napravljen. Tabela iznad navodi **stvarne, tekuće** vrednosti; ostatak §2.0/§2.0a treba uskladiti sa shadcn paletom u zasebnom prolazu.
+### 2.0f Tekuća paleta — shadcn/ui (zinc + indigo), tri moda (29.8.2026; upisano u dokument 2.9.2026)
 
-**Paleta ostaje promenljiva, ne zaključana jednom zauvek** (potvrđeno 17.8.2026, na izričit zahtev vlasnika). Tehnički mehanizam ovo već obezbeđuje bez dodatnog rada — boje žive isključivo kao centralni sloj CSS promenljivih (isti sloj koji poglavlje 2 birač teme i M7 poglavlje 2.0.5 `SubagentBranding` već koriste), nikad utkane direktno u komponente. Promena tona/nijanse "Horizont"/"Zalazak" palete je u svakom trenutku izmena vrednosti tog sloja, ne prepravka UI koda — uz jedini uslov da svaka nova vrednost ponovo prođe proveru iz poglavlja 2a pre nego što se smatra gotovom.
+**Ovo je jedini izvor istine za boje panela.** Sve iznad (§2.0a–§2.0e) je istorija kako se do ovoga došlo.
+
+**Kako je nastalo.** Vlasnik je 29.8.2026. izabrao shadcn/ui posle vizuelnog poređenja tri kandidata na istom ekranu (M17 "Rezervacije" mockup): Fluent UI React, PatternFly i shadcn/ui + Radix UI — obrazloženje izbora je u master dokumentu, poglavlje 6. Odluka nije bila samo "uzmi njihove komponente" nego **usvoji ceo vizuelni jezik**, pa je maslinasta `#8A8A5E` prestala da bude brend boja. Prvi prolaz migracije namerno nije dirao boje (da se ništa ne pokvari pre potvrde); vlasnik je javio da ne vidi razliku — očekivano — pa je drugi prolaz zamenio stvarne vrednosti tokena.
+
+**Zašto je promena bila jeftina.** Nijedna komponenta nije menjana zbog boje. Tokeni su CSS promenljive u jednom fajlu, pa je izmena ~100 linija promenila izgled svih ~60 ekrana panela odjednom — isti mehanizam koji poglavlje 2 opisuje kao "paleta ostaje promenljiva".
+
+**Tri moda, ne dva** (dopuna istog dana, na zahtev vlasnika). Pored svetlog i tamnog dodat je **"dim"** — isti koncept kao Twitter/X Dim: tamna atmosfera ali plavkasto-siva, ne crna. Namerno koristi **slate** skalu umesto zinc, da bude sopstveno stanje a ne "tamni, malo svetliji". Nema `prefers-color-scheme` granu (operativni sistem ne signalizira tri stanja) — dostupan je isključivo preko ručnog prekidača, `ThemeToggle.tsx`, ciklusom svetli → dim → tamni.
+
+| Token | Svetli | Dim | Tamni | Uloga |
+| :---- | :---- | :---- | :---- | :---- |
+| `--bg` | `#fafafa` | `#0f172a` | `#09090b` | Osnovna pozadina |
+| `--panel` | `#ffffff` | `#1e293b` | `#18181b` | Centralni sadržaj, kartice |
+| `--panel-2` | `#f4f4f5` | `#334155` | `#27272a` | Bočni paneli |
+| `--bar` | `#f4f4f5` | `#334155` | `#27272a` | Gornja/donja traka *(u svetlom modu trenutno jednako `--panel-2` — §2.0e)* |
+| `--border` | `#e4e4e7` | `#475569` | `#3f3f46` | Granice — **pada 3:1 prag u sva tri moda, §2.0d** |
+| `--text` | `#18181b` | `#f8fafc` | `#fafafa` | Glavni tekst |
+| `--text-dim` | `#2c2c31` | `#cbd5e1` | `#d4d4d8` | Prigušen tekst |
+| `--text-faint` | `#45454a` | `#a3b0c2` | `#a1a1aa` | Slab tekst, zaglavlja kolona, datumi |
+| `--accent` | `#4f46e5` | `#818cf8` | `#818cf8` | Brend boja, glavna radnja |
+| `--accent-strong` | `#4338ca` | `#a5b4fc` | `#a5b4fc` | Tekst na `--accent-soft` (tvrdo pravilo §2a) |
+| `--accent-soft` | `#4f46e533` | `#818cf833` | `#818cf833` | Meka podloga akcenta (20% alfa) |
+| `--accent-ink` | `#ffffff` | `#0b1120` | `#0b0b0f` | Tekst na punom akcentu |
+| `--accent2` / `-soft` | `#0f766e` / `#0f766e1a` | `#5eead4` / `#5eead41a` | `#5eead4` / `#5eead41a` | Sekundarni signal — kalendar, katalog, audit log |
+| `--ok` / `--ok-bg` | `#15803d` / `#f0fdf4` | `#4ade80` / `#0d1f13` | `#4ade80` / `#0d1f13` | Uspeh |
+| `--warn` / `--warn-bg` | `#b45309` / `#fffbeb` | `#fbbf24` / `#241a06` | `#fbbf24` / `#241a06` | Upozorenje |
+| `--danger` / `--danger-bg` | `#b91c1c` / `#fef2f2` | `#f87171` / `#240b0b` | `#f87171` / `#240b0b` | Greška |
+| `--icon-line` | `#1f3a5f` | `currentColor` | `currentColor` | Navy linije ikonica, samo svetli mod (§3a) |
+
+**Izmereni kontrasti** (`node tools/check-contrast.js --all`, 2.9.2026 — najgori slučaj po tokenu, tj. protiv najnepovoljnije pozadine uz koju se pojavljuje):
+
+| Par | Svetli | Dim | Tamni | Prag |
+| :---- | :---- | :---- | :---- | :---- |
+| `--text` na površinama | 16.12:1 | 9.90:1 | 14.27:1 | 4.5:1 |
+| `--text-dim` na površinama | 12.64:1 | 6.97:1 | 10.08:1 | 4.5:1 |
+| `--text-faint` na površinama | 8.67:1 | 4.71:1 | 5.81:1 | 4.5:1 |
+| `--icon-line` na površinama | 10.45:1 | — | — | 3:1 |
+| `--accent-ink` na `--accent` (dugme) | 6.29:1 | 6.31:1 | 6.59:1 | 4.5:1 |
+| `--accent-strong` na `--accent-soft` | 5.82:1 | 5.33:1 | 6.55:1 | 4.5:1 |
+| `--ok` / `--warn` / `--danger` na svojim pill pozadinama | 4.79 / 4.84 / 5.91 | 9.86 / 10.27 / 6.73 | 9.86 / 10.27 / 6.73 | 4.5:1 |
+| `--border` na `--panel` | **1.27:1 ❌** | **1.93:1 ❌** | **1.70:1 ❌** | 3:1 |
+
+Sve prolazi osim `--border` (§2.0d). Dva mesta su najbliža padu i zaslužuju pažnju pri svakoj sledećoj izmeni: `--text-faint` u dim modu (4.71:1, prag 4.5) i `--ok` u svetlom (4.79:1) — obe vrednosti su već jednom ručno pomerene sa doslovne Tailwind vrednosti upravo zato što je doslovna padala.
+
+**Pravilo §2a i dalje ima razlog da postoji.** `--accent` na `--accent-soft` (zabranjena kombinacija) daje 4.63:1 u svetlom, ali **4.38:1 u tamnom i 3.56:1 u dim modu** — i dalje pada. Zato ostaje tvrdo pravilo: na mekom akcentu ide `--accent-strong`, nikad `--accent`, u svakom modu i u svakom stanju (uključujući hover).
+
+**Paleta ostaje promenljiva, ne zaključana jednom zauvek** (potvrđeno 17.8.2026, na izričit zahtev vlasnika). Tehnički mehanizam ovo već obezbeđuje bez dodatnog rada — boje žive isključivo kao centralni sloj CSS promenljivih (isti sloj koji poglavlje 2 birač teme i M7 poglavlje 2.0.5 `SubagentBranding` već koriste), nikad utkane direktno u komponente. Promena tona/nijanse palete panela ili sajta je u svakom trenutku izmena vrednosti tog sloja, ne prepravka UI koda — uz jedini uslov da svaka nova vrednost ponovo prođe proveru iz poglavlja 2a pre nego što se smatra gotovom. Prelaz na shadcn paletu 29.8.2026. to je i potvrdio u praksi: ~100 izmenjenih linija u jednom fajlu promenilo je izgled svih ~60 ekrana, bez ijedne izmenjene komponente. **Ali** je isti taj prelaz pokazao i cenu te lakoće — tiho je poništio dve ranije ručne ispravke (§2.0d, §2.0e), jer nova paleta ne zna da one postoje. Zato od 2.9.2026. uz svaku zamenu cele palete ide obavezno ponovno pokretanje `tools/check-contrast.js` i prolaz kroz §2.0a–§2.0e, ne samo provera novih vrednosti.
 
 **Tamni i svetli mod — oba se prave, na zahtev vlasnika (avgust 2026).** Tamni ostaje podrazumevani (prvi koji se implementira, prvi koji se testira), ali svetli mod nije opcioni "ako ikad zatreba" — obavezan je od starta.
 
@@ -173,7 +241,9 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 - **Ručni prekidač:** korisnik može eksplicitno da izabere tamni/svetli mod, nezavisno od sistemskog podešavanja — izbor se pamti (lokalno po uređaju/browseru je dovoljno za v1; sinhronizacija izbora preko više uređaja po nalogu nije pretpostavljena bez stvarne potrebe, vidi poglavlje 8).
 - Prekidač živi u istom minimalnom duhu kao ostatak UI-ja (poglavlje 5) — ne traži poseban ekran podešavanja, dovoljna je jedna ikonica/stavka u komandnoj paleti (poglavlje 4) ili uglu gornje trake.
 
-**Birač teme — VS Code mehanizam, Terminal sadržaj** (vlasnikova odluka 17.8.2026). Isti UX obrazac kao VS Code "Color Theme" birač — otvara se iz komandne palete ili gornje trake, lista opcija sa živim pregledom pri prelasku mišem/tastaturom, potvrda menja temu odmah bez ponovnog učitavanja. **Sadržaj liste NIJE proizvoljan skup tema** (za razliku od VS Code Dark+/Light+/Monokai/itd.) — svaki kanal i dalje ima tačno svoju jednu tamnu i jednu svetlu varijantu (Horizont za M17/M7, Zalazak za M8), obe već provereno WCAG AA (poglavlje 2a). Birač daje poznat, brz način da se između te dve pređe — ne otvara vrata dodatnim, neproverenim paletama. Ako se u budućnosti pokaže stvarna potreba za više od dve varijante po kanalu, to je nova odluka (i nova AA provera za svaku), ne automatska posledica ovog mehanizma.
+**Birač teme — VS Code mehanizam, Terminal sadržaj** (vlasnikova odluka 17.8.2026). Isti UX obrazac kao VS Code "Color Theme" birač — otvara se iz komandne palete ili gornje trake, potvrda menja temu odmah bez ponovnog učitavanja. **Sadržaj liste NIJE proizvoljan skup tema** (za razliku od VS Code Dark+/Light+/Monokai/itd.) — kanal ima tačno određen, mali skup varijanti, svaka provereno WCAG AA (poglavlje 2a). Birač daje poznat, brz način da se između njih pređe — ne otvara vrata dodatnim, neproverenim paletama.
+
+**Panel od 29.8.2026. ima TRI varijante, ne dve** — svetli / dim / tamni (§2.0f). To je upravo slučaj koji je ranija formulacija ovog odlomka predviđala ("ako se pokaže stvarna potreba za više od dve varijante, to je nova odluka i nova AA provera za svaku") — vlasnik je tražio dim, sve tri su merene, pravilo je poštovano. Sajt (M8, "Zalazak") i dalje ima dve. Sam prekidač je u praksi ispao jednostavniji od VS Code liste: **jedno dugme koje cikluše svetli → dim → tamni** (`ThemeToggle.tsx`), sa sopstvenom ikonicom i naslovom po stanju — na tri opcije lista sa pregledom ne nosi svoju cenu. Izbor se pamti u `localStorage` i primenjuje pre prvog iscrtavanja (`THEME_INIT_SCRIPT` u `layout.tsx`) da nema treptaja pogrešne teme pri učitavanju.
 
 ---
 
@@ -188,7 +258,8 @@ Ovo nije estetska preporuka nego **tvrd, merljiv zahtev**, isti duh kao "Izlazni
 - **Proverava se lokalno, protiv stvarne pozadine iza teksta u tom trenutku — ne protiv jedne pretpostavljene "opšte" pozadine aplikacije.** Aplikacija ima više nijansi pozadine i unutar istog moda (glavni panel, bočna traka, kartice iz poglavlja 6, hover stanje, otvorena komandna paleta) — svaka od njih je **posebna provera**, jer isti tekst koji je čitljiv na tamnijoj pozadini može biti nečitljiv na svetlijoj kartici iznad nje, i obrnuto.
 - **Važi identično za tamni i svetli mod** — nijedan mod se ne tretira kao "manje bitan"; oba prolaze isti test pre nego što se smatraju gotovim.
 - **Isto pravilo važi za linije/ikonice** (Codicons, poglavlje 3a) koliko i za tekst — ikonica koja se jedva vidi na svojoj pozadini je isti problem kao nečitljiv tekst.
-- **Tekst na `accent-soft` pozadini mora biti `accent-strong`, nikad `accent`** — nalaz iz live-provere (17.8.2026, M17 §3.1): `accent` na `accent-soft` daje samo **3.96:1** u svetlom modu i pada AA prag, dok `accent-strong` daje 5.98:1 (svetli) / 8.86:1 (tamni). Pravilo važi i za **hover stanje**: dugme sa `text-accent hover:bg-accent-soft` prolazi u mirovanju, a pada čim se pređe mišem — zato je `accent-strong` podrazumevana boja za svaki element koji `accent-soft` može dobiti kao pozadinu, u bilo kom stanju. Sprovedeno kroz ceo panel (17 mesta, 17.8.2026).
+- **Tekst na `accent-soft` pozadini mora biti `accent-strong`, nikad `accent`** — nalaz iz live-provere (17.8.2026, M17 §3.1). Sprovedeno kroz ceo panel (17 mesta). Brojevi iz tog nalaza (`3.96:1` na maslinastoj paleti) više nisu tekući, ali **pravilo je ponovo mereno na indigo paleti 2.9.2026 i i dalje je potrebno**: `accent` na `accent-soft` daje 4.63:1 u svetlom (prolazi za dlaku), ali **4.38:1 u tamnom i 3.56:1 u dim modu** — pada. `accent-strong` daje 5.82 / 6.55 / 5.33:1. Pravilo važi i za **hover stanje**: dugme sa `text-accent hover:bg-accent-soft` prolazi u mirovanju, a pada čim se pređe mišem — zato je `accent-strong` podrazumevana boja za svaki element koji `accent-soft` može dobiti kao pozadinu, u bilo kom stanju i u bilo kom modu.
+- **Provera se pokreće skriptom, ne prepisuje se iz sećanja: `node tools/check-contrast.js`** (dodato 2.9.2026). Čita tokene direktno iz `apps/panel/src/app/globals.css`, meri svaki tekstualni token protiv **svake** površine uz koju se pojavljuje, u sva tri moda; poluprovidne vrednosti (`--accent-soft`) prvo spušta na podlogu ispod njih, jer merenje protiv same alfa vrednosti daje besmislen broj. Takođe upoređuje `:root` sa `:root[data-theme='light']` (zamka 1.7 — svetli mod je definisan na dva mesta). Izlazi kôdom 1 ako bilo koji par padne prag, pa može stajati u CI-ju. Do 2.9.2026. ovaj dokument je više puta pominjao "kontrast-skriptu" koja **nikad nije bila u repozitorijumu** — pisana je iznova u svakoj sesiji i bacana, pa nijedan raniji rezultat nije bio ponovljiv.
 - **Postaje stavka izlaznog kriterijuma kad UI kod počne** (ne samo namera u ovom dokumentu) — svaka nova kombinacija teksta/ikonice i pozadine koja se doda mora proći ovu proveru pre nego što se smatra završenom, isto pravilo kao "Izlazni kriterijum = definicija gotovo" iz CLAUDE.md.
 
 ---
@@ -643,7 +714,7 @@ Implementirano kao deljena komponenta (`apps/panel/src/components/ContentCard.ts
 
 *(izmenjeno 17.8.2026 — ranije "samo M17 za sada")*
 
-Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženje za tim koji radi svaki dan, gde command-palette obrazac ima najviše smisla. **Vlasnikova odluka (17.8.2026): M7 (B2B portal, subagenti) dobija identičan vizuelni i interakcioni obrazac kao M17** — ista paleta-mehanizam (poglavlje 2), ista komandna paleta (poglavlje 4), isti tri-panelni raspored (poglavlje 5b), isti AI-razgovor obrazac (poglavlje 6c). Razlog: subagenti su redovni, profesionalni korisnici pod istim vremenskim pritiskom kao interni tim, ne povremeni gost — razlikovanje ide kroz **podatke koje vide** (M7 spec poglavlje 2.0, dobavljača-slep + bez marže/nabavne cene), ne kroz pojednostavljen interfejs. M7 zadržava sopstvenu "beli-label" paletu po subagentu (M7 spec poglavlje 2.0.5) umesto fiksnog Horizonta — mehanizam biranja/token-sloj ostaje isti kao M17, samo se boje pune iz `SubagentBranding` umesto iz fiksne palete.
+Ovaj dizajn sistem je pisan prvenstveno za **M17 (interni panel)** — okruženje za tim koji radi svaki dan, gde command-palette obrazac ima najviše smisla. **Vlasnikova odluka (17.8.2026): M7 (B2B portal, subagenti) dobija identičan vizuelni i interakcioni obrazac kao M17** — ista paleta-mehanizam (poglavlje 2), ista komandna paleta (poglavlje 4), isti tri-panelni raspored (poglavlje 5b), isti AI-razgovor obrazac (poglavlje 6c). Razlog: subagenti su redovni, profesionalni korisnici pod istim vremenskim pritiskom kao interni tim, ne povremeni gost — razlikovanje ide kroz **podatke koje vide** (M7 spec poglavlje 2.0, dobavljača-slep + bez marže/nabavne cene), ne kroz pojednostavljen interfejs. M7 zadržava sopstvenu "beli-label" paletu po subagentu (M7 spec poglavlje 2.0.5) umesto fiksne palete panela — mehanizam biranja/token-sloj ostaje isti kao M17, samo se boje pune iz `SubagentBranding` umesto iz fiksne palete.
 
 I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt, gost koji retko koristi aplikaciju) ili M9 (mobilna aplikacija, dodirni ekran bez tastature) — ti kanali dobijaju sopstvenu primenu vizuelnog identiteta (boje, tipografija) kad dođu na red, ali ne nužno isti interakcioni obrazac. Ovo se rešava kad ti moduli dođu na red, ne pretpostavlja se ovde.
 
@@ -651,21 +722,7 @@ I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt
 
 ## 8. Otvoreno za dalje
 
-- ~~Tačne HEX vrednosti palete (za oba moda) — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).~~ **Rešeno (avgust 2026, prvi prolaz M17 implementacije)** — paleta "Horizont" (`apps/panel/tailwind.config.ts`, `apps/panel/src/app/globals.css`):
-
-  | Uloga | Svetli mod | Tamni mod |
-  | :---- | :---- | :---- |
-  | pozadina (bg) | `#f6f8fb` | `#0c1420` |
-  | panel | `#ffffff` | `#121b29` |
-  | panel-2 (bočna traka/gornja traka) | `#e9eef4` | `#1a2536` |
-  | granica (border) | `#6f8298` | `#5a7594` |
-  | tekst | `#0e1826` | `#eef2f7` |
-  | tekst — sekundaran | `#3c4f66` | `#b7c4d4` |
-  | tekst — najslabiji | `#54677d` | `#8998ac` |
-  | akcent (jedina) | `#9c6216` | `#eab35c` |
-  | akcent — tekst na akcentu | `#fffaf0` | `#1c1206` |
-
-  Svaka kombinacija tekst/granica-protiv-pozadine iz gornje tabele proverena programski (formula WCAG 2.1 relativne luminanse) — najniži rezultat je `3.71:1` (granica na svetlom modu, ispod praga za tekst ali iznad 3:1 zahteva za granice/ikonice), sav tekst prolazi sa marginom (`4.84:1` do `17.84:1`). `--danger`/`--danger-bg` i slični semantički parovi (uspeh/upozorenje) takođe provereni, najniži `4.85:1`.
+- ~~Tačne HEX vrednosti palete panela — biraju se pri izradi prvog stvarnog ekrana, obavezno u skladu sa pravilom kontrasta (poglavlje 2a).~~ **Rešeno; tekuće vrednosti su u §2.0f.** *(Ovde je do 2.9.2026. stajala tabela palete "Horizont" sa amber akcentom `#9c6216` — vrednosti iz prvog prolaza M17 implementacije, potisnute već 17.8.2026, pa opet 19.8, 26.8. i 29.8. Nisu nikad ažurirane, pa je ovo poglavlje mesecima pokazivalo boje koje aplikacija nije koristila. Uklonjene, ne prepisane — istorija prelaza je u §2.0a–§2.0f, gde joj je mesto; tabela vrednosti stoji na jednom mestu, ne na dva.)*
 
 - **Paleta sajta (M8) — "Zalazak"** (`apps/web/src/app/globals.css`, `apps/web/tailwind.config.ts`). Nastala iz `docs/moduli/M01-core-identitet/00-MOCKUP-M1-TERMINAL-STYLE.html` (paleta 1) i **nikad nije prošla proveru iz poglavlja 2a** — ispravljeno 17.8.2026:
 
@@ -684,8 +741,10 @@ I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt
   Nepromenjeni ostaju `--bg`, `--panel`, `--panel-2`, `--text`, `--text-dim`, `--accent-soft`, `--accent-ink`, `--danger` — svi su prolazili. Posledično provereno i ispravljeno: `--accent-ink` na `--accent` (tekst na punom dugmetu "Rezerviši", najvažnija kontrola na sajtu) bio je `3.30:1`, sad je `5.26:1`.
 
   Merenja su rađena protiv **stvarnih** podloga uz koje se svaka boja koristi (`bg`, `panel`, `panel-2`, `accent-soft`, `ok-bg`, `warn-bg`), ne jedne pretpostavljene — po pravilu iz poglavlja 2a.
+- **`--border` pada 3:1 prag u sva tri moda panela (§2.0d) — čeka vlasnikovu odluku.** Prelaz na shadcn paletu 29.8.2026. poništio je ispravku od 21.8.2026, koja je nastala baš na vlasnikovu prijavu da se okvirne linije jedva vide. Nije ispravljeno odmah jer tamnije granice vidljivo menjaju izgled svakog ekrana, a suptilne granice su namerna crta shadcn izgleda — estetska odluka, ne tehnička. Ista provera treba da obuhvati i `--bar` u svetlom modu (§2.0e — traka i bočni panel su ponovo iste boje, iako je vlasnik 23.8.2026. tražio da trake budu za nijansu tamnije).
+- **Paleta sajta (M8) nije proveravana od prelaska panela na shadcn** — `tools/check-contrast.js` trenutno čita samo `apps/panel`. Sajt ima sopstvenu paletu (tabela ispod, poslednja provera 17.8.2026) i vlasnik je 2.9.2026. rekao da se njime bavimo kasnije; kad dođe na red, skriptu proširiti na oba fajla umesto pisanja druge.
 - ~~Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 7): identičan obrazac, razlikovanje ide kroz podatke (M7 spec poglavlje 2.0), ne kroz interfejs.
 - **Vlasnikov prošireni pregled uživo nad celim poslovanjem** (npr. Elastic/Kibana-stila dashboard za praćenje svih procesa u realnom vremenu) — vlasnik izričito rekao "još ćemo raditi na tome" (17.8.2026), namerno odloženo. Verovatno dodatan sloj iznad M17 (možda i M13 BI), ne zamena — ne pretpostavlja se ovde ni obim ni tehnologija (uvođenje Elastic-a bilo bi nova zavisnost, zahteva `tt-tech-stack` potvrdu kad dođe na red).
 - Da li izbor tamnog/svetlog moda treba da se sinhronizuje preko više uređaja po nalogu (zahteva backend polje, npr. na M1 `User`) ili ostaje lokalno po uređaju — v1 pretpostavlja lokalno, revidira se ako se pokaže potreba.
-- Tačna paleta semantičkih boja za isticanje teksta (poglavlje 6) — upozorenje/greška/uspeh — bira se zajedno sa HEX vrednostima palete.
+- ~~Tačna paleta semantičkih boja za isticanje teksta (poglavlje 6) — upozorenje/greška/uspeh — bira se zajedno sa HEX vrednostima palete.~~ **Rešeno** — `--ok`/`--warn`/`--danger` sa pripadajućim pill pozadinama, sva tri moda, izmerene vrednosti u §2.0f. Put do njih (dva odbačena pokušaja sa "warn" bojom) je u §2.0c.
 - Da li postoji gornja granica broja istovremeno otvorenih tabova (poglavlje 5a), i šta se dešava kad se dostigne — dorađuje se pri implementaciji ako se pokaže potreba.
