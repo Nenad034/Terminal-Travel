@@ -717,6 +717,8 @@ AI asistent sada ima **tri pozicije, ali je i dalje jedno jedino polje**: desni 
 
 **Kako je izvedeno i zašto baš tako (važno za svaku buduću izmenu):** `AiChatBox` se montira **tačno jednom**, u `Shell.tsx`, unutar stabilnog domaćina koji se pri premeštanju **fizički prebacuje** (`appendChild`) u aktivan slot. Prvi pokušaj je koristio React portal — ali promena odredišta portala je za React nov portal, pa se dete odmontira i ponovo montira: izmereno u browseru, posle premeštanja je nedovršen tekst u polju bio prazan, a isto bi se desilo i istoriji razgovora. Premeštanjem čvora React ne dira roditelja i stanje ostaje netaknuto.
 
+**Ispravka istog dana (3.9.2026, uživo nalaz vlasnika: „vratite polje gde se ukucava poruka na dno"):** u donjem doku je red za unos iskočio pri VRH sekcije. Uzrok nije bio raspored `AiChatBox`-a (u njemu unos ionako stoji poslednji, §6c poglavlje 1.50) nego prekinut lanac visina: domaćin uveden zbog premeštanja dobio je `flex-1` unutar slota koji nije flex-kontejner, pa se skupio na visinu sadržaja umesto da popuni sekciju — istorija razgovora tada nema šta da gurne nadole. Rešeno `h-full` na domaćinu. **Provera:** izmereno u browseru, unos je 11px od dna sekcije u OBE pozicije.
+
 **Dva odvojena AI polja se ne prave nikad** — ni ovde, ni na ekranu pretrage. Isti posao na dva mesta raziđe se prvom izmenom (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`); zato pozicija ima tri izbora, a polje ostaje jedno.
 
 ### 6c.1 Dugme `+` — prilaganje konteksta (dopuna, 18.8.2026, na zahtev vlasnika — referenca: VS Code/Copilot Chat)

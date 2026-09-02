@@ -541,7 +541,7 @@ export default function Shell({
             se odmontira i ponovo montira, pa se gubi i istorija razgovora i nedovršen tekst u
             polju (izmereno: tekst je posle premeštanja bio prazan). Ovde React uopšte ne dira
             roditelja — samo mi premestimo jedan čvor, a njegovo stanje ostaje netaknuto. */}
-        <div ref={aiHostRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <div ref={aiHostRef} className="flex h-full min-h-0 w-full flex-col overflow-hidden">
           <AiChatBox />
         </div>
         <CommandPalette items={items} />
