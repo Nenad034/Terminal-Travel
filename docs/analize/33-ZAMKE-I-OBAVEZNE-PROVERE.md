@@ -235,6 +235,7 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 **7.1 Build i tipovi nisu dokaz da ekran radi**
 - *Uzrok:* dva baga iz ove sesije (sirov UUID u pretrazi, "Invalid Date" u audit logu) prolazila su `tsc` i `next build` bez greške.
 - *Provera:* izlazni kriterijum se čekira **posle provere uživo** protiv prave baze, ne posle build-a. Ako živa provera nije moguća, checkbox ostaje prazan sa obrazloženjem — nikad "uglavnom radi".
+- *Alat (od 2.9.2026):* `node tools/qa-screenshot.mjs "<putanja>" izlaz.png` otvara ekran u pravom (headless) browseru, prijavi se, pokupi greške iz konzole i napravi snimak; `QA_CLICK="x,y;x,y"` klikne pre snimka, `QA_THEME=light|dim|dark` bira temu. Nastao posle tri zaredom prijavljene greške koje provera sa servera nije mogla da vidi (`ReferenceError` u sortiranju, React upozorenje o `<script>` tagu, MapLibre worker) — sve tri su živele isključivo u browseru. **Kad se menja bilo šta klijentsko, provera ide kroz ovaj alat pre nego što se prijavi kao gotovo.**
 
 **7.2 Prazan ekran je često prazna baza, ne pokvaren kod**
 - *Provera:* pre traženja greške u prikazu, proveri da podaci uopšte postoje i zadovoljavaju filtere (vidi 3.1 i 3.2).

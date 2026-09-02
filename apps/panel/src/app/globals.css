@@ -356,3 +356,75 @@ code,
     outline-offset: 1px;
   }
 }
+
+/* Baner hotela na mapi (M5 §3.0h.7, SearchResultsMap.tsx). MapLibre `Popup` crta sopstveni
+   omotač sa svojim podrazumevanim belim stilom — ovde se prevodi na "Horizont" tokene, da
+   baner izgleda kao ostatak panela i u tamnom modu, ne kao tuđ prozorčić na mapi. */
+.tt-map-popup .maplibregl-popup-content {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
+}
+.tt-map-popup .maplibregl-popup-tip {
+  border-top-color: var(--panel);
+  border-bottom-color: var(--panel);
+}
+.tt-map-popup .maplibregl-popup-close-button {
+  color: var(--text-faint);
+  font-size: 18px;
+  padding: 0 6px;
+}
+.tt-map-popup .maplibregl-popup-close-button:hover {
+  background: transparent;
+  color: var(--text);
+}
+
+.tt-map-img {
+  height: 96px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--panel-2);
+}
+.tt-map-body {
+  padding: 10px 12px 12px;
+}
+.tt-map-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.tt-map-stars {
+  color: var(--warn);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.tt-map-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.tt-map-price {
+  margin-top: 6px;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.tt-map-add {
+  margin-top: 8px;
+  width: 100%;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tt-map-add:hover {
+  background: var(--accent-strong);
+}

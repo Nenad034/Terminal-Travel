@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-// maplibre-gl v6 nema default izvoz — samo imenovane (`Map`, `Protocol` dolazi iz `pmtiles`).
+// maplibre-gl v6 nema default izvoz — samo imenovane (`Protocol` dolazi iz `pmtiles`).
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
@@ -13,7 +13,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 // Podaci mape: OpenStreetMap preko Protomaps/PMTiles (Master dokument poglavlje 6). Cela mapa
 // Balkana je JEDAN fajl (`/maps/balkan.pmtiles`, ~1.6 GB, zoom 0–13) iz kog browser čita samo
 // bajtove koji mu trebaju, preko HTTP range zahteva — nema servera za mape koji se održava.
-// Fajl se NE nalazi u git-u (`.gitignore`); pravi se lokalno, uputstvo u §3.0h.
+// Fajl NIJE u git-u (`.gitignore`); pravi se lokalno, uputstvo u §3.0h.4.
 //
 // Prikaz: MapLibre GL. Tačke idu kroz GeoJSON izvor sa uključenim grupisanjem — bez toga bi se
 // proizvodi iz istog mesta crtali jedan preko drugog, što je danas pravilo a ne izuzetak:
@@ -27,15 +27,61 @@ export interface MapPoint {
   /** Najniža cena, u parama/centima. */
   price: number;
   currency: string;
+  /** Sve ispod je opciono — pojavljuje se u baneru kad izvor to nosi (§3.0h.7). */
+  stars?: number;
+  city?: string;
+  country?: string;
+  image?: string;
+  /** Čitljiv naziv usluge, npr. "HB - Polupansion". */
+  boardLabel?: string;
 }
 
-/** Vezuje `data-theme` panela na Protomaps "flavor" — mapa prati temu ostatka ekrana. */
-function flavorForTheme(): ReturnType<typeof namedFlavor> {
-  if (typeof document === 'undefined') return namedFlavor('light');
+/**
+ * Panel ima TRI moda (svetli / dim / tamni, dizajn dok. §2.0f), pa i mapa dobija tri različita
+ * izgleda — ne dva. Protomaps "flavor" se bira tako da razlika bude stvarno vidljiva:
+ *   svetli → `light` (pozadina #cccccc)
+ *   dim    → `dark`  (#34373d, plavkasto-siva — isti utisak kao dim mod panela)
+ *   tamni  → `black` (#2b2b2b, najdublji)
+ * U prvoj verziji su dim i tamni delili isti `dark` i izgledali identično.
+ */
+type FlavorName = 'light' | 'dark' | 'black';
+
+function flavorNameForTheme(): FlavorName {
+  if (typeof document === 'undefined') return 'light';
   const theme = document.documentElement.getAttribute('data-theme');
-  if (theme === 'dark' || theme === 'dim') return namedFlavor('dark');
-  if (theme === 'light') return namedFlavor('light');
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? namedFlavor('dark') : namedFlavor('light');
+  if (theme === 'light') return 'light';
+  if (theme === 'dim') return 'dark';
+  if (theme === 'dark') return 'black';
+  // Bez izričitog izbora odlučuje operativni sistem, isto kao CSS `prefers-color-scheme`.
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'black' : 'light';
+}
+
+/** Boje natpisa nad mapom — indigo na svetloj podlozi, belo na tamnoj. */
+function labelColors(flavor: FlavorName): { text: string; halo: string } {
+  return flavor === 'light' ? { text: '#4f46e5', halo: '#ffffff' } : { text: '#ffffff', halo: '#1f2124' };
+}
+
+function buildStyle(flavor: FlavorName) {
+  return {
+    version: 8 as const,
+    // NAPOMENA (§3.0h.5): slova i ikonice se za sada povlače sa Protomaps javnog skladišta.
+    // To je jedini deo mape koji izlazi van naše infrastrukture — za produkciju se preseljava.
+    glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
+    sprite: `https://protomaps.github.io/basemaps-assets/sprites/v4/${flavor}`,
+    sources: {
+      protomaps: {
+        type: 'vector' as const,
+        url: 'pmtiles:///maps/balkan.pmtiles',
+        attribution: '<a href="https://openstreetmap.org">OpenStreetMap</a> · <a href="https://protomaps.com">Protomaps</a>',
+      },
+    },
+    layers: layers('protomaps', namedFlavor(flavor), { lang: 'sr' }),
+  };
+}
+
+/** Naziv hotela dolazi iz podataka, ne iz koda — mora se štitovati pre ubacivanja u HTML. */
+function esc(v: string): string {
+  return v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 }
 
 function money(cents: number, currency: string): string {
@@ -43,9 +89,87 @@ function money(cents: number, currency: string): string {
   return `${whole.toLocaleString('sr-RS')} ${currency}`;
 }
 
-/** Upisuje tačke u izvor i namešta prikaz na njihov okvir. Deljeno između prvog učitavanja
- * mape i svake naredne promene rezultata. */
-function applyPoints(map: MapLibreMap, points: MapPoint[]) {
+/**
+ * Dodaje izvor i slojeve rezultata. Odvojeno od pravljenja mape jer `setStyle` (promena teme)
+ * uklanja sve što nije deo stila — posle svake promene se mora pozvati ponovo.
+ */
+function addResultLayers(map: MapLibreMap, flavor: FlavorName) {
+  if (map.getSource('rezultati')) return;
+  const label = labelColors(flavor);
+
+  map.addSource('rezultati', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] },
+    cluster: true,
+    clusterRadius: 45,
+    clusterMaxZoom: 13,
+  });
+
+  map.addLayer({
+    id: 'grupe',
+    type: 'circle',
+    source: 'rezultati',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#4f46e5',
+      'circle-radius': ['step', ['get', 'point_count'], 16, 5, 22, 20, 28],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+    },
+  });
+  map.addLayer({
+    id: 'grupe-broj',
+    type: 'symbol',
+    source: 'rezultati',
+    filter: ['has', 'point_count'],
+    layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Medium'], 'text-size': 12 },
+    paint: { 'text-color': '#ffffff' },
+  });
+
+  map.addLayer({
+    id: 'tacke',
+    type: 'circle',
+    source: 'rezultati',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#4f46e5',
+      'circle-radius': 6,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff',
+    },
+  });
+  map.addLayer({
+    id: 'tacke-cena',
+    type: 'symbol',
+    source: 'rezultati',
+    filter: ['!', ['has', 'point_count']],
+    layout: {
+      // Naziv iznad cene (vlasnikov zahtev 2.9.2026) — na mapi punoj tačaka sama cena ne kaže
+      // KOJI je to hotel, a agent bira po imenu koliko i po ceni.
+      'text-field': [
+        'format',
+        ['get', 'naziv'],
+        { 'font-scale': 0.85 },
+        '\n',
+        {},
+        ['get', 'cena'],
+        { 'font-scale': 1.05, 'text-font': ['literal', ['Noto Sans Medium']] },
+      ],
+      'text-font': ['Noto Sans Regular'],
+      'text-size': 12,
+      'text-offset': [0, -1.9],
+      'text-line-height': 1.15,
+      'text-max-width': 12,
+      // Natpisi se ne smeju preklapati — kad se preklope, MapLibre sakrije slabiji, pa ostane
+      // tačka bez teksta; to je bolje od dva imena jedno preko drugog.
+      'text-allow-overlap': false,
+    },
+    paint: { 'text-color': label.text, 'text-halo-color': label.halo, 'text-halo-width': 2 },
+  });
+}
+
+/** Upisuje tačke u izvor i (opciono) namešta prikaz na njihov okvir. */
+function applyPoints(map: MapLibreMap, points: MapPoint[], fit: boolean) {
   const source = map.getSource('rezultati') as maplibregl.GeoJSONSource | undefined;
   if (!source) return;
 
@@ -58,11 +182,35 @@ function applyPoints(map: MapLibreMap, points: MapPoint[]) {
     })),
   });
 
-  if (points.length > 0) {
+  // Posle promene teme se tačke ucrtavaju ponovo, ali se prikaz NE pomera — korisnik bi
+  // izgubio zum i položaj koje je podesio, a nije tražio ništa osim druge boje.
+  if (fit && points.length > 0) {
     const bounds = new maplibregl.LngLatBounds();
     for (const p of points) bounds.extend([p.lng, p.lat]);
     map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 400 });
   }
+}
+
+/**
+ * Baner koji se otvara klikom na tačku (vlasnikov zahtev 2.9.2026). Gradi se kao HTML jer ga
+ * MapLibre `Popup` sam pozicionira i zatvara — React sloj bi za isto tražio ručno praćenje
+ * pomeranja mape. Sav tekst iz podataka prolazi kroz `esc`.
+ */
+function bannerHtml(p: MapPoint, addLabel: string): string {
+  const place = [p.city, p.country].filter(Boolean).join(', ');
+  const stars = p.stars ? `<span class="tt-map-stars">${'★'.repeat(p.stars)}</span>` : '';
+  const image = p.image ? `<div class="tt-map-img" style="background-image:url('${esc(p.image)}')"></div>` : '';
+  return `
+    <div class="tt-map-banner">
+      ${image}
+      <div class="tt-map-body">
+        <div class="tt-map-title">${esc(p.name)} ${stars}</div>
+        ${place ? `<div class="tt-map-sub">${esc(place)}</div>` : ''}
+        ${p.boardLabel ? `<div class="tt-map-sub">${esc(p.boardLabel)}</div>` : ''}
+        <div class="tt-map-price">${esc(money(p.price, p.currency))}</div>
+        <button type="button" class="tt-map-add" data-id="${esc(p.id)}">${esc(addLabel)}</button>
+      </div>
+    </div>`;
 }
 
 export default function SearchResultsMap({ points, onSelect }: { points: MapPoint[]; onSelect?: (id: string) => void }) {
@@ -72,6 +220,10 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   // i onda kad `load` stigne POSLE nego što je roditelj već poslao rezultate.
   const pointsRef = useRef<MapPoint[]>(points);
   pointsRef.current = points;
+  // Isti razlog: slušalac klika se kači jednom, a `onSelect` se može promeniti.
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,23 +244,8 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: {
-          version: 8,
-          // NAPOMENA (§3.0h.3): slova i ikonice se za sada povlače sa Protomaps javnog
-          // skladišta. To je jedini deo mape koji još izlazi van naše infrastrukture —
-          // za produkciju se preseljava kod nas, zabeleženo kao otvorena stavka.
-          glyphs: 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf',
-          sprite: 'https://protomaps.github.io/basemaps-assets/sprites/v4/light',
-          sources: {
-            protomaps: {
-              type: 'vector',
-              url: 'pmtiles:///maps/balkan.pmtiles',
-              attribution: '<a href="https://openstreetmap.org">OpenStreetMap</a> · <a href="https://protomaps.com">Protomaps</a>',
-            },
-          },
-          layers: layers('protomaps', flavorForTheme(), { lang: 'sr' }),
-        },
-        // Centar Balkana; stvaran prikaz odmah posle toga skače na okvir rezultata.
+        style: buildStyle(flavorNameForTheme()),
+        // Centar Balkana; prikaz odmah posle učitavanja skače na okvir rezultata.
         center: [20.5, 43.0],
         zoom: 5,
         attributionControl: { compact: true },
@@ -125,68 +262,14 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
     map.on('error', (e) => {
       const msg = (e as unknown as { error?: { message?: string } }).error?.message ?? '';
       if (msg.includes('pmtiles') || msg.includes('404')) {
-        setFailed('Podaci mape nisu pronađeni na ovom računaru — treba jednom napraviti lokalni fajl (M5 §3.0h).');
+        setFailed('Podaci mape nisu pronađeni na ovom računaru — treba jednom napraviti lokalni fajl (M5 §3.0h.4).');
       }
     });
 
     map.on('load', () => {
-      map.addSource('rezultati', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterRadius: 45,
-        clusterMaxZoom: 13,
-      });
+      addResultLayers(map, flavorNameForTheme());
 
-      map.addLayer({
-        id: 'grupe',
-        type: 'circle',
-        source: 'rezultati',
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': '#4f46e5',
-          'circle-radius': ['step', ['get', 'point_count'], 16, 5, 22, 20, 28],
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-      map.addLayer({
-        id: 'grupe-broj',
-        type: 'symbol',
-        source: 'rezultati',
-        filter: ['has', 'point_count'],
-        layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['Noto Sans Medium'], 'text-size': 12 },
-        paint: { 'text-color': '#ffffff' },
-      });
-
-      map.addLayer({
-        id: 'tacke',
-        type: 'circle',
-        source: 'rezultati',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': '#4f46e5',
-          'circle-radius': 6,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
-      map.addLayer({
-        id: 'tacke-cena',
-        type: 'symbol',
-        source: 'rezultati',
-        filter: ['!', ['has', 'point_count']],
-        layout: {
-          'text-field': ['get', 'cena'],
-          'text-font': ['Noto Sans Medium'],
-          'text-size': 11,
-          'text-offset': [0, -1.4],
-          'text-allow-overlap': false,
-        },
-        paint: { 'text-color': '#4f46e5', 'text-halo-color': '#ffffff', 'text-halo-width': 2 },
-      });
-
-      // Klik na grupu zumira u nju; klik na tačku javlja roditelju koji je proizvod izabran.
+      // Klik na grupu zumira u nju.
       map.on('click', 'grupe', async (e) => {
         const feature = map.queryRenderedFeatures(e.point, { layers: ['grupe'] })[0];
         const clusterId = feature?.properties?.cluster_id;
@@ -195,21 +278,54 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
         const zoom = await source.getClusterExpansionZoom(clusterId);
         map.easeTo({ center: (feature.geometry as GeoJSON.Point).coordinates as [number, number], zoom });
       });
+
+      // Klik na tačku otvara baner tog hotela.
       map.on('click', 'tacke', (e) => {
         const id = e.features?.[0]?.properties?.id;
-        if (typeof id === 'string') onSelect?.(id);
+        if (typeof id !== 'string') return;
+        const point = pointsRef.current.find((p) => p.id === id);
+        if (!point) return;
+
+        popupRef.current?.remove();
+        const popup = new maplibregl.Popup({ offset: 14, closeButton: true, maxWidth: '280px', className: 'tt-map-popup' })
+          .setLngLat([point.lng, point.lat])
+          .setHTML(bannerHtml(point, onSelectRef.current ? 'dodaj u izbor' : 'otvori'))
+          .addTo(map);
+        popupRef.current = popup;
+
+        // Dugme u baneru je običan DOM čvor (nije React), pa se slušalac kači ručno posle
+        // otvaranja. `Popup` sam briše čvor pri zatvaranju, pa nema šta da se otkači.
+        popup.getElement()?.querySelector('.tt-map-add')?.addEventListener('click', () => {
+          onSelectRef.current?.(id);
+          popup.remove();
+        });
       });
+
       for (const layer of ['grupe', 'tacke']) {
         map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'));
         map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''));
       }
 
       mapRef.current = map;
-      // Prve tačke se ucrtavaju odmah po učitavanju; naredne promene hvata efekat ispod.
-      applyPoints(map, pointsRef.current);
+      applyPoints(map, pointsRef.current, true);
     });
 
+    // Promena teme panela (ThemeToggle upisuje `data-theme` na <html>) menja i mapu, bez
+    // ponovnog učitavanja stranice. `setStyle` uklanja naše slojeve, pa se posle njega izvor
+    // i slojevi dodaju ponovo — zato `addResultLayers` i postoji kao zasebna funkcija.
+    const observer = new MutationObserver(() => {
+      const flavor = flavorNameForTheme();
+      map.setStyle(buildStyle(flavor));
+      map.once('styledata', () => {
+        addResultLayers(map, flavor);
+        applyPoints(map, pointsRef.current, false);
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
     return () => {
+      observer.disconnect();
+      popupRef.current?.remove();
       map.remove();
       mapRef.current = null;
       maplibregl.removeProtocol('pmtiles');
@@ -220,8 +336,7 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   // ponovo pravi ceo prikaz (izgubio bi se zum i pomeraj koje je korisnik podesio).
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    applyPoints(map, points);
+    if (map) applyPoints(map, points, true);
   }, [points]);
 
   if (failed) {

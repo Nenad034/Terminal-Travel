@@ -270,7 +270,19 @@ export default function AccommodationResultsMock({
             lng: h.lng,
             price: offerTotal(h.offers[0]),
             currency: h.offers[0].currency,
+            // Baner na klik (§3.0h.7) prikazuje isto što i kartica u listi — inače mapa i lista
+            // pričaju različitu priču o istom hotelu.
+            stars: h.stars,
+            city: h.city,
+            country: h.country,
+            image: h.image,
+            boardLabel: boardTypeDisplay(h.offers[0].boardType),
           }))}
+          // "dodaj u izbor" iz banera radi isto što i dugme u listi — ide u desni panel.
+          onSelect={(id) => {
+            const hotel = sortedHotels.find((h) => h.id === id);
+            if (hotel) select(hotel, hotel.offers[0]);
+          }}
         />
       </div>
     );
