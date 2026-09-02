@@ -12,6 +12,16 @@ interface Product {
   type: string;
   destinationCountry: string;
   destinationCity: string;
+  /**
+   * M2 §2.1 — koordinate za prikaz na mapi. Popunjava ih `geocode-products.ts` iz naziva i
+   * mesta (vlasnikova odluka 2.9.2026: automatski, ne ručno).
+   *
+   * Tip je `string`, ne `number`: u bazi je `Decimal`, a `Decimal.toJSON()` ga šalje kao
+   * string — zamka 10.1 u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`. `GET /sales/search` isto polje
+   * vraća kao broj jer ga servis tamo eksplicitno pretvara; ovaj (katalog) endpoint ne.
+   */
+  geoLat: string | null;
+  geoLng: string | null;
   status: string;
   sourceType: string;
   attributes?: (HotelAttributes & PackageAttributes & { room_types?: RoomType[] }) | null;
@@ -30,8 +40,28 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> {name}
       </h1>
-      <p className="mb-4 text-xs text-ink-faint">
+      <p className="mb-1 text-xs text-ink-faint">
         {product.type} · {product.destinationCity}, {product.destinationCountry} · izvor: {product.sourceType}
+      </p>
+      {/* Koordinate — dok mapa u pretrazi (M5 §3.0h) ne postoji, ovo je jedino mesto gde se
+          vidi da li je tačka uopšte popunjena i da li je tačna. Veza otvara tačku na
+          OpenStreetMap-u, pa čovek može da proveri pogodak bez ijedne nove biblioteke. */}
+      <p className="mb-4 text-xs text-ink-faint">
+        {product.geoLat && product.geoLng ? (
+          <>
+            koordinate: <span className="font-mono">{Number(product.geoLat).toFixed(5)}, {Number(product.geoLng).toFixed(5)}</span>{' '}
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${product.geoLat}&mlon=${product.geoLng}#map=16/${product.geoLat}/${product.geoLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent-strong hover:underline"
+            >
+              proveri na mapi
+            </a>
+          </>
+        ) : (
+          <span className="text-warn">koordinate nisu popunjene — proizvod se neće pojaviti na mapi</span>
+        )}
       </p>
       <EditProductForm productId={product.id} translation={sr} />
       {product.type === 'ACCOMMODATION' && (

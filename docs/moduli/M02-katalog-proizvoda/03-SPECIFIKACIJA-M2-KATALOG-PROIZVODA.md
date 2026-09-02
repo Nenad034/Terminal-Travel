@@ -31,7 +31,7 @@ Van obima ove specifikacije: uslovi ugovora, alotmani i cenovnici (to je M3), lo
 | source_provider | string, nullable | npr. `travelgate` — popunjeno samo kad `source_type = API` |
 | source_external_id | string, nullable | id proizvoda kod spoljnog provajdera |
 | destination_country / destination_city | string | strukturirana lokacija radi pretrage i filtriranja |
-| geo_lat / geo_lng | decimal, nullable | za prikaz na mapi |
+| geo_lat / geo_lng | decimal, nullable | za prikaz na mapi. **Popunjava se automatski** iz naziva i mesta proizvoda (`apps/api/prisma/seed/geocode-products.ts`, `npm run geocode:products`), vlasnikova odluka 2.9.2026 — ne unosi se ručno. Do tog datuma polje je bilo prazno u svakom redu, pa mapa nigde nije ni postojala; detalji i tačnost: M5 §3.0h. Trajno geokodiranje NOVIH proizvoda (pri objavi, periodično, ili ručno) još nije odlučeno |
 | media | JSONB | niz strukturiranih stavki galerije (poglavlje 2.3a) — jezički nezavisno (iste slike za sve jezike) |
 | attributes | JSONB | polja specifična za `type` (vidi 2.3) — jezički nezavisna (npr. broj zvezdica, trajanje) |
 | status | enum: `DRAFT`, `ACTIVE`, `INACTIVE`, `ARCHIVED` | samo `ACTIVE` proizvodi su vidljivi kanalima prodaje |

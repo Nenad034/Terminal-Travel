@@ -18,7 +18,8 @@
     "seed:mock-b2c": "ts-node prisma/seed/mock-b2c.ts",
     "seed:mock-b2c:clean": "ts-node prisma/seed/mock-b2c-clean.ts",
     "seed:mock-booking-dossier": "ts-node prisma/seed/mock-booking-dossier.ts",
-    "seed:mock-booking-dossier:clean": "ts-node prisma/seed/mock-booking-dossier-clean.ts"
+    "seed:mock-booking-dossier:clean": "ts-node prisma/seed/mock-booking-dossier-clean.ts",
+    "geocode:products": "ts-node prisma/seed/geocode-products.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

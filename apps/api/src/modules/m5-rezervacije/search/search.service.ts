@@ -138,6 +138,8 @@ export class SearchService {
         name: translation?.name ?? '',
         destinationCountry: product.destinationCountry,
         destinationCity: product.destinationCity,
+        geoLat: product.geoLat === null ? null : Number(product.geoLat),
+        geoLng: product.geoLng === null ? null : Number(product.geoLng),
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
         offers,

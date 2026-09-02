@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.10 — Novo poglavlje 3.0h: mapa u rezultatima pretrage (2.9.2026, na zahtev vlasnika, uz link na Airbnb pretragu — "zaboravili smo na mapu"). Nalaz: `geo_lat`/`geo_lng` stoje u M2 §2.1 od početka kao "za prikaz na mapi", ali su bili prazni u **svakom** redu (33/33), `GET /search` ih nije vraćao, i nijedna biblioteka za mape nije bila u projektu — mapa dodata tog dana bila bi prazna. Vlasnikove odluke: koordinate automatski iz adrese (ne ručno), OpenStreetMap podaci preko MapLibre + Protomaps na našem EU skladištu (Master dokument poglavlje 6, uz obrazloženje zašto su odbačeni Google Maps, serveri OSM fondacije i OpenFreeMap), i redosled "prvo koordinate, pa mapa". **Urađeno u ovom prolazu:** jednokratno geokodiranje celog kataloga (`geocode-products.ts`, Nominatim uz poštovanje 1 poziv/s) — 33/33 popunjeno, 2 tačna objekta, 31 tačka mesta, 0 promašaja; `SearchResultProduct` dobija `geoLat`/`geoLng` kao **broj** (pretvaranje iz `Decimal` u servisu, zamka 10.1 — `GET /catalog/products/:id` isto polje i dalje vraća kao string); ekran proizvoda u katalogu prikazuje koordinate sa vezom "proveri na mapi". **Nije urađeno:** sama mapa pored liste, "pretraži dok pomeram mapu" (jedino što dira server — `GET /search` nema pojam pravougaonika na mapi), i trajno geokodiranje novih proizvoda.
+
 **Verzija:** 2.09 — Nova poglavlja 3.0g.8 (sortiranje) i 3.0g.9 (poređenje sa velikim portalima), 2.9.2026, na zahtev vlasnika ("istražite dobro filtere pretrage u TT-u za smeštaj, letove i transfer u odnosu na velike portale pa mi recite da li smo sva polja predvideli"). **Sortiranje nije postojalo nigde u aplikaciji** — dodato kao traka iznad rezultata, sa opcijama po vrsti proizvoda i pravilom da se nudi samo ono za šta postoji podatak; implementirano u istom prolazu (`lib/search-sort.ts`, `components/SortBar.tsx`). Poređenje (3.0g.9) deli nalaze na tri vrste: **(a) bilo specificirano a nenapravljeno** — devet filtera letova iz §3.0d.1 (panel je za letove imao samo filter cene) i šesnaest neprikazanih `AmenityTag` vrednosti uklj. `FREE_CANCELLATION`/`PAY_AT_PROPERTY`; **oboje zatvoreno u ovom prolazu, bez izmene modela**; **(b) postoji u katalogu ali pretraga ne izlaže** — `accommodation_type` i `stars` (traži dopunu `GET /search`, ne novo polje); **(c) ne postoji nigde** — ocena gostiju, udaljenost od centra, hotelski lanac, pristupačnost, pet filtera letova (basic economy/odvojene karte/alijansa/noćni letovi/CO2), i pet transfernih (privatan naspram deljenog, klasa vozila, broj i uzrast za dečja sedišta, meet & greet, jezik vozača). Potvrđeno da je odluka iz 3.0g.6 o državljanstvu i valuti kao dva odvojena polja ispravna (LiteAPI traži oba kao obavezna; Booking izvodi valutu iz `booker.country`), uz nalaz da je valuta upisana samo kod smeštaja a važi za sve strane dobavljače. Stavke (b) i (c) nisu implementirane, čekaju odluku.
 
 **Verzija:** 2.08 — Poglavlje 3.0g **implementirano** u panelu (2.9.2026, isti dan kao specifikacija): raspored i sva četiri pravila ponašanja iz §3.0g.1–§3.0g.5 sad stvarno rade. Pretraga je preseljena iz levog panela u centralni — devet ikonica centrirano pri vrhu (`SearchPanel.tsx`), forma po vrsti ispod njih (`SearchCriteriaForm.tsx`, nekadašnji `SearchCriteriaPopup.tsx` — više nije modal), levi panel (`SearchSidebarPanel.tsx`) sveden isključivo na filtere. Skupljen red (§3.0g.2) je dograđen `SearchCriteriaChip.tsx` — i dalje ispisuje kriterijume (golo "+" ostaje zabranjeno), sad uz "Poništi pretragu" i "Osveži podatke". Poređenje pri osvežavanju (§3.0g.3) je klijentsko, bez novog endpointa, po ključu `product_id` + `rate_line_id`/`provider_quote_reference` izdvojenom u `@/lib/search-offer-key` (isti ključ koji koristi selekcija §3.0e.3); razlika se prijavljuje trakom (`SearchRefreshNotice.tsx`), promenjeni redovi ostaju obeleženi, a promena na već izabranoj stavci se prikazuje i u desnom panelu preko novog `SelectionItem.priceChange`. Pamćenje kriterijuma po vrsti (§3.0g.4) ide kroz nov `SearchStateContext.tsx`, montiran u `Shell.tsx` iznad stranice (isti razlog i isto mesto kao `GroupSearchBuilderContext` — stranica je server komponenta i gubi lokalno stanje pri svakoj promeni query stringa); desni panel je već bio iznad stranice (`SelectionProvider`), pa ga prelazak vrste nikad nije ni dirao. **Namerno van ovog prolaza:** tabela novih polja iz §3.0g.6 — svako od tih polja povlači izmenu u drugom modulu (§3.0g.7: M2 `attributes`, M4 avio ugovor, M6 `GuestProfile`), pa je to zaseban zadatak; ovaj prolaz radi nad podacima koji već postoje. Takođe ispravljen netačan navod u §3.0g.5 (`CRUISE` **postoji** u `ProductType` enumu od 21.8.2026, commit `8a52578`). Novo otvoreno pitanje u §13: automatsko osvežavanje bez klika.
@@ -321,6 +323,8 @@ Oba upozorenja prikazuju se u desnom panelu uz listu segmenata (poglavlje 3.0.4)
 `GET /search` (poglavlje 11) objedinjuje M2 katalog + M3 ugovorenu dostupnost + M4 uživo, ali oblik onoga što taj poziv vraća do sada nije bio definisan — samo ulazni parametri. Ovo dopunjuje tu definiciju i objašnjava kako se izabrani rezultat prenosi dalje u `Quote` (poglavlje 3) ili `ItinerarySegment` (poglavlje 3.0.2).
 
 ### 3.0b.1 `SearchResultProduct` — jedan proizvod u rezultatima
+
+**Dopuna 2.9.2026 — `geo_lat`/`geo_lng` u rezultatu.** `SearchResultProduct` sada nosi i koordinate proizvoda (M2 §2.1), za prikaz na mapi (§3.0h). `null` je dozvoljen — proizvod koji još nije geokodiran se prosto ne pojavi na mapi, ali ostaje u listi. **Tip je broj, ne string:** u bazi je `Decimal`, a `Decimal.toJSON()` bi ga poslao kao string i svaka biblioteka za mape bi dobila pogrešan tip; pretvaranje se radi jednom, u `SearchService`, ne na svakom ekranu (zamka 10.1 u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`). Napomena: `GET /catalog/products/:id` (M2) isto polje i dalje vraća kao string — taj endpoint nema ovo pretvaranje, pa panel tamo koristi `Number()` pri prikazu.
 | Polje | Tip | Napomena |
 | :---- | :---- | :---- |
 | product_id | UUID (FK → M2 Product) | |
@@ -669,6 +673,37 @@ Stavke pod (b) i (c) **nisu implementirane** i čekaju vlasnikovu odluku, po ist
 
 ---
 
+
+## 3.0h Mapa u rezultatima pretrage (dopuna, 2.9.2026, na zahtev vlasnika)
+
+Vlasnik je (2.9.2026, uz link na Airbnb pretragu) primetio da mape nema nigde, iako `Product.geo_lat`/`geo_lng` stoje u M2 §2.1 od početka i opisani su doslovno kao "za prikaz na mapi".
+
+**Zatečeno stanje:** oba polja bila su prazna u **svakom** redu (33/33 aktivnih proizvoda), `GET /search` ih uopšte nije vraćao, i nijedna biblioteka za mape nije bila u projektu. Mapa dodata tog dana bila bi prazna mapa.
+
+### 3.0h.1 Odluke (vlasnik, 2.9.2026)
+
+- **Koordinate se izvode automatski iz adrese**, ne unose ručno. Jednokratni prolaz kroz postojeći katalog: `apps/api/prisma/seed/geocode-products.ts` (`npm run geocode:products`).
+- **Podaci mape su OpenStreetMap**; prikaz preko **MapLibre**, podaci mape preko **Protomaps/PMTiles** na našem EU skladištu. Puno obrazloženje i odbačene alternative: Master dokument, poglavlje 6.
+- **Redosled rada:** prvo koordinate, pa mapa, pa pretraga po mapi — ne obrnuto, jer bi mapa bez koordinata bila prazna.
+
+### 3.0h.2 Koliko su koordinate tačne — i zašto to nije isto za svaki proizvod
+
+Geokodiranje pokušava dva upita po proizvodu: prvo **naziv + mesto + država** (daje tačku samog objekta), pa **mesto + država** (daje tačku mesta) ako naziv nije prepoznat. Tačka mesta je lošija od tačne, ali daleko bolja od prazne — proizvod se bar pojavi u pravom gradu.
+
+Rezultat prvog prolaza (2.9.2026): **33 od 33 popunjeno — 2 tačna objekta, 31 tačka mesta, 0 promašaja.** Nizak broj tačnih je očekivan i **nije mera kvaliteta postupka**: današnji katalog je pretežno test-podatak sa nazivima koje OpenStreetMap ne poznaje ("Hotel M6 Test"), a jedanaest proizvoda uopšte nema naziv. Dva hotela sa stvarnim nazivima (`Hotel Avala Resort`, `Blue Bay Hotel`) pogođena su tačno. Sa pravim katalogom odnos se obrće.
+
+**Posledica za prikaz:** dok su koordinate na nivou mesta, više proizvoda u istom mestu deli **istu tačku**. Mapa to mora da reši grupisanjem (jedan krug sa brojem umesto deset tačaka jedna preko druge), ne da ih crta jednu preko druge.
+
+### 3.0h.3 Šta je urađeno, a šta nije
+
+**Urađeno (2.9.2026):** koordinate popunjene za ceo katalog; `GET /search` ih vraća (§3.0b.1); ekran proizvoda u katalogu ih prikazuje sa vezom "proveri na mapi" ka OpenStreetMap-u — dok mapa u pretrazi ne postoji, to je jedino mesto gde čovek može da vidi da li je tačka uopšte popunjena i da li je tačna.
+
+**Nije urađeno, sledeći koraci:**
+1. **Mapa pored liste rezultata** — prekidač lista/mapa, tačke sa cenom, povezivanje kartice i tačke na prelaz mišem, grupisanje tačaka (vidi §3.0h.2). Traži MapLibre kao zavisnost.
+2. **"Pretraži dok pomeram mapu"** — vidljivi deo mape postaje filter. Ovo je jedino od svega što dira **server**: `GET /search` danas prima zemlju i grad, a pojam "ovaj pravougaonik na mapi" ne postoji. Zahteva nov parametar i dopunu poglavlja 11 pre koda.
+3. **Trajno geokodiranje novih proizvoda** — jednokratni prolaz je rešio zatečeni katalog, ali proizvod unet sutra i dalje nema koordinate. Nije odlučeno da li se geokodira pri objavi proizvoda, periodično, ili ručno na ekranu.
+
+---
 
 ## 3.0e Unakrsna prodaja, pretraga unutar rezultata, i AI kao brz put do ponude (dopuna, 17.8.2026, na zahtev vlasnika)
 
