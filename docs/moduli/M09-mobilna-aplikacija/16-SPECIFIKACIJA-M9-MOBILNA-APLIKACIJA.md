@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M9) i poglavlje 8 (Faza 6)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Implementirano (avgust 2026) — backend za deo vodiča na terenu gotov (poglavlje 3/4, izlazni kriterijum stavke 1-4); React Native (Expo) mobilni klijent za oba iskustva gotov (`apps/mobile`, izlazni kriterijum stavke 5-6), poglavlje 5 dopunjeno mehanizmom push notifikacija. Preostaje samo objavljivanje u App Store/Google Play (poglavlje 9).
+**Verzija:** 1.6 — Novo poglavlje 2a (2.9.2026, na zahtev vlasnika: "mobilna aplikacija koja bi omogućila da klijenti slikaju svoje pasoše i da sa tom aplikacijom odmah podaci sami unesu u TT") — gost pri prvom kreiranju `GuestProfile` (M6 poglavlje 2.2) bira između ručnog unosa i fotografisanja pasoša; AI predpopuni formu, gost pregleda/potvrđuje pre čuvanja, isti `POST /guest-profiles` poziv kao ranije. Nov `POST /mobile/guest-profile/scan-document`. Pun mehanizam (Claude Vision, tranzientno — slika se nikad ne čuva, samo za novu registraciju ne i izmenu postojećeg profila) specifikovan u M15 poglavlju 6.5.6e, ovde samo mobilna strana toka. Specifikacija spremna, implementacija čeka na red (poglavlje 8).
 **Verzija:** 1.5 — nov `GET /mobile/staff/check-ins?bookingId=` i nova dozvola `M9/field-checkin/VIEW` (1.9.2026, za karticu "Predstavnici" na ekranu rezervacije, M5 spec §4.5). Nalaz: `FieldCheckIn` (§3.2) je do sada mogao samo da se UPIŠE sa telefona vodiča (`POST /mobile/staff/sync`) i nikad da se pročita — kancelarija nije imala nijedan način da vidi da li je iko stvarno preuzeo goste na destinaciji. Dozvola je namerno ODVOJENA od `field-checkin/CREATE`: vodič na terenu upisuje, kancelarija čita, ni jedno ni drugo ne podrazumeva ono drugo (VODIC uloga zato NE dobija `VIEW`, a Vlasnik/Direktor/Sales Manager/Prodajni agent NE dobijaju `CREATE`).
 **Verzija:** 1.4 (avgust 2026) — React Native (Expo, managed workflow) mobilni klijent, `apps/mobile`: oba iskustva (gost preko postojećih M8/M5/M6/M10/M20 API-ja, vodič preko offline-first sinhronizacije iz poglavlja 3). Push notifikacije rešene preko Expo Push servisa (poglavlje 5 dopunjena): novo polje `User.pushToken` (M1) i `POST /mobile/push-token` endpoint za registraciju uređajskog tokena; time se briše otvoreno pitanje "konkretan provajder" iz poglavlja 9. v1.3 implementacija backend dela za vodiče: nova uloga `VODIC` (M1), dopuna M5 `BookingItem.assigned_guide_id`, Prisma modeli `FieldCheckIn`/`FieldIncidentNote`, `GET /mobile/staff/my-itinerary`, `POST /mobile/staff/sync`, dozvole (poglavlje 6), API dokumentacija `docs/api/M9-mobilna-aplikacija.md`. v1.2 dodata napomena o namerno uskom obimu (poglavlje 1) i stavka izlaznog kriterijuma za prikaz na tabletu/preklopnom telefonu (Master dokument poglavlje 5.1); v1.1 dopunjena lista zavisnosti sa M10/M20, koje deo za goste već koristi (kartično plaćanje, prihvatanje ugovora) preko istog toka kao M8
 **Zavisi od:** M1, M2, M5, M6, M10 (kartično plaćanje), M20 (prihvatanje ugovora pre plaćanja) — isti tok kao M8, vidi poglavlje 2
@@ -22,6 +23,13 @@ M9 ima **dva različita iskustva** u istoj React Native aplikaciji (deljen kod s
 Isti tok i isti API-ji kao M8 (sajt) — pretraga (M5 `/search`), ponuda, rezervacija, kartično plaćanje (M10), "moje rezervacije" (M6/M5), vaučeri. Ne ponavlja se ovde detaljno — vidi M8 specifikaciju. Mobilne specifičnosti:
 - Push notifikacije (potvrda rezervacije, podsetnik pred putovanje).
 - Prikaz vaučera sa QR kodom pogodnim za skeniranje na licu mesta.
+- Fotografisanje pasoša pri prvoj registraciji putnog profila (poglavlje 2a, novo) — jedina mobilna specifičnost koja koristi kameru uređaja, prirodno dostupno samo u M9 (React Native), ne i na M8 sajtu.
+
+### 2a Fotografisanje pasoša — samostalno popunjavanje `GuestProfile` (dopuna, 2.9.2026, na zahtev vlasnika)
+
+Gost pri prvom kreiranju svog putnog profila (M6 poglavlje 2.2/6 — profil se ne pravi pri samoj registraciji naloga, već kasnije, "u toku rezervacije ili kroz ekran profila, kad gost stvarno unese te podatke") bira između ručnog unosa (postojeći tok, nepromenjen) i **"fotografiši pasoš"** — kamera uređaja fotografiše stranicu sa podacima, AI (Claude Vision, M15 poglavlje 6.5.6e — pun mehanizam i bezbednosne/privatnosne ograde su tamo, ovde samo mobilna strana toka) predpopuni formu (ime, tip/broj dokumenta, državljanstvo, datum rođenja), gost pregleda i ispravlja po potrebi, pa sam čuva — identičan `POST /guest-profiles` poziv (M6 poglavlje 9) kao i ručan unos, ništa se ne menja na strani čuvanja podataka.
+
+**Ključne ograde (detaljno obrazložene u M15 poglavlju 6.5.6e):** slika se nikad ne čuva ni tranzientno na disku servera niti trajno bilo gde (vlasnikova eksplicitna odluka, 2.9.2026); opcija je dostupna isključivo dok gost još nema `GuestProfile` — nije predviđena za izmenu već postojećeg profila u ovom prolazu; skeniranje je uvek opcionalna pogodnost — kamera koja otkaže ili nečitljiv dokument nikad ne blokira registraciju, ručan unos ostaje uvek dostupan kao ravnopravna alternativa.
 
 ---
 
@@ -110,6 +118,7 @@ Prefiks: `/api/v1/mobile`
 | `/staff/my-itinerary` | GET | agregovan paket za offline period, filtriran po `assigned_guide_id` |
 | `/staff/sync` | POST | šalje red čekanja (`FieldCheckIn[]`, `FieldIncidentNote[]`), svaki zapis sa `idempotency_key` |
 | `/push-token` | POST | registruje/osvežava Expo push token pozivaoca (poglavlje 5, v1.4), bilo koja mobilna uloga |
+| `/guest-profile/scan-document` | POST | dopuna 2.9.2026, poglavlje 2a/M15 §6.5.6e — slika pasoša (base64, tranzientno, nikad na disk) → strukturisan predlog polja za `GuestProfile`; ne piše u bazu, samo predlaže |
 | Ostalo (deo za goste) | — | isti endpoint-i kao M8, samo mobilni klijent |
 
 ---
@@ -122,6 +131,7 @@ Prefiks: `/api/v1/mobile`
 - [x] Vodič vidi isključivo sopstveni dodeljeni itinerar, ne tuđe ture. *(`assigned_guide_id` filter + test sa dva vodiča, §8 stavka 4; korisnik bez uloge `VODIC` dobija 403.)*
 - [x] Gost deo aplikacije koristi identične API-je kao M8, bez posebne poslovne logike u mobilnoj aplikaciji. *(v1.4 — `apps/mobile/src/guest/*` poziva isključivo postojeće M5/M6/M10/M20 endpoint-e (`channel: MOBILE`), bez nove logike; isti tok kao `apps/web` rezervacija/actions.ts. TypeScript provera i `npm test --workspace=@terminal/mobile` prolaze; ceo tok (pretraga → ponuda → uslovi → plaćanje → potvrda → vaučer) ručno proveren kroz Expo klijent.)*
 - [x] Oba iskustva (gost i vodič) ispravno prikazuju raspored na telefonu, preklopnom telefonu (sklopljen i rasklopljen) i tabletu, fluidnim rasporedom (Master dokument poglavlje 5.1). *(v1.4 — RN Flexbox + širina-ekrana breakpoint (`src/shared/responsive.ts`), ručno testirano promenljivom veličinom prozora u Expo Go/simulatoru; pravi fizički preklopni uređaj nije bio dostupan za testiranje, zabeleženo kao poznato ograničenje u §9.)*
+- [ ] Gost može da fotografiše pasoš pri prvom kreiranju putnog profila i dobije predpopunjenu formu koju sam potvrđuje/ispravlja; slika se nikad ne čuva (poglavlje 2a, dopuna 2.9.2026 — specifikacija spremna, implementacija čeka na red).
 
 ---
 

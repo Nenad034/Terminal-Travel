@@ -228,6 +228,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§9, `docs/moduli/M09-mobilna-aplikacija/16-SPECIFIKACIJA-M9-MOBILNA-APLIKACIJA.md`)*
 - Tačna dubina unapred preuzetih podataka (14 dana je predlog) — podesivo.
 - Konkretan provajder push notifikacija — bira se pri implementaciji.
+- **Fotografisanje pasoša → auto-popunjavanje `GuestProfile`** (2.9.2026, na zahtev vlasnika) — specifikacija spremna (M9 §2a, mehanizam M15 §6.5.6e, unakrsna referenca M6 §6/§11), implementacija čeka na red. Slika se nikad ne čuva; samo za novu registraciju, ne izmenu postojećeg profila.
 
 ## M10 — Finansije i računovodstvo
 *(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
