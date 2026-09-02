@@ -45,6 +45,7 @@ export default function BookingOwnershipCard({
   canAcceptAssignment,
   directory,
   pendingHandoff,
+  flat,
 }: {
   bookingId: string;
   ownerId: string | null;
@@ -59,6 +60,9 @@ export default function BookingOwnershipCard({
   canAcceptAssignment: boolean;
   directory: DirectoryUser[];
   pendingHandoff: HandoffRequest | null;
+  /** Bez sopstvenog okvira — koristi se kad je komponenta unutar sekcije koja vec ima traku
+   * naslova (nov izgled kartice Pregled, dizajn dok. §6h). */
+  flat?: boolean;
 }) {
   const isOwner = ownerId === currentUserId;
   // §6.5 — dozvola na nivou API-ja gate-uje ko sme uopšte da pokuša; prenos dodatno zahteva
@@ -67,8 +71,11 @@ export default function BookingOwnershipCard({
   const showTransferForm = canTransferOwnership && (isOwner || isVlasnikOrDirektor);
   const showProposeForm = canProposeHandoff && !pendingHandoff;
 
+  // `flat` (2.9.2026) — u novom izgledu kartice Pregled sekcija vec ima svoju traku naslova,
+  // pa bi jos jedan okvir oko sadrzaja bio kutija u kutiji; jedini deo desne kolone koji je i
+  // dalje izgledao kao zasebna kartica. Na SVIM ostalim mestima komponenta ostaje nepromenjena.
   return (
-    <div className="rounded-lg border border-border bg-panel p-4 text-xs">
+    <div className={flat ? 'text-xs' : 'rounded-lg border border-border bg-panel p-4 text-xs'}>
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
         <div>
           <div className="mb-1 text-ink-faint">Vlasnik (statistika/provizija)</div>

@@ -759,7 +759,7 @@ export default async function BookingDetailPage(props: {
                   <div>
                     <SectionHeading title="Beleške" meta={notes.length > 0 ? String(notes.length) : undefined} {...sectionLink('beleske', 'Beleške', notes.length)} />
                     <ScrollableRows limited={notes.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
-                      <NotesSummaryList notes={notes} directoryById={directoryById} />
+                      <NotesSummaryList notes={notes} directoryById={directoryById} flat />
                     </ScrollableRows>
                   </div>
 
@@ -771,7 +771,7 @@ export default async function BookingDetailPage(props: {
                         {...sectionLink('komunikacija', 'Komunikacija', communications.length)}
                       />
                       <ScrollableRows limited={communications.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
-                        <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                        <CommunicationSummaryList communications={communications} directoryById={directoryById} flat />
                       </ScrollableRows>
                     </div>
                   )}
@@ -784,7 +784,7 @@ export default async function BookingDetailPage(props: {
                         {...sectionLink('reklamacije', 'Reklamacije', tickets.length)}
                       />
                       <ScrollableRows limited={tickets.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
-                        <TicketsSummaryList tickets={tickets} />
+                        <TicketsSummaryList tickets={tickets} flat />
                       </ScrollableRows>
                     </div>
                   )}
@@ -797,6 +797,7 @@ export default async function BookingDetailPage(props: {
                       directoryById={directoryById}
                       guides={guides}
                       canViewCheckIns={canViewCheckIns}
+                      flat
                     />
                   </div>
 
@@ -818,6 +819,7 @@ export default async function BookingDetailPage(props: {
                         canAcceptAssignment={canAcceptAssignment}
                         directory={directory}
                         pendingHandoff={pendingHandoff}
+                        flat
                       />
                     </div>
                   )}
@@ -1459,8 +1461,42 @@ function PaymentsSummaryBlock({
   );
 }
 
-function CommunicationSummaryList({ communications, directoryById }: { communications: CommunicationEntry[]; directoryById: Map<string, string> }) {
+// `flat` (2.9.2026, na zahtev vlasnika: "leva i desna strana vizuelno da budu iste, ovako desno
+// imamo zaokružene sektore a levo ne"). Ove četiri liste su ostale sa okvirom po redu kad su
+// Aranžman/Putnici/Uplate dobili ravan prikaz — nije bila namerna razlika nego nedovršen posao,
+// pa je desna kolona izgledala kao skup kartica a leva kao spisak. Pravilo §6h je isto za obe:
+// okvir dobija samo ono na šta se klikne ili što je zaseban entitet, a ovo su čisti prikazi.
+function CommunicationSummaryList({
+  communications,
+  directoryById,
+  flat,
+}: {
+  communications: CommunicationEntry[];
+  directoryById: Map<string, string>;
+  flat?: boolean;
+}) {
   if (communications.length === 0) return <p className="text-xs text-ink-faint">Nema zabeležene komunikacije sa ovim nalogodavcem.</p>;
+  if (flat) {
+    return (
+      <ul className="divide-y divide-border">
+        {communications.map((c) => (
+          <li key={c.id} className="py-2">
+            <div className="mb-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+              <Badge label={c.channel} />
+              <Badge label={c.direction} />
+              <ActorLabel
+                name={c.sentBy ? (directoryById.get(c.sentBy) ?? (c.sentBy === 'SYSTEM_AUTO' ? 'automatski' : null)) : null}
+                origin={c.sentBy === 'SYSTEM_AUTO' ? 'SYSTEM' : 'STAFF'}
+                draftedByAi={c.draftedByAi}
+              />
+              <span>· {new Date(c.createdAt).toLocaleDateString('sr-RS')}</span>
+            </div>
+            <p className="text-[13px] text-ink">{c.summary}</p>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
     <ul className="space-y-2">
       {communications.map((c) => (
@@ -1482,8 +1518,39 @@ function CommunicationSummaryList({ communications, directoryById }: { communica
   );
 }
 
-function NotesSummaryList({ notes, directoryById }: { notes: BookingNote[]; directoryById: Map<string, string> }) {
+function NotesSummaryList({
+  notes,
+  directoryById,
+  flat,
+}: {
+  notes: BookingNote[];
+  directoryById: Map<string, string>;
+  flat?: boolean;
+}) {
   if (notes.length === 0) return <p className="text-xs text-ink-faint">Nema beleški uz ovu rezervaciju.</p>;
+  if (flat) {
+    return (
+      <ul className="divide-y divide-border">
+        {notes.map((n) => (
+          // IZUZETAK od ravnog prikaza: beleška predstavnika sa terena zadržava svoju boju
+          // (M5 spec §4.6 — mora biti izdvojeno vidljiva, to je vlasnikov raniji zahtev i
+          // SEMANTIČKA razlika, ne ukras). Ali je okvir zamenjen levom trakom: signal ostaje,
+          // a red se i dalje uklapa u ritam ostatka spiska umesto da bude kartica u njemu.
+          <li
+            key={n.id}
+            className={`py-2 ${n.origin === 'FIELD_REP' ? '-mx-2 border-l-2 border-warn bg-warn-bg px-2' : ''}`}
+          >
+            <div className="mb-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+              <span className="font-medium text-ink">{directoryById.get(n.createdBy) ?? n.createdBy}</span>
+              {n.origin === 'FIELD_REP' && <span className="rounded bg-warn-bg px-1.5 py-0.5 font-medium text-warn">sa terena</span>}
+              <span>· {new Date(n.createdAt).toLocaleDateString('sr-RS')}</span>
+            </div>
+            <p className="text-[13px] text-ink">{n.body}</p>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
     <ul className="space-y-2">
       {notes.map((n) => (
@@ -1500,8 +1567,24 @@ function NotesSummaryList({ notes, directoryById }: { notes: BookingNote[]; dire
   );
 }
 
-function TicketsSummaryList({ tickets }: { tickets: Ticket[] }) {
+function TicketsSummaryList({ tickets, flat }: { tickets: Ticket[]; flat?: boolean }) {
   if (tickets.length === 0) return <p className="text-xs text-ink-faint">Nema nijedne reklamacije ni tiketa vezanog za ovu rezervaciju.</p>;
+  if (flat) {
+    return (
+      <ul className="divide-y divide-border">
+        {tickets.map((t) => (
+          <li key={t.id} className="py-2">
+            <div className="mb-0.5 flex flex-wrap items-center gap-2 text-[11px]">
+              <span className="font-mono text-ink">{t.ticketNumber}</span>
+              <Badge label={t.status} />
+              <Badge label={t.priority} />
+            </div>
+            <span className="text-[13px] text-ink">{t.subject}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   return (
     <ul className="space-y-2">
       {tickets.map((t) => (
@@ -1524,16 +1607,45 @@ function RepsSummaryList({
   directoryById,
   guides,
   canViewCheckIns,
+  flat,
 }: {
   items: BookingItem[];
   checkIns: RepCheckIn[];
   directoryById: Map<string, string>;
   guides: DirectoryUser[];
   canViewCheckIns: boolean;
+  flat?: boolean;
 }) {
   const guidesById = new Map(guides.map((g) => [g.id, g]));
   const active = items.filter((i) => i.itemStatus !== 'CANCELLED');
   if (active.length === 0) return <p className="text-xs text-ink-faint">Nema aktivnih stavki.</p>;
+  if (flat) {
+    return (
+      <div className="divide-y divide-border">
+        {active.map((item) => {
+          const itemCheckIns = canViewCheckIns ? checkIns.filter((c) => c.bookingItemId === item.id) : [];
+          const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
+          // Država i ovde punim nazivom uz oznaku (§6h) — do sada je ovaj red pokazivao sirovu
+          // šifru, pa je ista destinacija izgledala drugačije nego u Aranžmanu iznad.
+          const destination = [item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ');
+          return (
+            <div key={item.id} className="py-2 text-[13px]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-ink">{item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`}</span>
+                <span className="text-[11px] text-ink-faint">
+                  {item.assignedGuideId ? (guide?.fullName ?? directoryById.get(item.assignedGuideId) ?? 'predstavnik dodeljen') : 'bez predstavnika'}
+                  {canViewCheckIns && ` · prijave sa terena: ${itemCheckIns.length}/${item.guests?.length ?? 0}`}
+                </span>
+              </div>
+              {item.assignedGuideId && (guide?.phone || guide?.email || destination) && (
+                <div className="mt-0.5 text-[11px] text-ink-faint">{[guide?.phone, guide?.email, destination].filter(Boolean).join(' · ')}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="space-y-2">
       {active.map((item) => {
