@@ -99,25 +99,41 @@ export function SectionHeading({
   action,
   href,
   linkLabel,
+  linkTitle,
 }: {
   title: string;
   meta?: string;
   action?: React.ReactNode;
-  /** Kartica na kojoj se vidi CEO sadržaj ove sekcije — prikazuje se samo kad je spisak
-   * skraćen na skrol, da korisnik ima izlaz na pun prikaz umesto da traži skrivene redove. */
+  /** Kartica na kojoj se vidi CEO sadržaj ove sekcije. Dopuna 2.9.2026, na zahtev vlasnika
+   * ("kod svakog sektora postaviti ikonu linka da se taj sektor u celosti otvori u odgovarajućem
+   * tabu"): ikona stoji na SVAKOJ sekciji koja ima svoju karticu, ne samo na skraćenima —
+   * Pregled je sažetak, pa izlaz na pun prikaz treba da bude na istom mestu kod svake sekcije,
+   * a ne da se pojavljuje i nestaje u zavisnosti od broja redova. */
   href?: string;
+  /** Tekst uz ikonu — prikazuje se SAMO kad je spisak skraćen na skrol (`svi (12)`). Pošto je
+   * skrol traka nevidljiva, taj broj je jedini signal da ispod vidljivih redova ima još. */
   linkLabel?: string;
+  /** Naziv kartice — ulazi u `title`/`aria-label`, jer je ikona sama po sebi bez teksta. */
+  linkTitle?: string;
 }) {
   return (
     <h2 className="mb-2 flex items-center gap-2 rounded-t border-b border-border bg-panel-2 px-2.5 py-1.5 text-[13px] font-semibold text-ink">
       {title}
       {meta && <span className="font-mono text-[10px] font-normal text-ink-faint">{meta}</span>}
-      {href && linkLabel && (
-        <a href={href} className="ml-auto whitespace-nowrap text-[11px] font-normal text-accent-strong hover:underline">
-          {linkLabel} →
+      {href && (
+        <a
+          href={href}
+          title={linkTitle ?? 'Otvori sekciju u celosti'}
+          // `Icon` je `aria-hidden`, pa link bez ovoga nema ime za čitač ekrana — bila bi
+          // veza koju korisnik tastature otvori ne znajući gde vodi.
+          aria-label={linkTitle ?? 'Otvori sekciju u celosti'}
+          className="ml-auto flex flex-shrink-0 items-center gap-1 whitespace-nowrap text-[11px] font-normal text-accent-strong hover:underline"
+        >
+          {linkLabel}
+          <Icon name="link-external" />
         </a>
       )}
-      {action && <span className={href && linkLabel ? '' : 'ml-auto'}>{action}</span>}
+      {action && <span className={href ? '' : 'ml-auto'}>{action}</span>}
     </h2>
   );
 }
