@@ -10,7 +10,6 @@ import { useTabs } from './TabsContext';
 import { createQuoteFromSelection } from '@/app/(app)/rezervacije/pretraga/actions';
 import { findSelectionDateMismatches, type DateMismatchWarning } from '@/lib/date-mismatch';
 import { usePanelCollection, PANEL_ITEM_DRAG_MIME, type PanelCollectionItem } from './PanelCollectionContext';
-import AiChatBox from './AiChatBox';
 import ProductPreviewCard from './ProductPreviewCard';
 import ProductContactCard from './ProductContactCard';
 import ProcessMapNodeSummaryCard from './ProcessMapNodeSummaryCard';
@@ -68,6 +67,9 @@ export default function RightPanel({
   onClose,
   displayMode,
   onToggleDisplayMode,
+  aiDock,
+  aiSlotRef,
+  onMoveAiToBottom,
 }: {
   moduleId: string;
   moduleLabel: string;
@@ -77,6 +79,11 @@ export default function RightPanel({
    * ključ `right_panel_display_mode`). */
   displayMode: 'push' | 'overlay';
   onToggleDisplayMode: () => void;
+  /** Gde je trenutno jedini `AiChatBox` (Shell.tsx) — ovde ili u dnu centralnog panela. */
+  aiDock: 'right' | 'bottom';
+  /** Mesto u koje Shell.tsx portalom ubacuje `AiChatBox` kad je `aiDock === 'right'`. */
+  aiSlotRef: (el: HTMLDivElement | null) => void;
+  onMoveAiToBottom: () => void;
 }) {
   const { items, removeItem, clear } = useSelection();
   const { summary, clearSummary } = useRowSummary();
@@ -227,13 +234,17 @@ export default function RightPanel({
                 : `Podsetnik — ${moduleLabel}`}
         </span>
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setTopCollapsed((v) => !v)}
-            title={topCollapsed ? 'Prikaži ovaj deo' : 'Sklopi ovaj deo (AI chat zauzima ostatak prostora)'}
-            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
-          >
-            <Icon name={topCollapsed ? 'chevron-down' : 'chevron-up'} />
-          </button>
+          {/* Sklapanje gornjeg dela postoji da bi AI dobio ceo panel — kad AI nije ovde, dugme
+              nema šta da postigne, pa se ni ne prikazuje. */}
+          {aiDock === 'right' && (
+            <button
+              onClick={() => setTopCollapsed((v) => !v)}
+              title={topCollapsed ? 'Prikaži ovaj deo' : 'Sklopi ovaj deo (AI chat zauzima ostatak prostora)'}
+              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+            >
+              <Icon name={topCollapsed ? 'chevron-down' : 'chevron-up'} />
+            </button>
+          )}
           <button
             onClick={onToggleDisplayMode}
             title={displayMode === 'push' ? 'Prelazi preko sadržaja (bez sužavanja)' : 'Sužava sadržaj (bez preklapanja)'}
@@ -254,7 +265,9 @@ export default function RightPanel({
         </div>
       </div>
 
-      <div className={topCollapsed ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
+      {/* Kad je AI premešten u dno centralnog panela, gornji deo se NE sme držati sklopljenim —
+          inače bi desni panel ostao prazan, bez ijednog vidljivog razloga zašto. */}
+      <div className={topCollapsed && aiDock === 'right' ? 'h-0 overflow-hidden' : 'flex min-h-0 flex-1 flex-col overflow-hidden'}>
       {/* Prioritet unutar "prodaja" modula (Faza B, 26.8.2026): selekcija (ponuda) > brzi
           pregled proizvoda (ProductPreviewContext istorija, klik na naziv u pretrazi) > sažetak
           reda > prazno stanje. Raniji mock (isti dan, ranije) je zamenjen stvarnim podacima —
@@ -424,7 +437,7 @@ export default function RightPanel({
           sadrzaja"), isti `cursor-row-resize` obrazac kao `ResizablePane` (horizontalne granice).
           Prikazana SAMO kad ima šta stvarno da se deli (oba dela otvorena) — prevlačenje kad je
           jedan deo sklopljen nema šta da menja. */}
-      {!topCollapsed && !chatCollapsed && (
+      {aiDock === 'right' && !topCollapsed && !chatCollapsed && (
         <div
           onPointerDown={handleDividerPointerDown}
           title="Prevuci za promenu visine AI chat-a"
@@ -436,6 +449,7 @@ export default function RightPanel({
           podesivo, `chatHeightPercent` iznad) — ILI CEO preostali prostor kad je gornji deo
           sklopljen (`topCollapsed`). `AiChatBox` je UVEK montiran (isti roditelj, samo se
           sekcija/panel kolabuje) — istorija se ne gubi. */}
+      {aiDock === 'right' && (
       <div
         className={`flex flex-shrink-0 flex-col overflow-hidden ${topCollapsed || chatCollapsed ? 'border-t border-border' : ''} bg-panel ${
           chatCollapsed ? 'h-9' : topCollapsed ? 'flex-1' : ''
@@ -450,6 +464,15 @@ export default function RightPanel({
               agenta stavite u gornji desno cosak ai modula") — premešteno ovamo iz AiChatBox.tsx
               reda za unos (gde je bilo pre ove dopune). */}
           <div className="flex items-center gap-1">
+            {/* Strelica ka centralnom panelu (vlasnikov zahtev, 3.9.2026, „kao ovde u VS Code") —
+                premešta ISTO polje u dno centralne kolone, ne pravi drugo. */}
+            <button
+              onClick={onMoveAiToBottom}
+              title="Premesti AI asistenta u dno centralnog panela"
+              className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel-2 hover:text-ink"
+            >
+              <Icon name="arrow-left" />
+            </button>
             <button
               onClick={() => openTab('/ai-asistent', 'AI asistent')}
               title="Otvori u punom tabu (Fokus režim)"
@@ -466,10 +489,11 @@ export default function RightPanel({
             </button>
           </div>
         </div>
-        <div className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'}>
-          <AiChatBox />
-        </div>
+        {/* Slot, ne sam `AiChatBox` — jedini primerak drži Shell.tsx i portalom ga stavlja ovde
+            ILI u dno centralnog panela. Tako premeštanje ne gubi istoriju razgovora. */}
+        <div ref={aiSlotRef} className={chatCollapsed ? 'hidden' : 'min-h-0 flex-1 overflow-hidden'} />
       </div>
+      )}
     </div>
   );
 }

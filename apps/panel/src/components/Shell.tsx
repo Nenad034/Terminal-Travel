@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -11,6 +11,8 @@ import StatusBar from './StatusBar';
 import RightPanel from './RightPanel';
 import NotificationStack from './NotificationStack';
 import TerminalPanel from './TerminalPanel';
+import AiDockBottom from './AiDockBottom';
+import AiChatBox from './AiChatBox';
 import { TabsProvider } from './TabsContext';
 import { SelectionProvider } from './SelectionContext';
 import { RowSummaryProvider } from './RowSummaryContext';
@@ -50,6 +52,8 @@ const DEFAULT_LAYOUT_VISIBILITY: LayoutVisibility = { sidebar: true, statusBar: 
 //          kolone ili traži horizontalno skrolovanje — gora šteta po preglednost nego predugačak
 //          red teksta. Ako zatreba uže, rešenje je manje kolona u tabeli, ne uža granica.
 const MAIN_WIDTH_PREFERENCE_KEY = 'main_content_max_width';
+/** Pozicija AI asistenta: `right` (desni panel) ili `bottom` (dno centralne kolone). */
+const AI_DOCK_PREFERENCE_KEY = 'ai_dock_position';
 const DEFAULT_MAIN_WIDTH: MainWidth = 'full';
 // Vrednost iz `UserPreference` dolazi sa servera i može biti bilo šta (ručno upisana, zaostala
 // posle promene spiska) — proverava se protiv ISTOG spiska koji meni prikazuje, ne protiv
@@ -259,6 +263,8 @@ export default function Shell({
         // Isti odgovor nosi SVE preference korisnika (`GET /iam/users/me/preferences` vraća mapu),
         // pa se širina centralnog sadržaja čita iz njega — bez drugog mrežnog poziva.
         if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY])) setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
+        const dock = data?.[AI_DOCK_PREFERENCE_KEY];
+        if (dock === 'right' || dock === 'bottom') setAiDock(dock);
       })
       .catch(() => {
         // Podrazumevano ostaje "push" — ne blokira prikaz panela zbog neuspelog čitanja podešavanja.
@@ -273,6 +279,35 @@ export default function Shell({
       body: JSON.stringify({ value: next }),
     }).catch(() => {
       // Ponašanje za OVU sesiju i dalje radi (lokalno stanje već promenjeno) — samo se ne pamti.
+    });
+  }
+
+  // Pozicija AI asistenta (dizajn dok. §6c.0 dopuna, 3.9.2026, na vlasnikov zahtev: „omogućite
+  // da se polje klikom na strelicu koja pokazuje prema centralnom panelu pojavi u dnu centralnog
+  // panela, kao ovde u VS Code"). Isti obrazac pamćenja kao `rightPanelMode`.
+  //
+  // Ključno: POLJE JE JEDNO. `AiChatBox` se montira tačno jednom, ovde, i portalom se prikazuje
+  // u slotu desnog panela ili u slotu donjeg doka. Da se umesto toga renderovao na dva mesta,
+  // svako premeštanje bi ga remontiralo i izgubilo istoriju razgovora — a dva odvojena polja bi
+  // bila ista greška koju CLAUDE.md zabranjuje (isti posao na dva mesta).
+  const [aiDock, setAiDock] = useState<'right' | 'bottom'>('right');
+  const [aiSlot, setAiSlot] = useState<HTMLDivElement | null>(null);
+  const aiHostRef = useRef<HTMLDivElement | null>(null);
+  // `useLayoutEffect` (pre iscrtavanja) — sa običnim `useEffect` bi se domaćin na trenutak video
+  // na svom polaznom mestu u dnu stranice.
+  useLayoutEffect(() => {
+    const host = aiHostRef.current;
+    if (host && aiSlot && host.parentElement !== aiSlot) aiSlot.appendChild(host);
+  }, [aiSlot]);
+  function moveAiDock(next: 'right' | 'bottom') {
+    setAiDock(next);
+    setAiSlot(null); // stari slot nestaje iz DOM-a; novi se javi svojim callback ref-om
+    fetch(`/api/preferences/${AI_DOCK_PREFERENCE_KEY}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: next }),
+    }).catch(() => {
+      // Kao i kod ostalih podešavanja — važi za ovu sesiju, samo se ne pamti trajno.
     });
   }
 
@@ -429,6 +464,16 @@ export default function Shell({
                     bočne trake/desnog panela, isto kao pravi VS Code Panel). Montira se SAMO uz
                     `showBiTerminal` (RBAC, isključivo VLASNIK) — nema onemogućenog stanja. */}
                 {showBiTerminal && layoutVisibility.terminal && <TerminalPanel onClose={() => toggleLayout('terminal')} />}
+                {/* AI asistent u dnu centralne kolone — ista VS Code pozicija kao Terminal iznad
+                    (§6c.0 dopuna, 3.9.2026). Sused `<main>`-a, ne njegov potomak: `AiChatBox`
+                    čita `#tt-main-content` da priloži sadržaj ekrana, pa bi kao potomak čitao
+                    sopstvenu istoriju. */}
+                {aiDock === 'bottom' && (
+                  <AiDockBottom
+                    slotRef={setAiSlot}
+                    onMoveToRight={() => moveAiDock('right')}
+                  />
+                )}
               </div>
             </div>
             {/* Dizajn dok. §6c.0 (dopuna 25.8.2026, na zahtev vlasnika) — AI chat je sad TRAJAN
@@ -458,6 +503,9 @@ export default function Shell({
                   onClose={closeRightPanelForCurrentModule}
                   displayMode={rightPanelMode}
                   onToggleDisplayMode={toggleRightPanelMode}
+                  aiDock={aiDock}
+                  aiSlotRef={setAiSlot}
+                  onMoveAiToBottom={() => moveAiDock('bottom')}
                 />
               </ResizablePane>
             ) : (
@@ -469,6 +517,9 @@ export default function Shell({
                     onClose={closeRightPanelForCurrentModule}
                     displayMode={rightPanelMode}
                     onToggleDisplayMode={toggleRightPanelMode}
+                    aiDock={aiDock}
+                    aiSlotRef={setAiSlot}
+                    onMoveAiToBottom={() => moveAiDock('bottom')}
                   />
                 </ResizablePane>
               </div>
@@ -483,6 +534,15 @@ export default function Shell({
               onToggleChat={toggleRightPanelForCurrentModule}
             />
           )}
+        </div>
+        {/* JEDINI `AiChatBox` u aplikaciji, u stabilnom domaćinu koji se FIZIČKI premešta u
+            aktivan slot (desni panel ili dno centralne kolone), umesto da se prerenderuje tamo.
+            Zašto ovako, a ne portalom: promena odredišta portala je za React nov portal — dete
+            se odmontira i ponovo montira, pa se gubi i istorija razgovora i nedovršen tekst u
+            polju (izmereno: tekst je posle premeštanja bio prazan). Ovde React uopšte ne dira
+            roditelja — samo mi premestimo jedan čvor, a njegovo stanje ostaje netaknuto. */}
+        <div ref={aiHostRef} className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+          <AiChatBox />
         </div>
         <CommandPalette items={items} />
         <NotificationStack />
