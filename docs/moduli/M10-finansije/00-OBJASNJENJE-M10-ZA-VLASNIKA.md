@@ -46,6 +46,14 @@ Kad stigne prava faktura od hotela (mejlom, PDF-om), sistem ume da je "pročita"
 
 Sistem prati nekoliko rokova sam: da li je gost platio akontaciju na vreme, da li je platio ostatak pre polaska, da li smo mi platili dobavljača na vreme, da li je faktura poslata a nije stigao odgovor. Kad rok prođe, prvo se pojavljuje blago upozorenje, a ako se ništa ne desi još neko vreme, upozorenje postaje hitno (drugačije obaveštenje tima). Ali u svakom slučaju — **sistem sam nikad ne otkazuje niti menja rezervaciju** zbog probijenog roka. On samo viče "pogledajte ovo", odluku uvek donosi čovek.
 
+## Više načina da se zabeleži uplata
+
+Do sada je ručni unos uplate imao samo dve opcije: bankovni prenos ili gotovina. Sad ih ima pet — dodate su **kreditna kartica** (kad neko plati karticom van našeg online sistema, npr. na POS terminalu u kancelariji), **ček** i **administrativna zabrana**.
+
+Za bankovni prenos i za karticu se sad bira **iz koje je banke** — postoji spisak od 18 poznatih banaka koje rade u Srbiji, unet ručno (nije povučen iz zvaničnog registra Narodne banke, pa ako nešto fali ili je zastarelo, javite da se doda/ispravi).
+
+**Ček je poseban slučaj.** Jedna uplata čekom retko je jedan fizički papir — često je nekoliko čekova odjednom, svaki sa svojom bankom, iznosom, brojem i datumom kad dospeva na naplatu. Zato forma za ček ne traži samo jedan podatak, nego dozvoljava da se doda onoliko čekova koliko ih stvarno ima ("dodaj ček" dugme) — a sistem sam proveri da zbir svih čekova mora tačno da se poklopi sa ukupnim iznosom uplate, inače ne dozvoljava da se sačuva.
+
 ## Šta još čeka (namerno, ne propust)
 
 - **Tačan tehnički način razgovora sa državnim sistemom SEF i fiskalnim uređajima** još nije definisan — to zahteva zvaničnu tehničku dokumentaciju i potvrdu knjigovođe, ne pretpostavku unapred. Ceo unutrašnji tok (nacrt → slanje → praćenje) je izgrađen i testiran, samo je "poslednja milja" ka spoljnom sistemu privremeno simulirana.

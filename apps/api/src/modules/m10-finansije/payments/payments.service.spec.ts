@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 
 describe('PaymentsService (M10 spec §5.2/§7)', () => {
@@ -43,6 +44,76 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
       );
 
       expect(bookings.updatePaymentStatus).toHaveBeenCalledWith('booking-1', 'PARTIALLY_PAID', { userId: 'actor-1' });
+    });
+
+    // Dopuna (2.9.2026, na zahtev vlasnika — CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN + banka +
+    // specifikacija čekova).
+    it('CHECK — upisuje specifikaciju čekova kad se zbir poklapa sa iznosom', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 30000, paymentStatus: 'UNPAID' });
+      prisma.payment.create.mockResolvedValue({ id: 'pay-1' });
+      prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 30000 } });
+
+      await service.recordManualPayment(
+        {
+          bookingId: 'booking-1',
+          amount: 30000,
+          currency: 'EUR',
+          method: 'CHECK',
+          checkDetails: [
+            { bankId: 'bank-1', amount: 20000, checkNumber: 'CK-1', clearanceDate: '2027-01-10' },
+            { bankId: 'bank-2', amount: 10000, checkNumber: 'CK-2', clearanceDate: '2027-02-10' },
+          ],
+        } as any,
+        { userId: 'actor-1' },
+      );
+
+      expect(prisma.payment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            method: 'CHECK',
+            checkDetails: {
+              create: [
+                { bankId: 'bank-1', amount: 20000, checkNumber: 'CK-1', clearanceDate: new Date('2027-01-10') },
+                { bankId: 'bank-2', amount: 10000, checkNumber: 'CK-2', clearanceDate: new Date('2027-02-10') },
+              ],
+            },
+          }),
+        }),
+      );
+    });
+
+    it('CHECK — odbija kad se zbir specifikacije ne poklapa sa iznosom uplate', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 30000, paymentStatus: 'UNPAID' });
+
+      await expect(
+        service.recordManualPayment(
+          {
+            bookingId: 'booking-1',
+            amount: 30000,
+            currency: 'EUR',
+            method: 'CHECK',
+            checkDetails: [{ bankId: 'bank-1', amount: 10000, checkNumber: 'CK-1', clearanceDate: '2027-01-10' }],
+          } as any,
+          { userId: 'actor-1' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('BANK_TRANSFER/CARD_MANUAL — prosleđuje bankId na Payment', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 30000, paymentStatus: 'UNPAID' });
+      prisma.payment.create.mockResolvedValue({ id: 'pay-1' });
+      prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 30000 } });
+
+      await service.recordManualPayment(
+        { bookingId: 'booking-1', amount: 30000, currency: 'EUR', method: 'CARD_MANUAL', bankId: 'bank-1' } as any,
+        { userId: 'actor-1' },
+      );
+
+      expect(prisma.payment.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ bankId: 'bank-1' }) }));
     });
   });
 

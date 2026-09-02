@@ -1531,10 +1531,19 @@ model FiscalDocument {
   @@map("fiscal_documents")
 }
 
+// §5.2 dopuna (2.9.2026, na zahtev vlasnika) — CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN su NOVI
+// ručni načini (isto dugme "Zabeleži uplatu" kao BANK_TRANSFER/CASH). CARD ostaje NEPROMENJENO
+// rezervisan isključivo za automatski webhook tok (§7.2) — CARD_MANUAL je namerno odvojena
+// vrednost (kartica naplaćena van online gateway-a, npr. POS terminal u kancelariji/kod
+// dobavljača, uneta ručno) da se ne pomeša sa poljima koja pretpostavljaju webhook poreklo
+// (gateway_provider/gateway_transaction_id/gateway_idempotency_key, recorded_by=null za CARD).
 enum PaymentMethod {
   BANK_TRANSFER
   CASH
   CARD
+  CARD_MANUAL
+  CHECK
+  ADMINISTRATIVE_BAN
 }
 
 // §5.2 — različito ime od M5 PaymentStatus (Booking.payment_status) — ovo je status pojedinačne uplate.
@@ -1559,15 +1568,60 @@ model Payment {
   gatewayProvider       String?             @map("gateway_provider") // samo za CARD
   gatewayTransactionId  String?             @map("gateway_transaction_id") // samo za CARD
   gatewayIdempotencyKey String?             @unique @map("gateway_idempotency_key") // samo za CARD
+  // §5.2 dopuna (2.9.2026) — banka za BANK_TRANSFER/CARD_MANUAL ("za plaćanje preko banke
+  // odabrati banku iz baze banaka", "za kartice takođe od koje banke"). Nepotrebno/prazno za
+  // CASH/CARD/ADMINISTRATIVE_BAN; za CHECK banka ide PO ČEKU (vidi `PaymentCheckDetail`), ne
+  // ovde, jer specifikacija čekova može mešati čekove iz više banaka u jednoj uplati.
+  bankId                String?             @map("bank_id")
   receivedAt            DateTime?           @map("received_at")
   recordedBy            String?             @map("recorded_by") // null za CARD (webhook beleži automatski)
   createdAt             DateTime            @default(now()) @map("created_at")
 
-  booking            Booking?            @relation(fields: [bookingId], references: [id])
-  quote              Quote?              @relation(fields: [quoteId], references: [id])
+  booking            Booking?             @relation(fields: [bookingId], references: [id])
+  quote              Quote?               @relation(fields: [quoteId], references: [id])
+  bank               Bank?                @relation(fields: [bankId], references: [id])
   refundInstructions RefundInstruction[]
+  checkDetails       PaymentCheckDetail[]
 
   @@map("payments")
+}
+
+// §5.2 dopuna (2.9.2026, na zahtev vlasnika: "za plaćanje preko banke odabrati banku iz baze
+// banaka") — prosta referentna lista, popunjena u seed.ts (poznate licencirane banke u Srbiji,
+// javno poznat, ne-poverljiv podatak — vidi napomenu u seed.ts o tome da spisak nije povučen iz
+// zvaničnog NBS registra i da se ispravke rade dopunom seed-a). `active` omogućava meko gašenje
+// (banka prestane da posluje) bez brisanja istorijskih Payment/PaymentCheckDetail zapisa koji je
+// referenciraju.
+model Bank {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  payments     Payment[]
+  checkDetails PaymentCheckDetail[]
+
+  @@map("banks")
+}
+
+// §5.2 dopuna (2.9.2026, na zahtev vlasnika: "kada se unese uplata za ček... omogućiti
+// kreiranje specifikacije čekova (banka, iznos, broj čeka, datum realizacije)") — jedna uplata
+// metodom CHECK može biti pokrivena VIŠE fizičkih čekova (uobičajena praksa — plaćanje u ratama
+// čekova, često sa različitim rokovima realizacije i, ređe, iz različitih banaka), otuda zaseban
+// model umesto polja direktno na `Payment`. Zbir `amount` svih redova mora se poklapati sa
+// `Payment.amount` — proverava `PaymentsService.recordManualPayment` pre upisa.
+model PaymentCheckDetail {
+  id            String   @id @default(uuid())
+  paymentId     String   @map("payment_id")
+  bankId        String   @map("bank_id")
+  amount        Int
+  checkNumber   String   @map("check_number")
+  clearanceDate DateTime @map("clearance_date") @db.Date
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  bank    Bank    @relation(fields: [bankId], references: [id])
+
+  @@map("payment_check_details")
 }
 
 // §5.4.1 `PaymentTermsConfig` — singleton (sistem uvek čita najnoviji updated_at)

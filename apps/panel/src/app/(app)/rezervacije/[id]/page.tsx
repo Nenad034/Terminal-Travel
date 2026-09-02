@@ -4,7 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
-import RecordPaymentForm from '../../finansije/fiskalni-dokumenti/[id]/RecordPaymentForm';
+import RecordPaymentForm, { BankOption } from '../../finansije/fiskalni-dokumenti/[id]/RecordPaymentForm';
 import BookingHistoryButton from './BookingHistoryButton';
 import BookingOwnershipCard from './BookingOwnershipCard';
 import BookingNotesCard, { BookingNote } from './BookingNotesCard';
@@ -106,6 +106,8 @@ interface Payment {
   reference?: string | null;
   receivedAt?: string | null;
   createdAt: string;
+  bank?: { name: string } | null;
+  checkDetails?: { id: string }[];
 }
 
 interface CommunicationEntry {
@@ -260,6 +262,13 @@ export default async function BookingDetailPage(props: {
       ? apiFetch<DirectoryUser[]>('/iam/users/directory?role=VODIC').catch(() => [] as DirectoryUser[])
       : Promise.resolve([] as DirectoryUser[]),
   ]);
+
+  // M10 spec §5.2 dopuna (2.9.2026) — spisak banaka za formu unosa uplate, samo kad forma
+  // stvarno može da se prikaže.
+  const banks =
+    booking && canRecordPayment && activeTab === 'finansije'
+      ? await apiFetch<BankOption[]>('/finance/banks').catch(() => [] as BankOption[])
+      : [];
 
   // Profili gostiju (M6) — samo za karticu Putnici/Pregled i samo uz dozvolu; jedan poziv po
   // JEDINSTVENOM profilu, ne po putniku (isti gost može biti na više stavki rezervacije).
@@ -559,7 +568,9 @@ export default async function BookingDetailPage(props: {
                     tone={(booking.totalPrice ?? 0) - paidTotal > 0 ? 'danger' : 'ok'}
                   />
                 </div>
-                {canRecordPayment && <RecordPaymentForm bookingId={booking.id} currency={booking.currency ?? 'EUR'} revalidatePath={`/rezervacije/${booking.id}?tab=finansije`} />}
+                {canRecordPayment && (
+                  <RecordPaymentForm bookingId={booking.id} currency={booking.currency ?? 'EUR'} revalidatePath={`/rezervacije/${booking.id}?tab=finansije`} banks={banks} />
+                )}
                 {payments.length === 0 ? (
                   <p className="text-xs text-ink-faint">Nema evidentiranih uplata za ovu rezervaciju.</p>
                 ) : (
@@ -567,7 +578,11 @@ export default async function BookingDetailPage(props: {
                     {payments.map((p) => (
                       <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
                         <div>
-                          <div className="text-ink">{p.method}</div>
+                          <div className="text-ink">
+                            {p.method}
+                            {p.bank && ` · ${p.bank.name}`}
+                            {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}
+                          </div>
                           <div className="text-xs text-ink-faint">
                             {new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}
                             {p.reference ? ` · ${p.reference}` : ''}
@@ -920,7 +935,10 @@ function PaymentsSummaryBlock({ payments, totalPrice, paidTotal, currency }: { p
           {payments.map((p) => (
             <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2.5 text-sm last:border-b-0">
               <span className="text-ink">
-                {p.method} <span className="text-xs text-ink-faint">· {new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}</span>
+                {p.method}
+                {p.bank && ` · ${p.bank.name}`}
+                {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}{' '}
+                <span className="text-xs text-ink-faint">· {new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}</span>
               </span>
               <div className="flex items-center gap-3">
                 <span className="font-mono text-sm font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { FiscalDocumentsModule } from './fiscal-documents/fiscal-documents.module';
 import { PaymentsModule } from './payments/payments.module';
+import { BanksModule } from './banks/banks.module';
 import { PaymentTermsModule } from './payment-terms/payment-terms.module';
 import { SupplierObligationsModule } from './supplier-obligations/supplier-obligations.module';
 import { SupplierPaymentsModule } from './supplier-payments/supplier-payments.module';
@@ -15,6 +16,7 @@ import { M10EventsModule } from './events/m10-events.module';
     ExchangeRatesModule,
     FiscalDocumentsModule,
     PaymentsModule,
+    BanksModule,
     PaymentTermsModule,
     SupplierObligationsModule,
     SupplierPaymentsModule,

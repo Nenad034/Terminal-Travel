@@ -24,13 +24,30 @@ export class PaymentsService {
   ) {}
 
   async findAll(filters: { bookingId?: string }) {
-    return this.prisma.payment.findMany({ where: { bookingId: filters.bookingId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.payment.findMany({
+      where: { bookingId: filters.bookingId },
+      orderBy: { createdAt: 'desc' },
+      include: { bank: true, checkDetails: { include: { bank: true } } },
+    });
   }
 
-  // §5.2, §9 — ručan unos, samo BANK_TRANSFER/CASH; CARD se beleži isključivo preko webhook-a.
+  // §5.2, §9 — ručan unos; CARD (webhook) se beleži isključivo preko /payments/card/*.
+  // Dopuna (2.9.2026, na zahtev vlasnika) — CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN dodati; zbir
+  // `checkDetails` (specifikacija čekova) mora pokrivati ceo `amount` — provera ovde, ne u DTO-u
+  // (zahteva zbir preko niza), da ne bude moguće upisati specifikaciju koja se ne slaže sa
+  // stvarno primljenom uplatom (ista "istina mora biti proverljiva" logika kao svuda u M10).
   async recordManualPayment(dto: RecordPaymentDto, actor: { userId: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: dto.bookingId } });
     if (!booking) throw new NotFoundException(`Booking ${dto.bookingId} nije pronađen.`);
+
+    if (dto.method === 'CHECK') {
+      const sum = (dto.checkDetails ?? []).reduce((s, c) => s + c.amount, 0);
+      if (sum !== dto.amount) {
+        throw new BadRequestException(
+          `Zbir specifikacije čekova (${sum}) mora biti jednak iznosu uplate (${dto.amount}).`,
+        );
+      }
+    }
 
     const payment = await this.prisma.payment.create({
       data: {
@@ -42,7 +59,20 @@ export class PaymentsService {
         reference: dto.reference,
         receivedAt: new Date(),
         recordedBy: actor.userId,
+        bankId: dto.bankId,
+        checkDetails:
+          dto.method === 'CHECK' && dto.checkDetails
+            ? {
+                create: dto.checkDetails.map((c) => ({
+                  bankId: c.bankId,
+                  amount: c.amount,
+                  checkNumber: c.checkNumber,
+                  clearanceDate: new Date(c.clearanceDate),
+                })),
+              }
+            : undefined,
       },
+      include: { checkDetails: true, bank: true },
     });
 
     await this.auditLog.write({

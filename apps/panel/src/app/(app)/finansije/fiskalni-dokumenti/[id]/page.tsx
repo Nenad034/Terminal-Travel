@@ -3,7 +3,7 @@ import { apiFetch, ApiError } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import { SubmitButton, StornoButton } from './FiscalDocumentActions';
-import RecordPaymentForm from './RecordPaymentForm';
+import RecordPaymentForm, { BankOption } from './RecordPaymentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -37,6 +37,8 @@ interface Payment {
   method: string;
   status: string;
   receivedAt: string | null;
+  bank?: { name: string } | null;
+  checkDetails?: { id: string }[];
 }
 
 // M10 spec §5.1/§10 GET /fiscal-documents/:id — detalji jednog fiskalnog dokumenta, i mesto gde
@@ -60,6 +62,10 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
     doc && doc.bookingId && canViewPayments
       ? await apiFetch<Payment[]>(`/finance/payments?bookingId=${doc.bookingId}`).catch(() => [])
       : [];
+  // M10 spec §5.2 dopuna (2.9.2026) — spisak banaka za formu unosa uplate; zanemarljivo mala
+  // referentna lista, dohvata se bez obzira na dozvolu prikaza forme ako forma uopšte može da
+  // se prikaže (canRecordPayment ispod).
+  const banks = doc && doc.bookingId && canRecordPayment ? await apiFetch<BankOption[]>('/finance/banks').catch(() => [] as BankOption[]) : [];
 
   return (
     <div className="p-6">
@@ -136,6 +142,8 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
                   <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-sm last:border-b-0">
                     <span className="text-ink">
                       {(p.amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {p.currency} · {p.method}
+                      {p.bank && ` · ${p.bank.name}`}
+                      {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}
                     </span>
                     <span className="flex items-center gap-2 text-xs text-ink-faint">
                       {p.receivedAt && new Date(p.receivedAt).toLocaleDateString('sr-RS')}
@@ -145,7 +153,7 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
                 ))}
               </div>
               {canRecordPayment && (
-                <RecordPaymentForm bookingId={doc.bookingId} currency={doc.currencyOriginal} revalidatePath={`/finansije/fiskalni-dokumenti/${doc.id}`} />
+                <RecordPaymentForm bookingId={doc.bookingId} currency={doc.currencyOriginal} revalidatePath={`/finansije/fiskalni-dokumenti/${doc.id}`} banks={banks} />
               )}
             </div>
           )}

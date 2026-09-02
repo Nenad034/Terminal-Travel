@@ -135,7 +135,7 @@ const M10_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M10', resource: 'fiscal-document', action: 'CREATE_DRAFT', description: 'Priprema nacrta fiskalnog dokumenta (sme i AI agent)' },
   { module: 'M10', resource: 'fiscal-document', action: 'SUBMIT', description: 'Slanje ka SEF/ESIR i storno — nikad AI agent' },
   { module: 'M10', resource: 'payment', action: 'VIEW', description: 'Uvid u uplate' },
-  { module: 'M10', resource: 'payment', action: 'RECORD', description: 'Ručan unos prijema uplate (BANK_TRANSFER/CASH)' },
+  { module: 'M10', resource: 'payment', action: 'RECORD', description: 'Ručan unos prijema uplate (BANK_TRANSFER/CASH/CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN)' },
   { module: 'M10', resource: 'exchange-rate', action: 'VIEW', description: 'Uvid u kurseve' },
   { module: 'M10', resource: 'exchange-rate', action: 'EDIT', description: 'Ručan unos dnevnog kursa' },
   { module: 'M10', resource: 'payment-gateway-config', action: 'VIEW', description: 'Uvid u konfiguraciju platnog provajdera' },
@@ -798,6 +798,7 @@ async function main() {
   await seedM22EmailInboxAgent();
   await seedM23KnowledgeAgent();
   await seedM5CalendarMockBookings();
+  await seedM10Banks();
 
   console.log(
     `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola.`,
@@ -1394,6 +1395,40 @@ async function seedM5CalendarMockBookings() {
     }
   }
   console.log(`seedM5CalendarMockBookings: ${ENTRIES.length} mock rezervacija (TT-MOCK-CAL-*) proverenih/ubačenih`);
+}
+
+// M10 spec §5.2 dopuna (2.9.2026, na zahtev vlasnika: "za plaćanje preko banke odabrati banku
+// iz baze banaka") — spisak banaka licenciranih u Srbiji, ručno sastavljen iz javno poznatih
+// podataka (NAMERNO nije povučen iz zvaničnog NBS registra — vidi CLAUDE.md "ne izmišljati
+// tehničke detalje eksternih sistema" — ovo NIJE izmišljeno, ali NIJE ni potvrđeno protiv
+// zvaničnog izvora; spisak bankarskog tržišta se povremeno menja usled spajanja/licenciranja).
+// Upsert po `name` — dopuna/ispravka ide izmenom ove liste, ne ručnim SQL-om. Ako se pokaže
+// netačnost, ispraviti ovde u istom prolazu kad se primeti.
+async function seedM10Banks() {
+  const BANKS = [
+    'Banca Intesa',
+    'UniCredit Bank Srbija',
+    'Raiffeisen banka',
+    'OTP banka Srbija',
+    'Erste Bank',
+    'AIK banka',
+    'Poštanska štedionica',
+    'ProCredit Bank',
+    'NLB Komercijalna banka',
+    'Addiko Bank',
+    'Eurobank Direktna',
+    'Halkbank',
+    'MIRABANK',
+    'Mobi Banka',
+    'Bank of China Srbija',
+    'Expobank',
+    'API Bank',
+    'Srpska banka',
+  ];
+  for (const name of BANKS) {
+    await prisma.bank.upsert({ where: { name }, update: {}, create: { name } });
+  }
+  console.log(`seedM10Banks: ${BANKS.length} banaka proverenih/ubačenih`);
 }
 
 main()

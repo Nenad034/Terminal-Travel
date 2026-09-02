@@ -46,8 +46,24 @@ export async function stornoFiscalDocument(id: string, _prev: FormState, _formDa
   return { error: null };
 }
 
-// M10 spec §5.2/§9 — ručan unos prijema uplate (BANK_TRANSFER/CASH), dozvola M10/payment/RECORD.
+// M10 spec §5.2/§9 — ručan unos prijema uplate (BANK_TRANSFER/CASH/CARD_MANUAL/CHECK/
+// ADMINISTRATIVE_BAN), dozvola M10/payment/RECORD. Dopuna (2.9.2026, na zahtev vlasnika):
+// BANK_TRANSFER/CARD_MANUAL nose `bankId`; CHECK nosi `checkDetails` (specifikacija čekova) —
+// tri paralelna niza istog indeksa iz repeatable redova forme (`checkBankId[]`/`checkAmount[]`/
+// itd.), spojena ovde u niz objekata pre slanja API-ju.
 export async function recordPayment(bookingId: string, redirectTo: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const method = String(formData.get('method') ?? '');
+  const bankIds = formData.getAll('checkBankId').map(String);
+  const amounts = formData.getAll('checkAmount').map(String);
+  const numbers = formData.getAll('checkNumber').map(String);
+  const dates = formData.getAll('checkClearanceDate').map(String);
+  const checkDetails = bankIds.map((bankId, i) => ({
+    bankId,
+    amount: Math.round(Number(amounts[i]) * 100),
+    checkNumber: numbers[i],
+    clearanceDate: dates[i],
+  }));
+
   try {
     await apiFetch('/finance/payments', {
       method: 'POST',
@@ -55,8 +71,10 @@ export async function recordPayment(bookingId: string, redirectTo: string, _prev
         bookingId,
         amount: Math.round(Number(formData.get('amount')) * 100),
         currency: formData.get('currency'),
-        method: formData.get('method'),
+        method,
         reference: formData.get('reference') || undefined,
+        ...((method === 'BANK_TRANSFER' || method === 'CARD_MANUAL') && formData.get('bankId') ? { bankId: formData.get('bankId') } : {}),
+        ...(method === 'CHECK' ? { checkDetails } : {}),
       },
     });
   } catch (err) {
