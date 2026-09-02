@@ -4,6 +4,7 @@ import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import { SubmitButton, StornoButton } from './FiscalDocumentActions';
 import RecordPaymentForm, { BankOption } from './RecordPaymentForm';
+import PaymentRow from './PaymentRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -36,9 +37,12 @@ interface Payment {
   currency: string;
   method: string;
   status: string;
+  reference?: string | null;
   receivedAt: string | null;
-  bank?: { name: string } | null;
-  checkDetails?: { id: string }[];
+  createdAt?: string;
+  bank?: { id: string; name: string } | null;
+  checkDetails?: { id: string; bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
+  editable?: boolean;
 }
 
 // M10 spec §5.1/§10 GET /fiscal-documents/:id — detalji jednog fiskalnog dokumenta, i mesto gde
@@ -139,22 +143,15 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
               <div className="mb-3 overflow-hidden rounded-lg border border-border">
                 {payments.length === 0 && <p className="p-3 text-center text-xs text-ink-faint">Nema evidentiranih uplata.</p>}
                 {payments.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-sm last:border-b-0">
-                    <span className="text-ink">
-                      {(p.amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {p.currency} · {p.method}
-                      {p.bank && ` · ${p.bank.name}`}
-                      {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}
-                    </span>
-                    <span className="flex items-center gap-2 text-xs text-ink-faint">
-                      {p.receivedAt && new Date(p.receivedAt).toLocaleDateString('sr-RS')}
-                      <StatusBadge status={p.status} />
-                      {p.checkDetails && p.checkDetails.length > 0 && (
-                        <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-                          specifikacija →
-                        </a>
-                      )}
-                    </span>
-                  </div>
+                  <PaymentRow
+                    key={p.id}
+                    payment={p}
+                    bookingId={doc.bookingId!}
+                    currency={doc.currencyOriginal}
+                    revalidatePath={`/finansije/fiskalni-dokumenti/${doc.id}`}
+                    banks={banks}
+                    variant="compact"
+                  />
                 ))}
               </div>
               {canRecordPayment && (

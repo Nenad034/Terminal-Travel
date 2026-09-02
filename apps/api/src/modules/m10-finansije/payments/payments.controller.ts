@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Headers, Param, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { InitiateCardPaymentDto, CardPaymentWebhookDto } from './dto/card-payment.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -39,6 +40,16 @@ export class PaymentsController {
   @RequirePermission('M10', 'payment', 'RECORD')
   recordManualPayment(@Body() dto: RecordPaymentDto, @CurrentUser() actor: { userId: string }) {
     return this.payments.recordManualPayment(dto, actor);
+  }
+
+  // Dopuna (2.9.2026, na zahtev vlasnika) — korekcija ručno unete uplate (npr. greška pri
+  // kucanju specifikacije čekova). Ista dozvola kao unos; servis blokira kad je fiskalni
+  // dokument za tu rezervaciju već SUBMITTED/ISSUED, i nikad ne dozvoljava CARD (webhook tok).
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermission('M10', 'payment', 'RECORD')
+  updateManualPayment(@Param('id') id: string, @Body() dto: UpdatePaymentDto, @CurrentUser() actor: { userId: string }) {
+    return this.payments.updateManualPayment(id, dto, actor);
   }
 
   // §7.2 korak 1 — pokreće gost, samostalno na sajtu (isti autentikacioni nivo kao ostatak M8/M5

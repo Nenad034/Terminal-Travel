@@ -54,6 +54,14 @@ Za bankovni prenos i za karticu se sad bira **iz koje je banke** — postoji spi
 
 **Ček je poseban slučaj.** Jedna uplata čekom retko je jedan fizički papir — često je nekoliko čekova odjednom, svaki sa svojom bankom, iznosom, brojem i datumom kad dospeva na naplatu. Zato forma za ček ne traži samo jedan podatak, nego dozvoljava da se doda onoliko čekova koliko ih stvarno ima ("dodaj ček" dugme) — a sistem sam proveri da zbir svih čekova mora tačno da se poklopi sa ukupnim iznosom uplate, inače ne dozvoljava da se sačuva.
 
+## Ispravka pogrešno unete uplate — samo dok račun nije poslat
+
+Ručni unos, pogotovo specifikacije čekova (nekoliko čekova, svaki sa svojom bankom/brojem/datumom), lako se pogrešno otkuca. Sad postoji dugme "izmeni" pored svake uplate koja sme da se koriguje — otvara istu formu kao unos, samo popunjenu postojećim podacima, i posle klika na "sačuvaj izmenu" red se sam vrati na prikaz sa novim vrednostima.
+
+Dugme se pojavljuje samo kad je izmena stvarno dozvoljena — sistem, ne čovek, odlučuje kad nije: **kartične uplate** (koje idu automatski preko banke online) se nikad ne mogu ručno menjati, a nijedna uplata se ne može menjati **pošto je za tu rezervaciju već poslat račun ili fiskalni dokument** — jednom kad je taj dokument stvarno otišao (ne dok je samo pripremljen kao nacrt), ispravka bi značila da se menja nešto što je već zvanično prijavljeno, pa je tu tačku sistem postavio kao granicu bez izuzetka.
+
+Svaka izmena se **beleži u log** — ko je promenio, kad, i tačno šta je bilo pre a šta posle (isti mehanizam koji već čuva sve druge promene u sistemu, i koji niko, čak ni programer, ne može naknadno da obriše ili prepravi).
+
 ## Šta još čeka (namerno, ne propust)
 
 - **Tačan tehnički način razgovora sa državnim sistemom SEF i fiskalnim uređajima** još nije definisan — to zahteva zvaničnu tehničku dokumentaciju i potvrdu knjigovođe, ne pretpostavku unapred. Ceo unutrašnji tok (nacrt → slanje → praćenje) je izgrađen i testiran, samo je "poslednja milja" ka spoljnom sistemu privremeno simulirana.

@@ -5,6 +5,7 @@ import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
 import PrepareFiscalDocumentButton from '../../finansije/PrepareFiscalDocumentButton';
 import RecordPaymentForm, { BankOption } from '../../finansije/fiskalni-dokumenti/[id]/RecordPaymentForm';
+import PaymentRow from '../../finansije/fiskalni-dokumenti/[id]/PaymentRow';
 import BookingHistoryButton from './BookingHistoryButton';
 import BookingOwnershipCard from './BookingOwnershipCard';
 import BookingNotesCard, { BookingNote } from './BookingNotesCard';
@@ -106,8 +107,9 @@ interface Payment {
   reference?: string | null;
   receivedAt?: string | null;
   createdAt: string;
-  bank?: { name: string } | null;
-  checkDetails?: { id: string }[];
+  bank?: { id: string; name: string } | null;
+  checkDetails?: { id: string; bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
+  editable?: boolean;
 }
 
 interface CommunicationEntry {
@@ -576,28 +578,15 @@ export default async function BookingDetailPage(props: {
                 ) : (
                   <div className="overflow-hidden rounded-lg border border-border">
                     {payments.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between border-b border-border bg-panel px-4 py-3 text-sm last:border-b-0">
-                        <div>
-                          <div className="text-ink">
-                            {p.method}
-                            {p.bank && ` · ${p.bank.name}`}
-                            {p.checkDetails && p.checkDetails.length > 0 && ` · ${p.checkDetails.length} ${p.checkDetails.length === 1 ? 'ček' : 'čeka'}`}
-                          </div>
-                          <div className="text-xs text-ink-faint">
-                            {new Date(p.receivedAt ?? p.createdAt).toLocaleDateString('sr-RS')}
-                            {p.reference ? ` · ${p.reference}` : ''}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm font-semibold text-ink">{formatMoney(p.amount, p.currency)}</span>
-                          <Badge label={p.status} />
-                          {p.checkDetails && p.checkDetails.length > 0 && (
-                            <a href={`/finansije/uplate/${p.id}`} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">
-                              specifikacija →
-                            </a>
-                          )}
-                        </div>
-                      </div>
+                      <PaymentRow
+                        key={p.id}
+                        payment={p}
+                        bookingId={booking.id}
+                        currency={booking.currency ?? 'EUR'}
+                        revalidatePath={`/rezervacije/${booking.id}?tab=finansije`}
+                        banks={banks}
+                        variant="detailed"
+                      />
                     ))}
                   </div>
                 )}

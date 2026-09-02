@@ -85,6 +85,43 @@ export async function recordPayment(bookingId: string, redirectTo: string, _prev
   return { error: null };
 }
 
+// M10 spec §5.2 dopuna (2.9.2026, na zahtev vlasnika) — korekcija već unete uplate (npr. greška
+// pri kucanju specifikacije čekova); API blokira kad je za rezervaciju fiskalni dokument već
+// SUBMITTED/ISSUED ili kad je uplata CARD (webhook tok) — ovde samo prenos forme, isti oblik
+// polja kao `recordPayment`.
+export async function updatePayment(paymentId: string, redirectTo: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  const method = String(formData.get('method') ?? '');
+  const bankIds = formData.getAll('checkBankId').map(String);
+  const amounts = formData.getAll('checkAmount').map(String);
+  const numbers = formData.getAll('checkNumber').map(String);
+  const dates = formData.getAll('checkClearanceDate').map(String);
+  const checkDetails = bankIds.map((bankId, i) => ({
+    bankId,
+    amount: Math.round(Number(amounts[i]) * 100),
+    checkNumber: numbers[i],
+    clearanceDate: dates[i],
+  }));
+
+  try {
+    await apiFetch(`/finance/payments/${paymentId}`, {
+      method: 'PATCH',
+      body: {
+        amount: Math.round(Number(formData.get('amount')) * 100),
+        currency: formData.get('currency'),
+        method,
+        reference: formData.get('reference') || undefined,
+        ...((method === 'BANK_TRANSFER' || method === 'CARD_MANUAL') && formData.get('bankId') ? { bankId: formData.get('bankId') } : {}),
+        ...(method === 'CHECK' ? { checkDetails } : {}),
+      },
+    });
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena uplate nije uspela.' };
+  }
+  revalidatePath(redirectTo);
+  revalidatePath('/finansije');
+  return { error: null };
+}
+
 // M10 spec §8.3 — prelazak u APPROVED je ljudska radnja, dozvola M10/supplier-obligation/APPROVE.
 export async function approveSupplierObligation(id: string, _prev: FormState, _formData: FormData): Promise<FormState> {
   try {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { useActionState, useState } from 'react';
-import { recordPayment, FormState } from '../../actions';
+import { useActionState, useEffect, useState } from 'react';
+import { recordPayment, updatePayment, FormState } from '../../actions';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
 import DateField from '@/components/DateField';
@@ -12,6 +12,20 @@ const initialState: FormState = { error: null };
 export interface BankOption {
   id: string;
   name: string;
+}
+
+// M10 spec §5.2 dopuna (2.9.2026) — podaci potrebni da forma otvori postojeću uplatu u režimu
+// izmene, predpopunjenu njenim trenutnim vrednostima; `amount`/`checkDetails[].amount` u
+// najmanjim jedinicama (para/centi) kao i svuda u M10, konvertuju se u decimalni zapis samo za
+// prikaz u polju.
+export interface EditablePayment {
+  id: string;
+  amount: number;
+  currency: string;
+  method: string;
+  reference: string | null;
+  bankId?: string | null;
+  checkDetails?: { bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
 }
 
 const METHOD_OPTIONS = [
@@ -29,20 +43,38 @@ type Method = (typeof METHOD_OPTIONS)[number]['value'];
 // Dopuna (2.9.2026, na zahtev vlasnika): CARD_MANUAL/CHECK/ADMINISTRATIVE_BAN dodati; svako
 // polje ima labelu IZNAD sebe i istu širinu (`input` klasa, grid raspored) umesto ranijeg
 // "label pa input u istom redu" koje je na uskom prostoru lomilo "način" u poseban red.
+// Dopuna (2.9.2026, na zahtev vlasnika: "omogućiti korigovanje specifikacije") — isti obrazac
+// koristi se i za IZMENU postojeće uplate (`editPayment` prisutan): predpopunjena polja, PATCH
+// umesto POST, API sam blokira ako je fiskalizacija već u toku (`editable` iz liste uplata).
 export default function RecordPaymentForm({
   bookingId,
   currency,
   revalidatePath: path,
   banks,
+  editPayment,
+  onDone,
 }: {
   bookingId: string;
   currency: string;
   revalidatePath: string;
   banks: BankOption[];
+  editPayment?: EditablePayment;
+  onDone?: () => void;
 }) {
-  const boundAction = recordPayment.bind(null, bookingId, path);
+  const boundAction = editPayment ? updatePayment.bind(null, editPayment.id, path) : recordPayment.bind(null, bookingId, path);
   const [state, formAction] = useActionState(boundAction, initialState);
-  const [method, setMethod] = useState<Method>('BANK_TRANSFER');
+  const [method, setMethod] = useState<Method>((editPayment?.method as Method) ?? 'BANK_TRANSFER');
+
+  // Dopuna (2.9.2026) — posle uspešne izmene forma treba sama da se vrati u prikaz reda (ne
+  // ostaje otvorena sa zastarelim vrednostima); `state` menja identitet (referencu) samo posle
+  // stvarnog slanja forme (na montiranju je uvek isti `initialState` objekat iz modula), zato
+  // poredimo referencu umesto "da li je ovo prvi render" praporcem — ranija verzija sa
+  // ref-flagom je lažno zatvarala formu odmah po otvaranju pod React StrictMode-om (dev), jer
+  // se efekat tamo namerno pokreće dvaput i flag bi se već oborio pri prvom pozivu.
+  useEffect(() => {
+    if (state !== initialState && !state.error && editPayment && onDone) onDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const needsBank = method === 'BANK_TRANSFER' || method === 'CARD_MANUAL';
   const needsCheckDetails = method === 'CHECK';
@@ -53,10 +85,18 @@ export default function RecordPaymentForm({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Field label="iznos">
-          <input name="amount" type="number" step="0.01" min={0.01} required className="input w-full" />
+          <input
+            name="amount"
+            type="number"
+            step="0.01"
+            min={0.01}
+            required
+            defaultValue={editPayment ? (editPayment.amount / 100).toFixed(2) : undefined}
+            className="input w-full"
+          />
         </Field>
         <Field label="valuta">
-          <select name="currency" defaultValue={currency} className="input w-full">
+          <select name="currency" defaultValue={editPayment?.currency ?? currency} className="input w-full">
             <option value="RSD">RSD</option>
             <option value="EUR">EUR</option>
           </select>
@@ -71,21 +111,25 @@ export default function RecordPaymentForm({
           </select>
         </Field>
         <Field label="poziv na broj (opciono)">
-          <input name="reference" className="input w-full" />
+          <input name="reference" defaultValue={editPayment?.reference ?? undefined} className="input w-full" />
         </Field>
         {/* Dopuna (2.9.2026, na zahtev vlasnika: "dugme zabeleži uplatu nije u pravcu polja
             pored") — nevidljiva labela iste visine kao kod suseda (Field ispod) da dugme sedi
             na istoj visini kao sadržaj input polja, ne poravnato uz vrh reda. */}
-        <div>
-          <span className="mb-1 block text-xs invisible">.</span>
-          <SubmitButton />
+        <div className="flex items-end gap-2">
+          <SubmitButton editing={Boolean(editPayment)} />
+          {editPayment && onDone && (
+            <button type="button" onClick={onDone} className="text-xs text-ink-faint hover:text-ink hover:underline">
+              otkaži
+            </button>
+          )}
         </div>
       </div>
 
       {needsBank && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Field label={method === 'BANK_TRANSFER' ? 'banka' : 'kartica — banka'}>
-            <select name="bankId" required className="input w-full">
+            <select name="bankId" required defaultValue={editPayment?.bankId ?? ''} className="input w-full">
               <option value="">— izaberite banku —</option>
               {banks.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -97,7 +141,7 @@ export default function RecordPaymentForm({
         </div>
       )}
 
-      {needsCheckDetails && <CheckDetailsFields banks={banks} />}
+      {needsCheckDetails && <CheckDetailsFields banks={banks} initialRows={editPayment?.checkDetails} />}
     </form>
   );
 }
@@ -110,8 +154,25 @@ export default function RecordPaymentForm({
 // može da predloži banku iz prethodnog reda (vlasnikov zahtev — čekovi iste specifikacije su
 // najčešće iz iste banke).
 let nextRowId = 1;
-function CheckDetailsFields({ banks }: { banks: BankOption[] }) {
-  const [rows, setRows] = useState<{ id: number; bankId: string }[]>([{ id: 0, bankId: '' }]);
+function CheckDetailsFields({
+  banks,
+  initialRows,
+}: {
+  banks: BankOption[];
+  initialRows?: { bankId: string; amount: number; checkNumber: string; clearanceDate: string }[];
+}) {
+  const [rows, setRows] = useState<{ id: number; bankId: string; amount?: string; checkNumber?: string; clearanceDate?: string }[]>(
+    () =>
+      initialRows && initialRows.length > 0
+        ? initialRows.map((r, i) => ({
+            id: -(i + 1),
+            bankId: r.bankId,
+            amount: (r.amount / 100).toFixed(2),
+            checkNumber: r.checkNumber,
+            clearanceDate: r.clearanceDate.slice(0, 10),
+          }))
+        : [{ id: 0, bankId: '' }],
+  );
 
   function addRow() {
     setRows((r) => [...r, { id: nextRowId++, bankId: r[r.length - 1]?.bankId ?? '' }]);
@@ -144,13 +205,13 @@ function CheckDetailsFields({ banks }: { banks: BankOption[] }) {
             </select>
           </Field>
           <Field label="iznos">
-            <input name="checkAmount" type="number" step="0.01" min={0.01} required className="input w-full" />
+            <input name="checkAmount" type="number" step="0.01" min={0.01} required defaultValue={row.amount} className="input w-full" />
           </Field>
           <Field label="broj čeka">
-            <input name="checkNumber" required className="input w-full" />
+            <input name="checkNumber" required defaultValue={row.checkNumber} className="input w-full" />
           </Field>
           <Field label="datum realizacije">
-            <DateField name="checkClearanceDate" required />
+            <DateField name="checkClearanceDate" required defaultValue={row.clearanceDate} />
           </Field>
           <div className="flex items-end">
             {rows.length > 1 && (
@@ -175,11 +236,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function SubmitButton() {
+function SubmitButton({ editing }: { editing: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} size="sm">
-      {pending ? 'Beležim…' : 'Zabeleži uplatu'}
+      {pending ? 'Čuvam…' : editing ? 'Sačuvaj izmenu' : 'Zabeleži uplatu'}
     </Button>
   );
 }

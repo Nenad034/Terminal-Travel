@@ -5,6 +5,7 @@ import { BookingsService } from '../../m5-rezervacije/bookings/bookings.service'
 import { ConfirmQuoteDto } from '../../m5-rezervacije/bookings/dto/confirm-quote.dto';
 import { ClientPaymentSchedulesService } from '../payment-terms/client-payment-schedules.service';
 import { RecordPaymentDto } from './dto/record-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 import type { PaymentGatewayAdapter } from '../adapters/payment-gateway-adapter.interface';
 import { PAYMENT_GATEWAY_ADAPTER } from '../adapters/payment-gateway.token';
 
@@ -24,11 +25,30 @@ export class PaymentsService {
   ) {}
 
   async findAll(filters: { bookingId?: string }) {
-    return this.prisma.payment.findMany({
+    const payments = await this.prisma.payment.findMany({
       where: { bookingId: filters.bookingId },
       orderBy: { createdAt: 'desc' },
       include: { bank: true, checkDetails: { include: { bank: true } } },
     });
+    const blockedBookingIds = await this.blockedBookingIds(payments.map((p) => p.bookingId));
+    return payments.map((p) => ({ ...p, editable: this.isEditable(p, blockedBookingIds) }));
+  }
+
+  // Dopuna (2.9.2026, na zahtev vlasnika) — `editable` putuje SA podacima uplate (računa se
+  // ovde, jedini izvor istine za pravilo, ne rekonstruiše se posebno na panelu) da ekran zna
+  // da li da uopšte ponudi dugme "izmeni", bez posebnog poziva ka M10 fiskalnim dokumentima.
+  private async blockedBookingIds(bookingIds: (string | null)[]): Promise<Set<string>> {
+    const ids = [...new Set(bookingIds.filter((id): id is string => Boolean(id)))];
+    if (ids.length === 0) return new Set();
+    const blocked = await this.prisma.fiscalDocument.findMany({
+      where: { bookingId: { in: ids }, status: { in: ['SUBMITTED', 'ISSUED'] } },
+      select: { bookingId: true },
+    });
+    return new Set(blocked.map((d) => d.bookingId!));
+  }
+
+  private isEditable(payment: { method: string; bookingId: string | null }, blockedBookingIds: Set<string>): boolean {
+    return payment.method !== 'CARD' && Boolean(payment.bookingId) && !blockedBookingIds.has(payment.bookingId!);
   }
 
   // Dopuna (2.9.2026, na zahtev vlasnika — "omogućiti pregled i štampanje specifikacije
@@ -40,7 +60,8 @@ export class PaymentsService {
       include: { bank: true, checkDetails: { include: { bank: true } }, booking: { select: { bookingNumber: true, buyerName: true } } },
     });
     if (!payment) throw new NotFoundException(`Uplata ${id} nije pronađena.`);
-    return payment;
+    const blockedBookingIds = await this.blockedBookingIds([payment.bookingId]);
+    return { ...payment, editable: this.isEditable(payment, blockedBookingIds) };
   }
 
   // §5.2, §9 — ručan unos; CARD (webhook) se beleži isključivo preko /payments/card/*.
@@ -99,6 +120,88 @@ export class PaymentsService {
 
     await this.onBookingPaymentReceived(dto.bookingId, actor);
     return payment;
+  }
+
+  // M10 spec §5.2 dopuna (2.9.2026, na zahtev vlasnika: "prilikom kucanja specifikacije čekova
+  // može doći do greške... treba omogućiti korigovanje, sve to beležiti u logovima" + "uplatu
+  // bilo koje vrste je moguće izmeniti samo pod uslovom da već nije kreiran račun i nije
+  // urađena fiskalizacija"). Tumačenje poslednjeg uslova: "kreiran račun" = automatski DRAFT
+  // nacrt (pravi se pri svakoj potvrdi rezervacije, M10 §6 korak 1) NE broji se — blokira tek
+  // kad je dokument STVARNO poslat/izdat (`SUBMITTED`/`ISSUED`, M10 §6 korak 2, "nikad
+  // autonomno"), jer bi inače uplata praktično NIKAD ne bila izmenljiva (draft postoji za skoro
+  // svaku rezervaciju). Nikad ne dira `CARD` (automatski webhook tok, poglavlje 7.2) — samo pet
+  // ručnih metoda ima šta ljudski unos da ispravi.
+  async updateManualPayment(id: string, dto: UpdatePaymentDto, actor: { userId: string }) {
+    const before = await this.prisma.payment.findUnique({ where: { id }, include: { checkDetails: true } });
+    if (!before) throw new NotFoundException(`Uplata ${id} nije pronađena.`);
+    if (before.method === 'CARD') {
+      throw new BadRequestException('Kartično plaćanje naplaćeno preko online provajdera (automatski, webhook) se ne može ručno menjati.');
+    }
+    if (!before.bookingId) throw new BadRequestException('Uplata nije povezana ni sa jednom rezervacijom.');
+
+    const blockingDocument = await this.prisma.fiscalDocument.findFirst({
+      where: { bookingId: before.bookingId, status: { in: ['SUBMITTED', 'ISSUED'] } },
+    });
+    if (blockingDocument) {
+      throw new BadRequestException(
+        'Uplata se ne može menjati — za ovu rezervaciju je fiskalni dokument već poslat/izdat (M10 spec §5.2).',
+      );
+    }
+
+    if (dto.method === 'CHECK') {
+      const sum = (dto.checkDetails ?? []).reduce((s, c) => s + c.amount, 0);
+      if (sum !== dto.amount) {
+        throw new BadRequestException(
+          `Zbir specifikacije čekova (${sum}) mora biti jednak iznosu uplate (${dto.amount}).`,
+        );
+      }
+    }
+
+    // Specifikacija čekova se u celosti zamenjuje (obriši pa upiši ponovo) — jednostavnije i
+    // sigurnije od pokušaja "uparivanja" starih/novih redova po id-ju, a beforeState u audit
+    // logu i dalje čuva TAČNO šta je pre izmene postojalo.
+    await this.prisma.paymentCheckDetail.deleteMany({ where: { paymentId: id } });
+
+    const updated = await this.prisma.payment.update({
+      where: { id },
+      data: {
+        amount: dto.amount,
+        currency: dto.currency,
+        method: dto.method,
+        reference: dto.reference,
+        bankId: dto.method === 'BANK_TRANSFER' || dto.method === 'CARD_MANUAL' ? dto.bankId : null,
+        checkDetails:
+          dto.method === 'CHECK' && dto.checkDetails
+            ? {
+                create: dto.checkDetails.map((c) => ({
+                  bankId: c.bankId,
+                  amount: c.amount,
+                  checkNumber: c.checkNumber,
+                  clearanceDate: new Date(c.clearanceDate),
+                })),
+              }
+            : undefined,
+      },
+      include: { checkDetails: true, bank: true },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M10',
+      action: 'payment.updated',
+      resourceType: 'Payment',
+      resourceId: id,
+      beforeState: before,
+      afterState: updated,
+    });
+
+    // Iznos je mogao da se promeni — ista provera zbira RECEIVED kao pri prvom unosu.
+    // Poznato ograničenje: ne SPUŠTA payment_status ako je izmena iznos SMANJILA (npr. PAID →
+    // PARTIALLY_PAID) — ista granica kao postojeći `onBookingPaymentReceived`, koji samo diže.
+    await this.onBookingPaymentReceived(before.bookingId, actor);
+
+    return updated;
   }
 
   // §7.2 korak 1 — pokreće hosted checkout za dati quote_id.

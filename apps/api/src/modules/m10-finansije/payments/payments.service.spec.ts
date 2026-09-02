@@ -7,6 +7,8 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
       booking: { findUnique: jest.fn() },
       quote: { findUnique: jest.fn() },
       payment: { create: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() },
+      fiscalDocument: { findFirst: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
+      paymentCheckDetail: { deleteMany: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
     const bookings = { confirmQuote: jest.fn(), updatePaymentStatus: jest.fn() };
@@ -136,6 +138,87 @@ describe('PaymentsService (M10 spec §5.2/§7)', () => {
       prisma.payment.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('nepostojeca')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // Dopuna (2.9.2026, na zahtev vlasnika — korekcija ručno unete uplate, sve u audit logu;
+  // blokirano čim je fiskalni dokument za tu rezervaciju SUBMITTED/ISSUED).
+  describe('updateManualPayment (§5.2 dopuna 2.9.2026)', () => {
+    function existingPayment(overrides: Partial<Record<string, unknown>> = {}) {
+      return {
+        id: 'pay-1',
+        bookingId: 'booking-1',
+        method: 'BANK_TRANSFER',
+        amount: 10000,
+        currency: 'EUR',
+        checkDetails: [],
+        ...overrides,
+      };
+    }
+
+    it('menja uplatu i upisuje audit trag sa pre/posle stanjem', async () => {
+      const { service, prisma, auditLog } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(existingPayment());
+      prisma.payment.update.mockResolvedValue({ id: 'pay-1', amount: 12000 });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 12000, paymentStatus: 'UNPAID' });
+      prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 12000 } });
+
+      await service.updateManualPayment('pay-1', { amount: 12000, currency: 'EUR', method: 'BANK_TRANSFER', bankId: 'bank-1' } as any, {
+        userId: 'actor-1',
+      });
+
+      expect(auditLog.write).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'payment.updated', resourceId: 'pay-1', beforeState: expect.objectContaining({ amount: 10000 }) }),
+      );
+      expect(prisma.payment.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ amount: 12000, bankId: 'bank-1' }) }));
+    });
+
+    it('odbija izmenu CARD uplate (automatski webhook tok)', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(existingPayment({ method: 'CARD' }));
+
+      await expect(
+        service.updateManualPayment('pay-1', { amount: 10000, currency: 'EUR', method: 'CASH' } as any, { userId: 'actor-1' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('odbija izmenu kad je fiskalni dokument za rezervaciju već SUBMITTED', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(existingPayment());
+      prisma.fiscalDocument.findFirst.mockResolvedValue({ id: 'fd-1', status: 'SUBMITTED' });
+
+      await expect(
+        service.updateManualPayment('pay-1', { amount: 10000, currency: 'EUR', method: 'CASH' } as any, { userId: 'actor-1' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.payment.update).not.toHaveBeenCalled();
+    });
+
+    it('DOZVOLJENO kad postoji samo DRAFT fiskalni dokument (nije poslat/izdat)', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(existingPayment());
+      prisma.fiscalDocument.findFirst.mockResolvedValue(null); // findFirst već filtrira na SUBMITTED/ISSUED
+      prisma.payment.update.mockResolvedValue({ id: 'pay-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'booking-1', totalPrice: 10000, paymentStatus: 'UNPAID' });
+      prisma.payment.aggregate.mockResolvedValue({ _sum: { amount: 10000 } });
+
+      await expect(
+        service.updateManualPayment('pay-1', { amount: 10000, currency: 'EUR', method: 'CASH' } as any, { userId: 'actor-1' }),
+      ).resolves.toBeDefined();
+    });
+
+    it('CHECK — odbija kad se zbir specifikacije ne poklapa, briše staru specifikaciju pre nove kad se poklapa', async () => {
+      const { service, prisma } = makeService();
+      prisma.payment.findUnique.mockResolvedValue(existingPayment({ method: 'CHECK', checkDetails: [{ id: 'old-1' }] }));
+
+      await expect(
+        service.updateManualPayment(
+          'pay-1',
+          { amount: 10000, currency: 'EUR', method: 'CHECK', checkDetails: [{ bankId: 'b1', amount: 5000, checkNumber: 'X', clearanceDate: '2027-01-01' }] } as any,
+          { userId: 'actor-1' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.paymentCheckDetail.deleteMany).not.toHaveBeenCalled();
     });
   });
 
