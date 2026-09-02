@@ -24,7 +24,7 @@ const CRITERIA_KEYS = [
   'returnDate', 'flightLegs',
   // Filteri iz levog panela — i oni su "ono što je korisnik uneo za ovu vrstu", pa se pamte
   // zajedno sa kriterijumima; §3.0g.1 tačka 3 ionako traži da se filteri menjaju po vrsti.
-  'priceMin', 'priceMax', 'availability', 'boardType', 'amenityTags',
+  'priceMin', 'priceMax', 'availability', 'boardTypes', 'amenityTags',
 ];
 
 function typeKeyOf(types: string[]): string {

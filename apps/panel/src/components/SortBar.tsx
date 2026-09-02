@@ -19,7 +19,7 @@ function resultLabel(n: number): string {
 // na velikim portalima traka nad listom, a ne stavka u bočnom meniju.
 //
 // Dugmad, ne padajući meni — dizajn dok. §6f (mali, poznat skup opcija).
-export default function SortBar({ resultCount }: { resultCount: number }) {
+export default function SortBar({ resultCount, mapAvailable }: { resultCount: number; mapAvailable: boolean }) {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -27,10 +27,22 @@ export default function SortBar({ resultCount }: { resultCount: number }) {
   const options = sortOptionsFor(types);
   const current = resolveSort(sp.get('sort'), types);
 
+  const view = sp.get('prikaz') === 'mapa' ? 'mapa' : 'lista';
+
   function pick(value: string) {
     const next = new URLSearchParams(sp.toString());
     next.set('sort', value);
     router.push(`/rezervacije/pretraga?${next.toString()}`);
+  }
+
+  // M5 spec §3.0h — prekidač lista/mapa. Stanje ide u adresu, ne u lokalno stanje: tako
+  // zatvoren tab može sutra da se otvori na istom prikazu (isti princip kao kriterijumi
+  // pretrage, §3.0g.4).
+  function pickView(next: 'lista' | 'mapa') {
+    const params = new URLSearchParams(sp.toString());
+    if (next === 'lista') params.delete('prikaz');
+    else params.set('prikaz', 'mapa');
+    router.push(`/rezervacije/pretraga?${params.toString()}`);
   }
 
   return (
@@ -57,7 +69,26 @@ export default function SortBar({ resultCount }: { resultCount: number }) {
           </button>
         ))}
       </div>
-      {resultCount > 0 && <span className="ml-auto text-ink-faint">{resultLabel(resultCount)}</span>}
+      <div className="ml-auto flex items-center gap-3">
+        {resultCount > 0 && <span className="text-ink-faint">{resultLabel(resultCount)}</span>}
+        {mapAvailable && (
+          <div className="flex overflow-hidden rounded-full border border-border">
+            {(['lista', 'mapa'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => pickView(v)}
+                aria-pressed={view === v}
+                className={`flex items-center gap-1 px-2.5 py-0.5 ${
+                  view === v ? 'bg-accent-soft font-semibold text-accent-strong' : 'text-ink-dim hover:text-ink'
+                }`}
+              >
+                <Icon name={v === 'lista' ? 'list-flat' : 'location'} /> {v}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

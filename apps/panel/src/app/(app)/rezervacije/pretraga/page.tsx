@@ -7,6 +7,7 @@ import { findIconByTypes } from '@/lib/search-product-types';
 import { offerKey } from '@/lib/search-offer-key';
 import { flightFiltersFromParams } from '@/lib/mock-flights';
 import SortBar from '@/components/SortBar';
+import SearchResultsMap from '@/components/SearchResultsMap';
 import { resolveSort, compareName } from '@/lib/search-sort';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
@@ -36,6 +37,10 @@ interface SearchResult {
   name: string;
   destinationCountry: string;
   destinationCity: string;
+  /** M5 spec §3.0b.1 — koordinate za mapu. `GET /sales/search` ih vraća kao BROJ (servis
+   * pretvara iz `Decimal`), za razliku od `GET /catalog/products/:id` koji vraća string. */
+  geoLat: number | null;
+  geoLng: number | null;
   shortDescription?: string;
   thumbnail?: { url: string; category: string } | null;
   offers: SearchOffer[];
@@ -110,10 +115,11 @@ export default async function SearchPage(
   const availability = first(searchParams.availability) || null;
   // M5 spec §3.0c.2 tačka 3 — "vrsta usluge" (board_type) filtrira se UNUTAR već dobijenih
   // rezultata, isti princip kao dostupnost iznad (nije upitni parametar GET /search).
-  const boardType = first(searchParams.boardType) || null;
+  // Višestruki izbor (3.9.2026, na zahtev vlasnika) — prazan niz znači "sve".
+  const boardTypes = normalizeTypes(searchParams.boardTypes);
   const cabinClass = first(searchParams.cabinClass) || null;
 
-  if (priceMin !== null || priceMax !== null || availability || boardType) {
+  if (priceMin !== null || priceMax !== null || availability || boardTypes.length > 0) {
     results = results
       .map((r) => ({
         ...r,
@@ -121,7 +127,7 @@ export default async function SearchPage(
           if (priceMin !== null && o.finalPrice < priceMin) return false;
           if (priceMax !== null && o.finalPrice > priceMax) return false;
           if (availability && o.availabilityStatus !== availability) return false;
-          if (boardType && o.boardType !== boardType) return false;
+          if (boardTypes.length > 0 && !boardTypes.includes(o.boardType ?? '')) return false;
           return true;
         }),
       }))
@@ -157,6 +163,26 @@ export default async function SearchPage(
 
   const activeIcon = findIconByTypes(types);
 
+  // M5 spec §3.0h — prikaz lista/mapa. Mapa se nudi SAMO kad stvarno ima šta da prikaže:
+  // smeštaj (mock ima koordinate gradova) i pravi rezultati koji nose `geoLat`/`geoLng`.
+  // Letovi i transferi nemaju jednu tačku na mapi nego rutu, pa im prekidač ni ne treba.
+  const resultsView: 'lista' | 'mapa' = first(searchParams.prikaz) === 'mapa' ? 'mapa' : 'lista';
+
+  // Tačke za mapu iz PRAVIH rezultata — proizvod bez koordinata se preskače (ostaje u listi,
+  // samo ga nema na mapi), a cena je najniža ponuda tog proizvoda, isti princip kao sortiranje.
+  const mapPoints = results
+    .filter((r) => r.geoLat != null && r.geoLng != null)
+    .map((r) => ({
+      id: r.productId,
+      name: r.name,
+      lat: r.geoLat as number,
+      lng: r.geoLng as number,
+      price: Math.min(...r.offers.map((o) => o.finalPrice)),
+      currency: r.offers[0].finalPriceCurrency,
+    }));
+
+  const mapAvailable = singleType === 'ACCOMMODATION' || (!usesMock && mapPoints.length > 0);
+
   // M5 spec §3.0d.1 — filteri letova iz levog panela. Čitaju se iz iste `searchParams` strukture
   // kao ostali filteri (cena/dostupnost), pa nema novog mehanizma prenosa.
   const flightFilters = flightFiltersFromParams(
@@ -188,7 +214,7 @@ export default async function SearchPage(
 
       {!usesMock && <SearchRefreshNotice offers={offerSnapshots} />}
 
-      {showsResults && <SortBar resultCount={usesMock ? 0 : results.length} />}
+      {showsResults && <SortBar resultCount={usesMock ? 0 : results.length} mapAvailable={mapAvailable} />}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
@@ -217,10 +243,11 @@ export default async function SearchPage(
             <AccommodationResultsMock
               stayFrom={quoteDefaults.stayFrom}
               stayTo={quoteDefaults.stayTo}
-              boardType={boardType}
+              boardTypes={boardTypes}
               priceMin={priceMin}
               priceMax={priceMax}
               sort={sort}
+              resultsView={resultsView}
             />
           );
         }
@@ -261,6 +288,10 @@ export default async function SearchPage(
         if (isThingsToDo) {
           return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} sort={sort} />;
         }
+        if (resultsView === 'mapa') {
+          return <SearchResultsMap points={mapPoints} />;
+        }
+
         return (
           <>
             {cardResults.length > 0 && (

@@ -4,7 +4,7 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
-**Verzija:** 2.10 — Novo poglavlje 3.0h: mapa u rezultatima pretrage (2.9.2026, na zahtev vlasnika, uz link na Airbnb pretragu — "zaboravili smo na mapu"). Nalaz: `geo_lat`/`geo_lng` stoje u M2 §2.1 od početka kao "za prikaz na mapi", ali su bili prazni u **svakom** redu (33/33), `GET /search` ih nije vraćao, i nijedna biblioteka za mape nije bila u projektu — mapa dodata tog dana bila bi prazna. Vlasnikove odluke: koordinate automatski iz adrese (ne ručno), OpenStreetMap podaci preko MapLibre + Protomaps na našem EU skladištu (Master dokument poglavlje 6, uz obrazloženje zašto su odbačeni Google Maps, serveri OSM fondacije i OpenFreeMap), i redosled "prvo koordinate, pa mapa". **Urađeno u ovom prolazu:** jednokratno geokodiranje celog kataloga (`geocode-products.ts`, Nominatim uz poštovanje 1 poziv/s) — 33/33 popunjeno, 2 tačna objekta, 31 tačka mesta, 0 promašaja; `SearchResultProduct` dobija `geoLat`/`geoLng` kao **broj** (pretvaranje iz `Decimal` u servisu, zamka 10.1 — `GET /catalog/products/:id` isto polje i dalje vraća kao string); ekran proizvoda u katalogu prikazuje koordinate sa vezom "proveri na mapi". **Nije urađeno:** sama mapa pored liste, "pretraži dok pomeram mapu" (jedino što dira server — `GET /search` nema pojam pravougaonika na mapi), i trajno geokodiranje novih proizvoda.
+**Verzija:** 2.11 — Mapa napravljena (2.9.2026, drugi korak plana iz 3.0h): `SearchResultsMap.tsx` nad MapLibre + PMTiles, prekidač lista/mapa u traci iznad rezultata, stanje u adresi (`?prikaz=mapa`), tačke sa cenom i grupisanjem, klik na grupu zumira, mapa prati temu panela. Prekidač se nudi samo za smeštaj i prave rezultate sa koordinatama — let i transfer su ruta, ne tačka. Podaci mape: izvod Balkana (`--bbox=11.5,34.0,32.0,47.5`, zoom 0–13, 1.6 GB) iz dnevnog Protomaps izdanja; fajl je van git-a, uputstvo za pravljenje u novom poglavlju 3.0h.4. Poglavlje 3.0h.5 vodi spisak preostalog: slova/ikonice mape se i dalje povlače sa javnog Protomaps skladišta (jedini deo koji izlazi iz naše infrastrukture), "pretraži dok pomeram mapu" (jedino što dira server), povezivanje kartice i tačke, trajno geokodiranje novih proizvoda, i gde fajl živi u produkciji. v2.10 — Novo poglavlje 3.0h: mapa u rezultatima pretrage (2.9.2026, na zahtev vlasnika, uz link na Airbnb pretragu — "zaboravili smo na mapu"). Nalaz: `geo_lat`/`geo_lng` stoje u M2 §2.1 od početka kao "za prikaz na mapi", ali su bili prazni u **svakom** redu (33/33), `GET /search` ih nije vraćao, i nijedna biblioteka za mape nije bila u projektu — mapa dodata tog dana bila bi prazna. Vlasnikove odluke: koordinate automatski iz adrese (ne ručno), OpenStreetMap podaci preko MapLibre + Protomaps na našem EU skladištu (Master dokument poglavlje 6, uz obrazloženje zašto su odbačeni Google Maps, serveri OSM fondacije i OpenFreeMap), i redosled "prvo koordinate, pa mapa". **Urađeno u ovom prolazu:** jednokratno geokodiranje celog kataloga (`geocode-products.ts`, Nominatim uz poštovanje 1 poziv/s) — 33/33 popunjeno, 2 tačna objekta, 31 tačka mesta, 0 promašaja; `SearchResultProduct` dobija `geoLat`/`geoLng` kao **broj** (pretvaranje iz `Decimal` u servisu, zamka 10.1 — `GET /catalog/products/:id` isto polje i dalje vraća kao string); ekran proizvoda u katalogu prikazuje koordinate sa vezom "proveri na mapi". **Nije urađeno:** sama mapa pored liste, "pretraži dok pomeram mapu" (jedino što dira server — `GET /search` nema pojam pravougaonika na mapi), i trajno geokodiranje novih proizvoda.
 
 **Verzija:** 2.09 — Nova poglavlja 3.0g.8 (sortiranje) i 3.0g.9 (poređenje sa velikim portalima), 2.9.2026, na zahtev vlasnika ("istražite dobro filtere pretrage u TT-u za smeštaj, letove i transfer u odnosu na velike portale pa mi recite da li smo sva polja predvideli"). **Sortiranje nije postojalo nigde u aplikaciji** — dodato kao traka iznad rezultata, sa opcijama po vrsti proizvoda i pravilom da se nudi samo ono za šta postoji podatak; implementirano u istom prolazu (`lib/search-sort.ts`, `components/SortBar.tsx`). Poređenje (3.0g.9) deli nalaze na tri vrste: **(a) bilo specificirano a nenapravljeno** — devet filtera letova iz §3.0d.1 (panel je za letove imao samo filter cene) i šesnaest neprikazanih `AmenityTag` vrednosti uklj. `FREE_CANCELLATION`/`PAY_AT_PROPERTY`; **oboje zatvoreno u ovom prolazu, bez izmene modela**; **(b) postoji u katalogu ali pretraga ne izlaže** — `accommodation_type` i `stars` (traži dopunu `GET /search`, ne novo polje); **(c) ne postoji nigde** — ocena gostiju, udaljenost od centra, hotelski lanac, pristupačnost, pet filtera letova (basic economy/odvojene karte/alijansa/noćni letovi/CO2), i pet transfernih (privatan naspram deljenog, klasa vozila, broj i uzrast za dečja sedišta, meet & greet, jezik vozača). Potvrđeno da je odluka iz 3.0g.6 o državljanstvu i valuti kao dva odvojena polja ispravna (LiteAPI traži oba kao obavezna; Booking izvodi valutu iz `booker.country`), uz nalaz da je valuta upisana samo kod smeštaja a važi za sve strane dobavljače. Stavke (b) i (c) nisu implementirane, čekaju odluku.
 
@@ -696,12 +696,32 @@ Rezultat prvog prolaza (2.9.2026): **33 od 33 popunjeno — 2 tačna objekta, 31
 
 ### 3.0h.3 Šta je urađeno, a šta nije
 
-**Urađeno (2.9.2026):** koordinate popunjene za ceo katalog; `GET /search` ih vraća (§3.0b.1); ekran proizvoda u katalogu ih prikazuje sa vezom "proveri na mapi" ka OpenStreetMap-u — dok mapa u pretrazi ne postoji, to je jedino mesto gde čovek može da vidi da li je tačka uopšte popunjena i da li je tačna.
+**Urađeno (2.9.2026), prvi korak:** koordinate popunjene za ceo katalog; `GET /search` ih vraća (§3.0b.1); ekran proizvoda u katalogu ih prikazuje sa vezom "proveri na mapi" ka OpenStreetMap-u.
 
-**Nije urađeno, sledeći koraci:**
-1. **Mapa pored liste rezultata** — prekidač lista/mapa, tačke sa cenom, povezivanje kartice i tačke na prelaz mišem, grupisanje tačaka (vidi §3.0h.2). Traži MapLibre kao zavisnost.
-2. **"Pretraži dok pomeram mapu"** — vidljivi deo mape postaje filter. Ovo je jedino od svega što dira **server**: `GET /search` danas prima zemlju i grad, a pojam "ovaj pravougaonik na mapi" ne postoji. Zahteva nov parametar i dopunu poglavlja 11 pre koda.
-3. **Trajno geokodiranje novih proizvoda** — jednokratni prolaz je rešio zatečeni katalog, ali proizvod unet sutra i dalje nema koordinate. Nije odlučeno da li se geokodira pri objavi proizvoda, periodično, ili ručno na ekranu.
+**Urađeno (2.9.2026), drugi korak — mapa postoji.** `SearchResultsMap.tsx` (MapLibre + PMTiles), prekidač **lista / mapa** u traci iznad rezultata (§3.0g.8), stanje prikaza u adresi (`?prikaz=mapa`) da se zatvoren tab sutra otvori na istom prikazu. Tačke nose cenu, grupišu se kad se preklapaju (§3.0h.2 — danas pravilo, ne izuzetak), klik na grupu zumira u nju. Mapa prati temu panela (svetla/dim/tamna → Protomaps *flavor*). Prekidač se nudi samo gde mapa ima smisla: smeštaj i pravi rezultati sa koordinatama — **let i transfer nisu tačka na mapi nego ruta**, pa im prekidač ni ne treba dok ne dobiju sopstven prikaz.
+
+### 3.0h.4 Kako se pravi lokalni fajl mape
+
+Fajl **nije u git-u** (`.gitignore`) — 1.6 GB nema šta da traži u repozitorijumu. Na novoj mašini se pravi jednom:
+
+1. Preuzmi `pmtiles` alat (Go binarni fajl) sa `github.com/protomaps/go-pmtiles/releases`.
+2. Izvuci Balkan iz dnevnog planetarnog izdanja (samo potrebni delovi se skidaju, ne svih 137 GB):
+
+```
+pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles apps/panel/public/maps/balkan.pmtiles   --bbox=11.5,34.0,32.0,47.5 --maxzoom=13 --download-threads=8
+```
+
+Okvir namerno prelazi Balkan u užem smislu — hvata i Rim i Antaliju, jer su u katalogu. `--maxzoom=13` je izbor između veličine i detalja: z12 je 827 MB, **z13 je 1.6 GB**, z14 je 3.0 GB (svaki nivo približno udvostručuje fajl). Skidanje traje oko minut.
+
+3. Provera da radi: `curl -r 0-127 http://localhost:3100/maps/balkan.pmtiles` mora vratiti `206 Partial Content` — PMTiles čita delove fajla, pa bez podrške za opsege mapa ostaje prazna.
+
+### 3.0h.5 Šta i dalje nije urađeno
+
+1. **Slova i ikonice mape se povlače sa Protomaps javnog skladišta** (GitHub Pages). To je jedini deo mape koji izlazi van naše infrastrukture — sami podaci mape su kod nas. Za produkciju se preseljava, inače odluka o EU hostingu (Master dokument poglavlje 6/9) nije dosledno sprovedena.
+2. **"Pretraži dok pomeram mapu"** — vidljivi deo mape kao filter. Jedino od svega što dira **server**: `GET /search` prima zemlju i grad, pojam "ovaj pravougaonik" ne postoji. Traži nov parametar i dopunu poglavlja 11 pre koda.
+3. **Povezivanje kartice i tačke** — prelaz mišem preko rezultata da istakne tačku i obrnuto (Airbnb obrazac). Traži da lista i mapa stoje jedna pored druge, a danas se smenjuju.
+4. **Trajno geokodiranje novih proizvoda** — proizvod unet sutra nema koordinate; nije odlučeno da li se geokodira pri objavi, periodično, ili ručno.
+5. **Gde fajl mape živi u produkciji** — čeka izbor hosting provajdera, koji je namerno odložen (CLAUDE.md).
 
 ---
 

@@ -96,7 +96,19 @@ const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] 
     ],
   },
 ];
-const BOARD_TYPES = ['BB', 'HB', 'FB', 'AI', 'UAI'];
+const BOARD_TYPE_OPTIONS = [
+  { value: 'BB', label: 'Noćenje sa doručkom' },
+  { value: 'HB', label: 'Polupansion' },
+  { value: 'FB', label: 'Pun pansion' },
+  { value: 'AI', label: 'All Inclusive' },
+  { value: 'UAI', label: 'Ultra All Inclusive' },
+];
+
+// Naslov filtera (3.9.2026, na zahtev vlasnika) — velika slova, markirano tamnijom nijansom u
+// odnosu na `panel` (isti `bg-sunken` token kao traka naslova sekcije na strani rezervacije,
+// BookingOverviewHero.tsx — token je NAMERNO uvek tamniji od `panel` u sva tri moda, vidi
+// globals.css), da se naslov jasno izdvoji od samih tagova ispod.
+const FILTER_TITLE_CLASS = 'block w-full bg-sunken px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-dim';
 export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -124,7 +136,7 @@ export default function SearchSidebarPanel() {
           const next = new URLSearchParams(sp.toString());
           // Skalarni filteri — prazna vrednost briše parametar umesto da ga postavi na "".
           const scalarKeys = [
-            'priceMin', 'priceMax', 'availability', 'boardType',
+            'priceMin', 'priceMax', 'availability',
             // M5 spec §3.0d.1 — filteri letova.
             'stops', 'maxLayover', 'maxDuration', 'departFrom', 'departTo', 'arriveFrom', 'arriveTo', 'minCheckedBags',
           ];
@@ -133,7 +145,7 @@ export default function SearchSidebarPanel() {
             if (val) next.set(key, val);
             else next.delete(key);
           }
-          for (const key of ['amenityTags', 'airlines', 'connAirports']) {
+          for (const key of ['amenityTags', 'boardTypes', 'airlines', 'connAirports']) {
             next.delete(key);
             for (const val of data.getAll(key)) next.append(key, String(val));
           }
@@ -142,45 +154,43 @@ export default function SearchSidebarPanel() {
       >
         <Section title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)}>
           <label className="text-ink-faint">
-            cena od / do
+            <span className={FILTER_TITLE_CLASS}>cena od / do</span>
             <div className="mt-1 flex gap-1">
               <input type="number" name="priceMin" min={0} defaultValue={sp.get('priceMin') ?? ''} className="input w-1/2" placeholder="0" />
               <input type="number" name="priceMax" min={0} defaultValue={sp.get('priceMax') ?? ''} className="input w-1/2" placeholder="∞" />
             </div>
           </label>
-          <label className="text-ink-faint">
-            dostupnost
-            <select name="availability" defaultValue={sp.get('availability') ?? ''} className="input mt-1 w-full">
-              <option value="">— sve —</option>
-              <option value="AVAILABLE">Odmah potvrda</option>
-              <option value="ON_REQUEST">Upit</option>
-            </select>
-          </label>
+          <PillRadioGroup
+            name="availability"
+            label="dostupnost"
+            current={sp.get('availability') ?? ''}
+            options={[
+              { value: '', label: 'sve' },
+              { value: 'AVAILABLE', label: 'odmah potvrda' },
+              { value: 'ON_REQUEST', label: 'upit' },
+            ]}
+          />
 
           {showAccommodationFilters && (
             <>
-              <label className="text-ink-faint">
-                vrsta usluge
-                <select name="boardType" defaultValue={sp.get('boardType') ?? ''} className="input mt-1 w-full">
-                  <option value="">— sve —</option>
-                  {BOARD_TYPES.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <PillCheckboxGroup
+                name="boardTypes"
+                label="vrsta usluge"
+                current={sp.getAll('boardTypes')}
+                stack
+                options={BOARD_TYPE_OPTIONS}
+              />
 
               <div className="text-ink-faint">
                 <div className="flex flex-col gap-2">
                   {AMENITY_GROUPS.map((group) => (
                     <div key={group.label}>
-                      <div className="mb-1 text-xs font-bold uppercase text-ink-dim">{group.label}</div>
+                      <div className={`mb-1 ${FILTER_TITLE_CLASS}`}>{group.label}</div>
                       <div className="flex flex-wrap gap-1">
                         {group.tags.map((tag) => (
                           <label
                             key={tag.value}
-                            className="flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+                            className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
                           >
                             <input
                               type="checkbox"
@@ -255,7 +265,7 @@ export default function SearchSidebarPanel() {
               />
 
               <label className="text-ink-faint">
-                poletanje između
+                <span className={FILTER_TITLE_CLASS}>poletanje između</span>
                 <div className="mt-1 flex gap-1">
                   <input type="time" name="departFrom" defaultValue={sp.get('departFrom') ?? ''} className="input w-1/2" />
                   <input type="time" name="departTo" defaultValue={sp.get('departTo') ?? ''} className="input w-1/2" />
@@ -263,7 +273,7 @@ export default function SearchSidebarPanel() {
               </label>
 
               <label className="text-ink-faint">
-                sletanje između
+                <span className={FILTER_TITLE_CLASS}>sletanje između</span>
                 <div className="mt-1 flex gap-1">
                   <input type="time" name="arriveFrom" defaultValue={sp.get('arriveFrom') ?? ''} className="input w-1/2" />
                   <input type="time" name="arriveTo" defaultValue={sp.get('arriveTo') ?? ''} className="input w-1/2" />
@@ -318,20 +328,24 @@ function PillRadioGroup({
   label,
   current,
   options,
+  stack,
 }: {
   name: string;
   label: string;
   current: string;
   options: { value: string; label: string }[];
+  /** Sve opcije jedna ispod druge, ne u redu (3.9.2026, na zahtev vlasnika — "vrsta usluge",
+   * gde puni nazivi usluga ne stanu jedan pored drugog u uskom levom panelu). */
+  stack?: boolean;
 }) {
   return (
     <div className="text-ink-faint">
-      {label}
-      <div className="mt-1 flex flex-wrap gap-1">
+      <span className={FILTER_TITLE_CLASS}>{label}</span>
+      <div className={`mt-1 flex gap-1 ${stack ? 'flex-col items-start' : 'flex-wrap'}`}>
         {options.map((o) => (
           <label
             key={o.value || 'any'}
-            className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+            className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
           >
             <input type="radio" name={name} value={o.value} defaultChecked={current === o.value} className="sr-only" />
             {o.label}
@@ -347,20 +361,24 @@ function PillCheckboxGroup({
   label,
   current,
   options,
+  stack,
 }: {
   name: string;
   label: string;
   current: string[];
   options: { value: string; label: string }[];
+  /** Sve opcije jedna ispod druge, ne u redu (isto obrazloženje kao `PillRadioGroup` — puni
+   * nazivi usluga ne stanu jedan pored drugog u uskom levom panelu). */
+  stack?: boolean;
 }) {
   return (
     <div className="text-ink-faint">
-      {label}
-      <div className="mt-1 flex flex-wrap gap-1">
+      <span className={FILTER_TITLE_CLASS}>{label}</span>
+      <div className={`mt-1 flex gap-1 ${stack ? 'flex-col items-start' : 'flex-wrap'}`}>
         {options.map((o) => (
           <label
             key={o.value}
-            className="cursor-pointer rounded-full border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+            className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
           >
             <input type="checkbox" name={name} value={o.value} defaultChecked={current.includes(o.value)} className="sr-only" />
             {o.label}

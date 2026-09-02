@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
 import { compareName } from '@/lib/search-sort';
+import SearchResultsMap from '@/components/SearchResultsMap';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mock
 // podatke da vidim kako sve izgleda", dorađeno kroz dva naredna prolaza istog dana). Pravi
@@ -37,6 +38,10 @@ interface MockHotel {
   stars: number;
   city: string;
   country: string;
+  /** Koordinate mesta (M5 §3.0h) — mock, ali STVARNE tačke tih gradova, ne izmišljene.
+   * Isti nivo tačnosti kao pravi katalog danas: tačka mesta, ne tačka objekta (§3.0h.2). */
+  lat: number;
+  lng: number;
   image: string;
   offers: MockOffer[];
 }
@@ -65,6 +70,8 @@ const MOCK_HOTELS: MockHotel[] = [
     stars: 5,
     city: 'Budva',
     country: 'Crna Gora',
+    lat: 42.2864,
+    lng: 18.84,
     image: 'https://picsum.photos/seed/riviera/320/200',
     offers: [
       { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 45600 }] },
@@ -79,6 +86,8 @@ const MOCK_HOTELS: MockHotel[] = [
     stars: 4,
     city: 'Kotor',
     country: 'Crna Gora',
+    lat: 42.4247,
+    lng: 18.7712,
     image: 'https://picsum.photos/seed/panorama/320/200',
     offers: [
       { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 38900 }] },
@@ -102,6 +111,8 @@ const MOCK_HOTELS: MockHotel[] = [
     stars: 3,
     city: 'Petrovac',
     country: 'Crna Gora',
+    lat: 42.2058,
+    lng: 18.9439,
     image: 'https://picsum.photos/seed/adriatic/320/200',
     offers: [
       { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 29900 }] },
@@ -115,6 +126,8 @@ const MOCK_HOTELS: MockHotel[] = [
     stars: 4,
     city: 'Tivat',
     country: 'Crna Gora',
+    lat: 42.43,
+    lng: 18.6963,
     image: 'https://picsum.photos/seed/maslina/320/200',
     offers: [{ id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 41200 }] }],
   },
@@ -124,6 +137,8 @@ const MOCK_HOTELS: MockHotel[] = [
     stars: 5,
     city: 'Herceg Novi',
     country: 'Crna Gora',
+    lat: 42.4531,
+    lng: 18.5375,
     image: 'https://picsum.photos/seed/sunset/320/200',
     offers: [
       { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 59900 }] },
@@ -151,22 +166,26 @@ function roomLineLabel(r: MockRoomLine): string {
 export default function AccommodationResultsMock({
   stayFrom,
   stayTo,
-  boardType,
+  boardTypes,
   priceMin,
   priceMax,
   sort,
+  resultsView,
 }: {
   stayFrom?: string;
   stayTo?: string;
   /** M5 spec §3.0c.2 tačka 3 — isti filteri koje `page.tsx` već računa nad pravim rezultatima
    * (cena/vrsta usluge), ovde primenjeni nad MOCK ponudama — BAG (26.8.2026, prijavio vlasnik
    * uživo: "ne radi filter po tipu usluge") — mock ekran je ranije potpuno ignorisao ove props,
-   * jer ih uopšte nije primao. */
-  boardType?: string | null;
+   * jer ih uopšte nije primao. Višestruki izbor (3.9.2026) — prazan/nedefinisan niz znači "sve". */
+  boardTypes?: string[];
   priceMin?: number | null;
   priceMax?: number | null;
   /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
   sort: string;
+  /** M5 spec §3.0h — 'lista' ili 'mapa' (SortBar.tsx prekidač). Namerno NIJE `view`: taj naziv
+   * je u ovoj komponenti već zauzet lokalnim stanjem grid/list prikaza kartica. */
+  resultsView: 'lista' | 'mapa';
 }) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -176,7 +195,7 @@ export default function AccommodationResultsMock({
     ...h,
     offers: h.offers
       .filter((o) => {
-        if (boardType && o.boardType !== boardType) return false;
+        if (boardTypes && boardTypes.length > 0 && !boardTypes.includes(o.boardType)) return false;
         const total = offerTotal(o);
         if (priceMin != null && total < priceMin) return false;
         if (priceMax != null && total > priceMax) return false;
@@ -232,6 +251,30 @@ export default function AccommodationResultsMock({
   }
 
   const shared = { stayFrom, stayTo, selectedKeys: new Set(items.map((i) => i.key)), selectionKey, onSelect: select };
+
+  // M5 spec §3.0h — mapa umesto liste. Tačke se grade iz VEĆ FILTRIRANIH hotela, ne iz sirovog
+  // mock niza: mapa mora da pokazuje isto što i lista, inače filter i mapa pričaju različitu
+  // priču o istoj pretrazi.
+  if (resultsView === 'mapa') {
+    return (
+      <div>
+        <div className="mb-3 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
+          MOCK — hardkodovani hoteli. Tačke su stvarne koordinate tih gradova, na nivou mesta
+          (isti nivo tačnosti kao pravi katalog danas, M5 §3.0h.2).
+        </div>
+        <SearchResultsMap
+          points={sortedHotels.map((h) => ({
+            id: h.id,
+            name: h.name,
+            lat: h.lat,
+            lng: h.lng,
+            price: offerTotal(h.offers[0]),
+            currency: h.offers[0].currency,
+          }))}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>
