@@ -20,7 +20,7 @@ import OverviewLayoutSwitch from './OverviewLayoutSwitch';
 // Ključ i tip dolaze iz NEUTRALNOG modula, ne iz `OverviewLayoutSwitch.tsx` — vidi obrazloženje
 // u `overview-layout.ts`; uvoz konstante iz `'use client'` fajla ovde tiho daje pogrešnu vrednost.
 import { OVERVIEW_LAYOUT_PREFERENCE_KEY, DEFAULT_OVERVIEW_LAYOUT, type OverviewLayout } from './overview-layout';
-import BookingOverviewHero, { SectionHeading, RelatedRow, type HeroFact } from './BookingOverviewHero';
+import BookingOverviewHero, { SectionHeading, RelatedRow, ScrollableRows, OVERVIEW_ROW_LIMIT, type HeroFact } from './BookingOverviewHero';
 
 
 interface BookingItemProduct {
@@ -327,6 +327,13 @@ export default async function BookingDetailPage(props: {
   const directoryById = new Map(directory.map((u) => [u.id, u.fullName]));
 
 
+  // Sekcija sa više od pet redova se skraćuje na skrol, a u zaglavlje dobija link ka kartici na
+  // kojoj se vidi ceo sadržaj (2.9.2026, na zahtev vlasnika). Broj u linku je jedini signal da
+  // ispod vidljivih redova ima još — skrol traka je namerno nevidljiva.
+  const tabHref = (tab: string) => `/rezervacije/${params.id}?tab=${tab}`;
+  const overflowLink = (count: number, tab: string) =>
+    count > OVERVIEW_ROW_LIMIT ? { href: tabHref(tab), linkLabel: `svi (${count})` } : {};
+
   // ---- Izvedene vrednosti za sažetak na vrhu novog izgleda (dizajn dok. §6h) ----
   // Računaju se ovde, a ne u `BookingOverviewHero`, da komponenta ostane čisto prikazna —
   // isti obrazac kao ostatak ovog ekrana (podaci se dohvate i izvedu u server komponenti).
@@ -618,29 +625,45 @@ export default async function BookingDetailPage(props: {
                     <SectionHeading
                       title="Aranžman"
                       meta={`${booking.items.length} ${booking.items.length === 1 ? 'usluga' : 'usluge'} · ${formatMoney(booking.totalPrice ?? 0, booking.currency)}`}
+                      {...overflowLink(booking.items.length, 'aranzman')}
                     />
-                    <ItemsSummaryList items={booking.items} currency={booking.currency} flat />
+                    {/* `max-h` je usklađen sa VISINOM REDA te sekcije, ne jedna vrednost za sve —
+                        red usluge je viši (naziv + red detalja) od reda uplate, pa bi ista visina
+                        negde presekla peti red na pola, što izgleda kao greška u prikazu. */}
+                    <ScrollableRows limited={booking.items.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[19rem]">
+                      <ItemsSummaryList items={booking.items} currency={booking.currency} flat />
+                    </ScrollableRows>
                   </div>
 
                   <div>
-                    <SectionHeading title="Putnici" meta={guestSummaryMeta} />
-                    <GuestsSummaryList
-                      items={booking.items}
-                      guestProfilesById={guestProfilesById}
-                      canViewGuestProfiles={canViewGuestProfiles}
-                      flat
-                    />
+                    <SectionHeading title="Putnici" meta={guestSummaryMeta} {...overflowLink(guestCount, 'putnici')} />
+                    <ScrollableRows limited={guestCount > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[11rem]">
+                      <GuestsSummaryList
+                        items={booking.items}
+                        guestProfilesById={guestProfilesById}
+                        canViewGuestProfiles={canViewGuestProfiles}
+                        flat
+                      />
+                    </ScrollableRows>
                   </div>
 
                   <div>
-                    <SectionHeading title="Beleške" />
-                    <NotesSummaryList notes={notes} directoryById={directoryById} />
+                    <SectionHeading title="Beleške" meta={notes.length > 0 ? String(notes.length) : undefined} {...overflowLink(notes.length, 'beleske')} />
+                    <ScrollableRows limited={notes.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
+                      <NotesSummaryList notes={notes} directoryById={directoryById} />
+                    </ScrollableRows>
                   </div>
 
                   {canViewCommunication && booking.clientAccountId && (
                     <div>
-                      <SectionHeading title="Komunikacija" />
-                      <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                      <SectionHeading
+                        title="Komunikacija"
+                        meta={communications.length > 0 ? String(communications.length) : undefined}
+                        {...overflowLink(communications.length, 'komunikacija')}
+                      />
+                      <ScrollableRows limited={communications.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
+                        <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                      </ScrollableRows>
                     </div>
                   )}
                 </div>
@@ -651,17 +674,20 @@ export default async function BookingDetailPage(props: {
                       <SectionHeading
                         title="Uplate"
                         meta={`${payments.length} · ${formatMoney(paidTotal, booking.currency)}`}
+                        {...overflowLink(payments.length, 'finansije')}
                       />
                       {/* Tri velika iznosa (ukupno/uplaćeno/preostalo) su preseljena u sažetak
                           na vrhu — ovde ostaje samo spisak pojedinačnih uplata, da isti broj ne
                           stoji dvaput na istom ekranu u dve različite veličine. */}
-                      <PaymentsSummaryBlock
-                        payments={payments}
-                        totalPrice={booking.totalPrice ?? 0}
-                        paidTotal={paidTotal}
-                        currency={booking.currency}
-                        flat
-                      />
+                      <ScrollableRows limited={payments.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[11rem]">
+                        <PaymentsSummaryBlock
+                          payments={payments}
+                          totalPrice={booking.totalPrice ?? 0}
+                          paidTotal={paidTotal}
+                          currency={booking.currency}
+                          flat
+                        />
+                      </ScrollableRows>
                       {canPrepareFiscal && (
                         <div className="mt-2.5">
                           <PrepareFiscalDocumentButton bookingId={booking.id} />
@@ -727,13 +753,19 @@ export default async function BookingDetailPage(props: {
 
                   {canViewTickets && (
                     <div>
-                      <SectionHeading title="Reklamacije" />
-                      <TicketsSummaryList tickets={tickets} />
+                      <SectionHeading
+                        title="Reklamacije"
+                        meta={tickets.length > 0 ? String(tickets.length) : undefined}
+                        {...overflowLink(tickets.length, 'reklamacije')}
+                      />
+                      <ScrollableRows limited={tickets.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
+                        <TicketsSummaryList tickets={tickets} />
+                      </ScrollableRows>
                     </div>
                   )}
 
                   <div>
-                    <SectionHeading title="Predstavnici" />
+                    <SectionHeading title="Predstavnici" {...overflowLink(booking.items.length, 'predstavnici')} />
                     <RepsSummaryList
                       items={booking.items}
                       checkIns={checkIns}

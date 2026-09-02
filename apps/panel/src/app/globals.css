@@ -277,6 +277,18 @@
   --icon-line: currentColor;
 }
 
+/* Nevidljiva skrol traka (2.9.2026, na zahtev vlasnika — kartica Pregled, dizajn dok. §6h).
+   Sadržaj se i dalje skroluje mišem, tastaturom i dodirom; nestaje SAMO traka. Koristi se
+   isključivo tamo gde uz skraćen spisak stoji i link na pun prikaz (vidi `ScrollableRows`) —
+   bez tog linka korisnik nema nikakav znak da ispod ima još sadržaja. */
+.tt-scroll-hidden {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* stariji Edge/IE */
+}
+.tt-scroll-hidden::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/novi Edge */
+}
+
 * {
   box-sizing: border-box;
 }

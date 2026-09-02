@@ -85,17 +85,57 @@ export default function BookingOverviewHero({
   );
 }
 
-// Naslov sekcije u novom izgledu — puna boja teksta i linija ispod, umesto dosadašnjeg sitnog
-// prigušenog natpisa. U zatečenom izgledu je naslov sekcije bio najsitniji i najbleđi tekst na
-// ekranu, dakle ono što treba da orijentiše bilo je najslabije vidljivo.
-export function SectionHeading({ title, meta, action }: { title: string; meta?: string; action?: React.ReactNode }) {
+// Naslov sekcije u novom izgledu — puna boja teksta umesto dosadašnjeg sitnog prigušenog
+// natpisa (u zatečenom izgledu je ono što treba da orijentiše bilo najslabije vidljivo).
+//
+// Dopuna 2.9.2026, na zahtev vlasnika ("red u kom je naslov sekcije da se nekako drugom
+// nijansom boje izdvoji"): naslov više nije samo tekst sa linijom ispod, nego TRAKA u nijansi
+// `--panel-2` — istoj koju već koriste zaglavlja tabela i bočni paneli, dakle nije nova boja
+// nego postojeći "ovo je zaglavlje, ne sadržaj" signal primenjen i ovde. Traka ide preko cele
+// širine sekcije da bi red bio čitljiv kao granica, ne kao natpis koji lebdi iznad sadržaja.
+export function SectionHeading({
+  title,
+  meta,
+  action,
+  href,
+  linkLabel,
+}: {
+  title: string;
+  meta?: string;
+  action?: React.ReactNode;
+  /** Kartica na kojoj se vidi CEO sadržaj ove sekcije — prikazuje se samo kad je spisak
+   * skraćen na skrol, da korisnik ima izlaz na pun prikaz umesto da traži skrivene redove. */
+  href?: string;
+  linkLabel?: string;
+}) {
   return (
-    <h2 className="mb-2 flex items-baseline gap-2 border-b border-border pb-1.5 text-[13px] font-semibold text-ink">
+    <h2 className="mb-2 flex items-center gap-2 rounded-t border-b border-border bg-panel-2 px-2.5 py-1.5 text-[13px] font-semibold text-ink">
       {title}
       {meta && <span className="font-mono text-[10px] font-normal text-ink-faint">{meta}</span>}
-      {action && <span className="ml-auto">{action}</span>}
+      {href && linkLabel && (
+        <a href={href} className="ml-auto whitespace-nowrap text-[11px] font-normal text-accent-strong hover:underline">
+          {linkLabel} →
+        </a>
+      )}
+      {action && <span className={href && linkLabel ? '' : 'ml-auto'}>{action}</span>}
     </h2>
   );
+}
+
+// Sekcija sa više od pet redova se skraćuje na skrol umesto da razvuče ekran (2.9.2026, na
+// zahtev vlasnika: "u sektorima gde ima više od 5 redova uvesti nevidljivi skroler i link prema
+// tabu gde se nalaze sve informacije za taj sektor").
+//
+// Skrol traka je NEVIDLJIVA (`tt-scroll-hidden`, globals.css) — Pregled je sažetak, pa siva
+// traka uz svaku drugu sekciju vizuelno vraća upravo onu buku zbog koje je ceo ovaj redizajn i
+// nastao. Cena skrivene trake je što se ne vidi da sadržaja ima još; zato je link u zaglavlju
+// ("svi (12) →") OBAVEZAN uz skraćivanje, a ne ukras — broj u njemu je jedini signal da ispod
+// vidljivih redova ima još. Nikad skraćivati bez tog linka.
+export const OVERVIEW_ROW_LIMIT = 5;
+
+export function ScrollableRows({ limited, maxHeight, children }: { limited: boolean; maxHeight: string; children: React.ReactNode }) {
+  if (!limited) return <>{children}</>;
+  return <div className={`tt-scroll-hidden overflow-y-auto ${maxHeight}`}>{children}</div>;
 }
 
 // Red u spisku "Povezano" — četiri veze ka drugim modulima (M6/M10/M11/M20) koje su do sada bile
