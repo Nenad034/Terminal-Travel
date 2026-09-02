@@ -3,6 +3,8 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M5) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+
+**Verzija:** 2.07 — Novo poglavlje 3.0g: ekran vođene pretrage dobija raspored, polja po vrsti proizvoda i ponašanje (2.9.2026, na zahtev vlasnika — "ovo nam je među najvažnijim modulima, odavde sve kreće"). Pretraga se seli iz levog panela u centralni: devet ikonica proizvoda centrirano pri vrhu, sopstvena forma po vrsti, levi panel ostaje samo za filtere. Četiri pravila ponašanja: skupljen red pretrage MORA da prikazuje kriterijume (ne golo "+"), "Osveži podatke" MORA da prijavi razliku u ceni umesto da je tiho zameni, prelazak taba ne briše ni stanje ni desni panel (to je razlika između devet pretraživača i jednog sastavljača putovanja), vrsta bez izvora podataka daje poruku umesto prazne liste. Poglavlje 3.0g.6 nosi tabelu polja za svih devet vrsta, provereno naspram Booking.com Demand/LiteAPI, Google Flights, Blacklane, Avis/Trip.com, Viator/GetYourGuide, Cruise Critic i Squaremouth/InsureMyTrip (septembar 2026) — nalazi uključuju državljanstvo/prebivalište gosta kao cenovni parametar smeštaja, avio-kategorije putnika (beba na krilu ne zauzima sedište), vreme uz datum za transfer i rent-a-car, broj komada prtljaga, jezik vođenja izleta, i povratak `trip_cost` za osiguranje — ne kao filter pretrage (v1.98 odluka ostaje tačna) nego kao ulaz u cenovanje police. Poglavlje 3.0g.7 vodi spisak posledica van M5 (M2 attributes, M4 avio ugovor, M6 `GuestProfile` — rok važenja dokumenta, pol, mesto rođenja). **Ništa od NOVIH polja nije implementirano** — ovo je specifikacija pre koda, po pravilu iz CLAUDE.md.
 **Verzija:** 2.06 — §4.5 dopuna (2.9.2026, na zahtev vlasnika: "kod aranžmana treba da se navede i tip smeštajne jedinice i usluga koja je uplaćena"). `GET /sales/bookings/:id` sada uz svaku stavku vraća i **`roomType`, `boardType` i `occupancy`**. Nisu nova polja na `BookingItem` — dohvataju se kroz postojeći `rateLineId` (`RateLine.boardType`, `RateLine.occupancy`, `ContractPeriod.roomType`, M3) i izravnavaju u odgovor, da pozivalac ne mora da poznaje strukturu M3 ugovora. Snapshot cene već pokazuje na tačan red cenovnika, pa je to jedini tačan izvor onoga što je stvarno ugovoreno i naplaćeno. Za stavke iz M4 (spoljni API) `rateLineId` je `null`, pa su i ova tri polja `null` — to je stvarno stanje, ne greška, i prikaz tada ne pokazuje ništa umesto da pogađa.
 
 **Verzija:** 2.05 — Vaučer prvi put dobija stvaran sadržaj (2.9.2026, isti dan, na vlasnikov odgovor na otvoreno pitanje iz v2.04: "Napravi HTML vaučer stranicu"). Do sada `Booking.voucherUrl` nije vodio nigde stvarno — mock spoljni link bez ijednog reda sadržaja (§13). Sad: javna, neautentifikovana stranica `apps/web` `/rezervacija/vaucer/:id` (locale-prefiksovana, npr. `/sr/...`), servisirana preko novog `GET /sales/bookings/public/:id/voucher` (`PublicVoucherController`, BEZ guard-a — isti obrazac kao M23 `PublicKnowledgeController`; servis fizički vraća samo maskirane podatke §6.2, i samo kad je `voucher_url` već postavljen). Prikazuje po stavci: uslugu, destinaciju, termin, putnike, i **kontakt predstavnika na destinaciji** (ime, telefon, email — direktno rešava vlasnikov zahtev iz v2.04d, "automatski na vaučeru"). Štampa ide preko browser-a (Print to PDF) — namerno BEZ nove PDF biblioteke/servisa (nije bilo tehničke odluke za to, pravi PDF ostaje otvoren ako se pokaže potreba). `issueVoucher`/`voucherOverride` sad grade URL preko `WEB_APP_BASE_URL` env promenljive (podrazumevano lokalni `apps/web` port iz `.claude/launch.json`, 3200) umesto mock domena.
@@ -456,6 +458,164 @@ Jedini tip gde pretraga **ne** liči na ostale — nema `destination_country`/`d
 Tačan skup `attributes.category` vrednosti za `EXCURSION`/`EVENT`/`TICKET` (poglavlje 3.0d.4) — dorađuje se pri stvarnoj izradi ekrana, isti princip kao `AmenityTag` (M2 poglavlje 2.3c). `coverage_regions[]` na `INSURANCE.attributes` (poglavlje 3.0d.8) — pomenuto kao neophodno polje, ne razrađeno strukturno ovde (M2 spec dopuna kad M2 dođe na red za osiguranje). Tačan prag/logika za date-range vs. fiksni-datum izbor u UI (poglavlje 3.0d.6) je ekranska odluka, ne API pitanje.
 
 ---
+
+## 3.0g Ekran vođene pretrage — raspored, polja po vrsti proizvoda, ponašanje (dopuna, 2.9.2026, na zahtev vlasnika)
+
+Poglavlja 3.0c i 3.0d definišu **koje podatke** vođena pretraga poziva. Ovo poglavlje definiše **oblik ekrana i skup polja svake forme** — nastalo posle vlasnikove ocene da su postojeće forme "poprilično siromašne" (jedan zajednički iskačući prozor sa devetak polja služi svih devet vrsta proizvoda) i njegove izričite odluke da se pretraga preseli iz levog panela u centralni. Vlasnikova formulacija zašto ovo poglavlje uopšte postoji: *"ovo nam je među najvažnijim modulima, odavde sve kreće"*.
+
+Polja ispod su proverena naspram onoga što velike platforme i profesionalni API-ji stvarno traže u septembru 2026 (Booking.com Demand API i LiteAPI za smeštaj, Google Flights za letove, Blacklane/Taxi2Airport za transfere, Avis/Trip.com za rent-a-car, Viator i GetYourGuide za izlete, Royal Caribbean/Cruise Critic za krstarenja, Squaremouth/InsureMyTrip/Allianz za osiguranje) — ne prema pretpostavci šta bi trebalo da bude dovoljno.
+
+### 3.0g.1 Raspored ekrana
+
+Vlasnikova odluka (2.9.2026), menja dosadašnji raspored iz `29-DIZAJN-SISTEM-UI.md` §5b:
+
+1. **Ikonice svih devet vrsta proizvoda — centrirane pri vrhu centralnog panela**, ne u levom panelu. Postavlja se **svih devet**, uključujući i one bez izvora podataka (vidi 3.0g.5).
+2. **Forma pretrage ispod ikonica, u centralnom panelu** — različita za svaku vrstu proizvoda (poglavlje 3.0g.6), jer se skupovi polja stvarno razlikuju.
+3. **Levi panel sadrži isključivo filtere**, i oni se menjaju prema aktivnoj vrsti proizvoda. Broj presedanja i udaljenost od plaže nemaju šta jedno kraj drugog — ista tvrdnja koju §3.0c.3/§3.0d.1 već prave na nivou podataka, ovde primenjena na ekran.
+4. **Rezultati ispod forme**, izbor i dalje ide u desni panel (§3.0e.3, nepromenjeno).
+
+Ovim pretraga vizuelno dobija isti oblik kao zapis rezervacije (§4.5) — sažetak gore, tabovi, sadržaj ispod — što je i bila vlasnikova namera ("da vizuelno izgleda slično kao forma za rezervaciju").
+
+### 3.0g.2 Red pretrage se skuplja čim rezultati stignu
+
+Kad pretraga vrati rezultate, forma se skuplja u **jedan red koji i dalje čitko prikazuje kriterijume** (npr. `Grčka · Krf · 12–19.7.2026 · 2 odrasle + 1 dete`), sa `+` sa strane za ponovno otvaranje. Skupljanje na golo `+` bez vidljivih kriterijuma je **izričito zabranjeno**: agent je u tom trenutku na telefonu sa gostom i najčešće pitanje koje dobija je "šta ste ono uneli" — ekran koji to sakriva tera ga da otvara formu samo da bi pročitao sopstveni upit. Mehanizam već postoji (`SearchCriteriaChip`, M17), ovde samo dobija novo mesto i postaje podrazumevano stanje posle pretrage umesto dodatka.
+
+Uz skupljeni red stoje dve radnje:
+
+- **Poništi pretragu** — briše kriterijume i rezultate **te vrste proizvoda** (ne dira ostale tabove niti desni panel — vidi 3.0g.4).
+- **Osveži podatke** — ponavlja isti upit sa istim kriterijumima (poglavlje 3.0g.3).
+
+### 3.0g.3 Osvežavanje mora da prijavi razliku, nikad da tiho zameni cenu
+
+Najozbiljnije pravilo na ovom ekranu. Ponude iz živih izvora imaju rok (`SearchResultOffer.quote_expires_at`, §3.0b.2) i cena se između dva poziva stvarno menja. Ako agent gostu izgovori cenu, pa klikne "Osveži podatke", pa se broj tiho promeni — agencija je upravo dala pogrešnu cenu preko telefona i niko to nije primetio.
+
+Zato "Osveži podatke" **poredi novi odgovor sa prethodnim** (po ključu `product_id` + `rate_line_id`/`provider_quote_reference`, isti ključ koji već koristi selekcija u §3.0e.3) i **jasno prijavljuje šta se promenilo**: koliko je ponuda poskupelo/pojeftinilo, koje su nestale (`SOLD_OUT` ili ih više nema u odgovoru), koje su nove. Promenjeni redovi ostaju vidljivo obeleženi dok korisnik ne pređe dalje. Poređenje je **klijentsko** — nema novog endpointa, `GET /search` se poziva nepromenjen (isti princip kao klijentski filteri u §3.0c.2 tačka 3).
+
+Isto važi i za stavke koje su već u desnom panelu: ako osvežavanje pokaže da je cena izabrane stavke promenjena, to se prikazuje **na toj stavci u desnom panelu**, ne samo u listi rezultata — inače agent vidi upozorenje na mestu koje je već napustio.
+
+### 3.0g.4 Stanje se pamti po vrsti proizvoda; prelazak taba ne briše ništa
+
+Prelazak sa jedne vrste proizvoda na drugu **zadržava** kriterijume i rezultate prethodne, i **nikad ne dira desni panel**. Ovo nije udobnost nego suština ekrana: ako se stanje briše, TT je dobio devet odvojenih pretraživača; ako se pamti, dobio je **sastavljač putovanja** — hotel, pa let, pa transfer, sve troje stoji u desnom panelu kao jedno putovanje koje odatle ide u Ponudu (§3.0e.3) pa u Rezervaciju (poglavlje 4).
+
+Kriterijumi aktivne pretrage ostaju u adresi (`searchParams`, već tako radi) da se zatvoren tab može sutra otvoriti na istoj pretrazi umesto da se kuca iznova.
+
+**Poznato ograničenje, ne rešeno ovom dopunom:** desni panel je čisto klijentsko stanje (§3.0e.3) — ne preživljava osvežavanje stranice, i dva taba za dva različita gosta dele istu selekciju. Zabeleženo u §13, rešava se vezivanjem selekcije za `Itinerary` (poglavlje 3.0) ili trajnim čuvanjem kad na to dođe red.
+
+### 3.0g.5 Vrsta proizvoda bez izvora podataka dobija poruku, ne praznu listu
+
+Od devet vrsta, pet danas nema nijedan ugovor (M3) niti provajdera (M4) iza sebe: **krstarenja, putno osiguranje, rent-a-car, grupni paketi** i **individualni paketi** (ovaj poslednji i strukturno — otvara nacrt, poglavlje 3.0d.5, koji još nema ekran). Vlasnikova odluka je da se svih devet ikonica ipak postavi.
+
+**Kod krstarenja nedostatak ide korak dublje:** `CRUISE` ne postoji ni kao vrednost `ProductType` enuma u šemi, iako ga dizajn dokument §5b navodi kao dodat 17.8.2026 — nesklad otkriven pri izradi ikonica (M17 v1.27) i do danas nerešen, jer dodavanje vrednosti enuma traži Prisma migraciju i potvrdu vlasnika. Ikonica se postavlja, poruka iz ovog poglavlja je jedini ispravan prikaz dok se to ne reši.
+
+Da to ne bi izgledalo kao kvar: takva vrsta proizvoda prikazuje **izričitu poruku** ("Krstarenja još nemaju ugovorene ponude") umesto prazne liste rezultata. Prazna lista uči korisnika da je aplikacija pokvarena; rečenica ga uči da posao tek dolazi. Isti princip kao "prazan ekran je prazna baza, ne pokvaren kod" (`33-ZAMKE-I-OBAVEZNE-PROVERE.md`, zamka 3.1) — samo primenjen unapred, na ekranu, umesto naknadno u dijagnostici.
+
+### 3.0g.6 Polja forme po vrsti proizvoda
+
+Oznaka **NOVO** znači da polje **ne postoji** ni u §3.0c/§3.0d ni u `GET /search` (poglavlje 11) i da ga ova dopuna prvi put traži. Nijedno NOVO polje nije implementirano — spisak posledica van M5 je u poglavlju 3.0g.7.
+
+**Smeštaj (`ACCOMMODATION`)** — §3.0c ostaje na snazi, ovo su dopune.
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| zemlja → destinacija ili hotel | da | §3.0c.2, vođeni koraci, nepromenjeno |
+| datum od / do | da | |
+| sobe: po sobi odrasli, deca, **uzrast svakog deteta** | da | `occupancy.room_config[]`, §3.2a — uzrast deteta je obavezan, ne opcion: bez njega hotelski API vraća cenu koja se pri potvrdi menja |
+| **državljanstvo / zemlja prebivališta gosta** | da | **NOVO** — profesionalni hotelski API-ji (Booking.com Demand, LiteAPI) vraćaju **različite cene po nacionalnosti i prebivalištu** (rezidentne i tržišne tarife, ISO 3166-1 alpha-2). Bez ovog polja TT ne može ni da dobije tu tarifu ni da proveri da li na nju ima pravo — a razlika je stvaran novac, ne nijansa |
+| **valuta prikaza rezultata** | ne | **NOVO** — ISO 4217; danas se podrazumeva jedna valuta, što ne stoji čim postoji strani provajder |
+| vrsta usluge (`board_type`) | ne | filtrira se nad rezultatima, §3.0c.2 tačka 3 |
+| kategorija (zvezdice) | ne | |
+
+**Letovi (`FLIGHT`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| tip putovanja (jednosmerno / povratno / multi-city) | da | §3.0d.1, određuje broj poziva |
+| polazište, odredište, datum(i) po nozi | da | `origin_city` implementiran 1.9.2026 |
+| **putnici po avio-kategorijama** | da | **NOVO** — odrasli (12+), deca (2–11), **bebe na krilu (0–2)**, **bebe na sedištu**. Danas postoji samo `adults`/`children`/`children_ages[]`, što je hotelska podela. Beba na krilu **ne zauzima sedište** i ima suštinski drugačiju cenu i pravila — bez ove podele broj sedišta u odgovoru je pogrešan |
+| klasa (`cabin_class`) | ne | postoji |
+| samo direktni letovi | ne | filter, §3.0d.1 |
+| **fleksibilni datumi (±3 dana)** | ne | **NOVO** — standard na Google Flights/Skyscanner; za agenciju je ovo najčešći način da se nađe jeftinija varijanta |
+
+**Transferi (`TRANSFER`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| mesto preuzimanja, mesto odredišta | da | `origin_city`/`destination_city`, postoji |
+| datum **i vreme** | da | **NOVO (vreme)** — §3.0d.2 danas ima samo datum (`stay_from`). Transfer bez sata je neupotrebljiv podatak |
+| broj putnika | da | |
+| **broj komada prtljaga** | da | **NOVO** — određuje klasu vozila; tri putnika sa ručnim prtljagom i tri sa velikim koferima nisu isto vozilo |
+| **broj leta** | ne | **NOVO** — provajderi prate let i pomeraju preuzimanje kad let kasni. Opciono u pretrazi, ali se traži najkasnije pri potvrdi |
+| jednosmerno / povratno | ne | izbor u formi, ne poseban parametar (§3.0d.2) |
+| **dečje sedište** | ne | **NOVO** — zakonska obaveza u većini zemalja, ne udobnost |
+
+**Rent-a-car (`TRANSPORT`, `transport_mode=RENT_A_CAR`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| mesto preuzimanja / vraćanja | da | različito mesto = one-way, §3.0d.3 |
+| datum **i vreme** preuzimanja i vraćanja | da | **NOVO (vreme)** — najam se naplaćuje od sata preuzimanja, ne po kalendarskom danu |
+| uzrast vozača | da | `driver_age`, postoji |
+| **zemlja izdavanja vozačke dozvole** | da | **NOVO** — određuje da li je potrebna međunarodna dozvola i da li je najam uopšte moguć. Gost koji to sazna na šalteru u inostranstvu je reklamacija |
+| kategorija vozila, menjač, gorivo | ne | filteri |
+
+**Things to do (`EXCURSION` + `EVENT` + `TICKET`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| destinacija | da | |
+| datum ili opseg | da | ponašanje po tipu definisano u poglavlju 11 |
+| broj učesnika (odrasli / deca sa uzrastom) | da | |
+| **jezik vođenja** | ne | **NOVO** — jedan od glavnih filtera na Viator/GetYourGuide, a za srpsko tržište presudan: izlet na jeziku koji gost ne razume je pogrešno prodat izlet |
+| **doba dana (pre podne / po podne / veče)** | ne | **NOVO** — standardni filter obe platforme |
+| besplatno otkazivanje | ne | `is_refundable` već postoji (§3.0b.2), ovde se samo prikazuje kao brzi filter — isti obrazac kao §3.0c.3a |
+| kategorija (`attributes.category`) | ne | §3.0d.4 |
+
+**Grupni paketi (`PACKAGE`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| destinacija | da | |
+| termin sa liste (`PackageDeparture`) | da | nikad slobodan kalendar, §3.0d.6 |
+| putnici | da | |
+| **grad polaska prevoza** | ne | **NOVO** — kod čarter aranžmana gost bira polazak iz Beograda ili Niša; to je za njega presudan podatak, a danas nigde ne postoji kao kriterijum pretrage paketa |
+| tip sobe | ne | |
+
+**Krstarenja (`CRUISE`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| region ili destinacija | da | §3.0d.7 |
+| mesec ili opseg polaska | da | |
+| putnici | da | |
+| **luka polaska** | ne | **NOVO** — prvi filter na svakoj specijalizovanoj platformi (odakle se isplovljava određuje ceo trošak dolaska do broda) |
+| **kompanija / brod** | ne | **NOVO** — gosti krstarenja biraju kompaniju kao što biraju hotelski lanac |
+| trajanje (`duration_nights`), tip kabine (`cabin_type`) | ne | postoje u §3.0d.7 |
+
+**Putno osiguranje (`INSURANCE`)**
+
+| Polje | Obavezno | Napomena |
+| :---- | :---- | :---- |
+| odredište | da | filtrira `coverage_regions[]`, §3.0d.8 |
+| datum od / do | da | trajanje pokrića |
+| **uzrast svakog putnika** | da | ne samo broj — premija se računa po uzrastu svakog osiguranika (`age_pricing[]`, §3.2b) |
+| **zemlja prebivališta osiguranika** | da | **NOVO** — polisa se izdaje po prebivalištu, ne po odredištu; svi ispitani osiguravači je traže kao obavezan podatak |
+| **vrednost putovanja (`trip_cost`)** | da | **NOVO — vraća se, ali na drugo mesto.** Uklonjena 1.9.2026 (v1.98) kao parametar `GET /search`, i **ta odluka ostaje tačna**: vrednost putovanja nije svojstvo proizvoda, pa se polise njome ne filtriraju. Ali svi ispitani osiguravači je traže jer **premija zavisi od nje** — dakle: nije filter pretrage, jeste obavezno polje forme koje ulazi u cenovanje police. Tačan način ulaska u cenu (M3 `age_pricing[]` proširen procentom od vrednosti putovanja, ili posebno pravilo) **nije rešen ovde** — čeka trenutak kad `INSURANCE` stvarno dođe na red, kako je već zabeleženo u §3.0d.8 |
+
+**Individualni paketi** — nema sopstvenu formu pretrage (§3.0d.5); ikonica otvara nacrt (poglavlje 3.0), a unutar njega se koriste forme iznad, jedna po segmentu.
+
+### 3.0g.7 Šta ova dopuna traži van M5 — spisak, ne izmena
+
+Nijedno NOVO polje iznad nije implementirano niti upisano u druge module. Redom, da se ne izgubi:
+
+- **M2 (katalog), `Product.attributes`:** jezik vođenja (`EXCURSION`), luka polaska i kompanija/brod (`CRUISE`), kapacitet prtljaga i dostupnost dečjeg sedišta (`TRANSFER`), grad polaska prevoza (`PACKAGE`).
+- **M5 `GET /search` (poglavlje 11), nova opciona polja:** `guest_nationality`/`guest_residency`, vreme uz `stay_from`/`stay_to` za `TRANSFER` i `RENT_A_CAR`, `guide_language`, `departure_port`, `currency`.
+- **M6 (CRM), `GuestProfile`:** **rok važenja dokumenta, pol, mesto/zemlja rođenja.** Ovo ne traži pretraga nego vlasnikova odluka od 2.9.2026 da se **podaci putnika traže odmah i u celosti** (poglavlje 4.4). Postojeći profil nosi ime, vrstu i broj dokumenta, državljanstvo, datum rođenja, e-poštu i telefon — tri navedena polja nedostaju, a avio-kompanije traže pol i rok važenja dokumenta, i rok važenja je uslov za vizu.
+- **M4 (integracije):** avio-kategorije putnika (odrasli/deca/bebe na krilu/bebe na sedištu) su ugovor prema provajderu, ne samo oblik forme — razrađuje se kad M4 dobije avio adapter (§3.0d.1 već beleži isto ograničenje za multi-segment let).
+
+Nijedna od ovih izmena se **ne izvodi u istom prolazu** kao ekran pretrage — svaka traži dopunu svoje specifikacije i potvrdu vlasnika, po istom pravilu kao i ova.
+
+---
+
 
 ## 3.0e Unakrsna prodaja, pretraga unutar rezultata, i AI kao brz put do ponude (dopuna, 17.8.2026, na zahtev vlasnika)
 

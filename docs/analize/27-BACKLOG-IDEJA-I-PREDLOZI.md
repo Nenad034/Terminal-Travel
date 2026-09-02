@@ -117,6 +117,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M2 — Katalog proizvoda
 *(§9, `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`)*
+- **Atributi koje traži nova forma pretrage** (M5 §3.0g.7, 2.9.2026): jezik vođenja (`EXCURSION`), luka polaska i kompanija/brod (`CRUISE`), kapacitet prtljaga i dečje sedište (`TRANSFER`), grad polaska prevoza (`PACKAGE`).
+- **`CRUISE` ne postoji kao vrednost `ProductType` enuma** iako ga dizajn dok. §5b navodi kao dodat 17.8.2026 (otkriveno u M17 v1.27, ponovo potvrđeno 2.9.2026 u M5 §3.0g.5) — traži Prisma migraciju i potvrdu vlasnika.
 - Ožičiti `ProductTranslation` na deljeni M15 `TranslationService` (M15 spec poglavlje 6.7, dodato 18.8.2026) — verovatno kroz postojeći `ProductContentImport` tok (`origin` dobija novu vrednost, npr. `AI_TRANSLATION`), isti obrazac kao M23 poglavlje 4e. Čeka da se prvo uživo proveri kroz M23.
 - Pravila za `PACKAGE` proizvode i odnos cene paketa prema zbiru komponenti — čeka M3.
 - Da li treba odobrenje pre prelaska proizvoda iz `DRAFT` u `ACTIVE`.
@@ -163,6 +165,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
+- **Nova polja forme pretrage po vrsti proizvoda** (§3.0g.6, 2.9.2026, istraženo naspram Booking.com Demand/LiteAPI, Google Flights, Blacklane, Avis, Viator/GetYourGuide, Cruise Critic, Squaremouth): državljanstvo/prebivalište gosta kao cenovni parametar smeštaja, avio-kategorije putnika (beba na krilu ne zauzima sedište), vreme uz datum za `TRANSFER`/`RENT_A_CAR`, broj komada prtljaga, broj leta, zemlja izdavanja vozačke dozvole, jezik vođenja i doba dana za izlete, luka polaska i kompanija za krstarenja, zemlja prebivališta osiguranika. Nijedno nije implementirano.
+- **`trip_cost` za `INSURANCE` — kako ulazi u cenu police** (§3.0g.6, 2.9.2026): uklonjen 1.9.2026 kao filter pretrage i ta odluka ostaje tačna, ali svi ispitani osiguravači ga traže jer premija zavisi od njega. Način ulaska u cenovanje (M3 `age_pricing[]` ili posebno pravilo) nije rešen — čeka da `INSURANCE` dođe na red.
+- **Desni panel (selekcija) ne preživljava osvežavanje stranice**, a dva taba za dva različita gosta dele istu selekciju (§3.0e.3, ponovo zabeleženo u §3.0g.4, 2.9.2026) — rešava se vezivanjem za `Itinerary` ili trajnim čuvanjem.
 - ~~Vođena pretraga za 9 vrsta proizvoda — preostalo `origin_city`/`trip_cost`.~~ **Rešeno (1.9.2026, M2 spec §2.3 v1.16, M5 spec v1.98)** — `route.origin_city`/`route.destination_city` imenovani kao konvencija za FLIGHT/TRANSFER/opšti TRANSPORT (RENT_A_CAR zadržava sopstvena `pickup_location`/`dropoff_location`), `origin_city` search-parametar ožičen; `trip_cost` uklonjen iz `GET /search` liste (nije svojstvo proizvoda). Poznat preostatak: `destination_city` za RENT_A_CAR i dalje ne razlikuje `dropoff_location` od opšteg `Product.destinationCity` (one-way rental nijansa) — otvoreno ako zatreba u praksi. UI wiring i dalje ne postoji ni za jedan pogođeni tip (isti status kao ostatak `/rezervacije/pretraga`).
 - ~~`SearchResultOffer.is_refundable` za `API` izvor ostaje `null`.~~ **Rešeno (1.9.2026, M5 spec §3.0b.2 v1.96)** — sva tri M4 adaptera (Travelgate/Solvex/WebHotelier) već vraćaju strukturisan `cancellationPolicy` pri `checkAvailabilityAndPrice` (poziv koji M5 pretraga već izvršava za cenu API stavki); ranija pretpostavka da provajderi to ne izlažu bila je netačna. Novo `common/refundability.ts`, polje je sad uvek `boolean` (CONTRACTED/API/PACKAGE, potonje po pravilu "najstroži sastojak odlučuje"). I dalje otvoreno, poznat nedostatak: sam UI filter "Refundabilno/Nerefundabilno" čeka žicu — `/rezervacije/pretraga` je i dalje potpuno MOCK ekran.
 - Tačan UI izbor datuma polaska sa liste termina za `PACKAGE` (poglavlje 3.0d.6) — dizajnersko pitanje.
@@ -193,6 +198,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
+- **`GuestProfile` nema rok važenja dokumenta, pol, ni mesto/zemlju rođenja** (M5 §3.0g.7, 2.9.2026) — potrebno zbog vlasnikove odluke da se podaci putnika traže odmah i u celosti; avio-kompanije traže pol i rok važenja dokumenta, a rok važenja je i uslov za vizu.
 - Tačan period čuvanja/anonimizacije ličnih podataka gosta (pravo na zaborav) — utvrditi sa pravnikom.
 - **EU Digital Identity Wallet (EUDI) kao izvor podataka gosta** (22.8.2026, Phocuswright izveštaj 2026) — eIDAS 2.0 obavezuje EU platforme na prihvatanje do kraja 2027; TT nije u obavezanom krugu, ali gost sa novčanikom bi mogao njime popuniti `GuestProfile` umesto ručnog unosa. Čeka stvarnu potražnju iz EU tržišta, ne pre.
 - **Nalaz (29.8.2026, pri pripremi M18 žive procesne mape, poglavlje 9a te specifikacije):** M6 ima samo JEDNU akciju u audit tragu (`loyalty_status.manual_override`) — kreiranje/izmena profila gosta, ankete, komunikacija se danas ne beleže (specom potvrđeno kao namerno, §3.2/§7, ne propust). Vlasnik je odlučio (upitan direktno) da M6 PRESKOČI za živu procesnu mapu dok se ne odluči da li CRM treba bogatiji trag — mapa sa jednim čvorom ne bi bila korisna slika toka.
@@ -307,6 +313,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M17 — Interni radni panel
 *(§8, `docs/moduli/M17-interni-panel/11-SPECIFIKACIJA-M17-INTERNI-PANEL.md`)*
+- **Ekran pretrage — nov raspored** (M5 §3.0g, dizajn dok. §6d.1, 2.9.2026): ikonice u centralnom panelu, forma po vrsti proizvoda, levi panel samo filteri, skupljen red sa vidljivim kriterijumima, "Poništi pretragu"/"Osveži podatke", stanje se pamti po vrsti, `prefetch`. **Specifikacija upisana, kod nije pisan** — čeka potvrdu vlasnika.
 - Razmotriti zaseban modul za notifikacije/podsetnike ako agregacija upozorenja postane nedovoljna.
 - ~~Obeležavanje autora radnje (§3.1)~~ **Rešeno (17.8.2026)** — `ActorLabel` na osam ekrana, live-provera dovršena u oba moda; usput ispravljen pad kontrasta AI bedža i "Invalid Date" u audit logu.
 - **`RateLine.board_type` nema zatvorenu listu vrednosti** (nalaz 2.9.2026, pri prikazu pansiona na ekranu rezervacije) — M3 spec ga opisuje kao slobodan `string` ("npr. polupansion, all-inclusive"), a implementacija upisuje `HALF_BOARD`. Isti pansion se time može upisati na više načina (`HB`, `HALF_BOARD`, `polupansion`), što deli izveštaje u M13 (`FactBooking.board_type`) i otežava filtriranje u pretrazi. Panel za sada prihvata oba oblika i prikazuje standardnu oznaku (`apps/panel/src/lib/travel-labels.ts`), ali to je zakrpa na prikazu — pravo rešenje je zatvorena lista (enum ili šifarnik) u M3, sa migracijom postojećih vrednosti.

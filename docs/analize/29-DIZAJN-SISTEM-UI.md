@@ -3,8 +3,10 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu) i M7 (B2B portal, isti obrazac — poglavlje 7), kasnije M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
+**Verzija:** 1.58 — novo poglavlje 6d.1 (2.9.2026, na zahtev vlasnika): ekran pretrage seli formu iz levog panela u centralni — devet ikonica proizvoda centrirano pri vrhu, sopstvena forma po vrsti proizvoda, levi panel ostaje isključivo filterima. Skupljen red pretrage MORA da prikazuje kriterijume (golo "+" je zabranjeno — agent je na telefonu sa gostom), "Osveži podatke" prijavljuje razliku u ceni umesto da je tiho zameni, prelazak između vrsta ne briše ni unos ni desni panel, prelazak koristi `prefetch`. Podaci i tabele polja po svih devet vrsta: M5 §3.0g.
+
+**Verzija:** 1.57 — dopuna poglavlja 6h (2.9.2026, na zahtev vlasnika: "ovo zaokruženo nema razloga da bude ovoliko naglašeno"): **na ekranu sažetka nema glavne radnje, pa nema ni punog akcentnog dugmeta.** Akcentna boja je rezervisana za glavnu radnju ekrana; ekran koji se samo čita je nema, pa uzgredne radnje idu kao tihe veze u `--accent-strong`, poravnate desno uz svoju sekciju. Ista komponenta zadržava punu težinu gde radnja jeste glavna (kartica Dokumenti) — težina se bira po kontekstu, ne po komponenti. Usput zabeležen nalaz koji nije bio boja: dugme se rasteglo preko cele širine zbog roditeljskog `flex flex-col` (`align-items: stretch`), ne zbog sopstvenih klasa.
 **Verzija:** 1.56 — novo poglavlje 6f (28.8.2026, na zahtev vlasnika: "gde god je moguće izbegao bih padajuće menije, koristio bih formu tastera na koji se klikne za ono što želim ili dva klika za ono što ne želim"). Pravilo za nove ekrane: mali/poznat skup opcija → dugmad (jednostruk izbor: jedno aktivno, klik menja; višestruk izbor: klik uključuje/isključuje), ne `<select>`. Prvi primer: `RoomTypesEditor.tsx` (M2/M17). Retrofit postojećih padajućih menija namerno van obima ove dopune.
-**Verzija:** 1.56 — dopuna poglavlja 6h (2.9.2026, na zahtev vlasnika: "ovo zaokruženo nema razloga da bude ovoliko naglašeno"): **na ekranu sažetka nema glavne radnje, pa nema ni punog akcentnog dugmeta.** Akcentna boja je rezervisana za glavnu radnju ekrana; ekran koji se samo čita je nema, pa uzgredne radnje idu kao tihe veze u `--accent-strong`, poravnate desno uz svoju sekciju. Ista komponenta zadržava punu težinu gde radnja jeste glavna (kartica Dokumenti) — težina se bira po kontekstu, ne po komponenti. Usput zabeležen nalaz koji nije bio boja: dugme se rasteglo preko cele širine zbog roditeljskog `flex flex-col` (`align-items: stretch`), ne zbog sopstvenih klasa.
 
 **Verzija:** 1.55 — tri dopune, isti dan kao v1.54, na zahtev vlasnika/uživo nalazi: (1) auto-kontekst taba i "#" na stavci menija sad postaju FILTERED_LIST (ne RECORD) kad ruta ima pravi `filter_list` pogled — ispravlja pogrešan odgovor "ne vidim sadržaj ekrana" na pitanje o broju rezervacija; (2) Fokus tab (§6c.0) sadržaj ograničen na 70% širine, centriran; (3) dugme za zatvaranje taba (poglavlje 5a) uvek na desnoj ivici, ne odmah uz kratak naziv. M17 spec v2.18.
 **Verzija:** 1.55 — dopuna poglavlja 6h i **nov token `--sunken`** u paleti (2.9.2026, na zahtev vlasnika: "centralni sektor unutra u tamnijoj nijansi; naslovni deo tamnija nijansa a sadržaj ispod svetlija"). Sekcija postaje jedan objekat: utonula traka naslova (`--sunken`) + izdignuto telo (`--panel`), u zajedničkom okviru sa `overflow-hidden`. Do sada sadržaj sekcije nije imao sopstvenu površinu nego je sedeo direktno na pozadini strane. Nov token je bio neophodan jer `--panel-2` po nasleđenoj VS Code logici menja smer po modu (tamniji od sadržaja u svetlom, svetliji u dim/tamnom), a traženi odnos mora biti isti u sva tri moda; `--panel-2` ostaje nepromenjen za bočne panele i zaglavlja tabela. Vrednosti: `#eeeef0` svetli, `#16202f` dim, `#131316` tamni — sve provereno `tools/check-contrast.js`-om (površina dodata u proveru). Zabeležena i poznata cena: u tamnim modovima telo sekcije postaje najsvetlija površina na ekranu, što je prihvatljivo za kratke liste ali traži ponovnu procenu ako se obrazac primeni na ekran sa mnogo sadržaja.
@@ -751,6 +753,30 @@ Priložen kontekst prikazuje se kao uklonjiv "čip" u plutajućem bloku iznad po
 - **Radnja "Info" — veza sa bazom znanja** (dopuna, 18.8.2026, na zahtev vlasnika; podaci/logika: M5 poglavlje 3.0b.4) — svaka kartica i svaki kompaktan red rezultata nosi malu radnju "Info" (ikonica, ne puno dugme — ne guši glavnu radnju "Dodaj"). Klik otvara desni panel (poglavlje 5b, "izdvajanje" — isti obrazac kao AI razgovor ili istorija izmena, samo drugi izvor sadržaja) sa M23 sadržajem o tom proizvodu/destinaciji. Prazno stanje kad članak ne postoji je isto tiho/pošteno kao svako drugo prazno stanje u ovom dokumentu (poglavlje 6) — ne izmišljen tekst. Dostupno samo u M17/M7 (gde je M23 uopšte dostupan, M23 spec poglavlje 1.3) — ne prikazuje se na M8 rezultatima.
 
 ---
+
+### 6d.1 Ekran pretrage — ikonice proizvoda u centralnom panelu, forma po vrsti, levi panel samo filteri (dopuna, 2.9.2026, na zahtev vlasnika)
+
+*(podaci/logika iza ovoga: M5 poglavlje 3.0g — tamo su i tabele polja po svih devet vrsta proizvoda)*
+
+Vlasnikova odluka menja raspored opisan u poglavlju 5b i u tački "Filteri" iznad. Razlog je njegov: *"ovo nam je među najvažnijim modulima, odavde sve kreće"* — a dotadašnja forma je bila jedan zajednički iskačući prozor sa devetak polja za svih devet vrsta proizvoda.
+
+- **Ikonice svih devet vrsta proizvoda — centrirane pri vrhu centralnog panela**, ne u levom navigatoru. Postavlja se svih devet i onda kad pet nema izvor podataka (M5 §3.0g.5).
+- **Forma ispod ikonica, u centralnom panelu, različita za svaku vrstu.** Polja se stvarno razlikuju (M5 §3.0g.6) — zajednička forma je bila kompromis, ne odluka.
+- **Levi panel ostaje isključivo filterima**, koji se menjaju prema aktivnoj vrsti. Broj presedanja i udaljenost od plaže nemaju šta jedno kraj drugog. Sve ostalo iz tačke "Filteri" u poglavlju 6d (grupisanje po kategoriji, pinovani brzi filteri) važi nepromenjeno.
+- **Rezultati ispod forme**, izbor i dalje ide u desni panel (nepromenjeno).
+
+Time ekran pretrage dobija isti oblik kao ekran zapisa (poglavlje 6h) — sažetak gore, tabovi, sadržaj ispod — što je vlasnik i tražio ("da vizuelno izgleda slično kao forma za rezervaciju").
+
+**Skupljen red pretrage mora da ostane čitljiv.** Čim rezultati stignu, forma se skuplja u jedan red sa kriterijumima (`Grčka · Krf · 12–19.7.2026 · 2 odrasle + 1 dete`) i `+` za otvaranje. **Skupljanje na golo `+` je zabranjeno** — agent je tad na telefonu sa gostom i najčešće pitanje je "šta ste ono uneli"; ekran koji to sakriva tera ga da otvara formu da pročita sopstveni upit. Uz red stoje "Poništi pretragu" i "Osveži podatke".
+
+**Osvežavanje prijavljuje razliku, ne menja cenu u tišini** (M5 §3.0g.3) — ovo je pravilo prikaza koliko i pravilo podataka, pa stoji i ovde: promenjene ponude ostaju vidljivo obeležene, a promena na već izabranoj stavci se prikazuje **i u desnom panelu**, ne samo u listi rezultata koju je korisnik možda napustio.
+
+**Prelazak sa jedne vrste proizvoda na drugu ne briše ništa** — ni unos prethodne, ni njene rezultate, ni desni panel (M5 §3.0g.4). Ako briše, ekran je devet odvojenih pretraživača; ako pamti, ekran je sastavljač putovanja. Cela vrednost ovog ekrana je u toj razlici.
+
+**Prelazak između vrsta proizvoda koristi `prefetch`** (vlasnikova odluka, 2.9.2026): dok korisnik gleda rezultate jedne vrste, kod ostalih formi i ekran ponude povlače se u pozadini, pa je prelazak trenutan. Ne odnosi se na same rezultate — oni zavise od onoga što se tek unese.
+
+---
+
 
 ## 6e. Kartica sadržaja — naslov, bedž, opis, akcije (dopuna, 20.8.2026, na zahtev vlasnika)
 
