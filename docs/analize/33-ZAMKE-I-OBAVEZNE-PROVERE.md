@@ -303,6 +303,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* inline skripta (npr. `next/script` sa `strategy="beforeInteractive"` ili goli `<script>`) iscrtana iz React stabla. Na prvom učitavanju skripta stvarno radi (SSR HTML), pa upozorenje deluje kao lažna uzbuna — i najčešći savet sa interneta je da se poruka **uguši** filtriranjem `console.error`. To je savet za one koji ne mogu da menjaju biblioteku (`next-themes`); u sopstvenom kodu je zaobilaženje simptoma.
 - *Provera:* ako podatak koji skripta traži server ume da pročita (kolačić, zaglavlje, sesija), reši ga **na serveru** i iscrtaj rezultat u HTML — skripta tada nije potrebna uopšte. Tako je 2.9.2026 rešen izbor teme u panelu: `localStorage` + blokirajuća skripta → kolačić koji `layout.tsx` čita. Nusprodukt: `suppressHydrationWarning` na `<html>` je uklonjen, pa provera neslaganja server/klijent na korenskom elementu ponovo radi.
 
+**9.7 Biblioteka koja sama računa adresu svog radnog procesa (worker) puca posle pakovanja**
+- *Simptom:* komponenta se učita, ali ništa ne nacrta; u konzoli `Failed to load module script: The server responded with a non-JavaScript MIME type of "text/html"`. Nijedan `<script src>` na stranici nije u kvaru — provera svih chunk-ova pokazuje da vraćaju JavaScript.
+- *Uzrok:* biblioteka (kod nas MapLibre GL) izvodi adresu svog workera iz `import.meta.url`, računajući da stoji pored svojih fajlova u `node_modules/…/dist/`. Posle pakovanja (Turbopack) ta adresa pokazuje na chunk u `/_next/static/chunks/`, pa "susedni" fajl ne postoji — server vrati HTML stranicu greške, browser je odbije. U mreži se ne vidi kao obična 404 na `<script>` jer učitavanje pokreće worker, ne stranica.
+- *Provera:* kad se biblioteka ne iscrtava a chunk-ovi su ispravni, proveri da li pravi Worker iz izračunate adrese (`grep "import.meta.url"` u njenom `dist`-u). Rešenje: zadati adresu izričito (`setWorkerUrl` ili ekvivalent) i servirati fajl sa stabilnog mesta, a kopiranje vezati za `postinstall` da ne zastari pri nadogradnji. Kopirati **sve** fajlove koje worker relativno uvozi, ne samo glavni.
+
 ## 10. Prisma `Decimal` polja preko JSON-a (backend ↔ panel/web ugovor)
 
 **10.1 `Decimal` stiže na frontend kao STRING, ne broj — `.toFixed()`/aritmetika puca u produkciji, `tsc` to ne hvata**
