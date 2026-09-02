@@ -113,6 +113,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M1 — Core / Identitet i pristup
 *(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
+- **Nov nalog zaposlenog ne može da se prijavi — 2FA obavezna, put za prvo podešavanje ne postoji** (M1 §5, nalaz 2.9.2026) — `login` odbija internu ulogu bez `mfaEnabled`, a `mfa/enroll` traži JWT koji se izdaje tek posle prijave. Blokada i na produkciji, ne samo u testu. Traži odluku o obliku (link u pozivnici / `mfa_setup_pending` token / HR uključuje u ime korisnika). Zamka 5.6 u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`.
+- **`seed.ts` ne pravi nijedan `STAFF` nalog** (nalaz 2.9.2026) — posle svežeg seed-a niko se ne može prijaviti u panel; uloge i dozvole postoje, korisnika nema. Zamka 5.7.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda

@@ -196,6 +196,16 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 
 ---
 
+**5.6 Nov nalog zaposlenog ne može da se prijavi — 2FA je obavezna, a ekrana za podešavanje nema**
+- *Simptom:* svaki pokušaj prijave novonapravljenog `STAFF` naloga vraća `403 — "Podešavanje dvofaktorske autentikacije je obavezno pre prijave"`. Nalog je `ACTIVE`, lozinka tačna, uloga dodeljena.
+- *Uzrok:* `AuthService.login` odbija internu ulogu dok `mfaEnabled` nije `true` (M1 spec §5), a jedini put da se 2FA uključi (`POST /iam/auth/mfa/enroll`) stoji iza `JwtAuthGuard` — token koji taj guard traži izdaje se tek posle uspešne prijave. Komentar u samom kodu to i priznaje: *"ta stranica/endpoint je van obima ovog fajla"*. Nema ni ekrana u panelu ni neautentifikovanog puta za prvo podešavanje. **Ovo nije samo test-nezgodnost — nijedan nov zaposleni ne može da se prijavi ni na produkciji.**
+- *Provera:* kad modul uvodi obavezan korak pre prijave, u istom prolazu mora postojati i put kojim se taj korak prvi put obavlja (standing pravilo "logika postoji, UI ne" iz CLAUDE.md). Za lokalni rad zaobilazak je upisati `mfaSecretEncrypted`/`mfaEnabled` direktno, istim `encryptSecret`/`otplib` pozivima koje koristi `enrollMfa` — prijava potom ide kroz **pravu** proveru koda, bez slabljenja bezbednosti.
+
+**5.7 Seed ne pravi nijedan nalog zaposlenog**
+- *Simptom:* posle `prisma db seed` niko ne može da se prijavi u panel; uloge i dozvole postoje, korisnika nema.
+- *Uzrok:* `seed.ts` pravi uloge, dozvole i sistemske AI naloge (`*@sistem.terminal-travel.local`, bez lozinke), ali nijedan ljudski `STAFF` nalog.
+- *Provera:* pre bilo kakve tvrdnje da je ekran u panelu "proveren uživo", potvrdi da postoji nalog kojim se uopšte može prijaviti — inače provera nije ni mogla da se desi. Vidi i 5.6.
+
 ## 6. Rad paralelno sa drugim agentom
 
 **6.1 Nikad `git add -A` kad drugi agent radi**

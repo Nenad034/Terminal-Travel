@@ -4,6 +4,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
 import { sortOptionsFor, resolveSort } from '@/lib/search-sort';
 
+// Srpska promena broja: 1 rezultat, 2–4 rezultata, 5+ rezultata — s tim da 11–14 idu kao 5+
+// ("11 rezultata", ne "11 rezultat"). Bez ovoga je pisalo "1 rezultata".
+function resultLabel(n: number): string {
+  const last2 = n % 100;
+  const last = n % 10;
+  if (last === 1 && last2 !== 11) return `${n} rezultat`;
+  return `${n} rezultata`;
+}
+
 // Traka za sortiranje rezultata (M5 spec §3.0g.8, dizajn dok. §6d.2). Stoji IZNAD rezultata u
 // centralnom panelu, ne u levom panelu među filterima — sortiranje i filtriranje su dve različite
 // radnje: filter menja KOJI se rezultati vide, sortiranje samo REDOSLED. Isti razlog zašto je i
@@ -48,7 +57,7 @@ export default function SortBar({ resultCount }: { resultCount: number }) {
           </button>
         ))}
       </div>
-      {resultCount > 0 && <span className="ml-auto text-ink-faint">{resultCount} rezultata</span>}
+      {resultCount > 0 && <span className="ml-auto text-ink-faint">{resultLabel(resultCount)}</span>}
     </div>
   );
 }
