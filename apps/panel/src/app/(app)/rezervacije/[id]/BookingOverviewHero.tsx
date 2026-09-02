@@ -22,11 +22,17 @@ export interface HeroFact {
 
 export default function BookingOverviewHero({
   bookingNumber,
+  holderName,
   subtitle,
   badges,
   facts,
 }: {
   bookingNumber: string;
+  /** Nosilac rezervacije (2.9.2026, na zahtev vlasnika: "ime i prezime nosioca rezervacije
+   * treba da piše boldiranim slovima i većim fontom"). Izdvojen iz `subtitle` u sopstveni red
+   * — to je ime po kom se rezervacija traži i po kom se gost javlja telefonom, pa ne sme da
+   * stoji u istom sitnom nizu sa imenima kolega koji su vlasnik/zaduženi. */
+  holderName: string | null;
   subtitle: string;
   badges: { label: string; tone: 'ok' | 'warn' | 'danger' | 'neutral' }[];
   facts: HeroFact[];
@@ -39,10 +45,14 @@ export default function BookingOverviewHero({
             <span className="text-accent">$</span>
             <span className="truncate">{bookingNumber}</span>
           </div>
+          {/* Nosilac rezervacije je krupniji i podebljan — jedini deo zaglavlja koji nije ni
+              šifra ni sitan tekst. Broj rezervacije se koristi za pretragu i dopisivanje, ali
+              čovek pamti IME; zato ime stoji odmah ispod broja i čita se prvo. */}
+          {holderName && <div className="mt-1 text-[15px] font-semibold leading-tight text-ink">{holderName}</div>}
           {/* Vlasnik/zaduženi ostaju VIDLJIVI kao podatak — sa vrha ekrana su sklonjene samo
               njihove forme za prenos (kartica Ownership), jer se koriste retko a zauzimale su
               najvredniji deo prvog ekrana. Same radnje su i dalje na istom mestu, ispod. */}
-          <div className="mt-0.5 text-[11px] text-ink-faint">{subtitle}</div>
+          {subtitle && <div className="mt-0.5 text-[11px] text-ink-faint">{subtitle}</div>}
         </div>
         <div className="ml-auto flex flex-wrap gap-1.5">
           {badges.map((b) => (

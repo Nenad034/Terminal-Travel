@@ -994,6 +994,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.53 — Kartica Pregled (2.9.2026, isti dan, na zahtev vlasnika): Uplate i Povezano premešteni u levu kolonu ispod Putnika, Beleške i Komunikacija u desnu; ime nosioca rezervacije prikazano podebljano i krupnije, u sopstvenom redu odvojeno od vlasnika/zaduženog. Obrazloženje podele: `docs/analize/29-DIZAJN-SISTEM-UI.md` §6h.
+
 **Verzija:** 2.52 — Kartica Pregled (2.9.2026, isti dan, na zahtev vlasnika): stavka aranžmana prikazuje **tip smeštajne jedinice i uplaćenu uslugu** (`Standardna soba (STD) · Polupansion (HB) · 2 odraslih`) u sopstvenom redu iznad destinacije; država se piše punim nazivom uz oznaku (`Grčka (GR)`); kolone su izjednačene. Podaci dolaze iz M5 API-ja (`roomType`/`boardType`/`occupancy`, M5 spec §4.5 dopuna) i prikazuju se samo kad postoje — stavke iz M4 spoljnog API-ja ih nemaju. Prevodi šifri: `apps/panel/src/lib/travel-labels.ts`. Isti podaci dodati i u zatečeni izgled kartice, da se dva izgleda ne raziđu po sadržaju.
 
 **Verzija:** 2.52 — Kartica Pregled (2.9.2026, isti dan, na zahtev vlasnika): stavka aranžmana prikazuje **tip smeštajne jedinice i uplaćenu uslugu** (`Standardna soba (STD) · Polupansion (HB) · 2 odraslih`) u sopstvenom redu iznad destinacije; država se piše punim nazivom uz oznaku (`Grčka (GR)`); kolone su izjednačene. Podaci dolaze iz M5 API-ja (`roomType`/`boardType`/`occupancy`, M5 spec §4.5 dopuna) i prikazuju se samo kad postoje — stavke iz M4 spoljnog API-ja ih nemaju. Prevodi šifri: `apps/panel/src/lib/travel-labels.ts`. Isti podaci dodati i u zatečeni izgled kartice, da se dva izgleda ne raziđu po sadržaju.

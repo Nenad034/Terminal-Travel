@@ -372,8 +372,14 @@ export default async function BookingDetailPage(props: {
         : String(guestCount);
 
   const balance = (booking?.totalPrice ?? 0) - paidTotal;
+  // Nosilac rezervacije se prikazuje ODVOJENO od vlasnika/zaduženog (2.9.2026, na zahtev
+  // vlasnika) — to su tri različite osobe u tri različite uloge, a do sada su stajale u jednom
+  // nizu razdvojene tačkicama, u istoj veličini i boji. Gost je taj po kome se rezervacija
+  // traži; vlasnik i zaduženi su interna raspodela posla.
+  const holderName = clientAccount
+    ? ((clientAccount.accountType === 'LEGAL_ENTITY' ? clientAccount.companyName : clientAccount.fullName) ?? null)
+    : null;
   const overviewSubtitle = [
-    clientAccount ? (clientAccount.accountType === 'LEGAL_ENTITY' ? clientAccount.companyName : clientAccount.fullName) : null,
     booking?.ownerId ? `vlasnik ${directoryById.get(booking.ownerId) ?? '—'}` : null,
     booking?.assignedToId ? `zadužen ${directoryById.get(booking.assignedToId) ?? '—'}` : null,
   ]
@@ -623,6 +629,7 @@ export default async function BookingDetailPage(props: {
             <div>
               <BookingOverviewHero
                 bookingNumber={booking.bookingNumber}
+                holderName={holderName}
                 subtitle={overviewSubtitle}
                 badges={overviewBadges}
                 facts={overviewFacts}
@@ -664,28 +671,6 @@ export default async function BookingDetailPage(props: {
                     </ScrollableRows>
                   </div>
 
-                  <div>
-                    <SectionHeading title="Beleške" meta={notes.length > 0 ? String(notes.length) : undefined} {...sectionLink('beleske', 'Beleške', notes.length)} />
-                    <ScrollableRows limited={notes.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
-                      <NotesSummaryList notes={notes} directoryById={directoryById} />
-                    </ScrollableRows>
-                  </div>
-
-                  {canViewCommunication && booking.clientAccountId && (
-                    <div>
-                      <SectionHeading
-                        title="Komunikacija"
-                        meta={communications.length > 0 ? String(communications.length) : undefined}
-                        {...sectionLink('komunikacija', 'Komunikacija', communications.length)}
-                      />
-                      <ScrollableRows limited={communications.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
-                        <CommunicationSummaryList communications={communications} directoryById={directoryById} />
-                      </ScrollableRows>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-6">
                   {canViewPayments && (
                     <div>
                       <SectionHeading
@@ -765,6 +750,29 @@ export default async function BookingDetailPage(props: {
                               ))
                           ))}
                       </div>
+                    </div>
+                  )}
+
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <SectionHeading title="Beleške" meta={notes.length > 0 ? String(notes.length) : undefined} {...sectionLink('beleske', 'Beleške', notes.length)} />
+                    <ScrollableRows limited={notes.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
+                      <NotesSummaryList notes={notes} directoryById={directoryById} />
+                    </ScrollableRows>
+                  </div>
+
+                  {canViewCommunication && booking.clientAccountId && (
+                    <div>
+                      <SectionHeading
+                        title="Komunikacija"
+                        meta={communications.length > 0 ? String(communications.length) : undefined}
+                        {...sectionLink('komunikacija', 'Komunikacija', communications.length)}
+                      />
+                      <ScrollableRows limited={communications.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
+                        <CommunicationSummaryList communications={communications} directoryById={directoryById} />
+                      </ScrollableRows>
                     </div>
                   )}
 
