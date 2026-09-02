@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 // maplibre-gl v6 nema default izvoz — samo imenovane (`Protocol` dolazi iz `pmtiles`).
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap } from 'maplibre-gl';
@@ -214,6 +215,14 @@ function bannerHtml(p: MapPoint, addLabel: string): string {
 }
 
 export default function SearchResultsMap({ points, onSelect }: { points: MapPoint[]; onSelect?: (id: string) => void }) {
+  const router = useRouter();
+  const sp = useSearchParams();
+  // M5 spec §3.0h.8 — "pretraži dok pomeram mapu". Stanje prekidača i sam okvir žive u adresi,
+  // pa se pretraga po okviru može podeliti linkom i preživi osvežavanje stranice.
+  const followMap = sp.get('pratiMapu') === '1';
+  const followRef = useRef(followMap);
+  followRef.current = followMap;
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   // Poslednje poznate tačke — mapa se učitava asinhrono, pa prvi skup mora da bude dostupan
@@ -308,6 +317,21 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
 
       mapRef.current = map;
       applyPoints(map, pointsRef.current, true);
+
+      // Okvir se šalje tek kad se pomeranje ZAVRŠI (`moveend`), ne tokom svakog pomeraja —
+      // inače bi jedno prevlačenje mišem poslalo desetine pretraga. Isti razlog zbog kog
+      // dobavljači mere odnos pretraga i rezervacija (M4 §9, "Look-to-Book").
+      map.on('moveend', () => {
+        if (!followRef.current) return;
+        const b = map.getBounds();
+        const bbox = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((n) => n.toFixed(4)).join(',');
+        const next = new URLSearchParams(window.location.search);
+        if (next.get('bbox') === bbox) return;
+        next.set('bbox', bbox);
+        // `replace`, ne `push` — svako pomeranje mape ne sme da napravi nov unos u istoriji,
+        // inače dugme "nazad" u browseru vraća korisnika kroz svaki pomeraj.
+        router.replace(`/rezervacije/pretraga?${next.toString()}`, { scroll: false });
+      });
     });
 
     // Promena teme panela (ThemeToggle upisuje `data-theme` na <html>) menja i mapu, bez
@@ -336,7 +360,11 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   // ponovo pravi ceo prikaz (izgubio bi se zum i pomeraj koje je korisnik podesio).
   useEffect(() => {
     const map = mapRef.current;
-    if (map) applyPoints(map, points, true);
+    if (!map) return;
+    // Kad je "pretraži dok pomeram mapu" uključeno, novi rezultati NE smeju da pomere prikaz:
+    // korisnik je upravo sam podesio okvir, a `fitBounds` bi ga odmah vratio na okvir tačaka —
+    // mapa bi se otimala pri svakom pomeranju.
+    applyPoints(map, points, !followRef.current);
   }, [points]);
 
   if (failed) {
@@ -350,6 +378,31 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   return (
     <div className="relative">
       <div ref={containerRef} className="h-[520px] w-full overflow-hidden rounded-lg border border-border" />
+
+      {/* §3.0h.8 — prekidač stoji NA mapi, ne u traci iznad: odluka se donosi dok se gleda
+          mapa, a ne pre nego što se do nje dođe. */}
+      <label
+        className="absolute left-3 top-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-panel/95 px-2.5 py-1.5 text-xs text-ink shadow-sm"
+        title="Kad je uključeno, pomeranje ili zumiranje mape ponovo pretražuje samo ono što je vidljivo"
+      >
+        <input
+          type="checkbox"
+          checked={followMap}
+          onChange={(e) => {
+            const next = new URLSearchParams(window.location.search);
+            if (e.target.checked) next.set('pratiMapu', '1');
+            else {
+              next.delete('pratiMapu');
+              // Isključivanje uklanja i okvir — inače bi rezultati ostali zaključani na
+              // poslednjem vidljivom delu mape, bez ijednog vidljivog znaka zašto.
+              next.delete('bbox');
+            }
+            router.replace(`/rezervacije/pretraga?${next.toString()}`, { scroll: false });
+          }}
+          className="h-3.5 w-3.5 accent-[var(--accent)]"
+        />
+        pretraži dok pomeram mapu
+      </label>
       {points.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <p className="rounded-lg border border-border bg-panel px-3 py-2 text-xs text-ink-dim">

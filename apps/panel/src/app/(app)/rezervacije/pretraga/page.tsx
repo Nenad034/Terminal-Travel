@@ -84,6 +84,9 @@ export default async function SearchPage(
     // §5b tabela) — bez ovoga bi trebalo tri odvojena poziva ili post-filter na klijentu.
     for (const t of types) params.append('type', t);
     if (searchParams.destinationCountry) params.set('destinationCountry', String(searchParams.destinationCountry));
+    // M5 spec §3.0h.8 — okvir mape kao filter, kad je "pretraži dok pomeram mapu" uključeno.
+    const bbox = first(searchParams.bbox);
+    if (bbox) params.set('bbox', bbox);
     const destinationCity = first(searchParams.destinationCity);
     const stayFrom = first(searchParams.stayFrom);
     const stayTo = first(searchParams.stayTo);
@@ -248,6 +251,7 @@ export default async function SearchPage(
               priceMax={priceMax}
               sort={sort}
               resultsView={resultsView}
+              bbox={first(searchParams.bbox) ?? null}
             />
           );
         }

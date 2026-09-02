@@ -44,3 +44,28 @@ export interface SearchResultProduct {
   shortDescription: string | null;
   offers: SearchResultOffer[];
 }
+
+/**
+ * Stavka predloga u polju za destinaciju (M5 spec §3.0c.2). Lista je MEŠOVITA — grad i
+ * proizvod stoje jedno pored drugog, jer je vlasnikov zahtev bio da se u istom polju može
+ * otkucati i ime hotela kao prečica, bez posebnog trećeg polja.
+ */
+export interface DestinationSuggestion {
+  type: 'DESTINATION' | 'PRODUCT';
+  /** Grad; kod `PRODUCT` stavke to je grad tog proizvoda. */
+  city: string;
+  country: string;
+  /** Samo za `PRODUCT` — vodi pravo na taj proizvod, preskačući listu rezultata. */
+  productId?: string;
+  /** Samo za `PRODUCT` — naziv proizvoda na traženom jeziku. */
+  name?: string;
+  /** Koliko `ACTIVE` proizvoda stoji iza ove destinacije (kod `PRODUCT` uvek 1). */
+  count: number;
+}
+
+/** Stavka predloga u polju za državu (M5 spec §3.0c.2, korak 1). */
+export interface CountrySuggestion {
+  /** Vrednost kakva STVARNO stoji u `Product.destination_country` — vidi napomenu u servisu. */
+  country: string;
+  count: number;
+}

@@ -8,7 +8,7 @@ import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from '../common/refundability';
-import { SearchResultOffer, SearchResultProduct } from './search-result.types';
+import { CountrySuggestion, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
 export interface SearchParamsInput {
@@ -19,6 +19,8 @@ export interface SearchParamsInput {
   stayTo?: string;
   occupancy?: OccupancyInput;
   channel: SearchChannel;
+  /** `minLon,minLat,maxLon,maxLat` — okvir mape (§3.0h.8). */
+  bbox?: string;
   lang?: LanguageCode;
   /** M2 spec §2.3 `attributes.cabin_class` — samo FLIGHT. */
   cabinClass?: string;
@@ -52,6 +54,93 @@ export class SearchService {
 
   // M5 spec §3.0b/§11 — GET /search: M2 katalog + M3 ugovorena dostupnost + M4 uživo, sa
   // već primenjenom maržom. Filtrira SOLD_OUT ponude pre odgovora (§3.0b.2).
+  /**
+   * M5 spec §3.0c.2, korak 1 — predlaganje država dok se kuca. Vraća SAMO države u kojima
+   * postoji bar jedan vidljiv `ACTIVE` proizvod: aplikacija ne nudi ćorsokak.
+   *
+   * NAPOMENA O PODACIMA (nalaz 2.9.2026): `Product.destination_country` u bazi meša ISO kodove
+   * i srpske nazive ("RS" i "Srbija" stoje kao dve različite države, uz "Grčka", "Crna Gora").
+   * Ovaj endpoint namerno vraća vrednost KAKVA JESTE, ne pokušava da je normalizuje — pretraga
+   * filtrira po tačnoj vrednosti, pa bi prevođenje ovde vratilo predlog koji ništa ne nalazi.
+   * Sređivanje samih podataka je zaseban zadatak (backlog).
+   */
+  async suggestCountries(q: string | undefined, channel: SearchChannel): Promise<CountrySuggestion[]> {
+    const grouped = await this.prisma.product.groupBy({
+      by: ['destinationCountry'],
+      where: {
+        status: 'ACTIVE',
+        ...(channel === 'INTERNAL_PANEL' ? {} : { visibleChannels: { has: channel } }),
+        ...(q ? { destinationCountry: { contains: q, mode: 'insensitive' as const } } : {}),
+      },
+      _count: { _all: true },
+      orderBy: { destinationCountry: 'asc' },
+    });
+    return grouped
+      .filter((g) => Boolean(g.destinationCountry))
+      .map((g) => ({ country: g.destinationCountry, count: g._count._all }));
+  }
+
+  /**
+   * M5 spec §3.0c.2, korak 2 — predlaganje destinacija za izabranu državu, uz prečicu na ime
+   * proizvoda. Vraća mešovitu listu: gradove te države i proizvode čiji naziv odgovara upitu.
+   *
+   * Bez `q` vraća SVE destinacije te države — vlasnikov zahtev (2.9.2026): čim se izabere
+   * država, polje za mesto odmah nudi sve njene destinacije, bez kucanja. Sa `q` se sužava,
+   * i tada se traži i po imenu proizvoda, pa se do hotela može doći i kad njegov grad nije
+   * u ponuđenoj listi.
+   */
+  async suggestDestinations(
+    country: string,
+    q: string | undefined,
+    channel: SearchChannel,
+    lang: string | undefined,
+  ): Promise<DestinationSuggestion[]> {
+    const visible = channel === 'INTERNAL_PANEL' ? {} : { visibleChannels: { has: channel } };
+
+    const cities = await this.prisma.product.groupBy({
+      by: ['destinationCity'],
+      where: {
+        status: 'ACTIVE',
+        destinationCountry: country,
+        ...visible,
+        ...(q ? { destinationCity: { contains: q, mode: 'insensitive' as const } } : {}),
+      },
+      _count: { _all: true },
+      orderBy: { destinationCity: 'asc' },
+    });
+
+    const suggestions: DestinationSuggestion[] = cities
+      .filter((c) => Boolean(c.destinationCity))
+      .map((c) => ({ type: 'DESTINATION' as const, city: c.destinationCity, country, count: c._count._all }));
+
+    // Prečica na naziv objekta — traži se samo kad korisnik nešto kuca, inače bi lista svake
+    // države počela spiskom svih njenih hotela.
+    if (q && q.trim().length >= 2) {
+      const products = await this.prisma.product.findMany({
+        where: {
+          status: 'ACTIVE',
+          destinationCountry: country,
+          ...visible,
+          translations: { some: { name: { contains: q, mode: 'insensitive' } } },
+        },
+        include: { translations: true },
+        take: 10,
+      });
+      for (const p of products) {
+        const translation = resolveTranslation(p.translations, (lang as LanguageCode) ?? DEFAULT_LANGUAGE);
+        suggestions.push({
+          type: 'PRODUCT',
+          city: p.destinationCity,
+          country,
+          productId: p.id,
+          name: translation?.name ?? '',
+          count: 1,
+        });
+      }
+    }
+    return suggestions;
+  }
+
   async search(params: SearchParamsInput): Promise<SearchResultProduct[]> {
     const where: Prisma.ProductWhereInput = {
       status: 'ACTIVE',
@@ -64,6 +153,14 @@ export class SearchService {
     if (params.type && params.type.length > 0) where.type = { in: params.type };
     if (params.destinationCountry) where.destinationCountry = params.destinationCountry;
     if (params.destinationCity) where.destinationCity = params.destinationCity;
+
+    // M5 spec §3.0h.8 — okvir mape kao filter. Proizvod bez koordinata NE ulazi u rezultat kad
+    // je okvir zadat: on se ne vidi ni na mapi, pa bi u listi bio red koji nema svoju tačku.
+    if (params.bbox) {
+      const [minLon, minLat, maxLon, maxLat] = params.bbox.split(',').map(Number);
+      where.geoLat = { gte: minLat, lte: maxLat };
+      where.geoLng = { gte: minLon, lte: maxLon };
+    }
 
     let products = await this.prisma.product.findMany({
       where,

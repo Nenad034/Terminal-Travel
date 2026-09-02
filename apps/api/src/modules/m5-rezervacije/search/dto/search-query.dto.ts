@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsIn, IsInt, IsOptional, IsString, Matches, Min } from 'class-validator';
 import { LanguageCode, ProductType, VisibleChannel } from '@prisma/client';
 
 // M5 spec §11 — `channel` filtrira po `Product.visible_channels` (samo B2C_SITE/B2B_PORTAL/
@@ -81,4 +81,17 @@ export class SearchQueryDto {
   @IsArray()
   @IsString({ each: true })
   amenityTags?: string[];
+
+  /**
+   * M5 spec §3.0h.8 — vidljivi pravougaonik mape kao filter ("pretraži dok pomeram mapu").
+   * Oblik: `minLon,minLat,maxLon,maxLat`. Proizvod ulazi u rezultat samo ako ima koordinate
+   * (`geo_lat`/`geo_lng`, M2 §2.1) i ako padaju unutar okvira.
+   *
+   * Namerno string, ne četiri odvojena parametra: vrednost dolazi iz jednog poteza korisnika
+   * (pomeranje mape) i putuje kao jedna celina — četiri parametra bi mogla da stignu polovično.
+   */
+  @IsOptional()
+  @IsString()
+  @Matches(/^-?\d+(\.\d+)?(,-?\d+(\.\d+)?){3}$/, { message: 'bbox mora biti `minLon,minLat,maxLon,maxLat`' })
+  bbox?: string;
 }

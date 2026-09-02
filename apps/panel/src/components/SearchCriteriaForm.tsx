@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import Icon from './Icon';
 import DateField from './DateField';
+import SuggestField, { type Suggestion } from './SuggestField';
 
 // M5 spec §3.0c/§3.0d ("vođena pretraga za 9 vrsta proizvoda"). Šest opštih polja važi za sve
 // tipove; tip-specifična polja (M5 spec §11 v1.28, ožičena u `SearchQueryDto`/`SearchService`)
@@ -62,6 +63,34 @@ export function valuesFromSearchParams(sp: { get(key: string): string | null }):
   };
 }
 
+async function suggestCountries(q: string): Promise<Suggestion[]> {
+  const res = await fetch(`/api/search-suggest?kind=countries${q ? `&q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const rows = (await res.json()) as { country: string; count: number }[];
+  return rows.map((r) => ({ value: r.country, label: r.country, hint: `${r.count}` }));
+}
+
+async function suggestDestinations(country: string, q: string): Promise<Suggestion[]> {
+  if (!country.trim()) return [];
+  const params = new URLSearchParams({ kind: 'destinations', country });
+  if (q) params.set('q', q);
+  const res = await fetch(`/api/search-suggest?${params.toString()}`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const rows = (await res.json()) as {
+    type: 'DESTINATION' | 'PRODUCT';
+    city: string;
+    country: string;
+    productId?: string;
+    name?: string;
+    count: number;
+  }[];
+  return rows.map((r) =>
+    r.type === 'PRODUCT'
+      ? { value: r.city, label: r.name ?? '', hint: r.city, productId: r.productId }
+      : { value: r.city, label: r.city, hint: `${r.count}` }
+  );
+}
+
 export default function SearchCriteriaForm({
   label,
   types,
@@ -114,23 +143,41 @@ export default function SearchCriteriaForm({
       {/* Dve kolone od `sm` naviše — forma je sad u centralnom panelu, ima širine; jedna
           kolona kao u nekadašnjem uskom popup-u bi je bez razloga izdužila. */}
       <div className="grid gap-3 text-xs sm:grid-cols-2">
+          {/* M5 spec §3.0c.2 — vođeni koraci sa predlaganjem (2.9.2026). Država se predlaže
+              dok se kuca; čim je izabrana, polje za mesto ODMAH nudi sve njene destinacije,
+              bez kucanja. Kucanje imena hotela u polju za mesto vodi pravo na taj hotel. */}
           <label className="text-ink-faint">
             država odredišta <span className="text-danger">*</span>
-            <input
-              value={values.destinationCountry}
-              onChange={(e) => setValues((v) => ({ ...v, destinationCountry: e.target.value }))}
-              className="input mt-1 w-full"
-              placeholder="Grčka"
-              required
-            />
+            <div className="mt-1">
+              <SuggestField
+                value={values.destinationCountry}
+                onChange={(next) =>
+                  setValues((v) => ({
+                    ...v,
+                    destinationCountry: next,
+                    // Promena države poništava mesto — grad druge države nije smislen filter.
+                    destinationCity: next === v.destinationCountry ? v.destinationCity : '',
+                  }))
+                }
+                fetchSuggestions={suggestCountries}
+                placeholder="Grčka"
+                required
+              />
+            </div>
           </label>
           <label className="text-ink-faint">
-            grad odredišta
-            <input
-              value={values.destinationCity}
-              onChange={(e) => setValues((v) => ({ ...v, destinationCity: e.target.value }))}
-              className="input mt-1 w-full"
-            />
+            mesto ili naziv objekta
+            <div className="mt-1">
+              <SuggestField
+                value={values.destinationCity}
+                onChange={(next) => setValues((v) => ({ ...v, destinationCity: next }))}
+                fetchSuggestions={(q) => suggestDestinations(values.destinationCountry, q)}
+                onPickProduct={(productId) => router.push(`/katalog/${productId}`)}
+                placeholder="sve destinacije te države"
+                disabled={!values.destinationCountry.trim()}
+                disabledHint="prvo izaberite državu"
+              />
+            </div>
           </label>
           <div className="flex gap-2">
             <label className="flex-1 text-ink-faint">

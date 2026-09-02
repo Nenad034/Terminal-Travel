@@ -171,6 +171,7 @@ export default function AccommodationResultsMock({
   priceMax,
   sort,
   resultsView,
+  bbox,
 }: {
   stayFrom?: string;
   stayTo?: string;
@@ -186,12 +187,23 @@ export default function AccommodationResultsMock({
   /** M5 spec §3.0h — 'lista' ili 'mapa' (SortBar.tsx prekidač). Namerno NIJE `view`: taj naziv
    * je u ovoj komponenti već zauzet lokalnim stanjem grid/list prikaza kartica. */
   resultsView: 'lista' | 'mapa';
+  /** M5 spec §3.0h.8 — `minLon,minLat,maxLon,maxLat`; `null` kad se mapa ne prati. */
+  bbox?: string | null;
 }) {
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { items, addItem } = useSelection();
 
-  const sortedHotels = MOCK_HOTELS.map((h) => ({
+  // M5 spec §3.0h.8 — okvir mape filtrira i mock, isto kao što na pravom putu filtrira
+  // `GET /search`. Bez ovoga bi "pretraži dok pomeram mapu" radilo samo na jednom od dva puta,
+  // a razlika se ne bi videla na ekranu koji vlasnik zapravo gleda.
+  const inBox = (h: MockHotel) => {
+    if (!bbox) return true;
+    const [minLon, minLat, maxLon, maxLat] = bbox.split(',').map(Number);
+    return h.lat >= minLat && h.lat <= maxLat && h.lng >= minLon && h.lng <= maxLon;
+  };
+
+  const sortedHotels = MOCK_HOTELS.filter(inBox).map((h) => ({
     ...h,
     offers: h.offers
       .filter((o) => {
