@@ -15,6 +15,8 @@
 **Verzija:** 1.47 — poglavlje 5b "sažetak reda" implementiran za rezervacije (23.8.2026), M5 spec v1.46. Nova otvorena stavka: dizajn "pun zapis" forme za rezervacije, čeka predlog.
 **Verzija:** 1.46 — novo poglavlje 2.0e (23.8.2026): svetli mod dobija treću nijansu (`--bar`, trake tamnije od bočnih panela, centralni sadržaj tamniji od čiste bele ali svetliji od bočnih panela), `apps/panel/tailwind.config.ts` i `TopBar.tsx`/`StatusBar.tsx`/`TerminalPanel.tsx` ožičeni.
 **Verzija:** 1.45 — poglavlje 5f dopunjeno (23.8.2026): podela terminal panela na dva nezavisna panela (VS Code "Split Terminal" obrazac), M17 spec v1.97.
+**Verzija:** 1.45 — `--border` vraćen iznad 3:1 praga u sva tri moda (2.9.2026, vlasnik izabrao "Prag" varijantu posle uporednog prikaza četiri jačine po modu). Zatvara regresiju otkrivenu u v1.44: prelaz na shadcn 29.8.2026. vratio je granice na doslovne Tailwind vrednosti i time poništio ispravku od 21.8.2026, koja je nastala na vlasnikovu prijavu "jedva se vide okvirne linije sadržaja u centralnom delu". Svetli (`#858c92`) i tamni (`#748088`) vraćaju istu vrednost koja je stajala od 21. do 29.8.2026 — stanje koje je vlasnik već prihvatio, ne novo pooštravanje; dim mod nije postojao u avgustu, pa je za njega birana prva stepenica slate skale koja prolazi na sve tri podloge (`#94a3b8`, slate-400 — slate-500 pada na `--panel-2`). **Usput ispravljena greška u sopstvenom merenju iz v1.44:** kontrast granice je bio meren samo protiv `--panel` i `--bg`, a granica se pojavljuje i na `--panel-2` (bočni panel) gde je najslabija — u svetlom modu 1.15:1, ne 1.27:1 kako je v1.44 prijavila. Isti propust protiv kog upozorava §2a; `tools/check-contrast.js` je od tada meri protiv sve tri podloge. Vrednosti upisane u svih pet blokova tokena, uz komentar u `globals.css` da je to namerno odstupanje od doslovne Tailwind vrednosti (bez njega sledeća zamena palete ponavlja isti krug — zamka 1.9). Posle ove izmene **sve provere prolaze**. Preostala otvorena stavka iz iste porodice: `--bar` u svetlom modu (§2.0e).
+
 **Verzija:** 1.44 — poglavlje 5a dopunjeno (23.8.2026): "+" pojednostavljen na prazan tab (ne direktno pretraga), više tabova iste putanje kao opšta sposobnost, M17 spec v1.94. Logo premešten sa dna Sidebar-a u gornju traku (isti M17 spec unos) — ovaj dokument nema poseban logo-odeljak, samo M17 changelog.
 **Verzija:** 1.44 — usklađivanje poglavlja 2 sa stvarnim kodom (2.9.2026, na zahtev vlasnika: "Uskladi"). Dokument je od 29.8.2026. opisivao paletu koju aplikacija više ne koristi — prelaz na **shadcn/ui (Tailwind zinc + indigo)** nije bio upisan u prolazu u kom je napravljen, pa su §2, §2.0a–§2.0e i §8 pokazivali maslinasti/GitHub Light/amber vrednosti iz tri prethodne generacije palete. Dodato **novo poglavlje 2.0f** kao jedini izvor istine za boje panela: puna tabela tokena za sva **tri** moda (svetli/dim/tamni — dim je dodat 29.8.2026, dokument je do sad znao samo za dva) sa izmerenim kontrastom po paru. Poglavlja 2.0a–2.0e zadržana kao istorija, ali svako sa uvodnom oznakom šta je u njemu potisnuto a šta i dalje važi (obrazloženja i pravila važe, HEX vrednosti ne). Iz §8 uklonjena tabela palete "Horizont" sa amber akcentom — vrednosti potisnute još 17.8.2026, nikad ažurirane. Ispravljene i tri manje netačnosti zatečene usput: "panel ostaje na jednoj akcentnoj boji" (u kodu postoji i `--accent2` teal sa sopstvenom ulogom), "svaki kanal ima jednu tamnu i jednu svetlu varijantu" (panel ih ima tri), i odlomljen red tabele u §2.0 bez zaglavlja. Dodata skripta **`tools/check-contrast.js`** — dokument je od 17.8.2026. pominjao "kontrast-skriptu" koja nikad nije bila u repozitorijumu (pisana iznova u svakoj sesiji i bacana, pa nijedan raniji rezultat nije bio ponovljiv); sada čita tokene direktno iz `globals.css`, meri svaki par u sva tri moda, kompozituje poluprovidne vrednosti preko podloge i poredi dva svetla bloka međusobno (zamka 1.7). **Nalaz iz prvog pokretanja te skripte:** `--border` pada 3:1 prag u sva tri moda (1.27:1 / 1.70:1 / 1.93:1) — prelaz na shadcn je poništio ispravku od 21.8.2026. koja je nastala na vlasnikovu prijavu da se okvirne linije jedva vide; isto je delimično poništeno i sa `--bar` (§2.0e). Nije ispravljeno u ovom prolazu jer menja izgled svakog ekrana i traži vlasnikovu odluku — upisano kao otvorena stavka u §8 i kao zamka 1.9.
 
@@ -140,15 +142,7 @@ Ovo su finalne vrednosti u `globals.css` (zamenjuju tabelu iznad, koja ostaje ka
 
 ### 2.0d `--border` potamnjen — bio praktično nevidljiv (21.8.2026, na zahtev vlasnika)
 
-> **⚠ OVA ISPRAVKA JE PONIŠTENA PRELAZOM NA shadcn — regresija, otkrivena 2.9.2026.** Prelaz 29.8.2026. vratio je `--border` na doslovne Tailwind vrednosti (`#e4e4e7` zinc-200 svetli, `#3f3f46` zinc-700 tamni, `#475569` slate-600 dim), čime je **ponovo uveden tačno onaj problem koji je vlasnik prijavio 21.8.2026** ("jedva se vide okvirne linije sadržaja u centralnom delu"). Izmereno `tools/check-contrast.js`-om:
->
-> | Mod | Tekuće | Kontrast na `--panel` | Prag §2a | Bilo posle ispravke 21.8. |
-> | :---- | :---- | :---- | :---- | :---- |
-> | Svetli | `#e4e4e7` | **1.27:1 ❌** | 3:1 | `#858c92` — 3.41:1 |
-> | Tamni | `#3f3f46` | **1.70:1 ❌** | 3:1 | `#748088` — 3.25:1 |
-> | Dim | `#475569` | **1.93:1 ❌** | 3:1 | *(mod nije postojao)* |
->
-> Nije ispravljeno u prolazu u kom je otkriveno, jer tamnije granice vidljivo menjaju izgled svakog ekrana panela, a suptilne granice su namerna crta shadcn izgleda — to je vlasnikova odluka, ne tehnička. **Otvorena stavka, §8.** Poučak koji je već upisan u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`: zamena cele palete mora ponovo proći svaku raniju token-ispravku, jer "usvoji ceo vizuelni jezik biblioteke" tiho gazi ručne ispravke koje ta biblioteka ne zna da postoje.
+> **Ova ispravka je bila poništena prelaskom na shadcn (29.8.2026), pa ponovo sprovedena 2.9.2026 — vidi dopunu na kraju poglavlja.** Sam nalaz i obrazloženje ispod ostaju tačni i tekući; menjaju se samo brojevi, jer su podloge druge nego u avgustu.
 
 Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis), prijavio: "Jedva se vide okvirne linije sadrzaja u centralno delu. Potamnite ih za 15%." Provera je pokazala da `--border` (`#f0f1f2` svetli mod) daje samo **1.13:1** na belu pozadinu — daleko ispod 3:1 praga za granice iz poglavlja 2a, stvaran propust koji je postojao od uvođenja Horizont v2 palete, ne samo suptilna pritužba. Doslovnih "-15%" na vrednost ovoliko blizu bele (`240→204` po RGB kanalu) bi dalo tek **1.57:1** — praktično nepromenjeno, jer procenat od skoro-bele vrednosti ne pomera kontrast dovoljno da bude vidljiv. Umesto doslovnog izračuna, izabrana je vrednost koja stvarno prolazi 3:1 prag (isti standard primenjen na svaku drugu granicu u ovom dokumentu):
 
@@ -158,6 +152,20 @@ Vlasnik je, uz snimak ekrana (linije oko kartica u centralnom delu, M6 CRM zapis
 | Tamni | `#3b4a51` (1.43:1 ❌) | `#748088` | 3.25:1 |
 
 Tamni mod nije bio deo pritužbe (snimak je svetli mod), ali je imao isti stvaran propust pri proveri — ispravljen u istom prolazu, ista logika kao svaka druga token-ispravka ovog dana (jedan izvor istine, nema mod koji ostaje slučajno drugačiji). Ovo je deljen token — primenjeno svuda gde se `--border` koristi (kartice, forme, padajući meniji, `kbd` oznake), ne samo dashboard kartice sa snimka.
+
+**Dopuna 2.9.2026 — ispravka poništena pa vraćena, i jedna greška u prvom merenju.** Prelaz na shadcn 29.8.2026. vratio je `--border` na doslovne Tailwind vrednosti i time ponovo uveo tačno problem iz ovog poglavlja. Otkriveno pri usklađivanju dokumenta sa kodom, prvim pokretanjem `tools/check-contrast.js`.
+
+Pri pripremi uporednog prikaza otkrivena je i greška u **prvom** merenju ove regresije (i u originalnoj tabeli iznad): meren je kontrast samo protiv `--panel` i `--bg`, a granica se pojavljuje i na **`--panel-2`** (bočni panel, `Sidebar.tsx`/`RightPanel.tsx`) — i tamo je najslabija. To je isti propust protiv kog upozorava §2a ("meri se protiv svake podloge uz koju se pojavljuje") i isti oblik greške kao onaj iz §2.0c. Merodavan je najgori od tri broja:
+
+| Mod | Bilo (posle prelaza) | na `panel` / `bg` / `panel-2` | Sad | na `panel` / `bg` / `panel-2` |
+| :---- | :---- | :---- | :---- | :---- |
+| Svetli | `#e4e4e7` (zinc-200) | 1.27 / 1.22 / **1.15 ❌** | `#858c92` | 3.41 / 3.26 / **3.10 ✅** |
+| Tamni | `#3f3f46` (zinc-700) | 1.70 / 1.91 / **1.43 ❌** | `#748088` | 4.38 / 4.91 / **3.68 ✅** |
+| Dim | `#475569` (slate-600) | 1.93 / 2.36 / **1.37 ❌** | `#94a3b8` (slate-400) | 5.71 / 6.96 / **4.04 ✅** |
+
+Svetli i tamni vraćaju **istu vrednost** koja je stajala od 21. do 29.8.2026 — dakle stanje koje je vlasnik već video i prihvatio, ne novo pooštravanje. Dim mod nije postojao u avgustu, pa je za njega birana prva stepenica slate skale koja prolazi na sve tri podloge (slate-500 pada na `--panel-2`, 2.18:1). Vlasniku su ponuđene četiri jačine po modu sa uporednim prikazom; izabrana je najmanja koja prolazi prag ("Prag" varijanta), ne najizraženija.
+
+Vrednosti su upisane u **svih pet** blokova tokena (`:root`, `prefers-color-scheme: dark`, `[data-theme='dark']`, `[data-theme='light']`, `[data-theme='dim']`) i uz svaku stoji komentar u `globals.css` da je to **namerno odstupanje od doslovne Tailwind vrednosti** — bez tog komentara sledeća zamena palete ponavlja isti krug (zamka 1.9).
 
 ### 2.0e Svetli mod dobija TREĆU nijansu — trake tamnije od bočnih panela (23.8.2026, na zahtev vlasnika)
 
@@ -202,7 +210,7 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 | `--panel` | `#ffffff` | `#1e293b` | `#18181b` | Centralni sadržaj, kartice |
 | `--panel-2` | `#f4f4f5` | `#334155` | `#27272a` | Bočni paneli |
 | `--bar` | `#f4f4f5` | `#334155` | `#27272a` | Gornja/donja traka *(u svetlom modu trenutno jednako `--panel-2` — §2.0e)* |
-| `--border` | `#e4e4e7` | `#475569` | `#3f3f46` | Granice — **pada 3:1 prag u sva tri moda, §2.0d** |
+| `--border` | `#858c92` | `#94a3b8` | `#748088` | Granice — **namerno odstupanje od doslovne Tailwind vrednosti** da prođe 3:1 na sve tri podloge, §2.0d |
 | `--text` | `#18181b` | `#f8fafc` | `#fafafa` | Glavni tekst |
 | `--text-dim` | `#2c2c31` | `#cbd5e1` | `#d4d4d8` | Prigušen tekst |
 | `--text-faint` | `#45454a` | `#a3b0c2` | `#a1a1aa` | Slab tekst, zaglavlja kolona, datumi |
@@ -227,9 +235,9 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 | `--accent-ink` na `--accent` (dugme) | 6.29:1 | 6.31:1 | 6.59:1 | 4.5:1 |
 | `--accent-strong` na `--accent-soft` | 5.82:1 | 5.33:1 | 6.55:1 | 4.5:1 |
 | `--ok` / `--warn` / `--danger` na svojim pill pozadinama | 4.79 / 4.84 / 5.91 | 9.86 / 10.27 / 6.73 | 9.86 / 10.27 / 6.73 | 4.5:1 |
-| `--border` na `--panel` | **1.27:1 ❌** | **1.93:1 ❌** | **1.70:1 ❌** | 3:1 |
+| `--border` (najgore od tri podloge) | 3.10:1 | 4.04:1 | 3.68:1 | 3:1 |
 
-Sve prolazi osim `--border` (§2.0d). Dva mesta su najbliža padu i zaslužuju pažnju pri svakoj sledećoj izmeni: `--text-faint` u dim modu (4.71:1, prag 4.5) i `--ok` u svetlom (4.79:1) — obe vrednosti su već jednom ručno pomerene sa doslovne Tailwind vrednosti upravo zato što je doslovna padala.
+**Sve prolazi** (stanje od 2.9.2026, kad je i poslednji par — `--border` — vraćen iznad praga, §2.0d). Tri mesta su najbliža padu i zaslužuju pažnju pri svakoj sledećoj izmeni: `--border` u svetlom modu na bočnom panelu (3.10:1, prag 3), `--text-faint` u dim modu (4.71:1, prag 4.5) i `--ok` u svetlom (4.79:1). Sve tri vrednosti su ručno pomerene sa doslovne Tailwind vrednosti upravo zato što je doslovna padala — zato uz svaku stoji komentar u `globals.css`; bez njega ih sledeća zamena palete tiho vraća (zamka 1.9).
 
 **Pravilo §2a i dalje ima razlog da postoji.** `--accent` na `--accent-soft` (zabranjena kombinacija) daje 4.63:1 u svetlom, ali **4.38:1 u tamnom i 3.56:1 u dim modu** — i dalje pada. Zato ostaje tvrdo pravilo: na mekom akcentu ide `--accent-strong`, nikad `--accent`, u svakom modu i u svakom stanju (uključujući hover).
 
@@ -741,7 +749,8 @@ I dalje se **ne pretpostavlja** da isti obrazac direktno odgovara i M8 (B2C sajt
   Nepromenjeni ostaju `--bg`, `--panel`, `--panel-2`, `--text`, `--text-dim`, `--accent-soft`, `--accent-ink`, `--danger` — svi su prolazili. Posledično provereno i ispravljeno: `--accent-ink` na `--accent` (tekst na punom dugmetu "Rezerviši", najvažnija kontrola na sajtu) bio je `3.30:1`, sad je `5.26:1`.
 
   Merenja su rađena protiv **stvarnih** podloga uz koje se svaka boja koristi (`bg`, `panel`, `panel-2`, `accent-soft`, `ok-bg`, `warn-bg`), ne jedne pretpostavljene — po pravilu iz poglavlja 2a.
-- **`--border` pada 3:1 prag u sva tri moda panela (§2.0d) — čeka vlasnikovu odluku.** Prelaz na shadcn paletu 29.8.2026. poništio je ispravku od 21.8.2026, koja je nastala baš na vlasnikovu prijavu da se okvirne linije jedva vide. Nije ispravljeno odmah jer tamnije granice vidljivo menjaju izgled svakog ekrana, a suptilne granice su namerna crta shadcn izgleda — estetska odluka, ne tehnička. Ista provera treba da obuhvati i `--bar` u svetlom modu (§2.0e — traka i bočni panel su ponovo iste boje, iako je vlasnik 23.8.2026. tražio da trake budu za nijansu tamnije).
+- ~~`--border` pada 3:1 prag u sva tri moda panela (§2.0d).~~ **Rešeno 2.9.2026** — vlasnik izabrao "Prag" varijantu (najmanja vrednost koja prolazi na sve tri podloge) posle uporednog prikaza četiri jačine po modu; §2.0d dopuna.
+- **`--bar` u svetlom modu je izgubio treću nijansu (§2.0e) — čeka vlasnikovu odluku.** Traka i bočni panel su posle prelaza na shadcn ponovo iste boje (`#f4f4f5`), iako je vlasnik 23.8.2026. tražio da trake budu za nijansu tamnije od svega. Manje vidljivo od granica, pa nije rešeno u istom prolazu; vraća se čim vlasnik potvrdi da mu i dalje smeta.
 - **Paleta sajta (M8) nije proveravana od prelaska panela na shadcn** — `tools/check-contrast.js` trenutno čita samo `apps/panel`. Sajt ima sopstvenu paletu (tabela ispod, poslednja provera 17.8.2026) i vlasnik je 2.9.2026. rekao da se njime bavimo kasnije; kad dođe na red, skriptu proširiti na oba fajla umesto pisanja druge.
 - ~~Da li M7 (B2B portal) dobija isti "power-user" obrazac kao M17~~ — **rešeno 17.8.2026** (poglavlje 7): identičan obrazac, razlikovanje ide kroz podatke (M7 spec poglavlje 2.0), ne kroz interfejs.
 - **Vlasnikov prošireni pregled uživo nad celim poslovanjem** (npr. Elastic/Kibana-stila dashboard za praćenje svih procesa u realnom vremenu) — vlasnik izričito rekao "još ćemo raditi na tome" (17.8.2026), namerno odloženo. Verovatno dodatan sloj iznad M17 (možda i M13 BI), ne zamena — ne pretpostavlja se ovde ni obim ni tehnologija (uvođenje Elastic-a bilo bi nova zavisnost, zahteva `tt-tech-stack` potvrdu kad dođe na red).

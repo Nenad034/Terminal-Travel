@@ -95,7 +95,15 @@
   --panel: #ffffff;
   --panel-2: #f4f4f5;
   --bar: #f4f4f5;
-  --border: #e4e4e7;
+  /* Vraćeno iznad 3:1 praga (2.9.2026, na zahtev vlasnika, posle uporednog prikaza četiri jačine).
+     NAMERNO ODSTUPANJE OD DOSLOVNE TAILWIND VREDNOSTI — ne dirati pri sledećoj zameni palete bez
+     ponovnog merenja. Tailwind zinc-200 (#e4e4e7), koji je ovde stajao od prelaska na shadcn
+     29.8.2026, daje 1.27:1 na `--panel`, 1.22:1 na `--bg` i samo 1.15:1 na `--panel-2` (bočni
+     panel) — daleko ispod 3:1 praga za granice (29-DIZAJN-SISTEM-UI.md §2a). Tim prelazom je tiho
+     poništena ispravka od 21.8.2026, koja je nastala na vlasnikovu prijavu "jedva se vide okvirne
+     linije sadržaja u centralnom delu" — ista vrednost se sada vraća. #858c92: 3.41 / 3.26 / 3.10
+     na te tri podloge, dakle prolazi na SVE tri, ne samo na belu. Vidi zamku 1.9. */
+  --border: #858c92;
   --text: #18181b;
   /* Potamnjenje slabijih nivoa teksta u svetlom modu (2.9.2026, na zahtev vlasnika: "u Light modu
      sve ikone i sva slova treba da budu za 30% tamnija"). Primenjeno CILJANO, ne ravnomerno —
@@ -150,7 +158,10 @@
     --panel: #18181b;
     --panel-2: #27272a;
     --bar: #27272a;
-    --border: #3f3f46;
+    /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
+       zinc-700 (#3f3f46) je davao 1.70 / 1.91 / 1.43:1; #748088 daje 4.38 / 4.91 / 3.68:1.
+       U tamnim modovima granica ide ka SVETLIJEM, ne tamnijem. */
+    --border: #748088;
     --text: #fafafa;
     --text-dim: #d4d4d8;
     --text-faint: #a1a1aa;
@@ -177,7 +188,10 @@
   --panel: #18181b;
   --panel-2: #27272a;
   --bar: #27272a;
-  --border: #3f3f46;
+  /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
+     zinc-700 (#3f3f46) je davao 1.70 / 1.91 / 1.43:1; #748088 daje 4.38 / 4.91 / 3.68:1.
+     U tamnim modovima granica ide ka SVETLIJEM, ne tamnijem. */
+  --border: #748088;
   --text: #fafafa;
   --text-dim: #d4d4d8;
   --text-faint: #a1a1aa;
@@ -201,7 +215,9 @@
   --panel: #ffffff;
   --panel-2: #f4f4f5;
   --bar: #f4f4f5;
-  --border: #e4e4e7;
+  /* Mora ostati identično bloku `:root` iznad (zamka 1.7). Obrazloženje: komentar uz `--border`
+     u tom bloku. */
+  --border: #858c92;
   --text: #18181b;
   /* Mora ostati identično bloku `:root` iznad — ovo je ISTI svetli mod, samo izabran ručnim
      prekidačem umesto preko OS-a. Ako se ovde ne prepiše ista vrednost, promena boje važi samo
@@ -236,7 +252,10 @@
   --panel: #1e293b;
   --panel-2: #334155;
   --bar: #334155;
-  --border: #475569;
+  /* Isti razlog kao `--border` u svetlom modu (2.9.2026) — vidi komentar uz `:root`. Tailwind
+     slate-600 (#475569) je davao 1.93 / 2.36 / 1.37:1; slate-400 (#94a3b8) daje 5.71 / 6.96 /
+     4.04:1 — prva stepenica slate skale koja prolazi na sve tri podloge. */
+  --border: #94a3b8;
   --text: #f8fafc;
   --text-dim: #cbd5e1;
   /* #a3b0c2, ne doslovno Tailwind slate-400 (#94a3b8) — isti razlog kao text-faint u light
