@@ -102,7 +102,13 @@ Ispravljeno tako što se naziv države sada svodi na jedan oblik **pri upisu**, 
 
 **Osvežavanje sadržaja sa spoljnih sistema nije povezano.** Za proizvode koji dolaze sa API-ja postoji dugme „osveži", ali ono danas vraća poruku da to još nije napravljeno.
 
-**Jedna greška koju sam našao dok sam pisao dokumentaciju 3.9.2026, i nije popravljena:** javni ulaz u katalog — jedini deo sistema koji radi bez prijave — ruši se sa opštom greškom „interna greška servera" ako se ne navede kanal, ili se navede pogrešan. Trebalo bi da vrati jasnu poruku šta nedostaje. Nije opasno (ništa ne curi, ništa se ne kvari) i sajt to nikad ne pogađa jer uvek šalje kanal, ali spoljni partner koji se prvi put povezuje naleteće na to i neće znati šta je pogrešio. Zapisano je kao neispunjena stavka u izlaznom kriterijumu M2 i kao zamka — čeka tvoju odluku da li da se popravi odmah.
+**Jedna greška koju sam našao dok sam pisao dokumentaciju 3.9.2026 — i popravio istog dana:** javni ulaz u katalog, jedini deo sistema koji radi bez prijave, rušio se sa opštom porukom „interna greška servera" ako se ne navede kanal ili se navede pogrešan.
+
+Nije bilo opasno — ništa nije curilo i sajt to nikad nije pogađao, jer sajt uvek šalje ispravan kanal. Ali spoljni partner koji se prvi put povezuje naleteo bi na to i **ne bi imao nikakav trag šta je pogrešio**. Na jedinom mestu gde poziv stiže od nekoga ko nije video ni panel ni dokumentaciju, poruka o grešci je jedino uputstvo koje dobija.
+
+Sada vraća jasnu poruku koja nabraja šta se sme poslati: „Parametar „channel" je obavezan i mora biti jedna od vrednosti: B2C_SITE, B2B_PORTAL, MOBILE." Isto važi i za jezik.
+
+Uz ispravku je dodat test koji to proverava, i posebno je provereno da svih osam jezika sajta odgovara listi koju sistem prihvata — inače bih ovom izmenom srušio stranice na nekom jeziku. Provereno je i uživo, na pet jezika.
 
 ---
 

@@ -210,6 +210,42 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
         .query({ channel: 'B2C_SITE' });
       expect(publicRes.status).toBe(404);
     });
+
+    // Dopuna 3.9.2026 — do tada su oba slučaja vraćala `500 Internal server error`:
+    // `channel` je bio samo otkucan kao `VisibleChannel`, bez provere u vreme izvršavanja,
+    // pa je `undefined` išao pravo u Prisma upit. Ovo je JEDINI endpoint bez autentikacije,
+    // dakle jedini gde poruka o grešci objašnjava spoljnom integratoru šta je pogrešio.
+    // Vidi zamku 13.1 i stavku izlaznog kriterijuma M2.
+    it('javni endpoint vraća 400 sa objašnjenjem kad channel nedostaje ili nije važeći', async () => {
+      const bezKanala = await request(app.getHttpServer()).get('/api/v1/catalog/public/products');
+      expect(bezKanala.status).toBe(400);
+      expect(bezKanala.body.message).toContain('channel');
+
+      const pogresanKanal = await request(app.getHttpServer())
+        .get('/api/v1/catalog/public/products')
+        .query({ channel: 'IZMISLJEN' });
+      expect(pogresanKanal.status).toBe(400);
+      expect(pogresanKanal.body.message).toContain('B2C_SITE');
+
+      // Ista ograda mora stajati i na ruti za jedan proizvod, ne samo na listi.
+      const jedanBezKanala = await request(app.getHttpServer()).get(
+        '/api/v1/catalog/public/products/00000000-0000-0000-0000-000000000000',
+      );
+      expect(jedanBezKanala.status).toBe(400);
+    });
+
+    it('javni endpoint prihvata izostavljen lang, a odbija nepodržan', async () => {
+      const bezJezika = await request(app.getHttpServer())
+        .get('/api/v1/catalog/public/products')
+        .query({ channel: 'B2C_SITE' });
+      expect(bezJezika.status).toBe(200);
+
+      const pogresanJezik = await request(app.getHttpServer())
+        .get('/api/v1/catalog/public/products')
+        .query({ channel: 'B2C_SITE', lang: 'zz' });
+      expect(pogresanJezik.status).toBe(400);
+      expect(pogresanJezik.body.message).toContain('lang');
+    });
   });
 
   describe('Novi tipovi proizvoda TRANSPORT/TICKET/EVENT (izlazni kriterijum, stavka 7)', () => {

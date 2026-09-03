@@ -82,7 +82,17 @@ Nepostojeći `id`, ili proizvod koji nije aktivan u tom kanalu → `404`:
 {"message":"Zapis nije pronađen","error":"Not Found","statusCode":404}
 ```
 
-> **Poznat nedostatak, provereno 3.9.2026 (nije zaobilaznica nego stvarno ponašanje):** ako `channel` **izostavite** ili pošaljete vrednost van liste (npr. `channel=IZMISLJEN`), endpoint vraća **`500 Internal server error`**, a ne `400` sa objašnjenjem. Parametar nije proveren pre upotrebe. Do ispravke: uvek šaljite `channel` sa tačno jednom od tri dozvoljene vrednosti. Isto važi za `/catalog/public/products/:id`.
+**Izostavljen ili nevažeći `channel` vraća `400` sa objašnjenjem** (uhvaćeno pozivom):
+```json
+{"message":"Parametar \"channel\" je obavezan i mora biti jedna od vrednosti: B2C_SITE, B2B_PORTAL, MOBILE.","error":"Bad Request","statusCode":400}
+```
+Nevažeći `lang` isto tako:
+```json
+{"message":"Parametar \"lang\" mora biti jedan od podržanih jezika: sr, en, hr, sl, es, de, ru, fr.","error":"Bad Request","statusCode":400}
+```
+`lang` se sme izostaviti (podrazumeva se `sr`); `channel` ne.
+
+> **Ispravljeno 3.9.2026.** Do tog datuma oba slučaja su vraćala `500 Internal server error` bez ikakvog objašnjenja — parametri su bili samo otkucani, bez provere u vreme izvršavanja. Na jedinom endpointu bez prijave to je značilo da spoljni integrator koji pogreši ime kanala ne dobija nikakav trag šta je pogrešio.
 
 ---
 
@@ -302,7 +312,6 @@ Greška validacije vraća **niz** poruka:
 | `401` | nedostaje ili je istekao token (ne odnosi se na `/catalog/public/*`) |
 | `403` | `{"message":"Nema dozvolu M2/product/PUBLISH","error":"Forbidden","statusCode":403}` |
 | `404` | `{"message":"Zapis nije pronađen",...}` |
-| `500` | **javni endpoint bez ispravnog `channel` parametra** — poznat nedostatak, vidi iznad |
 | `501` | `cache/sync` nad `API` proizvodom — sinhronizacija još nije povezana |
 
 Nepoznato polje u telu zahteva vraća `400`, ne ignoriše se.
