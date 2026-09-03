@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
 import { airlineOptions, connectionAirportOptions } from '@/lib/mock-flights';
+import { useSearchFilters } from './SearchFiltersContext';
+import { ALL_FILTER_KEYS } from '@/lib/search-filters';
 
 // M5 spec §3.0g.1 / dizajn dok. §6d.1 (vlasnikova odluka, 2.9.2026) — levi panel sadrži
 // ISKLJUČIVO filtere. Ikonice devet vrsta proizvoda i sama forma pretrage su se do tada nalazile
@@ -113,6 +115,9 @@ export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(true);
+  // Vlasnikova odluka 3.9.2026 — klik na filter deluje ODMAH, nad već dovučenim rezultatima,
+  // bez poziva serveru. Obrazloženje i podela posla sa dugmetom su u `SearchFiltersContext.tsx`.
+  const filters = useSearchFilters();
   const currentTypes = sp.getAll('type');
   const showAccommodationFilters = currentTypes.includes('ACCOMMODATION');
   const showFlightFilters = currentTypes.includes('FLIGHT');
@@ -127,43 +132,43 @@ export default function SearchSidebarPanel() {
       <form
         className="contents"
         onSubmit={(e) => {
-          // Nativan GET submit bi ZAMENIO ceo query string samo poljima ove forme, brišući
-          // type/destinaciju/datume iz popup-a — ovde spajamo sa postojećim parametrima umesto
-          // toga (isti razlog zašto je ranije bio JEDAN deljeni <form> — sad su odvojeni, ali
-          // moraju i dalje da se spajaju, ne zamenjuju).
+          // „Primeni filtere" (zadržano na izričit zahtev vlasnika, 3.9.2026) — filtriranje je
+          // inače trenutno i klijentsko, pa ovo dugme ima uži, jasan posao: upisuje živo stanje
+          // filtera u ADRESU i time pokreće novu pretragu na serveru. Potrebno je kad filter
+          // treba da važi nad širim skupom nego što je već dovučeno, i jedini je način da
+          // filteri uđu u adresu — dakle u sačuvanu pretragu (§3.0g.2) i u deljiv link.
+          //
+          // Vrednosti se čitaju iz živog stanja, ne iz `FormData`: stanje je izvor istine otkako
+          // filtriranje ne ide kroz adresu, a dva izvora bi se razišla čim jedno polje ostane
+          // van forme.
           e.preventDefault();
-          const data = new FormData(e.currentTarget);
           const next = new URLSearchParams(sp.toString());
-          // Skalarni filteri — prazna vrednost briše parametar umesto da ga postavi na "".
-          const scalarKeys = [
-            'priceMin', 'priceMax', 'availability',
-            // M5 spec §3.0d.1 — filteri letova.
-            'stops', 'maxLayover', 'maxDuration', 'departFrom', 'departTo', 'arriveFrom', 'arriveTo', 'minCheckedBags',
-          ];
-          for (const key of scalarKeys) {
-            const val = String(data.get(key) ?? '');
-            if (val) next.set(key, val);
-            else next.delete(key);
-          }
-          for (const key of ['amenityTags', 'boardTypes', 'airlines', 'connAirports']) {
-            next.delete(key);
-            for (const val of data.getAll(key)) next.append(key, String(val));
-          }
+          // Postojeći filteri se prvo skidaju — inače bi skinut filter ostao u adresi zauvek.
+          for (const key of ALL_FILTER_KEYS) next.delete(key);
+          for (const [key, value] of new URLSearchParams(filters.toQueryString())) next.append(key, value);
           router.push(`/rezervacije/pretraga?${next.toString()}`);
         }}
       >
         <Section title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)}>
-          <label className="text-ink-faint">
-            <span className={FILTER_TITLE_CLASS}>cena od / do</span>
-            <div className="mt-1 flex gap-1">
-              <input type="number" name="priceMin" min={0} defaultValue={sp.get('priceMin') ?? ''} className="input w-1/2" placeholder="0" />
-              <input type="number" name="priceMax" min={0} defaultValue={sp.get('priceMax') ?? ''} className="input w-1/2" placeholder="∞" />
+          {/* Bez dugmeta koje se mora pritisnuti, korisniku treba mesto na kom vidi ŠTA je sve
+              uključeno i način da to skine jednim potezom — inače aktivan filter iz prethodne
+              pretrage tiho sužava sledeću. */}
+          {filters.activeCount > 0 && (
+            <div className="flex items-center justify-between rounded border border-accent bg-accent-soft px-2 py-1 text-[11px] text-accent-strong">
+              <span>
+                {filters.activeCount} {filters.activeCount === 1 ? 'aktivan filter' : 'aktivnih filtera'}
+              </span>
+              <button type="button" onClick={filters.reset} className="flex items-center gap-1 hover:underline">
+                <Icon name="clear-all" /> poništi filtere
+              </button>
             </div>
-          </label>
+          )}
+          <PriceRangeFields />
           <PillRadioGroup
             name="availability"
             label="dostupnost"
-            current={sp.get('availability') ?? ''}
+            current={filters.get('availability') ?? ''}
+            onPick={(v) => filters.setScalar('availability', v)}
             options={[
               { value: '', label: 'sve' },
               { value: 'AVAILABLE', label: 'odmah potvrda' },
@@ -176,7 +181,8 @@ export default function SearchSidebarPanel() {
               <PillCheckboxGroup
                 name="boardTypes"
                 label="vrsta usluge"
-                current={sp.getAll('boardTypes')}
+                current={filters.getAll('boardTypes')}
+                onToggle={(v) => filters.toggleMulti('boardTypes', v)}
                 stack
                 options={BOARD_TYPE_OPTIONS}
               />
@@ -196,7 +202,8 @@ export default function SearchSidebarPanel() {
                               type="checkbox"
                               name="amenityTags"
                               value={tag.value}
-                              defaultChecked={sp.getAll('amenityTags').includes(tag.value)}
+                              checked={filters.getAll('amenityTags').includes(tag.value)}
+                              onChange={() => filters.toggleMulti('amenityTags', tag.value)}
                               className="sr-only"
                             />
                             {tag.label}
@@ -216,7 +223,8 @@ export default function SearchSidebarPanel() {
               <PillRadioGroup
                 name="stops"
                 label="presedanja"
-                current={sp.get('stops') ?? ''}
+                current={filters.get('stops') ?? ''}
+                onPick={(v) => filters.setScalar('stops', v)}
                 options={[
                   { value: '', label: 'svejedno' },
                   { value: 'DIRECT', label: 'direktno' },
@@ -227,7 +235,8 @@ export default function SearchSidebarPanel() {
               <PillCheckboxGroup
                 name="airlines"
                 label="avio-kompanija"
-                current={sp.getAll('airlines')}
+                current={filters.getAll('airlines')}
+                onToggle={(v) => filters.toggleMulti('airlines', v)}
                 options={airlineOptions.map((a) => ({ value: a, label: a }))}
               />
 
@@ -235,7 +244,8 @@ export default function SearchSidebarPanel() {
                 <PillCheckboxGroup
                   name="connAirports"
                   label="aerodrom presedanja"
-                  current={sp.getAll('connAirports')}
+                  current={filters.getAll('connAirports')}
+                  onToggle={(v) => filters.toggleMulti('connAirports', v)}
                   options={connectionAirportOptions.map((a) => ({ value: a, label: a }))}
                 />
               )}
@@ -243,7 +253,8 @@ export default function SearchSidebarPanel() {
               <PillRadioGroup
                 name="maxLayover"
                 label="najduže čekanje na presedanju"
-                current={sp.get('maxLayover') ?? ''}
+                current={filters.get('maxLayover') ?? ''}
+                onPick={(v) => filters.setScalar('maxLayover', v)}
                 options={[
                   { value: '', label: 'svejedno' },
                   { value: '90', label: 'do 1.5h' },
@@ -255,7 +266,8 @@ export default function SearchSidebarPanel() {
               <PillRadioGroup
                 name="maxDuration"
                 label="najduže ukupno trajanje"
-                current={sp.get('maxDuration') ?? ''}
+                current={filters.get('maxDuration') ?? ''}
+                onPick={(v) => filters.setScalar('maxDuration', v)}
                 options={[
                   { value: '', label: 'svejedno' },
                   { value: '120', label: 'do 2h' },
@@ -267,23 +279,24 @@ export default function SearchSidebarPanel() {
               <label className="text-ink-faint">
                 <span className={FILTER_TITLE_CLASS}>poletanje između</span>
                 <div className="mt-1 flex gap-1">
-                  <input type="time" name="departFrom" defaultValue={sp.get('departFrom') ?? ''} className="input w-1/2" />
-                  <input type="time" name="departTo" defaultValue={sp.get('departTo') ?? ''} className="input w-1/2" />
+                  <input type="time" name="departFrom" value={filters.get('departFrom') ?? ''} onChange={(e) => filters.setScalar('departFrom', e.target.value)} className="input w-1/2" />
+                  <input type="time" name="departTo" value={filters.get('departTo') ?? ''} onChange={(e) => filters.setScalar('departTo', e.target.value)} className="input w-1/2" />
                 </div>
               </label>
 
               <label className="text-ink-faint">
                 <span className={FILTER_TITLE_CLASS}>sletanje između</span>
                 <div className="mt-1 flex gap-1">
-                  <input type="time" name="arriveFrom" defaultValue={sp.get('arriveFrom') ?? ''} className="input w-1/2" />
-                  <input type="time" name="arriveTo" defaultValue={sp.get('arriveTo') ?? ''} className="input w-1/2" />
+                  <input type="time" name="arriveFrom" value={filters.get('arriveFrom') ?? ''} onChange={(e) => filters.setScalar('arriveFrom', e.target.value)} className="input w-1/2" />
+                  <input type="time" name="arriveTo" value={filters.get('arriveTo') ?? ''} onChange={(e) => filters.setScalar('arriveTo', e.target.value)} className="input w-1/2" />
                 </div>
               </label>
 
               <PillRadioGroup
                 name="minCheckedBags"
                 label="predati prtljag u ceni"
-                current={sp.get('minCheckedBags') ?? ''}
+                current={filters.get('minCheckedBags') ?? ''}
+                onPick={(v) => filters.setScalar('minCheckedBags', v)}
                 options={[
                   { value: '', label: 'svejedno' },
                   { value: '1', label: 'bar 1 kofer' },
@@ -323,16 +336,76 @@ function Section({ title, open, onToggle, children }: { title: string; open: boo
 // meni. Ispod su `<input type="radio">`/`<input type="checkbox">` sakriveni iza `sr-only` i
 // stilizovani kroz `has-[:checked]` — isti obrazac koji sekcija sadržaja (amenityTags) već
 // koristi, i koji radi unutar postojeće nativne forme bez ijednog novog komada React stanja.
+/**
+ * Cena je jedini filter koji se KUCA, a ne bira klikom — i zato jedini kome trenutna primena
+ * smeta: dok se ukuca „500", lista bi se presložila tri puta (na 5, na 50, na 500) i ono što je
+ * korisnik gledao bi mu odskočilo ispod pogleda. Zato polje ima sopstveno stanje dok se kuca, a
+ * u filtere upisuje tek kad se prestane kucati (400ms) ili kad polje izgubi fokus.
+ */
+function PriceRangeFields() {
+  const filters = useSearchFilters();
+  const fromFilters = { min: filters.get('priceMin') ?? '', max: filters.get('priceMax') ?? '' };
+  const [draft, setDraft] = useState(fromFilters);
+
+  // Spolja promenjena vrednost (otvorena sačuvana pretraga, „poništi filtere") mora da stigne u
+  // polje — inače bi polje pokazivalo staru cifru dok filter već radi po novoj.
+  const external = `${fromFilters.min}|${fromFilters.max}`;
+  const lastExternal = useRef(external);
+  useEffect(() => {
+    if (external === lastExternal.current) return;
+    lastExternal.current = external;
+    setDraft(fromFilters);
+  }, [external]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (draft.min !== fromFilters.min) filters.setScalar('priceMin', draft.min);
+      if (draft.max !== fromFilters.max) filters.setScalar('priceMax', draft.max);
+      lastExternal.current = `${draft.min}|${draft.max}`;
+    }, 400);
+    return () => clearTimeout(t);
+  }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <label className="text-ink-faint">
+      <span className={FILTER_TITLE_CLASS}>cena od / do</span>
+      <div className="mt-1 flex gap-1">
+        <input
+          type="number"
+          name="priceMin"
+          min={0}
+          value={draft.min}
+          onChange={(e) => setDraft((d) => ({ ...d, min: e.target.value }))}
+          className="input w-1/2"
+          placeholder="0"
+        />
+        <input
+          type="number"
+          name="priceMax"
+          min={0}
+          value={draft.max}
+          onChange={(e) => setDraft((d) => ({ ...d, max: e.target.value }))}
+          className="input w-1/2"
+          placeholder="∞"
+        />
+      </div>
+    </label>
+  );
+}
+
 function PillRadioGroup({
   name,
   label,
   current,
+  onPick,
   options,
   stack,
 }: {
   name: string;
   label: string;
   current: string;
+  /** Filtriranje je trenutno (3.9.2026) — polja su kontrolisana, bez `defaultChecked`. */
+  onPick: (value: string) => void;
   options: { value: string; label: string }[];
   /** Sve opcije jedna ispod druge, ne u redu (3.9.2026, na zahtev vlasnika — "vrsta usluge",
    * gde puni nazivi usluga ne stanu jedan pored drugog u uskom levom panelu). */
@@ -347,7 +420,14 @@ function PillRadioGroup({
             key={o.value || 'any'}
             className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
           >
-            <input type="radio" name={name} value={o.value} defaultChecked={current === o.value} className="sr-only" />
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              checked={current === o.value}
+              onChange={() => onPick(o.value)}
+              className="sr-only"
+            />
             {o.label}
           </label>
         ))}
@@ -360,12 +440,14 @@ function PillCheckboxGroup({
   name,
   label,
   current,
+  onToggle,
   options,
   stack,
 }: {
   name: string;
   label: string;
   current: string[];
+  onToggle: (value: string) => void;
   options: { value: string; label: string }[];
   /** Sve opcije jedna ispod druge, ne u redu (isto obrazloženje kao `PillRadioGroup` — puni
    * nazivi usluga ne stanu jedan pored drugog u uskom levom panelu). */
@@ -380,7 +462,14 @@ function PillCheckboxGroup({
             key={o.value}
             className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
           >
-            <input type="checkbox" name={name} value={o.value} defaultChecked={current.includes(o.value)} className="sr-only" />
+            <input
+              type="checkbox"
+              name={name}
+              value={o.value}
+              checked={current.includes(o.value)}
+              onChange={() => onToggle(o.value)}
+              className="sr-only"
+            />
             {o.label}
           </label>
         ))}

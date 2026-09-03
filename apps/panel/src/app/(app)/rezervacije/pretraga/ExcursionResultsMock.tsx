@@ -3,6 +3,8 @@
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
 import { compareName } from '@/lib/search-sort';
+import { useSearchFilters } from '@/components/SearchFiltersContext';
+import { commonFiltersFrom } from '@/lib/search-filters';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (29.8.2026, na zahtev vlasnika: "dodajte mock
 // podatke za pretragu letova, transfera i izleta da bih video kako sve radi", isti obrazac kao
@@ -103,19 +105,17 @@ function money(amountCents: number, currency: string): string {
 
 export default function ExcursionResultsMock({
   stayFrom,
-  priceMin,
-  priceMax,
   sort,
 }: {
   /** Bag (29.8.2026) — mock nije nikad prosleđivao datum, pa je "Napravi ponudu" (RightPanel.tsx)
    * uvek odbijao selekciju sa ovim tipom ("izaberite period boravka"), bez obzira na ostale stavke. */
   stayFrom?: string;
-  priceMin?: number | null;
-  priceMax?: number | null;
   /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
   sort: string;
 }) {
   const { items, addItem } = useSelection();
+  // Filteri iz živog stanja — klik deluje odmah, bez poziva serveru (`SearchFiltersContext.tsx`).
+  const { priceMin, priceMax } = commonFiltersFrom(useSearchFilters());
 
   const excursions = MOCK_EXCURSIONS.filter((e) => {
     if (priceMin != null && e.price < priceMin) return false;

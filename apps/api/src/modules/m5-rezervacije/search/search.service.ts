@@ -237,6 +237,12 @@ export class SearchService {
         destinationCity: product.destinationCity,
         geoLat: product.geoLat === null ? null : Number(product.geoLat),
         geoLng: product.geoLng === null ? null : Number(product.geoLng),
+        // M2 §2.3c — sadržaji objekta idu uz rezultat da panel može da filtrira po njima bez
+        // novog poziva (M5 §3.0c.3, dopuna 3.9.2026). Čita se defanzivno: `attributes` je JSONB
+        // i stariji zapisi ga nemaju, a niz stranog oblika bi srušio filter na klijentu.
+        amenities: Array.isArray((product.attributes as any)?.amenities)
+          ? ((product.attributes as any).amenities as unknown[]).filter((t): t is string => typeof t === 'string')
+          : null,
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
         offers,

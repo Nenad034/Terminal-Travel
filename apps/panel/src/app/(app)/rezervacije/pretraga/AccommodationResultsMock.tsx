@@ -5,6 +5,8 @@ import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
 import { compareName } from '@/lib/search-sort';
 import SearchResultsMap from '@/components/SearchResultsMap';
+import { useSearchFilters } from '@/components/SearchFiltersContext';
+import { amenitiesMatch, commonFiltersFrom, offerMatches } from '@/lib/search-filters';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mock
 // podatke da vidim kako sve izgleda", dorađeno kroz dva naredna prolaza istog dana). Pravi
@@ -43,6 +45,11 @@ interface MockHotel {
   lat: number;
   lng: number;
   image: string;
+  /** `AmenityTag` vrednosti (M2 §2.3c) — iste koje levi panel nudi kao tagove.
+   * Dodato 3.9.2026: do tada mock hoteli NISU imali nijedan sadržaj, pa cela sekcija tagova u
+   * levom panelu (plaža, bazen, soba, politika…) nije mogla ništa da suzi — klik je menjao
+   * adresu, a lista je ostajala ista. Filter koji ne može da radi gori je od filtera kog nema. */
+  amenities: string[];
   offers: MockOffer[];
 }
 
@@ -66,6 +73,7 @@ function offerTotal(offer: MockOffer): number {
 const MOCK_HOTELS: MockHotel[] = [
   {
     id: 'mock-h1',
+    amenities: ['BEACH_UNDER_100M', 'BEACH_PEBBLE', 'POOL_OUTDOOR', 'POOL_KIDS', 'WIFI_FREE', 'PARKING', 'SPA_WELLNESS', 'GYM', 'RESTAURANT', 'ROOM_SERVICE', 'AC', 'TV', 'MINIBAR', 'BALCONY', 'SEA_VIEW', 'FAMILY_FRIENDLY', 'FREE_CANCELLATION', 'NON_SMOKING', 'RECEPTION_24H'],
     name: 'Hotel Riviera',
     stars: 5,
     city: 'Budva',
@@ -82,6 +90,7 @@ const MOCK_HOTELS: MockHotel[] = [
   },
   {
     id: 'mock-h2',
+    amenities: ['BEACH_OVER_500M', 'WIFI_FREE', 'PARKING', 'RESTAURANT', 'AC', 'TV', 'BALCONY', 'SEA_VIEW', 'PETS_ALLOWED', 'PAY_AT_PROPERTY', 'NON_SMOKING'],
     name: 'Hotel Panorama',
     stars: 4,
     city: 'Kotor',
@@ -107,6 +116,7 @@ const MOCK_HOTELS: MockHotel[] = [
   },
   {
     id: 'mock-h3',
+    amenities: ['BEACH_UNDER_50M', 'BEACH_SAND', 'WIFI_FREE', 'RESTAURANT', 'AC', 'TV', 'KITCHENETTE', 'BALCONY', 'SEA_VIEW', 'FAMILY_FRIENDLY', 'PAY_AT_PROPERTY'],
     name: 'Hotel Adriatic',
     stars: 3,
     city: 'Petrovac',
@@ -122,6 +132,7 @@ const MOCK_HOTELS: MockHotel[] = [
   },
   {
     id: 'mock-h4',
+    amenities: ['BEACH_UNDER_250M', 'BEACH_PEBBLE', 'POOL_OUTDOOR', 'WIFI_FREE', 'PARKING', 'RESTAURANT', 'AIRPORT_SHUTTLE', 'AC', 'TV', 'BALCONY', 'MOUNTAIN_VIEW', 'FREE_CANCELLATION', 'NON_SMOKING'],
     name: 'Hotel Maslina',
     stars: 4,
     city: 'Tivat',
@@ -133,6 +144,7 @@ const MOCK_HOTELS: MockHotel[] = [
   },
   {
     id: 'mock-h5',
+    amenities: ['BEACH_UNDER_500M', 'BEACH_ROCK', 'BEACH_PRIVATE', 'POOL_INDOOR', 'POOL_HEATED', 'WIFI_FREE', 'PARKING', 'SPA_WELLNESS', 'GYM', 'RESTAURANT', 'ROOM_SERVICE', 'RECEPTION_24H', 'AC', 'TV', 'MINIBAR', 'SEA_VIEW', 'ADULTS_ONLY', 'FREE_CANCELLATION'],
     name: 'Hotel Sunset',
     stars: 5,
     city: 'Herceg Novi',
@@ -166,22 +178,12 @@ function roomLineLabel(r: MockRoomLine): string {
 export default function AccommodationResultsMock({
   stayFrom,
   stayTo,
-  boardTypes,
-  priceMin,
-  priceMax,
   sort,
   resultsView,
   bbox,
 }: {
   stayFrom?: string;
   stayTo?: string;
-  /** M5 spec §3.0c.2 tačka 3 — isti filteri koje `page.tsx` već računa nad pravim rezultatima
-   * (cena/vrsta usluge), ovde primenjeni nad MOCK ponudama — BAG (26.8.2026, prijavio vlasnik
-   * uživo: "ne radi filter po tipu usluge") — mock ekran je ranije potpuno ignorisao ove props,
-   * jer ih uopšte nije primao. Višestruki izbor (3.9.2026) — prazan/nedefinisan niz znači "sve". */
-  boardTypes?: string[];
-  priceMin?: number | null;
-  priceMax?: number | null;
   /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
   sort: string;
   /** M5 spec §3.0h — 'lista' ili 'mapa' (SortBar.tsx prekidač). Namerno NIJE `view`: taj naziv
@@ -193,6 +195,10 @@ export default function AccommodationResultsMock({
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { items, addItem } = useSelection();
+  // Filteri se čitaju iz ŽIVOG stanja, ne iz adrese (vlasnikova odluka 3.9.2026 — klik na filter
+  // deluje odmah, bez poziva serveru; obrazloženje u `SearchFiltersContext.tsx`).
+  const filters = useSearchFilters();
+  const { priceMin, priceMax, availability, boardTypes, amenityTags } = commonFiltersFrom(filters);
 
   // M5 spec §3.0h.8 — okvir mape filtrira i mock, isto kao što na pravom putu filtrira
   // `GET /search`. Bez ovoga bi "pretraži dok pomeram mapu" radilo samo na jednom od dva puta,
@@ -203,16 +209,21 @@ export default function AccommodationResultsMock({
     return h.lat >= minLat && h.lat <= maxLat && h.lng >= minLon && h.lng <= maxLon;
   };
 
-  const sortedHotels = MOCK_HOTELS.filter(inBox).map((h) => ({
+  const sortedHotels = MOCK_HOTELS.filter(inBox)
+    // Sadržaji objekta filtriraju CEO hotel, ne pojedinačnu ponudu — bazen i plaža pripadaju
+    // objektu, ne sobi (I-logika, ista kao na serveru: mora imati SVE izabrane, M5 §3.0c.3).
+    .filter((h) => amenitiesMatch(h.amenities, amenityTags))
+    .map((h) => ({
     ...h,
     offers: h.offers
-      .filter((o) => {
-        if (boardTypes && boardTypes.length > 0 && !boardTypes.includes(o.boardType)) return false;
-        const total = offerTotal(o);
-        if (priceMin != null && total < priceMin) return false;
-        if (priceMax != null && total > priceMax) return false;
-        return true;
-      })
+      .filter((o) =>
+        // Mock ponuda nema `availabilityStatus` — sve su „odmah potvrda", pa filter dostupnosti
+        // sme da je odbaci samo kad se traži nešto drugo.
+        offerMatches(
+          { finalPrice: offerTotal(o), availabilityStatus: 'AVAILABLE', boardType: o.boardType },
+          { priceMin, priceMax, availability, boardTypes },
+        ),
+      )
       .sort((a, b) => offerTotal(a) - offerTotal(b)),
   }))
     .filter((h) => h.offers.length > 0)

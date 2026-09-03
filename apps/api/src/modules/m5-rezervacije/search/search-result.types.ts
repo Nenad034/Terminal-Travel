@@ -40,6 +40,17 @@ export interface SearchResultProduct {
    */
   geoLat: number | null;
   geoLng: number | null;
+  /**
+   * M2 spec §2.3c `AmenityTag[]` — sadržaji objekta (bazen, plaža, spa, politika otkazivanja…).
+   *
+   * Dodato 3.9.2026 uz vlasnikovu odluku da filteri u panelu deluju ODMAH po kliku: bez ovog
+   * polja svaki klik na tag sadržaja morao bi u nov `GET /search`, jer se drugačije ne zna šta
+   * proizvod nudi. `amenityTags` ostaje i upitni parametar (I-logika na serveru, §3.0c.3) — ovo
+   * ga ne zamenjuje nego omogućava da isti filter radi i bez novog poziva.
+   *
+   * `null` za tipove koji nemaju sadržaje (let, transfer) i za proizvod kome polje nije uneto.
+   */
+  amenities: string[] | null;
   thumbnail: { url: string; category: string } | null;
   shortDescription: string | null;
   offers: SearchResultOffer[];

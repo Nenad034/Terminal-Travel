@@ -5,51 +5,16 @@ import SearchPanel from '@/components/SearchPanel';
 import SearchRefreshNotice from '@/components/SearchRefreshNotice';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { offerKey } from '@/lib/search-offer-key';
-import { flightFiltersFromParams } from '@/lib/mock-flights';
 import SortBar from '@/components/SortBar';
-import SearchResultsMap from '@/components/SearchResultsMap';
-import { resolveSort, compareName } from '@/lib/search-sort';
+import { resolveSort } from '@/lib/search-sort';
 import { parseRooms, roomsFromTotals, toOccupancy } from '@/lib/search-rooms';
-import QuoteButton from './QuoteButton';
-import ProductPreviewButton from './ProductPreviewButton';
 import AccommodationResultsMock from './AccommodationResultsMock';
 import FlightResultsMock from './FlightResultsMock';
 import TransferResultsMock from './TransferResultsMock';
 import ExcursionResultsMock from './ExcursionResultsMock';
+import RealResults from './RealResults';
+import type { SearchResult } from './types';
 
-
-interface SearchOffer {
-  roomTypeCode?: string;
-  roomTypeName?: string;
-  boardType?: string;
-  finalPrice: number;
-  finalPriceCurrency: string;
-  availabilityStatus: string;
-  rateLineId?: string;
-  providerQuoteReference?: string;
-  quoteExpiresAt?: string;
-  cancellationPolicySummary?: string;
-}
-
-interface SearchResult {
-  productId: string;
-  type: string;
-  sourceType: string;
-  name: string;
-  destinationCountry: string;
-  destinationCity: string;
-  /** M5 spec §3.0b.1 — koordinate za mapu. `GET /sales/search` ih vraća kao BROJ (servis
-   * pretvara iz `Decimal`), za razliku od `GET /catalog/products/:id` koji vraća string. */
-  geoLat: number | null;
-  geoLng: number | null;
-  shortDescription?: string;
-  thumbnail?: { url: string; category: string } | null;
-  offers: SearchOffer[];
-}
-
-// Dizajn dok. §6d — tipovi sa bogatim vizuelnim sadržajem dobijaju kartice, ostatak
-// kompaktne redove (kompanija/vozilo, vreme, cena, isti utisak kao Google Flights lista).
-const CARD_TYPES = new Set(['ACCOMMODATION', 'PACKAGE', 'EXCURSION', 'EVENT', 'TICKET']);
 
 function first(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -127,46 +92,10 @@ export default async function SearchPage(
     }
   }
 
-  // Filteri (Sidebar, SearchSidebarPanel.tsx) — GET /search ne podržava cenu/dostupnost kao
-  // upitne parametre (M5 spec §11), pa se primenjuju ovde, nad već dobijenim rezultatima.
-  const priceMinRaw = first(searchParams.priceMin);
-  const priceMaxRaw = first(searchParams.priceMax);
-  const priceMin = priceMinRaw ? Number(priceMinRaw) * 100 : null;
-  const priceMax = priceMaxRaw ? Number(priceMaxRaw) * 100 : null;
-  const availability = first(searchParams.availability) || null;
-  // M5 spec §3.0c.2 tačka 3 — "vrsta usluge" (board_type) filtrira se UNUTAR već dobijenih
-  // rezultata, isti princip kao dostupnost iznad (nije upitni parametar GET /search).
-  // Višestruki izbor (3.9.2026, na zahtev vlasnika) — prazan niz znači "sve".
-  const boardTypes = normalizeTypes(searchParams.boardTypes);
+  // Filteri i sortiranje NISU više ovde (3.9.2026) — od vlasnikove odluke da filter deluje
+  // odmah po kliku, oboje se radi na klijentu, nad već dovučenim rezultatima (`RealResults.tsx`).
+  // Ovde bi svaka promena filtera značila nov `GET /search`, jer je ovo server komponenta.
   const cabinClass = first(searchParams.cabinClass) || null;
-
-  if (priceMin !== null || priceMax !== null || availability || boardTypes.length > 0) {
-    results = results
-      .map((r) => ({
-        ...r,
-        offers: r.offers.filter((o) => {
-          if (priceMin !== null && o.finalPrice < priceMin) return false;
-          if (priceMax !== null && o.finalPrice > priceMax) return false;
-          if (availability && o.availabilityStatus !== availability) return false;
-          if (boardTypes.length > 0 && !boardTypes.includes(o.boardType ?? '')) return false;
-          return true;
-        }),
-      }))
-      .filter((r) => r.offers.length > 0);
-  }
-
-  // Cena proizvoda za sortiranje = njegova NAJJEFTINIJA ponuda (isti princip kao "od X din"
-  // prikaz na svakom portalu) — proizvod bez ponuda ne postoji u rezultatima, filter iznad ga
-  // je već uklonio.
-  const cheapest = (r: SearchResult) => Math.min(...r.offers.map((o) => o.finalPrice));
-  results = [...results].sort((a, b) => {
-    if (sort === 'PRICE_DESC') return cheapest(b) - cheapest(a);
-    if (sort === 'NAME_ASC') return compareName(a.name, b.name);
-    return cheapest(a) - cheapest(b);
-  });
-
-  const cardResults = results.filter((r) => CARD_TYPES.has(r.type));
-  const rowResults = results.filter((r) => !CARD_TYPES.has(r.type));
 
   const quoteDefaults = {
     stayFrom: first(searchParams.stayFrom),
@@ -189,27 +118,10 @@ export default async function SearchPage(
   // Letovi i transferi nemaju jednu tačku na mapi nego rutu, pa im prekidač ni ne treba.
   const resultsView: 'lista' | 'mapa' = first(searchParams.prikaz) === 'mapa' ? 'mapa' : 'lista';
 
-  // Tačke za mapu iz PRAVIH rezultata — proizvod bez koordinata se preskače (ostaje u listi,
-  // samo ga nema na mapi), a cena je najniža ponuda tog proizvoda, isti princip kao sortiranje.
-  const mapPoints = results
-    .filter((r) => r.geoLat != null && r.geoLng != null)
-    .map((r) => ({
-      id: r.productId,
-      name: r.name,
-      lat: r.geoLat as number,
-      lng: r.geoLng as number,
-      price: Math.min(...r.offers.map((o) => o.finalPrice)),
-      currency: r.offers[0].finalPriceCurrency,
-    }));
-
-  const mapAvailable = singleType === 'ACCOMMODATION' || (!usesMock && mapPoints.length > 0);
-
-  // M5 spec §3.0d.1 — filteri letova iz levog panela. Čitaju se iz iste `searchParams` strukture
-  // kao ostali filteri (cena/dostupnost), pa nema novog mehanizma prenosa.
-  const flightFilters = flightFiltersFromParams(
-    (k) => first(searchParams[k]) ?? null,
-    (k) => normalizeTypes(searchParams[k])
-  );
+  // Mapa se nudi samo gde ima šta da prikaže: smeštaj (mock ima koordinate gradova) i pravi
+  // rezultati sa koordinatama. Sam spisak tačaka gradi `RealResults.tsx`, POSLE filtriranja —
+  // mapa i lista moraju pokazivati isto (do 3.9.2026 su tačke građene ovde, pre filtera).
+  const mapAvailable = singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.geoLat != null && r.geoLng != null));
 
   // M5 spec §3.0g.3 — snimak ponuda koji "Osveži podatke" poredi sa prethodnim. Gradi se samo iz
   // PRAVIH `GET /search` rezultata; mock prikazi imaju hardkodovane cene koje se između dva
@@ -271,9 +183,6 @@ export default async function SearchPage(
             <AccommodationResultsMock
               stayFrom={quoteDefaults.stayFrom}
               stayTo={quoteDefaults.stayTo}
-              boardTypes={boardTypes}
-              priceMin={priceMin}
-              priceMax={priceMax}
               sort={sort}
               resultsView={resultsView}
               bbox={first(searchParams.bbox) ?? null}
@@ -304,152 +213,28 @@ export default async function SearchPage(
               destinationCity={destinationCity}
               flightLegs={flightLegs}
               cabinClass={cabinClass}
-              priceMin={priceMin}
-              priceMax={priceMax}
-              filters={flightFilters}
               sort={sort}
             />
           );
         }
         if (singleType === 'TRANSFER') {
-          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} sort={sort} />;
+          return <TransferResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
         }
         if (isThingsToDo) {
-          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} priceMin={priceMin} priceMax={priceMax} sort={sort} />;
+          return <ExcursionResultsMock stayFrom={quoteDefaults.stayFrom} sort={sort} />;
         }
-        if (resultsView === 'mapa') {
-          return <SearchResultsMap points={mapPoints} />;
-        }
-
+        // Pravi rezultati: filtriranje, sortiranje, kartice/redovi i mapa su u `RealResults.tsx`
+        // (klijentska komponenta) — filter mora da deluje odmah, a ovo je server komponenta.
         return (
-          <>
-            {cardResults.length > 0 && (
-              <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {cardResults.map((r) => (
-                  <ResultCard key={r.productId} result={r} quoteDefaults={quoteDefaults} />
-                ))}
-              </div>
-            )}
-            {rowResults.length > 0 && (
-              <div className="flex flex-col gap-3">
-                {rowResults.map((r) => (
-                  <ResultRowGroup key={r.productId} result={r} quoteDefaults={quoteDefaults} />
-                ))}
-              </div>
-            )}
-          </>
+          <RealResults
+            results={results}
+            quoteDefaults={quoteDefaults}
+            sort={sort}
+            resultsView={resultsView}
+            emptyMessage={activeIcon?.emptyMessage ?? 'Nema rezultata za zadate kriterijume.'}
+          />
         );
       })()}
-      </div>
-    </div>
-  );
-}
-
-interface QuoteDefaults {
-  stayFrom?: string;
-  stayTo?: string;
-  adults: number;
-  children: number;
-}
-
-function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-panel">
-      <div className="flex aspect-[16/10] items-center justify-center bg-panel-2 text-ink-faint">
-        {r.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={r.thumbnail.url} alt={r.name} className="h-full w-full object-cover" />
-        ) : (
-          <Icon name="device-camera" className="text-2xl" />
-        )}
-      </div>
-      <div className="p-3">
-        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
-        <div className="mb-2 text-xs text-ink-faint">
-          {r.destinationCity}, {r.destinationCountry} · {r.type}
-        </div>
-        <div className="flex flex-col gap-2">
-          {r.offers.slice(0, 3).map((o, i) => (
-            <div
-              key={i}
-              // §3.0g.3 — obeležavanje promenjenih redova posle osvežavanja radi
-              // SearchRefreshNotice.tsx nad ovim atributom (isti ključ kao selekcija, §3.0e.3).
-              data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
-              className="flex items-center justify-between rounded bg-panel2 px-2 py-1.5 text-xs"
-            >
-              <span className="text-ink-dim">{o.roomTypeName ?? o.roomTypeCode ?? r.type}</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-semibold text-ink">
-                  {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
-                </span>
-                <QuoteButton
-                  productId={r.productId}
-                  productName={r.name}
-                  productType={r.type}
-                  sourceType={r.sourceType}
-                  rateLineId={o.rateLineId}
-                  providerQuoteReference={o.providerQuoteReference}
-                  stayFrom={quoteDefaults.stayFrom}
-                  stayTo={quoteDefaults.stayTo}
-                  adults={quoteDefaults.adults}
-                  children={quoteDefaults.children}
-                  finalPrice={o.finalPrice}
-                  finalPriceCurrency={o.finalPriceCurrency}
-                  quoteExpiresAt={o.quoteExpiresAt}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; quoteDefaults: QuoteDefaults }) {
-  return (
-    <div className="rounded-lg border border-border bg-panel p-4">
-      <div className="mb-2">
-        <ProductPreviewButton productId={r.productId} name={r.name} className="text-left font-medium text-ink hover:text-accent" />
-        <div className="text-xs text-ink-faint">
-          {r.destinationCity}, {r.destinationCountry} · {r.type} · {r.sourceType}
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        {r.offers.map((o, i) => (
-          <div
-            key={i}
-            data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
-            className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm"
-          >
-            <div>
-              <div className="text-ink">
-                {o.roomTypeName ?? o.roomTypeCode} {o.boardType ? `· ${o.boardType}` : ''}
-              </div>
-              <div className="text-xs text-ink-faint">{o.cancellationPolicySummary}</div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm font-semibold text-ink">
-                {(o.finalPrice / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} {o.finalPriceCurrency}
-              </span>
-              <QuoteButton
-                productId={r.productId}
-                productName={r.name}
-                productType={r.type}
-                sourceType={r.sourceType}
-                rateLineId={o.rateLineId}
-                providerQuoteReference={o.providerQuoteReference}
-                stayFrom={quoteDefaults.stayFrom}
-                stayTo={quoteDefaults.stayTo}
-                adults={quoteDefaults.adults}
-                children={quoteDefaults.children}
-                finalPrice={o.finalPrice}
-                finalPriceCurrency={o.finalPriceCurrency}
-                quoteExpiresAt={o.quoteExpiresAt}
-              />
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

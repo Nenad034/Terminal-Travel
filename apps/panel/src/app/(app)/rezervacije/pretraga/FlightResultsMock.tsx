@@ -2,8 +2,10 @@
 
 import Icon from '@/components/Icon';
 import { useSelection } from '@/components/SelectionContext';
-import { MOCK_FLIGHTS, applyFlightFilters, minutesOfDay, type MockFlight, type FlightFilterValues } from '@/lib/mock-flights';
+import { MOCK_FLIGHTS, applyFlightFilters, flightFiltersFromParams, minutesOfDay, type MockFlight } from '@/lib/mock-flights';
 import { flightBestScore } from '@/lib/search-sort';
+import { useSearchFilters } from '@/components/SearchFiltersContext';
+import { commonFiltersFrom } from '@/lib/search-filters';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (29.8.2026, na zahtev vlasnika: "dodajte mock
 // podatke za pretragu letova, transfera i izleta da bih video kako sve radi", isti obrazac kao
@@ -41,9 +43,6 @@ export default function FlightResultsMock({
   destinationCity,
   flightLegs,
   cabinClass,
-  priceMin,
-  priceMax,
-  filters,
   sort,
 }: {
   /** Datum poletanja prve/jedine noge (M5 spec §3.0d.1 — `stay_from` = datum leta). */
@@ -58,14 +57,16 @@ export default function FlightResultsMock({
   /** Samo za MULTI_CITY — jedna noga po pozivu `GET /search` (isto poglavlje). */
   flightLegs?: FlightLeg[];
   cabinClass?: string | null;
-  priceMin?: number | null;
-  priceMax?: number | null;
-  /** M5 spec §3.0d.1 — filteri iz levog panela, klijentski nad već dobijenim rezultatima. */
-  filters: FlightFilterValues;
   /** M5 spec §3.0g.8 — izabran redosled prikaza (SortBar.tsx). */
   sort: string;
 }) {
   const { items, addItem } = useSelection();
+  // M5 §3.0d.1 — filteri letova iz levog panela; od 3.9.2026 se čitaju iz ŽIVOG stanja umesto iz
+  // adrese, pa klik na filter deluje odmah, bez ponovne pretrage na serveru
+  // (obrazloženje u `SearchFiltersContext.tsx`).
+  const liveFilters = useSearchFilters();
+  const filters = flightFiltersFromParams(liveFilters.get, liveFilters.getAll);
+  const { priceMin, priceMax } = commonFiltersFrom(liveFilters);
 
   function legFlights(from: string, to: string, idSuffix: string): MockFlight[] {
     const base = MOCK_FLIGHTS.filter((f) => {
