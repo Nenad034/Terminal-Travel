@@ -55,6 +55,65 @@ function normalizeCountry(raw: string): string {
   return COUNTRY_ALIASES[raw.trim().toUpperCase()] ?? raw.trim();
 }
 
+/**
+ * Isti problem kao sa državama, samo na nivou mesta (dopuna 3.9.2026): katalog nosi SRPSKI
+ * naziv destinacije — onaj koji agent kuca i koji gost vidi — a Nominatim zna lokalni ili
+ * engleski. „Sunčev breg" nema nijedan pogodak, „Sunny Beach" ima. Bez ovog rečnika takav
+ * proizvod tiho ostane bez koordinata i nikad se ne pojavi na mapi, iako sve ostalo radi.
+ *
+ * Rečnik pokriva samo ono gde se srpski oblik STVARNO razlikuje od lokalnog — ne prevodi se
+ * svaki grad (Budva, Rim, Solun i slični se nalaze i ovako). Dopunjava se kad se pojavi nov
+ * promašaj, isti obrazac kao `COUNTRY_ALIASES`.
+ */
+const CITY_ALIASES: Record<string, string> = {
+  'SUNČEV BREG': 'Sunny Beach',
+  'SUNCEV BREG': 'Sunny Beach',
+  'ZLATNI PJASCI': 'Golden Sands',
+  HAMAMET: 'Hammamet',
+  ĐERBA: 'Djerba',
+  DJERBA: 'Djerba',
+  BUĐIBA: 'Bugibba',
+  BUDJIBA: 'Bugibba',
+  KRF: 'Corfu',
+  KRIT: 'Crete',
+  RODOS: 'Rhodes',
+  TASOS: 'Thasos',
+  SITONIJA: 'Sithonia',
+  KASANDRA: 'Kassandra',
+  SOLUN: 'Thessaloniki',
+  ATINA: 'Athens',
+  ANTALIJA: 'Antalya',
+  ALANJA: 'Alanya',
+  'ŠARM EL ŠEIK': 'Sharm El Sheikh',
+  HURGADA: 'Hurghada',
+  KAIRO: 'Cairo',
+  BARSELONA: 'Barcelona',
+  'PALMA DE MAJORKA': 'Palma de Mallorca',
+  RIM: 'Rome',
+  VENECIJA: 'Venice',
+  NAPULJ: 'Naples',
+  FIRENCA: 'Florence',
+  MLETAK: 'Venice',
+  DRAČ: 'Durrës',
+  DRAC: 'Durrës',
+  VALONA: 'Vlorë',
+  SUSE: 'Sousse',
+  SKOPLJE: 'Skopje',
+  LISABON: 'Lisbon',
+  'ABU DABI': 'Abu Dhabi',
+  ŠARDŽA: 'Sharjah',
+  SARDZA: 'Sharjah',
+  'AJIA NAPA': 'Ayia Napa',
+  LARNAKA: 'Larnaca',
+  PAFOS: 'Paphos',
+  BEČ: 'Vienna',
+  BEC: 'Vienna',
+};
+
+function normalizeCity(raw: string): string {
+  return CITY_ALIASES[raw.trim().toUpperCase()] ?? raw.trim();
+}
+
 interface GeocodeHit {
   lat: number;
   lng: number;
@@ -100,12 +159,15 @@ export async function geocodeProducts(opts: { dryRun: boolean; force: boolean })
     const city = p.destinationCity?.trim() ?? '';
     const country = normalizeCountry(p.destinationCountry ?? '');
 
-    // Dva pokušaja: prvo pun upit sa nazivom objekta (tačna tačka), pa samo grad+država
-    // (tačka grada) ako naziv nije prepoznat. Tačka grada je lošija od tačne, ali daleko
-    // bolja od prazne — proizvod se bar pojavi na mapi u pravom mestu.
+    // Tri pokušaja: prvo pun upit sa nazivom objekta (tačna tačka), pa grad+država, pa isti
+    // upit sa prevedenim nazivom mesta ako se srpski oblik razlikuje (`CITY_ALIASES`). Tačka
+    // grada je lošija od tačne, ali daleko bolja od prazne — proizvod se bar pojavi na mapi
+    // u pravom mestu.
+    const cityAlias = normalizeCity(city);
     const attempts: { query: string; exact: boolean }[] = [];
     if (name && city) attempts.push({ query: `${name}, ${city}, ${country}`, exact: true });
     if (city) attempts.push({ query: `${city}, ${country}`, exact: false });
+    if (cityAlias !== city) attempts.push({ query: `${cityAlias}, ${country}`, exact: false });
 
     let hit: GeocodeHit | null = null;
     let exact = false;

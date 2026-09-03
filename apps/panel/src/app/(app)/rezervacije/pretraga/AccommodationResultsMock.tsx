@@ -269,11 +269,15 @@ export default function AccommodationResultsMock({
   // priču o istoj pretrazi.
   if (resultsView === 'mapa') {
     return (
-      <div>
-        <div className="mb-3 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
+      // Flex kolona sa `min-h-0` (dopuna 3.9.2026) — baner ostaje svoje visine, mapa uzima sav
+      // preostali prostor do dna panela. Bez `min-h-0` dete sa `flex-1` ne bi smelo da se skupi
+      // ispod svoje prirodne visine i kolona bi probila dno.
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-3 shrink-0 rounded-lg border border-warn bg-warn-bg px-3 py-2 text-xs text-warn">
           MOCK — hardkodovani hoteli. Tačke su stvarne koordinate tih gradova, na nivou mesta
           (isti nivo tačnosti kao pravi katalog danas, M5 §3.0h.2).
         </div>
+        <div className="flex min-h-0 flex-1 flex-col">
         <SearchResultsMap
           points={sortedHotels.map((h) => ({
             id: h.id,
@@ -296,6 +300,7 @@ export default function AccommodationResultsMock({
             if (hotel) select(hotel, hotel.offers[0]);
           }}
         />
+        </div>
       </div>
     );
   }

@@ -213,7 +213,11 @@ export default async function SearchPage(
   );
 
   return (
-    <div className="p-6">
+    // `min-h-full` + flex kolona (dopuna 3.9.2026, na zahtev vlasnika) — prikaz mape mora da
+    // popuni sve do dna centralnog panela, a ne da stane na fiksnoj visini i ostavi belu traku
+    // ispod sebe. `min-h-full` (ne `h-full`) jer u prikazu LISTE sadržaj ume da bude viši od
+    // panela i tada mora normalno da skroluje u `<main>`-u, koji je `overflow-y-auto`.
+    <div className="flex min-h-full flex-col p-6">
       <RegisterTab label="Pretraga" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> pretraga
@@ -245,6 +249,9 @@ export default async function SearchPage(
           Zamenjuje `cardResults`/`rowResults` prikaz ISKLJUČIVO za ove četiri kombinacije tipa;
           ostalih 5 vrsta (RENT-A-CAR, PACKAGE, CRUISE, INSURANCE, individualni paketi) i dalje
           idu kroz pravi `GET /search` prikaz ispod, bez mock-a. */}
+      {/* Omotač raste do dna panela SAMO u prikazu mape (dopuna 3.9.2026) — u prikazu liste bi
+          `flex-1` samo razvukao prazan prostor ispod poslednje kartice bez ikakve koristi. */}
+      <div className={resultsView === 'mapa' && showsResults ? 'flex min-h-0 flex-1 flex-col' : undefined}>
       {(() => {
         if (!hasQuery || error) return null;
 
@@ -322,6 +329,7 @@ export default async function SearchPage(
           </>
         );
       })()}
+      </div>
     </div>
   );
 }
