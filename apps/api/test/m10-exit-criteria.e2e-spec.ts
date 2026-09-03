@@ -28,6 +28,7 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
   const createdContractIds: string[] = [];
   const createdProductIds: string[] = [];
   const createdBookingIds: string[] = [];
+  const createdBankIds: string[] = [];
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -49,6 +50,7 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
       await prisma.bookingItem.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
       await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
     }
+    if (createdBankIds.length) await prisma.bank.deleteMany({ where: { id: { in: createdBankIds } } });
     if (createdSupplierIds.length) {
       await prisma.supplierPaymentInstruction.deleteMany({ where: { supplierObligation: { supplierId: { in: createdSupplierIds } } } });
       await prisma.supplierObligation.deleteMany({ where: { supplierId: { in: createdSupplierIds } } });
@@ -173,6 +175,13 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     return prisma.markupRule.create({ data: { scopeType: 'M2_PRODUCT', scopeId: 'e2e-fixture' } });
   }
 
+  // §5.2 dopuna (2.9.2026) — BANK_TRANSFER/CARD_MANUAL sad zahtevaju bankId (RecordPaymentDto).
+  async function ensureTestBank() {
+    const bank = await prisma.bank.create({ data: { name: `E2E Banka ${testRunId}-${Math.random().toString(36).slice(2)}` } });
+    createdBankIds.push(bank.id);
+    return bank;
+  }
+
   describe('§2/§4.4 — automatski izbor tipa dokumenta i PDV osnovice', () => {
     it('bira SEF_EFAKTURA/MARZA za pravno lice/organizatora i preračunava iznos ispravno (integer, ne decimal)', async () => {
       const { user, accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
@@ -259,11 +268,12 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     it('ručna uplata koja pokriva ceo iznos postavlja Booking.payment_status = PAID', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);
       const { booking } = await createConfirmedBookingFixture({ buyerType: 'FIZICKO_LICE' });
+      const bank = await ensureTestBank();
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/finance/payments')
         .set(authed(accessToken))
-        .send({ bookingId: booking.id, amount: 100000, currency: 'RSD', method: 'BANK_TRANSFER' });
+        .send({ bookingId: booking.id, amount: 100000, currency: 'RSD', method: 'BANK_TRANSFER', bankId: bank.id });
 
       expect(res.status).toBe(201);
 
