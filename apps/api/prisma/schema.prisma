@@ -246,8 +246,14 @@ model Product {
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   createdBy          String?           @map("created_by") // referencira M1 User ili AI agenta — plain UUID, bez FK (§2.1)
+  // M2 spec 2.1 dopuna (3.9.2026, uz M5 6.7b) — dobavljac za MANUAL proizvod. Ugovoreni
+  // proizvod ga ima posredno (kroz sourceContract), API proizvod kroz provajdera; rucno uneta
+  // usluga ga nije imala NIGDE, a bez njega ne mogu ni vaucer po dobavljacu (M5 6) ni najava
+  // po dobavljacu (M5 6.7) — vlasnikov zahtev "svaka usluga treba da ima svog dobavljaca".
+  supplierId         String?           @map("supplier_id")
 
   sourceContract    Contract?              @relation(fields: [sourceContractId], references: [id])
+  supplier          Supplier?              @relation(fields: [supplierId], references: [id])
   translations      ProductTranslation[]
   contentImports    ProductContentImport[]
   pricelistMatches  PricelistImportRow[] // M3 §4.2.2 — kandidati mapiranja iz uvoza cenovnika
@@ -301,6 +307,10 @@ enum ProductType {
 enum ProductSourceType {
   CONTRACTED
   API
+  // M5 spec 6.7b (3.9.2026, vlasnikova odluka) — usluga koju je agent uneo rucno, jer je nema
+  // ni u ugovoru ni kod provajdera. Jednokratna ostaje status=DRAFT (nevidljiva pretrazi,
+  // sajtu i B2B portalu), a kvacica "sacuvaj u katalog" je prevodi u ACTIVE.
+  MANUAL
 }
 
 enum ProductStatus {
@@ -449,6 +459,8 @@ model Supplier {
   contactPhone       String         @map("contact_phone")
   bankAccount        String?        @map("bank_account")
   status             SupplierStatus @default(ACTIVE)
+  // M5 6.7b — rucno unete usluge vezane direktno za dobavljaca (bez ugovora).
+  manualProducts     Product[]
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
@@ -1290,7 +1302,11 @@ model BookingItem {
   baseCost                     Int               @map("base_cost")
   baseCostCurrency             String            @map("base_cost_currency")
   rateLineId                   String?           @map("rate_line_id")
-  markupRuleId                 String            @map("markup_rule_id")
+  // M5 spec 6.7b (3.9.2026) — OPCIONO otkad postoji rucno uneta usluga: kod nje marzu unosi
+  // agent, ne razresava pravilo (rucna usluga je po prirodi ono sto pravilo ne pokriva).
+  // Prazno polje je iskrenije od izmisljenog pravila: pokazivanje na pravilo koje nije
+  // ucestvovalo u ceni bi lagalo svaki kasniji izvestaj o marzi.
+  markupRuleId                 String?           @map("markup_rule_id")
   finalPrice                   Int               @map("final_price")
   finalPriceCurrency           String            @map("final_price_currency")
   itemStatus                   BookingItemStatus @default(CONFIRMED) @map("item_status")
@@ -1331,7 +1347,7 @@ model BookingItem {
   booking             Booking                @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   product             Product                @relation(fields: [productId], references: [id])
   rateLine            RateLine?              @relation(fields: [rateLineId], references: [id])
-  markupRule          MarkupRule             @relation(fields: [markupRuleId], references: [id])
+  markupRule          MarkupRule?            @relation(fields: [markupRuleId], references: [id])
   guests              BookingItemGuest[]
   // M5 spec §8 — dopuna avgust 2026, back-relacije ka operativnim listama.
   manifestEntries     SupplierManifestItem[]

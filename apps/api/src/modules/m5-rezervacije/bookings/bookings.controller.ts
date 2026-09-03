@@ -5,6 +5,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { AddBookingItemDto } from './dto/add-booking-item.dto';
 import { AddAncillaryItemDto } from './dto/add-ancillary-item.dto';
+import { AddManualItemDto } from './dto/add-manual-item.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
 import { AssignGuideDto } from './dto/assign-guide.dto';
@@ -238,6 +239,15 @@ export class BookingsController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.bookings.addAncillaryToItem(id, itemId, dto, actor);
+  }
+
+  // M5 spec §6.7b — ručno uneta usluga. Ista dozvola i isto ograničenje na interni panel kao
+  // dodavanje kataloške usluge; cena se ovde prima od klijenta jer je ručna usluga po
+  // definiciji nema u cenovniku (obrazloženje u servisu).
+  @Post(':id/items/manual')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  addManualItem(@Param('id') id: string, @Body() dto: AddManualItemDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.addManualItem(id, dto, actor);
   }
 
   @Post(':id/cancel')

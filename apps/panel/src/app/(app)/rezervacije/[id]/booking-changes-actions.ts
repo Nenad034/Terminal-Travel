@@ -269,3 +269,72 @@ export async function addAncillaryToItem(bookingId: string, itemId: string, anci
   revalidatePath(`/rezervacije/${bookingId}`);
   return { ...emptyChangeState, ok: 'Doplata je dodata.' };
 }
+
+
+// ============================================================================
+// M5 spec §6.7b — ručno uneta usluga
+// ============================================================================
+
+export interface ManualItemInput {
+  productType: string;
+  name: string;
+  description?: string;
+  supplierId: string;
+  destinationCountry: string;
+  destinationCity: string;
+  /** U najmanjoj jedinici valute (para/cent) — ekran radi konverziju iz evra. */
+  baseCost: number;
+  finalPrice: number;
+  currency: string;
+  stayFrom: string;
+  stayTo: string;
+  adults: number;
+  children: number;
+  saveToCatalog: boolean;
+}
+
+/**
+ * §6.7b — usluga koje nema ni u ugovoru ni kod provajdera. Cena se ovde ŠALJE (jedini takav
+ * slučaj u M5): ručna usluga po definiciji nema cenovnik iz kog bi se izvela, pa se traže obe
+ * cene i marža je proverljiva razlika.
+ */
+export async function addManualBookingItem(bookingId: string, input: ManualItemInput): Promise<ChangeFormState> {
+  if (!input.name.trim()) return { ...emptyChangeState, error: 'Unesite naziv usluge.' };
+  if (!input.supplierId) return { ...emptyChangeState, error: 'Izaberite dobavljača — bez njega vaučer i najava po dobavljaču ne mogu da rade.' };
+  if (!input.destinationCountry.trim() || !input.destinationCity.trim()) return { ...emptyChangeState, error: 'Unesite državu i mesto usluge.' };
+  if (!input.stayFrom || !input.stayTo) return { ...emptyChangeState, error: 'Unesite oba datuma.' };
+  if (new Date(input.stayTo) <= new Date(input.stayFrom)) return { ...emptyChangeState, error: 'Datum završetka mora biti posle datuma početka.' };
+  if (!(input.baseCost >= 0) || !(input.finalPrice >= 0)) return { ...emptyChangeState, error: 'Unesite nabavnu i izlaznu cenu.' };
+  if (input.finalPrice < input.baseCost) return { ...emptyChangeState, error: 'Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena.' };
+
+  try {
+    await apiFetch(`/sales/bookings/${bookingId}/items/manual`, {
+      method: 'POST',
+      body: {
+        productType: input.productType,
+        name: input.name.trim(),
+        ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+        supplierId: input.supplierId,
+        destinationCountry: input.destinationCountry.trim(),
+        destinationCity: input.destinationCity.trim(),
+        baseCost: input.baseCost,
+        finalPrice: input.finalPrice,
+        currency: input.currency,
+        stayFrom: input.stayFrom,
+        stayTo: input.stayTo,
+        occupancy: { adults: input.adults, children: input.children },
+        saveToCatalog: input.saveToCatalog,
+      },
+    });
+  } catch (err) {
+    return { ...emptyChangeState, error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje ručne usluge nije uspelo.' };
+  }
+
+  revalidatePath(`/rezervacije/${bookingId}`);
+  return {
+    ...emptyChangeState,
+    ok: input.saveToCatalog
+      ? 'Usluga je dodata i sačuvana u katalog — sledeći put se bira kao svaka druga.'
+      : 'Usluga je dodata na rezervaciju. Nije u katalogu (jednokratna).',
+  };
+}

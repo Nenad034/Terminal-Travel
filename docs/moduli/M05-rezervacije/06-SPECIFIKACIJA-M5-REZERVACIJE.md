@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.25 — **Ručno uneta usluga napravljena (§6.7b), uz odluku gde ona živi** (3.9.2026, vlasnik potvrdio preporuku agenta). Jednokratna usluga je **`DRAFT` proizvod u katalogu**, ne poseban tip zapisa: `DRAFT` se ne vidi ni u pretrazi, ni na javnom sajtu (M8), ni u B2B portalu (M7), a kvačica „sačuvaj u katalog" ga prevodi u `ACTIVE`. Time **ne nastaje drugi, paralelan mehanizam** za istu stvar — što je greška zbog koje ovaj repozitorijum uopšte ima pravila. Posledice: `ProductSourceType` dobija `MANUAL`, `Product` dobija `supplier_id` (M2 v1.18 — ugovoreni proizvod ima dobavljača posredno, ručni ga nije imao nigde), a `BookingItem.markup_rule_id` postaje **opcion** (kod ručne usluge maržu unosi agent; pokazivanje na pravilo koje nije učestvovalo u ceni lagalo bi svaki izveštaj o marži). **Time `ManualProductEntry` iz §3.0f gubi razlog postojanja za ovaj tok** — vidi napomenu u §6.7b.
+
 **Verzija:** 2.24 — **Doplate/popusti kao vezane stavke, ručno uneta usluga, i vaučer po dobavljaču** (3.9.2026, tri vlasnikove dopune uz poglavlje 6.7). Nova poglavlja **6.7a** (doplate i popusti — M3 `AncillaryService` prestaje da bude samo interna referenca troška i postaje **vezana stavka** rezervacije; `ON_SITE` iznos **ne ulazi u ukupnu cenu aranžmana** ali se štampa u ugovoru i na vaučeru; obavezne se dodaju automatski) i **6.7b** (ručno uneta usluga — prozor u samoj rezervaciji sa dobavljačem/nabavnom/maržom/izlaznom cenom i kvačicom „sačuvaj u katalog", vlasnikova odluka posle preporuke da se katalog ne puni jednokratnim unosima). Poglavlje 6 (vaučer): **objedinjen vaučer po dobavljaču je podrazumevani**, pojedinačni po usluzi ostaje kao opcija — vlasnikova dopuna („ukoliko u jednoj rezervaciji imamo više stavki jednog dobavljača… kreirati i voucher za sve usluge od tog dobavljača"). Prateća izmena modela je M3 v1.13 (`AncillaryService`: `kind`, `price_basis`, ograničenja po sastavu gostiju, `payable`).
 
 **Verzija:** 2.23 — **Novo poglavlje 6.7: dodavanje usluge na postojeću rezervaciju** (3.9.2026, vlasnikov nalaz: *„ni jednoj rezervaciji nije moguće dodati dodatnu uslugu u tabu aranžmani a to nam treba"* — tačan nalaz, potvrđen čitanjem koda: postojali su samo `modify` i `cancel`). Četiri odluke vlasnika ugrađene u poglavlje: dodaje **isključivo interni tim** (i na subagentskim rezervacijama), razlika u ceni ide na **istu fakturu**, **poseban vaučer po dobavljaču**, i **nova najava** za dodatu stavku. Radi za oba porekla rezervacije (`CONTRACTED` i `API`) — vlasnik izričito potvrdio da se usluga naknadno dodaje i rezervacijama nastalim preko API veze. Ekran: red ikonica vrsta proizvoda (isti `PRODUCT_ICONS` kao pretraga) na kartici Aranžman, klik na ikonicu otvara prozor za unos. Poglavlje 6 (vaučer) dobija pravilo „po dobavljaču jedan vaučer" — **odluka zabeležena, implementacija je zaseban korak** (danas je vaučer jedan po rezervaciji, `Booking.voucher_url`), izričito označeno kao poznat nedostatak, ne prećutano.
@@ -1458,7 +1460,25 @@ Dokaz: hotel 608,00 EUR + parking (7 noći × 1 soba × 5,00 = 35,00, sa maržom
 
 **Dobavljač je obavezan i to nije administrativni detalj.** Bez njega se ne mogu ispuniti dve druge vlasnikove odluke: vaučer po dobavljaču (§6) i nova najava po dobavljaču (§6.7). Kod ugovorenih i API stavki dobavljač postoji posredno (kroz ugovor, odnosno provajdera); kod ručne stavke ne postoji nigde — zato postaje izričito polje.
 
-**Zatečeno stanje koje treba znati:** `ManualProductEntry` (§3.0f) je specificiran 18.8.2026, ali **nikad nije implementiran** — nema ga ni u bazi (`schema.prisma`) ni u kodu, a `ProductSourceType` ima samo `CONTRACTED`/`API`. Ovo poglavlje se zato ne oslanja na njega kao na gotov mehanizam; kad se bude gradilo, gradi se zajedno sa §3.0f (isti model, isti pregled osoblja iz §3.0f.4), ne kao drugi paralelan put za istu stvar.
+**Odluka gde usluga živi (vlasnik potvrdio preporuku agenta, 3.9.2026):** jednokratna usluga je **`DRAFT` proizvod u katalogu**, ne zaseban tip zapisa. `DRAFT` proizvod postoji, ima dobavljača, cenu i prevod naziva — i ne pojavljuje se nigde osim na svojoj rezervaciji: `GET /search` traži `ACTIVE`, a `visible_channels` mu je prazan, pa ga nema ni na sajtu ni u B2B portalu. Kvačica **„sačuvaj u katalog"** ga prevodi u `ACTIVE` sa uobičajenim kanalima.
+
+**Šta je time rešeno, a šta ostaje otvoreno.** `ManualProductEntry` (§3.0f) je specificiran 18.8.2026, ali **nikad nije implementiran** — nema ga ni u bazi ni u kodu. Za ovaj tok on više nije potreban: `DRAFT` proizvod radi isti posao kroz mehanizam koji već postoji, umesto da se uvede drugi zapis za „proizvod koji nije proizvod". **Ostaje otvoreno da li §3.0f (ručna stavka na PONUDI) treba da pređe na isti obrazac** — to je odluka koja se donosi kad ponuda dođe na red, ne prećutno sada; upisano u backlog.
+
+**Dopune modela koje ovo traži:**
+
+| Polje | Gde | Zašto |
+| :---- | :---- | :---- |
+| `ProductSourceType.MANUAL` | M2 | Treći izvor pored ugovora i provajdera — vidi se odmah odakle podatak dolazi, bez pogađanja po tome što su ostala polja prazna. |
+| `Product.supplier_id` | M2 (v1.18) | Ugovoreni proizvod ima dobavljača posredno (kroz ugovor), API kroz provajdera; **ručni ga nije imao nigde**. Bez njega ne rade ni vaučer po dobavljaču (§6) ni najava po dobavljaču (§6.7) — zato je obavezan pri unosu. |
+| `BookingItem.markup_rule_id` → opcion | M5 §4.2 | Kod ručne usluge maržu unosi agent. Prazno polje je iskrenije od izmišljenog pravila: pokazivanje na pravilo koje nije učestvovalo u ceni lagalo bi svaki kasniji izveštaj o marži. |
+
+**Provera koja nije zabrana:** izlazna cena manja od nabavne se odbija sa 400. Nije reč o zabrani prodaje ispod nabavne (postoje razlozi za to) nego o zaštiti od zamenjenih polja — agent koji greškom upiše izlaznu u polje nabavne pravi negativnu maržu na celoj rezervaciji, a to se otkriva tek u izveštaju.
+
+#### Stanje implementacije (3.9.2026)
+
+**Napravljeno i provereno u browseru.** `POST /sales/bookings/:id/items/manual` (ista dozvola i isto ograničenje na interni panel kao §6.7); ekran je „Ručni unos" u istom redu sa ikonicama, vizuelno odvojen isprekidanim okvirom — ostale ikonice **biraju** postojeću uslugu, ova **pravi** novu. Marža nije uneto polje nego **razlika dve cene, prikazana uživo**: treće uneto polje bi se prvom greškom razišlo sa druga dva.
+
+Dokaz: „Prevoz kombijem" (nabavna 50,00 → izlazna 65,00, marža 15,00) dodat na rezervaciju → ukupno **1.028,18 EUR**; proizvod je u bazi `DRAFT`, sa dobavljačem, i bez ijednog kanala — dakle nevidljiv pretrazi, sajtu i portalu. Četiri unit testa pokrivaju: DRAFT bez kanala, „sačuvaj u katalog" → ACTIVE, obe cene i prazno pravilo marže, i odbijanje zamenjenih cena/nepostojećeg dobavljača.
 
 ## 7. Kalendar rezervacija (pregled po datumu)
 

@@ -5,7 +5,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
   function makeService() {
     const prisma: any = {
       quote: { findUnique: jest.fn(), update: jest.fn() },
-      product: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
+      product: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'p-manual' }) },
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
@@ -21,6 +21,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         aggregate: jest.fn().mockResolvedValue({ _sum: { finalPrice: 0 } }),
       },
       ancillaryService: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+      supplier: { findUnique: jest.fn().mockResolvedValue({ id: 'sup-1', name: 'Kombi prevoz doo' }) },
       markupRule: { findUnique: jest.fn().mockResolvedValue({ id: 'mr-1', percentage: 0, fixedAmount: 0 }) },
       bookingItemGuest: { findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
@@ -1017,6 +1018,77 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
         items: [parentItem({ sourceType: 'API', rateLineId: null })],
       });
       expect(await service.listAncillariesForItem('b1', 'item-1', { userId: 'staff-1' })).toEqual([]);
+    });
+  });
+
+  // M5 spec §6.7b (3.9.2026) — ručno uneta usluga.
+  describe('addManualItem (§6.7b, 3.9.2026)', () => {
+    const dto = {
+      productType: 'TRANSFER',
+      name: 'Prevoz kombijem',
+      supplierId: 'sup-1',
+      destinationCountry: 'Crna Gora',
+      destinationCity: 'Budva',
+      baseCost: 5000,
+      finalPrice: 6500,
+      currency: 'EUR',
+      stayFrom: '2027-07-01',
+      stayTo: '2027-07-02',
+      occupancy: { adults: 2, children: 0 },
+    } as any;
+
+    function bookingOk(prisma: any) {
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 0, items: [] });
+      prisma.bookingItem.create.mockResolvedValue({ id: 'item-manual' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+    }
+
+    it('jednokratna usluga je DRAFT proizvod — ne ulazi u katalog ni u ijedan kanal', async () => {
+      const { service, prisma } = makeService();
+      bookingOk(prisma);
+
+      await service.addManualItem('b1', dto, { userId: 'staff-1' });
+
+      const product = prisma.product.create.mock.calls[0][0].data;
+      expect(product.status).toBe('DRAFT');
+      expect(product.visibleChannels).toEqual([]);
+      expect(product.sourceType).toBe('MANUAL');
+      expect(product.supplierId).toBe('sup-1');
+    });
+
+    it('„sačuvaj u katalog" pravi ACTIVE proizvod vidljiv kanalima', async () => {
+      const { service, prisma } = makeService();
+      bookingOk(prisma);
+
+      await service.addManualItem('b1', { ...dto, saveToCatalog: true }, { userId: 'staff-1' });
+
+      const product = prisma.product.create.mock.calls[0][0].data;
+      expect(product.status).toBe('ACTIVE');
+      expect(product.visibleChannels.length).toBeGreaterThan(0);
+    });
+
+    it('stavka nosi obe cene i NEMA pravilo marže (marža je ručno uneta razlika)', async () => {
+      const { service, prisma } = makeService();
+      bookingOk(prisma);
+
+      await service.addManualItem('b1', dto, { userId: 'staff-1' });
+
+      const item = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(item.baseCost).toBe(5000);
+      expect(item.finalPrice).toBe(6500);
+      expect(item.markupRuleId).toBeNull();
+      expect(item.rateLineId).toBeNull();
+      expect(item.sourceType).toBe('MANUAL');
+    });
+
+    it('odbija izlaznu cenu manju od nabavne (zamenjena polja) i nepostojećeg dobavljača', async () => {
+      const { service, prisma } = makeService();
+      bookingOk(prisma);
+      await expect(service.addManualItem('b1', { ...dto, finalPrice: 100 }, { userId: 'staff-1' })).rejects.toThrow(BadRequestException);
+
+      prisma.supplier.findUnique.mockResolvedValue(null);
+      await expect(service.addManualItem('b1', dto, { userId: 'staff-1' })).rejects.toThrow(NotFoundException);
+      expect(prisma.product.create).not.toHaveBeenCalled();
     });
   });
 

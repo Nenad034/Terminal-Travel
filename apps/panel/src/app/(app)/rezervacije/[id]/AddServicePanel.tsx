@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
-import { addBookingItem, previewAddBookingItem, type AddItemPreviewResult } from './booking-changes-actions';
+import { addBookingItem, addManualBookingItem, previewAddBookingItem, type AddItemPreviewResult } from './booking-changes-actions';
 import { emptyChangeState } from './change-form-state';
 
 // M5 spec §6.7 — DODAVANJE usluge na postojeću rezervaciju (3.9.2026, vlasnikov nalaz: „ni
@@ -60,6 +60,9 @@ export default function AddServicePanel({
   const [preview, setPreview] = useState<AddItemPreviewResult | null>(null);
   const [pendingPreview, startPreview] = useTransition();
   const [state, formAction] = useActionState(addBookingItem.bind(null, bookingId), emptyChangeState);
+  // §6.7b — ručni unos je odvojen režim, ne još jedna ikonica: polja su druga (dobavljač, obe
+  // cene), a i sama radnja je druga — ovde se usluga PRAVI, ne bira iz kataloga.
+  const [manualOpen, setManualOpen] = useState(false);
 
   const active = ADDABLE_ICONS.find((p) => p.label === openIcon) ?? null;
 
@@ -89,6 +92,7 @@ export default function AddServicePanel({
   }, [active]);
 
   function reset() {
+    setManualOpen(false);
     setOpenIcon(null);
     setOptions(null);
     setProductId('');
@@ -112,6 +116,23 @@ export default function AddServicePanel({
       </p>
 
       <div className="flex flex-wrap gap-2">
+        {/* Ručni unos stoji u istom redu sa ikonicama, ali vizuelno odvojen (isprekidan okvir):
+            ostale ikonice BIRAJU postojeću uslugu, ova PRAVI novu. */}
+        <button
+          type="button"
+          aria-pressed={manualOpen}
+          onClick={() => {
+            const next = !manualOpen;
+            reset();
+            setManualOpen(next);
+          }}
+          className={`flex min-w-[84px] flex-col items-center gap-1 rounded border border-dashed px-3 py-2 text-[11px] ${
+            manualOpen ? 'border-accent bg-accent-soft font-semibold text-accent-strong' : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+          }`}
+        >
+          <Icon name="edit" />
+          Ručni unos
+        </button>
         {ADDABLE_ICONS.map((p) => {
           const on = openIcon === p.label;
           return (
@@ -130,6 +151,8 @@ export default function AddServicePanel({
           );
         })}
       </div>
+
+      {manualOpen && <ManualServiceForm bookingId={bookingId} defaults={defaults} onDone={reset} />}
 
       {active && (
         <form action={formAction} className="mt-3 space-y-3 rounded border border-border bg-panel2 p-3">
@@ -209,6 +232,189 @@ export default function AddServicePanel({
           {state.ok && <p className="text-xs text-ok">{state.ok}</p>}
         </form>
       )}
+    </div>
+  );
+}
+
+/**
+ * §6.7b — usluga koje nema ni u ugovoru (M3) ni kod provajdera (M4).
+ *
+ * Četiri polja koja je vlasnik izričito tražio — dobavljač, nabavna cena, marža, izlazna cena —
+ * ovde su tri polja i jedan izračun: marža je RAZLIKA dve cene, prikazana uživo. Tako je uvek
+ * tačna; treće uneto polje bi se prvom greškom razišlo sa druga dva.
+ *
+ * Kvačica „sačuvaj u katalog" (vlasnikova odluka): bez nje usluga ostaje samo na ovoj
+ * rezervaciji, sa njom ulazi u katalog i sledeći put se bira kao svaka druga.
+ */
+function ManualServiceForm({
+  bookingId,
+  defaults,
+  onDone,
+}: {
+  bookingId: string;
+  defaults: { stayFrom?: string; stayTo?: string; adults: number; children: number };
+  onDone: () => void;
+}) {
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[] | null>(null);
+  const [supplierId, setSupplierId] = useState('');
+  const [productType, setProductType] = useState('TRANSFER');
+  const [name, setName] = useState('');
+  const [country, setCountry] = useState('');
+  const [city, setCity] = useState('');
+  const [baseCost, setBaseCost] = useState('');
+  const [finalPrice, setFinalPrice] = useState('');
+  const [stayFrom, setStayFrom] = useState(defaults.stayFrom?.slice(0, 10) ?? '');
+  const [stayTo, setStayTo] = useState(defaults.stayTo?.slice(0, 10) ?? '');
+  const [saveToCatalog, setSaveToCatalog] = useState(false);
+  const [result, setResult] = useState<{ error: string | null; ok: string | null } | null>(null);
+  const [pending, start] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/suppliers')
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((list) => !cancelled && setSuppliers(list))
+      .catch(() => !cancelled && setSuppliers([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toMinor = (v: string) => Math.round(Number(v.replace(',', '.')) * 100);
+  const margin = baseCost && finalPrice ? toMinor(finalPrice) - toMinor(baseCost) : null;
+
+  function submit() {
+    setResult(null);
+    start(async () => {
+      const res = await addManualBookingItem(bookingId, {
+        productType,
+        name,
+        supplierId,
+        destinationCountry: country,
+        destinationCity: city,
+        baseCost: toMinor(baseCost),
+        finalPrice: toMinor(finalPrice),
+        currency: 'EUR',
+        stayFrom,
+        stayTo,
+        adults: defaults.adults || 1,
+        children: defaults.children || 0,
+        saveToCatalog,
+      });
+      setResult({ error: res.error, ok: res.ok });
+      if (!res.error) onDone();
+    });
+  }
+
+  return (
+    <div className="mt-3 space-y-3 rounded border border-dashed border-border bg-panel2 p-3">
+      <p className="text-xs text-ink-faint">
+        Usluga koje nema ni u ugovoru ni kod provajdera. Dobavljač je obavezan — bez njega vaučer i najava po dobavljaču ne mogu da rade.
+      </p>
+
+      <div className="grid gap-3 sm:grid-cols-4">
+        <div>
+          <label htmlFor="m-type" className="mb-1 block text-xs font-medium text-ink">
+            Vrsta
+          </label>
+          <select
+            id="m-type"
+            value={productType}
+            onChange={(e) => setProductType(e.target.value)}
+            className="w-full rounded border border-border bg-panel px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+          >
+            {ADDABLE_ICONS.flatMap((p) => p.types).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sm:col-span-3">
+          <label htmlFor="m-name" className="mb-1 block text-xs font-medium text-ink">
+            Naziv usluge
+          </label>
+          <input
+            id="m-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="npr. Prevoz kombijem, aerodrom — hotel"
+            className="w-full rounded border border-border bg-panel px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label htmlFor="m-supplier" className="mb-1 block text-xs font-medium text-ink">
+            Dobavljač
+          </label>
+          <select
+            id="m-supplier"
+            value={supplierId}
+            onChange={(e) => setSupplierId(e.target.value)}
+            className="w-full rounded border border-border bg-panel px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+          >
+            <option value="">{suppliers === null ? 'učitavam…' : '— izaberite dobavljača —'}</option>
+            {(suppliers ?? []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <TextField id="m-country" label="Država" value={country} onChange={setCountry} />
+        <TextField id="m-city" label="Mesto" value={city} onChange={setCity} />
+
+        <DateField id="m-from" label="Datum od" value={stayFrom} onChange={setStayFrom} />
+        <DateField id="m-to" label="Datum do" value={stayTo} onChange={setStayTo} />
+        <TextField id="m-base" label="Nabavna cena (EUR)" value={baseCost} onChange={setBaseCost} />
+        <TextField id="m-final" label="Izlazna cena (EUR)" value={finalPrice} onChange={setFinalPrice} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 text-xs">
+        {/* Marža je izračun, ne polje — vidi komentar iznad komponente. */}
+        <span className="text-ink-dim">
+          Marža:{' '}
+          <span className={`font-mono font-semibold ${margin != null && margin < 0 ? 'text-danger' : 'text-ink'}`}>
+            {margin == null ? '—' : `${(margin / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} EUR`}
+          </span>
+        </span>
+        <label className="flex items-center gap-1.5 text-ink-dim">
+          <input type="checkbox" checked={saveToCatalog} onChange={(e) => setSaveToCatalog(e.target.checked)} />
+          sačuvaj u katalog (usluga koja se ponavlja)
+        </label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button type="button" size="sm" disabled={pending} onClick={submit}>
+          {pending ? 'dodajem…' : 'Dodaj uslugu'}
+        </Button>
+        <button type="button" onClick={onDone} className="text-xs text-ink-faint hover:text-ink">
+          odustani
+        </button>
+      </div>
+
+      <p className="text-[11px] text-ink-faint">
+        Bez kvačice usluga ostaje samo na ovoj rezervaciji — ne pojavljuje se u pretrazi, na sajtu ni u B2B portalu (M5 spec §6.7b).
+      </p>
+
+      {result?.error && <p className="text-xs text-danger">{result.error}</p>}
+      {result?.ok && <p className="text-xs text-ok">{result.ok}</p>}
+    </div>
+  );
+}
+
+function TextField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-xs font-medium text-ink">
+        {label}
+      </label>
+      <input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border border-border bg-panel px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none"
+      />
     </div>
   );
 }

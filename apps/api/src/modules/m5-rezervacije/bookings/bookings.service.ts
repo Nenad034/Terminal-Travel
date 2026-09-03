@@ -17,6 +17,7 @@ import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { AddBookingItemDto } from './dto/add-booking-item.dto';
 import { AddAncillaryItemDto } from './dto/add-ancillary-item.dto';
+import { AddManualItemDto } from './dto/add-manual-item.dto';
 import { applyMarkup } from '../common/markup-formula';
 import { checkAncillaryOccupancy, computeAncillaryAmount, signedAncillaryAmount, type AncillaryServiceLike } from '../common/ancillary-pricing';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
@@ -1402,7 +1403,7 @@ export class BookingsService {
     //    (Odluka agenta uz §6.7a, zabeležena kao takva — ako agencija sme da zadrži deo
     //    dobavljačevog popusta, menja se ovde, na jednom mestu.)
     const rule =
-      svc.payable === 'ON_SITE' || svc.kind === 'DISCOUNT'
+      svc.payable === 'ON_SITE' || svc.kind === 'DISCOUNT' || !parent.markupRuleId
         ? null
         : await this.prisma.markupRule.findUnique({ where: { id: parent.markupRuleId } });
     const finalPrice = rule ? applyMarkup(baseCost, rule) : baseCost;
@@ -1508,6 +1509,117 @@ export class BookingsService {
       context: { parentItemId: parent.id, ancillaryServiceId: svc.id, itemId: item.id, payable: svc.payable },
     });
     await this.eventBus.emit('M5', 'booking.ancillary_added', { bookingId, itemId: item.id, parentItemId: parent.id });
+
+    return updated;
+  }
+
+  /**
+   * §6.7b — ručno uneta usluga: usluga koje nema ni u ugovoru (M3) ni kod provajdera (M4).
+   *
+   * **Jednokratna usluga je `DRAFT` proizvod, ne poseban tip zapisa.** Vlasnikova odluka posle
+   * preporuke: proizvod u katalogu je vidljiv pretrazi, javnom sajtu (M8) i B2B portalu (M7) —
+   * ali samo dok je `ACTIVE`. `DRAFT` proizvod postoji, ima dobavljača i cenu, i ne pojavljuje
+   * se nigde osim na svojoj rezervaciji. Kvačica „sačuvaj u katalog" ga prevodi u `ACTIVE`.
+   * Time nema drugog, paralelnog mehanizma za istu stvar — što je greška zbog koje ovaj
+   * repozitorijum uopšte ima pravila (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`).
+   *
+   * **Cena se prima od klijenta**, jedini takav slučaj u M5 — ručna usluga po definiciji nema
+   * cenovnik iz kog bi se izvela. Zato se traže OBE cene: marža je proverljiva razlika, ne
+   * tvrdnja, i `markup_rule_id` ostaje prazan umesto da pokazuje na pravilo koje nije
+   * učestvovalo u ceni.
+   */
+  async addManualItem(bookingId: string, dto: AddManualItemDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    await this.assertInternalPanelOnly(actor.userId);
+    if (booking.status === 'CANCELLED') throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje usluga (M5 spec §6.7).');
+
+    const supplier = await this.prisma.supplier.findUnique({ where: { id: dto.supplierId } });
+    if (!supplier) throw new NotFoundException(`Dobavljač ${dto.supplierId} nije pronađen.`);
+    if (dto.finalPrice < dto.baseCost) {
+      // Nije zabrana prodaje ispod nabavne cene nego zaštita od zamenjenih polja: agent koji
+      // greškom upiše izlaznu u polje nabavne pravi negativnu maržu na celoj rezervaciji.
+      throw new BadRequestException('Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena (M5 spec §6.7b).');
+    }
+    const stayFrom = new Date(dto.stayFrom);
+    const stayTo = new Date(dto.stayTo);
+    if (stayTo <= stayFrom) throw new BadRequestException('Datum završetka mora biti posle datuma početka.');
+
+    const product = await this.prisma.product.create({
+      data: {
+        type: dto.productType,
+        sourceType: 'MANUAL',
+        supplierId: supplier.id,
+        destinationCountry: dto.destinationCountry,
+        destinationCity: dto.destinationCity,
+        // §6.7b — jednokratna usluga NE ulazi u katalog: `DRAFT` je ne prikazuje ni pretrazi
+        // (`GET /search` traži ACTIVE), ni sajtu, ni B2B portalu.
+        status: dto.saveToCatalog ? 'ACTIVE' : 'DRAFT',
+        visibleChannels: dto.saveToCatalog ? ['B2C_SITE', 'B2B_PORTAL'] : [],
+        createdBy: actor.userId,
+        translations: {
+          // `description`/`slug` su obavezni u M2 modelu; ručna usluga često nema opis, pa se
+          // upisuje prazan string, ne izmišljen tekst. Slug nosi vreme unosa da dva istoimena
+          // jednokratna unosa („Transfer kombijem") ne bi imala isti — jedinstvenost je
+          // svojstvo sluga, i ne sme zavisiti od toga koliko je agent bio maštovit.
+          create: [
+            {
+              languageCode: 'sr' as const,
+              name: dto.name,
+              description: dto.description ?? '',
+              slug: `${dto.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'usluga'}-${Date.now().toString(36)}`,
+            },
+          ],
+        },
+      },
+    });
+
+    const item = await this.prisma.bookingItem.create({
+      data: {
+        bookingId,
+        productId: product.id,
+        sourceType: 'MANUAL',
+        // Nema reference dobavljača jer nema ni rezervacije kod njega — usluga je dogovorena
+        // van sistema. Prazan string bi lagao da referenca postoji.
+        supplierReference: '',
+        stayFrom,
+        stayTo,
+        baseCost: dto.baseCost,
+        baseCostCurrency: dto.currency,
+        rateLineId: null,
+        markupRuleId: null,
+        finalPrice: dto.finalPrice,
+        finalPriceCurrency: dto.currency,
+        itemStatus: 'CONFIRMED',
+        unitCount: 1,
+      },
+    });
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'MODIFIED', totalPrice: await this.recomputeBookingTotal(bookingId) },
+      include: { items: true },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.manual_item_added',
+      resourceType: 'Booking',
+      resourceId: bookingId,
+      afterState: updated,
+      context: {
+        itemId: item.id,
+        productId: product.id,
+        supplierId: supplier.id,
+        savedToCatalog: Boolean(dto.saveToCatalog),
+        baseCost: dto.baseCost,
+        finalPrice: dto.finalPrice,
+      },
+    });
+    await this.eventBus.emit('M5', 'booking.manual_item_added', { bookingId, itemId: item.id, productId: product.id });
 
     return updated;
   }

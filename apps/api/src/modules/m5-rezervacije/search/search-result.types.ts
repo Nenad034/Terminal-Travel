@@ -26,7 +26,9 @@ export interface SearchResultOffer {
 export interface SearchResultProduct {
   productId: string;
   type: string;
-  sourceType: 'CONTRACTED' | 'API';
+  // `MANUAL` (M5 §6.7b) postoji u modelu, ali se u pretrazi javlja samo ako je ručno uneta
+  // usluga sačuvana u katalog kao `ACTIVE` — jednokratna ostaje `DRAFT` i pretraga je ne vraća.
+  sourceType: 'CONTRACTED' | 'API' | 'MANUAL';
   name: string;
   destinationCountry: string;
   destinationCity: string;
