@@ -99,7 +99,10 @@
       "phone": "Telefon",
       "email": "Email",
       "destination": "Destinacija",
-      "noRepresentative": "Predstavnik još nije dodijeljen."
+      "noRepresentative": "Predstavnik još nije dodijeljen.",
+      "voucherOf": "Vaučer {index} od {total}",
+      "onSiteNotice": "Na licu mjesta plaća se dodatno {amount} {currency} — taj iznos NIJE uključen u cijenu aranžmana.",
+      "paidOnSite": "Plaća se na licu mjesta: {amount} {currency}"
     }
   },
   "account": {

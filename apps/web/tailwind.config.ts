@@ -33,6 +33,11 @@ const config: Config = {
         },
         ok: 'var(--ok)',
         warn: 'var(--warn)',
+        // Podloge upozorenja/uspeha: promenljive postoje u `globals.css` od početka, ali nikad
+        // nisu bile izložene Tailwind-u — `bg-warn-bg` je do 3.9.2026 bila klasa koja ne radi
+        // ništa (otkriveno pri izradi vaučera, M5 §6). Panel ih ima, sajt nije.
+        'warn-bg': 'var(--warn-bg)',
+        'ok-bg': 'var(--ok-bg)',
         danger: 'var(--danger)',
       },
       borderRadius: {

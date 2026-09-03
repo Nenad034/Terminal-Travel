@@ -669,10 +669,94 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       const result = await service.getVoucherContent('b1');
 
       expect(result.bookingNumber).toBe('TT-2027-000123');
-      expect(result.items[0].productName).toBe('Hotel Test');
-      expect(result.items[0].representative).toEqual({ fullName: 'Ana Vodić', phone: '+381601234567', email: 'ana@tt.rs' });
+      expect(result.groups[0].items[0].productName).toBe('Hotel Test');
+      expect(result.groups[0].items[0].representative).toEqual({ fullName: 'Ana Vodić', phone: '+381601234567', email: 'ana@tt.rs' });
       expect(result).not.toHaveProperty('supplierReference');
       expect(JSON.stringify(result)).not.toMatch(/rateLine|markupRule|baseCost/i);
+    });
+
+    // §6 dopuna (3.9.2026, vlasnikova odluka) — jedan vaučer po DOBAVLJAČU je podrazumevani.
+    it('grupiše stavke istog dobavljača u JEDAN vaučer, a različite u odvojene', async () => {
+      const { service, prisma } = makeService();
+      const base = {
+        assignedGuideId: null,
+        unitCount: 1,
+        guests: [],
+        stayFrom: new Date('2027-08-10'),
+        stayTo: new Date('2027-08-17'),
+        finalPrice: 1000,
+        finalPriceCurrency: 'EUR',
+        payable: 'AGENCY',
+        parentItemId: null,
+        ancillaryService: null,
+      };
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        bookingNumber: 'TT-2027-000123',
+        buyerName: 'Kupac',
+        currency: 'EUR',
+        totalPrice: 3000,
+        voucherUrl: 'http://x/vaucer',
+        items: [
+          { ...base, id: 'i1', product: { type: 'ACCOMMODATION', destinationCity: 'Budva', destinationCountry: 'Crna Gora', sourceProvider: null, supplierId: null, sourceContract: { supplierId: 'sup-A' }, translations: [{ languageCode: 'sr', name: 'Hotel A' }] } },
+          { ...base, id: 'i2', product: { type: 'EXCURSION', destinationCity: 'Budva', destinationCountry: 'Crna Gora', sourceProvider: null, supplierId: null, sourceContract: { supplierId: 'sup-A' }, translations: [{ languageCode: 'sr', name: 'Izlet A' }] } },
+          { ...base, id: 'i3', payable: 'ON_SITE', product: { type: 'TRANSFER', destinationCity: 'Tivat', destinationCountry: 'Crna Gora', sourceProvider: null, supplierId: 'sup-B', sourceContract: null, translations: [{ languageCode: 'sr', name: 'Transfer B' }] } },
+        ],
+      });
+      prisma.user.findMany.mockResolvedValue([]);
+
+      const result = await service.getVoucherContent('b1');
+
+      expect(result.groups).toHaveLength(2);
+      expect(result.groups[0].items).toHaveLength(2);
+      expect(result.groups[0].label).toBe('Hotel A, Izlet A');
+      expect(result.groups[1].label).toBe('Transfer B');
+      // §6.7a — plaćanje na licu mesta se vidi na vaučeru, odvojeno od cene aranžmana.
+      expect(result.groups[1].onSiteTotal).toBe(1000);
+      expect(result.onSiteTotal).toBe(1000);
+      // §6.2 — ime/ID dobavljača se NIKAD ne pojavljuje u sadržaju koji vidi gost.
+      expect(JSON.stringify(result)).not.toMatch(/sup-A|sup-B|supplierId/);
+    });
+
+    it('groupIndex vraća samo taj vaučer, itemId samo tu uslugu', async () => {
+      const { service, prisma } = makeService();
+      const base = {
+        assignedGuideId: null,
+        unitCount: 1,
+        guests: [],
+        stayFrom: new Date('2027-08-10'),
+        stayTo: new Date('2027-08-17'),
+        finalPrice: 1000,
+        finalPriceCurrency: 'EUR',
+        payable: 'AGENCY',
+        parentItemId: null,
+        ancillaryService: null,
+      };
+      const booking = {
+        id: 'b1',
+        bookingNumber: 'TT-1',
+        buyerName: 'Kupac',
+        currency: 'EUR',
+        totalPrice: 2000,
+        voucherUrl: 'http://x/vaucer',
+        items: [
+          { ...base, id: 'i1', product: { type: 'ACCOMMODATION', destinationCity: 'Budva', destinationCountry: 'Crna Gora', sourceProvider: null, supplierId: 'sup-A', sourceContract: null, translations: [{ languageCode: 'sr', name: 'Hotel A' }] } },
+          { ...base, id: 'i2', product: { type: 'TRANSFER', destinationCity: 'Tivat', destinationCountry: 'Crna Gora', sourceProvider: null, supplierId: 'sup-B', sourceContract: null, translations: [{ languageCode: 'sr', name: 'Transfer B' }] } },
+        ],
+      };
+      prisma.booking.findUnique.mockResolvedValue(booking);
+      prisma.user.findMany.mockResolvedValue([]);
+
+      const one = await service.getVoucherContent('b1', { groupIndex: 2 });
+      expect(one.groups).toHaveLength(1);
+      expect(one.groups[0].label).toBe('Transfer B');
+
+      const single = await service.getVoucherContent('b1', { itemId: 'i1' });
+      expect(single.groups).toHaveLength(1);
+      expect(single.groups[0].items).toHaveLength(1);
+      expect(single.groups[0].items[0].productName).toBe('Hotel A');
+
+      await expect(service.getVoucherContent('b1', { groupIndex: 9 })).rejects.toThrow(NotFoundException);
     });
   });
 

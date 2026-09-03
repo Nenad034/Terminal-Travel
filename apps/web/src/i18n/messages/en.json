@@ -99,7 +99,10 @@
       "phone": "Phone",
       "email": "Email",
       "destination": "Destination",
-      "noRepresentative": "No representative assigned yet."
+      "noRepresentative": "No representative assigned yet.",
+      "voucherOf": "Voucher {index} of {total}",
+      "onSiteNotice": "An additional {amount} {currency} is payable on site — this amount is NOT included in the package price.",
+      "paidOnSite": "Payable on site: {amount} {currency}"
     }
   },
   "account": {

@@ -99,7 +99,10 @@
       "phone": "Телефон",
       "email": "Эл. почта",
       "destination": "Направление",
-      "noRepresentative": "Представитель еще не назначен."
+      "noRepresentative": "Представитель еще не назначен.",
+      "voucherOf": "Ваучер {index} из {total}",
+      "onSiteNotice": "На месте дополнительно оплачивается {amount} {currency} — эта сумма НЕ включена в стоимость тура.",
+      "paidOnSite": "Оплачивается на месте: {amount} {currency}"
     }
   },
   "account": {

@@ -88,22 +88,41 @@ export interface Booking {
 
 // Oblik odgovora `GET /sales/bookings/public/:id/voucher` (public-voucher.controller.ts,
 // M5 spec §6 dopuna 2.9.2026) — javan, već maskiran sadržaj (§6.2), nikad supplier polja.
+export interface VoucherItem {
+  productName: string | null;
+  productType: string | null;
+  destinationCity: string | null;
+  destinationCountry: string | null;
+  stayFrom: string;
+  stayTo: string;
+  unitCount: number;
+  /** M5 §6.7a — `ON_SITE` se plaća dobavljaču na licu mesta i NIJE u ceni aranžmana. */
+  payable: 'AGENCY' | 'ON_SITE';
+  price: number;
+  currency: string;
+  guests: { guestFirstName: string; guestLastName: string }[];
+  representative: { fullName: string; phone: string | null; email: string | null } | null;
+}
+
+/**
+ * M5 §6 dopuna (3.9.2026, vlasnikova odluka) — jedan vaučer po DOBAVLJAČU je podrazumevani.
+ * Grupa se ZOVE po uslugama koje nosi, nikad po dobavljaču: §6.2 zabranjuje da identitet
+ * dobavljača stigne do gosta (hotel je proizvod, dobavljač može biti veletrgovac).
+ */
+export interface VoucherGroup {
+  index: number;
+  label: string;
+  items: VoucherItem[];
+  onSiteTotal: number;
+}
+
 export interface VoucherContent {
   bookingNumber: string;
   buyerName: string;
   totalPrice: number;
   currency: string;
-  items: {
-    productName: string | null;
-    productType: string | null;
-    destinationCity: string | null;
-    destinationCountry: string | null;
-    stayFrom: string;
-    stayTo: string;
-    unitCount: number;
-    guests: { guestFirstName: string; guestLastName: string }[];
-    representative: { fullName: string; phone: string | null; email: string | null } | null;
-  }[];
+  onSiteTotal: number;
+  groups: VoucherGroup[];
 }
 
 // Oblik odgovora M12 `GET /marketing/public/content` (public-content.controller.ts).

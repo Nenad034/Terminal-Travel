@@ -99,7 +99,10 @@
       "phone": "Telefon",
       "email": "E-Mail",
       "destination": "Reiseziel",
-      "noRepresentative": "Noch kein Vertreter zugewiesen."
+      "noRepresentative": "Noch kein Vertreter zugewiesen.",
+      "voucherOf": "Gutschein {index} von {total}",
+      "onSiteNotice": "Vor Ort sind zusätzlich {amount} {currency} zu zahlen — dieser Betrag ist NICHT im Reisepreis enthalten.",
+      "paidOnSite": "Vor Ort zu zahlen: {amount} {currency}"
     }
   },
   "account": {

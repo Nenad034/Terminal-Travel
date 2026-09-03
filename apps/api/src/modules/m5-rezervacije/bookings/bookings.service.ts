@@ -1745,16 +1745,45 @@ export class BookingsService {
   // base_cost/markup_rule_id/rate_line_id), i SAMO kad je vaučer stvarno izdat (voucher_url
   // postavljen) — rezervacija pre toga nema šta da pokaže kao "dokument".
   // ==========================================================================
-  async getVoucherContent(bookingId: string) {
+/**
+   * §6 dopuna (3.9.2026, vlasnikova odluka) — **jedan vaučer po DOBAVLJAČU je podrazumevani**,
+   * pojedinačni po usluzi je opcija. Kad rezervacija ima više stavki istog dobavljača (soba +
+   * parking + spa u istom hotelu), one idu na JEDAN dokument: tri odvojena vaučera za istu
+   * porodicu na istoj recepciji su tri prilike za grešku.
+   *
+   * **Ime dobavljača se NE prikazuje — i to nije previd.** §6.2 zabranjuje da bilo koje polje iz
+   * M3 `Supplier`/`Contract` (do kog se dolazi preko `product_id`) završi u sadržaju koji vidi
+   * gost. Vaučer se zato GRUPIŠE po dobavljaču, ali se ZOVE po uslugama koje nosi („Hotel Avala
+   * Resort, Budva") — a to je ionako ono što gost predaje na recepciji. Hotel je proizvod;
+   * dobavljač može biti veletrgovac čije ime gost ne treba ni da vidi.
+   *
+   * Iz istog razloga u adresi stoji **redni broj grupe unutar ove rezervacije** (1, 2, 3…), ne
+   * `supplier_id`: UUID dobavljača bi bio isti kroz sve rezervacije i time upotrebljiv za
+   * povezivanje, iako sam po sebi ne kaže ime.
+   *
+   * `groupIndex` vraća samo tu grupu; `itemId` samo tu jednu uslugu (opcija „pojedinačni
+   * vaučer"). Bez oba — sve grupe.
+   */
+  async getVoucherContent(bookingId: string, opts: { groupIndex?: number; itemId?: string } = {}) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
         items: {
           where: { itemStatus: { not: 'CANCELLED' } },
+          orderBy: { stayFrom: 'asc' },
           include: {
             guests: { select: { guestFirstName: true, guestLastName: true } },
+            ancillaryService: { select: { name: true, kind: true } },
             product: {
-              select: { type: true, destinationCity: true, destinationCountry: true, translations: { select: { languageCode: true, name: true } } },
+              select: {
+                type: true,
+                destinationCity: true,
+                destinationCountry: true,
+                sourceProvider: true,
+                supplierId: true,
+                sourceContract: { select: { supplierId: true } },
+                translations: { select: { languageCode: true, name: true } },
+              },
             },
           },
         },
@@ -1766,25 +1795,84 @@ export class BookingsService {
     const guides = guideIds.length > 0 ? await this.prisma.user.findMany({ where: { id: { in: guideIds } }, select: { id: true, fullName: true, phone: true, email: true } }) : [];
     const guidesById = new Map(guides.map((g) => [g.id, g]));
 
+    const toVoucherItem = (item: (typeof booking.items)[number]) => {
+      const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
+      return {
+        // Vezana doplata/popust (§6.7a) nema sopstven proizvod — nosi naziv iz ugovora, inače bi
+        // se na vaučeru pojavila kao još jedan red sa imenom hotela.
+        productName: item.ancillaryService?.name ?? resolveTranslation(item.product?.translations ?? [], 'sr')?.name ?? null,
+        productType: item.product?.type ?? null,
+        destinationCity: item.product?.destinationCity ?? null,
+        destinationCountry: item.product?.destinationCountry ?? null,
+        stayFrom: item.stayFrom,
+        stayTo: item.stayTo,
+        unitCount: item.unitCount,
+        // §6.7a — gost mora unapred da zna šta ga na licu mesta čeka; prećutan trošak je
+        // najbrži put do reklamacije.
+        payable: item.payable,
+        price: item.finalPrice,
+        currency: item.finalPriceCurrency,
+        guests: item.guests.map((g) => ({ guestFirstName: g.guestFirstName, guestLastName: g.guestLastName })),
+        representative: guide ? { fullName: guide.fullName, phone: guide.phone, email: guide.email } : null,
+      };
+    };
+
+    // Ključ grupisanja je dobavljač — ugovoreni ga ima kroz ugovor, ručno unet direktno
+    // (§6.7b), a stavka preko API veze nema `Supplier` zapis pa je grupiše provajder.
+    // Vezana doplata ide u grupu SVOJE matične stavke, ma šta njen proizvod govorio.
+    const byId = new Map(booking.items.map((i) => [i.id, i]));
+    const groupKeyOf = (item: (typeof booking.items)[number]): string => {
+      const root = item.parentItemId ? (byId.get(item.parentItemId) ?? item) : item;
+      return (
+        root.product?.sourceContract?.supplierId ??
+        root.product?.supplierId ??
+        (root.product?.sourceProvider ? `provider:${root.product.sourceProvider}` : `item:${root.id}`)
+      );
+    };
+
+    const order: string[] = [];
+    const buckets = new Map<string, typeof booking.items>();
+    for (const item of booking.items) {
+      const key = groupKeyOf(item);
+      if (!buckets.has(key)) {
+        buckets.set(key, [] as unknown as typeof booking.items);
+        order.push(key);
+      }
+      buckets.get(key)!.push(item);
+    }
+
+    let groups = order.map((key, idx) => {
+      const items = buckets.get(key)!;
+      // Naziv vaučera su USLUGE koje nosi, nikad ime dobavljača (§6.2) — a to je ionako ono što
+      // gost prepoznaje: „Hotel Avala Resort, Budva".
+      const label = [...new Set(items.filter((i) => !i.parentItemId).map((i) => resolveTranslation(i.product?.translations ?? [], 'sr')?.name).filter(Boolean))].join(', ');
+      return {
+        index: idx + 1,
+        label: label || 'Usluge',
+        items: items.map(toVoucherItem),
+        onSiteTotal: items.filter((i) => i.payable === 'ON_SITE').reduce((sum, i) => sum + i.finalPrice, 0),
+      };
+    });
+
+    if (opts.groupIndex != null) {
+      groups = groups.filter((g) => g.index === opts.groupIndex);
+      if (groups.length === 0) throw new NotFoundException('Traženi vaučer ne postoji na ovoj rezervaciji.');
+    }
+    if (opts.itemId) {
+      groups = groups
+        .map((g) => ({ ...g, items: g.items.filter((_, i) => buckets.get(order[g.index - 1])![i].id === opts.itemId) }))
+        .filter((g) => g.items.length > 0);
+      if (groups.length === 0) throw new NotFoundException('Tražena usluga ne postoji na ovoj rezervaciji.');
+    }
+
     return {
       bookingNumber: booking.bookingNumber,
       buyerName: booking.buyerName,
       totalPrice: booking.totalPrice,
       currency: booking.currency,
-      items: booking.items.map((item) => {
-        const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
-        return {
-          productName: resolveTranslation(item.product?.translations ?? [], 'sr')?.name ?? null,
-          productType: item.product?.type ?? null,
-          destinationCity: item.product?.destinationCity ?? null,
-          destinationCountry: item.product?.destinationCountry ?? null,
-          stayFrom: item.stayFrom,
-          stayTo: item.stayTo,
-          unitCount: item.unitCount,
-          guests: item.guests.map((g) => ({ guestFirstName: g.guestFirstName, guestLastName: g.guestLastName })),
-          representative: guide ? { fullName: guide.fullName, phone: guide.phone, email: guide.email } : null,
-        };
-      }),
+      /** Ukupno što gost plaća na licu mesta (§6.7a) — nije uključeno u `totalPrice`. */
+      onSiteTotal: groups.reduce((sum, g) => sum + g.onSiteTotal, 0),
+      groups,
     };
   }
 

@@ -370,6 +370,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* vezana stavka (M5 §6.7a) namerno nasleđuje `product_id` matične stavke — tako nasleđuje i dobavljača, što je uslov da vaučer i najava po dobavljaču rade. Ali panel je naziv čitao iz `product.name`, a doplata nema sopstven proizvod: njen naziv živi u M3 `AncillaryService.name`. Odgovor API-ja je bio potpuno validan, tipovi su se slagali, testovi su prolazili — greška postoji samo na ekranu.
 - *Provera:* kad novi zapis NAMERNO nasleđuje strani ključ (proizvod, dobavljač, ugovor) da bi nasledio ponašanje, proveriti odvojeno **odakle mu dolazi NAZIV** — nasleđeni ključ skoro nikad ne nosi i tačno ime. Posle svakog e2e testa koji potvrđuje brojeve, pogledati i sam snimak ekrana: iznos i naziv su dve nezavisne stvari i test iznosa ne dokazuje ništa o nazivu (isto kao 7.1 — „build prolazi a ekran je pokvaren").
 
+**10.4 Tailwind klasa koja postoji u panelu, a u sajtu ne radi ništa**
+- *Simptom:* `bg-warn-bg` na vaučeru (`apps/web`) nije obojila ništa — element je izgledao kao običan okvir bez podloge (3.9.2026, uhvaćeno proverom pre snimka, ne posle).
+- *Uzrok:* `apps/panel` i `apps/web` imaju **odvojene** `tailwind.config`. CSS promenljive (`--warn-bg`, `--ok-bg`) postoje u `globals.css` OBA projekta od početka, ali su u Tailwind mapi izložene samo u panelu. Nepostojeća Tailwind klasa se ne prijavljuje kao greška — ni build ni `tsc` je ne vide, prosto ne generiše pravilo.
+- *Provera:* pre upotrebe boje/tokena u `apps/web` proveriti da je stvarno u `apps/web/tailwind.config.ts`, ne pretpostaviti po tome što radi u panelu. Isti obrazac kao 11.1 (CI baza definisana odvojeno od `docker-compose`): dva mesta, jedan zahtev, i ništa ne upozorava kad se raziđu. Kad se doda token u jedan projekat, proveriti treba li i u drugi.
+
 ## 11. CI ne odgovara lokalnom okruženju — "prošlo je kod mene" nije dokaz
 
 **11.1 CI Postgres slika bez `pgvector` — migracija koja zahteva ekstenziju tiho puca na svakom pushu, niko ne primeti jer se run ne proverava svaki put**

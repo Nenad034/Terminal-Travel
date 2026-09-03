@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { apiFetch, ApiError } from '@/lib/api-client';
-import type { VoucherContent } from '@/lib/types';
+import type { VoucherContent, VoucherItem } from '@/lib/types';
 import PrintButton from './PrintButton';
 
 // M5 spec §6 dopuna (2.9.2026, na zahtev vlasnika: "podaci predstavnika treba automatski da se
@@ -9,11 +9,24 @@ import PrintButton from './PrintButton';
 // isti "kapacitetski link" princip kao mock URL koji je zamenjen (rezervacije UUID direktno u
 // putanji, bez prijave), poziva neautentifikovan `GET /sales/bookings/public/:id/voucher`
 // (`auth: false` — gost ovu stranicu otvara bez naloga, isto kao pre).
-export default async function VoucherPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
+export default async function VoucherPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ vaucer?: string; stavka?: string }>;
+}) {
   const { locale, id } = await params;
+  const { vaucer, stavka } = await searchParams;
   const t = await getTranslations({ locale, namespace: 'booking.voucher' });
 
-  const voucher = await apiFetch<VoucherContent>(`/sales/bookings/public/${id}/voucher`, { auth: false }).catch((err) =>
+  // M5 §6 dopuna (3.9.2026) — bez parametara stižu SVI vaučeri rezervacije, po jedan po
+  // dobavljaču; `?vaucer=2` je jedan od njih, `?stavka=<id>` pojedinačna usluga. Redni broj,
+  // ne `supplier_id`: §6.2 ne dozvoljava da identitet dobavljača stigne do gosta.
+  const path = vaucer
+    ? `/sales/bookings/public/${id}/voucher/${encodeURIComponent(vaucer)}`
+    : `/sales/bookings/public/${id}/voucher${stavka ? `?stavka=${encodeURIComponent(stavka)}` : ''}`;
+  const voucher = await apiFetch<VoucherContent>(path, { auth: false }).catch((err) =>
     err instanceof ApiError && err.status === 404 ? null : Promise.reject(err),
   );
 
@@ -40,8 +53,29 @@ export default async function VoucherPage({ params }: { params: Promise<{ locale
         <PrintButton label={t('print')} />
       </div>
 
-      <div className="space-y-4">
-        {voucher.items.map((item, i) => (
+      {/* Svaka grupa je JEDAN vaučer — jedan dobavljač, sve njegove usluge (vlasnikova odluka
+          3.9.2026). `break-after-page` pri štampi daje po jedan list po vaučeru, umesto da se
+          usluge dva različita partnera nađu na istoj strani. */}
+      {voucher.groups.map((group) => (
+        <section key={group.index} className="mb-8 break-after-page last:mb-0 last:break-after-auto">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-2">
+            <h2 className="text-lg font-semibold text-ink">{group.label}</h2>
+            {voucher.groups.length > 1 && (
+              <span className="text-xs text-ink-faint">
+                {t('voucherOf', { index: group.index, total: voucher.groups.length })}
+              </span>
+            )}
+          </div>
+
+          {group.onSiteTotal > 0 && (
+            // §6.7a — prećutan trošak na licu mesta je najbrži put do reklamacije.
+            <p className="mb-3 rounded border border-warn bg-warn-bg p-3 text-sm text-ink">
+              {t('onSiteNotice', { amount: (group.onSiteTotal / 100).toLocaleString(locale, { minimumFractionDigits: 2 }), currency: voucher.currency })}
+            </p>
+          )}
+
+          <div className="space-y-4">
+            {group.items.map((item: VoucherItem, i: number) => (
           <div key={i} className="rounded-lg border border-border p-4">
             <div className="mb-2 text-sm font-semibold text-ink">
               {t('service')}: {item.productName ?? '—'}
@@ -96,9 +130,16 @@ export default async function VoucherPage({ params }: { params: Promise<{ locale
                 <p className="mt-1 text-sm text-ink-faint">{t('noRepresentative')}</p>
               )}
             </div>
+            {item.payable === 'ON_SITE' && (
+              <p className="mt-2 text-sm font-medium text-warn">
+                {t('paidOnSite', { amount: (item.price / 100).toLocaleString(locale, { minimumFractionDigits: 2 }), currency: item.currency })}
+              </p>
+            )}
           </div>
-        ))}
-      </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

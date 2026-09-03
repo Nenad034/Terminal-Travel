@@ -99,7 +99,10 @@
       "phone": "Teléfono",
       "email": "Correo electrónico",
       "destination": "Destino",
-      "noRepresentative": "Aún no se ha asignado representante."
+      "noRepresentative": "Aún no se ha asignado representante.",
+      "voucherOf": "Bono {index} de {total}",
+      "onSiteNotice": "En el destino se pagan {amount} {currency} adicionales — este importe NO está incluido en el precio del paquete.",
+      "paidOnSite": "Se paga en el destino: {amount} {currency}"
     }
   },
   "account": {

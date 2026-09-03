@@ -99,7 +99,10 @@
       "phone": "Téléphone",
       "email": "E-mail",
       "destination": "Destination",
-      "noRepresentative": "Aucun représentant assigné pour l'instant."
+      "noRepresentative": "Aucun représentant assigné pour l'instant.",
+      "voucherOf": "Bon {index} sur {total}",
+      "onSiteNotice": "Un supplément de {amount} {currency} est à régler sur place — ce montant n’est PAS inclus dans le prix du séjour.",
+      "paidOnSite": "À régler sur place : {amount} {currency}"
     }
   },
   "account": {
