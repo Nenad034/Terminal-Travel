@@ -68,31 +68,37 @@ Postoji i ugrađen „lažni provajder" koji vraća izmišljene rezultate. Koris
 
 ## Dve stvari koje sam našao dok sam pisao dokumentaciju 3.9.2026
 
-Nisu popravljene u istom prolazu, jer su izmene koda a ne dokumentacije, i čekaju tvoju odluku. Obe su upisane kao neispunjene stavke u izlaznom kriterijumu M4.
+### Prva, i ozbiljnija: operativni pozivi nisu bili zaključani — **ispravljeno istog dana**
 
-### Prva, i ozbiljnija: operativni pozivi nisu zaključani
+Specifikacija kaže da endpointe za pretragu, rezervaciju i otkazivanje „poziva isključivo M2 i M5" i da „nisu izloženi kanalima poput sajta ili B2B portala". **To je pisalo, ali nije bilo sprovedeno u kodu.**
 
-Specifikacija kaže da endpointe za pretragu, rezervaciju i otkazivanje „poziva isključivo M2 i M5" i da „nisu izloženi kanalima poput sajta ili B2B portala". **To piše, ali nije sprovedeno u kodu.**
-
-Provera koja postoji je samo „da li imaš važeću prijavu". Ne proverava se **ko** si. A pošto je registracija gosta javna i nalog odmah postaje aktivan, sledi da se bilo ko može registrovati kao gost na sajtu i time dobiti pravo da:
+Provera koja je postojala bila je samo „da li imaš važeću prijavu". Nije se proveravalo **ko** si. A pošto je registracija gosta javna i nalog odmah postaje aktivan, sledilo je da se bilo ko može registrovati kao gost na sajtu i time dobiti pravo da:
 
 - vidi **nabavne cene** provajdera, bez marže — dakle tačno koliko vi plaćate;
 - napravi **stvarnu rezervaciju** kod spoljnog dobavljača u vaše ime;
 - **otkaže** postojeću rezervaciju, ako zna njen broj.
 
-Praktično, opasnost je danas mala jer nijedan provajder nije podešen — nema šta da se pozove. Ali postaje stvarna onog dana kad se uključi prvi pravi provajder, a to je upravo dan kad se na to najmanje misli.
+**Šta je urađeno (uz tvoju odluku, 3.9.2026):** svih pet putanja sada traži isto pravo koje se traži za podešavanje provajdera — dakle Vlasnik i Direktor. Izabrano je postojeće pravo umesto uvođenja novog, jer se pokazalo da **nijedan deo sistema te putanje ne koristi**: prodaja ne prolazi kroz njih nego zove M4 direktno unutar servera. Zatvaranje zato nije moglo ništa da pokvari, a rupa je zatvorena danas umesto da čeka.
 
-Ispravka nije velika — dodaje se provera prava na tih pet putanja, isto kao što već postoji svuda drugde. Predlažem da se uradi **pre** nego što se poveže prvi provajder.
+Ostaju upotrebljive za ono čemu i služe — da neko od vas dvoje ručno proveri „da li Travelgate uopšte odgovara" kad nešto ne radi.
+
+Dve stvari koje vredi da znaš uz ovu ispravku, jer pokazuju kako se ovakve greške prave:
+
+**Prvo, jedan test je čuvao rupu.** Postojao je test koji je izričito tvrdio da je taj endpoint „dostupan svakom prijavljenom korisniku, bez posebne dozvole" — i uredno je prolazio. Rupa nije bila previd u kodu koji niko nije gledao; bila je zapisana kao očekivano ponašanje i redovno proveravana. Test je sada okrenut: proverava da nalog bez prava dobija odbijenicu, i to za svih pet putanja posebno.
+
+**Drugo, prva verzija moje ispravke ne bi radila.** Postavio sam pravo na celu grupu odjednom, što izgleda urednije. Pri proveri se ispostavilo da mehanizam koji sprovodi prava gleda **samo pojedinačnu putanju**, a ne grupu — pa bi ograda izgledala postavljeno, a propuštala bi sve. Da nisam proverio, prijavio bih ti da je popravljeno, a ne bi bilo. Zapisano je kao zamka da se ne ponovi.
 
 ### Druga: kad provajder zakaže, ne vidi se zašto
 
-M4 interno razlikuje sedam različitih razloga neuspeha — istekло vreme, pogrešni pristupni podaci, hotel je pun, provajder ne radi, i tako dalje. Trud je uložen da se to uredno razlikuje.
+M4 interno razlikuje sedam različitih razloga neuspeha — isteklo vreme, pogrešni pristupni podaci, hotel je pun, provajder ne radi, i tako dalje. Trud je uložen da se to uredno razlikuje.
 
 Ali nijedan od tih razloga **ne stiže do onoga ko je pozvao**. Sve izlazi kao jedna ista opšta poruka „interna greška servera". Prevod iz internog oblika u odgovor nikad nije napisan.
 
 Posledica: sistem ne može da razlikuje „hotel je pun" — što je uredan ishod na koji treba ponuditi drugi termin — od „naši pristupni podaci su pogrešni", što je kvar koji traži hitnu reakciju. Oba izgledaju identično.
 
-Ovo se danas ne primećuje iz istog razloga kao prvo: nema podešenih provajdera, pa se greške ne dešavaju. Videće se prvog dana rada. Razlog se za sada može pročitati jedino u zapisniku poziva, gde se svaki poziv beleži sa svojim ishodom.
+Ovo se danas ne primećuje jer nema podešenih provajdera, pa se greške ne dešavaju. Videće se prvog dana rada. Razlog se za sada može pročitati jedino u zapisniku poziva, gde se svaki poziv beleži sa svojim ishodom.
+
+**Ovo nije popravljeno** — za razliku od prvog nalaza, ovde ispravka menja kako se greške ponašaju kroz ceo modul, pa je ostavljena kao zapisana stavka koja čeka tvoju odluku. Nije hitna dok nema podešenog provajdera.
 
 ---
 

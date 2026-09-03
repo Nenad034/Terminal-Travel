@@ -324,7 +324,12 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
       expect(res.status).toBe(403);
     });
 
-    it('interni endpoint (search) je dostupan svakom autentikovanom internom korisniku, bez posebne dozvole (M4 spec §6)', async () => {
+    // Do 3.9.2026 ovaj test je tvrdio suprotno ("dostupan svakom autentikovanom internom
+    // korisniku, bez posebne dozvole") — time je rupa bila upisana kao očekivano ponašanje.
+    // M4 spec §6 (dopuna 3.9.2026, vlasnikova odluka) traži `M4/provider-config/EDIT`: bez toga
+    // je svaki samoregistrovan GOST nalog mogao da vidi neto cene i napravi/otkaže stvarnu
+    // rezervaciju kod spoljnog provajdera. Vidi zamku 13.3.
+    it('interni endpoint (search) odbija korisnika bez M4/provider-config/EDIT (M4 spec §6)', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.SALES_MANAGER);
       const owner = await createInternalUser(SYSTEM_ROLES.VLASNIK);
       const providerCode = await createMockProvider(owner.accessToken);
@@ -336,7 +341,58 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
         .set(authed(accessToken))
         .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
 
+      expect(res.status).toBe(403);
+    });
+
+    it('interni endpoint (search) prolazi za nalog SA M4/provider-config/EDIT (M4 spec §6)', async () => {
+      const owner = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const providerCode = await createMockProvider(owner.accessToken);
+      const adapter = await getMockAdapter(providerCode);
+      adapter.searchResults = [];
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/integrations/internal/providers/${providerCode}/search`)
+        .set(authed(owner.accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+
       expect(res.status).toBe(201);
+    });
+
+    // Ograda mora stajati na SVIH pet operativnih ruta, ne samo na `search` — `bookings` i
+    // `cancel` menjaju stanje kod spoljnog provajdera, pa su i skuplji promašaj od pretrage.
+    it('interni endpointi koji menjaju stanje (bookings, cancel) takođe traže dozvolu', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.SALES_MANAGER);
+      const owner = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const providerCode = await createMockProvider(owner.accessToken);
+
+      const book = await request(app.getHttpServer())
+        .post(`/api/v1/integrations/internal/providers/${providerCode}/bookings`)
+        .set(authed(accessToken))
+        .send({
+          externalId: 'ext-1',
+          stayFrom: '2027-07-01',
+          stayTo: '2027-07-08',
+          adults: 2,
+          guestName: 'Petar Petrović',
+          idempotencyKey: `e2e-perm-${Date.now()}`,
+        });
+      expect(book.status).toBe(403);
+
+      const cancel = await request(app.getHttpServer())
+        .post(`/api/v1/integrations/internal/providers/${providerCode}/bookings/ref-1/cancel`)
+        .set(authed(accessToken));
+      expect(cancel.status).toBe(403);
+
+      const content = await request(app.getHttpServer())
+        .get(`/api/v1/integrations/internal/providers/${providerCode}/content/ext-1`)
+        .set(authed(accessToken));
+      expect(content.status).toBe(403);
+
+      const availability = await request(app.getHttpServer())
+        .post(`/api/v1/integrations/internal/providers/${providerCode}/availability`)
+        .set(authed(accessToken))
+        .send({ externalId: 'ext-1', stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+      expect(availability.status).toBe(403);
     });
   });
 });

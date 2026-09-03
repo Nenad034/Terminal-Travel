@@ -202,8 +202,13 @@ Za naš scenario (agencija, neto cena, konkretan set hotela) treba **Travel Agen
 | `M4/provider-config/VIEW` | Vlasnik, Direktor |
 | `M4/provider-config/CREATE`, `EDIT` | Vlasnik, Direktor |
 | `M4/provider-call-log/VIEW` | Vlasnik, Direktor |
+| **Operativni endpoint-i (`/internal/providers/...`, poglavlje 7)** | **zahtevaju `M4/provider-config/EDIT`** — dakle Vlasnik, Direktor |
 
 Napomena: M4 je pretežno mašina-mašini sloj (pozivaju ga M2/M5 interno) — ovlašćenja iznad su samo za administrativni uvid/podešavanje provajdera, ne za svakodnevnu upotrebu.
+
+**Dopuna 3.9.2026 (vlasnikova odluka) — zašto operativni endpoint-i traže dozvolu, i zašto baš tu.** Do ove verzije kontroler operativnih poziva nosio je samo `JwtAuthGuard`, bez ijedne `@RequirePermission`. Pošto je `POST /iam/auth/register` (M1) javan i pravi nalog odmah u statusu `ACTIVE`, to je značilo da svako ko se sam registruje kao gost može pozvati `search` (neto cene provajdera, bez marže), `bookings` (stvarna rezervacija kod spoljnog dobavljača) i `bookings/:ref/cancel`. Rečenica „poziva ih isključivo M2/M5" iz poglavlja 7 opisivala je nameru, ne ogradu — a namera bez sprovođenja nije zaštita (vidi zamku 13.3 u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`).
+
+Odabrana je **postojeća** dozvola `M4/provider-config/EDIT` umesto nove (`M4/provider-operation/EXECUTE`) iz dva razloga: (1) ništa u sistemu ne poziva ove endpoint-e preko HTTP-a — M5 koristi `IntegrationsService` direktno kroz ubrizgavanje zavisnosti (`SearchService`, `QuoteItemBuilderService`, `BookingsService`), pa zatvaranje ne može pokvariti tok prodaje; (2) uz nula stvarnih HTTP pozivalaca, nova dozvola u M1 katalogu i seed skripti bila bi više pokretnih delova nego što problem traži. Ako ovi endpoint-i ikad dobiju stvarnog spoljnog pozivaoca (npr. servisni nalog nekog budućeg alata), tada se uvodi zasebna `provider-operation` dozvola — dotle su to alat za dijagnostiku u rukama Vlasnika/Direktora („da li Travelgate uopšte odgovara").
 
 ---
 
@@ -218,7 +223,10 @@ Prefiks: `/api/v1/integrations`
 | `/providers/:code` | GET / PATCH | uključivanje/isključivanje, izmena kredencijala |
 | `/provider-call-logs` | GET | filtrirano po provajderu/operaciji/datumu/statusu, za dijagnostiku |
 
-**Interni (poziva ih isključivo M2/M5, nisu izloženi kanalima poput sajta ili B2B portala):**
+**Interni (poziva ih isključivo M2/M5, nisu izloženi kanalima poput sajta ili B2B portala) — svi zahtevaju `M4/provider-config/EDIT` (poglavlje 6, dopuna 3.9.2026):**
+
+> U redovnom radu M2/M5 **ne prolaze kroz ove HTTP endpoint-e** nego pozivaju `IntegrationsService` direktno unutar procesa. Endpoint-i ispod postoje kao administrativni/dijagnostički ulaz, i dozvola iznad je stvarna ograda, ne opis namere.
+
 | Endpoint | Metod | Opis |
 | :---- | :---- | :---- |
 | `/internal/providers/:code/search` | POST | vraća `NormalizedSearchResult[]` |
@@ -250,7 +258,9 @@ Prefiks: `/api/v1/integrations`
 - [x] WebHotelier `cancellation_fees` (fiksan iznos + datum) ispravno mapiran u `{ days_before_stay, refund_percentage }` (poglavlje 5b) — test: poznat primer sa `fee`/`after`/`price` daje očekivan `refund_percentage`. *(dokazano unit testom, avgust 2026)*
 - [x] API dokumentacija (`docs/api/M4-integracije-api.md`) postoji sa primerima zahteva/odgovora za svaki endpoint iz poglavlja 7 — obavezna stavka po CLAUDE.md. *(napisana 3.9.2026; za razliku od M1/M2/M3, oblici odgovora su izvedeni iz koda adaptera jer u bazi nema nijedne `ProviderConfig` — `GET /providers` i `/provider-call-logs` vraćaju `[]`, uhvaćeno pozivom — a pravi pozivi zahtevaju kredencijale kojih nema; to je u dokumentu izričito označeno)*
 - [x] Objašnjenje za vlasnika (`00-OBJASNJENJE-M4-ZA-VLASNIKA.md`) postoji — obavezna stavka po CLAUDE.md. *(napisano 3.9.2026)*
-- [ ] **Operativni endpointi `/internal/providers/...` odbijaju poziv sa naloga koji nije M2/M5 (ili nema odgovarajuću dozvolu).** *(zatečeno 3.9.2026 pri pisanju API dokumentacije: kontroler nosi samo `JwtAuthGuard`, nijednu `@RequirePermission`, a globalno je registrovan samo `ThrottlerGuard`. Pošto je `POST /iam/auth/register` javan i pravi odmah `ACTIVE` `GUEST` nalog, svako sa sajta može pozvati `search` (neto cene bez marže), `bookings` (stvarna rezervacija kod provajdera) i `bookings/:ref/cancel`. Posledica je danas prigušena time što nijedan provajder nije podešen — postaje stvarna prvog dana rada sa pravim provajderom. Zapisano kao zamka 13.3; preporuka je ispraviti PRE povezivanja prvog provajdera)*
+- [x] **Operativni endpointi `/internal/providers/...` odbijaju poziv sa naloga bez `M4/provider-config/EDIT`.** *(zatečeno i ispravljeno 3.9.2026. Zatečeno stanje: kontroler je nosio samo `JwtAuthGuard`, nijednu `@RequirePermission`, a globalno je registrovan samo `ThrottlerGuard` — pošto je `POST /iam/auth/register` javan i pravi odmah `ACTIVE` `GUEST` nalog, svako sa sajta je mogao pozvati `search` (neto cene bez marže), `bookings` (stvarna rezervacija kod provajdera) i `bookings/:ref/cancel`. Ispravka po vlasnikovoj odluci (poglavlje 6, dopuna): `@RequirePermission('M4','provider-config','EDIT')` na svih pet ruta, `PermissionsModule` dodat u `IntegrationsModule`. Dokazano e2e testovima — odbijanje za nalog bez dozvole, prolaz za nalog sa njom, i posebna provera da ograda stoji na svih pet ruta. Zamka 13.3 ostaje zapisana (obrazac „namera u spec-u bez sprovođenja u kodu" nije strukturno uklonjen).*
+
+  **Dva nalaza iz same ispravke, oba zapisana kao zamke:** (1) postojeći e2e test je tvrdio suprotno — „interni endpoint je dostupan svakom autentikovanom internom korisniku, bez posebne dozvole" — i prolazio je, pa je rupa bila upisana kao očekivano ponašanje, ne previd (zamka 13.6); (2) prva verzija ispravke stavila je `@RequirePermission` na klasu kontrolera, što `PermissionsGuard` **tiho ignoriše** jer čita metapodatak samo sa `context.getHandler()` — ograda bi izgledala postavljeno a propuštala bi sve (zamka 13.5).
 - [ ] Greška provajdera stiže do pozivaoca sa prepoznatljivim razlogom, ne kao opšti `500`. *(zatečeno 3.9.2026: `ProviderError` nasleđuje obični `Error`, ne `HttpException`, i nema `ExceptionFilter` koji ga mapira — svih sedam vrsta (`TIMEOUT`, `RATE_LIMITED`, `AUTH_FAILED`, `INVALID_REQUEST`, `NO_AVAILABILITY`, `PROVIDER_UNAVAILABLE`, `UNKNOWN`) izlazi kao `{"statusCode":500,"message":"Internal server error"}`. Pozivalac ne može razlikovati „hotel je pun" od „pogrešni pristupni podaci". Zapisano kao zamka 13.4)*
 
 ---

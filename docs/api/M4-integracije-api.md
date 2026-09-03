@@ -12,20 +12,11 @@ M4 ima dve odvojene grupe endpointa, sa vrlo različitim posledicama:
 | Grupa | Namena | Ko sme |
 | :---- | :---- | :---- |
 | **Administrativni** (`/providers`, `/provider-call-logs`) | podešavanje provajdera i dijagnostika | dozvole `M4/provider-config/*`, `M4/provider-call-log/VIEW` |
-| **Operativni** (`/internal/providers/...`) | stvarna pretraga, provera cene, **rezervacija i otkazivanje kod provajdera** | **bilo koji prijavljen nalog** — vidi upozorenje |
+| **Operativni** (`/internal/providers/...`) | stvarna pretraga, provera cene, **rezervacija i otkazivanje kod provajdera** | dozvola `M4/provider-config/EDIT` — Vlasnik, Direktor |
 
-> ## ⚠ Upozorenje pre upotrebe — operativni endpointi nisu zaštićeni dozvolama
+> **U redovnom radu ovi endpointi se ne koriste.** M5 ne prolazi kroz HTTP nego poziva `IntegrationsService` direktno unutar servera. Operativni endpointi postoje kao administrativni/dijagnostički ulaz („da li Travelgate uopšte odgovara"), i zato nose istu dozvolu kao podešavanje provajdera.
 >
-> Specifikacija (poglavlje 7) opisuje `/internal/providers/...` kao „interni, poziva ih isključivo M2/M5, nisu izloženi kanalima poput sajta ili B2B portala". **Ta namera nije tehnički sprovedena.** Provereno u kodu 3.9.2026:
->
-> - kontroler nosi samo `@UseGuards(JwtAuthGuard)` — proverava se **da li token važi**, ne i ko je vlasnik tokena;
-> - nema nijedne `@RequirePermission` na tim rutama;
-> - u aplikaciji nema globalnog zaštitnog sloja koji bi to nadoknadio (globalno je registrovan samo `ThrottlerGuard`, koji ograničava učestalost poziva, ne pristup);
-> - `POST /iam/auth/register` je javan i pravi nalog koji je **odmah `ACTIVE`**, sa ulogom `GOST`.
->
-> Zajedno to znači: **svako ko se sam registruje kao gost dobija token kojim može da pozove operativne endpointe M4** — da vidi neto cene provajdera bez marže, da napravi stvarnu rezervaciju kod spoljnog dobavljača, i da otkaže postojeću rezervaciju ako zna njen broj.
->
-> Ovo je nalaz zabeležen pri pisanju dokumentacije, nije popravljen u istom prolazu i upisan je kao neispunjena stavka izlaznog kriterijuma M4 i kao zamka 13.3. Do ispravke: **ne izlagati ovaj API ni jednom spoljnom kanalu** i tretirati ga kao da je otvoren.
+> **Ispravljeno 3.9.2026.** Do tog datuma ove rute nosile su samo proveru da token važi, bez provere ko je vlasnik tokena — što je značilo da svako ko se sam registruje kao gost može da vidi neto cene bez marže, napravi stvarnu rezervaciju kod spoljnog dobavljača i otkaže postojeću. Sada svih pet ruta traži `M4/provider-config/EDIT`; pokriveno e2e testovima za svaku rutu posebno.
 
 **Verzija podataka u primerima:** oblici odgovora su izvedeni iz koda adaptera i modela podataka. Za razliku od M1/M2/M3, ovde **nijedan odgovor nije uhvaćen stvarnim pozivom** — u bazi nema nijedne konfiguracije provajdera (`GET /providers` vraća `[]`), a pozivanje pravih provajdera zahteva kredencijale kojih nema. To je izričito označeno umesto da se izmisli primer.
 
@@ -90,7 +81,9 @@ Zapis svakog poziva ka provajderu — za dijagnostiku „zašto pretraga nije vr
 
 ---
 
-## Operativni deo (pročitajte upozorenje na vrhu)
+## Operativni deo
+
+Svih pet ruta traži dozvolu `M4/provider-config/EDIT` (od 3.9.2026). Nalog bez nje dobija `403`, i to i za pretragu i za radnje koje menjaju stanje kod provajdera.
 
 Svi putevi počinju sa `/integrations/internal/providers/:code`, gde je `:code` oznaka provajdera (`travelgate`, `solvex`, `webhotelier`, `mock`).
 
@@ -173,7 +166,7 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 | :---- | :---- |
 | `400` | validacija tela zahteva |
 | `401` | nedostaje ili je istekao token |
-| `403` | nedostatak dozvole — **samo na administrativnim endpointima**; operativni ne proveravaju dozvole |
+| `403` | nedostatak dozvole — i na administrativnim i na operativnim endpointima: `{"message":"Nema dozvolu M4/provider-config/EDIT","error":"Forbidden","statusCode":403}` |
 | `404` | nepoznat `providerCode` ili nepostojeći zapis |
 | `500` | **svaka greška provajdera** — vidi ispod |
 
