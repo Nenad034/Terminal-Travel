@@ -156,16 +156,27 @@ export default function SearchCriteriaChip({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-full border border-accent bg-accent-soft px-3 py-1.5 text-xs text-ink">
-        <Icon name={icon?.icon ?? 'search'} className="text-accent-strong" />
-        <span className="font-semibold">{label}</span>
-        {destination && <span className="text-ink-dim">· {destination}</span>}
-        {dates && <span className="text-ink-dim">· {dates}</span>}
-        <span className="text-ink-dim">· {occupancy}</span>
+      {/* Dve grupe u istom redu (dopuna 3.9.2026, na zahtev vlasnika: „od + pa desno sve stavke
+          postavite do desne ivice kako bi razdvojili od teksta koji objašnjava koja je pretraga
+          u pitanju") — levo ŠTA je pretraženo, desno ŠTA se sa tim može uraditi. Razdvaja ih
+          `ml-auto` na desnoj grupi, ne fiksni razmak: red je pun širine panela, pa bi svaka
+          fiksna vrednost bila tačna samo na jednoj širini prozora.
+          Obe grupe su i same `flex-wrap` — na uskom prozoru se radnje prelome u svoj red umesto
+          da razvuku red u jednu nečitku traku. */}
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-full border border-accent bg-accent-soft px-3 py-1.5 text-xs text-ink">
+        <div className="flex flex-wrap items-center gap-2">
+          <Icon name={icon?.icon ?? 'search'} className="text-accent-strong" />
+          <span className="font-semibold">{label}</span>
+          {destination && <span className="text-ink-dim">· {destination}</span>}
+          {dates && <span className="text-ink-dim">· {dates}</span>}
+          <span className="text-ink-dim">· {occupancy}</span>
+        </div>
+
+        <div className="ml-auto flex flex-wrap items-center gap-2">
         <button
           onClick={onExpand}
           title="Otvori formu pretrage"
-          className="ml-1 flex items-center gap-1 rounded border border-accent px-1.5 text-accent-strong hover:bg-accent hover:text-accent-ink"
+          className="flex items-center gap-1 rounded border border-accent px-1.5 text-accent-strong hover:bg-accent hover:text-accent-ink"
         >
           <Icon name="add" />
         </button>
@@ -189,8 +200,10 @@ export default function SearchCriteriaChip({
           >
             <Icon name={justSaved ? 'check' : 'bookmark'} /> {justSaved ? 'sačuvano' : saving ? '…' : 'sačuvaj'}
           </button>
+          {/* Poruka se poravnava po DESNOJ ivici dugmeta (dopuna 3.9.2026) — otkako radnje stoje
+              uz desnu ivicu panela, `left-0` bi je gurnuo van vidljivog dela. */}
           {saveError && (
-            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
               {saveError}
             </div>
           )}
@@ -204,10 +217,11 @@ export default function SearchCriteriaChip({
             <Icon name="layers" /> dodaj u grupu
           </button>
           {groupError && (
-            <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
+            <div className="absolute right-0 top-full z-20 mt-1 w-64 rounded-lg border border-danger bg-panel p-2 text-[11px] text-danger shadow-lg">
               {groupError}
             </div>
           )}
+        </div>
         </div>
       </div>
 
