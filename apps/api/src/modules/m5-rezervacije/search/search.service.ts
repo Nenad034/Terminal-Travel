@@ -243,6 +243,12 @@ export class SearchService {
         amenities: Array.isArray((product.attributes as any)?.amenities)
           ? ((product.attributes as any).amenities as unknown[]).filter((t): t is string => typeof t === 'string')
           : null,
+        // M2 §2.3 `attributes.stars` — kategorija ide uz rezultat iz istog razloga kao
+        // `amenities` iznad: bez nje panel ne može ni da filtrira ni da sortira po kategoriji
+        // bez novog poziva (M5 §3.0g.9 tačka (b), dopuna 3.9.2026). Isto defanzivno čitanje —
+        // `attributes` je JSONB, stariji zapisi polje nemaju, a string („4") bi na klijentu
+        // tiho ispao iz poređenja sa brojem.
+        stars: typeof (product.attributes as any)?.stars === 'number' ? ((product.attributes as any).stars as number) : null,
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
         offers,

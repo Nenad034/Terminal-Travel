@@ -16,6 +16,9 @@ export interface SearchOffer {
   providerQuoteReference?: string;
   quoteExpiresAt?: string;
   cancellationPolicySummary?: string;
+  /** M5 spec §3.0b.2 — deterministički izračunato na serveru (`common/refundability.ts`), uvek
+   * `boolean` na pravom putu. Opciono ovde samo zato što ga mock ponude nemaju sve. */
+  isRefundable?: boolean;
 }
 
 export interface SearchResult {
@@ -32,6 +35,9 @@ export interface SearchResult {
   /** M2 §2.3c `AmenityTag[]` — sadržaji objekta, za filtriranje bez ponovne pretrage (§3.0c.3).
    * `null`/izostavljeno za tipove koji nemaju sadržaje (let, transfer). */
   amenities?: string[] | null;
+  /** M2 §2.3 `attributes.stars` — kategorija (1–5), za filter i sortiranje po kategoriji
+   * (§3.0g.8). `null` za tipove bez kategorije i za neunetu kategoriju. */
+  stars?: number | null;
   shortDescription?: string;
   thumbnail?: { url: string; category: string } | null;
   offers: SearchOffer[];

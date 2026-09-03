@@ -51,6 +51,17 @@ export interface SearchResultProduct {
    * `null` za tipove koji nemaju sadržaje (let, transfer) i za proizvod kome polje nije uneto.
    */
   amenities: string[] | null;
+  /**
+   * M2 spec §2.3 `attributes.stars` — zvanična kategorija smeštaja (1–5).
+   *
+   * Dodato 3.9.2026 (vlasnikova odluka — M5 spec §3.0g.9 tačka (b): podatak je od početka u
+   * katalogu, ali ga pretraga nije izlagala, pa je i sortiranje „po kategoriji" iz §3.0g.8
+   * radilo samo nad mock podacima, a filter po kategoriji nije mogao ni da postoji).
+   *
+   * Nosi ga PROIZVOD, ne ponuda: kategorija pripada objektu, ne tipu sobe. `null` za sve što
+   * nije smeštaj i za smeštaj kome kategorija nije uneta.
+   */
+  stars: number | null;
   thumbnail: { url: string; category: string } | null;
   shortDescription: string | null;
   offers: SearchResultOffer[];

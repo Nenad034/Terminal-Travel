@@ -232,6 +232,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* dev server je pokrenut PRE instalacije i drži reference na stari `node_modules`; `npm install` mu je zamenio sadržaj pod nogama, pa PostCSS podproces ne može više ni da se pokrene (0xc0000142 je Windows „nije moguće inicijalizovati proces“). `globals.css` nije pokvaren — to je samo prvi fajl koji je tražio PostCSS.
 - *Provera:* posle svakog `npm install` koji je zatekao pokrenut `next dev`, ugasiti dev proces, obrisati `apps/panel/.next` i pokrenuti ga ponovo. Ne tražiti grešku u CSS-u. Srodno sa 5.7 — isti `.next` folder, drugi uzrok.
 
+**5.13 Seed upisuje JSONB ključ pod pogrešnim imenom — ništa ne pukne, filter samo uvek vraća prazno**
+- *Simptom:* `GET /search` vraća `stars: null` za svih 78 zasejanih hotela, iako seed skripta očigledno postavlja kategoriju i unit testovi prolaze (3.9.2026, otkriveno tek kad je filter po kategoriji stvarno pozvan protiv baze).
+- *Uzrok:* `Product.attributes` je JSONB bez šeme (M2 §2, namerno — „fleksibilan JSONB"), pa se ime ključa nigde ne proverava. Seed je pisao `attributes.category` i `attributes.roomTypes`, a M2 §2.3 polja se zovu `stars` i `room_types`; čitalac traži ispravno ime, nalazi `undefined` i uredno vrati `null`. Ni `tsc`, ni Prisma, ni testovi sa sopstvenim ulazom ne mogu ovo videti — obe strane su „ispravne", samo se ne sreću.
+- *Provera:* posle svakog seeda koji piše u JSONB polje, pročitati bar jedan zapis KROZ API koji ga koristi (ne kroz bazu i ne kroz sam seed) i potvrditi da polje nije `null`. Kad se doda nov ključ, uporediti ime doslovno sa tabelom u specifikaciji modula — `snake_case` iz spec-a, ne `camelCase` iz TypeScript navike. Isti obrazac kao 9.9 (opcija postoji, grana ne) i 10.1 (`Decimal` kao string): ugovor između dva sloja koji nijedan alat ne proverava.
+
 ## 6. Rad paralelno sa drugim agentom
 
 **6.1 Nikad `git add -A` kad drugi agent radi**
@@ -340,6 +345,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* `height: 100%` se razrešava samo prema roditelju sa **definisanom** visinom. Roditelj koji je flex stavka (`flex-1`) dobija visinu iz flex proračuna, pa procenat padne na `auto`; a `auto` je ovde 0, jer je jedino dete tog elementa opet `flex-1` (kružno: dete čeka roditelja, roditelj čeka dete). Rezultat je 0, pa `min-height` postane jedina stvarna visina — izgleda kao da je `min-height` „pobedio", što skreće potragu na pogrešnu stranu.
 - *Provera:* kad element treba da popuni preostalu visinu, lanac od njega do kontejnera sa poznatom visinom mora biti **flex kolona sa `flex-1` na svakom koraku**, ne `h-full`. `min-h-0` je obavezan na međukoracima (flex stavka se podrazumevano ne sme skupiti ispod sadržaja). Ne zaključivati iz koda — izmeriti u browseru (`getBoundingClientRect().height` uz `getComputedStyle` kroz sve pretke); ovo je jedna od stvari koje `tsc` i HTTP 200 ne mogu da vide (isto kao 7.1).
 - *Povezano:* MapLibre kontejner bez visine se ne iscrtava uopšte i **ne prijavi ništa u konzoli** — prazna mapa je jedini znak.
+
+**9.9 Opcija postoji u UI, grana u kodu ne — izbor tiho pada na podrazumevano ponašanje**
+- *Simptom:* traka za sortiranje je za smeštaj nudila „kategorija (zvezdice)" (`lib/search-sort.ts`, od 2.9.2026), a klik na nju je davao istu listu kao „najjeftinije" (otkriveno 3.9.2026, pri dodavanju filtera po kategoriji). Dugme se ponaša kao aktivno, dobija akcentnu boju, adresa se menja — ništa ne kaže da izbor nema efekta.
+- *Uzrok:* spisak PONUĐENIH opcija i lanac `if`-ova koji ih SPROVODI stoje u dva odvojena fajla (`lib/search-sort.ts` naspram `RealResults.tsx`), bez ijedne veze koju bi `tsc` mogao da proveri — string `'STARS_DESC'` u jednom fajlu i njegovo odsustvo u drugom su dve nezavisne činjenice. U ovom slučaju grana je i namerno izostala, jer `SearchResultProduct` kategoriju uopšte nije vraćao (M5 §3.0g.9 tačka b) — ali to nigde nije bilo vidljivo korisniku.
+- *Provera:* kad se doda opcija u bilo koji spisak izbora (sortiranje, filteri, prikazi), u ISTOM prolazu proveriti da svaki potrošač tog spiska ima granu za nju — `grep` po vrednosti kroz ceo `apps/panel/src`, ne po nazivu opcije. Ako podatak za nju još ne postoji, opcija se **ne prikazuje** (pravilo iz M5 §3.0g.8: nudi se isključivo ono za šta stvarno postoji podatak), ne prikazuje se kao dugme koje ništa ne radi. Isti obrazac važi i obrnuto — grana u kodu za vrednost koju spisak više ne nudi je mrtav kod koji sledeća izmena tumači kao podržan slučaj.
 
 ## 10. Prisma `Decimal` polja preko JSON-a (backend ↔ panel/web ugovor)
 

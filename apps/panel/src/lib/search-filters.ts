@@ -14,12 +14,14 @@
 /** Filteri sa jednom vrednošću. Prazan string znači „bez filtera" i briše se iz adrese. */
 export const SCALAR_FILTER_KEYS = [
   'priceMin', 'priceMax', 'availability',
+  // M5 spec §3.0c.3a — brzi filter refundabilno/nerefundabilno.
+  'refundable',
   // M5 spec §3.0d.1 — filteri letova.
   'stops', 'maxLayover', 'maxDuration', 'departFrom', 'departTo', 'arriveFrom', 'arriveTo', 'minCheckedBags',
 ] as const;
 
 /** Filteri sa više izabranih vrednosti. Prazan niz znači „sve". */
-export const MULTI_FILTER_KEYS = ['amenityTags', 'boardTypes', 'airlines', 'connAirports'] as const;
+export const MULTI_FILTER_KEYS = ['amenityTags', 'boardTypes', 'airlines', 'connAirports', 'stars'] as const;
 
 export const ALL_FILTER_KEYS: string[] = [...SCALAR_FILTER_KEYS, ...MULTI_FILTER_KEYS];
 
@@ -46,16 +48,30 @@ export interface OfferLike {
   finalPrice: number;
   availabilityStatus: string;
   boardType?: string | null;
+  /** M5 §3.0b.2 — na pravom putu uvek `boolean`; `undefined` znači „izvor to ne zna". */
+  isRefundable?: boolean | null;
 }
 
 export function offerMatches(
   o: OfferLike,
-  f: { priceMin: number | null; priceMax: number | null; availability: string | null; boardTypes: string[] },
+  f: {
+    priceMin: number | null;
+    priceMax: number | null;
+    availability: string | null;
+    boardTypes: string[];
+    refundable?: string | null;
+  },
 ): boolean {
   if (f.priceMin !== null && o.finalPrice < f.priceMin) return false;
   if (f.priceMax !== null && o.finalPrice > f.priceMax) return false;
   if (f.availability && o.availabilityStatus !== f.availability) return false;
   if (f.boardTypes.length > 0 && !f.boardTypes.includes(o.boardType ?? '')) return false;
+  // M5 §3.0c.3a — ponuda za koju se NE ZNA da li je refundabilna ispada čim se filter uključi:
+  // agent koji je tražio „refundabilno" ne sme da dobije ponudu koju niko nije potvrdio kao
+  // takvu. Zato se prekidač i nudi samo tamo gde podatak stvarno postoji (§3.0g.8, isto
+  // pravilo kao kod sortiranja) — ovde je samo poslednja odbrana.
+  if (f.refundable === 'REFUNDABLE' && o.isRefundable !== true) return false;
+  if (f.refundable === 'NON_REFUNDABLE' && o.isRefundable !== false) return false;
   return true;
 }
 
@@ -75,9 +91,28 @@ export function commonFiltersFrom(r: FilterReader) {
     priceMin: priceMinEur === null ? null : priceMinEur * 100,
     priceMax: priceMaxEur === null ? null : priceMaxEur * 100,
     availability: r.get('availability') || null,
+    refundable: r.get('refundable') || null,
     boardTypes: r.getAll('boardTypes'),
     amenityTags: r.getAll('amenityTags'),
+    stars: r.getAll('stars'),
   };
+}
+
+/**
+ * Kategorija (M5 §3.0c.3c) — ILI-logika, za razliku od sadržaja objekta (§3.0c.3, I-logika).
+ *
+ * Razlika nije nedoslednost nego posledica prirode polja: hotel MOŽE imati i bazen i spa, pa
+ * „bazen + spa" znači oboje; ali hotel ima TAČNO jednu kategoriju, pa bi „2 zvezdice + 3
+ * zvezdice" po I-logici uvek dalo nula rezultata. Vlasnikov opis (3.9.2026) je isti: „kada se
+ * klikne na drugu i na treću zvezdicu da se filtriraju hoteli sa 2 zvezdice i sa 3 zvezdice".
+ *
+ * Proizvod bez unete kategorije ispada čim se filter uključi — isti razlog kao kod
+ * refundabilnosti iznad.
+ */
+export function starsMatch(productStars: number | null | undefined, wanted: string[]): boolean {
+  if (wanted.length === 0) return true;
+  if (productStars == null) return false;
+  return wanted.includes(String(productStars));
 }
 
 /** Proizvod prolazi samo ako nosi SVAKI traženi sadržaj (I-logika, ista kao na serveru, M5 §3.0c.3). */

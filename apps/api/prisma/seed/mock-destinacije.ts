@@ -47,7 +47,9 @@ interface Destinacija {
   city: string;
   /** Naziv hotela — bez „mock" u imenu, da ekran izgleda kao stvaran katalog. */
   hotel: string;
-  /** Kategorija u zvezdicama, ide u `attributes.category`. */
+  /** Kategorija u zvezdicama, ide u `attributes.stars` (M2 §2.3 — tako se polje ZOVE;
+   * raniji oblik ovog seeda ga je pisao kao `attributes.category`, pa ga ni pretraga ni panel
+   * nisu videli. Ispravljeno 3.9.2026 uz filter po kategoriji, M5 §3.0c.3c.) */
   stars: number;
   /** Cena dvokrevetne sobe po noći u letnjoj sezoni, EUR — ostale se izvode iz nje. */
   price: number;
@@ -381,8 +383,10 @@ async function main() {
           destinationCity: d.city,
           media: [],
           attributes: {
-            category: d.stars,
-            roomTypes: ROOM_TYPES,
+            // Nazivi ključeva su iz M2 §2.3 — `stars` i `room_types`, ne `category`/`roomTypes`.
+            // JSONB ne proverava ništa, pa pogrešno ime ne pukne nego tiho da prazan filter.
+            stars: d.stars,
+            room_types: ROOM_TYPES,
             amenities: d.amenities,
             board_types: d.boards,
           },

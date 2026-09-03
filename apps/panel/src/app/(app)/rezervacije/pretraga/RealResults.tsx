@@ -5,7 +5,7 @@ import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import SearchResultsMap from '@/components/SearchResultsMap';
 import { useSearchFilters } from '@/components/SearchFiltersContext';
-import { amenitiesMatch, commonFiltersFrom, offerMatches } from '@/lib/search-filters';
+import { amenitiesMatch, commonFiltersFrom, offerMatches, starsMatch } from '@/lib/search-filters';
 import { offerKey } from '@/lib/search-offer-key';
 import { compareName } from '@/lib/search-sort';
 import type { SearchResult } from './types';
@@ -48,11 +48,13 @@ export default function RealResults({
   emptyMessage: string;
 }) {
   const filters = useSearchFilters();
-  const { priceMin, priceMax, availability, boardTypes, amenityTags } = commonFiltersFrom(filters);
+  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } = commonFiltersFrom(filters);
 
   const filtered = results
-    .filter((r) => amenitiesMatch(r.amenities, amenityTags))
-    .map((r) => ({ ...r, offers: r.offers.filter((o) => offerMatches(o, { priceMin, priceMax, availability, boardTypes })) }))
+    // Sadržaji i kategorija filtriraju CEO proizvod (pripadaju objektu), refundabilnost i cena
+    // pojedinačnu ponudu (pripadaju ponudi) — zato dva odvojena koraka, M5 §3.0c.3/§3.0c.3c.
+    .filter((r) => amenitiesMatch(r.amenities, amenityTags) && starsMatch(r.stars, stars))
+    .map((r) => ({ ...r, offers: r.offers.filter((o) => offerMatches(o, { priceMin, priceMax, availability, refundable, boardTypes })) }))
     // §3.0b.2 — proizvod bez ijedne preostale ponude ne postoji u rezultatima.
     .filter((r) => r.offers.length > 0);
 
@@ -60,6 +62,11 @@ export default function RealResults({
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'PRICE_DESC') return cheapest(b) - cheapest(a);
     if (sort === 'NAME_ASC') return compareName(a.name, b.name);
+    // §3.0g.8 — kategorija je do 3.9.2026 postojala kao PONUĐENA opcija sortiranja, a ovde
+    // grane nije bilo: izbor „kategorija (zvezdice)" je tiho padao na sortiranje po ceni, jer
+    // `SearchResultProduct` kategoriju uopšte nije vraćao (§3.0g.9 tačka b). Sad je vraća.
+    // Proizvod bez unete kategorije ide na dno, ne na vrh (`?? 0`).
+    if (sort === 'STARS_DESC') return (b.stars ?? 0) - (a.stars ?? 0) || cheapest(a) - cheapest(b);
     return cheapest(a) - cheapest(b);
   });
 

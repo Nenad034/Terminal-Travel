@@ -6,6 +6,7 @@ import SearchRefreshNotice from '@/components/SearchRefreshNotice';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { offerKey } from '@/lib/search-offer-key';
 import SortBar from '@/components/SortBar';
+import SearchQuickFilters from '@/components/SearchQuickFilters';
 import { resolveSort } from '@/lib/search-sort';
 import { parseRooms, roomsFromTotals, toOccupancy } from '@/lib/search-rooms';
 import AccommodationResultsMock from './AccommodationResultsMock';
@@ -123,6 +124,15 @@ export default async function SearchPage(
   // mapa i lista moraju pokazivati isto (do 3.9.2026 su tačke građene ovde, pre filtera).
   const mapAvailable = singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.geoLat != null && r.geoLng != null));
 
+  // M5 spec §3.0c.3a/§3.0c.3c — brzi filteri iznad rezultata (vlasnikova odluka 3.9.2026).
+  // Isto pravilo kao kod sortiranja (§3.0g.8) i mape iznad: prekidač se nudi samo tamo gde
+  // podatak stvarno postoji, nikad kao siva dugmad. Letovi, transferi i "things to do" danas
+  // idu kroz mock koji ni refundabilnost ni kategoriju nema, pa im se traka ni ne prikazuje.
+  const refundableAvailable = usesMock
+    ? singleType === 'ACCOMMODATION'
+    : results.some((r) => r.offers.some((o) => o.isRefundable !== undefined));
+  const starsAvailable = singleType === 'ACCOMMODATION' || (!usesMock && results.some((r) => r.stars != null));
+
   // M5 spec §3.0g.3 — snimak ponuda koji "Osveži podatke" poredi sa prethodnim. Gradi se samo iz
   // PRAVIH `GET /search` rezultata; mock prikazi imaju hardkodovane cene koje se između dva
   // poziva ne mogu promeniti, pa nemaju šta da prijave.
@@ -150,6 +160,8 @@ export default async function SearchPage(
       <SearchPanel hasResults={showsResults} />
 
       {!usesMock && <SearchRefreshNotice offers={offerSnapshots} />}
+
+      {showsResults && <SearchQuickFilters showRefundable={refundableAvailable} showStars={starsAvailable} />}
 
       {showsResults && <SortBar resultCount={usesMock ? 0 : results.length} mapAvailable={mapAvailable} />}
 

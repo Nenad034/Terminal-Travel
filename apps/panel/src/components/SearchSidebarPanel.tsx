@@ -14,11 +14,13 @@ import { ALL_FILTER_KEYS } from '@/lib/search-filters';
 // najvažnijim modulima, odavde sve kreće".
 //
 // Filteri se menjaju prema AKTIVNOJ vrsti proizvoda (§3.0g.1 tačka 3) — broj presedanja i
-// udaljenost od plaže nemaju šta jedno kraj drugog. "Refundabilno/Nerefundabilno" brzi filter iz
-// §6d i dalje nije uključen — `SearchResultOffer.is_refundable` je specificiran (M5 spec v1.32)
-// ali nikad implementiran na `search.service.ts` — zahteva zaseban prolaz (izračunavanje iz
-// `CancellationRule` prozora za CONTRACTED, M5 spec §3.0c.3a), zabeleženo u backlogu, ne
-// prećutno izostavljeno.
+// udaljenost od plaže nemaju šta jedno kraj drugog.
+//
+// Brzi filteri „refundabilno/nerefundabilno" i „kategorija (zvezdice)" NISU ovde nego u
+// vodoravnoj traci iznad rezultata (`SearchQuickFilters.tsx`) — vlasnikova odluka 3.9.2026,
+// M5 spec §3.0c.3a/§3.0c.3c. Raniji oblik ovog komentara je tvrdio da refundabilnost „i dalje
+// nije uključena jer `is_refundable` nikad nije implementiran na serveru"; to je zastarelo od
+// 1.9.2026 (`common/refundability.ts`, izračunato za CONTRACTED i za API).
 //
 // Dopuna (26.8.2026, na zahtev vlasnika: "u levom panelu za smeštaj dodajte još filtera") —
 // dva filtera iz M5 spec §3.0c.2/§3.0c.3 koja su bila specificirana ali nikad ožičena:

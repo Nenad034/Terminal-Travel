@@ -6,7 +6,7 @@ import { useSelection } from '@/components/SelectionContext';
 import { compareName } from '@/lib/search-sort';
 import SearchResultsMap from '@/components/SearchResultsMap';
 import { useSearchFilters } from '@/components/SearchFiltersContext';
-import { amenitiesMatch, commonFiltersFrom, offerMatches } from '@/lib/search-filters';
+import { amenitiesMatch, commonFiltersFrom, offerMatches, starsMatch } from '@/lib/search-filters';
 
 // MOCK — čeka potvrdu izgleda pre prave žice (26.8.2026, na zahtev vlasnika: "napravite mock
 // podatke da vidim kako sve izgleda", dorađeno kroz dva naredna prolaza istog dana). Pravi
@@ -32,6 +32,12 @@ interface MockOffer {
   roomTypeName: string;
   boardType: keyof typeof BOARD_TYPE_LABELS;
   currency: string;
+  /** M5 §3.0b.2 `is_refundable` — na pravom putu ga računa server (`common/refundability.ts`);
+   * ovde je hardkodovan da brzi filter „refundabilno/nerefundabilno" (§3.0c.3a) ima nad čim da
+   * radi. Bez ovoga bi prekidač postojao a lista se ne bi menjala — isti razlog zbog kog su
+   * mock hoteli 3.9.2026 dobili i sadržaje (`amenities`). Namerno mešano, i namerno tako da su
+   * jeftinije tarife češće nerefundabilne, kako to i stoji kod stvarnih dobavljača. */
+  isRefundable: boolean;
   rooms: MockRoomLine[];
 }
 interface MockHotel {
@@ -82,10 +88,10 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.84,
     image: 'https://picsum.photos/seed/riviera/320/200',
     offers: [
-      { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 45600 }] },
-      { id: 'h1-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 52300 }] },
-      { id: 'h1-o3', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 68900 }] },
-      { id: 'h1-o4', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'AI', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 81200 }] },
+      { id: 'h1-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 45600 }] },
+      { id: 'h1-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 52300 }] },
+      { id: 'h1-o3', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 68900 }] },
+      { id: 'h1-o4', roomTypeName: 'Deluxe soba, pogled na more', boardType: 'AI', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 81200 }] },
     ],
   },
   {
@@ -99,7 +105,7 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.7712,
     image: 'https://picsum.photos/seed/panorama/320/200',
     offers: [
-      { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 38900 }] },
+      { id: 'h2-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 38900 }] },
       // Primer sa dve RAZLIČITE sobe u istoj ponudi (tačan slučaj koji je vlasnik opisao: "1
       // sobu za 2 odrasle i 2. sobu za 2 odrasle osobe i dete od 10 godina").
       {
@@ -107,6 +113,7 @@ const MOCK_HOTELS: MockHotel[] = [
         roomTypeName: 'Porodični apartman (2 sobe)',
         boardType: 'BB',
         currency: 'EUR',
+        isRefundable: true,
         rooms: [
           { adults: 2, children: 0, price: 35700 },
           { adults: 2, children: 1, childrenAges: [10], price: 39900 },
@@ -125,9 +132,9 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.9439,
     image: 'https://picsum.photos/seed/adriatic/320/200',
     offers: [
-      { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 29900 }] },
-      { id: 'h3-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 34500 }] },
-      { id: 'h3-o3', roomTypeName: 'Porodična soba', boardType: 'UAI', currency: 'EUR', rooms: [{ adults: 2, children: 2, childrenAges: [7, 9], price: 99900 }] },
+      { id: 'h3-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 29900 }] },
+      { id: 'h3-o2', roomTypeName: 'Standard soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 34500 }] },
+      { id: 'h3-o3', roomTypeName: 'Porodična soba', boardType: 'UAI', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 2, childrenAges: [7, 9], price: 99900 }] },
     ],
   },
   {
@@ -140,7 +147,7 @@ const MOCK_HOTELS: MockHotel[] = [
     lat: 42.43,
     lng: 18.6963,
     image: 'https://picsum.photos/seed/maslina/320/200',
-    offers: [{ id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 41200 }] }],
+    offers: [{ id: 'h4-o1', roomTypeName: 'Standard soba', boardType: 'BB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 41200 }] }],
   },
   {
     id: 'mock-h5',
@@ -153,8 +160,27 @@ const MOCK_HOTELS: MockHotel[] = [
     lng: 18.5375,
     image: 'https://picsum.photos/seed/sunset/320/200',
     offers: [
-      { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 59900 }] },
-      { id: 'h5-o2', roomTypeName: 'Suite', boardType: 'AI', currency: 'EUR', rooms: [{ adults: 2, children: 0, price: 112000 }] },
+      { id: 'h5-o1', roomTypeName: 'Superior soba', boardType: 'HB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 0, price: 59900 }] },
+      { id: 'h5-o2', roomTypeName: 'Suite', boardType: 'AI', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 112000 }] },
+    ],
+  },
+  {
+    // Dodat 3.9.2026 uz filter po kategoriji (§3.0c.3c): do tada su svi mock hoteli bili 3–5
+    // zvezdica, pa vlasnikov sopstveni primer („klik na drugu i treću zvezdicu") nije imao šta
+    // da pokaže. Filter koji ne može da radi gori je od filtera kog nema — isti razlog zbog kog
+    // su mock hoteli istog dana dobili i `amenities`.
+    id: 'mock-h6',
+    amenities: ['BEACH_UNDER_500M', 'BEACH_SAND', 'WIFI_FREE', 'PARKING', 'AC', 'TV', 'BALCONY', 'PETS_ALLOWED', 'FAMILY_FRIENDLY', 'PAY_AT_PROPERTY'],
+    name: 'Vila Jadran',
+    stars: 2,
+    city: 'Sutomore',
+    country: 'Crna Gora',
+    lat: 42.1428,
+    lng: 19.045,
+    image: 'https://picsum.photos/seed/jadran/320/200',
+    offers: [
+      { id: 'h6-o1', roomTypeName: 'Dvokrevetna soba', boardType: 'BB', currency: 'EUR', isRefundable: false, rooms: [{ adults: 2, children: 0, price: 18400 }] },
+      { id: 'h6-o2', roomTypeName: 'Studio apartman', boardType: 'BB', currency: 'EUR', isRefundable: true, rooms: [{ adults: 2, children: 1, childrenAges: [6], price: 24900 }] },
     ],
   },
 ];
@@ -198,7 +224,7 @@ export default function AccommodationResultsMock({
   // Filteri se čitaju iz ŽIVOG stanja, ne iz adrese (vlasnikova odluka 3.9.2026 — klik na filter
   // deluje odmah, bez poziva serveru; obrazloženje u `SearchFiltersContext.tsx`).
   const filters = useSearchFilters();
-  const { priceMin, priceMax, availability, boardTypes, amenityTags } = commonFiltersFrom(filters);
+  const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } = commonFiltersFrom(filters);
 
   // M5 spec §3.0h.8 — okvir mape filtrira i mock, isto kao što na pravom putu filtrira
   // `GET /search`. Bez ovoga bi "pretraži dok pomeram mapu" radilo samo na jednom od dva puta,
@@ -212,7 +238,9 @@ export default function AccommodationResultsMock({
   const sortedHotels = MOCK_HOTELS.filter(inBox)
     // Sadržaji objekta filtriraju CEO hotel, ne pojedinačnu ponudu — bazen i plaža pripadaju
     // objektu, ne sobi (I-logika, ista kao na serveru: mora imati SVE izabrane, M5 §3.0c.3).
-    .filter((h) => amenitiesMatch(h.amenities, amenityTags))
+    // Kategorija filtrira CEO hotel, kao i sadržaji — ali po ILI-logici, ne I: hotel ima tačno
+    // jednu kategoriju, pa bi „2 zvezdice + 3 zvezdice" po I-logici uvek dalo nula (§3.0c.3c).
+    .filter((h) => amenitiesMatch(h.amenities, amenityTags) && starsMatch(h.stars, stars))
     .map((h) => ({
     ...h,
     offers: h.offers
@@ -220,8 +248,8 @@ export default function AccommodationResultsMock({
         // Mock ponuda nema `availabilityStatus` — sve su „odmah potvrda", pa filter dostupnosti
         // sme da je odbaci samo kad se traži nešto drugo.
         offerMatches(
-          { finalPrice: offerTotal(o), availabilityStatus: 'AVAILABLE', boardType: o.boardType },
-          { priceMin, priceMax, availability, boardTypes },
+          { finalPrice: offerTotal(o), availabilityStatus: 'AVAILABLE', boardType: o.boardType, isRefundable: o.isRefundable },
+          { priceMin, priceMax, availability, refundable, boardTypes },
         ),
       )
       .sort((a, b) => offerTotal(a) - offerTotal(b)),
