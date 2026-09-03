@@ -335,6 +335,12 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* biblioteka (kod nas MapLibre GL) izvodi adresu svog workera iz `import.meta.url`, računajući da stoji pored svojih fajlova u `node_modules/…/dist/`. Posle pakovanja (Turbopack) ta adresa pokazuje na chunk u `/_next/static/chunks/`, pa "susedni" fajl ne postoji — server vrati HTML stranicu greške, browser je odbije. U mreži se ne vidi kao obična 404 na `<script>` jer učitavanje pokreće worker, ne stranica.
 - *Provera:* kad se biblioteka ne iscrtava a chunk-ovi su ispravni, proveri da li pravi Worker iz izračunate adrese (`grep "import.meta.url"` u njenom `dist`-u). Rešenje: zadati adresu izričito (`setWorkerUrl` ili ekvivalent) i servirati fajl sa stabilnog mesta, a kopiranje vezati za `postinstall` da ne zastari pri nadogradnji. Kopirati **sve** fajlove koje worker relativno uvozi, ne samo glavni.
 
+**9.8 `h-full` (visina 100%) na elementu unutar flex kolone ne radi — treba `flex-1`**
+- *Simptom:* mapa u pretrazi je trebalo da popuni panel do dna, a dobila je tačno svoju `min-height` (318px umesto 579px). Roditeljski lanac je izmeren i svaki predak ima ispravnu visinu — samo poslednji korak „ne uzme" 100%.
+- *Uzrok:* `height: 100%` se razrešava samo prema roditelju sa **definisanom** visinom. Roditelj koji je flex stavka (`flex-1`) dobija visinu iz flex proračuna, pa procenat padne na `auto`; a `auto` je ovde 0, jer je jedino dete tog elementa opet `flex-1` (kružno: dete čeka roditelja, roditelj čeka dete). Rezultat je 0, pa `min-height` postane jedina stvarna visina — izgleda kao da je `min-height` „pobedio", što skreće potragu na pogrešnu stranu.
+- *Provera:* kad element treba da popuni preostalu visinu, lanac od njega do kontejnera sa poznatom visinom mora biti **flex kolona sa `flex-1` na svakom koraku**, ne `h-full`. `min-h-0` je obavezan na međukoracima (flex stavka se podrazumevano ne sme skupiti ispod sadržaja). Ne zaključivati iz koda — izmeriti u browseru (`getBoundingClientRect().height` uz `getComputedStyle` kroz sve pretke); ovo je jedna od stvari koje `tsc` i HTTP 200 ne mogu da vide (isto kao 7.1).
+- *Povezano:* MapLibre kontejner bez visine se ne iscrtava uopšte i **ne prijavi ništa u konzoli** — prazna mapa je jedini znak.
+
 ## 10. Prisma `Decimal` polja preko JSON-a (backend ↔ panel/web ugovor)
 
 **10.1 `Decimal` stiže na frontend kao STRING, ne broj — `.toFixed()`/aritmetika puca u produkciji, `tsc` to ne hvata**

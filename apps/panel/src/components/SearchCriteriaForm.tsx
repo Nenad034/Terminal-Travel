@@ -154,6 +154,13 @@ export default function SearchCriteriaForm({
   // je uvek zemlja, grad/hotel je finiji, opcioni drugi korak — pretraga cele države ostaje moguća).
   const destinationValid = values.destinationCountry.trim().length > 0;
 
+  // Crvena poruka o praznoj državi se pokazuje tek KAD KORISNIK NEŠTO URADI (ispravka 3.9.2026,
+  // isti povod kao „ne treba odmah da se pojavi rezultat pretrage jer pretrage još nije bilo"):
+  // netaknuta forma ne sme da izgleda kao da je već nešto pogrešno uneto. Dok je polje netaknuto,
+  // obavezno polje je označeno zvezdicom, a dugme „pretraži" je ionako onemogućeno — to je
+  // dovoljno. Poruka se pojavi tek ako korisnik uđe u polje pa ga ostavi prazno.
+  const [countryTouched, setCountryTouched] = useState(false);
+
   function submit() {
     if (!destinationValid) return;
     // Uzrast svakog deteta mora biti unet pre slanja (§3.0g.6) — inače bi greška stigla kao
@@ -201,14 +208,15 @@ export default function SearchCriteriaForm({
             <div className="mt-1">
               <SuggestField
                 value={values.destinationCountry}
-                onChange={(next) =>
+                onChange={(next) => {
+                  setCountryTouched(true);
                   setValues((v) => ({
                     ...v,
                     destinationCountry: next,
                     // Promena države poništava mesto — grad druge države nije smislen filter.
                     destinationCity: next === v.destinationCountry ? v.destinationCity : '',
-                  }))
-                }
+                  }));
+                }}
                 fetchSuggestions={suggestCountries}
                 placeholder="Grčka"
                 required
@@ -393,7 +401,9 @@ export default function SearchCriteriaForm({
           )}
         </div>
 
-      {!destinationValid && <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>}
+      {countryTouched && !destinationValid && (
+        <p className="mt-3 text-[11px] text-danger">Unesite bar državu odredišta.</p>
+      )}
       <button
         onClick={submit}
         disabled={!destinationValid}

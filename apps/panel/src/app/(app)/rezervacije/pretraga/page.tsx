@@ -73,7 +73,18 @@ export default async function SearchPage(
   // kod smeštaja) i vraća podrazumevanu, umesto da prikaz ostane u stanju koje nijedno dugme ne
   // pokazuje kao aktivno.
   const sort = resolveSort(first(searchParams.sort), types);
-  const hasQuery = Boolean(searchParams.destinationCountry || types.length > 0);
+  // Pretraga postoji tek kad je STVARNO poslata (ispravka 3.9.2026, na zahtev vlasnika: „kada
+  // se klikne na pretragu smeštaja ne treba odmah da se pojavi rezultat pretrage jer pretrage
+  // još nije bilo"). Ranije je i sam izbor vrste proizvoda (`type=ACCOMMODATION`, klik na
+  // ikonicu) računat kao pretraga, pa su se rezultati pojavljivali pre nego što je korisnik
+  // uneo i jedan kriterijum — i uz to se svaki klik na ikonicu plaćao jednim `GET /search` nad
+  // celim katalogom.
+  //
+  // `destinationCountry` je merilo jer je to JEDINO obavezno polje forme (§3.0c.2, označeno
+  // zvezdicom u `SearchCriteriaForm`) — nijedna poslata pretraga ne može biti bez njega, a
+  // nijedan puki izbor vrste ga ne postavlja. Zapamćeni kriterijumi po vrsti (§3.0g.4) ga vrate
+  // pri povratku na već pretraženu vrstu, pa se rezultati tada s pravom pojave odmah.
+  const hasQuery = Boolean(searchParams.destinationCountry);
 
   let results: SearchResult[] = [];
   let error: string | null = null;
@@ -213,7 +224,11 @@ export default async function SearchPage(
   );
 
   return (
-    <div className="p-6">
+    // `min-h-full` + flex kolona (dopuna 3.9.2026, na zahtev vlasnika) — prikaz mape mora da
+    // popuni sve do dna centralnog panela, a ne da stane na fiksnoj visini i ostavi belu traku
+    // ispod sebe. `min-h-full` (ne `h-full`) jer u prikazu LISTE sadržaj ume da bude viši od
+    // panela i tada mora normalno da skroluje u `<main>`-u, koji je `overflow-y-auto`.
+    <div className="flex min-h-full flex-col p-6">
       <RegisterTab label="Pretraga" />
       <h1 className="mb-1 font-mono text-lg">
         <span className="text-accent">$</span> pretraga
@@ -245,6 +260,9 @@ export default async function SearchPage(
           Zamenjuje `cardResults`/`rowResults` prikaz ISKLJUČIVO za ove četiri kombinacije tipa;
           ostalih 5 vrsta (RENT-A-CAR, PACKAGE, CRUISE, INSURANCE, individualni paketi) i dalje
           idu kroz pravi `GET /search` prikaz ispod, bez mock-a. */}
+      {/* Omotač raste do dna panela SAMO u prikazu mape (dopuna 3.9.2026) — u prikazu liste bi
+          `flex-1` samo razvukao prazan prostor ispod poslednje kartice bez ikakve koristi. */}
+      <div className={resultsView === 'mapa' && showsResults ? 'flex min-h-0 flex-1 flex-col' : undefined}>
       {(() => {
         if (!hasQuery || error) return null;
 
@@ -322,6 +340,7 @@ export default async function SearchPage(
           </>
         );
       })()}
+      </div>
     </div>
   );
 }

@@ -20,7 +20,9 @@
     "seed:mock-booking-dossier": "ts-node prisma/seed/mock-booking-dossier.ts",
     "seed:mock-booking-dossier:clean": "ts-node prisma/seed/mock-booking-dossier-clean.ts",
     "geocode:products": "ts-node prisma/seed/geocode-products.ts",
-    "normalize:countries": "ts-node prisma/seed/normalize-destination-country.ts"
+    "normalize:countries": "ts-node prisma/seed/normalize-destination-country.ts",
+    "seed:mock-destinacije": "ts-node prisma/seed/mock-destinacije.ts",
+    "seed:mock-destinacije:clean": "ts-node prisma/seed/mock-destinacije-clean.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

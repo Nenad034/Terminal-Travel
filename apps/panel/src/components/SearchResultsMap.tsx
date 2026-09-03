@@ -369,15 +369,26 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
 
   if (failed) {
     return (
-      <div className="flex h-[520px] items-center justify-center rounded-lg border border-border bg-panel p-6 text-center text-xs text-ink-dim">
+      <div className="flex h-full min-h-[320px] items-center justify-center rounded-lg border border-border bg-panel p-6 text-center text-xs text-ink-dim">
         {failed}
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      <div ref={containerRef} className="h-[520px] w-full overflow-hidden rounded-lg border border-border" />
+    // §3.0h (dopuna 3.9.2026, na zahtev vlasnika: „popunite prazan prostor u centralnom panelu
+    // sa mapom") — visina se više NE zadaje fiksno (bilo `h-[520px]`, pa je ispod mape ostajala
+    // prazna bela traka do dna panela) nego se uzima od roditelja: ekran pretrage je flex kolona
+    // do dna `<main>`-a.
+    //
+    // `flex-1`, NE `h-full`: `height: 100%` se ovde ne razreši (izmereno u browseru — roditelj je
+    // flex stavka čija visina dolazi iz flex proračuna, pa procenat padne na `auto`, a `auto` je
+    // 0 jer je jedino dete opet `flex-1`). Zato svaki roditelj do `<main>`-a mora biti flex
+    // kolona, a mapa uzima ostatak preko `flex-1`. `min-h` je donja granica za slučaj da mapa
+    // dospe u roditelja koji nije flex kolona — MapLibre kontejner bez visine se ne iscrtava
+    // uopšte, tiho, bez ijedne greške u konzoli.
+    <div className="relative flex min-h-[320px] flex-1 flex-col">
+      <div ref={containerRef} className="w-full flex-1 overflow-hidden rounded-lg border border-border" />
 
       {/* §3.0h.8 — prekidač stoji NA mapi, ne u traci iznad: odluka se donosi dok se gleda
           mapa, a ne pre nego što se do nje dođe. */}
