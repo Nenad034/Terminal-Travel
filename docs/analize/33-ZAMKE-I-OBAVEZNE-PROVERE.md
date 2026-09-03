@@ -217,6 +217,21 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* `seed.ts` pravi uloge, dozvole i sistemske AI naloge (`*@sistem.terminal-travel.local`, bez lozinke), ali nijedan ljudski `STAFF` nalog.
 - *Provera:* pre bilo kakve tvrdnje da je ekran u panelu "proveren uživo", potvrdi da postoji nalog kojim se uopšte može prijaviti — inače provera nije ni mogla da se desi. Vidi i 5.6.
 
+**5.10 Uputstvo upućuje na npm skriptu koja ne postoji**
+- *Simptom:* `.gitignore` je za podatke mape govorio „Pravi se lokalno: `npm run map:extract --workspace=apps/panel`“; ta skripta ne postoji ni u jednom `package.json`, pa nova mašina ostaje bez `apps/panel/public/maps/balkan.pmtiles` i mapa je prazna — bez ijedne greške koja bi rekla zašto.
+- *Uzrok:* komentar je pisan kao **namera** („kasnije će postojati skripta“), a stvarno uputstvo živi samo u M5 spec §3.0h.4 kao ručni niz koraka (preuzmi `go-pmtiles`, pa `pmtiles extract`).
+- *Provera:* svaka komanda navedena u komentaru ili dokumentu mora stvarno postojati u trenutku pisanja — `npm run <ime>` se potvrđuje protiv `scripts` bloka odgovarajućeg `package.json`, ne po sećanju. Ako skripta još ne postoji, komentar upućuje na poglavlje specifikacije, ne na izmišljenu komandu.
+
+**5.11 Dnevno Protomaps izdanje za današnji datum još ne postoji**
+- *Simptom:* `pmtiles extract https://build.protomaps.com/<današnji datum>.pmtiles ...` odmah pada; `curl -I` na tu adresu vraća 404.
+- *Uzrok:* planetarno izdanje se objavljuje sa zadrškom — ujutru je najsvežije ono od PRETHODNOG dana. Uputstvo u §3.0h.4 nosi `<YYYYMMDD>` kao rezervisano mesto, pa je lako mehanički upisati današnji datum.
+- *Provera:* pre pokretanja ekstrakcije potvrdi koji je datum stvarno objavljen — `curl -s -o /dev/null -w '%{http_code}' -I https://build.protomaps.com/<datum>.pmtiles` mora vratiti 200 — pa krećući od današnjeg unazad uzmi prvi koji odgovara.
+
+**5.12 `npm install` dok dev server već radi obara Turbopack**
+- *Simptom:* posle `git pull` i `npm install`, panel na 3100 vraća HTTP 500 sa `TurbopackInternalError: Failed to write app endpoint ... globals.css ... node process exited before we could connect to it with exit code: 0xc0000142`. API na 3000 nastavlja normalno, pa greška deluje kao problem u CSS-u.
+- *Uzrok:* dev server je pokrenut PRE instalacije i drži reference na stari `node_modules`; `npm install` mu je zamenio sadržaj pod nogama, pa PostCSS podproces ne može više ni da se pokrene (0xc0000142 je Windows „nije moguće inicijalizovati proces“). `globals.css` nije pokvaren — to je samo prvi fajl koji je tražio PostCSS.
+- *Provera:* posle svakog `npm install` koji je zatekao pokrenut `next dev`, ugasiti dev proces, obrisati `apps/panel/.next` i pokrenuti ga ponovo. Ne tražiti grešku u CSS-u. Srodno sa 5.7 — isti `.next` folder, drugi uzrok.
+
 ## 6. Rad paralelno sa drugim agentom
 
 **6.1 Nikad `git add -A` kad drugi agent radi**

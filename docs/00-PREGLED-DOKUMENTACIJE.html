@@ -3391,6 +3391,8 @@ Fajl **nije u git-u** (`.gitignore`) — 1.6 GB nema šta da traži u repozitori
 pmtiles extract https://build.protomaps.com/<YYYYMMDD>.pmtiles apps/panel/public/maps/balkan.pmtiles   --bbox=11.5,34.0,32.0,47.5 --maxzoom=13 --download-threads=8
 ```
 
+**Koji `<YYYYMMDD>` upisati (dopuna 3.9.2026, pri pravljenju fajla na novoj mašini):** izdanje za TEKUĆI dan po pravilu još nije objavljeno (`404`) — ujutru je najsvežije ono od prethodnog dana. Pre pokretanja proveri: `curl -s -o /dev/null -w '%{http_code}' -I https://build.protomaps.com/<datum>.pmtiles` mora vratiti `200`, pa krećući od današnjeg datuma unazad uzmi prvi koji odgovara (zamka 5.11). Alat se preuzima sa `github.com/protomaps/go-pmtiles/releases` kao `.zip` sa `pmtiles.exe` unutra i drži se VAN repozitorijuma. Skidanje 1.6 GB traje oko 3 minuta na 8 niti.
+
 Okvir namerno prelazi Balkan u užem smislu — hvata i Rim i Antaliju, jer su u katalogu. `--maxzoom=13` je izbor između veličine i detalja: z12 je 827 MB, **z13 je 1.6 GB**, z14 je 3.0 GB (svaki nivo približno udvostručuje fajl). Skidanje traje oko minut.
 
 3. Provera da radi: `curl -r 0-127 http://localhost:3100/maps/balkan.pmtiles` mora vratiti `206 Partial Content` — PMTiles čita delove fajla, pa bez podrške za opsege mapa ostaje prazna.

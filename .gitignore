@@ -22,7 +22,8 @@ apps/api/uploads/
 apps/panel/src/app/api/session/dev-login/
 
 # Podaci mape (Protomaps/PMTiles) — GIGABAJTI, nikad ne idu u git.
-# Pravi se lokalno: npm run map:extract --workspace=apps/panel (vidi M5 spec §3.0h).
+# Pravi se lokalno, RUCNO, po uputstvu u M5 spec §3.0h.4 (alat go-pmtiles + `pmtiles extract`).
+# npm skripta `map:extract` NE postoji — raniji oblik ovog komentara je na nju upucivao.
 apps/panel/public/maps/
 *.pmtiles
 apps/panel/public/maplibre/
