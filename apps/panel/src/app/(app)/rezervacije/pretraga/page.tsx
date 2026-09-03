@@ -73,7 +73,18 @@ export default async function SearchPage(
   // kod smeštaja) i vraća podrazumevanu, umesto da prikaz ostane u stanju koje nijedno dugme ne
   // pokazuje kao aktivno.
   const sort = resolveSort(first(searchParams.sort), types);
-  const hasQuery = Boolean(searchParams.destinationCountry || types.length > 0);
+  // Pretraga postoji tek kad je STVARNO poslata (ispravka 3.9.2026, na zahtev vlasnika: „kada
+  // se klikne na pretragu smeštaja ne treba odmah da se pojavi rezultat pretrage jer pretrage
+  // još nije bilo"). Ranije je i sam izbor vrste proizvoda (`type=ACCOMMODATION`, klik na
+  // ikonicu) računat kao pretraga, pa su se rezultati pojavljivali pre nego što je korisnik
+  // uneo i jedan kriterijum — i uz to se svaki klik na ikonicu plaćao jednim `GET /search` nad
+  // celim katalogom.
+  //
+  // `destinationCountry` je merilo jer je to JEDINO obavezno polje forme (§3.0c.2, označeno
+  // zvezdicom u `SearchCriteriaForm`) — nijedna poslata pretraga ne može biti bez njega, a
+  // nijedan puki izbor vrste ga ne postavlja. Zapamćeni kriterijumi po vrsti (§3.0g.4) ga vrate
+  // pri povratku na već pretraženu vrstu, pa se rezultati tada s pravom pojave odmah.
+  const hasQuery = Boolean(searchParams.destinationCountry);
 
   let results: SearchResult[] = [];
   let error: string | null = null;
