@@ -111,6 +111,15 @@ const BOARD_TYPE_OPTIONS = [
 // BookingOverviewHero.tsx — token je NAMERNO uvek tamniji od `panel` u sva tri moda, vidi
 // globals.css), da se naslov jasno izdvoji od samih tagova ispod.
 const FILTER_TITLE_CLASS = 'block w-full bg-sunken px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-dim';
+
+// Razmak i tanka linija između sekcija filtera (3.9.2026, na zahtev vlasnika: „napravite malo
+// veći razmak između sekcija filtera u levom panelu i stavite tanku horizontalnu liniju").
+//
+// Zadaje se na KONTEJNERU, ne na svakoj sekciji: sekcije nastaju na dva mesta (opšti filteri i
+// petlja kroz `AMENITY_GROUPS`), a klasa prepisana na oba bi se razišla pri prvoj izmeni. Prva
+// sekcija namerno ostaje bez linije — linija razdvaja, a iznad prve nema šta da se razdvoji.
+const FILTER_SECTIONS_CLASS =
+  'flex flex-col gap-4 [&>*]:border-t [&>*]:border-border [&>*]:pt-4 [&>*:first-child]:border-t-0 [&>*:first-child]:pt-0';
 export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -188,7 +197,7 @@ export default function SearchSidebarPanel() {
               />
 
               <div className="text-ink-faint">
-                <div className="flex flex-col gap-2">
+                <div className={FILTER_SECTIONS_CLASS}>
                   {AMENITY_GROUPS.map((group) => (
                     <div key={group.label}>
                       <div className={`mb-1 ${FILTER_TITLE_CLASS}`}>{group.label}</div>
@@ -326,7 +335,7 @@ function Section({ title, open, onToggle, children }: { title: string; open: boo
         <Icon name={open ? 'chevron-down' : 'chevron-right'} className="text-ink-faint" />
         {title}
       </button>
-      {open && <div className="flex flex-col gap-2 pl-1 pt-1">{children}</div>}
+      {open && <div className={`${FILTER_SECTIONS_CLASS} pl-1 pt-1`}>{children}</div>}
     </div>
   );
 }
