@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.23 — **Novo poglavlje 6.7: dodavanje usluge na postojeću rezervaciju** (3.9.2026, vlasnikov nalaz: *„ni jednoj rezervaciji nije moguće dodati dodatnu uslugu u tabu aranžmani a to nam treba"* — tačan nalaz, potvrđen čitanjem koda: postojali su samo `modify` i `cancel`). Četiri odluke vlasnika ugrađene u poglavlje: dodaje **isključivo interni tim** (i na subagentskim rezervacijama), razlika u ceni ide na **istu fakturu**, **poseban vaučer po dobavljaču**, i **nova najava** za dodatu stavku. Radi za oba porekla rezervacije (`CONTRACTED` i `API`) — vlasnik izričito potvrdio da se usluga naknadno dodaje i rezervacijama nastalim preko API veze. Ekran: red ikonica vrsta proizvoda (isti `PRODUCT_ICONS` kao pretraga) na kartici Aranžman, klik na ikonicu otvara prozor za unos. Poglavlje 6 (vaučer) dobija pravilo „po dobavljaču jedan vaučer" — **odluka zabeležena, implementacija je zaseban korak** (danas je vaučer jedan po rezervaciji, `Booking.voucher_url`), izričito označeno kao poznat nedostatak, ne prećutano.
+
 **Verzija:** 2.22 — **Jedna traka iznad rezultata umesto dve** (3.9.2026, vlasnikov zahtev: *„stavite u jedan red filtere iznad rezultata pretrage i odvojite ih vertikalnom linijom"*). Brzi filteri (§3.0c.3a/§3.0c.3c) su prethodnog sata dobili sopstven red; sad stoje u istom redu sa sortiranjem (§3.0g.8) i prekidačem lista/mapa, razdvojeni **uspravnom crtom**. Dva reda nad listom su trošila visinu koju mapa i kartice stvarno koriste; crta razdvaja grupe koje rade različit posao (filter menja **koji** se rezultati vide, sortiranje samo **redosled**) — bez nje bi red od dvanaest pilula izgledao kao jedan skup. Bez izmene ponašanja ijednog filtera.
 
 **Verzija:** 2.21 — **Brzi filteri iznad rezultata: refundabilno/nerefundabilno i kategorija (zvezdice)** (3.9.2026, vlasnikov zahtev: *„u horizontalni filter iznad rezultata pretrage u centralnom panelu postavite i filtere za Non refundable, Refundable. Za Kategoriju zvezdice postavite tag koji ima od 1 do 5 zvezdica pa kada se klikne na drugu i na treću zvezdicu da se filtriraju hoteli sa 2 zvezdice i sa 3 zvezdice"*). Tri izmene: (a) poglavlje 3.0c.3a dobija dopunu — brzi filteri se sele iz levog panela u **vodoravnu traku iznad rezultata** (`SearchQuickFilters.tsx`) i refundabilnost je **ožičena**, čime pada napomena „UI čeka žicu" iz avgusta; (b) novo poglavlje 3.0c.3c — filter po kategoriji, **ILI-logika** (hotel ima tačno jednu kategoriju, pa bi I-logika uvek dala nulu); (c) poglavlje 3.0b.1 dobija `stars` u odgovoru `GET /search`, čime se zatvara **polovina tačke (b) iz 3.0g.9** — `accommodation_type` ostaje otvoren. Sortiranje „po kategoriji" (3.0g.8) time prvi put radi i nad pravim podacima, ne samo nad mock-om.
@@ -1241,6 +1243,8 @@ Slobodan tekst koji zaposleni ostavlja uz rezervaciju ("gost traži sobu na viš
 
   **Izuzetak — izdavanje bez pune uplate:** Vlasnik ili Direktor mogu ručno odobriti izdavanje vaučera bez uplate ili sa delimičnom uplatom. Ovo je uvek eksplicitna ljudska radnja — nivo **"Nikad autonomno"** iz poglavlja 7 Master dokumenta (AI agent zadužen za M5 nikad sam ne pokreće ovo odobrenje, isto obrazloženje kao izuzeci od finansijskih ograda u M3/M11) — beleži se u `voucher_override_approved_by`/`voucher_override_reason`/`voucher_override_at` (poglavlje 4.1) i vidljivo je u M1 audit logu.
 
+  **Jedan vaučer po DOBAVLJAČU, ne po rezervaciji (odluka vlasnika, 3.9.2026).** Kad rezervacija sadrži usluge više dobavljača (hotel + transfer + izlet), svaki dobavljač dobija sopstven vaučer — gost na recepciji predaje vaučer TOG hotela, ne dokument sa tuđim uslugama i tuđim referencama. Odluka je doneta uz poglavlje 6.7 (dodavanje usluge), gde se najčešće i pojavljuje nov dobavljač na već postojećoj rezervaciji. **Danas nije tako:** `Booking.voucher_url` je jedno polje i vaučer pokriva celu rezervaciju (`GET /sales/bookings/public/:id/voucher`). Razdvajanje traži sopstven prolaz — polje po dobavljaču (ili zaseban zapis vaučera), izmena javne stranice u `apps/web` i pravilo šta se dešava kad se dobavljač doda naknadno. **Poznat nedostatak, ne prećutan**; do tada rezervacija i dalje ima jedan vaučer, i to je jedina stvar iz ove odluke koja još ne važi u kodu.
+
   **Dodatni uslov za `tip_nastupanja = ORGANIZATOR`** (dopuna M20 specifikacije, poglavlje 3.3): vaučer se ne generiše — ni automatski ni preko izuzetka iznad — dok `ClientContract` (M20) ne postoji bar u statusu `GENERATED`. Ugovor sa klijentom mora postojati pre nego što gost dobije vaučer.
 
 ### 6.1 Praćenje posle potvrde — podsetnici i alarmi
@@ -1346,6 +1350,52 @@ Sužavanje na "samo svoje" (za korisnika kome to treba, iz bilo kog razloga) ide
 Za `STAFF` naloge vezane za franšizu (M1 §3.1a), `VIEW_ALL` je uvek dodatno filtriran na `franchise_subagent_id = actor.linked_profile_id` (poglavlje 4.1, M7 poglavlje 2.0.7) — franšiza nikad ne dobija uvid u rezervacije matične agencije ili druge franšize kroz ovaj mehanizam, bez obzira na ALLOW/DENY podešavanje.
 
 ---
+
+### 6.7 Dodavanje usluge na postojeću rezervaciju (dopuna, 3.9.2026, na zahtev vlasnika)
+
+**Nalaz vlasnika:** *„Izvor rezervacija u TT-u može da bude direktno putem api konekcije ili putem interno unesenih segmenata aranžmana u katalogu putovanja. Koliko vidim ni jednoj rezervaciji nije moguće dodati dodatnu uslugu u tabu aranžmani a to nam treba."*
+
+**Zatečeno stanje (provereno u kodu, ne po sećanju):** posle potvrde rezervacije postoje tačno dve radnje — `POST /bookings/:id/modify` (datum, gosti, i od 2.9.2026 zamena usluge istog tipa) i `POST /bookings/:id/cancel`. **Nijedan endpoint ne dodaje novu stavku na postojeću rezervaciju.** Dodavanje postoji samo PRE rezervacije, dok se sastavlja ponuda (unakrsna prodaja, §3.0e). Napomena da ne zavara: mock ekran `rezervacije/lista/…` ima dugme „Dodaj stavku", ali ništa ne upisuje.
+
+**Koliko je često:** vlasnik je izričito rekao da se retko dešava — usluge se uglavnom unose odjednom. To je razlog zašto tok sme da bude jednostavan i ručan (bez masovnog unosa, bez automatike), **ne** razlog da ne postoji.
+
+#### Šta „dodatna usluga" znači — tri slučaja, jedan tok
+
+1. **Cela nova stavka** (transfer, osiguranje, izlet, još jedna soba, još jedna noć) — nov `BookingItem` sa sopstvenim proizvodom, sopstvenom proverom dostupnosti i sopstvenom maržom. **Ovo je obim ovog poglavlja.**
+2. **Doplata uz postojeću stavku** (ljubimac, parking, rani check-in, sef) — M3 `AncillaryService` po ugovornom periodu (M3 §2.6). M3 tamo izričito ostavlja M5-u odluku „da li se to prodaje gostu kao opciona stavka ili je samo interna referenca troška"; **ta odluka i dalje nije doneta** i ne donosi se ovim poglavljem — ostaje otvorena stavka.
+3. **Usluga koje nema u katalogu** — za ponude već postoji ručni unos (§3.0f, `ManualProductEntry`), za rezervacije ne. Van obima ovog prolaza; kad zatreba, tok je isti kao ispod uz `source_type = MANUAL` i postojeći pregled osoblja (§3.0f.4).
+
+#### Odluke vlasnika (3.9.2026)
+
+| Pitanje | Odluka | Šta iz toga sledi |
+| :---- | :---- | :---- |
+| Ko sme da doda | **Samo interni tim** — i na rezervacijama subagenata | Endpoint odbija sve što ne dolazi iz `INTERNAL_PANEL` konteksta (`resolveApiContext`), bez obzira na dozvole. Subagent svoju rezervaciju vidi, ali uslugu mu dodaje agencija. |
+| Razlika u ceni | **Ista faktura** | `Booking.total_price` se preračunava kao i kod izmene; ne pravi se dopunski dokument. Stvarna naplata ostaje M10, isto kao kod `modify`. |
+| Vaučer | **Poseban vaučer po dobavljaču** | Vidi pravilo u poglavlju 6 iznad — odluka zabeležena, razdvajanje vaučera je zaseban prolaz (danas jedan vaučer po rezervaciji). |
+| Najava dobavljaču | **Nova najava**, ne dopuna postojeće | Postojeći mehanizam to već radi tačno: `prepareForBooking` hvata samo NENAJAVLJENE `CONTRACTED`/`CONFIRMED` stavke i grupiše ih po dobavljaču (§8.4) — dodata stavka dobija svoj nacrt, već poslate najave se ne diraju. |
+
+#### Tok
+
+Isti obrazac kao postojeća izmena — **prvo provera cene, pa potvrda čoveka**, nikad jednim klikom:
+
+1. Agent na kartici **Aranžman** bira vrstu usluge (vidi ekran ispod) i proizvod/datume/goste.
+2. **`POST /bookings/:id/items/preview`** — gradi stavku kroz isti `QuoteItemBuilder` kao svaka druga stavka (cena, marža, politika otkazivanja), ali ništa ne rezerviše. Vraća `{new_price, new_currency, booking_total_before, booking_total_after}`.
+3. Čovek potvrdi → **`POST /bookings/:id/items`**. Redosled je isti kao kod `modify`: prvo se kapacitet **rezerviše** (M3 `reserve` za `CONTRACTED`, M4 `confirmBooking` za `API`), pa se tek onda upisuje `BookingItem` — nikad obrnuto.
+4. `Booking.total_price` se preračunava kao zbir aktivnih stavki; status prelazi u `MODIFIED` (isto kao kod izmene — rezervacija više nije ono što je prvobitno potvrđeno).
+5. Za `CONTRACTED` stavku pokreće se **nova najava** (§8.4). Za `API` stavku `announced_at`/`supplier_confirmed_at` se popunjavaju odmah, isto pravilo kao §8.6 (provajder je potvrdio u istom pozivu).
+6. Audit log `booking.item_added` + događaj `M5/booking.item_added` na Event Bus — isti obrazac kao `booking.modified`.
+
+**Poreklo rezervacije ne menja tok, samo izvor cene.** `CONTRACTED` stavka ide u alotman iz M3 ugovora, `API` stavka u živ poziv provajderu (M4). Dodata stavka **ne mora** biti istog porekla kao ostale — na API rezervaciju sme se dodati ugovorena usluga i obrnuto (vlasnik izričito potvrdio). Ovo je razlika u odnosu na §6 izmenu, gde nova usluga mora biti istog `ProductType` kao stara: tamo se stavka **zamenjuje**, ovde se **dodaje**, pa ograničenje tipa nema smisla.
+
+**Šta se NE sme dodati:** `PACKAGE` (grupni paket) — isto ograničenje i isti razlog kao kod izmene (§6): paket se sastavlja iz više stavki odjednom (§3.0d.6a), što ovaj tok ne pokriva. Odbija se sa 400, ne pravi se polovična stavka. Ne dodaje se ni na otkazanu rezervaciju (`CANCELLED`).
+
+#### Ekran (vlasnikov opis)
+
+*„Mislim da treba da se omogući u samoj rezervaciji, u odnosu na to šta se unosi (veza ikone za pretragu), klikom na ikonu da se u samoj rezervaciji otvori prozor za unos nove usluge bez obzira na poreklo."*
+
+Na kartici **Aranžman**, ispod spiska stavki, stoji red **ikonica vrsta proizvoda** — isti `PRODUCT_ICONS` koji ekran pretrage već koristi (§3.0g.1), pa agent bira uslugu istim pokretom i istim slikama na oba mesta. Klik na ikonicu otvara prozor za unos u samoj rezervaciji (ne vodi na pretragu i ne gubi kontekst rezervacije): izbor proizvoda te vrste, datumi, gosti, pa dugme **„Proveri cenu"** i tek onda **„Dodaj uslugu"** sa prikazanom razlikom u ukupnom zaduženju. Deljene ikonice su namerne — svaka nova vrsta proizvoda se pojavi na oba ekrana bez ijedne dodatne izmene.
+
+Dugme se prikazuje **samo internom timu** (odluka iznad) i samo kad rezervacija nije otkazana — nikad kao neaktivno sivo dugme (isto pravilo kao §3.0g.8).
 
 ## 7. Kalendar rezervacija (pregled po datumu)
 
@@ -1576,6 +1626,8 @@ Prefiks: `/api/v1/sales`
 | `/bookings` | GET | lista, filtrirano po statusu/kanalu/klijentu (prava pristupa iz poglavlja 10) |
 | `/bookings/:id` | GET | detalji rezervacije |
 | `/bookings/:id/modify` | POST | izmena datuma/gostiju |
+| `/bookings/:id/items` | POST | dopuna 3.9.2026, poglavlje 6.7 — dodaje novu stavku na postojeću rezervaciju; zahteva `M5/booking/MODIFY` **i** `INTERNAL_PANEL` kontekst (subagentski kanal se odbija bez obzira na dozvole); telo `{product_id, stay_from, stay_to, occupancy}`; odbija `PACKAGE` i otkazanu rezervaciju sa 400 |
+| `/bookings/:id/items/preview` | POST | dopuna 3.9.2026, poglavlje 6.7 — isti ulaz i ista pravila pristupa, ali NIŠTA ne rezerviše: vraća `{new_price, new_currency, booking_total_before, booking_total_after}` za prikaz pre potvrde (isti obrazac kao `modify/preview`) |
 | `/bookings/:id/cancel` | POST | otkazivanje (celo ili po stavci); ako provera duplikata (poglavlje 6.4) pronađe konflikt, vraća upozorenje sa detaljima konfliktne stavke umesto da izvrši storno — poziv se ponavlja sa `confirm_duplicate_override: true` da bi se otkazivanje ipak izvršilo |
 | `/bookings/:id/payment-status` | PATCH | poziva isključivo M10; ako novi status prelazi u `PAID`, automatski proverava i pokreće generisanje vaučera (poglavlje 6) |
 | `/bookings/:id/voucher/override` | POST | zahteva `M5/voucher/OVERRIDE_ISSUE`; generiše vaučer bez obzira na `payment_status`, popunjava `voucher_override_*` polja (poglavlje 4.1/6) |
