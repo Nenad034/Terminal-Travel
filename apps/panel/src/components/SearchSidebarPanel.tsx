@@ -106,20 +106,34 @@ const BOARD_TYPE_OPTIONS = [
   { value: 'UAI', label: 'Ultra All Inclusive' },
 ];
 
-// Naslov filtera (3.9.2026, na zahtev vlasnika) — velika slova, markirano tamnijom nijansom u
-// odnosu na `panel` (isti `bg-sunken` token kao traka naslova sekcije na strani rezervacije,
-// BookingOverviewHero.tsx — token je NAMERNO uvek tamniji od `panel` u sva tri moda, vidi
-// globals.css), da se naslov jasno izdvoji od samih tagova ispod.
-const FILTER_TITLE_CLASS = 'block w-full bg-sunken px-1.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-dim';
+// Naslov sekcije filtera — bez sopstvene podloge (izmena 3.9.2026, vidi `FILTER_BLOCK_CLASS`):
+// podlogu sada nosi cela sekcija, pa bi traka iza naslova bila boja na istoj boji. Hijerarhiju
+// naslova nosi tipografija — velika slova, podebljano, prored.
+const FILTER_TITLE_CLASS = 'block w-full text-[10px] font-bold uppercase tracking-wide text-ink-dim';
 
-// Razmak i tanka linija između sekcija filtera (3.9.2026, na zahtev vlasnika: „napravite malo
-// veći razmak između sekcija filtera u levom panelu i stavite tanku horizontalnu liniju").
-//
-// Zadaje se na KONTEJNERU, ne na svakoj sekciji: sekcije nastaju na dva mesta (opšti filteri i
-// petlja kroz `AMENITY_GROUPS`), a klasa prepisana na oba bi se razišla pri prvoj izmeni. Prva
-// sekcija namerno ostaje bez linije — linija razdvaja, a iznad prve nema šta da se razdvoji.
-const FILTER_SECTIONS_CLASS =
-  'flex flex-col gap-4 [&>*]:border-t [&>*]:border-border [&>*]:pt-4 [&>*:first-child]:border-t-0 [&>*:first-child]:pt-0';
+/**
+ * SEKCIJA FILTERA = JEDAN BLOK (3.9.2026, vlasnikova odluka).
+ *
+ * Kratka istorija, da se ne vrti u krug: prvo su sekcije razdvajale tanke linije. Vlasnik je na
+ * ekranu video da sedam grupa tagova u uskoj koloni daje sedam vodoravnih poteza koje oko čita
+ * kao rešetku, ne kao grupe, i predložio da umesto linija cela sekcija dobije nijansu koja je do
+ * tada stajala samo iza naslova (`--sunken`). Linije su uklonjene.
+ *
+ * Zašto pilule unutar bloka dobijaju `bg-panel`: izmereno je da okvir pilule na `--sunken` daje
+ * **2,94:1 u svetlom modu** — ispod 3:1 praga za granice (dizajn dok. §2a), tagovi bi postali
+ * jedva vidljivi. Umesto da se dira `--border` (važi za ceo panel, ista greška je već dvaput
+ * ispravljana — vidi komentar uz token u `globals.css`), pilula se DIŽE na `--panel`, gde njen
+ * okvir daje 3,41:1 i prolazi. To je i ista Material logika visine koju `--sunken` već prati:
+ * sekcija tone, ono što se klikće se diže.
+ */
+const FILTER_BLOCK_CLASS = 'rounded bg-sunken p-2';
+
+/** Razmak između blokova. Bez linija — blokove razdvaja podloga panela koja se vidi između njih. */
+const FILTER_SECTIONS_CLASS = 'flex flex-col gap-3';
+
+/** Zajednički izgled tag-pilule. `has-[:checked]:bg-accent-soft` dolazi posle i nadjačava `bg-panel`. */
+const FILTER_PILL_CLASS =
+  'cursor-pointer rounded border border-border bg-panel text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong';
 export default function SearchSidebarPanel() {
   const router = useRouter();
   const sp = useSearchParams();
@@ -196,16 +210,18 @@ export default function SearchSidebarPanel() {
                 options={BOARD_TYPE_OPTIONS}
               />
 
-              <div className="text-ink-faint">
-                <div className={FILTER_SECTIONS_CLASS}>
+              {/* Grupe sadržaja su ravnopravne sekcije sa ostalim filterima — isti razmak i isti
+                  blok, samo ih ima sedam. Zato NE dobijaju sopstveni omotač sa razmakom, nego se
+                  ređaju u istoj koloni (`contents`). */}
+              <div className="contents">
                   {AMENITY_GROUPS.map((group) => (
-                    <div key={group.label}>
-                      <div className={`mb-1 ${FILTER_TITLE_CLASS}`}>{group.label}</div>
+                    <div key={group.label} className={FILTER_BLOCK_CLASS}>
+                      <div className={`mb-1.5 ${FILTER_TITLE_CLASS}`}>{group.label}</div>
                       <div className="flex flex-wrap gap-1">
                         {group.tags.map((tag) => (
                           <label
                             key={tag.value}
-                            className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong"
+                            className={`flex items-center gap-1 px-1.5 py-0.5 text-[11px] ${FILTER_PILL_CLASS}`}
                           >
                             <input
                               type="checkbox"
@@ -221,7 +237,6 @@ export default function SearchSidebarPanel() {
                       </div>
                     </div>
                   ))}
-                </div>
               </div>
             </>
           )}
@@ -376,7 +391,7 @@ function PriceRangeFields() {
   }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <label className="text-ink-faint">
+    <label className={`block text-ink-faint ${FILTER_BLOCK_CLASS}`}>
       <span className={FILTER_TITLE_CLASS}>cena od / do</span>
       <div className="mt-1 flex gap-1">
         <input
@@ -421,13 +436,13 @@ function PillRadioGroup({
   stack?: boolean;
 }) {
   return (
-    <div className="text-ink-faint">
+    <div className={`text-ink-faint ${FILTER_BLOCK_CLASS}`}>
       <span className={FILTER_TITLE_CLASS}>{label}</span>
       <div className={`mt-1 flex gap-1 ${stack ? 'flex-col items-start' : 'flex-wrap'}`}>
         {options.map((o) => (
           <label
             key={o.value || 'any'}
-            className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
+            className={`px-2 py-0.5 text-[11px] ${FILTER_PILL_CLASS} ${stack ? 'w-full' : ''}`}
           >
             <input
               type="radio"
@@ -463,13 +478,13 @@ function PillCheckboxGroup({
   stack?: boolean;
 }) {
   return (
-    <div className="text-ink-faint">
+    <div className={`text-ink-faint ${FILTER_BLOCK_CLASS}`}>
       <span className={FILTER_TITLE_CLASS}>{label}</span>
       <div className={`mt-1 flex gap-1 ${stack ? 'flex-col items-start' : 'flex-wrap'}`}>
         {options.map((o) => (
           <label
             key={o.value}
-            className={`cursor-pointer rounded border border-border px-2 py-0.5 text-[11px] text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong ${stack ? 'w-full' : ''}`}
+            className={`px-2 py-0.5 text-[11px] ${FILTER_PILL_CLASS} ${stack ? 'w-full' : ''}`}
           >
             <input
               type="checkbox"
