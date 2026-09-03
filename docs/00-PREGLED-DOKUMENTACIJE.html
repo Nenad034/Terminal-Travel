@@ -987,6 +987,8 @@ Preuzeto i razrađeno iz tabele u poglavlju 8:
 - [x] Moguće je dodeliti i ukloniti pojedinačni izuzetak (`UserPermissionOverride`) korisniku, sa obaveznim razlogom, i taj izuzetak odmah utiče na sledeći zahtev tog korisnika (bez potrebe za ponovnom prijavom). *(dokazano e2e testom, avgust 2026)*
 - [x] Svaka izmena korisnika, uloge ili dozvole ostavlja zapis u `AuditLogEntry`; tabela je fizički zaštićena od izmene/brisanja. *(dokazano unit + e2e testom, avgust 2026)*
 - [x] Zaključavanje naloga posle neuspešnih pokušaja radi i beleži se. *(dokazano e2e testom, avgust 2026)*
+- [x] API dokumentacija (`docs/api/M1-core-identitet.md`) postoji sa stvarnim primerima zahteva/odgovora — obavezna stavka po CLAUDE.md. *(napisana 3.9.2026; odgovori uhvaćeni stvarnim pozivima nad lokalnom bazom, osim uspešne prijave koja je prikazana iz koda jer zahteva stvarnu lozinku naloga)*
+- [ ] Postoji endpoint za dodelu dozvola ulozi. *(zatečeno 3.9.2026 pri pisanju API dokumentacije: `POST /iam/roles` kreira ulogu, ali veza uloga↔dozvola postoji isključivo u seed skripti — uloga napravljena preko API-ja ostaje trajno prazna i neupotrebljiva. Zaobilazno rešenje danas su pojedinačni `PermissionOverride` zapisi, što ne skalira preko nekoliko korisnika)*
 - [ ] Infrastruktura (baza, backend) se diže iz IaC koda, ne ručnim koracima. *(ostaje — čeka odluku o hosting provajderu, vidi apps/api/README.md)*
 
 ---
