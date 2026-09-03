@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
 import { sortOptionsFor, resolveSort } from '@/lib/search-sort';
+import { QuickFilterDivider, RefundableQuickFilter, StarsQuickFilter } from './SearchQuickFilters';
 
 // Srpska promena broja: 1 rezultat, 2–4 rezultata, 5+ rezultata — s tim da 11–14 idu kao 5+
 // ("11 rezultata", ne "11 rezultat"). Bez ovoga je pisalo "1 rezultata".
@@ -19,7 +20,25 @@ function resultLabel(n: number): string {
 // na velikim portalima traka nad listom, a ne stavka u bočnom meniju.
 //
 // Dugmad, ne padajući meni — dizajn dok. §6f (mali, poznat skup opcija).
-export default function SortBar({ resultCount, mapAvailable }: { resultCount: number; mapAvailable: boolean }) {
+//
+// Dopuna 3.9.2026 (vlasnikov zahtev: „stavite u jedan red filtere iznad rezultata pretrage i
+// odvojite ih vertikalnom linijom") — brzi filteri (§3.0c.3a/§3.0c.3c) su prvo dobili sopstven
+// red iznad ovog; sad stoje U OVOM redu, levo od sortiranja, razdvojeni uspravnom crtom. Traka
+// je time jedna, a ne dve — dva reda su nad listom rezultata trošila visinu koju mapa i kartice
+// stvarno koriste. Crta razdvaja grupe koje rade RAZLIČIT posao (filter menja koji se rezultati
+// vide, sortiranje samo redosled) — bez nje bi red od dvanaest pilula izgledao kao jedan skup.
+export default function SortBar({
+  resultCount,
+  mapAvailable,
+  showRefundable,
+  showStars,
+}: {
+  resultCount: number;
+  mapAvailable: boolean;
+  /** §3.0c.3a — prekidač se nudi samo gde podatak postoji; odlučuje stranica. */
+  showRefundable: boolean;
+  showStars: boolean;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -46,7 +65,19 @@ export default function SortBar({ resultCount, mapAvailable }: { resultCount: nu
   }
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+      {showRefundable && (
+        <>
+          <RefundableQuickFilter />
+          <QuickFilterDivider />
+        </>
+      )}
+      {showStars && (
+        <>
+          <StarsQuickFilter />
+          <QuickFilterDivider />
+        </>
+      )}
       <span className="flex items-center gap-1 text-ink-faint">
         <Icon name="list-ordered" /> sortiraj:
       </span>

@@ -19,6 +19,12 @@ import { useSearchFilters } from './SearchFiltersContext';
 //
 // Filtriranje je trenutno i klijentsko (§3.0c.3b) — klik menja živo stanje, ne adresu, i ne
 // pokreće nov `GET /search`.
+//
+// Dopuna 3.9.2026 (vlasnikov zahtev: „stavite u jedan red filtere iznad rezultata pretrage i
+// odvojite ih vertikalnom linijom") — ovo više NIJE sopstveni red iznad trake za sortiranje,
+// nego dve grupe koje `SortBar.tsx` ubacuje u SVOJ red, razdvojene uspravnom crtom. Zato ovde
+// nema omotača sa `mb-3`: red pripada traci, ne ovom fajlu. Grupe su odvojeni izvozi upravo
+// zato što traka između njih ubacuje crtu — jedan zajednički omotač to ne bi dozvolio.
 
 const STAR_VALUES = ['1', '2', '3', '4', '5'] as const;
 
@@ -27,90 +33,88 @@ function zvezdice(n: string): string {
   return n === '1' || n === '5' ? 'zvezdica' : 'zvezdice';
 }
 
-export default function SearchQuickFilters({
-  showRefundable,
-  showStars,
-}: {
-  showRefundable: boolean;
-  showStars: boolean;
-}) {
+export function RefundableQuickFilter() {
   const filters = useSearchFilters();
-  if (!showRefundable && !showStars) return null;
-
   const refundable = filters.get('refundable') ?? '';
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1 text-ink-faint">
+        <Icon name="filter" /> otkazivanje:
+      </span>
+      <div className="flex flex-wrap gap-1">
+        {[
+          { value: '', label: 'svejedno' },
+          { value: 'REFUNDABLE', label: 'refundabilno' },
+          { value: 'NON_REFUNDABLE', label: 'nerefundabilno' },
+        ].map((o) => (
+          <button
+            key={o.value || 'any'}
+            type="button"
+            onClick={() => filters.setScalar('refundable', o.value)}
+            aria-pressed={refundable === o.value}
+            className={`rounded-full border px-2 py-0.5 ${
+              refundable === o.value
+                ? 'border-accent bg-accent-soft font-semibold text-accent-strong'
+                : 'border-border text-ink-dim hover:border-accent hover:text-ink'
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Uspravna crta između grupa u traci (vlasnikov zahtev 3.9.2026). `self-stretch` bi je u redu
+ * koji se prelama razvukao preko cele visine dva reda — zato fiksna, mala visina. */
+export function QuickFilterDivider() {
+  return <span aria-hidden className="h-4 w-px flex-shrink-0 bg-border" />;
+}
+
+export function StarsQuickFilter() {
+  const filters = useSearchFilters();
   const stars = filters.getAll('stars');
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-      {showRefundable && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1 text-ink-faint">
-            <Icon name="filter" /> otkazivanje:
-          </span>
-          <div className="flex flex-wrap gap-1">
-            {[
-              { value: '', label: 'svejedno' },
-              { value: 'REFUNDABLE', label: 'refundabilno' },
-              { value: 'NON_REFUNDABLE', label: 'nerefundabilno' },
-            ].map((o) => (
-              <button
-                key={o.value || 'any'}
-                type="button"
-                onClick={() => filters.setScalar('refundable', o.value)}
-                aria-pressed={refundable === o.value}
-                className={`rounded-full border px-2 py-0.5 ${
-                  refundable === o.value
-                    ? 'border-accent bg-accent-soft font-semibold text-accent-strong'
-                    : 'border-border text-ink-dim hover:border-accent hover:text-ink'
-                }`}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showStars && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="flex items-center gap-1 text-ink-faint">kategorija:</span>
-          {/* Jedan tag sa pet zvezdica (vlasnikov opis, 3.9.2026), ali PET NEZAVISNIH prekidača,
-              ne skala „N i više": klik na drugu i treću daje hotele sa 2 i sa 3 zvezdice. Zato
-              zvezdice stoje kao odvojena dugmad sa razmakom, a izabrana dobija sopstvenu
-              akcentnu podlogu — da se red ne pročita kao popunjena ocena. `title`/`aria-label`
-              to i kažu rečima, za slučaj da vizuelno ostane dvosmisleno. */}
-          <div
-            role="group"
-            aria-label="kategorija (zvezdice)"
-            className="flex items-center gap-0.5 rounded-full border border-border px-1 py-0.5"
-          >
-            {STAR_VALUES.map((v) => {
-              const on = stars.includes(v);
-              return (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => filters.toggleMulti('stars', v)}
-                  aria-pressed={on}
-                  title={`samo ${v} ${zvezdice(v)}`}
-                  aria-label={`kategorija ${v}`}
-                  className={`rounded-full px-1.5 py-0.5 leading-none ${
-                    on ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:text-ink'
-                  }`}
-                >
-                  {on ? '★' : '☆'}
-                </button>
-              );
-            })}
-          </div>
-          {stars.length > 0 && (
-            // Bez ovoga se izabrana kategorija čita samo iz oblika zvezdice (★ naspram ☆) —
-            // premala razlika da bi sama nosila stanje filtera.
-            <span className="text-ink-faint">
-              {[...stars].sort().join(', ')} {stars.length === 1 ? zvezdice(stars[0]) : 'zvezdice'}
-            </span>
-          )}
-        </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1 text-ink-faint">kategorija:</span>
+      {/* Jedan tag sa pet zvezdica (vlasnikov opis, 3.9.2026), ali PET NEZAVISNIH prekidača,
+          ne skala „N i više": klik na drugu i treću daje hotele sa 2 i sa 3 zvezdice. Zato
+          zvezdice stoje kao odvojena dugmad sa razmakom, a izabrana dobija sopstvenu akcentnu
+          podlogu — da se red ne pročita kao popunjena ocena. `title`/`aria-label` to i kažu
+          rečima, za slučaj da vizuelno ostane dvosmisleno. */}
+      <div
+        role="group"
+        aria-label="kategorija (zvezdice)"
+        className="flex items-center gap-0.5 rounded-full border border-border px-1 py-0.5"
+      >
+        {STAR_VALUES.map((v) => {
+          const on = stars.includes(v);
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => filters.toggleMulti('stars', v)}
+              aria-pressed={on}
+              title={`samo ${v} ${zvezdice(v)}`}
+              aria-label={`kategorija ${v}`}
+              className={`rounded-full px-1.5 py-0.5 leading-none ${
+                on ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:text-ink'
+              }`}
+            >
+              {on ? '★' : '☆'}
+            </button>
+          );
+        })}
+      </div>
+      {stars.length > 0 && (
+        // Bez ovoga se izabrana kategorija čita samo iz oblika zvezdice (★ naspram ☆) —
+        // premala razlika da bi sama nosila stanje filtera.
+        <span className="text-ink-faint">
+          {[...stars].sort().join(', ')} {stars.length === 1 ? zvezdice(stars[0]) : 'zvezdice'}
+        </span>
       )}
     </div>
   );

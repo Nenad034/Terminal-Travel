@@ -6,7 +6,6 @@ import SearchRefreshNotice from '@/components/SearchRefreshNotice';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { offerKey } from '@/lib/search-offer-key';
 import SortBar from '@/components/SortBar';
-import SearchQuickFilters from '@/components/SearchQuickFilters';
 import { resolveSort } from '@/lib/search-sort';
 import { parseRooms, roomsFromTotals, toOccupancy } from '@/lib/search-rooms';
 import AccommodationResultsMock from './AccommodationResultsMock';
@@ -161,9 +160,15 @@ export default async function SearchPage(
 
       {!usesMock && <SearchRefreshNotice offers={offerSnapshots} />}
 
-      {showsResults && <SearchQuickFilters showRefundable={refundableAvailable} showStars={starsAvailable} />}
-
-      {showsResults && <SortBar resultCount={usesMock ? 0 : results.length} mapAvailable={mapAvailable} />}
+      {/* Jedna traka: brzi filteri + sortiranje + prikaz (vlasnikova odluka 3.9.2026). */}
+      {showsResults && (
+        <SortBar
+          resultCount={usesMock ? 0 : results.length}
+          mapAvailable={mapAvailable}
+          showRefundable={refundableAvailable}
+          showStars={starsAvailable}
+        />
+      )}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
