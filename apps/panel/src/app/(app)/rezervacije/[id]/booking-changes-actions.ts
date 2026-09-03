@@ -143,3 +143,82 @@ export async function previewModifyPrice(
     return { ...empty, error: err instanceof ApiError ? extractMessage(err) : 'Provera cene nije uspela.' };
   }
 }
+
+
+// ============================================================================
+// M5 spec §6.7 (3.9.2026, na zahtev vlasnika) — DODAVANJE usluge na rezervaciju
+// ============================================================================
+//
+// Odvojeno od `modifyBookingItem` iznad iako liči: izmena ZAMENJUJE stavku (stara se otkazuje),
+// dodavanje je samo dodaje. Spojene u jednu akciju, jedno "prazno polje" bi tiho odlučivalo da
+// li se nešto otkazuje — najgora vrsta forme.
+
+export interface AddItemPreviewResult {
+  error: string | null;
+  newPrice: number | null;
+  newCurrency: string | null;
+  bookingTotalBefore: number | null;
+  bookingTotalAfter: number | null;
+}
+
+interface AddItemInput {
+  productId: string;
+  stayFrom: string;
+  stayTo: string;
+  adults: number;
+  children: number;
+}
+
+/** Zajedničke provere pre slanja — iste za proveru cene i za stvarno dodavanje. */
+function validateAddItem(input: AddItemInput): string | null {
+  if (!input.productId) return 'Izaberite uslugu.';
+  if (!input.stayFrom || !input.stayTo) return 'Unesite oba datuma.';
+  if (new Date(input.stayTo) <= new Date(input.stayFrom)) return 'Datum završetka mora biti posle datuma početka.';
+  if (input.adults < 1) return 'Mora postojati bar jedna odrasla osoba.';
+  return null;
+}
+
+/** §6.7 korak 2 — "proveri cenu": ništa se ne rezerviše, samo se vidi šta bi ovo koštalo. */
+export async function previewAddBookingItem(bookingId: string, input: AddItemInput): Promise<AddItemPreviewResult> {
+  const empty: AddItemPreviewResult = { error: null, newPrice: null, newCurrency: null, bookingTotalBefore: null, bookingTotalAfter: null };
+  const invalid = validateAddItem(input);
+  if (invalid) return { ...empty, error: invalid };
+
+  try {
+    const res = await apiFetch<{ newPrice: number; newCurrency: string; bookingTotalBefore: number; bookingTotalAfter: number }>(
+      `/sales/bookings/${bookingId}/items/preview`,
+      {
+        method: 'POST',
+        body: { productId: input.productId, stayFrom: input.stayFrom, stayTo: input.stayTo, occupancy: { adults: input.adults, children: input.children } },
+      },
+    );
+    return { error: null, ...res };
+  } catch (err) {
+    return { ...empty, error: err instanceof ApiError ? extractMessage(err) : 'Provera cene nije uspela.' };
+  }
+}
+
+/** §6.7 korak 3 — stvarno dodavanje. Kapacitet kod dobavljača se uzima na serveru, pre upisa. */
+export async function addBookingItem(bookingId: string, _prev: ChangeFormState, formData: FormData): Promise<ChangeFormState> {
+  const input: AddItemInput = {
+    productId: String(formData.get('productId') ?? '').trim(),
+    stayFrom: String(formData.get('stayFrom') ?? ''),
+    stayTo: String(formData.get('stayTo') ?? ''),
+    adults: Number(formData.get('adults') ?? 0),
+    children: Number(formData.get('children') ?? 0),
+  };
+  const invalid = validateAddItem(input);
+  if (invalid) return { ...emptyChangeState, error: invalid };
+
+  try {
+    await apiFetch(`/sales/bookings/${bookingId}/items`, {
+      method: 'POST',
+      body: { productId: input.productId, stayFrom: input.stayFrom, stayTo: input.stayTo, occupancy: { adults: input.adults, children: input.children } },
+    });
+  } catch (err) {
+    return { ...emptyChangeState, error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje usluge nije uspelo.' };
+  }
+
+  revalidatePath(`/rezervacije/${bookingId}`);
+  return { ...emptyChangeState, ok: 'Usluga je dodata — ukupno zaduženje je preračunato.' };
+}

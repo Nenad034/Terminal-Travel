@@ -12,6 +12,7 @@ import BookingNotesCard, { BookingNote } from './BookingNotesCard';
 import BookingChangesCard from './BookingChangesCard';
 import BookingRepsCard, { RepCheckIn } from './BookingRepsCard';
 import ActorLabel from '@/components/ActorLabel';
+import AddServicePanel from './AddServicePanel';
 import AranzmanItemCard, { CandidateProduct } from './AranzmanItemCard';
 import BookingItemGuestsEditor from './BookingItemGuestsEditor';
 import CommunicationFilterList from './CommunicationFilterList';
@@ -856,6 +857,22 @@ export default async function BookingDetailPage(props: {
                     />
                   ))}
                 </>
+              )}
+
+              {/* M5 spec §6.7 (3.9.2026, na zahtev vlasnika) — dodavanje NOVE usluge. Stoji ispod
+                  spiska stavki, i kad stavki nema: dodavanje ne zavisi od toga da li već nešto
+                  postoji. Ne prikazuje se na otkazanoj rezervaciji (§6.7) i bez dozvole za
+                  izmenu — nikad kao neaktivno sivo dugme. */}
+              {canModifyBooking && booking.status !== 'CANCELLED' && (
+                <AddServicePanel
+                  bookingId={booking.id}
+                  defaults={{
+                    stayFrom: booking.items.find((i) => i.stayFrom)?.stayFrom,
+                    stayTo: booking.items.find((i) => i.stayTo)?.stayTo,
+                    adults: booking.items[0]?.guests?.length || 1,
+                    children: 0,
+                  }}
+                />
               )}
             </div>
           )}

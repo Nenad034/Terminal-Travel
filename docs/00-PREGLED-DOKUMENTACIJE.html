@@ -4058,6 +4058,14 @@ Na kartici **Aranžman**, ispod spiska stavki, stoji red **ikonica vrsta proizvo
 
 Dugme se prikazuje **samo internom timu** (odluka iznad) i samo kad rezervacija nije otkazana — nikad kao neaktivno sivo dugme (isto pravilo kao §3.0g.8).
 
+#### Stanje implementacije (3.9.2026)
+
+**Napravljeno i provereno u pravom browseru, ne samo `tsc`-om:** `POST /sales/bookings/:id/items` i `/items/preview` (`BookingsService.addItem`/`previewAddItem`, `AddBookingItemDto`), `AddServicePanel.tsx` na kartici Aranžman sa redom ikonica, i BFF ruta `/api/catalog/products` koja spisak usluga dovlači **tek kad se ikonica klikne** (dovlačenje svih osam vrsta pri otvaranju kartice bi bilo osam poziva za posao koji agent u većini slučajeva ne radi).
+
+Dokaz na živoj bazi: rezervacija `MOCK-B2C-2026-0001` (608,00 EUR, jedna stavka) → dodat transfer 313,88 EUR → ukupno **921,88 EUR**, status prešao u `MODIFIED`, obe ugovorene stavke dobile `DRAFT` najavu grupisanu po dobavljaču, bez ijedne greške u konzoli browsera. Pet unit testova pokriva: novu najavu za `CONTRACTED`, trenutnu najavu za `API`, odbijanje iz subagentskog konteksta, odbijanje `PACKAGE`/otkazane rezervacije, i da `preview` ništa ne rezerviše.
+
+**Nije još napravljeno** (poglavlja ispod): doplate/popusti kao vezane stavke (§6.7a), ručno uneta usluga (§6.7b), vaučer po dobavljaču (§6).
+
 ### 6.7a Doplate i popusti kao vezane stavke (dopuna, 3.9.2026, vlasnikova odluka)
 
 **Odluka:** *„Doplate su vrlo česte i dodatne usluge tako da možete ih tretirati kao nove stavke."* Time pada ograničenje iz §6.7 („ovo poglavlje pokriva samo celu novu stavku") i zatvara se pitanje koje je M3 §2.6 izričito ostavio M5-u.

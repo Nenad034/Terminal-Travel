@@ -28,7 +28,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     };
     const clientContractStub = { hasGeneratedContract: jest.fn().mockResolvedValue(false) };
     const changeNotices = { prepareDraft: jest.fn() };
-    const supplierManifests = { supersedeIfOnSentManifest: jest.fn() };
+    const supplierManifests = { supersedeIfOnSentManifest: jest.fn(), prepareForBooking: jest.fn() };
     const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
     // M5 spec §6.6 (31.8.2026) — podrazumevano VIEW_ALL=true u testovima da postojeći
     // testovi (pisani pre ovog mehanizma) i dalje vide sve, bez potrebe za dodatnim mock-om
@@ -49,7 +49,7 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       subagentStub as any,
       permissions as any,
     );
-    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions, builder };
+    return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions, builder, supplierManifests };
   }
 
   describe('confirmQuote — sve ili ništa (§4, korak 3)', () => {
@@ -757,6 +757,105 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       );
 
       expect(result).toEqual({ currentPrice: 10000, currentCurrency: 'EUR', newPrice: 15000, newCurrency: 'EUR', priceDifference: 5000 });
+      expect(contractPeriods.reserve).not.toHaveBeenCalled();
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+      expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // M5 spec §6.7 (3.9.2026, vlasnikov nalaz) — dodavanje NOVE usluge na postojeću rezervaciju.
+  describe('addItem/previewAddItem (§6.7, 3.9.2026)', () => {
+    function builtNew(overrides: Record<string, unknown> = {}) {
+      return {
+        productId: 'p-transfer',
+        sourceType: 'CONTRACTED',
+        stayFrom: new Date(),
+        stayTo: new Date(),
+        baseCost: 3000,
+        baseCostCurrency: 'EUR',
+        rateLineId: 'rl-t',
+        markupRuleId: 'mr-1',
+        finalPrice: 4000,
+        finalPriceCurrency: 'EUR',
+        unitCount: 1,
+        cancellationPolicySnapshot: null,
+        occupancy: { adults: 2, children: 0 },
+        ...overrides,
+      };
+    }
+    const dto = { productId: 'p-transfer', stayFrom: '2027-01-01', stayTo: '2027-01-02', occupancy: { adults: 2, children: 0 } } as any;
+
+    it('dodaje stavku, preračunava ukupno i pokreće NOVU najavu za CONTRACTED (odluka vlasnika)', async () => {
+      const { service, prisma, contractPeriods, builder, supplierManifests, eventBus } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 10000, items: [] });
+      builder.build.mockResolvedValue([builtNew()]);
+      prisma.rateLine.findUniqueOrThrow.mockResolvedValue({ contractPeriodId: 'period-t' });
+      contractPeriods.reserve.mockResolvedValue({ reserved: true });
+      prisma.bookingItem.create.mockResolvedValue({ id: 'item-new' });
+      prisma.bookingItem.aggregate.mockResolvedValue({ _sum: { finalPrice: 14000 } });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addItem('b1', dto, { userId: 'staff-1' });
+
+      // kapacitet PRE upisa stavke — obrnut redosled bi ostavio stavku bez pokrivenog kapaciteta
+      expect(contractPeriods.reserve).toHaveBeenCalled();
+      expect(prisma.bookingItem.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ productId: 'p-transfer', announcedAt: null }) }),
+      );
+      expect(prisma.booking.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: 'MODIFIED', totalPrice: 14000 }) }),
+      );
+      expect(supplierManifests.prepareForBooking).toHaveBeenCalledWith('b1', 'staff-1');
+      expect(eventBus.emit).toHaveBeenCalledWith('M5', 'booking.item_added', expect.objectContaining({ bookingId: 'b1' }));
+    });
+
+    it('API stavka je najavljena istog trenutka i ne pokreće pripremu najave (§8.6)', async () => {
+      const { service, prisma, integrations, builder, supplierManifests } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 0, items: [] });
+      builder.build.mockResolvedValue([builtNew({ sourceType: 'API', rateLineId: null })]);
+      prisma.product.findUniqueOrThrow.mockResolvedValue({ id: 'p-transfer', sourceProvider: 'PROV', sourceExternalId: 'x1' });
+      integrations.confirmBooking.mockResolvedValue({ status: 'CONFIRMED', providerBookingReference: 'REF-1' });
+      prisma.bookingItem.create.mockResolvedValue({ id: 'item-new' });
+      prisma.bookingItem.aggregate.mockResolvedValue({ _sum: { finalPrice: 4000 } });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addItem('b1', dto, { userId: 'staff-1' });
+
+      const created = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(created.announcedAt).toBeInstanceOf(Date);
+      expect(created.supplierConfirmedAt).toBeInstanceOf(Date);
+      expect(supplierManifests.prepareForBooking).not.toHaveBeenCalled();
+    });
+
+    it('odbija dodavanje iz B2B (subagentskog) konteksta — dodaje isključivo interni tim', async () => {
+      const { service, prisma, builder } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'sub-1' });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 0, items: [] });
+
+      await expect(service.addItem('b1', dto, { userId: 'sub-user' })).rejects.toThrow();
+      expect(builder.build).not.toHaveBeenCalled();
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+    });
+
+    it('odbija dodavanje na otkazanu rezervaciju i PACKAGE proizvod', async () => {
+      const { service, prisma, builder } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CANCELLED', totalPrice: 0, items: [] });
+      await expect(service.addItem('b1', dto, { userId: 'staff-1' })).rejects.toThrow(BadRequestException);
+
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 0, items: [] });
+      builder.build.mockResolvedValue([builtNew(), builtNew()]); // PACKAGE gradi više stavki odjednom
+      await expect(service.addItem('b1', dto, { userId: 'staff-1' })).rejects.toThrow(BadRequestException);
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+    });
+
+    it('previewAddItem vraća cenu i novo ukupno, bez ijedne rezervacije/upisa', async () => {
+      const { service, prisma, builder, contractPeriods } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', totalPrice: 10000, items: [] });
+      builder.build.mockResolvedValue([builtNew({ finalPrice: 4500 })]);
+
+      const result = await service.previewAddItem('b1', dto, { userId: 'staff-1' });
+
+      expect(result).toEqual({ newPrice: 4500, newCurrency: 'EUR', bookingTotalBefore: 10000, bookingTotalAfter: 14500 });
       expect(contractPeriods.reserve).not.toHaveBeenCalled();
       expect(prisma.bookingItem.create).not.toHaveBeenCalled();
       expect(prisma.booking.update).not.toHaveBeenCalled();

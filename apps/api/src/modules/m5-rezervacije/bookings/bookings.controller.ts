@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
+import { AddBookingItemDto } from './dto/add-booking-item.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
 import { AssignGuideDto } from './dto/assign-guide.dto';
@@ -191,6 +192,28 @@ export class BookingsController {
   @RequirePermission('M5', 'booking', 'MODIFY')
   previewModify(@Param('id') id: string, @Body() dto: ModifyBookingDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.previewModify(id, dto, actor);
+  }
+
+  // M5 spec §6.7 (dopuna 3.9.2026, vlasnikov nalaz „ni jednoj rezervaciji nije moguće dodati
+  // dodatnu uslugu u tabu aranžmani") — dodavanje NOVE stavke na postojeću rezervaciju. Do ovog
+  // datuma su posle potvrde postojale samo `modify` (zamena) i `cancel`.
+  //
+  // Dozvola je ista kao izmena (`booking/MODIFY`) jer je posledica ista — rezervacija posle
+  // ovoga nije ono što je prvobitno potvrđeno. Uz nju ide i tvrđa granica koju dozvole ne mogu
+  // da izraze: radnja je dostupna ISKLJUČIVO iz internog panela, i na subagentskim
+  // rezervacijama (vlasnikova odluka) — sprovodi `BookingsService.assertInternalPanelOnly`.
+  @Post(':id/items')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  addItem(@Param('id') id: string, @Body() dto: AddBookingItemDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.addItem(id, dto, actor);
+  }
+
+  // Isti ulaz i ista pravila pristupa kao `addItem`, ali ništa ne rezerviše — „proveri cenu"
+  // korak pre potvrde, isti obrazac kao `modify/preview`.
+  @Post(':id/items/preview')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  previewAddItem(@Param('id') id: string, @Body() dto: AddBookingItemDto, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.previewAddItem(id, dto, actor);
   }
 
   @Post(':id/cancel')

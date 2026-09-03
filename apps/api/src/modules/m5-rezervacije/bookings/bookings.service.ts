@@ -15,6 +15,7 @@ import { isSelfServiceChannel, resolveTipNastupanja, M5Channel as M5ChannelType 
 import { ConfirmQuoteDto } from './dto/confirm-quote.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
+import { AddBookingItemDto } from './dto/add-booking-item.dto';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
@@ -1114,6 +1115,142 @@ export class BookingsService {
       context: { oldItemId: oldItem.id, newItemId: newItem.id },
     });
     await this.eventBus.emit('M5', 'booking.modified', { bookingId, oldItemId: oldItem.id, newItemId: newItem.id });
+
+    return updated;
+  }
+
+  // ==========================================================================
+  // M5 spec §6.7 — dodavanje usluge na postojeću rezervaciju
+  // ==========================================================================
+
+  /**
+   * §6.7 (vlasnikova odluka 3.9.2026) — dodaje **isključivo interni tim**, i na rezervacijama
+   * subagenata. Provera je namerno odvojena od `assertBookingAccessible`: ta metoda odgovara na
+   * pitanje „sme li ovaj čovek da vidi/dira ovu rezervaciju", a ova na „sme li se ova RADNJA
+   * uopšte izvršiti van internog panela". Subagent svoju rezervaciju vidi i sme da je otkaže,
+   * ali uslugu mu dodaje agencija.
+   *
+   * 403, ne 404: rezervacija mu je već poznata (svoja mu je), pa skrivanje postojanja ovde ne
+   * štiti ništa, a poruka „nemate pravo" je jedina koja mu kaže šta da uradi (da pozove agenciju).
+   */
+  private async assertInternalPanelOnly(actorUserId: string): Promise<void> {
+    const { context } = await this.resolveApiContext(actorUserId);
+    if (context !== 'INTERNAL_PANEL') {
+      throw new ForbiddenException(
+        'Uslugu na postojeću rezervaciju dodaje isključivo interni tim agencije (M5 spec §6.7).',
+      );
+    }
+  }
+
+  /** Zajednički deo `addItem`/`previewAddItem` — provere + izgradnja stavke, bez ijedne izmene. */
+  private async resolveAddedItem(
+    booking: Booking & { items: BookingItem[] },
+    dto: AddBookingItemDto,
+  ): Promise<BuiltQuoteItemData> {
+    if (booking.status === 'CANCELLED') {
+      throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje usluga (M5 spec §6.7).');
+    }
+
+    // §6.7 — PACKAGE se odbija iz istog razloga kao kod izmene: paket se sastavlja iz VIŠE
+    // stavki odjednom (§3.0d.6a), a ovaj tok upisuje tačno jednu. Bolje 400 nego polovična
+    // stavka koju niko posle ne ume da pročita.
+    const built = await this.builder.build({
+      productId: dto.productId,
+      stayFrom: dto.stayFrom,
+      stayTo: dto.stayTo,
+      occupancy: dto.occupancy,
+    });
+    if (built.length !== 1) {
+      throw new BadRequestException(
+        'Dodavanje PACKAGE proizvoda (grupni paket) nije podržano — paket se sastavlja iz više stavki odjednom (M5 spec §6.7/§3.0d.6a).',
+      );
+    }
+    return built[0];
+  }
+
+  /** §6.7 korak 2 — „proveri cenu": gradi stavku i vraća razliku, ali NIŠTA ne rezerviše. */
+  async previewAddItem(bookingId: string, dto: AddBookingItemDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    await this.assertInternalPanelOnly(actor.userId);
+    const built = await this.resolveAddedItem(booking, dto);
+
+    const bookingTotalBefore = booking.totalPrice ?? 0;
+    return {
+      newPrice: built.finalPrice,
+      newCurrency: built.finalPriceCurrency,
+      bookingTotalBefore,
+      bookingTotalAfter: bookingTotalBefore + built.finalPrice,
+    };
+  }
+
+  /** §6.7 korak 3 — stvarno dodavanje. */
+  async addItem(bookingId: string, dto: AddBookingItemDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: true } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    await this.assertInternalPanelOnly(actor.userId);
+    const built = await this.resolveAddedItem(booking, dto);
+
+    // Isti redosled kao kod izmene (§6): kapacitet se PRVO rezerviše kod dobavljača, pa se tek
+    // onda upisuje stavka. Obrnuto bi ostavilo stavku u bazi za koju kapacitet nikad nije uzet.
+    const outcome = await this.reserveBuiltItem(built, actor.userId);
+
+    const newItem = await this.prisma.bookingItem.create({
+      data: {
+        bookingId,
+        productId: built.productId,
+        sourceType: built.sourceType,
+        supplierReference: outcome.supplierReference,
+        stayFrom: built.stayFrom,
+        stayTo: built.stayTo,
+        baseCost: built.baseCost,
+        baseCostCurrency: built.baseCostCurrency,
+        rateLineId: built.rateLineId,
+        markupRuleId: built.markupRuleId,
+        finalPrice: built.finalPrice,
+        finalPriceCurrency: built.finalPriceCurrency,
+        itemStatus: outcome.itemStatus,
+        unitCount: built.unitCount,
+        cancellationPolicySnapshot: built.cancellationPolicySnapshot as any,
+        // §8.6 — za API stavku je provajder potvrdio u istom pozivu, pa je i najavljena istog
+        // trenutka; CONTRACTED stavka ostaje NENAJAVLJENA i time je hvata `prepareForBooking`.
+        announcedAt: built.sourceType === 'API' ? new Date() : null,
+        supplierConfirmedAt: built.sourceType === 'API' ? new Date() : null,
+      },
+    });
+
+    const totalPrice = await this.prisma.bookingItem.aggregate({
+      where: { bookingId, itemStatus: { not: 'CANCELLED' } },
+      _sum: { finalPrice: true },
+    });
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'MODIFIED', totalPrice: totalPrice._sum.finalPrice ?? 0 },
+      include: { items: true },
+    });
+
+    // §6.7 odluka vlasnika — NOVA najava, ne dopuna postojeće. `prepareForBooking` hvata samo
+    // NENAJAVLJENE CONTRACTED stavke i grupiše ih po dobavljaču (§8.4), pa dodata stavka dobija
+    // svoj nacrt a već poslate najave se ne diraju — mehanizam je to već radio tačno, ovde se
+    // samo pokreće.
+    if (built.sourceType === 'CONTRACTED') {
+      await this.supplierManifests.prepareForBooking(bookingId, actor.userId);
+    }
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.item_added',
+      resourceType: 'Booking',
+      resourceId: bookingId,
+      afterState: updated,
+      context: { newItemId: newItem.id, productId: built.productId },
+    });
+    await this.eventBus.emit('M5', 'booking.item_added', { bookingId, newItemId: newItem.id });
 
     return updated;
   }
