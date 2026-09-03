@@ -218,6 +218,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 - **`BookingItem` ne nosi podelu odrasli/deca** (otkriveno 3.9.2026 pri izradi M5 §6.7a) — `QuoteItem` ima `occupancy`, `BookingItem` nikad nije ni imao. Posledica: pri proveri da li sastav gostiju staje u granice doplate (M3 v1.13 `max_children`/`child_max_age`) svi putnici se broje kao odrasli, pa te dve granice na rezervaciji ne mogu ništa da odbiju. Obračun i granica ukupnog broja osoba rade ispravno. Rešenje traži ili polje na `BookingItem` ili uzrast na `BookingItemGuest` — vlasnikova odluka, jer dodiruje i M9 (prijava na terenu).
 
+- **Šest implementiranih modula nema API dokumentaciju ni objašnjenje za vlasnika, iako CLAUDE.md to traži kao obaveznu stavku** (nalaz 3.9.2026, pri dopuni M5 dokumentacije). `docs/api/` sadrži M5–M23, ali **ne** M1, M2, M3, M4, M8 i M10 — svi su implementirani i izlažu REST API. Isto važi za `00-OBJASNJENJE-M<broj>-ZA-VLASNIKA.md`: M3 (i drugi) ga nemaju. Nije nastalo današnjim radom nego je zatečeno; upisano da se vidi kao dug, a ne kao „nekad ćemo". Najkorisnije bi bilo početi od M3 i M2, jer njih M5 najviše dotiče, i jer je M3 danas dobio izmenu modela (`AncillaryService` v1.13) čiji API primeri ne postoje nigde.
+
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
 - **`GuestProfile` nema rok važenja dokumenta, pol, ni mesto/zemlju rođenja** (M5 §3.0g.7, 2.9.2026) — potrebno zbog vlasnikove odluke da se podaci putnika traže odmah i u celosti; avio-kompanije traže pol i rok važenja dokumenta, a rok važenja je i uslov za vizu.

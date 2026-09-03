@@ -1793,6 +1793,24 @@ Prefiks: `/api/v1/sales`
 - [ ] Test: izbor `SearchResultOffer` (i za `CONTRACTED` i za `API`) ispravno popunjava `product_id`/`rate_line_id` ili `provider_quote_reference`/`stay_from`/`stay_to`/`occupancy` u `POST /quotes` bez ručnog ponovnog unosa; isto važi za popunu `ItinerarySegment.product_id` kroz tok sastavljanja putovanja (poglavlje 3.0).
 - [ ] `Quote.referral_tracking_code` (kad popunjeno) se ispravno kopira na `Booking.referral_tracking_code` pri potvrdi; M5 ga ni u jednom trenutku ne validira niti odbija rezervaciju zbog nepostojećeg/pogrešnog koda (M12 poglavlje 3a).
 
+**Dopuna 3.9.2026 — naknadno dodavanje usluge (§6.7, §6.7a, §6.7b) i vaučer po dobavljaču (§6).** Označeno stanje je stvarno provereno, ne pretpostavljeno; gde piše „uživo" znači u pravom browseru nad pravom bazom, ne samo unit testom.
+
+- [x] Usluga se može dodati na potvrđenu rezervaciju; ukupno zaduženje se preračunava, status prelazi u `MODIFIED`. *(uživo: 608,00 → 921,88 EUR)*
+- [x] Kapacitet kod dobavljača se rezerviše PRE upisa stavke — nikad obrnuto. *(unit test)*
+- [x] Dodata `CONTRACTED` stavka pokreće **novu** najavu tom dobavljaču; već poslate najave se ne diraju. `API` stavka je najavljena istog trenutka. *(uživo + unit test)*
+- [x] Dodavanje je odbijeno iz subagentskog/gost konteksta sa `403`, bez obzira na dozvole; odbijeno je i za `PACKAGE` i za otkazanu rezervaciju sa `400`. *(unit test)*
+- [x] Doplata/popust se upisuje kao **vezana** stavka (`parent_item_id`), nasleđuje dobavljača matične stavke, i pada zajedno sa njom pri otkazivanju — i kad nije navedena u `item_ids`. *(unit test)*
+- [x] Obračun doplate poštuje sve četiri osnove (osoba/soba × dan/period), količinu i procenat noćne cene; popust ulazi sa minusom uz pozitivno upisan iznos. *(13 unit testova, `common/ancillary-pricing.ts`)*
+- [x] `payable = ON_SITE` stavka ima cenu, **ne ulazi** u `Booking.total_price`, i prikazuje se odvojeno na kartici Aranžman i na vaučeru. *(uživo: 963,18 EUR + 10,50 EUR odvojeno)*
+- [x] Obavezne doplate se povlače automatski — i pri prvoj rezervaciji (`confirmQuote`) i pri dodavanju usluge.
+- [x] Sastav gostiju koji ne staje u granice doplate po sobi se odbija sa `400` i čitljivom rečenicom. *(unit test)* — **uz poznato ograničenje:** `BookingItem` ne nosi podelu odrasli/deca, pa granice `max_children`/`child_max_age` na rezervaciji ne mogu ništa da odbiju (vidi §6.7a i backlog).
+- [x] Ručno uneta usluga bez „sačuvaj u katalog" je `DRAFT` proizvod sa praznim `visible_channels` — nema je u `GET /search`, na sajtu ni u B2B portalu; sa kvačicom je `ACTIVE`. *(uživo + unit test)*
+- [x] Ručna usluga nosi dobavljača, obe cene i **prazan** `markup_rule_id`; izlazna cena manja od nabavne se odbija sa `400`. *(unit test)*
+- [x] Vaučer je grupisan po dobavljaču (jedan dokument po dobavljaču, sve njegove usluge na njemu); `/voucher/:redniBroj` vraća jedan, `?stavka=` pojedinačnu uslugu. *(uživo: dva dobavljača → dva vaučera)*
+- [x] Odgovor vaučera ne sadrži **nijedno** polje iz `Supplier`/`Contract` (§6.2) — ni ime, ni ID, ni `supplier_reference`; adresira se rednim brojem grupe. *(unit test + uživo provera odgovora)*
+- [x] API dokumentacija (`docs/api/M5-rezervacije.md`) i objašnjenje za vlasnika (`00-OBJASNJENJE-M5-ZA-VLASNIKA.md`) dopunjeni u istom prolazu — obavezna stavka po CLAUDE.md, ne naknadno.
+- [ ] **Otvoreno:** ručna stavka na PONUDI (§3.0f) i dalje čeka odluku prelazi li na isti obrazac (`DRAFT` proizvod) — vidi §6.7b i backlog.
+
 ---
 
 ## 13. Otvoreno za dalje

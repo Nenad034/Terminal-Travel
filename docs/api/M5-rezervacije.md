@@ -250,6 +250,137 @@ Dopuna 2.9.2026 (kartica Aranžman — "provera cene" pre potvrde). Isti ulaz ka
 { "currentPrice": 84000, "currentCurrency": "EUR", "newPrice": 91200, "newCurrency": "EUR", "priceDifference": 7200 }
 ```
 
+### POST /bookings/:id/items
+Dopuna 3.9.2026 (M5 spec §6.7) — dodaje **novu uslugu** na postojeću rezervaciju. Do tada su posle potvrde postojale samo `modify` (zamena stavke) i `cancel`.
+
+Zahteva `M5/booking/MODIFY` **i interni kontekst** — poziv iz B2B/B2C konteksta se odbija sa `403` bez obzira na dozvole (vlasnikova odluka: uslugu na rezervaciju dodaje isključivo interni tim agencije, i na rezervacijama subagenata). Ovo je jedini M5 endpoint sa takvim ograničenjem, pa spoljni integrator (M7/M16) ovu radnju **ne može** izvršiti.
+
+Za razliku od `modify`, **nema** provere „isti `ProductType`" — ovde se ništa ne zamenjuje nego dodaje, a transfer uz smeštaj je uobičajen slučaj, ne greška. Poreklo dodate stavke ne mora biti isto kao ostalih (ugovorena usluga na API rezervaciju i obrnuto).
+
+**Zahtev:**
+```json
+{ "productId": "prod-transfer-1", "stayFrom": "2027-07-11", "stayTo": "2027-07-18", "occupancy": { "adults": 2, "children": 0 } }
+```
+**Odgovor `201`:** ažuriran `Booking` — status prelazi u `MODIFIED`, `totalPrice` je preračunat, nova stavka je u `items[]`. Za `CONTRACTED` stavku se u istom pozivu priprema **nova najava** tom dobavljaču (`DRAFT SupplierManifest`, poglavlje 8.4); već poslate najave se ne diraju. Za `API` stavku su `announcedAt`/`supplierConfirmedAt` popunjeni odmah (provajder je potvrdio u istom pozivu).
+
+**Odgovor `403` (poziv van internog panela):**
+```json
+{ "message": "Uslugu na postojeću rezervaciju dodaje isključivo interni tim agencije (M5 spec §6.7).", "statusCode": 403 }
+```
+**Odgovor `400`:** otkazana rezervacija, ili `PACKAGE` proizvod (grupni paket se sastavlja iz više stavki odjednom, poglavlje 3.0d.6a — ovaj tok upisuje tačno jednu).
+
+### POST /bookings/:id/items/preview
+Isti ulaz i ista pravila pristupa kao `POST /bookings/:id/items`, ali **ništa ne rezerviše ni ne upisuje** — „proveri cenu" korak pre potvrde.
+**Odgovor `200`:**
+```json
+{ "newPrice": 31388, "newCurrency": "EUR", "bookingTotalBefore": 60800, "bookingTotalAfter": 92188 }
+```
+
+### GET /bookings/:id/items/:itemId/ancillaries
+Dopuna 3.9.2026 (M5 spec §6.7a) — doplate i popusti **ugovoreni za period te stavke** (M3 `AncillaryService`, M3 spec §2.6), sa cenom već izračunatom za TAČNO tu stavku (njene noći, sobe i putnike), ne golom cenom iz cenovnika. Zahteva `M5/booking/VIEW`.
+
+Za stavku preko API veze vraća **praznu listu** — doplate su ugovorna kategorija, API stavka nema ugovorni period. To je tačno stanje, ne greška.
+
+**Odgovor `200`:**
+```json
+[
+  {
+    "id": "anc-1",
+    "name": "Parking",
+    "kind": "SURCHARGE",
+    "priceBasis": "PER_ROOM_PER_NIGHT",
+    "payable": "AGENCY",
+    "isMandatory": false,
+    "isRefundable": false,
+    "maxQuantity": null,
+    "notes": null,
+    "amount": 3500,
+    "currency": "EUR",
+    "alreadyAdded": false,
+    "blockedReason": null
+  },
+  {
+    "id": "anc-2",
+    "name": "Boravišna taksa",
+    "kind": "SURCHARGE",
+    "priceBasis": "PER_PERSON_PER_NIGHT",
+    "payable": "ON_SITE",
+    "isMandatory": true,
+    "isRefundable": false,
+    "maxQuantity": null,
+    "notes": null,
+    "amount": 1050,
+    "currency": "EUR",
+    "alreadyAdded": true,
+    "blockedReason": null
+  },
+  {
+    "id": "anc-3",
+    "name": "Popust za dugi boravak",
+    "kind": "DISCOUNT",
+    "priceBasis": "PER_ROOM_PER_STAY",
+    "payable": "AGENCY",
+    "isMandatory": false,
+    "isRefundable": false,
+    "maxQuantity": null,
+    "notes": null,
+    "amount": -2000,
+    "currency": "EUR",
+    "alreadyAdded": false,
+    "blockedReason": null
+  }
+]
+```
+`amount` je **potpisan**: doplata je pozitivna, popust negativan. `blockedReason` je rečenica na srpskom kad sastav gostiju ne staje u granice doplate (npr. „Doplata važi za najviše 2 osoba, a traženo je 3.") — tada se ta doplata ne može dodati.
+
+### POST /bookings/:id/items/:itemId/ancillaries
+Dodaje **opcionu** doplatu/popust kao **vezanu** stavku uz `:itemId`. Obavezne (`isMandatory`) se povlače automatski uz stavku i ne prolaze kroz ovaj put. Zahteva `M5/booking/MODIFY` + interni kontekst (isto kao `/items`).
+
+**Cena se NE prima od klijenta** — računa se na serveru iz M3 `AncillaryService` i podataka matične stavke.
+
+**Zahtev:**
+```json
+{ "ancillaryServiceId": "anc-1", "quantity": 1 }
+```
+**Odgovor `201`:** ažuriran `Booking`. Nova stavka ima `parentItemId` (matična stavka), `ancillaryServiceId` i `payable`; nasleđuje proizvod i dobavljača matične stavke, pa ide na **isti** vaučer i istu najavu.
+
+**Važno za čitanje ukupne cene:** stavka sa `payable: "ON_SITE"` ima cenu, ali **ne ulazi u `Booking.totalPrice`** — gost je plaća dobavljaču direktno, agencija je nikad ne naplati ni ne isplati. To je jedini takav slučaj u M5. Iznos se prikazuje odvojeno (na vaučeru i u ugovoru sa klijentom), nikad se ne sabira sa cenom aranžmana.
+
+**Odgovor `400`:** sastav gostiju ne staje u granice doplate, količina preko `maxQuantity`, otkazana stavka/rezervacija, ili pokušaj da se doplata doda na drugu doplatu.
+
+### POST /bookings/:id/items/manual
+Dopuna 3.9.2026 (M5 spec §6.7b) — **ručno uneta usluga**: ono što nema ni u ugovoru (M3) ni kod provajdera (M4). Zahteva `M5/booking/MODIFY` + interni kontekst.
+
+Ovo je **jedini** M5 endpoint koji prima cenu od klijenta — ručna usluga po definiciji nema cenovnik iz kog bi se izvela. Zato se traže OBE cene (`baseCost` i `finalPrice`), pa je marža proverljiva razlika; `markupRuleId` na nastaloj stavci ostaje **prazan** umesto da pokazuje na pravilo koje nije učestvovalo u ceni.
+
+`supplierId` je **obavezan** — bez dobavljača ne rade ni vaučer po dobavljaču ni najava po dobavljaču.
+
+**Zahtev:**
+```json
+{
+  "productType": "TRANSFER",
+  "name": "Prevoz kombijem, aerodrom — hotel",
+  "supplierId": "sup-kombi-1",
+  "destinationCountry": "Crna Gora",
+  "destinationCity": "Budva",
+  "baseCost": 5000,
+  "finalPrice": 6500,
+  "currency": "EUR",
+  "stayFrom": "2027-07-11",
+  "stayTo": "2027-07-12",
+  "occupancy": { "adults": 2, "children": 0 },
+  "saveToCatalog": false
+}
+```
+**Odgovor `201`:** ažuriran `Booking` sa novom stavkom. Uz nju se u M2 pravi i proizvod sa `sourceType: "MANUAL"` i `supplierId`:
+- `saveToCatalog: false` → proizvod je `status: "DRAFT"` sa praznim `visibleChannels` — **ne pojavljuje se u `GET /search`, na javnom sajtu ni u B2B portalu**, postoji samo kao zapis iza te stavke;
+- `saveToCatalog: true` → `status: "ACTIVE"` sa uobičajenim kanalima, pa se sledeći put bira kao svaki drugi proizvod.
+
+**Odgovor `400` (zamenjena polja cene):**
+```json
+{ "message": "Izlazna cena ne sme biti manja od nabavne — proverite da polja nisu zamenjena (M5 spec §6.7b).", "statusCode": 400 }
+```
+
 ### POST /bookings/:id/cancel
 **Zahtev:**
 ```json
@@ -292,28 +423,85 @@ Zahteva `M5/voucher/OVERRIDE_ISSUE` (isključivo Vlasnik/Direktor).
 
 ### GET /sales/bookings/public/:id/voucher
 Dopuna 2.9.2026 — **javan, neautentifikovan** (nema `Authorization` header, nema `M5/booking/*` dozvolu; poziva ga `apps/web` stranica `/rezervacija/vaucer/:id`, ne panel). Vraća `404` ako rezervacija ne postoji ILI vaučer još nije izdat (`voucherUrl` prazan). Odgovor je već maskiran (M5 spec §6.2) — nikad `supplierReference`/`baseCost`/`markupRuleId`/`rateLineId`.
+
+**Dopuna 3.9.2026 — odgovor je GRUPISAN: jedan vaučer po dobavljaču** (vlasnikova odluka). Sve usluge istog dobavljača idu na jedan dokument; različiti dobavljači dobijaju odvojene. **Ime dobavljača se ne pojavljuje nigde u odgovoru** — §6.2 to zabranjuje, pa se grupa **zove** po uslugama koje nosi (`label`), a adresira **rednim brojem** unutar rezervacije, ne `supplierId`-jem.
+
+Opcioni `?stavka=<bookingItemId>` vraća **samo tu jednu uslugu** (pojedinačni vaučer).
+
 **Odgovor `200`:**
 ```json
 {
   "bookingNumber": "TT-2027-000123",
   "buyerName": "Jovana Marković",
-  "totalPrice": 120000,
+  "totalPrice": 122400,
   "currency": "EUR",
-  "items": [
+  "onSiteTotal": 1050,
+  "groups": [
     {
-      "productName": "Hotel Alexander The Great 4*",
-      "productType": "ACCOMMODATION",
-      "destinationCity": "Sitonija",
-      "destinationCountry": "GR",
-      "stayFrom": "2027-08-10T00:00:00.000Z",
-      "stayTo": "2027-08-17T00:00:00.000Z",
-      "unitCount": 1,
-      "guests": [{ "guestFirstName": "Jovana", "guestLastName": "Marković" }],
-      "representative": { "fullName": "Ana Vodić", "phone": "+381601234567", "email": "ana.vodic@terminal-travel.rs" }
+      "index": 1,
+      "label": "Hotel Alexander The Great 4*",
+      "onSiteTotal": 1050,
+      "items": [
+        {
+          "productName": "Hotel Alexander The Great 4*",
+          "productType": "ACCOMMODATION",
+          "destinationCity": "Sitonija, Halkidiki",
+          "destinationCountry": "Grčka",
+          "stayFrom": "2026-08-10T14:00:00.000Z",
+          "stayTo": "2026-08-17T10:00:00.000Z",
+          "unitCount": 1,
+          "payable": "AGENCY",
+          "price": 108000,
+          "currency": "EUR",
+          "guests": [{ "guestFirstName": "Jovana", "guestLastName": "Marković" }],
+          "representative": { "fullName": "Ana Vodić", "phone": null, "email": "ana.vodic@terminal-travel.rs" }
+        },
+        {
+          "productName": "Boravišna taksa",
+          "productType": "ACCOMMODATION",
+          "destinationCity": "Sitonija, Halkidiki",
+          "destinationCountry": "Grčka",
+          "stayFrom": "2026-08-10T14:00:00.000Z",
+          "stayTo": "2026-08-17T10:00:00.000Z",
+          "unitCount": 1,
+          "payable": "ON_SITE",
+          "price": 1050,
+          "currency": "EUR",
+          "guests": [],
+          "representative": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "label": "Transfer aerodrom Solun — Sitonija",
+      "onSiteTotal": 0,
+      "items": [
+        {
+          "productName": "Transfer aerodrom Solun — Sitonija",
+          "productType": "TRANSFER",
+          "destinationCity": "Sitonija, Halkidiki",
+          "destinationCountry": "Grčka",
+          "stayFrom": "2026-08-10T00:00:00.000Z",
+          "stayTo": "2026-08-10T00:00:00.000Z",
+          "unitCount": 1,
+          "payable": "AGENCY",
+          "price": 14400,
+          "currency": "EUR",
+          "guests": [{ "guestFirstName": "Jovana", "guestLastName": "Marković" }],
+          "representative": null
+        }
+      ]
     }
   ]
 }
 ```
+`onSiteTotal` (i na nivou grupe i na nivou rezervacije) je iznos koji gost plaća **dobavljaču na licu mesta** — **nije** uključen u `totalPrice`. Svaka takva stavka nosi i `payable: "ON_SITE"`.
+
+### GET /sales/bookings/public/:id/voucher/:redniBroj
+Dopuna 3.9.2026 — **javan**, isti oblik odgovora kao gore, ali sa samo jednom grupom: onom čiji `index` odgovara `:redniBroj` (1, 2, 3…). Vraća `404` kad taj vaučer ne postoji na rezervaciji, `400` kad `:redniBroj` nije ceo broj veći od nule.
+
+Redni broj, ne `supplierId`: UUID dobavljača bio bi isti kroz sve rezervacije i time upotrebljiv za povezivanje, iako sam po sebi ne kaže ime — §6.2 to ne dozvoljava.
 
 ### GET /bookings/:id/notes
 Interne beleške uz rezervaciju (M5 spec §4.6, dopuna 1.9.2026). Zahteva `M5/booking/VIEW` — beleška se vidi sa rezervacijom, nema zasebne VIEW dozvole. Najnovija prva.
