@@ -61,6 +61,13 @@ interface BookingItem {
   guests?: BookingItemGuest[];
   // M9 spec §4 — predstavnik (vodič) na destinaciji za tu stavku.
   assignedGuideId?: string | null;
+  // M5 spec §6.7a (3.9.2026) — doplata/popust je VEZANA stavka: prikazuje se UZ matičnu, ne
+  // kao samostalan red. `payable = ON_SITE` znači da iznos ne ulazi u ukupno zaduženje.
+  parentItemId?: string | null;
+  ancillaryServiceId?: string | null;
+  payable?: 'AGENCY' | 'ON_SITE';
+  /** Naziv doplate/popusta iz M3 ugovora — doplata nema sopstven proizvod, pa ni njegovo ime. */
+  ancillaryService?: { name: string; kind: 'SURCHARGE' | 'DISCOUNT'; priceBasis: string } | null;
 }
 
 interface Booking {
@@ -310,6 +317,12 @@ export default async function BookingDetailPage(props: {
   // M5 spec §6 dopuna (2.9.2026) — kartica Aranžman: spisak kandidata "za izmenu usluge" po
   // tipu proizvoda prisutnom na aktivnim stavkama. Samo kad je izmena uopšte moguća (dozvola +
   // aktivna stavka postoji) — ne poziva se M2 katalog kad na Aranžmanu nema šta da se menja.
+  // §6.7a — zbir onoga što se plaća na licu mesta. Računa se iz stavki koje su već dovučene
+  // (nema drugog poziva): `payable = ON_SITE` je jedini slučaj u M5 gde stavka ima cenu a ne
+  // ulazi u `Booking.total_price`.
+  const onSiteTotal =
+    booking?.items.filter((i) => i.payable === 'ON_SITE' && i.itemStatus !== 'CANCELLED').reduce((sum, i) => sum + i.finalPrice, 0) ?? 0;
+
   const activeItems = booking?.items.filter((i) => i.itemStatus !== 'CANCELLED') ?? [];
   const modifiableTypes = [...new Set(activeItems.map((i) => i.product?.type).filter((t): t is string => Boolean(t)))];
   const candidatesByType = new Map<string, CandidateProduct[]>();
@@ -832,7 +845,16 @@ export default async function BookingDetailPage(props: {
               ) : (
                 <>
                   <StatCard label="Ukupno zaduženje (aktivne stavke)" value={formatMoney(booking.totalPrice ?? 0, booking.currency)} />
-                  {booking.items.map((item) => (
+                  {/* M5 spec §6.7a — iznos koji gost plaća DOBAVLJAČU na licu mesta ne ulazi u
+                      ukupno zaduženje (agencija ga nikad ne naplati), ali se ne sme ni sakriti:
+                      prećutan trošak na licu mesta je najbrži put do reklamacije. Prikazuje se
+                      samo kad ga stvarno ima. */}
+                  {onSiteTotal > 0 && (
+                    <StatCard label="Plaća se na licu mesta (ne ulazi u zaduženje)" value={formatMoney(onSiteTotal, booking.currency)} />
+                  )}
+                  {booking.items
+                    .filter((i) => !i.parentItemId)
+                    .map((item) => (
                     <AranzmanItemCard
                       key={item.id}
                       bookingId={booking.id}
@@ -854,6 +876,18 @@ export default async function BookingDetailPage(props: {
                       }}
                       candidates={item.product?.type ? (candidatesByType.get(item.product.type) ?? []) : []}
                       canModify={canModifyBooking}
+                      // §6.7a — vezane doplate/popusti idu UZ svoju stavku, ne kao samostalni redovi.
+                      ancillaries={booking.items
+                        .filter((a) => a.parentItemId === item.id)
+                        .map((a) => ({
+                          id: a.id,
+                          name: a.ancillaryService?.name ?? a.product?.name ?? 'doplata',
+                          finalPrice: a.finalPrice,
+                          finalPriceCurrency: a.finalPriceCurrency ?? booking.currency,
+                          itemStatus: a.itemStatus,
+                          payable: a.payable,
+                          unitCount: a.unitCount,
+                        }))}
                     />
                   ))}
                 </>

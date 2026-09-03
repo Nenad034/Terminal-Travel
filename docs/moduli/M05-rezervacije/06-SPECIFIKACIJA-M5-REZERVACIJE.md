@@ -1407,7 +1407,7 @@ Dugme se prikazuje **samo internom timu** (odluka iznad) i samo kad rezervacija 
 
 Dokaz na živoj bazi: rezervacija `MOCK-B2C-2026-0001` (608,00 EUR, jedna stavka) → dodat transfer 313,88 EUR → ukupno **921,88 EUR**, status prešao u `MODIFIED`, obe ugovorene stavke dobile `DRAFT` najavu grupisanu po dobavljaču, bez ijedne greške u konzoli browsera. Pet unit testova pokriva: novu najavu za `CONTRACTED`, trenutnu najavu za `API`, odbijanje iz subagentskog konteksta, odbijanje `PACKAGE`/otkazane rezervacije, i da `preview` ništa ne rezerviše.
 
-**Nije još napravljeno** (poglavlja ispod): doplate/popusti kao vezane stavke (§6.7a), ručno uneta usluga (§6.7b), vaučer po dobavljaču (§6).
+**Nije još napravljeno** (poglavlja ispod): ručno uneta usluga (§6.7b), vaučer po dobavljaču (§6). Doplate/popusti (§6.7a) su napravljeni — vidi stanje u tom poglavlju.
 
 ### 6.7a Doplate i popusti kao vezane stavke (dopuna, 3.9.2026, vlasnikova odluka)
 
@@ -1434,6 +1434,19 @@ Dokaz na živoj bazi: rezervacija `MOCK-B2C-2026-0001` (608,00 EUR, jedna stavka
 **Popusti idu istim putem.** M3 v1.13 uvodi `AncillaryService.kind = DISCOUNT` — ista struktura, suprotan znak. Popust je stavka sa negativnim doprinosom ukupnoj ceni, ne izmena cene matične stavke: tako se u Aranžmanu i na fakturi **vidi šta je odobreno i po kom osnovu**, umesto da hotel „odjednom košta manje" bez traga. Popust nasleđuje `payable` matične logike — popust na `ON_SITE` doplatu takođe ostaje van ukupne cene.
 
 **Provera prema sastavu gostiju.** Kad je osnova `PER_ROOM_*` (M3 v1.13), stavka nosi `covers_persons`/`max_adults`/`max_children`/`child_max_age`. M5 pri dodavanju proverava da traženi sastav gostiju stvarno staje u te granice i odbija sa 400 kad ne staje — ista logika i isti razlog kao provera `room_config` prema `age_policy` sobe (§3.2a). Bez te provere „doplata za sobu" tiho važi i za sastav za koji je dobavljač nikad nije dao.
+
+#### Stanje implementacije (3.9.2026)
+
+**Napravljeno i provereno na živoj bazi.** M3 model proširen (`kind`, `price_basis`, `covers_persons`/`max_adults`/`max_children`/`child_max_age`, `payable`) uz migraciju; `BookingItem` dobio `parent_item_id`, `ancillary_service_id` i `payable`. Obračun je izdvojen u `common/ancillary-pricing.ts` (čist modul, 13 unit testova) — osnova se računa kao **par**, ne kao jedan pojam. Endpointi: `GET/POST /sales/bookings/:id/items/:itemId/ancillaries`. Ekran: doplate stoje uz svoju stavku na kartici Aranžman, uz dugme „Dodaj doplatu / popust"; unos u ugovoru (M3 „Dodatne usluge") dobio je sva nova polja u istom prolazu.
+
+Dokaz: hotel 608,00 EUR + parking (7 noći × 1 soba × 5,00 = 35,00, sa maržom 41,30) → ukupno **963,18 EUR**; boravišna taksa `ON_SITE` 10,50 EUR **nije** ušla u zbir nego stoji odvojeno kao „plaća se na licu mesta". Otkazivanje matične stavke otkazuje i vezane (regresioni test).
+
+**Dve odluke agenta, obe označene kao takve i obe reverzibilne na jednom mestu:**
+
+1. **Popust prolazi gostu 1:1 — marža se na njega ne primenjuje.** Procenat marže nad negativnim iznosom bi tiho umanjio popust koji je gost dobio, a fiksni deo marže bi mu ga još i naplatio. Ako agencija sme da zadrži deo dobavljačevog popusta, menja se u `createAncillaryItem`.
+2. **`ON_SITE` doplata nema maržu.** Gost plaća dobavljaču direktno; agencija tu ništa ne prodaje.
+
+**Poznato ograničenje (nije prećutano):** `BookingItem` ne nosi podelu odrasli/deca — `QuoteItem` je ima (`occupancy`), `BookingItem` nikad nije ni imao. Zato se pri proveri sastava gostiju svi putnici broje kao odrasli, pa granice `max_children` i `child_max_age` na ovom mestu ne mogu ništa da odbiju. Sam obračun i granica ukupnog broja osoba rade ispravno. Upisano u backlog.
 
 ### 6.7b Ručno uneta usluga na rezervaciji (dopuna, 3.9.2026, vlasnikova odluka)
 

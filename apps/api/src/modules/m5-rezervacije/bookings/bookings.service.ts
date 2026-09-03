@@ -16,6 +16,9 @@ import { ConfirmQuoteDto } from './dto/confirm-quote.dto';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { AddBookingItemDto } from './dto/add-booking-item.dto';
+import { AddAncillaryItemDto } from './dto/add-ancillary-item.dto';
+import { applyMarkup } from '../common/markup-formula';
+import { checkAncillaryOccupancy, computeAncillaryAmount, signedAncillaryAmount, type AncillaryServiceLike } from '../common/ancillary-pricing';
 import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-change-notices.service';
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
@@ -272,6 +275,20 @@ export class BookingsService {
       },
       include: { items: true },
     });
+
+    // §6.7a — OBAVEZNE doplate se povlače uz svaku stavku već pri prvoj rezervaciji, ne tek
+    // kad neko naknadno doda uslugu. Ukupno zaduženje se posle toga preračunava (ON_SITE
+    // doplate ostaju van zbira, vidi `recomputeBookingTotal`).
+    let mandatoryAdded = 0;
+    for (const created of booking.items) {
+      mandatoryAdded += await this.attachMandatoryAncillaries(created.id);
+    }
+    if (mandatoryAdded > 0) {
+      await this.prisma.booking.update({
+        where: { id: booking.id },
+        data: { totalPrice: await this.recomputeBookingTotal(booking.id) },
+      });
+    }
 
     await this.prisma.quote.update({ where: { id: quote.id }, data: { status: 'CONVERTED' } });
 
@@ -612,6 +629,11 @@ export class BookingsService {
                 translations: { select: { languageCode: true, name: true } },
               },
             },
+            // §6.7a — vezana doplata/popust NEMA sopstven proizvod (nasleđuje matični, čime
+            // nasleđuje i dobavljača), pa bi se bez ovoga prikazivala pod imenom hotela.
+            // Naziv nosi M3 `AncillaryService` — „Parking", „Boravišna taksa", „Popust za
+            // dugi boravak". Bez naziva doplata je red sa cenom bez značenja.
+            ancillaryService: { select: { name: true, kind: true, priceBasis: true } },
           },
         },
       },
@@ -873,9 +895,18 @@ export class BookingsService {
     if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
     await this.assertBookingAccessible(booking, actor.userId);
 
-    const targetItems = booking.items.filter(
+    const selected = booking.items.filter(
       (i) => (dto.itemIds ? dto.itemIds.includes(i.id) : true) && i.itemStatus !== 'CANCELLED',
     );
+    // §6.7a — vezana doplata/popust pada zajedno sa matičnom stavkom. Bez ovoga bi parking
+    // ostao da visi na rezervaciji čija je soba otkazana, i tiho bi ulazio u ukupnu cenu.
+    // Dodaju se čak i kad ih pozivalac nije naveo u `itemIds` — to nije proširenje njegovog
+    // zahteva nego njegova posledica.
+    const selectedIds = new Set(selected.map((i) => i.id));
+    const linkedChildren = booking.items.filter(
+      (i) => i.parentItemId && selectedIds.has(i.parentItemId) && i.itemStatus !== 'CANCELLED' && !selectedIds.has(i.id),
+    );
+    const targetItems = [...selected, ...linkedChildren];
     if (targetItems.length === 0) {
       throw new BadRequestException('Nema aktivnih stavki za otkazivanje.');
     }
@@ -936,7 +967,14 @@ export class BookingsService {
     const newStatus = remaining === 0 ? 'CANCELLED' : 'MODIFIED';
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: newStatus, cancelledAt: newStatus === 'CANCELLED' ? new Date() : null },
+      data: {
+        status: newStatus,
+        cancelledAt: newStatus === 'CANCELLED' ? new Date() : null,
+        // Do 3.9.2026 otkazivanje NIJE preračunavalo ukupno zaduženje — otkazana stavka je
+        // ostajala u `total_price` dok se rezervacija ne izmeni. Ispravljeno u istom prolazu
+        // u kom je zbir dobio jedno mesto (`recomputeBookingTotal`, §6.7a).
+        totalPrice: await this.recomputeBookingTotal(bookingId),
+      },
       include: { items: true },
     });
 
@@ -1093,14 +1131,9 @@ export class BookingsService {
       },
     });
 
-    const totalPrice = await this.prisma.bookingItem.aggregate({
-      where: { bookingId, itemStatus: { not: 'CANCELLED' } },
-      _sum: { finalPrice: true },
-    });
-
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: 'MODIFIED', totalPrice: totalPrice._sum.finalPrice ?? 0 },
+      data: { status: 'MODIFIED', totalPrice: await this.recomputeBookingTotal(bookingId) },
       include: { items: true },
     });
 
@@ -1221,14 +1254,12 @@ export class BookingsService {
       },
     });
 
-    const totalPrice = await this.prisma.bookingItem.aggregate({
-      where: { bookingId, itemStatus: { not: 'CANCELLED' } },
-      _sum: { finalPrice: true },
-    });
+    // §6.7a — obavezne doplate se povlače ODMAH uz novu stavku, pre nego što se izračuna ukupno.
+    await this.attachMandatoryAncillaries(newItem.id);
 
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: { status: 'MODIFIED', totalPrice: totalPrice._sum.finalPrice ?? 0 },
+      data: { status: 'MODIFIED', totalPrice: await this.recomputeBookingTotal(bookingId) },
       include: { items: true },
     });
 
@@ -1253,6 +1284,241 @@ export class BookingsService {
     await this.eventBus.emit('M5', 'booking.item_added', { bookingId, newItemId: newItem.id });
 
     return updated;
+  }
+
+  // ==========================================================================
+  // M5 spec §6.7a — doplate i popusti kao VEZANE stavke
+  // ==========================================================================
+
+  /**
+   * Ukupno zaduženje rezervacije. **`ON_SITE` stavke se izuzimaju** (§6.7a): agencija ih nikad
+   * ne naplati ni ne isplati, pa bi u ukupnoj ceni bile lažno zaduženje i pokvarile svaki
+   * finansijski izveštaj (M10/M13). One se prikazuju odvojeno, sa oznakom „plaća se na licu
+   * mesta" — vide se, ali se ne sabiraju.
+   *
+   * Jedno mesto za ceo modul: ranije je isti `aggregate` stajao prepisan u `modify`, `cancel`
+   * i `addItem`, pa bi izuzimanje `ON_SITE` moralo da se doda na tri mesta i tiho bi se
+   * razišlo pri prvom preskoku.
+   */
+  private async recomputeBookingTotal(bookingId: string): Promise<number> {
+    const totalPrice = await this.prisma.bookingItem.aggregate({
+      where: { bookingId, itemStatus: { not: 'CANCELLED' }, payable: 'AGENCY' },
+      _sum: { finalPrice: true },
+    });
+    return totalPrice._sum.finalPrice ?? 0;
+  }
+
+  /** Kontekst obračuna doplate iz matične stavke — noći, sobe, osobe. */
+  private ancillaryContextFor(parent: BookingItem & { guests?: { id: string }[] }, quantity: number) {
+    const nights = Math.max(
+      Math.round((parent.stayTo.getTime() - parent.stayFrom.getTime()) / 86_400_000),
+      1,
+    );
+    // POZNATO OGRANIČENJE (§6.7a): `BookingItem` ne nosi podelu odrasli/deca — `QuoteItem` je
+    // ima (`occupancy`), `BookingItem` nikad nije ni imao. Zato se svi putnici ovde broje kao
+    // odrasli, pa granice `max_children`/`child_max_age` (M3 v1.13) ovde ne mogu da odbiju
+    // ništa. Nije prećutano: upisano u spec i u backlog.
+    const persons = Math.max(parent.guests?.length ?? 0, 1);
+    return {
+      nights,
+      adults: persons,
+      children: 0,
+      rooms: Math.max(parent.unitCount ?? 1, 1),
+      // Nabavna cena JEDNE noći matične stavke — osnova za PERCENTAGE_OF_NIGHTLY_RATE.
+      nightlyRate: Math.round(parent.baseCost / nights),
+      quantity,
+    };
+  }
+
+  /** Doplate/popusti ugovoreni za period matične stavke, sa već izračunatom cenom za ovu stavku. */
+  async listAncillariesForItem(bookingId: string, itemId: string, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: { include: { guests: true } } } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+
+    const parent = booking.items.find((i) => i.id === itemId);
+    if (!parent) throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
+
+    // Doplate su ugovorna kategorija (M3 §2.6) — API stavka nema ugovorni period, pa ni spisak.
+    // Prazna lista, ne greška: to je tačno stanje, ne kvar.
+    if (!parent.rateLineId) return [];
+    const rateLine = await this.prisma.rateLine.findUnique({
+      where: { id: parent.rateLineId },
+      include: { contractPeriod: { include: { ancillaryServices: true } } },
+    });
+    if (!rateLine) return [];
+
+    const alreadyAdded = new Set(
+      booking.items.filter((i) => i.parentItemId === parent.id && i.itemStatus !== 'CANCELLED').map((i) => i.ancillaryServiceId),
+    );
+    const ctx = this.ancillaryContextFor(parent, 1);
+
+    return rateLine.contractPeriod.ancillaryServices.map((svc) => ({
+      id: svc.id,
+      name: svc.name,
+      kind: svc.kind,
+      priceBasis: svc.priceBasis,
+      payable: svc.payable,
+      isMandatory: svc.isMandatory,
+      isRefundable: svc.isRefundable,
+      maxQuantity: svc.maxQuantity,
+      notes: svc.notes,
+      /** Iznos za TAČNO ovu stavku (njene noći, sobe i putnike) — ne gola cena iz cenovnika. */
+      amount: signedAncillaryAmount(svc as unknown as AncillaryServiceLike, ctx),
+      currency: parent.finalPriceCurrency,
+      alreadyAdded: alreadyAdded.has(svc.id),
+      /** Razlog zašto se ne može dodati (sastav gostiju), ili `null`. */
+      blockedReason: checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, { adults: ctx.adults, children: ctx.children }),
+    }));
+  }
+
+  /**
+   * Upisuje doplatu/popust kao vezanu stavku. Zajedničko za ručno dodavanje (agent bira) i za
+   * automatsko povlačenje obaveznih (`attachMandatoryAncillaries`) — ista pravila cene i istog
+   * oblika zapis, da se ta dva puta ne raziđu.
+   */
+  private async createAncillaryItem(
+    parent: BookingItem & { guests?: { id: string }[] },
+    svc: {
+      id: string;
+      name: string;
+      kind: 'SURCHARGE' | 'DISCOUNT';
+      payable: 'AGENCY' | 'ON_SITE';
+      maxQuantity: number | null;
+    } & Record<string, unknown>,
+    quantity: number,
+  ) {
+    const ctx = this.ancillaryContextFor(parent, quantity);
+    const baseCost = signedAncillaryAmount(svc as unknown as AncillaryServiceLike, ctx);
+
+    // Marža na doplatu: ista kao na matičnoj stavci (doplata je deo iste prodaje, ne zaseban
+    // posao) — zato se pravilo ne razrešava iznova nego se čita ono koje je stavka već dobila.
+    //
+    // DVA IZUZETKA, oba namerna:
+    //  - `ON_SITE`: gost plaća dobavljaču direktno, agencija tu ništa ne prodaje — marža nema
+    //    na šta da se primeni.
+    //  - `DISCOUNT`: popust prolazi gostu 1:1. Primena procenta na negativan iznos bi tiho
+    //    umanjila popust koji je gost dobio, a fiksni deo marže bi mu ga još i naplatio.
+    //    (Odluka agenta uz §6.7a, zabeležena kao takva — ako agencija sme da zadrži deo
+    //    dobavljačevog popusta, menja se ovde, na jednom mestu.)
+    const rule =
+      svc.payable === 'ON_SITE' || svc.kind === 'DISCOUNT'
+        ? null
+        : await this.prisma.markupRule.findUnique({ where: { id: parent.markupRuleId } });
+    const finalPrice = rule ? applyMarkup(baseCost, rule) : baseCost;
+
+    return this.prisma.bookingItem.create({
+      data: {
+        bookingId: parent.bookingId,
+        // Doplata nema sopstven proizvod ni cenovnu liniju — nasleđuje matičnu stavku, čime
+        // nasleđuje i dobavljača (za vaučer i najavu, §6.7a).
+        productId: parent.productId,
+        sourceType: parent.sourceType,
+        supplierReference: parent.supplierReference,
+        stayFrom: parent.stayFrom,
+        stayTo: parent.stayTo,
+        baseCost,
+        baseCostCurrency: parent.baseCostCurrency,
+        rateLineId: null,
+        markupRuleId: parent.markupRuleId,
+        finalPrice,
+        finalPriceCurrency: parent.finalPriceCurrency,
+        itemStatus: parent.itemStatus,
+        unitCount: quantity,
+        parentItemId: parent.id,
+        ancillaryServiceId: svc.id,
+        payable: svc.payable,
+        // Doplata ide na najavu zajedno sa matičnom stavkom (isti dobavljač, isti period) —
+        // sopstvena najava za „parking" bez konteksta sobe nikome ne znači ništa.
+        announcedAt: parent.announcedAt,
+        supplierConfirmedAt: parent.supplierConfirmedAt,
+      },
+    });
+  }
+
+  /**
+   * §6.7a — OBAVEZNE doplate se povlače automatski uz stavku, agent bira samo opcione.
+   *
+   * Razlog je iskustvo, ne udobnost: obavezna doplata koju treba ručno dodati pre ili kasnije
+   * nekome ispadne iz cene, a to se otkriva tek na licu mesta, kad je već reklamacija.
+   */
+  private async attachMandatoryAncillaries(parentId: string): Promise<number> {
+    const parent = await this.prisma.bookingItem.findUnique({ where: { id: parentId }, include: { guests: true } });
+    if (!parent?.rateLineId) return 0;
+    const rateLine = await this.prisma.rateLine.findUnique({
+      where: { id: parent.rateLineId },
+      include: { contractPeriod: { include: { ancillaryServices: { where: { isMandatory: true } } } } },
+    });
+    if (!rateLine) return 0;
+
+    let added = 0;
+    for (const svc of rateLine.contractPeriod.ancillaryServices) {
+      // Sastav gostiju koji ne staje u granice obavezne doplate se PRESKAČE, ne ruši dodavanje
+      // stavke: bolje stavka bez doplate koju čovek vidi i doda ručno, nego odbijena rezervacija
+      // zbog cenovnika dobavljača.
+      if (checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, { adults: Math.max(parent.guests.length, 1), children: 0 })) continue;
+      await this.createAncillaryItem(parent, svc as any, 1);
+      added++;
+    }
+    return added;
+  }
+
+  /** §6.7a — agent dodaje OPCIONU doplatu/popust na postojeću stavku. */
+  async addAncillaryToItem(bookingId: string, itemId: string, dto: AddAncillaryItemDto, actor: { userId: string }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { items: { include: { guests: true } } } });
+    if (!booking) throw new NotFoundException(`Rezervacija ${bookingId} nije pronađena.`);
+    await this.assertBookingAccessible(booking, actor.userId);
+    await this.assertInternalPanelOnly(actor.userId);
+    if (booking.status === 'CANCELLED') throw new BadRequestException('Na otkazanu rezervaciju se ne dodaje doplata (M5 spec §6.7a).');
+
+    const parent = booking.items.find((i) => i.id === itemId);
+    if (!parent) throw new NotFoundException(`Stavka ${itemId} ne pripada rezervaciji ${bookingId}.`);
+    if (parent.itemStatus === 'CANCELLED') throw new BadRequestException('Stavka je otkazana — doplata se ne dodaje na otkazanu stavku.');
+    if (parent.parentItemId) throw new BadRequestException('Doplata se dodaje na uslugu, ne na drugu doplatu (M5 spec §6.7a).');
+
+    const svc = await this.prisma.ancillaryService.findUnique({ where: { id: dto.ancillaryServiceId } });
+    if (!svc) throw new NotFoundException(`Doplata ${dto.ancillaryServiceId} nije pronađena.`);
+
+    const quantity = dto.quantity ?? 1;
+    if (svc.maxQuantity != null && quantity > svc.maxQuantity) {
+      throw new BadRequestException(`Najviše ${svc.maxQuantity} kom. za „${svc.name}" (M3 spec §2.6).`);
+    }
+    const blocked = checkAncillaryOccupancy(svc as unknown as AncillaryServiceLike, {
+      adults: Math.max(parent.guests.length, 1),
+      children: 0,
+    });
+    if (blocked) throw new BadRequestException(blocked);
+
+    const item = await this.createAncillaryItem(parent, svc as any, quantity);
+
+    const updated = await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { totalPrice: await this.recomputeBookingTotal(bookingId) },
+      include: { items: true },
+    });
+
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: actor.userId,
+      module: 'M5',
+      action: 'booking.ancillary_added',
+      resourceType: 'Booking',
+      resourceId: bookingId,
+      afterState: updated,
+      context: { parentItemId: parent.id, ancillaryServiceId: svc.id, itemId: item.id, payable: svc.payable },
+    });
+    await this.eventBus.emit('M5', 'booking.ancillary_added', { bookingId, itemId: item.id, parentItemId: parent.id });
+
+    return updated;
+  }
+
+  /** Ukupno što gost plaća NA LICU MESTA — ne ulazi u `total_price`, ali se mora videti (§6.7a). */
+  async onSiteTotal(bookingId: string): Promise<number> {
+    const agg = await this.prisma.bookingItem.aggregate({
+      where: { bookingId, itemStatus: { not: 'CANCELLED' }, payable: 'ON_SITE' },
+      _sum: { finalPrice: true },
+    });
+    return agg._sum.finalPrice ?? 0;
   }
 
   private async reserveBuiltItem(

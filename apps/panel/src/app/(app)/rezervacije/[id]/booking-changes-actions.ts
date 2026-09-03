@@ -222,3 +222,50 @@ export async function addBookingItem(bookingId: string, _prev: ChangeFormState, 
   revalidatePath(`/rezervacije/${bookingId}`);
   return { ...emptyChangeState, ok: 'Usluga je dodata — ukupno zaduženje je preračunato.' };
 }
+
+
+// ============================================================================
+// M5 spec §6.7a — doplate i popusti kao VEZANE stavke
+// ============================================================================
+
+export interface AncillaryOption {
+  id: string;
+  name: string;
+  kind: 'SURCHARGE' | 'DISCOUNT';
+  priceBasis: string;
+  payable: 'AGENCY' | 'ON_SITE';
+  isMandatory: boolean;
+  isRefundable: boolean;
+  maxQuantity: number | null;
+  notes: string | null;
+  /** Iznos za TAČNO ovu stavku (njene noći, sobe, putnike) — popust je negativan. */
+  amount: number;
+  currency: string;
+  alreadyAdded: boolean;
+  /** Razlog zašto se ne može dodati (sastav gostiju), ili `null`. */
+  blockedReason: string | null;
+}
+
+/** Spisak ugovorenih doplata/popusta za period matične stavke, sa već izračunatom cenom. */
+export async function listItemAncillaries(bookingId: string, itemId: string): Promise<{ error: string | null; options: AncillaryOption[] }> {
+  try {
+    const options = await apiFetch<AncillaryOption[]>(`/sales/bookings/${bookingId}/items/${itemId}/ancillaries`);
+    return { error: null, options };
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Spisak doplata nije dostupan.', options: [] };
+  }
+}
+
+/** Dodaje opcionu doplatu/popust. Obavezne se povlače automatski i ne prolaze ovuda. */
+export async function addAncillaryToItem(bookingId: string, itemId: string, ancillaryServiceId: string, quantity?: number): Promise<ChangeFormState> {
+  try {
+    await apiFetch(`/sales/bookings/${bookingId}/items/${itemId}/ancillaries`, {
+      method: 'POST',
+      body: { ancillaryServiceId, ...(quantity && quantity > 1 ? { quantity } : {}) },
+    });
+  } catch (err) {
+    return { ...emptyChangeState, error: err instanceof ApiError ? extractMessage(err) : 'Dodavanje doplate nije uspelo.' };
+  }
+  revalidatePath(`/rezervacije/${bookingId}`);
+  return { ...emptyChangeState, ok: 'Doplata je dodata.' };
+}

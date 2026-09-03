@@ -216,6 +216,8 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - ~~**Ručno unesena usluga na postojećoj REZERVACIJI.**~~ **Rešeno 3.9.2026** — M5 §6.7b (prozor u rezervaciji, dobavljač/nabavna/marža/izlazna, kvačica „sačuvaj u katalog").
 - **`ManualProductEntry` (M5 §3.0f) je specificiran 18.8.2026 ali nikad implementiran** — nema ga ni u `schema.prisma` ni u kodu, `ProductSourceType` ima samo `CONTRACTED`/`API`. Otkriveno 3.9.2026 pri pisanju §6.7b. Kad se bude gradio ručni unos na rezervaciji, gradi se **zajedno** sa §3.0f (isti model, isti pregled osoblja §3.0f.4), ne kao drugi paralelan put za istu stvar.
 
+- **`BookingItem` ne nosi podelu odrasli/deca** (otkriveno 3.9.2026 pri izradi M5 §6.7a) — `QuoteItem` ima `occupancy`, `BookingItem` nikad nije ni imao. Posledica: pri proveri da li sastav gostiju staje u granice doplate (M3 v1.13 `max_children`/`child_max_age`) svi putnici se broje kao odrasli, pa te dve granice na rezervaciji ne mogu ništa da odbiju. Obračun i granica ukupnog broja osoba rade ispravno. Rešenje traži ili polje na `BookingItem` ili uzrast na `BookingItemGuest` — vlasnikova odluka, jer dodiruje i M9 (prijava na terenu).
+
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
 - **`GuestProfile` nema rok važenja dokumenta, pol, ni mesto/zemlju rođenja** (M5 §3.0g.7, 2.9.2026) — potrebno zbog vlasnikove odluke da se podaci putnika traže odmah i u celosti; avio-kompanije traže pol i rok važenja dokumenta, a rok važenja je i uslov za vizu.

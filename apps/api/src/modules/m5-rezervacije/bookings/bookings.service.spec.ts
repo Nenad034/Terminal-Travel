@@ -9,7 +9,19 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
-      bookingItem: { findMany: jest.fn(), findUnique: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn(), aggregate: jest.fn() },
+      // `aggregate` ima podrazumevanu vrednost otkako otkazivanje i dodavanje doplate
+      // preračunavaju ukupno zaduženje (§6.7a) — bez nje bi svaki test koji ne mari za zbir
+      // pucao na `undefined._sum`. Testovi kojima je zbir bitan i dalje postavljaju svoju.
+      bookingItem: {
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        count: jest.fn(),
+        create: jest.fn(),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { finalPrice: 0 } }),
+      },
+      ancillaryService: { findUnique: jest.fn(), findMany: jest.fn().mockResolvedValue([]) },
+      markupRule: { findUnique: jest.fn().mockResolvedValue({ id: 'mr-1', percentage: 0, fixedAmount: 0 }) },
       bookingItemGuest: { findMany: jest.fn(), findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
       user: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
       subagent: { findUnique: jest.fn().mockResolvedValue(null) },
@@ -859,6 +871,152 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       expect(contractPeriods.reserve).not.toHaveBeenCalled();
       expect(prisma.bookingItem.create).not.toHaveBeenCalled();
       expect(prisma.booking.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // M5 spec §6.7a (3.9.2026) — doplate i popusti kao VEZANE stavke.
+  describe('doplate i popusti kao vezane stavke (§6.7a, 3.9.2026)', () => {
+    function parentItem(over: Record<string, unknown> = {}) {
+      return {
+        id: 'item-1',
+        bookingId: 'b1',
+        productId: 'p1',
+        sourceType: 'CONTRACTED' as const,
+        supplierReference: 'REF',
+        stayFrom: new Date('2027-07-01'),
+        stayTo: new Date('2027-07-08'), // 7 noći
+        baseCost: 70000,
+        baseCostCurrency: 'EUR',
+        rateLineId: 'rl-1',
+        markupRuleId: 'mr-1',
+        finalPrice: 84000,
+        finalPriceCurrency: 'EUR',
+        itemStatus: 'CONFIRMED' as const,
+        unitCount: 1,
+        parentItemId: null,
+        payable: 'AGENCY' as const,
+        announcedAt: null,
+        supplierConfirmedAt: null,
+        guests: [{ id: 'g1' }, { id: 'g2' }],
+        ...over,
+      };
+    }
+    function ancillary(over: Record<string, unknown> = {}) {
+      return {
+        id: 'anc-1',
+        name: 'Parking',
+        kind: 'SURCHARGE',
+        pricingMode: 'FLAT_PER_UNIT',
+        flatAmount: 500,
+        percentageOfNightlyRate: null,
+        priceBasis: 'PER_ROOM_PER_NIGHT',
+        coversPersons: 4,
+        maxAdults: null,
+        maxChildren: null,
+        childMaxAge: null,
+        payable: 'AGENCY',
+        isMandatory: false,
+        isRefundable: false,
+        maxQuantity: null,
+        notes: null,
+        ...over,
+      };
+    }
+
+    it('dodaje doplatu kao vezanu stavku i računa cenu iz osnove (7 noći × 1 soba × 5,00)', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', items: [parentItem()] });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary());
+      prisma.bookingItem.create.mockResolvedValue({ id: 'anc-item' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, { userId: 'staff-1' });
+
+      const data = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(data.baseCost).toBe(3500);
+      expect(data.parentItemId).toBe('item-1');
+      expect(data.ancillaryServiceId).toBe('anc-1');
+      // nasleđuje dobavljača matične stavke — bez toga vaučer i najava po dobavljaču ne rade
+      expect(data.supplierReference).toBe('REF');
+      expect(data.productId).toBe('p1');
+    });
+
+    it('popust ulazi sa minusom i BEZ marže (prolazi gostu 1:1)', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findUnique.mockResolvedValue({ id: 'mr-1', percentage: 20, fixedAmount: 0 });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', items: [parentItem()] });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary({ kind: 'DISCOUNT', priceBasis: 'PER_ROOM_PER_STAY', flatAmount: 2000 }));
+      prisma.bookingItem.create.mockResolvedValue({ id: 'anc-item' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, { userId: 'staff-1' });
+
+      const data = prisma.bookingItem.create.mock.calls[0][0].data;
+      expect(data.baseCost).toBe(-2000);
+      expect(data.finalPrice).toBe(-2000);
+    });
+
+    it('ON_SITE doplata dobija cenu bez marže i NE ulazi u ukupno zaduženje', async () => {
+      const { service, prisma } = makeService();
+      prisma.markupRule.findUnique.mockResolvedValue({ id: 'mr-1', percentage: 50, fixedAmount: 0 });
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', items: [parentItem()] });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary({ payable: 'ON_SITE', priceBasis: 'PER_ROOM_PER_STAY', flatAmount: 1000 }));
+      prisma.bookingItem.create.mockResolvedValue({ id: 'anc-item' });
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, { userId: 'staff-1' });
+
+      expect(prisma.bookingItem.create.mock.calls[0][0].data.finalPrice).toBe(1000);
+      // zbir se traži samo za AGENCY stavke — ON_SITE se ne sabira (§6.7a)
+      const aggWhere = prisma.bookingItem.aggregate.mock.calls.at(-1)[0].where;
+      expect(aggWhere.payable).toBe('AGENCY');
+    });
+
+    it('odbija doplatu čiji uslov po sastavu gostiju nije ispunjen i količinu preko max_quantity', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        status: 'CONFIRMED',
+        items: [parentItem({ guests: [{ id: 'g1' }, { id: 'g2' }, { id: 'g3' }] })],
+      });
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary({ coversPersons: 2 }));
+      await expect(service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1' } as any, { userId: 'staff-1' })).rejects.toThrow(
+        BadRequestException,
+      );
+
+      prisma.ancillaryService.findUnique.mockResolvedValue(ancillary({ maxQuantity: 1 }));
+      await expect(
+        service.addAncillaryToItem('b1', 'item-1', { ancillaryServiceId: 'anc-1', quantity: 3 } as any, { userId: 'staff-1' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.bookingItem.create).not.toHaveBeenCalled();
+    });
+
+    it('otkazivanje matične stavke otkazuje i vezanu doplatu, i kad nije navedena u itemIds', async () => {
+      const { service, prisma } = makeService();
+      const parent = parentItem({ rateLineId: null }); // bez rate_line_id — releaseItemCapacity je no-op
+      const child = { ...parentItem({ rateLineId: null }), id: 'anc-item', parentItemId: 'item-1', finalPrice: 3500 };
+      prisma.booking.findUnique.mockResolvedValue({ id: 'b1', clientAccountId: 'c1', status: 'CONFIRMED', items: [parent, child] });
+      prisma.bookingItemGuest.findMany.mockResolvedValue([]); // bez putnika — provera duplikata nema šta da poredi
+      prisma.bookingItem.count.mockResolvedValue(0);
+      prisma.booking.update.mockResolvedValue({ id: 'b1', items: [] });
+
+      await service.cancel('b1', { reason: 'test', itemIds: ['item-1'], confirmDuplicateOverride: true } as any, { userId: 'staff-1' });
+
+      const cancelled = prisma.bookingItem.update.mock.calls.map((c: any) => c[0].where.id);
+      expect(cancelled).toContain('item-1');
+      expect(cancelled).toContain('anc-item');
+    });
+
+    it('listAncillariesForItem vraća praznu listu za API stavku (doplate su ugovorna kategorija)', async () => {
+      const { service, prisma } = makeService();
+      prisma.booking.findUnique.mockResolvedValue({
+        id: 'b1',
+        clientAccountId: 'c1',
+        status: 'CONFIRMED',
+        items: [parentItem({ sourceType: 'API', rateLineId: null })],
+      });
+      expect(await service.listAncillariesForItem('b1', 'item-1', { userId: 'staff-1' })).toEqual([]);
     });
   });
 

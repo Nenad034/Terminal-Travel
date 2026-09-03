@@ -252,6 +252,8 @@ Analiza stvarnih cenovnika (avgust 2026) otkriva veliku raznolikost pomoćnih tr
 
 ~~**Namerno van obima ovde:** da li se `AncillaryService` prikazuje/prodaje gostu kroz M5 tok rezervacije kao opciona stavka, ili služi samo kao interna referenca troška — definiše M5, ne ovde.~~ **Rešeno 3.9.2026 (vlasnikova odluka):** prodaje se gostu — `AncillaryService` postaje **vezana stavka rezervacije** (M5 §6.7a), sa svime što stavka nosi (cena, vaučer, najava dobavljaču, otkazivanje). `is_mandatory = true` stavke se dodaju **automatski** uz matičnu stavku, opcione bira agent. M3 i dalje samo čuva ulazne podatke; obračun i prodaja su M5.
 
+**Stanje implementacije (3.9.2026):** sva polja iz v1.13 su u bazi (migracija `m3_ancillary_v113_m5_linked_items`), u `PUT /contracts/:id/periods/:periodId/ancillary-services` i u panelu (kartica „Dodatne usluge" na periodu ugovora) — uključujući pravilo da je `covers_persons` **obavezan** uz osnovu po sobi. Prodaja kroz rezervaciju je M5 §6.7a, takođe napravljena istog dana.
+
 **Šta ostaje van obima i posle v1.13:** tačan redosled primene kad se na istu stavku odnosi i `AncillaryService` popust i `PricelistOffer` akcija (poglavlje 2.4b) — isti obrazac kao već zabeleženo za dve `PricelistOffer` stavke: M3 čuva ulaz, M5 definiše obračun.
 
 ### 2.7 `TouristTaxInfo` — informativni podatak o boravišnoj/gradskoj taksi (dopuna v1.12, na zahtev vlasnika)

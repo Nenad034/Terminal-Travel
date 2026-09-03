@@ -365,6 +365,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 
 ---
 
+**10.3 Vezana stavka nasleđuje tuđ naziv — ekran prikazuje pogrešno ime, a ništa ne puca**
+- *Simptom:* doplate dodate na rezervaciju (parking, boravišna taksa) prikazivale su se na kartici Aranžman kao „Hotel Avala Resort" — dva reda sa imenom hotela i različitim cenama (3.9.2026, viđeno na snimku ekrana posle uspešnog e2e testa koji je proverio samo IZNOSE).
+- *Uzrok:* vezana stavka (M5 §6.7a) namerno nasleđuje `product_id` matične stavke — tako nasleđuje i dobavljača, što je uslov da vaučer i najava po dobavljaču rade. Ali panel je naziv čitao iz `product.name`, a doplata nema sopstven proizvod: njen naziv živi u M3 `AncillaryService.name`. Odgovor API-ja je bio potpuno validan, tipovi su se slagali, testovi su prolazili — greška postoji samo na ekranu.
+- *Provera:* kad novi zapis NAMERNO nasleđuje strani ključ (proizvod, dobavljač, ugovor) da bi nasledio ponašanje, proveriti odvojeno **odakle mu dolazi NAZIV** — nasleđeni ključ skoro nikad ne nosi i tačno ime. Posle svakog e2e testa koji potvrđuje brojeve, pogledati i sam snimak ekrana: iznos i naziv su dve nezavisne stvari i test iznosa ne dokazuje ništa o nazivu (isto kao 7.1 — „build prolazi a ekran je pokvaren").
+
 ## 11. CI ne odgovara lokalnom okruženju — "prošlo je kod mene" nije dokaz
 
 **11.1 CI Postgres slika bez `pgvector` — migracija koja zahteva ekstenziju tiho puca na svakom pushu, niko ne primeti jer se run ne proverava svaki put**

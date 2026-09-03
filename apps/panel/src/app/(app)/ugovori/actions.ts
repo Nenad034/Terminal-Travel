@@ -134,7 +134,16 @@ export async function addAncillaryService(contractId: string, periodId: string, 
         pricingMode,
         flatAmount: pricingMode === 'FLAT_PER_UNIT' ? Number(formData.get('flatAmount')) : undefined,
         percentageOfNightlyRate: pricingMode === 'PERCENTAGE_OF_NIGHTLY_RATE' ? Number(formData.get('percentageOfNightlyRate')) : undefined,
-        unit: formData.get('unit'),
+        // M3 §2.6 v1.13 (3.9.2026) — osnova je PAR (osoba/soba × dan/period), doplata ili
+        // popust, granice po sastavu gostiju, i mesto plaćanja. `coversPersons` se šalje samo
+        // uz osnovu po sobi — backend ga tamo i traži (za osnovu po osobi nema smisla).
+        kind: formData.get('kind'),
+        priceBasis: formData.get('priceBasis'),
+        coversPersons: formData.get('coversPersons') ? Number(formData.get('coversPersons')) : undefined,
+        maxAdults: formData.get('maxAdults') ? Number(formData.get('maxAdults')) : undefined,
+        maxChildren: formData.get('maxChildren') ? Number(formData.get('maxChildren')) : undefined,
+        childMaxAge: formData.get('childMaxAge') ? Number(formData.get('childMaxAge')) : undefined,
+        payable: formData.get('payable'),
         isMandatory: formData.get('isMandatory') === 'true',
         isRefundable: formData.get('isRefundable') === 'true',
         maxQuantity: formData.get('maxQuantity') ? Number(formData.get('maxQuantity')) : undefined,

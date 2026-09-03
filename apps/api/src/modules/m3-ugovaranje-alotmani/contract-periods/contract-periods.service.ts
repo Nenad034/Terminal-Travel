@@ -190,10 +190,19 @@ export class ContractPeriodsService {
       data: {
         contractPeriodId: periodId,
         name: dto.name,
+        // §2.6 v1.13 — doplata ili popust, osnova kao PAR, granice po sastavu gostiju i mesto
+        // plaćanja. Podrazumevane vrednosti (`SURCHARGE`/`AGENCY`) drže postojeći unos
+        // nepromenjenim: ko ne pošalje ništa novo dobija ono što je i pre v1.13 upisivao.
+        kind: dto.kind ?? 'SURCHARGE',
         pricingMode: dto.pricingMode,
         flatAmount: dto.flatAmount,
         percentageOfNightlyRate: dto.percentageOfNightlyRate,
-        unit: dto.unit,
+        priceBasis: dto.priceBasis,
+        coversPersons: dto.coversPersons,
+        maxAdults: dto.maxAdults,
+        maxChildren: dto.maxChildren,
+        childMaxAge: dto.childMaxAge,
+        payable: dto.payable ?? 'AGENCY',
         isMandatory: dto.isMandatory ?? false,
         isRefundable: dto.isRefundable ?? false,
         maxQuantity: dto.maxQuantity,

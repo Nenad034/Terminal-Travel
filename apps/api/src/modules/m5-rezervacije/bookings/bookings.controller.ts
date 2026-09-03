@@ -4,6 +4,7 @@ import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { ModifyBookingDto } from './dto/modify-booking.dto';
 import { AddBookingItemDto } from './dto/add-booking-item.dto';
+import { AddAncillaryItemDto } from './dto/add-ancillary-item.dto';
 import { UpdatePaymentStatusDto } from './dto/payment-status.dto';
 import { VoucherOverrideDto } from './dto/voucher-override.dto';
 import { AssignGuideDto } from './dto/assign-guide.dto';
@@ -214,6 +215,29 @@ export class BookingsController {
   @RequirePermission('M5', 'booking', 'MODIFY')
   previewAddItem(@Param('id') id: string, @Body() dto: AddBookingItemDto, @CurrentUser() actor: { userId: string }) {
     return this.bookings.previewAddItem(id, dto, actor);
+  }
+
+  // M5 spec §6.7a (3.9.2026, vlasnikova odluka „doplate su vrlo česte… tretirajte ih kao nove
+  // stavke") — doplate/popusti ugovoreni za period matične stavke, sa cenom izračunatom za
+  // TAČNO tu stavku (njene noći, sobe i putnike). Ista dozvola kao pregled rezervacije: spisak
+  // ne otkriva ništa što se već ne vidi na samoj stavci.
+  @Get(':id/items/:itemId/ancillaries')
+  @RequirePermission('M5', 'booking', 'VIEW')
+  listAncillaries(@Param('id') id: string, @Param('itemId') itemId: string, @CurrentUser() actor: { userId: string }) {
+    return this.bookings.listAncillariesForItem(id, itemId, actor);
+  }
+
+  // Dodavanje OPCIONE doplate/popusta. Obavezne (`is_mandatory`) se povlače automatski uz
+  // stavku i ne prolaze kroz ovaj put. Cena se ne prima od klijenta — računa se na serveru.
+  @Post(':id/items/:itemId/ancillaries')
+  @RequirePermission('M5', 'booking', 'MODIFY')
+  addAncillary(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Body() dto: AddAncillaryItemDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.bookings.addAncillaryToItem(id, itemId, dto, actor);
   }
 
   @Post(':id/cancel')

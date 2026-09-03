@@ -5,7 +5,14 @@ import { useFormStatus } from 'react-dom';
 import Icon from '@/components/Icon';
 import { Button } from '@/components/ui/button';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
-import { modifyBookingItem, previewModifyPrice, type ModifyPreviewResult } from './booking-changes-actions';
+import {
+  addAncillaryToItem,
+  listItemAncillaries,
+  modifyBookingItem,
+  previewModifyPrice,
+  type AncillaryOption,
+  type ModifyPreviewResult,
+} from './booking-changes-actions';
 import { emptyChangeState } from './change-form-state';
 
 export interface CandidateProduct {
@@ -13,6 +20,17 @@ export interface CandidateProduct {
   name: string;
   destinationCity: string;
   destinationCountry: string;
+}
+
+/** M5 spec §6.7a — vezana doplata/popust, onako kako se prikazuje ispod matične stavke. */
+export interface AranzmanAncillary {
+  id: string;
+  name: string;
+  finalPrice: number;
+  finalPriceCurrency?: string;
+  itemStatus: string;
+  payable?: 'AGENCY' | 'ON_SITE';
+  unitCount?: number;
 }
 
 export interface AranzmanItem {
@@ -57,11 +75,14 @@ export default function AranzmanItemCard({
   item,
   candidates,
   canModify,
+  ancillaries,
 }: {
   bookingId: string;
   item: AranzmanItem;
   candidates: CandidateProduct[];
   canModify: boolean;
+  /** §6.7a — doplate/popusti vezani za OVU stavku. Prikazuju se uz nju, ne kao zaseban red. */
+  ancillaries?: AranzmanAncillary[];
 }) {
   const [editing, setEditing] = useState(false);
   const [productId, setProductId] = useState(item.productId);
@@ -73,6 +94,36 @@ export default function AranzmanItemCard({
 
   const iconName = typeIcon(item.type);
   const canEdit = canModify && item.itemStatus !== 'CANCELLED';
+
+  // §6.7a — spisak ugovorenih doplata se traži tek kad se panel otvori: većina pregleda
+  // rezervacije nikad ne dodaje doplatu, a spisak zavisi od ugovornog perioda te stavke.
+  const [ancOpen, setAncOpen] = useState(false);
+  const [ancOptions, setAncOptions] = useState<AncillaryOption[] | null>(null);
+  const [ancError, setAncError] = useState<string | null>(null);
+  const [ancPending, startAnc] = useTransition();
+
+  function openAncillaries() {
+    setAncOpen(true);
+    setAncOptions(null);
+    setAncError(null);
+    startAnc(async () => {
+      const res = await listItemAncillaries(bookingId, item.id);
+      setAncError(res.error);
+      setAncOptions(res.options);
+    });
+  }
+
+  function addAncillary(optionId: string) {
+    startAnc(async () => {
+      const res = await addAncillaryToItem(bookingId, item.id, optionId);
+      if (res.error) setAncError(res.error);
+      else {
+        setAncError(null);
+        const refreshed = await listItemAncillaries(bookingId, item.id);
+        setAncOptions(refreshed.options);
+      }
+    });
+  }
 
   function checkPrice() {
     setPreview(null);
@@ -116,13 +167,82 @@ export default function AranzmanItemCard({
         {item.supplierReference && <Field label="Ref. dobavljača" value={item.supplierReference} />}
       </dl>
 
+      {/* §6.7a — vezane doplate/popusti stoje UZ stavku kojoj pripadaju. Otkazana doplata
+          ostaje vidljiva, precrtana: trag da je nekad postojala je deo dosijea. */}
+      {ancillaries && ancillaries.length > 0 && (
+        <div className="mt-3 space-y-1 border-l-2 border-border pl-3">
+          {ancillaries.map((a) => (
+            <div key={a.id} className={`flex items-center justify-between text-xs ${a.itemStatus === 'CANCELLED' ? 'text-ink-faint line-through' : 'text-ink-dim'}`}>
+              <span>
+                {a.finalPrice < 0 ? '− ' : '+ '}
+                {a.name}
+                {a.unitCount && a.unitCount > 1 ? ` ×${a.unitCount}` : ''}
+                {a.payable === 'ON_SITE' && <span className="ml-1.5 text-warn">plaća se na licu mesta</span>}
+              </span>
+              <span className="font-mono">{formatMoney(Math.abs(a.finalPrice), a.finalPriceCurrency)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {canEdit && !editing && (
-        <button
-          onClick={() => setEditing(true)}
-          className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
-        >
-          <Icon name="edit" /> Izmeni uslugu / datume
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+            <Icon name="edit" /> Izmeni uslugu / datume
+          </button>
+          {!ancOpen && (
+            <button onClick={openAncillaries} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
+              <Icon name="add" /> Dodaj doplatu / popust
+            </button>
+          )}
+        </div>
+      )}
+
+      {ancOpen && canEdit && (
+        <div className="mt-3 rounded border border-border bg-panel2 p-3 text-xs">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-medium text-ink">Ugovorene doplate i popusti</span>
+            <button onClick={() => setAncOpen(false)} className="text-ink-faint hover:text-ink">
+              zatvori
+            </button>
+          </div>
+          {ancPending && <p className="text-ink-faint">učitavam…</p>}
+          {ancError && <p className="text-danger">{ancError}</p>}
+          {!ancPending && ancOptions !== null && ancOptions.length === 0 && (
+            // §3.0g.5 obrazac — izričita rečenica umesto prazne liste. Doplate su UGOVORNA
+            // kategorija (M3 §2.6): stavka preko API veze ih nema, i to nije kvar.
+            <p className="text-ink-faint">
+              Za ovu stavku nema ugovorenih doplata ni popusta — unose se na periodu ugovora (M3), kartica „Dodatne usluge".
+            </p>
+          )}
+          <div className="flex flex-col gap-1">
+            {(ancOptions ?? []).map((o) => (
+              <div key={o.id} className="flex items-center justify-between gap-3 rounded border border-border bg-panel px-2 py-1.5">
+                <span className="text-ink-dim">
+                  {o.name}
+                  {o.kind === 'DISCOUNT' && <span className="ml-1.5 text-ok">popust</span>}
+                  {o.isMandatory && <span className="ml-1.5 text-warn">obavezno</span>}
+                  {o.payable === 'ON_SITE' && <span className="ml-1.5 text-warn">na licu mesta</span>}
+                  {o.blockedReason && <span className="ml-1.5 text-danger">{o.blockedReason}</span>}
+                </span>
+                <span className="flex items-center gap-2">
+                  <span className="font-mono text-ink">{formatMoney(o.amount, o.currency)}</span>
+                  {o.alreadyAdded ? (
+                    <span className="text-ink-faint">dodato</span>
+                  ) : (
+                    <Button type="button" size="sm" variant="secondary" disabled={ancPending || Boolean(o.blockedReason)} onClick={() => addAncillary(o.id)}>
+                      dodaj
+                    </Button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-ink-faint">
+            Obavezne doplate se dodaju automatski uz uslugu (M5 spec §6.7a) — ovde se biraju opcione. Iznos koji se plaća na licu mesta ne ulazi u
+            ukupno zaduženje, ali ide u ugovor i na vaučer.
+          </p>
+        </div>
       )}
 
       {canEdit && editing && (

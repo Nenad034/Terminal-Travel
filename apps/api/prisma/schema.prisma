@@ -579,9 +579,9 @@ model ContractPeriod {
   rateLines         RateLine[]
   cancellationRules CancellationRule[]
   // §2.4b/§2.6/§2.7 dopuna v1.12
-  offers             PricelistOffer[]
-  ancillaryServices  AncillaryService[]
-  touristTaxInfo     TouristTaxInfo?
+  offers            PricelistOffer[]
+  ancillaryServices AncillaryService[]
+  touristTaxInfo    TouristTaxInfo?
   // M5 spec §8.1 — dopuna avgust 2026, back-relacija ka operativnim listama.
   supplierManifests SupplierManifest[]
 
@@ -654,14 +654,14 @@ enum AgePricingMode {
 // EARLY_DEPARTURE (nova polja); tačno jedan skup je popunjen zavisno od rule_type,
 // sprovedeno u DTO-u preko @ValidateIf, ne na nivou baze.
 model CancellationRule {
-  id                       String                @id @default(uuid())
-  contractPeriodId         String                @map("contract_period_id")
-  ruleType                 CancellationRuleType  @default(PRE_ARRIVAL) @map("rule_type")
-  daysBeforeStay           Int?                  @map("days_before_stay") // samo PRE_ARRIVAL
-  refundPercentage         Int?                  @map("refund_percentage") // samo PRE_ARRIVAL, 0-100, NIJE novčani iznos
-  earlyDepartureBasis      EarlyDepartureBasis?  @map("early_departure_basis") // samo EARLY_DEPARTURE
-  earlyDeparturePercentage Int?                  @map("early_departure_percentage") // samo PERCENTAGE_OF_REMAINING_STAY, 0-100
-  earlyDepartureFlatAmount Int?                  @map("early_departure_flat_amount") // samo FLAT_AMOUNT, najmanja jedinica valute
+  id                       String               @id @default(uuid())
+  contractPeriodId         String               @map("contract_period_id")
+  ruleType                 CancellationRuleType @default(PRE_ARRIVAL) @map("rule_type")
+  daysBeforeStay           Int?                 @map("days_before_stay") // samo PRE_ARRIVAL
+  refundPercentage         Int?                 @map("refund_percentage") // samo PRE_ARRIVAL, 0-100, NIJE novčani iznos
+  earlyDepartureBasis      EarlyDepartureBasis? @map("early_departure_basis") // samo EARLY_DEPARTURE
+  earlyDeparturePercentage Int?                 @map("early_departure_percentage") // samo PERCENTAGE_OF_REMAINING_STAY, 0-100
+  earlyDepartureFlatAmount Int?                 @map("early_departure_flat_amount") // samo FLAT_AMOUNT, najmanja jedinica valute
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
@@ -680,25 +680,25 @@ enum EarlyDepartureBasis {
 
 // §2.4b `PricelistOffer` — rana rezervacija/free-nights akcije, dopuna v1.12
 model PricelistOffer {
-  id                       String              @id @default(uuid())
-  contractPeriodId         String              @map("contract_period_id")
-  offerType                PricelistOfferType  @map("offer_type")
-  bookingFrom              DateTime            @map("booking_from")
-  bookingTo                DateTime            @map("booking_to")
-  discountType             OfferDiscountType?  @map("discount_type") // samo EARLY_BOOKING
-  discountPercentage       Decimal?            @map("discount_percentage") // samo discountType = PERCENTAGE
-  discountAmount           Int?                @map("discount_amount") // samo discountType = FIXED_AMOUNT, najmanja jedinica valute
-  stayNights               Int?                @map("stay_nights") // samo FREE_NIGHTS
-  payNights                Int?                @map("pay_nights") // samo FREE_NIGHTS, mora biti < stayNights
-  depositPercentage        Decimal?            @map("deposit_percentage")
-  depositDeadline          DateTime?           @map("deposit_deadline")
-  minAge                   Decimal?            @map("min_age")
-  maxAge                   Decimal?            @map("max_age")
-  validArrivalWeekdays     Int[]               @map("valid_arrival_weekdays")
-  excludedRoomTypes        String[]            @map("excluded_room_types")
+  id                        String             @id @default(uuid())
+  contractPeriodId          String             @map("contract_period_id")
+  offerType                 PricelistOfferType @map("offer_type")
+  bookingFrom               DateTime           @map("booking_from")
+  bookingTo                 DateTime           @map("booking_to")
+  discountType              OfferDiscountType? @map("discount_type") // samo EARLY_BOOKING
+  discountPercentage        Decimal?           @map("discount_percentage") // samo discountType = PERCENTAGE
+  discountAmount            Int?               @map("discount_amount") // samo discountType = FIXED_AMOUNT, najmanja jedinica valute
+  stayNights                Int?               @map("stay_nights") // samo FREE_NIGHTS
+  payNights                 Int?               @map("pay_nights") // samo FREE_NIGHTS, mora biti < stayNights
+  depositPercentage         Decimal?           @map("deposit_percentage")
+  depositDeadline           DateTime?          @map("deposit_deadline")
+  minAge                    Decimal?           @map("min_age")
+  maxAge                    Decimal?           @map("max_age")
+  validArrivalWeekdays      Int[]              @map("valid_arrival_weekdays")
+  excludedRoomTypes         String[]           @map("excluded_room_types")
   combinableWithOtherOffers Boolean            @default(false) @map("combinable_with_other_offers")
-  createdAt                DateTime            @default(now()) @map("created_at")
-  updatedAt                DateTime            @updatedAt @map("updated_at")
+  createdAt                 DateTime           @default(now()) @map("created_at")
+  updatedAt                 DateTime           @updatedAt @map("updated_at")
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
@@ -717,21 +717,38 @@ enum OfferDiscountType {
 
 // §2.6 `AncillaryService` — pomoćni troškovi/usluge po periodu, dopuna v1.12
 model AncillaryService {
-  id                       String                  @id @default(uuid())
-  contractPeriodId         String                  @map("contract_period_id")
-  name                     String
-  pricingMode              AncillaryPricingMode    @map("pricing_mode")
-  flatAmount               Int?                    @map("flat_amount") // samo FLAT_PER_UNIT, najmanja jedinica valute
-  percentageOfNightlyRate  Decimal?                @map("percentage_of_nightly_rate") // samo PERCENTAGE_OF_NIGHTLY_RATE
-  unit                     AncillaryUnit
-  isMandatory              Boolean                 @default(false) @map("is_mandatory")
-  isRefundable             Boolean                 @default(false) @map("is_refundable")
-  maxQuantity              Int?                    @map("max_quantity")
-  notes                    String?
-  createdAt                DateTime                @default(now()) @map("created_at")
-  updatedAt                DateTime                @updatedAt @map("updated_at")
+  id                      String               @id @default(uuid())
+  contractPeriodId        String               @map("contract_period_id")
+  name                    String
+  // M3 spec 2.6 dopuna v1.13 — ista struktura nosi doplatu i popust; iznos je UVEK pozitivan,
+  // znak nosi `kind` (negativan iznos uz DISCOUNT bi bio dvostruka negacija).
+  kind                    AncillaryKind        @default(SURCHARGE)
+  pricingMode             AncillaryPricingMode @map("pricing_mode")
+  flatAmount              Int?                 @map("flat_amount") // samo FLAT_PER_UNIT, najmanja jedinica valute
+  percentageOfNightlyRate Decimal?             @map("percentage_of_nightly_rate") // samo PERCENTAGE_OF_NIGHTLY_RATE
+  // v1.13 — osnova je PAR (osoba/soba x dan/period); stari `unit` je umeo da kaze "po osobi"
+  // ILI "po danu", ali ne "po osobi i danu". Ista imena kao M5 SearchResultOffer.price_basis.
+  priceBasis              AncillaryPriceBasis  @map("price_basis")
+  // v1.13, samo za PER_ROOM_* — bez ovoga se cena po sobi ne moze proveriti prema stvarnom
+  // sastavu gostiju ("doplata za sobu 20 EUR" ne znaci nista dok se ne zna koliko osoba pokriva).
+  coversPersons           Int?                 @map("covers_persons")
+  maxAdults               Int?                 @map("max_adults")
+  maxChildren             Int?                 @map("max_children")
+  // v1.13 — do kog uzrasta se gost broji kao dete ZA OVU STAVKU. Namerno sopstveno polje, ne
+  // age_policy sobe: dobavljaci daju razlicitu granicu za kapacitet i za doplatu.
+  childMaxAge             Decimal?             @map("child_max_age")
+  // v1.13 (vlasnikova odluka) — ON_SITE iznos NE ulazi u ukupnu cenu aranzmana (M5 6.7a), ali
+  // mora biti odstampan u ugovoru (M20 3.2a) i na vauceru (M5 6).
+  payable                 AncillaryPayable     @default(AGENCY)
+  isMandatory             Boolean              @default(false) @map("is_mandatory")
+  isRefundable            Boolean              @default(false) @map("is_refundable")
+  maxQuantity             Int?                 @map("max_quantity")
+  notes                   String?
+  createdAt               DateTime             @default(now()) @map("created_at")
+  updatedAt               DateTime             @updatedAt @map("updated_at")
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
+  bookingItems   BookingItem[]
 
   @@map("ancillary_services")
 }
@@ -741,28 +758,42 @@ enum AncillaryPricingMode {
   PERCENTAGE_OF_NIGHTLY_RATE
 }
 
-enum AncillaryUnit {
-  PER_STAY
-  PER_NIGHT
-  PER_DAY
-  PER_PERSON
-  PER_PET
-  PER_ROOM
+// M3 spec 2.6 dopuna v1.13 — zamenjuje `AncillaryUnit` (v1.12). Stari enum je izrazavao samo
+// JEDAN pojam ("po osobi" ili "po danu"), a vlasnik je potvrdio da su stvarne sve cetiri
+// kombinacije para. `AncillaryUnit` je uklonjen u istoj migraciji — nije ostavljen "za svaki
+// slucaj": mrtav enum sledeca izmena tumaci kao podrzan slucaj.
+enum AncillaryPriceBasis {
+  PER_PERSON_PER_NIGHT
+  PER_ROOM_PER_NIGHT
+  PER_PERSON_PER_STAY
+  PER_ROOM_PER_STAY
+  PER_PET_PER_NIGHT
+  PER_PET_PER_STAY
+}
+
+enum AncillaryKind {
+  SURCHARGE
+  DISCOUNT
+}
+
+enum AncillaryPayable {
+  AGENCY
+  ON_SITE
 }
 
 // §2.7 `TouristTaxInfo` — isključivo informativan podatak, jedan po periodu (1:1); dopuna v1.12.
 // Ograda §2.7: nijedan M3/M10/M11 endpoint ne sme ovo koristiti kao osnovu za fakturisanje/prijavu.
 model TouristTaxInfo {
-  id               String               @id @default(uuid())
-  contractPeriodId String               @unique @map("contract_period_id")
-  includedInPrice  Boolean              @map("included_in_price")
+  id               String                 @id @default(uuid())
+  contractPeriodId String                 @unique @map("contract_period_id")
+  includedInPrice  Boolean                @map("included_in_price")
   collectedBy      TouristTaxCollectedBy? @map("collected_by") // samo kad includedInPrice = false
-  amountPerNight   Int?                 @map("amount_per_night")
+  amountPerNight   Int?                   @map("amount_per_night")
   currency         String?
-  taxExemptMaxAge  Decimal?             @map("tax_exempt_max_age")
+  taxExemptMaxAge  Decimal?               @map("tax_exempt_max_age")
   notes            String?
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
@@ -1033,22 +1064,22 @@ enum ItineraryStatus {
 
 // §3.0.2 `ItinerarySegment`
 model ItinerarySegment {
-  id                 String    @id @default(uuid())
-  itineraryId        String    @map("itinerary_id")
-  sequenceOrder      Int       @map("sequence_order")
-  productId          String?   @map("product_id")
-  destinationCountry String?   @map("destination_country")
-  destinationCity    String?   @map("destination_city")
-  stayFrom           DateTime? @map("stay_from")
-  stayTo             DateTime? @map("stay_to")
-  notes              String?
+  id                        String             @id @default(uuid())
+  itineraryId               String             @map("itinerary_id")
+  sequenceOrder             Int                @map("sequence_order")
+  productId                 String?            @map("product_id")
+  destinationCountry        String?            @map("destination_country")
+  destinationCity           String?            @map("destination_city")
+  stayFrom                  DateTime?          @map("stay_from")
+  stayTo                    DateTime?          @map("stay_to")
+  notes                     String?
   // §3.0.2 dopuna (31.8.2026) — segment ostaje u itineraru ali se isključuje iz zbira/konverzije
   // bez brisanja (spec od v1.35, nedostajalo u Prisma modelu do sada).
-  isIncluded         Boolean   @default(true) @map("is_included")
+  isIncluded                Boolean            @default(true) @map("is_included")
   // §3.0.2 dopuna (31.8.2026) — isti oblik kao QuoteItem.occupancy (§3.2/3.2a), po segmentu
   // umesto na nivou cele Ponude. `null` = još nije određeno, konverzija pretpostavlja 1 odraslu
   // osobu (nazadnokompatibilno ponašanje, §3.0.3).
-  occupancy          Json?
+  occupancy                 Json?
   // §3.0.2 dopuna (31.8.2026) — informativna procena cene snimljena iz SearchResultOffer u
   // trenutku izbora (spec od v1.35, nedostajalo u Prisma modelu do sada); nikad obavezujuća,
   // cena se uvek računa iznova pri konverziji (§3.0.3).
@@ -1170,9 +1201,9 @@ model Booking {
   clientPaymentSchedule       ClientPaymentSchedule?
   travelGuaranteeRegistration TravelGuaranteeRegistration?
   clientContracts             ClientContract[]
-  postTripSurvey               PostTripSurvey?
-  handoffRequests              BookingHandoffRequest[]
-  notes                        BookingNote[]
+  postTripSurvey              PostTripSurvey?
+  handoffRequests             BookingHandoffRequest[]
+  notes                       BookingNote[]
 
   @@map("bookings")
 }
@@ -1268,6 +1299,20 @@ model BookingItem {
   // kopira se iz QuoteItem pri potvrdi (§4) i pri izmeni (§6, nova stavka).
   unitCount                    Int               @default(1) @map("unit_count")
   cancellationPolicySnapshot   Json?             @map("cancellation_policy_snapshot")
+  // M5 spec 6.7a (3.9.2026) — doplata/popust je VEZANA stavka, ne samostalna: otkazivanje
+  // maticne otkazuje i nju, nasledjuje dobavljaca za vaucer/najavu, a doplata kao procenat
+  // nocne cene se bez maticne stavke ne moze ni izracunati.
+  parentItemId                 String?           @map("parent_item_id")
+  ancillaryServiceId           String?           @map("ancillary_service_id") // FK -> M3 AncillaryService
+  // 6.7a — ON_SITE stavka ima cenu ali NE ulazi u Booking.total_price (agencija je nikad ne
+  // naplati ni ne isplati). Jedini slucaj u M5 gde stavka ima cenu a ne ulazi u zbir, i zato
+  // namerno vezan za JEDNO polje, ne za naziv ili tip usluge.
+  payable                      AncillaryPayable  @default(AGENCY)
+  parentItem                   BookingItem?      @relation("BookingItemAncillaries", fields: [parentItemId], references: [id], onDelete: Cascade)
+  ancillaryItems               BookingItem[]     @relation("BookingItemAncillaries")
+  // Naziv doplate ("Parking", "Boravisna taksa") zivi iskljucivo ovde — vezana stavka nema
+  // sopstven proizvod, pa bi se bez ove veze prikazivala pod imenom hotela.
+  ancillaryService             AncillaryService? @relation(fields: [ancillaryServiceId], references: [id])
   assignedGuideId              String?           @map("assigned_guide_id") // FK -> M1 User (VODIC), plain UUID (M9 još ne postoji)
   duplicateConflictItemId      String?           @map("duplicate_conflict_item_id")
   duplicateCheckOverriddenBy   String?           @map("duplicate_check_overridden_by")
@@ -2140,21 +2185,21 @@ enum SubagentPrivilegeLevel {
 // 2026): §9 kaže da Vlasnik/Direktor "postavlja kreditni limit i, ako je Tier 1, proviziju" TEK
 // pri odobravanju (approve()), pa novoregistrovan PENDING_APPROVAL subagent ta polja još nema.
 model Subagent {
-  id                   String         @id @default(uuid())
-  clientAccountId      String         @unique @map("client_account_id")
-  parentSubagentId     String?        @map("parent_subagent_id")
-  status               SubagentStatus @default(PENDING_APPROVAL)
+  id                   String                 @id @default(uuid())
+  clientAccountId      String                 @unique @map("client_account_id")
+  parentSubagentId     String?                @map("parent_subagent_id")
+  status               SubagentStatus         @default(PENDING_APPROVAL)
   // M7 spec §2.0.7 dopuna (31.8.2026) — FRANCHISE otvara pun M17 pristup sopstvenim STAFF
   // nalozima (M1 §3.1a) umesto jednog SUBAGENT_ADMIN portal naloga; bira ga isključivo
   // Vlasnik/Direktor pri odobravanju (poglavlje 9), nikad sam subagent.
   privilegeLevel       SubagentPrivilegeLevel @default(STANDARD) @map("privilege_level")
-  commissionPercentage Decimal?       @map("commission_percentage")
-  creditLimit          Decimal?       @map("credit_limit")
-  creditLimitCurrency  String?        @map("credit_limit_currency")
-  approvedBy           String?        @map("approved_by")
-  approvedAt           DateTime?      @map("approved_at")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  updatedAt            DateTime       @updatedAt @map("updated_at")
+  commissionPercentage Decimal?               @map("commission_percentage")
+  creditLimit          Decimal?               @map("credit_limit")
+  creditLimitCurrency  String?                @map("credit_limit_currency")
+  approvedBy           String?                @map("approved_by")
+  approvedAt           DateTime?              @map("approved_at")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
 
   parent   Subagent?  @relation("SubagentHierarchy", fields: [parentSubagentId], references: [id])
   children Subagent[] @relation("SubagentHierarchy")
@@ -2974,20 +3019,20 @@ model ConversationParticipant {
 
 // §2.3 `Message` — meko brisanje (deletedAt), ne fizičko.
 model Message {
-  id             String    @id @default(uuid())
-  conversationId String    @map("conversation_id")
-  senderId       String    @map("sender_id") // FK -> M1 User
+  id               String    @id @default(uuid())
+  conversationId   String    @map("conversation_id")
+  senderId         String    @map("sender_id") // FK -> M1 User
   // Nullable od v1.6 (§2.5) — poruka može biti ČIST prilog bez teksta (npr. samo slika/PDF).
   // Servis i dalje odbija poruku bez i teksta i priloga (bar jedno mora postojati).
-  body           String?
-  sentAt         DateTime  @default(now()) @map("sent_at")
-  editedAt       DateTime? @map("edited_at")
-  deletedAt      DateTime? @map("deleted_at")
+  body             String?
+  sentAt           DateTime  @default(now()) @map("sent_at")
+  editedAt         DateTime? @map("edited_at")
+  deletedAt        DateTime? @map("deleted_at")
   // M19 spec §2.3/§9.5 — evidencija AI porekla teksta. NE menja senderId: odgovornost za poruku
   // nosi čovek koji je pritisnuo "pošalji". Upisuje se u trenutku slanja jer AI nacrt nikad ne
   // postaje Message sam po sebi (SupplierDraftService vraća samo tekst) — drugog trenutka nema.
-  draftedByAi      Boolean @default(false) @map("drafted_by_ai")
-  draftedByAgentId String? @map("drafted_by_agent_id") // FK -> M1 User, accountType = AI_AGENT
+  draftedByAi      Boolean   @default(false) @map("drafted_by_ai")
+  draftedByAgentId String?   @map("drafted_by_agent_id") // FK -> M1 User, accountType = AI_AGENT
 
   conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   attachments  MessageAttachment[]
@@ -3101,16 +3146,16 @@ model HelpArticle {
 // §2.2 `HelpArticleTranslation` — isti obrazac kao M2 ProductTranslation/M12 ContentTranslation
 // (red po jeziku, isti LanguageCode enum, isti fallback traženi→en→sr).
 model HelpArticleTranslation {
-  id            String       @id @default(uuid())
-  helpArticleId String       @map("help_article_id")
-  languageCode  LanguageCode @map("language_code")
+  id            String                       @id @default(uuid())
+  helpArticleId String                       @map("help_article_id")
+  languageCode  LanguageCode                 @map("language_code")
   title         String
   body          String // markdown; za is_critical_example=true numerisana lista koraka, obična markdown lista
   // M21 spec §5.2a — semantička pretraga (pgvector, OpenAI text-embedding-3-small, 1536 dim).
   // Prisma nema izvornu podršku za `vector` tip — čita/piše se isključivo preko $queryRaw/
   // $executeRaw (HelpAssistantService), NULL dok se lenjo ne izračuna pri prvom ask() pozivu
   // koji naiđe na tu stavku (nema eager backfill pri objavi u ovom prolazu).
-  embedding Unsupported("vector(1536)")?
+  embedding     Unsupported("vector(1536)")?
 
   helpArticle HelpArticle @relation(fields: [helpArticleId], references: [id], onDelete: Cascade)
 
@@ -3205,15 +3250,15 @@ enum MailboxStatus {
 // za "najviše jedan true" u Postgres bez parcijalnog unique indeksa, koji nije uveden u ovom
 // prolazu — dovoljno za obim v1, jasno mesto za pooštravanje ako zatreba).
 model Mailbox {
-  id                    String        @id @default(uuid())
-  address               String        @unique
-  displayName           String        @map("display_name")
-  mailboxType           MailboxType   @map("mailbox_type")
-  ownerUserId           String?       @map("owner_user_id") // FK -> M1 User, samo za PERSONAL
-  providerConnectionRef String        @map("provider_connection_ref") // isti princip kao M4 ProviderConfig.authConfigEncrypted
-  isSupplierUnifiedInbox Boolean      @default(false) @map("is_supplier_unified_inbox") // M5 §8.8
-  status                MailboxStatus @default(ACTIVE)
-  createdAt             DateTime      @default(now()) @map("created_at")
+  id                     String        @id @default(uuid())
+  address                String        @unique
+  displayName            String        @map("display_name")
+  mailboxType            MailboxType   @map("mailbox_type")
+  ownerUserId            String?       @map("owner_user_id") // FK -> M1 User, samo za PERSONAL
+  providerConnectionRef  String        @map("provider_connection_ref") // isti princip kao M4 ProviderConfig.authConfigEncrypted
+  isSupplierUnifiedInbox Boolean       @default(false) @map("is_supplier_unified_inbox") // M5 §8.8
+  status                 MailboxStatus @default(ACTIVE)
+  createdAt              DateTime      @default(now()) @map("created_at")
 
   access  MailboxAccess[]
   threads EmailThread[]
@@ -3261,19 +3306,19 @@ enum EmailThreadStatus {
 // related_booking_id, HelpQuestion.escalated_ticket_id) — M22 ne pravi hard DB constraint
 // preko granice modula (princip #2 Master dokumenta).
 model EmailThread {
-  id                             String                  @id @default(uuid())
-  mailboxId                      String                  @map("mailbox_id")
-  subject                        String
-  correspondentType              EmailCorrespondentType  @default(OTHER) @map("correspondent_type")
-  correspondentClientAccountId   String?                 @map("correspondent_client_account_id") // weak ref -> M6 ClientAccount
-  correspondentSupplierId        String?                 @map("correspondent_supplier_id") // weak ref -> M3 Supplier
-  relatedBookingId               String?                 @map("related_booking_id") // weak ref -> M5 Booking
-  relatedSupplierManifestId      String?                 @map("related_supplier_manifest_id") // weak ref -> M5 SupplierManifest (§3.1a)
-  relatedSupplierChangeNoticeId  String?                 @map("related_supplier_change_notice_id") // weak ref -> M5 SupplierChangeNotice (§3.1a)
-  status                         EmailThreadStatus       @default(OPEN)
-  convertedToTicketId            String?                 @map("converted_to_ticket_id") // weak ref -> M14 Ticket
-  lastMessageAt                  DateTime                @default(now()) @map("last_message_at")
-  createdAt                      DateTime                @default(now()) @map("created_at")
+  id                            String                 @id @default(uuid())
+  mailboxId                     String                 @map("mailbox_id")
+  subject                       String
+  correspondentType             EmailCorrespondentType @default(OTHER) @map("correspondent_type")
+  correspondentClientAccountId  String?                @map("correspondent_client_account_id") // weak ref -> M6 ClientAccount
+  correspondentSupplierId       String?                @map("correspondent_supplier_id") // weak ref -> M3 Supplier
+  relatedBookingId              String?                @map("related_booking_id") // weak ref -> M5 Booking
+  relatedSupplierManifestId     String?                @map("related_supplier_manifest_id") // weak ref -> M5 SupplierManifest (§3.1a)
+  relatedSupplierChangeNoticeId String?                @map("related_supplier_change_notice_id") // weak ref -> M5 SupplierChangeNotice (§3.1a)
+  status                        EmailThreadStatus      @default(OPEN)
+  convertedToTicketId           String?                @map("converted_to_ticket_id") // weak ref -> M14 Ticket
+  lastMessageAt                 DateTime               @default(now()) @map("last_message_at")
+  createdAt                     DateTime               @default(now()) @map("created_at")
 
   mailbox  Mailbox        @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
   messages EmailMessage[]
@@ -3368,15 +3413,15 @@ enum ArticleTranslationSource {
 // §2.2 `ArticleTranslation` — isti obrazac kao M21 HelpArticleTranslation (isti LanguageCode
 // enum, isti fallback traženi->en->sr).
 model ArticleTranslation {
-  id                String                   @id @default(uuid())
-  articleId         String                   @map("article_id")
-  languageCode      LanguageCode             @map("language_code")
+  id                String                       @id @default(uuid())
+  articleId         String                       @map("article_id")
+  languageCode      LanguageCode                 @map("language_code")
   title             String
   body              String // markdown
-  translationSource ArticleTranslationSource @default(MANUAL) @map("translation_source")
+  translationSource ArticleTranslationSource     @default(MANUAL) @map("translation_source")
   // M23 spec §3.2a — semantička pretraga, isti mehanizam/model kao HelpArticleTranslation
   // (M21 spec §5.2a) — vidi komentar tamo.
-  embedding Unsupported("vector(1536)")?
+  embedding         Unsupported("vector(1536)")?
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
@@ -3401,14 +3446,14 @@ enum ArticleSourceStatus {
 // §2.3 `ArticleSource` — odobren izvor korišćen za sadržaj (poglavlje 4b — CANDIDATE dok čovek
 // eksplicitno ne odobri).
 model ArticleSource {
-  id         String               @id @default(uuid())
-  articleId  String               @map("article_id")
+  id         String              @id @default(uuid())
+  articleId  String              @map("article_id")
   url        String
-  sourceType ArticleSourceType    @map("source_type")
-  status     ArticleSourceStatus  @default(CANDIDATE)
-  approvedBy String?              @map("approved_by") // weak ref -> M1 User, nikad AI (§4b)
-  approvedAt DateTime?            @map("approved_at")
-  createdAt  DateTime             @default(now()) @map("created_at")
+  sourceType ArticleSourceType   @map("source_type")
+  status     ArticleSourceStatus @default(CANDIDATE)
+  approvedBy String?             @map("approved_by") // weak ref -> M1 User, nikad AI (§4b)
+  approvedAt DateTime?           @map("approved_at")
+  createdAt  DateTime            @default(now()) @map("created_at")
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
@@ -3435,7 +3480,7 @@ model ArticleRevision {
   id                   String                 @id @default(uuid())
   articleId            String                 @map("article_id")
   trigger              ArticleRevisionTrigger
-  proposedTranslations Json                    @map("proposed_translations") // nacrt po jeziku, isti oblik kao ArticleTranslation
+  proposedTranslations Json                   @map("proposed_translations") // nacrt po jeziku, isti oblik kao ArticleTranslation
   sourceIds            String[]               @map("source_ids") // FK niz -> ArticleSource, svi moraju biti APPROVED — validacija u servisu, ne DB constraint
   status               ArticleRevisionStatus  @default(PENDING_REVIEW)
   reviewedBy           String?                @map("reviewed_by") // weak ref -> M1 User, nikad AI
