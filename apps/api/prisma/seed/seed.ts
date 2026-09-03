@@ -615,6 +615,15 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
   // NIKAD SUBMIT/EXECUTE za payment-gateway-config, supplier-payment-instruction, ni
   // refund-instruction (tj. Vlasnik/Direktor su jedini koji izvršavaju stvaran prenos novca).
   [SYSTEM_ROLES.RACUNOVODJA]: [
+    // Dopuna 3.9.2026 (M1 §3.9a, isti obrazac kao M10/client-payment-schedule i M6/client-account
+    // ispod) — nalaz: M10 §5.2 ručan unos uplate interno poziva M5 BookingsService.updatePaymentStatus,
+    // koja sprovodi SOPSTVENU proveru vlasništva (owner_id/assigned_to_id/VIEW_ALL). Računovođa je
+    // imala M10/payment/RECORD ali NIJEDNU M5 dozvolu — uplata za rezervaciju koju lično ne vodi je
+    // vraćala 404 (booking "nije pronađen"), iako ima dozvolu baš za taj posao. VIEW (read-only, bez
+    // MODIFY/CANCEL/CREATE) + VIEW_ALL usklađuju kod sa opisom uloge u ovom fajlu ("read-only uvid u
+    // rezervacije") i rešavaju grešku, isti princip kao već postojeći M10/M6 VIEW_ALL ispod.
+    { module: 'M5', resource: 'booking', action: 'VIEW' },
+    { module: 'M5', resource: 'booking', action: 'VIEW_ALL' },
     { module: 'M10', resource: 'fiscal-document', action: 'VIEW' },
     { module: 'M10', resource: 'fiscal-document', action: 'CREATE_DRAFT' },
     { module: 'M10', resource: 'fiscal-document', action: 'SUBMIT' },
