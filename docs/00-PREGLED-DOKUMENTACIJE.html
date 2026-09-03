@@ -2338,6 +2338,8 @@ Prefiks: `/api/v1/contracting`
 - [x] Dopuna v1.12: moguće je kreirati `CancellationRule` sa `rule_type = EARLY_DEPARTURE` nezavisno od postojećih `PRE_ARRIVAL` pravila istog perioda (poglavlje 2.5). *(dokazano e2e testom, 31.8.2026)*
 - [x] Dopuna v1.12: moguće je kreirati `AncillaryService` sa oba `pricing_mode` (`FLAT_PER_UNIT`, `PERCENTAGE_OF_NIGHTLY_RATE`, poglavlje 2.6). *(dokazano unit + e2e testom, 31.8.2026)*
 - [x] Dopuna v1.12: moguće je kreirati `TouristTaxInfo` za period (poglavlje 2.7); potvrđeno testom da nijedan M10/M11 endpoint ne čita ovo polje kao osnovu za fakturisanje/prijavu. *(dokazano unit + e2e testom, 31.8.2026 — potvrđeno grep-om da nijedan M10/M11 endpoint ne referencira touristTaxInfo/TouristTaxInfo)*
+- [x] API dokumentacija (`docs/api/M3-ugovaranje-alotmani.md`) postoji sa stvarnim primerima zahteva/odgovora za svaki endpoint iz poglavlja 6 — obavezna stavka po CLAUDE.md. *(napisana 3.9.2026; odgovori uhvaćeni stvarnim pozivima nad lokalnom bazom, osim `offers` i `ancillary-services` gde u bazi nema redova pa su primeri sastavljeni iz modela i tako i označeni u dokumentu)*
+- [x] Objašnjenje za vlasnika (`00-OBJASNJENJE-M3-ZA-VLASNIKA.md`) postoji — obavezna stavka po CLAUDE.md. *(napisano 3.9.2026)*
 
 ---
 
