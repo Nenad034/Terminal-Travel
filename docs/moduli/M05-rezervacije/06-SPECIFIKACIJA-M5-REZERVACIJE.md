@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.24 — **Doplate/popusti kao vezane stavke, ručno uneta usluga, i vaučer po dobavljaču** (3.9.2026, tri vlasnikove dopune uz poglavlje 6.7). Nova poglavlja **6.7a** (doplate i popusti — M3 `AncillaryService` prestaje da bude samo interna referenca troška i postaje **vezana stavka** rezervacije; `ON_SITE` iznos **ne ulazi u ukupnu cenu aranžmana** ali se štampa u ugovoru i na vaučeru; obavezne se dodaju automatski) i **6.7b** (ručno uneta usluga — prozor u samoj rezervaciji sa dobavljačem/nabavnom/maržom/izlaznom cenom i kvačicom „sačuvaj u katalog", vlasnikova odluka posle preporuke da se katalog ne puni jednokratnim unosima). Poglavlje 6 (vaučer): **objedinjen vaučer po dobavljaču je podrazumevani**, pojedinačni po usluzi ostaje kao opcija — vlasnikova dopuna („ukoliko u jednoj rezervaciji imamo više stavki jednog dobavljača… kreirati i voucher za sve usluge od tog dobavljača"). Prateća izmena modela je M3 v1.13 (`AncillaryService`: `kind`, `price_basis`, ograničenja po sastavu gostiju, `payable`).
+
 **Verzija:** 2.23 — **Novo poglavlje 6.7: dodavanje usluge na postojeću rezervaciju** (3.9.2026, vlasnikov nalaz: *„ni jednoj rezervaciji nije moguće dodati dodatnu uslugu u tabu aranžmani a to nam treba"* — tačan nalaz, potvrđen čitanjem koda: postojali su samo `modify` i `cancel`). Četiri odluke vlasnika ugrađene u poglavlje: dodaje **isključivo interni tim** (i na subagentskim rezervacijama), razlika u ceni ide na **istu fakturu**, **poseban vaučer po dobavljaču**, i **nova najava** za dodatu stavku. Radi za oba porekla rezervacije (`CONTRACTED` i `API`) — vlasnik izričito potvrdio da se usluga naknadno dodaje i rezervacijama nastalim preko API veze. Ekran: red ikonica vrsta proizvoda (isti `PRODUCT_ICONS` kao pretraga) na kartici Aranžman, klik na ikonicu otvara prozor za unos. Poglavlje 6 (vaučer) dobija pravilo „po dobavljaču jedan vaučer" — **odluka zabeležena, implementacija je zaseban korak** (danas je vaučer jedan po rezervaciji, `Booking.voucher_url`), izričito označeno kao poznat nedostatak, ne prećutano.
 
 **Verzija:** 2.22 — **Jedna traka iznad rezultata umesto dve** (3.9.2026, vlasnikov zahtev: *„stavite u jedan red filtere iznad rezultata pretrage i odvojite ih vertikalnom linijom"*). Brzi filteri (§3.0c.3a/§3.0c.3c) su prethodnog sata dobili sopstven red; sad stoje u istom redu sa sortiranjem (§3.0g.8) i prekidačem lista/mapa, razdvojeni **uspravnom crtom**. Dva reda nad listom su trošila visinu koju mapa i kartice stvarno koriste; crta razdvaja grupe koje rade različit posao (filter menja **koji** se rezultati vide, sortiranje samo **redosled**) — bez nje bi red od dvanaest pilula izgledao kao jedan skup. Bez izmene ponašanja ijednog filtera.
@@ -1243,6 +1245,8 @@ Slobodan tekst koji zaposleni ostavlja uz rezervaciju ("gost traži sobu na viš
 
   **Izuzetak — izdavanje bez pune uplate:** Vlasnik ili Direktor mogu ručno odobriti izdavanje vaučera bez uplate ili sa delimičnom uplatom. Ovo je uvek eksplicitna ljudska radnja — nivo **"Nikad autonomno"** iz poglavlja 7 Master dokumenta (AI agent zadužen za M5 nikad sam ne pokreće ovo odobrenje, isto obrazloženje kao izuzeci od finansijskih ograda u M3/M11) — beleži se u `voucher_override_approved_by`/`voucher_override_reason`/`voucher_override_at` (poglavlje 4.1) i vidljivo je u M1 audit logu.
 
+  **Objedinjen po dobavljaču je PODRAZUMEVANI, pojedinačni po usluzi je opcija (dopuna istog dana).** Kad rezervacija ima više stavki istog dobavljača (soba + parking + spa u istom hotelu), podrazumevano se izdaje **jedan** vaučer tog dobavljača sa svim njegovim uslugama — tri odvojena vaučera za istu porodicu na istoj recepciji su tri prilike za grešku, a dobavljač ionako želi da vidi ceo svoj deo na jednom mestu. Pojedinačni vaučer po usluzi ostaje kao izričit izbor, jer postoji stvaran slučaj gde treba (transfer koji gost koristi u drugom gradu, u drugom terminu). Vaučer nosi i `ON_SITE` stavke (§6.7a) — one se ne naplaćuju kroz TT, ali gost mora unapred da zna šta ga na licu mesta čeka.
+
   **Jedan vaučer po DOBAVLJAČU, ne po rezervaciji (odluka vlasnika, 3.9.2026).** Kad rezervacija sadrži usluge više dobavljača (hotel + transfer + izlet), svaki dobavljač dobija sopstven vaučer — gost na recepciji predaje vaučer TOG hotela, ne dokument sa tuđim uslugama i tuđim referencama. Odluka je doneta uz poglavlje 6.7 (dodavanje usluge), gde se najčešće i pojavljuje nov dobavljač na već postojećoj rezervaciji. **Danas nije tako:** `Booking.voucher_url` je jedno polje i vaučer pokriva celu rezervaciju (`GET /sales/bookings/public/:id/voucher`). Razdvajanje traži sopstven prolaz — polje po dobavljaču (ili zaseban zapis vaučera), izmena javne stranice u `apps/web` i pravilo šta se dešava kad se dobavljač doda naknadno. **Poznat nedostatak, ne prećutan**; do tada rezervacija i dalje ima jedan vaučer, i to je jedina stvar iz ove odluke koja još ne važi u kodu.
 
   **Dodatni uslov za `tip_nastupanja = ORGANIZATOR`** (dopuna M20 specifikacije, poglavlje 3.3): vaučer se ne generiše — ni automatski ni preko izuzetka iznad — dok `ClientContract` (M20) ne postoji bar u statusu `GENERATED`. Ugovor sa klijentom mora postojati pre nego što gost dobije vaučer.
@@ -1362,8 +1366,8 @@ Za `STAFF` naloge vezane za franšizu (M1 §3.1a), `VIEW_ALL` je uvek dodatno fi
 #### Šta „dodatna usluga" znači — tri slučaja, jedan tok
 
 1. **Cela nova stavka** (transfer, osiguranje, izlet, još jedna soba, još jedna noć) — nov `BookingItem` sa sopstvenim proizvodom, sopstvenom proverom dostupnosti i sopstvenom maržom. **Ovo je obim ovog poglavlja.**
-2. **Doplata uz postojeću stavku** (ljubimac, parking, rani check-in, sef) — M3 `AncillaryService` po ugovornom periodu (M3 §2.6). M3 tamo izričito ostavlja M5-u odluku „da li se to prodaje gostu kao opciona stavka ili je samo interna referenca troška"; **ta odluka i dalje nije doneta** i ne donosi se ovim poglavljem — ostaje otvorena stavka.
-3. **Usluga koje nema u katalogu** — za ponude već postoji ručni unos (§3.0f, `ManualProductEntry`), za rezervacije ne. Van obima ovog prolaza; kad zatreba, tok je isti kao ispod uz `source_type = MANUAL` i postojeći pregled osoblja (§3.0f.4).
+2. **Doplata (ili popust) uz postojeću stavku** (ljubimac, parking, rani check-in, sef, popust za treću osobu) — M3 `AncillaryService` po ugovornom periodu (M3 §2.6). **Rešeno istog dana, vlasnikovom odlukom: tretira se kao nova, VEZANA stavka — §6.7a.** (Raniji oblik ove tačke je govorio da odluka nije doneta; doneta je nekoliko sati kasnije, uz obrazloženje vlasnika da su doplate „vrlo česte".)
+3. **Usluga koje nema u katalogu** — **rešeno istog dana: §6.7b**, prozor u samoj rezervaciji sa dobavljačem/nabavnom/maržom/izlaznom cenom i kvačicom „sačuvaj u katalog". Deli model i pregled osoblja sa §3.0f (koji je specificiran ali nikad implementiran — vidi §6.7b).
 
 #### Odluke vlasnika (3.9.2026)
 
@@ -1396,6 +1400,44 @@ Isti obrazac kao postojeća izmena — **prvo provera cene, pa potvrda čoveka**
 Na kartici **Aranžman**, ispod spiska stavki, stoji red **ikonica vrsta proizvoda** — isti `PRODUCT_ICONS` koji ekran pretrage već koristi (§3.0g.1), pa agent bira uslugu istim pokretom i istim slikama na oba mesta. Klik na ikonicu otvara prozor za unos u samoj rezervaciji (ne vodi na pretragu i ne gubi kontekst rezervacije): izbor proizvoda te vrste, datumi, gosti, pa dugme **„Proveri cenu"** i tek onda **„Dodaj uslugu"** sa prikazanom razlikom u ukupnom zaduženju. Deljene ikonice su namerne — svaka nova vrsta proizvoda se pojavi na oba ekrana bez ijedne dodatne izmene.
 
 Dugme se prikazuje **samo internom timu** (odluka iznad) i samo kad rezervacija nije otkazana — nikad kao neaktivno sivo dugme (isto pravilo kao §3.0g.8).
+
+### 6.7a Doplate i popusti kao vezane stavke (dopuna, 3.9.2026, vlasnikova odluka)
+
+**Odluka:** *„Doplate su vrlo česte i dodatne usluge tako da možete ih tretirati kao nove stavke."* Time pada ograničenje iz §6.7 („ovo poglavlje pokriva samo celu novu stavku") i zatvara se pitanje koje je M3 §2.6 izričito ostavio M5-u.
+
+**Zašto vezana, a ne samostalna stavka.** Parking nije parking uopšte — to je parking *uz taj boravak, u tom hotelu, za te datume*. Iz veze na matičnu stavku (`parent_item_id`) tri stvari ispadaju same od sebe, umesto da se rešavaju posebnim pravilom za svaku:
+
+- otkazivanje matične stavke otkazuje i doplatu (danas bi ostala da visi na rezervaciji);
+- doplata ide na vaučer i najavu **tog** dobavljača, jer ga nasleđuje od matične stavke;
+- doplata koja se računa kao **procenat noćne cene** (M3 §2.6 `PERCENTAGE_OF_NIGHTLY_RATE`) uopšte se ne može izračunati bez matične stavke — nema od čega da uzme procenat.
+
+**Dopune modela `BookingItem` (§4.2):**
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| parent_item_id | UUID, nullable | FK → `BookingItem` iste rezervacije. `null` za samostalnu stavku. Otkazivanje matične stavke otkazuje sve vezane. |
+| ancillary_service_id | UUID, nullable | FK → M3 `AncillaryService` (§2.6). Popunjeno umesto uobičajenog puta preko `RateLine` — doplata nema sopstvenu cenovnu liniju. |
+| payable | enum: `AGENCY`, `ON_SITE` | Nasleđeno iz `AncillaryService.payable` (M3 v1.13); `AGENCY` za svaku običnu stavku. |
+
+**`ON_SITE` stavke i ukupna cena — pravilo koje se ne sme prećutati.** Iznos koji gost plaća na licu mesta **ne ulazi u `Booking.total_price`**: agencija ga nikad ne naplati ni ne isplati, pa bi u ukupnoj ceni bio lažno zaduženje i pokvario bi svaki finansijski izveštaj (M10, M13). Ali se **ne sme ni sakriti** — prikazuje se na tri mesta, uvek kao odvojen zbir sa jasnom oznakom „plaća se na licu mesta": na kartici Aranžman, u ugovoru sa klijentom (M20) i na vaučeru (§6). Ovo je jedini slučaj u M5 gde stavka ima cenu a ne ulazi u zbir, i zato je namerno vezan za jedno polje (`payable`), a ne za tip ili naziv usluge.
+
+**Obavezne doplate se dodaju automatski.** `AncillaryService.is_mandatory = true` stavke se povlače uz matičnu stavku same, u istom koraku (i pri prvoj rezervaciji i pri dodavanju usluge kroz §6.7); agent ručno bira samo opcione. Razlog je iskustvo, ne udobnost: obavezna doplata koju treba ručno dodati pre ili kasnije nekome ispadne iz cene, a to se otkriva tek na licu mesta, kad je već reklamacija. *(Ovo je preporuka koju je dao agent i koju vlasnik nije opovrgao — zabeleženo kao odluka; ako treba drugačije, menja se jednim potezom.)*
+
+**Popusti idu istim putem.** M3 v1.13 uvodi `AncillaryService.kind = DISCOUNT` — ista struktura, suprotan znak. Popust je stavka sa negativnim doprinosom ukupnoj ceni, ne izmena cene matične stavke: tako se u Aranžmanu i na fakturi **vidi šta je odobreno i po kom osnovu**, umesto da hotel „odjednom košta manje" bez traga. Popust nasleđuje `payable` matične logike — popust na `ON_SITE` doplatu takođe ostaje van ukupne cene.
+
+**Provera prema sastavu gostiju.** Kad je osnova `PER_ROOM_*` (M3 v1.13), stavka nosi `covers_persons`/`max_adults`/`max_children`/`child_max_age`. M5 pri dodavanju proverava da traženi sastav gostiju stvarno staje u te granice i odbija sa 400 kad ne staje — ista logika i isti razlog kao provera `room_config` prema `age_policy` sobe (§3.2a). Bez te provere „doplata za sobu" tiho važi i za sastav za koji je dobavljač nikad nije dao.
+
+### 6.7b Ručno uneta usluga na rezervaciji (dopuna, 3.9.2026, vlasnikova odluka)
+
+**Odluka vlasnika:** *„Ručno unesena usluga je potrebna… Svaka usluga treba da ima svog dobavljača, nabavnu cenu, maržu, izlaznu cenu."* Na predlog agenta usvojeno rešenje: **prozor se otvara u samoj rezervaciji** (isti obrazac kao ostale usluge, §6.7 — kontekst rezervacije se ne gubi), sa kvačicom **„sačuvaj u katalog"**.
+
+**Zašto ne uvek kroz katalog.** Proizvod u katalogu je vidljiv pretrazi, javnom sajtu (M8) i B2B portalu (M7). Jednokratna usluga („prevoz kombijem za porodicu X, 14.7.") upisana u katalog postaje prodajna stavka koju niko nije nameravao da izloži, a katalog za godinu dana postaje spisak jednokratnih redova kroz koji se ne može pretraživati — tačno ona greška zbog koje ovaj repozitorijum ima pravila (`22-ANALIZA-PRIMETRAVEL-NALAZI.md`). Kvačica rešava oba slučaja: jednokratna usluga ostaje uz rezervaciju, ponovljiva odlazi u katalog i sledeći put se bira kao svaka druga.
+
+**Polja (vlasnikov zahtev, sva četiri obavezna):** dobavljač (M3 `Supplier`), nabavna cena, marža, izlazna cena. Marža se unosi ručno **ili** se povlači iz `MarkupRule` (§2.1) kao predlog koji agent sme da promeni — ručno unete usluge su po prirodi one koje pravilo ne pokriva. Nabavna cena puni `base_cost`, izlazna `final_price`, isto kao kod svake druge stavke, pa dalji tok (faktura, izveštaji, obaveza prema dobavljaču) ne zna razliku.
+
+**Dobavljač je obavezan i to nije administrativni detalj.** Bez njega se ne mogu ispuniti dve druge vlasnikove odluke: vaučer po dobavljaču (§6) i nova najava po dobavljaču (§6.7). Kod ugovorenih i API stavki dobavljač postoji posredno (kroz ugovor, odnosno provajdera); kod ručne stavke ne postoji nigde — zato postaje izričito polje.
+
+**Zatečeno stanje koje treba znati:** `ManualProductEntry` (§3.0f) je specificiran 18.8.2026, ali **nikad nije implementiran** — nema ga ni u bazi (`schema.prisma`) ni u kodu, a `ProductSourceType` ima samo `CONTRACTED`/`API`. Ovo poglavlje se zato ne oslanja na njega kao na gotov mehanizam; kad se bude gradilo, gradi se zajedno sa §3.0f (isti model, isti pregled osoblja iz §3.0f.4), ne kao drugi paralelan put za istu stvar.
 
 ## 7. Kalendar rezervacija (pregled po datumu)
 
