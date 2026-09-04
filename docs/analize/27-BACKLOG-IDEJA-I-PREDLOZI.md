@@ -113,6 +113,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M1 — Core / Identitet i pristup
 *(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
+- **ČEKA VLASNIKA: pristupni podaci mail naloga sa kog sistem šalje poštu** (odloženo 4.9.2026, na izričit zahtev vlasnika — "ovo ćemo kasnije, samo me podsetite"). Kod je gotov i proveren; poruke odlaze tek kad se u `apps/api/.env` upišu: **adresa servera** (`SMTP_HOST`), **port** (`SMTP_PORT`), **korisničko ime** (`SMTP_USER`), **lozinka** (`SMTP_PASSWORD`) i **adresa pošiljaoca** (`MAIL_FROM`, npr. `no-reply@terminaltravel.rs`), plus `PANEL_BASE_URL` za linkove u porukama. Nijedna izmena koda nije potrebna. **Pitanje za vlasnika:** na čemu je pošta agencije (Google Workspace / Microsoft 365 / hosting kod domaćeg provajdera / nešto drugo) — odatle sledi gde se ti podaci tačno nalaze; ako poslovni domen za poštu još ne postoji, to je odluka o domenu, ne o kodu. Do tada sve radi kao i pre: poruke se loguju, ne šalju, a link za aktivaciju se u panelu prikazuje za ručno prosleđivanje (M1 spec §5). Vidi master dokument poglavlje 6 (red o `nodemailer`) i `apps/api/.env.example`.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda
