@@ -168,22 +168,36 @@ Otkazuje rezervaciju kod provajdera. `:ref` je broj rezervacije koji je provajde
 | `401` | nedostaje ili je istekao token |
 | `403` | nedostatak dozvole — i na administrativnim i na operativnim endpointima: `{"message":"Nema dozvolu M4/provider-config/EDIT","error":"Forbidden","statusCode":403}` |
 | `404` | nepoznat `providerCode` ili nepostojeći zapis |
-| `500` | **svaka greška provajdera** — vidi ispod |
+| `409` / `429` / `502` / `503` / `504` | greška provajdera, sa `providerErrorCode` u telu — vidi ispod |
 
 Nepoznato polje u telu zahteva vraća `400`, ne ignoriše se.
 
-### Greške provajdera stižu kao `500` bez razloga
+### Greške provajdera — statusni kod plus `providerErrorCode` u telu
 
-M4 interno razlikuje sedam vrsta problema sa provajderom:
+M4 razlikuje sedam vrsta problema sa provajderom i **svaka stiže do pozivaoca sa sopstvenim statusom**, uz tačnu vrstu u polju `providerErrorCode`:
 
-`TIMEOUT`, `RATE_LIMITED`, `AUTH_FAILED`, `INVALID_REQUEST`, `NO_AVAILABILITY`, `PROVIDER_UNAVAILABLE`, `UNKNOWN`
+| `providerErrorCode` | HTTP | Šta znači i šta uraditi |
+| :---- | :---- | :---- |
+| `NO_AVAILABILITY` | `409` | Uredan poslovni ishod — traženo postoji ali nije slobodno. Ponudite drugi termin, ne prijavljujte kvar. |
+| `INVALID_REQUEST` | `400` | Jedini slučaj u kom je pozivalac zaista pogrešio — provajder je odbio sadržaj zahteva. |
+| `RATE_LIMITED` | `429` | Prekoračen dozvoljen broj poziva kod provajdera. Sme se pokušati kasnije. |
+| `TIMEOUT` | `504` | Provajder nije odgovorio na vreme. |
+| `PROVIDER_UNAVAILABLE` | `503` | Provajder ne radi, ili je „osigurač" otvoren posle niza grešaka. Privremeno. |
+| `AUTH_FAILED` | `502` | **Naši** pristupni podaci su pogrešni ili istekli — nije greška pozivaoca nego naše konfiguracije. Traži intervenciju. |
+| `UNKNOWN` | `502` | Neprepoznat odgovor provajdera. |
 
-**Nijedna od njih ne stiže do pozivaoca.** `ProviderError` je obična greška, ne HTTP greška, i ne postoji sloj koji je prevodi — zato svaka izlazi kao:
+**Primer odgovora:**
 ```json
-{"statusCode":500,"message":"Internal server error"}
+{
+  "message": "Provider mock-1 je trenutno isključen (circuit OPEN, M4 spec §4.1)",
+  "error": "Provider Error",
+  "statusCode": 503,
+  "providerErrorCode": "PROVIDER_UNAVAILABLE"
+}
 ```
-Provereno u kodu 3.9.2026. Posledica u praksi: pozivalac ne može da razlikuje „hotel je pun" (`NO_AVAILABILITY`, uredan ishod na koji treba ponuditi drugi termin) od „naši pristupni podaci su pogrešni" (`AUTH_FAILED`, kvar koji traži hitnu intervenciju) — oba izgledaju isto.
 
-Razlog zbog kog se u svakodnevnom radu ovo ne primećuje: nijedan provajder još nije podešen, pa se ove greške ne dešavaju. Postaće vidljivo prvog dana kad se uključi pravi provajder.
+**Granajte po `providerErrorCode`, ne po statusu.** Statusni kod je gruba podela namenjena posrednicima (proxy, sloj koji odlučuje da li da ponovi poziv); dve različite vrste dele isti status (`AUTH_FAILED` i `UNKNOWN` su oba `502`), pa se samo iz tela vidi tačan uzrok.
 
-Do ispravke, jedini način da se vidi stvaran razlog je `GET /integrations/provider-call-logs`, gde se svaki poziv beleži sa svojim ishodom. Zabeleženo kao neispunjena stavka izlaznog kriterijuma M4 i kao zamka 13.4.
+> **Ispravljeno 3.9.2026.** Do tog datuma je svih sedam vrsta izlazilo kao `{"statusCode":500,"message":"Internal server error"}` — `ProviderError` nasleđuje obični `Error`, ne HTTP grešku, i nije postojao sloj koji ga prevodi. Pozivalac nije mogao da razlikuje „hotel je pun" od „pristupni podaci su pogrešni". Nije se primećivalo jer nijedan provajder još nije podešen, pa se greške ne dešavaju — postalo bi vidljivo tek prvog dana rada.
+
+Puna istorija svakog poziva sa ishodom i dalje stoji u `GET /integrations/provider-call-logs`.

@@ -88,17 +88,19 @@ Dve stvari koje vredi da znaš uz ovu ispravku, jer pokazuju kako se ovakve gre�
 
 **Drugo, prva verzija moje ispravke ne bi radila.** Postavio sam pravo na celu grupu odjednom, što izgleda urednije. Pri proveri se ispostavilo da mehanizam koji sprovodi prava gleda **samo pojedinačnu putanju**, a ne grupu — pa bi ograda izgledala postavljeno, a propuštala bi sve. Da nisam proverio, prijavio bih ti da je popravljeno, a ne bi bilo. Zapisano je kao zamka da se ne ponovi.
 
-### Druga: kad provajder zakaže, ne vidi se zašto
+### Druga: kad provajder zakaže, nije se videlo zašto — **takođe ispravljeno**
 
 M4 interno razlikuje sedam različitih razloga neuspeha — isteklo vreme, pogrešni pristupni podaci, hotel je pun, provajder ne radi, i tako dalje. Trud je uložen da se to uredno razlikuje.
 
-Ali nijedan od tih razloga **ne stiže do onoga ko je pozvao**. Sve izlazi kao jedna ista opšta poruka „interna greška servera". Prevod iz internog oblika u odgovor nikad nije napisan.
+Ali nijedan od tih razloga **nije stizao do onoga ko je pozvao**. Sve je izlazilo kao jedna ista opšta poruka „interna greška servera" — prevod iz internog oblika u odgovor nikad nije bio napisan.
 
-Posledica: sistem ne može da razlikuje „hotel je pun" — što je uredan ishod na koji treba ponuditi drugi termin — od „naši pristupni podaci su pogrešni", što je kvar koji traži hitnu reakciju. Oba izgledaju identično.
+Posledica je bila da sistem ne može da razlikuje „hotel je pun" — što je uredan ishod na koji treba ponuditi drugi termin — od „naši pristupni podaci su pogrešni", što je kvar koji traži hitnu reakciju. Oba su izgledala identično.
 
-Ovo se danas ne primećuje jer nema podešenih provajdera, pa se greške ne dešavaju. Videće se prvog dana rada. Razlog se za sada može pročitati jedino u zapisniku poziva, gde se svaki poziv beleži sa svojim ishodom.
+Nije se primećivalo jer nema podešenih provajdera, pa se greške ne dešavaju. Pojavilo bi se tek prvog dana rada — dakle tačno kad je najskuplje.
 
-**Ovo nije popravljeno** — za razliku od prvog nalaza, ovde ispravka menja kako se greške ponašaju kroz ceo modul, pa je ostavljena kao zapisana stavka koja čeka tvoju odluku. Nije hitna dok nema podešenog provajdera.
+**Šta je urađeno:** dodat je sloj koji te razloge prevodi u odgovor, tako da se sada iz svake greške vidi i šta je pošlo naopako i koliko je ozbiljno. Najvažnija razlika u praksi: „hotel je pun" sada dolazi kao **uredan ishod** na koji se ponudi drugi termin, dok „naši pristupni podaci su pogrešni" dolazi kao **kvar** koji traži da neko odmah reaguje. Ranije su bili nerazlučivi.
+
+Uz to je svaka od sedam vrsta pokrivena testom, da se ne izgubi ponovo pri nekoj kasnijoj izmeni.
 
 ---
 

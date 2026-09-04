@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { ProviderExceptionFilter } from './common/filters/provider-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,7 +22,9 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );
-  app.useGlobalFilters(new PrismaExceptionFilter());
+  // ProviderExceptionFilter prevodi M4 `ProviderError` (spec §3.2) u prepoznatljiv HTTP odgovor
+  // sa `providerErrorCode` u telu — bez njega svih sedam vrsta izlazi kao opšti 500 (zamka 13.4).
+  app.useGlobalFilters(new PrismaExceptionFilter(), new ProviderExceptionFilter());
 
   // M1 spec §6: svi endpoint-i dokumentovani OpenAPI semom pre implementacije.
   const config = new DocumentBuilder()

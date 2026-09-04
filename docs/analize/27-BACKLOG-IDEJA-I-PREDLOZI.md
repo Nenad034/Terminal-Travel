@@ -115,6 +115,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 *(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
 - **Nov nalog zaposlenog ne može da se prijavi — 2FA obavezna, put za prvo podešavanje ne postoji** (M1 §5, nalaz 2.9.2026) — `login` odbija internu ulogu bez `mfaEnabled`, a `mfa/enroll` traži JWT koji se izdaje tek posle prijave. Blokada i na produkciji, ne samo u testu. Traži odluku o obliku (link u pozivnici / `mfa_setup_pending` token / HR uključuje u ime korisnika). Zamka 5.6 u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`.
 - **`seed.ts` ne pravi nijedan `STAFF` nalog** (nalaz 2.9.2026) — posle svežeg seed-a niko se ne može prijaviti u panel; uloge i dozvole postoje, korisnika nema. Zamka 5.7.
+- **Nema endpointa za dodelu dozvola ulozi** (nalaz 3.9.2026, pri pisanju `docs/api/M1-core-identitet.md`) — `POST /iam/roles` kreira ulogu, ali veza uloga↔dozvola postoji isključivo u seed skripti, pa uloga napravljena preko API-ja ostaje trajno prazna i neupotrebljiva. Zaobilazno rešenje danas su pojedinačni `PermissionOverride` zapisi, što ne skalira preko nekoliko korisnika. M1 spec §9 izlazni kriterijum.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda
@@ -262,6 +263,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M10 — Finansije i računovodstvo
 *(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
+- **E2E test `§5.2 — uplata dovodi Booking do PAID` PADA** (zatečeno 4.9.2026, postoji od `f5ccb27`; potvrđeno da nije posledica izmena od 3–4.9.2026 — pada i sa stash-ovanim izmenama). `POST /finance/payments` vraća `404` umesto `201`; jedini `404` na toj putanji je „Booking … nije pronađen", pa je problem u `createConfirmedBookingFixture()`, ne u logici uplate. Prethodni pokušaj ispravke (`92d74a5`) pomerio grešku sa `400` na `404`. Pun opis, osumnjičeni i sledeći korak: M10 spec §12 izlazni kriterijum.
 - Tačan tehnički ugovor sa SEF v4.0.0 i izabranim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom.
 - Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
 - **Nalaz (29.8.2026):** ako se doda panel ekran za kursnu listu (`nbsMiddleRate`) ili pregled AI-uparivanja faktura (`matchConfidence`) — oba su Prisma `Decimal` polja, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj) od prvog dana tog ekrana.

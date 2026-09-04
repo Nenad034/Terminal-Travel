@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { SYSTEM_ROLES } from '../src/modules/m1-core-identitet/roles/system-roles.constants';
 import { PrismaExceptionFilter } from '../src/common/filters/prisma-exception.filter';
+import { ProviderExceptionFilter } from '../src/common/filters/provider-exception.filter';
 import { ProviderRegistryService } from '../src/modules/m4-integracije-api/provider-registry.service';
 import { MockProviderAdapter } from '../src/modules/m4-integracije-api/adapters/mock-provider.adapter';
 
@@ -31,7 +32,9 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-    app.useGlobalFilters(new PrismaExceptionFilter());
+    // Isti skup filtera kao main.ts — bez ProviderExceptionFilter-a test ne bi merio ono
+    // što produkcija stvarno vraća (zamka 13.4: greška se gubi tačno na granici ka HTTP-u).
+    app.useGlobalFilters(new PrismaExceptionFilter(), new ProviderExceptionFilter());
     await app.init();
     prisma = app.get(PrismaService);
     jwt = app.get(JwtService);
@@ -166,6 +169,41 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
     });
   });
 
+  // Dopuna 3.9.2026 — do tada je svih sedam vrsta greške provajdera (M4 spec §3.2) izlazilo kao
+  // `{"statusCode":500,"message":"Internal server error"}`, jer `ProviderError` nasleđuje obični
+  // `Error`, ne `HttpException`, i nije postojao filter koji ga prevodi. Pozivalac nije mogao da
+  // razlikuje uredan ishod („hotel je pun") od kvara („pogrešni pristupni podaci"). Zamka 13.4.
+  describe('Greške provajdera stižu sa prepoznatljivim kodom, ne kao opšti 500', () => {
+    const slucajevi: { kod: string; status: number; opis: string }[] = [
+      { kod: 'NO_AVAILABILITY', status: 409, opis: 'uredan poslovni ishod — nema slobodnog' },
+      { kod: 'AUTH_FAILED', status: 502, opis: 'naši pristupni podaci, ne greška pozivaoca' },
+      { kod: 'TIMEOUT', status: 504, opis: 'provajder nije odgovorio na vreme' },
+      { kod: 'RATE_LIMITED', status: 429, opis: 'prekoračen broj poziva kod provajdera' },
+      { kod: 'INVALID_REQUEST', status: 400, opis: 'jedini slučaj kad je pozivalac pogrešio' },
+      { kod: 'PROVIDER_UNAVAILABLE', status: 503, opis: 'provajder ne radi / osigurač otvoren' },
+      { kod: 'UNKNOWN', status: 502, opis: 'neprepoznat odgovor — kvar na spoljnoj strani' },
+    ];
+
+    it.each(slucajevi)('$kod → HTTP $status ($opis)', async ({ kod, status }) => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
+      const providerCode = await createMockProvider(accessToken);
+      const adapter = await getMockAdapter(providerCode);
+      adapter.failNextCalls = 1;
+      adapter.failureCode = kod as MockProviderAdapter['failureCode'];
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/integrations/internal/providers/${providerCode}/search`)
+        .set(authed(accessToken))
+        .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
+
+      expect(res.status).toBe(status);
+      // Statusni kod je gruba podela za posrednike; tačna vrsta ostaje u telu, pa pozivalac
+      // koji hoće da razlikuje AUTH_FAILED od UNKNOWN (oba 502) grana po ovom polju.
+      expect(res.body.providerErrorCode).toBe(kod);
+      expect(res.body.message).not.toBe('Internal server error');
+    });
+  });
+
   describe('Circuit breaker (izlazni kriterijum, stavka 7)', () => {
     it('OPEN posle praga uzastopnih grešaka, zatim HALF_OPEN→CLOSED posle isteka cooldown-a', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.VLASNIK);
@@ -178,7 +216,10 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
           .post(`/api/v1/integrations/internal/providers/${providerCode}/search`)
           .set(authed(accessToken))
           .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
-        expect(res.status).toBe(500);
+        // Do 3.9.2026 je ovde stajalo 500 — opšta greška. Od uvođenja ProviderExceptionFilter-a
+        // podrazumevana greška mock adaptera (PROVIDER_UNAVAILABLE) mapira se u 503.
+        expect(res.status).toBe(503);
+        expect(res.body.providerErrorCode).toBe('PROVIDER_UNAVAILABLE');
       }
 
       const afterThreshold = await prisma.providerConfig.findUniqueOrThrow({ where: { providerCode } });
@@ -189,7 +230,10 @@ describe('M4 — izlazni kriterijum (e2e)', () => {
         .post(`/api/v1/integrations/internal/providers/${providerCode}/search`)
         .set(authed(accessToken))
         .send({ stayFrom: '2027-07-01', stayTo: '2027-07-08', adults: 2 });
-      expect(blockedRes.status).toBe(500);
+      // Odbijanje zbog otvorenog kola je takođe PROVIDER_UNAVAILABLE (M4 spec §4.1) — pozivalac
+      // iz odgovora vidi da provajder trenutno nije dostupan, ne "interna greška servera".
+      expect(blockedRes.status).toBe(503);
+      expect(blockedRes.body.providerErrorCode).toBe('PROVIDER_UNAVAILABLE');
       expect(adapter.failNextCalls).toBe(0); // nepromenjeno od pre bloka — adapter nije pozvan
 
       // Simuliramo istek cooldown-a (1s) direktno u bazi, umesto čekanja u testu.
