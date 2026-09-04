@@ -282,6 +282,71 @@ describe('M10 — izlazni kriterijum (e2e)', () => {
     });
   });
 
+  // M10 spec §11 (dopuna 4.9.2026) — izlazni kriterijum: sastavljanje naloga za isplatu i
+  // za povraćaj traži dozvolu jaču od VIEW. Ranije je ko sme da GLEDA obaveze smeo i da
+  // SASTAVI nalog za isplatu; sam prenos novca je i tada bio zaštićen EXECUTE dozvolom.
+  describe('§8.5.2/§8.5.3 — sastavljanje naloga traži CREATE, ne VIEW', () => {
+    async function viewOnlyUser() {
+      const { user, accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);
+      // Računovođa po difoltu ima i CREATE — oduzimamo ga izuzetkom da ostane čist VIEW,
+      // što je tačno stanje koje je pre ove dopune imao svaki nosilac VIEW dozvole.
+      for (const resource of ['supplier-payment-instruction', 'refund-instruction']) {
+        const permission = await prisma.permission.findFirstOrThrow({
+          where: { module: 'M10', resource, action: 'CREATE' },
+        });
+        await prisma.userPermissionOverride.create({
+          data: {
+            userId: user.id,
+            permissionId: permission.id,
+            effect: 'DENY',
+            reason: 'e2e test — provera da kreiranje traži CREATE, ne VIEW',
+            grantedBy: user.id,
+          },
+        });
+      }
+      return accessToken;
+    }
+
+    it('nalog bez CREATE dozvole ne može sastaviti nalog za isplatu, ali i dalje vidi listu', async () => {
+      const accessToken = await viewOnlyUser();
+
+      const list = await request(app.getHttpServer())
+        .get('/api/v1/finance/supplier-payment-instructions')
+        .set(authed(accessToken));
+      expect(list.status).toBe(200);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/finance/supplier-payment-instructions')
+        .set(authed(accessToken))
+        .send({ supplierObligationId: 'bilo-koji', method: 'BANK_TRANSFER', bankIban: 'RS35260005601001611379' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('nalog bez CREATE dozvole ne može sastaviti ni zahtev za povraćaj gostu', async () => {
+      const accessToken = await viewOnlyUser();
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/finance/refund-instructions')
+        .set(authed(accessToken))
+        .send({ paymentId: 'bilo-koji', amount: 1000, currency: 'RSD', method: 'BANK_TRANSFER' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('Računovođa sa podrazumevanim dozvolama i dalje sme da sastavi nalog (nije 403 zbog prava)', async () => {
+      const { accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/finance/supplier-payment-instructions')
+        .set(authed(accessToken))
+        .send({ supplierObligationId: 'ne-postoji', method: 'BANK_TRANSFER', bankIban: 'RS35260005601001611379' });
+
+      // Ne 403 — prolazi kroz proveru prava i pada tek na nepostojećoj obavezi.
+      expect(res.status).not.toBe(403);
+    });
+  });
+
   describe('§8.1/§8.3 — obaveza prema dobavljaču', () => {
     it('ne dozvoljava APPROVED bez booking_item_id, i ispravno računa exchange_rate_difference pri plaćanju', async () => {
       const { accessToken } = await createInternalUser(SYSTEM_ROLES.RACUNOVODJA);

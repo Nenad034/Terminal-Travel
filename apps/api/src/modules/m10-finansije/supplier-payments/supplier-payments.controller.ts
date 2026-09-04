@@ -28,8 +28,13 @@ export class SupplierPaymentsController {
     return this.paymentInstructions.findAll({ supplierObligationId });
   }
 
+  // Dopuna 4.9.2026 (nalaz pri pisanju API dokumentacije, M10 spec §11): sastavljanje
+  // naloga je do sada tražilo istu dozvolu kao puki uvid — ko sme da GLEDA obaveze, smeo je
+  // i da SASTAVI nalog za isplatu. Sam prenos novca jeste bio zaštićen odvojenom EXECUTE
+  // dozvolom (pa novac nije mogao izaći), ali podela "ko sastavlja ≠ ko izvršava" nije bila
+  // potpuna dok kreiranje nije tražilo sopstveno pravo.
   @Post('supplier-payment-instructions')
-  @RequirePermission('M10', 'supplier-payment-instruction', 'VIEW')
+  @RequirePermission('M10', 'supplier-payment-instruction', 'CREATE')
   createInstruction(@Body() dto: CreateSupplierPaymentInstructionDto, @CurrentUser() actor: { userId: string }) {
     return this.paymentInstructions.create(dto, actor);
   }
@@ -48,7 +53,7 @@ export class SupplierPaymentsController {
   }
 
   @Post('refund-instructions')
-  @RequirePermission('M10', 'refund-instruction', 'VIEW')
+  @RequirePermission('M10', 'refund-instruction', 'CREATE')
   createRefund(@Body() dto: CreateRefundInstructionDto, @CurrentUser() actor: { userId: string }) {
     return this.refundInstructions.create(dto, actor);
   }

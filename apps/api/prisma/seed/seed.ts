@@ -143,8 +143,10 @@ const M10_PERMISSIONS: { module: string; resource: string; action: string; descr
   { module: 'M10', resource: 'supplier-obligation', action: 'VIEW', description: 'Uvid u obaveze prema dobavljačima' },
   { module: 'M10', resource: 'supplier-obligation', action: 'APPROVE', description: 'Odobrenje/plaćanje obaveze prema dobavljaču — nikad AI agent' },
   { module: 'M10', resource: 'supplier-payment-instruction', action: 'VIEW', description: 'Uvid u instrukcije za isplatu dobavljaču' },
+  { module: 'M10', resource: 'supplier-payment-instruction', action: 'CREATE', description: 'Sastavljanje naloga za isplatu dobavljaču (ne i izvršenje)' },
   { module: 'M10', resource: 'supplier-payment-instruction', action: 'EXECUTE', description: 'Izvršenje isplate dobavljaču — nikad AI agent' },
   { module: 'M10', resource: 'refund-instruction', action: 'VIEW', description: 'Uvid u zahteve za refundaciju gosta' },
+  { module: 'M10', resource: 'refund-instruction', action: 'CREATE', description: 'Sastavljanje zahteva za refundaciju gosta (ne i odobrenje/izvršenje)' },
   { module: 'M10', resource: 'refund-instruction', action: 'APPROVE', description: 'Odobrenje refundacije — nikad AI agent' },
   { module: 'M10', resource: 'refund-instruction', action: 'EXECUTE', description: 'Izvršenje refundacije — nikad AI agent' },
   { module: 'M10', resource: 'payment-terms-config', action: 'VIEW', description: 'Uvid u politiku akontacije/balansa' },
@@ -634,7 +636,11 @@ const DEFAULT_ROLE_PERMISSIONS: Record<string, { module: string; resource: strin
     { module: 'M10', resource: 'supplier-obligation', action: 'VIEW' },
     { module: 'M10', resource: 'supplier-obligation', action: 'APPROVE' },
     { module: 'M10', resource: 'supplier-payment-instruction', action: 'VIEW' },
+    // Dopuna 4.9.2026 (M10 spec §11) — sastavljanje naloga traži sopstveno pravo, odvojeno
+    // od pukog uvida; izvršenje (EXECUTE) ostaje isključivo Vlasnik/Direktor.
+    { module: 'M10', resource: 'supplier-payment-instruction', action: 'CREATE' },
     { module: 'M10', resource: 'refund-instruction', action: 'VIEW' },
+    { module: 'M10', resource: 'refund-instruction', action: 'CREATE' },
     { module: 'M10', resource: 'payment-terms-config', action: 'VIEW' },
     { module: 'M10', resource: 'client-payment-schedule', action: 'VIEW' },
     // Dopuna 31.8.2026 (M1 §3.9a) — Računovođa radi fakturisanje za celu agenciju, ne samo

@@ -279,7 +279,7 @@ Bez `paidAt` uzima se trenutno vreme.
 ## Nalozi za isplatu dobavljaču
 
 ### GET /finance/supplier-payment-instructions · POST /finance/supplier-payment-instructions
-Dozvola: `M10/supplier-payment-instruction/VIEW` (i za kreiranje — vidi napomenu ispod).
+Dozvole: `M10/supplier-payment-instruction/VIEW` za pregled, `…/CREATE` za kreiranje (razdvojeno 4.9.2026 — ranije je i kreiranje tražilo samo `VIEW`).
 
 ```json
 { "supplierObligationId": "obl-1", "method": "BANK_TRANSFER", "bankIban": "RS35...", "bankSwift": "..." }
@@ -296,14 +296,14 @@ ili
 ### POST /finance/supplier-payment-instructions/:id/execute
 Dozvola: `M10/supplier-payment-instruction/EXECUTE` — **odvojena i strožija** od one za kreiranje. Ko sastavlja nalog ne mora biti onaj ko ga izvršava.
 
-> **Nedoslednost koju treba znati:** kreiranje naloga za isplatu (`POST`) traži samo `VIEW` dozvolu, ne `CREATE`/`EDIT`. Isto važi i za kreiranje naloga za povraćaj. Sam čin isplate jeste zaštićen (`EXECUTE`), pa novac ne može izaći bez toga — ali ko ima pravo samo da *gleda* obaveze, može i da *sastavi* nalog. Zabeleženo 3.9.2026 kao neispunjena stavka izlaznog kriterijuma M10.
+> **Tri odvojena prava, namerno:** `VIEW` (gledati), `CREATE` (sastaviti nalog), `EXECUTE` (poslati novac). Do 4.9.2026 kreiranje je tražilo samo `VIEW` — ko je smeo da gleda obaveze, smeo je i da sastavi nalog za isplatu; ispravljeno uvođenjem `CREATE` dozvole. Novac ni tada nije mogao izaći bez `EXECUTE`, ali podela odgovornosti nije bila potpuna.
 
 ---
 
 ## Povraćaj novca gostu
 
 ### GET /finance/refund-instructions · POST /finance/refund-instructions
-Dozvola: `M10/refund-instruction/VIEW` (ista napomena kao iznad).
+Dozvole: `M10/refund-instruction/VIEW` za pregled, `…/CREATE` za kreiranje (razdvojeno 4.9.2026).
 
 ```json
 { "paymentId": "pay-1", "amount": 45000, "currency": "RSD", "method": "BANK_TRANSFER" }

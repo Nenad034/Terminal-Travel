@@ -457,8 +457,10 @@ Isti dvostepeni obrazac kao M3 poglavlje 4.2.4:
 | `M10/supplier-obligation/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/supplier-obligation/APPROVE` | Vlasnik, Direktor, Računovođa — **nikad AI agent** (poglavlje 8.3) |
 | `M10/supplier-payment-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/supplier-payment-instruction/CREATE` | Vlasnik, Direktor, Računovođa — *sastavljanje* naloga (dopuna 4.9.2026; ranije je bilo dovoljno `VIEW`) |
 | `M10/supplier-payment-instruction/EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.2) |
 | `M10/refund-instruction/VIEW` | Vlasnik, Direktor, Računovođa |
+| `M10/refund-instruction/CREATE` | Vlasnik, Direktor, Računovođa — *sastavljanje* zahteva (dopuna 4.9.2026) |
 | `M10/refund-instruction/APPROVE`, `EXECUTE` | Vlasnik, Direktor — **nikad AI agent** (poglavlje 8.5.3) |
 | `M10/payment-terms-config/VIEW` | Vlasnik, Direktor, Računovođa |
 | `M10/payment-terms-config/EDIT` | Vlasnik, Direktor — menja globalnu politiku akontacije/balansa (poglavlje 5.4.1) |
@@ -487,9 +489,9 @@ Prefiks: `/api/v1/finance`
 | `/supplier-obligations/:id/approve` | POST | zahteva `M10/supplier-obligation/APPROVE`; odbija ako `booking_item_id` nije popunjen |
 | `/supplier-obligations/:id/pay` | POST | beleži plaćanje, izračunava `exchange_rate_difference` |
 | `/reconciliation/mismatches` | GET | lista `Booking` zapisa koji ne prolaze proveru iz poglavlja 5.3 (nedostaje uplata i/ili fiskalni dokument) |
-| `/supplier-payment-instructions` | GET / POST | pregled / kreiranje instrukcije za isplatu (poglavlje 8.5.2) |
+| `/supplier-payment-instructions` | GET / POST | pregled (`VIEW`) / kreiranje instrukcije za isplatu (`CREATE`, poglavlje 8.5.2) |
 | `/supplier-payment-instructions/:id/execute` | POST | zahteva `M10/supplier-payment-instruction/EXECUTE`, samo ljudski nalog |
-| `/refund-instructions` | GET / POST | pregled / kreiranje zahteva za refundaciju van kartičnog toka (poglavlje 8.5.3) |
+| `/refund-instructions` | GET / POST | pregled (`VIEW`) / kreiranje zahteva za refundaciju van kartičnog toka (`CREATE`, poglavlje 8.5.3) |
 | `/refund-instructions/:id/approve` | POST | zahteva `M10/refund-instruction/APPROVE` |
 | `/refund-instructions/:id/execute` | POST | zahteva `M10/refund-instruction/EXECUTE`, dozvoljeno samo posle `APPROVED` |
 | `/payment-terms-config` | GET / PUT | pregled / izmena globalne politike akontacije i balansa (poglavlje 5.4.1), zahteva `M10/payment-terms-config/EDIT` za `PUT` |
@@ -537,7 +539,7 @@ Prefiks: `/api/v1/finance`
 
   ***Zašto je prvobitna dijagnoza promašila:** zaključak "problem je u `createConfirmedBookingFixture()`" izveden je iz pretpostavke da je jedini `404` na toj putanji onaj iz `payments.service.ts` ("Booking ... nije pronađen"). Stvarna poruka u odgovoru bila je "Rezervacija nije pronađena." — iz sasvim drugog modula (`m5-rezervacije/bookings/bookings.service.ts`). Ispisivanje `res.body` (a ne samo statusa) vodilo je do uzroka u jednom prolazu. Zamka 12.4 u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md`.)*
 - [x] API dokumentacija (`docs/api/M10-finansije.md`) postoji sa primerima zahteva/odgovora za svaki endpoint iz poglavlja 10 — obavezna stavka po CLAUDE.md. *(napisana 3.9.2026; fiskalni dokument i kursna lista uhvaćeni stvarnim pozivima nad lokalnom bazom, ostali odeljci izvedeni iz koda jer su tabele `payments`/`supplier_obligations`/`banks`/`refund_instructions` prazne — svaki takav odeljak je u dokumentu označen)*
-- [ ] Kreiranje naloga za isplatu dobavljaču i naloga za povraćaj gostu traži dozvolu jaču od `VIEW`. *(zatečeno 3.9.2026 pri pisanju API dokumentacije: `POST /finance/supplier-payment-instructions` i `POST /finance/refund-instructions` nose `@RequirePermission(..., 'VIEW')` — ko sme samo da GLEDA obaveze, sme i da SASTAVI nalog za isplatu. Sam čin isplate jeste zaštićen odvojenom `EXECUTE` dozvolom, pa novac ne može izaći bez nje, i zato ovo nije hitno; ali podela odgovornosti „ko sastavlja ≠ ko izvršava" nije potpuna dok kreiranje ne traži sopstveno pravo)*
+- [x] **Kreiranje naloga za isplatu dobavljaču i naloga za povraćaj gostu traži dozvolu jaču od `VIEW`.** *(rešeno 4.9.2026: uvedene `M10/supplier-payment-instruction/CREATE` i `M10/refund-instruction/CREATE`, dodeljene Vlasniku/Direktoru/Računovođi; `POST /finance/supplier-payment-instructions` i `POST /finance/refund-instructions` sada traže njih umesto `VIEW`. Izvršenje (`EXECUTE`) i odobrenje (`APPROVE`) ostaju nepromenjeni — Vlasnik/Direktor, nikad AI agent. Dokazano e2e testom: nalog sa samo `VIEW` dobija 403 na kreiranje, a i dalje vidi listu)*
 
 ---
 
