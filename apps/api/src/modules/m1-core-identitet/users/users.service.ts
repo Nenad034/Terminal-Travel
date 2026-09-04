@@ -4,6 +4,8 @@ import { AuditLogService } from '../audit-log/audit-log.service';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { CreatePermissionOverrideDto } from './dto/create-permission-override.dto';
+import { MailerService } from '../../../common/mail/mailer.service';
+import { inviteEmail } from '../../../common/mail/mail-templates';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +13,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
     private readonly auth: AuthService,
+    private readonly mailer: MailerService,
   ) {}
 
   findAll() {
@@ -93,9 +96,19 @@ export class UsersService {
       context: { roleIds: dto.roleIds },
     });
 
-    // Slanje email-a je van obima ovog fajla — TODO poveznica sa email servisom kad
-    // ta infrastruktura dođe na red (isti obrazac kao AuthService.requestPasswordReset).
-    return { user, inviteToken };
+    // Dopuna 4.9.2026 — pozivnica se sada stvarno šalje. `emailDelivered` govori panelu da li
+    // je otišla: ako nije (SMTP nije podešen ili je server odbio), ekran i dalje prikazuje link
+    // za ručno prosleđivanje. Rezervni put se NE uklanja uvođenjem pošte — nalog je već
+    // napravljen, pa neuspelo slanje ne sme da ostavi pozivaoca bez ijednog načina da nastavi
+    // (M1 spec §5, zamka 5.12).
+    const mail = inviteEmail({
+      fullName: user.fullName,
+      link: `${this.mailer.panelBaseUrl()}/aktivacija?token=${inviteToken}`,
+      hoursValid: this.auth.inviteTokenTtlHours,
+    });
+    const sent = await this.mailer.send({ to: user.email, ...mail });
+
+    return { user, inviteToken, emailDelivered: sent.delivered };
   }
 
   async update(id: string, data: { fullName?: string; phone?: string }, actorId: string) {

@@ -8,6 +8,8 @@ import { EventBusService } from '../../../common/events/event-bus.service';
 import { decryptSecret, encryptSecret, generateRawToken, hashToken } from '../../../common/crypto/secret-box';
 import { ROLES_REQUIRING_MANDATORY_MFA, SYSTEM_ROLES } from '../roles/system-roles.constants';
 import { RegisterDto } from './dto/register.dto';
+import { MailerService } from '../../../common/mail/mailer.service';
+import { passwordResetEmail } from '../../../common/mail/mail-templates';
 
 const FAILED_ATTEMPTS_BEFORE_LOCK = 5; // M1 spec §5
 const LOCK_DURATION_MINUTES = 15; // M1 spec §5
@@ -32,6 +34,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly auditLog: AuditLogService,
     private readonly eventBus: EventBusService,
+    private readonly mailer: MailerService,
   ) {}
 
   /**
@@ -259,8 +262,17 @@ export class AuthService {
         expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_HOURS * 60 * 60_000),
       },
     });
-    // Slanje email-a je van obima ovog fajla (kanal, ne M1 poslovna logika) — TODO poveznica
-    // sa stvarnim email servisom kad taj deo infrastrukture dođe na red.
+    // Dopuna 4.9.2026 — poruka se sada stvarno šalje. Rezultat slanja se NAMERNO ne vraća
+    // pozivaocu i ne menja odgovor endpointa: `POST /auth/password/forgot` uvek odgovara isto,
+    // bez obzira da li nalog postoji i da li je pošta prošla (§5, ista "ne otkrivati" logika
+    // kao `if (!user) return` iznad — različit odgovor bi odao ko ima nalog u sistemu).
+    const mail = passwordResetEmail({
+      fullName: user.fullName,
+      link: `${this.mailer.panelBaseUrl()}/reset-lozinke?token=${rawToken}`,
+      hoursValid: PASSWORD_RESET_TTL_HOURS,
+    });
+    await this.mailer.send({ to: user.email, ...mail });
+
     return rawToken;
   }
 
@@ -300,6 +312,9 @@ export class AuthService {
    * postavljanje lozinke". Isti mehanizam kao resetPassword (token-hash, 1h rok),
    * razlika je samo što ovde nalog prelazi iz INVITED u ACTIVE.
    */
+  /** Rok pozivnice u satima — čita ga UsersService da ista vrednost ne stoji na dva mesta. */
+  readonly inviteTokenTtlHours = INVITE_TTL_HOURS;
+
   async createInviteToken(userId: string) {
     const rawToken = generateRawToken();
     await this.prisma.passwordResetToken.create({

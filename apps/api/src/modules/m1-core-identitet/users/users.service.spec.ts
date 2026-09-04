@@ -25,9 +25,12 @@ describe('UsersService', () => {
       },
     };
     const auditLog = { write: jest.fn() };
-    const auth = { createInviteToken: jest.fn().mockResolvedValue('raw-invite-token') };
-    const service = new UsersService(prisma as any, auditLog as any, auth as any);
-    return { service, prisma, auditLog, auth };
+    const auth = { createInviteToken: jest.fn().mockResolvedValue('raw-invite-token'), inviteTokenTtlHours: 48 };
+    // Slanje pozivnice ne sme da utiče na poslovnu logiku ovog servisa (M1 spec §5) — mok
+    // vraća `delivered: false`, tj. najgori slučaj, da testovi prolaze i kad pošta zakaže.
+    const mailer = { send: jest.fn().mockResolvedValue({ delivered: false }), panelBaseUrl: () => 'http://localhost:3100', isConfigured: () => false };
+    const service = new UsersService(prisma as any, auditLog as any, auth as any, mailer as any);
+    return { service, prisma, auditLog, auth, mailer };
   }
 
   describe('createPermissionOverride (M1 spec §3.6 — bezbednosna ograda)', () => {
@@ -157,7 +160,7 @@ describe('UsersService', () => {
 
   describe('invite (M1 spec §7 — kreira nalog u statusu INVITED)', () => {
     it('kreira korisnika sa status=INVITED, accountType=STAFF, dodeljuje uloge i traži invite token', async () => {
-      const { service, prisma, auditLog, auth } = makeService();
+      const { service, prisma, auditLog, auth, mailer } = makeService();
       const created = { id: 'user-7', email: 'novi@tt.rs', status: 'INVITED' };
       prisma.user.create.mockResolvedValue(created);
 
@@ -177,7 +180,13 @@ describe('UsersService', () => {
       );
       expect(auth.createInviteToken).toHaveBeenCalledWith('user-7');
       expect(auditLog.write).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.invited' }));
-      expect(result).toEqual({ user: created, inviteToken: 'raw-invite-token' });
+      // `emailDelivered` (dopuna 4.9.2026) kaže panelu da li je pozivnica stvarno otišla —
+      // ovde je `false` jer mok pošte simulira nepodešen SMTP; ekran tada prikazuje link za
+      // ručno prosleđivanje. Sam poziv mora biti napravljen bez obzira na ishod.
+      expect(result).toEqual({ user: created, inviteToken: 'raw-invite-token', emailDelivered: false });
+      expect(mailer.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'novi@tt.rs', text: expect.stringContaining('raw-invite-token') }),
+      );
     });
 
     it('franšizni nalog (linkedProfileId postavljen) sme da pozove naloge SAMO sopstvene franšize (M1 §5, M7 §2.0.7)', async () => {

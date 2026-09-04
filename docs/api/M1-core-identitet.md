@@ -205,6 +205,11 @@ Oba vraćaju `{ "ok": true }`.
 
 > **`password/forgot` vraća `{ok: true}` i kad adresa ne postoji** — iz istog razloga kao jedinstvena poruka pri prijavi. Odgovor nije potvrda da nalog postoji.
 
+
+> **`forgot` uvek vraća isti odgovor** — i za nepostojeći nalog, i kad slanje poruke ne uspe. Namerno: različit odgovor bi dozvolio da se pogađanjem adresa utvrdi ko ima nalog u sistemu. Ne pokušavajte da iz odgovora zaključite da li je poruka poslata.
+>
+> Link u poruci vodi na `/reset-lozinke?token=…` u panelu i traje **1 sat**. Uspešan `reset` opoziva sve postojeće sesije tog korisnika.
+
 ### POST /iam/auth/mfa/enroll · POST /iam/auth/mfa/enroll/confirm
 **Zahtevaju token.** Prvi vraća podatke za podešavanje aplikacije za kodove, drugi potvrđuje sa prvim kodom:
 ```json
@@ -280,7 +285,11 @@ Dozvola: `M1/user/CREATE`. Ovo je **poziv**, ne kreiranje sa lozinkom — nalog 
 `roleIds[]` je obavezan (može biti prazan niz). `linkedProfileId` popunjava se samo kad nalog pripada franšizi (M7).
 
 
-> **Odgovor sadrži `inviteToken` — bez njega pozvani nalog ostaje neupotrebljiv.** Automatsko slanje email-a još nije povezano, pa link `/aktivacija?token=<inviteToken>` prosleđujete sami. Token traje **48 sati** (namerno duže od tokena za reset lozinke, koji traje 1 sat) i koristi se **jednom**. Pozvani nalog do aktivacije nema lozinku i prijava mu vraća `403`.
+> **Pozivnica se šalje na email** (od 4.9.2026), a odgovor nosi i `inviteToken` i `emailDelivered`:
+> ```json
+> { "user": { "id": "…", "status": "INVITED" }, "inviteToken": "d7e67cce…", "emailDelivered": true }
+> ```
+> `emailDelivered: false` znači da poruka nije otišla (SMTP nije podešen ili je server odbio) — **nalog je i tada napravljen**, pa link `/aktivacija?token=<inviteToken>` prosledite sami. Token traje **48 sati** (duže od tokena za reset lozinke, koji traje 1 sat) i koristi se **jednom**. Pozvani nalog do aktivacije nema lozinku i prijava mu vraća `403`.
 
 ### GET /iam/users/:id · PATCH /iam/users/:id
 Dozvole: `M1/user/VIEW` odnosno `EDIT`. `PATCH` prima samo `fullName` i `phone`.

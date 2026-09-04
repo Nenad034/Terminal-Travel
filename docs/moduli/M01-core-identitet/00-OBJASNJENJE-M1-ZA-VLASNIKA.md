@@ -57,6 +57,20 @@ Kad neko prvi put podešava dvostruku proveru, aplikacija na telefonu treba da �
 
 Sada se crta prava slika. Sitnica koju vredi znati: kod se uvek crta na **beloj podlozi**, čak i kad je ostatak ekrana taman — čitači QR koda traže tamne tačkice na svetloj pozadini, pa bi na tamnoj podlozi kod postao nečitljiv. Šifra za ručno prepisivanje ostaje ispod slike, za slučaj da kamera zakaže.
 
+## Pošta sada stvarno odlazi (dopuna, 4.9.2026)
+
+Do sada nijedna poruka nije izlazila iz sistema. Na četiri mesta u kodu stajala je ista beleška — „ovde bi trebalo poslati email, čeka odluku" — pa je sistem uredno pravio poruku, zapisao da ju je „poslao", i nigde je ne bi poslao. To je zaobilazilo pažnju baš zato što ništa nije pucalo.
+
+Sada su povezana dva mesta gde je to najvažnije: **pozivnica novom kolegi** i **zaboravljena lozinka**. Uz to i **operativne uzbune** (poruka kad nešto u sistemu zakaže) idu istim putem.
+
+**Šta je izabrano i zašto.** Sistem govori običan „SMTP" — jezik kojim govore svi mail serveri. To znači da ne moramo unapred da biramo firmu: isti kod radi sa poštom koju agencija već ima, sa Google-om, sa Microsoft-om, ili sa servisom specijalizovanim za ovakve poruke. Podaci se upisuju u jedan fajl sa podešavanjima, ne u kod. Da smo umesto toga izabrali API jedne konkretne firme, bili bismo vezani za nju, i ništa se ne bi moglo isprobati dok se ne otvori nalog i ne dokaže vlasništvo nad domenom.
+
+**Za probu se koristi „hvatač pošte".** Uz razvojno okruženje sada ide programčić koji prima sve poruke koje aplikacija pošalje i **zadržava ih kod sebe** — vidi se šta bi stiglo, na koju adresu i kako izgleda, a nijedna poruka ne može stvarno otići nekome. Tako se pozivnica isproba bez rizika da testna poruka završi kod stvarne osobe.
+
+**Ako pošta zakaže, ništa se ne ruši.** Ovo je namerna odluka: kad pozovete kolegu a mail server tog trenutka ne radi, nalog je već napravljen — bilo bi pogrešno da vam ceo postupak prijavi grešku i ostavi vas bez ičega. Umesto toga, ekran vam kaže da poruka nije otišla i pokaže link koji prosleđujete sami. Taj rezervni put ostaje **i kad pošta radi**, jer poruka može završiti u nepoželjnoj pošti ili adresa može biti pogrešno otkucana.
+
+**Šta i dalje ne šalje poštu, i zašto namerno.** Marketinški newsletter (M12) — jer masovna poruka traži i dugme „odjavi me" (zakonska obaveza), poštovanje pristanka svakog primaoca i usporavanje slanja da nas mail serveri ne označe kao izvor neželjene pošte. Poslati hiljadu poruka bez odjave gore je nego ne poslati ih. I sandučad iz modula M22 — tamo se poruke šalju *u ime konkretnog sandučeta* i, što je teži deo, **dovlače** iz njega; to je zaseban izbor koji tek treba napraviti.
+
 ---
 
 *Za tehničke detalje (tačna imena tabela, API pozivi, pravila evaluacije prava) vidi `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje tu specifikaciju.*

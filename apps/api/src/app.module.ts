@@ -25,6 +25,7 @@ import { M19KomunikacionaPlatformaModule } from './modules/m19-komunikaciona-pla
 import { M21CentarZaPomocModule } from './modules/m21-centar-za-pomoc/m21-centar-za-pomoc.module';
 import { M22EmailInboxModule } from './modules/m22-email-inbox/m22-email-inbox.module';
 import { M23ZnanjeModule } from './modules/m23-znanje/m23-znanje.module';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { M23ZnanjeModule } from './modules/m23-znanje/m23-znanje.module';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     ScheduleModule.forRoot(), // M5 spec §6.1 — podsetnici/alarmi (RemindersService, @Cron)
     PrismaModule,
+    MailModule, // slanje sistemske poste (M1 pozivnica/reset, M18 uzbune) — @Global()
     M1CoreIdentitetModule,
     M2KatalogProizvodaModule,
     M3UgovaranjeAlotmaniModule,

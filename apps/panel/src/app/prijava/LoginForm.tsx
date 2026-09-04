@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // M1 spec §5, M17 spec §3 — prijava je za interne uloge uvek višekoračna (obavezna 2FA).
 // Korak 1: email+lozinka -> /api/session/login. Ako nalog ima MFA (uvek za STAFF), server
@@ -243,6 +244,11 @@ export default function LoginForm() {
       >
         ./prijavi_se
       </button>
+      {/* M1 spec §5 — dok slanje pošte nije bilo povezano, ovaj put nije imao smisla; od
+          4.9.2026 link stvarno stiže na email, pa ekran postoji. */}
+      <Link href="/zaboravljena-lozinka" className="text-center text-xs text-ink-faint hover:text-ink">
+        zaboravljena lozinka?
+      </Link>
     </form>
   );
 }

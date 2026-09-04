@@ -13,6 +13,9 @@ export interface FormState {
 export interface InviteState extends FormState {
   userId?: string;
   inviteToken?: string;
+  /** Da li je pozivnica stvarno otisla na email (dopuna 4.9.2026) — od toga zavisi da li
+   *  ekran trazi od pozivaoca da link prosledi sam. */
+  emailDelivered?: boolean;
 }
 
 function extractMessage(err: ApiError): string {
@@ -35,9 +38,9 @@ function str(formData: FormData, key: string): string | undefined {
 // obrazac koji M19 već koristi za pozivnicu dobavljaču (§9.7). Kad email infrastruktura
 // dođe na red, ovo ostaje kao rezervni put, ne uklanja se.
 export async function inviteUser(_prev: InviteState, formData: FormData): Promise<InviteState> {
-  let user: { user: { id: string }; inviteToken: string };
+  let user: { user: { id: string }; inviteToken: string; emailDelivered: boolean };
   try {
-    user = await apiFetch<{ user: { id: string }; inviteToken: string }>('/iam/users', {
+    user = await apiFetch<{ user: { id: string }; inviteToken: string; emailDelivered: boolean }>('/iam/users', {
       method: 'POST',
       body: {
         fullName: str(formData, 'fullName'),
@@ -50,7 +53,7 @@ export async function inviteUser(_prev: InviteState, formData: FormData): Promis
     return { error: err instanceof ApiError ? extractMessage(err) : 'Pozivanje korisnika nije uspelo.' };
   }
   revalidatePath('/korisnici');
-  return { error: null, userId: user.user.id, inviteToken: user.inviteToken };
+  return { error: null, userId: user.user.id, inviteToken: user.inviteToken, emailDelivered: user.emailDelivered };
 }
 
 // M1 spec §7 — PATCH /iam/users/:id, samo ime/telefon (email/status se ne menjaju odavde).

@@ -301,6 +301,10 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
 
       expect(inviteRes.status).toBe(201);
       expect(inviteRes.body.inviteToken).toEqual(expect.any(String));
+      // `emailDelivered` (dopuna 4.9.2026) govori panelu da li je pozivnica stvarno otišla.
+      // Namerno se NE tvrdi da jeste: bez podešenog SMTP_HOST (npr. na CI-ju) isporuka izostaje,
+      // a lanac mora raditi i tada — link se u tom slučaju prosleđuje ručno (M1 spec §5).
+      expect(typeof inviteRes.body.emailDelivered).toBe('boolean');
       createdUserIds.push(inviteRes.body.user.id);
       expect(inviteRes.body.user.status).toBe('INVITED');
 

@@ -21,11 +21,16 @@ export default function NewUserForm({ roles }: { roles: { id: string; name: stri
     const link = `${typeof window === 'undefined' ? '' : window.location.origin}/aktivacija?token=${state.inviteToken}`;
     return (
       <div className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5">
-        <p className="rounded bg-ok-bg p-3 text-sm text-ok">Nalog je napravljen i čeka aktivaciju.</p>
+        <p className="rounded bg-ok-bg p-3 text-sm text-ok">
+          {state.emailDelivered
+            ? 'Nalog je napravljen, a pozivnica poslata na njegovu email adresu.'
+            : 'Nalog je napravljen i čeka aktivaciju.'}
+        </p>
         <div>
           <p className="text-xs text-ink-faint">
-            Pošaljite ovaj link pozvanom kolegi — na njemu postavlja svoju lozinku. Važi 48 sati i
-            koristi se jednom. (Automatsko slanje email-a još nije povezano.)
+            {state.emailDelivered
+              ? 'Isti link je ispod — pri ruci ako poruka ne stigne (spam filter, pogrešna adresa). Važi 48 sati i koristi se jednom.'
+              : 'Poruka NIJE poslata (slanje pošte nije podešeno ili server nije odgovorio) — prosledite ovaj link kolegi sami. Važi 48 sati i koristi se jednom.'}
           </p>
           <input
             readOnly

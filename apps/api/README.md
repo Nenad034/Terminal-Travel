@@ -13,19 +13,21 @@ Nema koda ovde bez oslonca u odgovarajućoj specifikaciji — vidi `CLAUDE.md` u
 ```bash
 # iz korena repozitorijuma
 npm install
-docker compose up -d postgres
+docker compose up -d postgres mailpit   # mailpit = lokalni hvatač pošte, ništa ne šalje napolje
 
 cp apps/api/.env.example apps/api/.env   # popuniti JWT_SECRET/ENCRYPTION_KEY nasumičnim stringovima
 
 cd apps/api
 npx prisma migrate dev
 docker exec -i terminaltravel-postgres-1 psql -U terminal -d terminal < prisma/sql/audit_log_append_only.sql
-npx prisma db seed
+npx prisma db seed   # ispisuje email i lozinku PRVOG naloga za prijavu u panel — zapisati odmah
 
 npm run start:dev
 ```
 
 API: `http://localhost:3000/api/v1`
+Primljena pošta (pozivnice, reset lozinke): `http://localhost:8025` — vidi `SMTP_*` u `.env.example`.
+Upozorenje: `SMTP_HOST` u lokalnom `.env` sme da pokazuje ISKLJUČIVO na mailpit — e2e testovi stvarno šalju poruke (zamka 5.13).
 OpenAPI dokumentacija (Swagger UI): `http://localhost:3000/api/docs`
 
 ## Testovi

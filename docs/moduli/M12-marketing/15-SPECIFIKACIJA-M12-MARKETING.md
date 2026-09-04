@@ -189,6 +189,7 @@ Prefiks: `/api/v1/marketing`
 
 ## 9. Otvoreno za dalje
 
+- **EMAIL kanal ostaje mock i posle uvođenja slanja pošte (dopuna 4.9.2026).** `apps/api` je 4.9.2026 dobio stvarno SMTP slanje (`nodemailer`, zajednički `MailerService`, master dokument poglavlje 6), ali ga M12 **namerno** još ne koristi: newsletter nije transakciona poruka nego kampanja, pa traži odjavu (`unsubscribe`, zakonska obaveza), poštovanje `marketing_consent` po primaocu (već postoji u `DistributionService.resolveEmailRecipients`), i ograničavanje brzine slanja da mail server ne označi domen kao izvor neželjene pošte. Dok ta tri dela ne postoje, `EmailMockAdapter` ostaje — slanje hiljadu poruka bez odjave je gore od neslanja.
 - Tačan izbor društvenih mreža/kanala za lansiranje (Facebook/Instagram/drugo) — potvrditi pre implementacije konkretnih adaptera.
 - Ako se pronađe raniji "Content Engine" predlog pomenut u Master dokumentu, uporediti i uskladiti sa ovim dokumentom, isto upozorenje kao u M4 specifikaciji.
 - **Puna analitika angažovanosti sa platformi** (impressions/klikovi/lajkovi sa Facebook/Instagram, stopa otvaranja mejla) — namerno van obima ove dopune (poglavlje 3a pokriva samo atribuciju ka rezervaciji, ne engagement metrike); zahtevalo bi da svaki `DistributionChannelAdapter` povlači metrike nazad sa platforme, poseban posao, dodaje se ako se pokaže stvarna potreba.

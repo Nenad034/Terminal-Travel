@@ -46,8 +46,11 @@ describe('AuthService', () => {
     const prisma = makePrismaMock();
     const auditLog = { write: jest.fn().mockResolvedValue({}) };
     const eventBus = { emit: jest.fn().mockResolvedValue(undefined) };
-    const service = new AuthService(prisma as any, jwt, auditLog as any, eventBus as any);
-    return { service, prisma, auditLog, eventBus };
+    // MailerService bez podešenog SMTP-a nikad ne baca i ne dira poslovnu logiku (common/mail)
+    // — u unit testovima je dovoljan mok koji beleži da li je poziv uopšte napravljen.
+    const mailer = { send: jest.fn().mockResolvedValue({ delivered: false }), panelBaseUrl: () => 'http://localhost:3100', isConfigured: () => false };
+    const service = new AuthService(prisma as any, jwt, auditLog as any, eventBus as any, mailer as any);
+    return { service, prisma, auditLog, eventBus, mailer };
   }
 
   beforeAll(() => {
