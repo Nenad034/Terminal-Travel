@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
+import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { sortOptionsFor, resolveSort } from '@/lib/search-sort';
 import { QuickFilterDivider, RefundableQuickFilter, StarsQuickFilter } from './SearchQuickFilters';
 
@@ -19,7 +22,13 @@ function resultLabel(n: number): string {
 // radnje: filter menja KOJI se rezultati vide, sortiranje samo REDOSLED. Isti razlog zašto je i
 // na velikim portalima traka nad listom, a ne stavka u bočnom meniju.
 //
-// Dugmad, ne padajući meni — dizajn dok. §6f (mali, poznat skup opcija).
+// Padajući meni, ne red dugmadi — IZUZETAK od §6f, upisan u dizajn dok. §6d.2 (4.9.2026, na
+// zahtev vlasnika: "sortiranje u rezultatima pretrage stavite u dropdown modul... ovo je na
+// laptopu, nisam primetio na velikim monitorima"). Pravilo §6f ("mali skup → dugmad") bira se
+// zbog broja opcija; ovde je presudila ŠIRINA: u istom redu već stoje brzi filteri i prekidač
+// lista/mapa, pa su četiri pilule sortiranja na laptopu (~1366px, uz otvoren levi panel) trpale
+// traku do ivice. Dugmad su i dalje ispravna za skupove koji stoje sami u redu — menja se samo
+// ovaj slučaj, ne pravilo.
 //
 // Dopuna 3.9.2026 (vlasnikov zahtev: „stavite u jedan red filtere iznad rezultata pretrage i
 // odvojite ih vertikalnom linijom") — brzi filteri (§3.0c.3a/§3.0c.3c) su prvo dobili sopstven
@@ -42,9 +51,12 @@ export default function SortBar({
   const router = useRouter();
   const sp = useSearchParams();
 
+  const [sortOpen, setSortOpen] = useState(false);
+
   const types = sp.getAll('type');
   const options = sortOptionsFor(types);
   const current = resolveSort(sp.get('sort'), types);
+  const currentLabel = options.find((o) => o.value === current)?.label ?? options[0]?.label ?? '';
 
   const view = sp.get('prikaz') === 'mapa' ? 'mapa' : 'lista';
 
@@ -78,28 +90,46 @@ export default function SortBar({
           <QuickFilterDivider />
         </>
       )}
-      <span className="flex items-center gap-1 text-ink-faint">
-        <Icon name="list-ordered" /> sortiraj:
-      </span>
-      <div className="flex flex-wrap gap-1">
-        {options.map((o) => (
-          <button
-            key={o.value}
+      <Popover open={sortOpen} onOpenChange={setSortOpen}>
+        <PopoverTrigger asChild>
+          <Button
             type="button"
-            onClick={() => pick(o.value)}
-            // Jednostruk izbor (dizajn dok. §6f): klik na već aktivno dugme ga NE deselektuje —
-            // lista uvek mora imati neki redosled, "nesortirano" nije smisleno stanje.
-            aria-pressed={current === o.value}
-            className={`rounded-full border px-2 py-0.5 ${
-              current === o.value
-                ? 'border-accent bg-accent-soft font-semibold text-accent-strong'
-                : 'border-border text-ink-dim hover:border-accent hover:text-ink'
-            }`}
+            variant="outline"
+            size="sm"
+            // Izabrani redosled stoji NA dugmetu, ne samo unutar otvorenog menija — zatvoren
+            // meni inače krije po čemu je lista poređana, a to je podatak koji agent čita u
+            // toku razgovora sa gostom.
+            className="h-7 gap-1 bg-panel px-2.5 text-xs font-normal"
+            aria-label={`sortiraj: ${currentLabel}`}
           >
-            {o.label}
-          </button>
-        ))}
-      </div>
+            <Icon name="list-ordered" className="text-ink-faint" />
+            <span className="text-ink-faint">sortiraj:</span>
+            <span className="font-semibold text-accent-strong">{currentLabel}</span>
+            <Icon name="chevron-down" className="text-ink-faint" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-52 p-1">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => {
+                pick(o.value);
+                setSortOpen(false);
+              }}
+              // Jednostruk izbor: klik na već aktivnu stavku ne poništava redosled — lista uvek
+              // mora imati neki, "nesortirano" nije smisleno stanje.
+              aria-pressed={current === o.value}
+              className={`flex w-full items-center justify-between gap-2 rounded px-2 py-1.5 text-left text-xs ${
+                current === o.value ? 'bg-accent-soft font-semibold text-accent-strong' : 'text-ink-dim hover:bg-panel2 hover:text-ink'
+              }`}
+            >
+              <span className="truncate">{o.label}</span>
+              {current === o.value && <Icon name="check" className="text-accent-strong" />}
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
       <div className="ml-auto flex items-center gap-3">
         {resultCount > 0 && <span className="text-ink-faint">{resultLabel(resultCount)}</span>}
         {mapAvailable && (

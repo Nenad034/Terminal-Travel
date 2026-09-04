@@ -26,24 +26,51 @@ export interface AgePolicyEntry {
   crib_included?: boolean | null;
 }
 
+export interface RoomBeds {
+  base_beds: number;
+  base_bed_type?: BaseBedType | null;
+  extra_beds_max?: number | null;
+  extra_bed_type?: ExtraBedType | null;
+  shares_bed_max_age?: number | null;
+  extra_bed_max_age?: number | null;
+}
+
+// `beds`, `capacity_*` i `name` su po M2 §2.3a/§2.3b deo svake stavke — ali `Product.attributes`
+// je JSONB BEZ šeme (M2 §2, namerno "fleksibilan JSONB"), pa ništa ne sprečava da stigne stavka
+// bez njih: uvoz sadržaja (§3.3), API provajder, starija seed skripta ili ručna izmena kroz
+// PATCH. Tip koji ih proglašava obaveznim ne čini podatak takvim — samo sakrije da čitalac mora
+// da izdrži izostanak (isti obrazac kao zamke 5.13 i 10.1: ugovor između dva sloja koji nijedan
+// alat ne proverava). Zato su ovde opcioni, a prikaz/izmena imaju fallback.
 export interface RoomType {
   code: string;
-  name: string;
-  capacity_adults: number;
-  capacity_children: number;
+  name?: string;
+  capacity_adults?: number;
+  capacity_children?: number;
   min_occupancy?: number | null;
   size_sqm?: number | null;
   features?: string[];
-  beds: {
-    base_beds: number;
-    base_bed_type?: BaseBedType | null;
-    extra_beds_max?: number | null;
-    extra_bed_type?: ExtraBedType | null;
-    shares_bed_max_age?: number | null;
-    extra_bed_max_age?: number | null;
-  };
+  beds?: RoomBeds;
   age_policy?: AgePolicyEntry[];
 }
+
+// Ono što se UREĐUJE u modalu je uvek potpuno — `openAdd`/`openEdit` popune svako polje pre nego
+// što modal uopšte može da se otvori. Zato draft ima strože obaveze od zatečenog zapisa iznad:
+// strogost stoji tamo gde je istinita, umesto da se `?.` provlači kroz ceo obrazac.
+type RoomTypeDraft = RoomType & {
+  name: string;
+  capacity_adults: number;
+  capacity_children: number;
+  beds: RoomBeds;
+};
+
+const EMPTY_BEDS: RoomBeds = {
+  base_beds: 0,
+  base_bed_type: null,
+  extra_beds_max: null,
+  extra_bed_type: null,
+  shares_bed_max_age: null,
+  extra_bed_max_age: null,
+};
 
 // M2 §2.3b — "Podrazumevana politika (fallback)", isti niz kao backend `DEFAULT_AGE_POLICY`
 // (apps/api/src/modules/m2-katalog-proizvoda/products/age-policy.ts) — nova soba u panelu kreće
@@ -85,7 +112,7 @@ function nextRoomCode(productId: string, existing: RoomType[]): string {
   return `${objectPart}${String(nextSeq).padStart(2, '0')}`;
 }
 
-function emptyRoomType(): RoomType {
+function emptyRoomType(): RoomTypeDraft {
   return {
     code: '',
     name: '',
@@ -102,7 +129,7 @@ function emptyRoomType(): RoomType {
 export default function RoomTypesEditor({ productId, initialRoomTypes }: { productId: string; initialRoomTypes: RoomType[] }) {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>(initialRoomTypes);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [draft, setDraft] = useState<RoomType | null>(null);
+  const [draft, setDraft] = useState<RoomTypeDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -114,7 +141,17 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
   }
 
   function openEdit(index: number) {
-    setDraft({ ...roomTypes[index], beds: { ...roomTypes[index].beds }, age_policy: (roomTypes[index].age_policy ?? DEFAULT_AGE_POLICY).map((a) => ({ ...a })) });
+    const rt = roomTypes[index];
+    // Zatečena stavka može biti bez `beds`/`capacity_*` (vidi napomenu uz RoomType) — modal ih
+    // tada popunjava praznim vrednostima da zaposleni može da ih dopuni, umesto da ekran pukne.
+    setDraft({
+      ...rt,
+      name: rt.name ?? '',
+      capacity_adults: rt.capacity_adults ?? 0,
+      capacity_children: rt.capacity_children ?? 0,
+      beds: { ...EMPTY_BEDS, ...(rt.beds ?? {}) },
+      age_policy: (rt.age_policy ?? DEFAULT_AGE_POLICY).map((a) => ({ ...a })),
+    });
     setEditingIndex(index);
     setError(null);
   }
@@ -125,7 +162,7 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
   }
 
   function removeRoomType(index: number) {
-    if (!confirm(`Ukloniti tip sobe "${roomTypes[index].name}"?`)) return;
+    if (!confirm(`Ukloniti tip sobe "${roomTypes[index].name || roomTypes[index].code}"?`)) return;
     void persist(roomTypes.filter((_, i) => i !== index));
   }
 
@@ -180,19 +217,22 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
         {roomTypes.map((rt, i) => (
           <div key={rt.code || i} className="flex items-center justify-between rounded-lg border border-border bg-panel2 px-3 py-2 text-xs">
             <div>
-              <span className="font-medium text-ink">{rt.name}</span>
+              <span className="font-medium text-ink">{rt.name || 'Bez naziva'}</span>
               <span className="ml-2 font-mono text-ink-faint">{rt.code}</span>
               <div className="mt-0.5 text-ink-faint">
-                {rt.beds.base_beds} osnovni{rt.beds.base_bed_type ? ` (${BASE_BED_LABELS[rt.beds.base_bed_type]})` : ''}
-                {rt.beds.extra_beds_max
-                  ? ` + do ${rt.beds.extra_beds_max} dodatna${rt.beds.extra_bed_type ? ` (${EXTRA_BED_LABELS[rt.beds.extra_bed_type]})` : ''}${
-                      rt.beds.extra_bed_max_age != null ? ` [dete do ${rt.beds.extra_bed_max_age}g]` : ''
-                    }`
-                  : ''}
-                {rt.beds.shares_bed_max_age != null ? ` · deljenje kreveta do ${rt.beds.shares_bed_max_age}g` : ''}
+                {rt.beds
+                  ? `${rt.beds.base_beds ?? 0} osnovni${rt.beds.base_bed_type ? ` (${BASE_BED_LABELS[rt.beds.base_bed_type]})` : ''}${
+                      rt.beds.extra_beds_max
+                        ? ` + do ${rt.beds.extra_beds_max} dodatna${rt.beds.extra_bed_type ? ` (${EXTRA_BED_LABELS[rt.beds.extra_bed_type]})` : ''}${
+                            rt.beds.extra_bed_max_age != null ? ` [dete do ${rt.beds.extra_bed_max_age}g]` : ''
+                          }`
+                        : ''
+                    }${rt.beds.shares_bed_max_age != null ? ` · deljenje kreveta do ${rt.beds.shares_bed_max_age}g` : ''}`
+                  : 'kreveti nisu uneti'}
                 {' · '}
-                {rt.min_occupancy ? `${rt.min_occupancy}–` : ''}
-                {rt.capacity_adults} odraslih{rt.capacity_children ? ` + ${rt.capacity_children} dece` : ''}
+                {rt.capacity_adults != null
+                  ? `${rt.min_occupancy ? `${rt.min_occupancy}–` : ''}${rt.capacity_adults} odraslih${rt.capacity_children ? ` + ${rt.capacity_children} dece` : ''}`
+                  : 'kapacitet nije unet'}
               </div>
             </div>
             <div className="flex gap-1">
@@ -409,7 +449,7 @@ export default function RoomTypesEditor({ productId, initialRoomTypes }: { produ
   );
 }
 
-function updateAgePolicy(draft: RoomType, setDraft: (r: RoomType) => void, index: number, patch: Partial<AgePolicyEntry>) {
+function updateAgePolicy(draft: RoomTypeDraft, setDraft: (r: RoomTypeDraft) => void, index: number, patch: Partial<AgePolicyEntry>) {
   const next = [...(draft.age_policy ?? [])];
   next[index] = { ...next[index], ...patch };
   setDraft({ ...draft, age_policy: next });

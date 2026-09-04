@@ -278,11 +278,38 @@ const PERIODI = [
 /** Nadoplata po tipu usluge u odnosu na osnovni noćni ceh dvokrevetne sobe. */
 const DOPLATA_USLUGE: Record<Board, number> = { BB: 1.0, HB: 1.18, FB: 1.34, AI: 1.58 };
 
-/** Standardni tipovi soba — isti oblik kao `mock-b2c.ts` (M2 §2.3a). */
+/**
+ * Standardni tipovi soba — isti oblik kao `mock-b2c.ts`.
+ *
+ * Imena ključeva su DOSLOVNO iz M2 §2.3a/§2.3b: `capacity_adults`/`capacity_children` (ne
+ * `maxAdults`/`maxChildren`) i `beds` po §2.3b. Ispravljeno 4.9.2026 — raniji oblik je panelu
+ * rušio ekran proizvoda (`RoomTypesEditor` čita `rt.beds.base_beds`), a filter po kapacitetu je
+ * tiho vraćao prazno. Isti obrazac kao zamka 5.13, samo jedan nivo dublje: spoljni ključevi
+ * (`stars`, `room_types`) su tada popravljeni, a stavke unutar niza ostale po starom.
+ * `age_policy` se namerno NE upisuje — §2.3b propisuje sistemski fallback kad ga nema.
+ */
 const ROOM_TYPES = [
-  { code: 'DBL', name: 'Dvokrevetna soba', maxAdults: 2, maxChildren: 1 },
-  { code: 'TRPL', name: 'Trokrevetna soba', maxAdults: 3, maxChildren: 1 },
-  { code: 'SGL', name: 'Jednokrevetna soba', maxAdults: 1, maxChildren: 0 },
+  {
+    code: 'DBL',
+    name: 'Dvokrevetna soba',
+    capacity_adults: 2,
+    capacity_children: 1,
+    beds: { base_beds: 2, base_bed_type: 'DVA_ODVOJENA_KREVETA', extra_beds_max: 1, extra_bed_type: 'POMOCNI_LEZAJ', extra_bed_max_age: 11.99, shares_bed_max_age: 5.99 },
+  },
+  {
+    code: 'TRPL',
+    name: 'Trokrevetna soba',
+    capacity_adults: 3,
+    capacity_children: 1,
+    beds: { base_beds: 3, base_bed_type: 'DVA_ODVOJENA_KREVETA', extra_beds_max: 1, extra_bed_type: 'SOFA_KREVET', extra_bed_max_age: 11.99, shares_bed_max_age: 5.99 },
+  },
+  {
+    code: 'SGL',
+    name: 'Jednokrevetna soba',
+    capacity_adults: 1,
+    capacity_children: 0,
+    beds: { base_beds: 1, base_bed_type: 'FRANCUSKI_LEZAJ', extra_beds_max: null, extra_bed_type: null, extra_bed_max_age: null, shares_bed_max_age: null },
+  },
 ];
 
 const slugify = (s: string) =>

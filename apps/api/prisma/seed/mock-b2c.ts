@@ -112,9 +112,24 @@ async function main() {
   // 2. Proizvodi (M2) — različiti tipovi, da svaka kategorija na sajtu ima sadržaj.
   //    `visibleChannels: ['B2C_SITE']` je ono što je do sad nedostajalo.
   // ==========================================================================
+  // Imena ključeva DOSLOVNO iz M2 §2.3a/§2.3b — `capacity_adults`/`capacity_children` i `beds`.
+  // Ispravljeno 4.9.2026 (isto kao u `mock-destinacije.ts`): raniji `maxAdults`/`maxChildren` bez
+  // `beds` rušio je ekran proizvoda u panelu. `age_policy` se ne upisuje — §2.3b ima fallback.
   const roomTypes = [
-    { code: 'DBL', name: 'Dvokrevetna soba', maxAdults: 2, maxChildren: 1 },
-    { code: 'SGL', name: 'Jednokrevetna soba', maxAdults: 1, maxChildren: 0 },
+    {
+      code: 'DBL',
+      name: 'Dvokrevetna soba',
+      capacity_adults: 2,
+      capacity_children: 1,
+      beds: { base_beds: 2, base_bed_type: 'DVA_ODVOJENA_KREVETA', extra_beds_max: 1, extra_bed_type: 'POMOCNI_LEZAJ', extra_bed_max_age: 11.99, shares_bed_max_age: 5.99 },
+    },
+    {
+      code: 'SGL',
+      name: 'Jednokrevetna soba',
+      capacity_adults: 1,
+      capacity_children: 0,
+      beds: { base_beds: 1, base_bed_type: 'FRANCUSKI_LEZAJ', extra_beds_max: null, extra_bed_type: null, extra_bed_max_age: null, shares_bed_max_age: null },
+    },
   ];
 
   const productDefs = [
