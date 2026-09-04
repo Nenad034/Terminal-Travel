@@ -83,7 +83,7 @@ export default async function VoucherPage({
             <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-ink-dim sm:grid-cols-3">
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ink-faint">{t('destination')}</dt>
-                <dd>{[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ') || '—'}</dd>
+                <dd>{[item.destinationCity, item.destinationArea, item.destinationCountry].filter(Boolean).join(', ') || '—'}</dd>
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ink-faint">{t('dates')}</dt>

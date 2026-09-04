@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useActionState } from 'react';
-import { updateProductTranslation, FormState } from '../actions';
+import { updateProduct, FormState } from '../actions';
 import { usePathname } from 'next/navigation';
 import { useTabs } from '@/components/TabsContext';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,13 @@ const initialState: FormState = { error: null };
 export default function EditProductForm({
   productId,
   translation,
+  destination,
 }: {
   productId: string;
   translation?: { name: string; description: string; slug: string };
+  destination: { destinationCountry: string; destinationCity: string; destinationArea: string | null };
 }) {
-  const [state, formAction] = useActionState(updateProductTranslation, initialState);
+  const [state, formAction] = useActionState(updateProduct, initialState);
   const pathname = usePathname();
   const { markDirty } = useTabs();
 
@@ -48,6 +50,22 @@ export default function EditProductForm({
       <label className="text-xs text-ink-faint">
         slug
         <input name="slug" defaultValue={translation?.slug} required className="input mt-1" />
+      </label>
+      <label className="text-xs text-ink-faint">
+        država odredišta
+        <input name="destinationCountry" defaultValue={destination.destinationCountry} required className="input mt-1" />
+      </label>
+      {/* M2 spec §2.1b (4.9.2026) — isti par polja kao NewProductForm: mesto mora biti stvarno
+          naselje, regija/poluostrvo (kad postoji) ide odvojeno, ne u isto polje. Ovo je jedino
+          mesto gde se zatečeni pogrešan unos (npr. "Sitonija, Halkidiki" u polju mesto) može
+          ispraviti — ranije nije postojala forma za izmenu ovih polja na postojećem proizvodu. */}
+      <label className="text-xs text-ink-faint">
+        mesto odredišta
+        <input name="destinationCity" defaultValue={destination.destinationCity} required className="input mt-1" placeholder="Nikiti" />
+      </label>
+      <label className="text-xs text-ink-faint">
+        regija / poluostrvo (opciono)
+        <input name="destinationArea" defaultValue={destination.destinationArea ?? ''} className="input mt-1" placeholder="Sitonija, Halkidiki" />
       </label>
 
       <SubmitButton />

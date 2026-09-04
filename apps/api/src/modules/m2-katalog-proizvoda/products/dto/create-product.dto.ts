@@ -17,4 +17,10 @@ export class CreateProductDto {
 
   @IsString()
   destinationCity!: string;
+
+  // M2 spec §2.1b (4.9.2026) — opciono, regija/poluostrvo/grupa ostrva KAD se razlikuje od
+  // destinationCity (npr. "Sitonija, Halkidiki" za mesto koje je unutar Halkidikija).
+  @IsString()
+  @IsOptional()
+  destinationArea?: string;
 }

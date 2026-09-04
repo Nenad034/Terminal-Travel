@@ -16,15 +16,15 @@ export async function GET(req: NextRequest) {
   if (!type) return NextResponse.json({ message: 'Nedostaje `type`.' }, { status: 400 });
 
   try {
-    const result = await apiFetch<{ id: string; destinationCity: string; destinationCountry: string; translation: { name: string } | null }[]>(
-      `/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`,
-      { requireAuth: true },
-    );
+    const result = await apiFetch<
+      { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[]
+    >(`/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`, { requireAuth: true });
     return NextResponse.json(
       result.map((p) => ({
         id: p.id,
         name: p.translation?.name ?? p.id.slice(0, 8),
         destinationCity: p.destinationCity,
+        destinationArea: p.destinationArea,
         destinationCountry: p.destinationCountry,
       })),
     );

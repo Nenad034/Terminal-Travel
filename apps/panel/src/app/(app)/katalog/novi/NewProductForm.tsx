@@ -34,8 +34,14 @@ export default function NewProductForm() {
       <Field label="država odredišta">
         <input name="destinationCountry" required className="input" placeholder="Grčka" />
       </Field>
-      <Field label="grad odredišta">
-        <input name="destinationCity" required className="input" placeholder="Halkidiki" />
+      {/* M2 spec §2.1b (4.9.2026) — polje mora nositi STVARNO mesto/naselje, ne širu regiju
+          (nalaz: "Halkidiki" je bio primer u ovom polju, a to je regija sa tri poluostrva —
+          Sitonija je jedno od njih, mesto je npr. Nikiti; regija ide u polje ispod). */}
+      <Field label="mesto odredišta">
+        <input name="destinationCity" required className="input" placeholder="Nikiti" />
+      </Field>
+      <Field label="regija / poluostrvo (opciono)">
+        <input name="destinationArea" className="input" placeholder="Sitonija, Halkidiki" />
       </Field>
 
       <SubmitButton />

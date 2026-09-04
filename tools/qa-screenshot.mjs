@@ -12,8 +12,14 @@
 //
 // Nalog za prijavu se čita iz promenljivih okruženja (podrazumevano lokalni QA nalog):
 //   QA_EMAIL, QA_PASSWORD, QA_TOTP_SECRET, PANEL_URL
+import { existsSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { authenticator } from 'otplib';
+
+// Sandbox okruženje ima Chromium preinstaliran na fiksnoj putanji (verzija se ne poklapa sa
+// onom koju bi `playwright install` inače povukao) — koristi se SAMO ako tamo postoji,
+// da isti fajl i dalje radi nepromenjeno na razvojnoj mašini vlasnika.
+const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium';
 
 const PANEL = process.env.PANEL_URL ?? 'http://localhost:3100';
 const EMAIL = process.env.QA_EMAIL ?? 'qa.pretraga@tt-test.local';
@@ -25,7 +31,7 @@ const shot = process.argv[3] ?? 'qa-screenshot.png';
 /** Koliko čekati da se ekran smiri pre snimka (mapa se crta asinhrono). */
 const SETTLE_MS = Number(process.env.QA_SETTLE_MS ?? 6000);
 
-const browser = await chromium.launch();
+const browser = await chromium.launch(existsSync(SANDBOX_CHROMIUM) ? { executablePath: SANDBOX_CHROMIUM } : {});
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 
 // Prijava ide preko istog BFF puta kao iz browsera, pa kolačić sesije završi u istom

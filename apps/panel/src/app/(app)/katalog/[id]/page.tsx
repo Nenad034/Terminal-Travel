@@ -12,6 +12,9 @@ interface Product {
   type: string;
   destinationCountry: string;
   destinationCity: string;
+  // M2 spec §2.1b (4.9.2026) — regija/poluostrvo/grupa ostrva, opciono, KAD se razlikuje od
+  // destinationCity (npr. "Sitonija, Halkidiki" za mesto koje je unutar Halkidikija).
+  destinationArea: string | null;
   /**
    * M2 §2.1 — koordinate za prikaz na mapi. Popunjava ih `geocode-products.ts` iz naziva i
    * mesta (vlasnikova odluka 2.9.2026: automatski, ne ručno).
@@ -41,7 +44,8 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
         <span className="text-accent">$</span> {name}
       </h1>
       <p className="mb-1 text-xs text-ink-faint">
-        {product.type} · {product.destinationCity}, {product.destinationCountry} · izvor: {product.sourceType}
+        {product.type} · {product.destinationCity}
+        {product.destinationArea ? `, ${product.destinationArea}` : ''}, {product.destinationCountry} · izvor: {product.sourceType}
       </p>
       {/* Koordinate — dok mapa u pretrazi (M5 §3.0h) ne postoji, ovo je jedino mesto gde se
           vidi da li je tačka uopšte popunjena i da li je tačna. Veza otvara tačku na
@@ -63,7 +67,15 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
           <span className="text-warn">koordinate nisu popunjene — proizvod se neće pojaviti na mapi</span>
         )}
       </p>
-      <EditProductForm productId={product.id} translation={sr} />
+      <EditProductForm
+        productId={product.id}
+        translation={sr}
+        destination={{
+          destinationCountry: product.destinationCountry,
+          destinationCity: product.destinationCity,
+          destinationArea: product.destinationArea,
+        }}
+      />
       {product.type === 'ACCOMMODATION' && (
         <div className="mt-4">
           <RoomTypesEditor productId={product.id} initialRoomTypes={product.attributes?.room_types ?? []} />

@@ -30,6 +30,9 @@ interface BookingItemProduct {
   type: string;
   name: string | null;
   destinationCity: string | null;
+  // M2 spec §2.1b (4.9.2026) — regija/poluostrvo KAD se razlikuje od destinationCity
+  // (npr. "Sitonija, Halkidiki" za mesto koje je unutar Halkidikija).
+  destinationArea?: string | null;
   destinationCountry: string | null;
 }
 
@@ -329,12 +332,18 @@ export default async function BookingDetailPage(props: {
   if (booking && activeTab === 'aranzman' && canModifyBooking && canViewProducts) {
     await Promise.all(
       modifiableTypes.map(async (type) => {
-        const list = await apiFetch<{ id: string; destinationCity: string; destinationCountry: string; translation: { name: string } | null }[]>(
-          `/catalog/products?type=${type}&status=ACTIVE&lang=sr`,
-        ).catch(() => []);
+        const list = await apiFetch<
+          { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[]
+        >(`/catalog/products?type=${type}&status=ACTIVE&lang=sr`).catch(() => []);
         candidatesByType.set(
           type,
-          list.map((p) => ({ id: p.id, name: p.translation?.name ?? p.id.slice(0, 8), destinationCity: p.destinationCity, destinationCountry: p.destinationCountry })),
+          list.map((p) => ({
+            id: p.id,
+            name: p.translation?.name ?? p.id.slice(0, 8),
+            destinationCity: p.destinationCity,
+            destinationArea: p.destinationArea,
+            destinationCountry: p.destinationCountry,
+          })),
         );
       }),
     );
@@ -868,6 +877,7 @@ export default async function BookingDetailPage(props: {
                         name: item.product?.name ?? `stavka ${item.id.slice(0, 8)}…`,
                         type: item.product?.type ?? '',
                         destinationCity: item.product?.destinationCity ?? null,
+                        destinationArea: item.product?.destinationArea ?? null,
                         destinationCountry: item.product?.destinationCountry ?? null,
                         finalPrice: item.finalPrice,
                         finalPriceCurrency: item.finalPriceCurrency ?? booking.currency,
@@ -1158,7 +1168,7 @@ export default async function BookingDetailPage(props: {
                 .map((i) => ({
                   id: i.id,
                   name: i.product?.name ?? `stavka ${i.id.slice(0, 8)}…`,
-                  destination: [i.product?.destinationCity, i.product?.destinationCountry].filter(Boolean).join(', ') || null,
+                  destination: [i.product?.destinationCity, i.product?.destinationArea, i.product?.destinationCountry].filter(Boolean).join(', ') || null,
                   stayFrom: i.stayFrom,
                   stayTo: i.stayTo,
                   assignedGuideId: i.assignedGuideId ?? null,
@@ -1276,7 +1286,7 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
                   istom prilikom — razlika između te dve nijanse nije bila dovoljno uočljiva da
                   opravda zadržavanje najbleđeg tona na ijednom od tri reda. */}
               <div className="mt-0.5 text-xs font-semibold text-ink-dim">
-                {[item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
+                {[item.product?.destinationCity, item.product?.destinationArea, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
               </div>
               {(item.roomType || item.boardType) && (
                 <div className="mt-0.5 text-xs font-semibold text-ink-dim">
@@ -1322,7 +1332,7 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
               <div>
                 <div className="text-sm font-semibold text-ink">{item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}</div>
                 <div className="mt-0.5 text-xs text-ink-faint">
-                  {[item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
+                  {[item.product?.destinationCity, item.product?.destinationArea, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
                 </div>
                 {/* Isti podaci i u zatečenom izgledu — dva izgleda iste kartice ne smeju da se
                     raziđu po SADRŽAJU, samo po rasporedu (vidi `OverviewLayoutSwitch.tsx`). */}
@@ -1685,7 +1695,7 @@ function RepsSummaryList({
           const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
           // Država i ovde punim nazivom uz oznaku (§6h) — do sada je ovaj red pokazivao sirovu
           // šifru, pa je ista destinacija izgledala drugačije nego u Aranžmanu iznad.
-          const destination = [item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ');
+          const destination = [item.product?.destinationCity, item.product?.destinationArea, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ');
           return (
             <div key={item.id} className="py-2 text-[13px]">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1709,7 +1719,7 @@ function RepsSummaryList({
       {active.map((item) => {
         const itemCheckIns = canViewCheckIns ? checkIns.filter((c) => c.bookingItemId === item.id) : [];
         const guide = item.assignedGuideId ? guidesById.get(item.assignedGuideId) : undefined;
-        const destination = [item.product?.destinationCity, item.product?.destinationCountry].filter(Boolean).join(', ');
+        const destination = [item.product?.destinationCity, item.product?.destinationArea, item.product?.destinationCountry].filter(Boolean).join(', ');
         return (
           <div key={item.id} className="rounded-lg border border-border bg-panel px-4 py-2.5 text-sm">
             <div className="flex items-center justify-between">

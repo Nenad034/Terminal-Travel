@@ -19,6 +19,7 @@ export interface CandidateProduct {
   id: string;
   name: string;
   destinationCity: string;
+  destinationArea?: string | null;
   destinationCountry: string;
 }
 
@@ -39,6 +40,9 @@ export interface AranzmanItem {
   name: string;
   type: string;
   destinationCity: string | null;
+  // M2 spec §2.1b (4.9.2026) — regija/poluostrvo KAD se razlikuje od destinationCity
+  // (npr. "Sitonija, Halkidiki" za mesto koje je unutar Halkidikija).
+  destinationArea?: string | null;
   destinationCountry: string | null;
   finalPrice: number;
   finalPriceCurrency?: string;
@@ -149,7 +153,14 @@ export default function AranzmanItemCard({
           </span>
           <div>
             <div className="text-sm font-semibold text-ink">{item.name}</div>
-            <div className="text-xs text-ink-faint">{[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ')}</div>
+            {/* font-semibold/ink-dim (4.9.2026) — isti razlog kao istoimeni red na tabu Pregled
+                (page.tsx ItemsSummaryList): najbleđi ton je najvažniji podatak (šta/gde) učinio
+                manje čitljivim od sekundarnih detalja. destinationArea (M2 spec §2.1b) dodat
+                između mesta i države — za regije sa poluostrvima/grupama ostrva (npr. Halkidiki/
+                Sitonija) samo ime mesta ne govori dovoljno. */}
+            <div className="text-xs font-semibold text-ink-dim">
+              {[item.destinationCity, item.destinationArea, item.destinationCountry].filter(Boolean).join(', ')}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -290,7 +301,7 @@ export default function AranzmanItemCard({
                   .filter((c) => c.id !== item.productId)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} — {[c.destinationCity, c.destinationCountry].filter(Boolean).join(', ')}
+                      {c.name} — {[c.destinationCity, c.destinationArea, c.destinationCountry].filter(Boolean).join(', ')}
                     </option>
                   ))}
               </select>

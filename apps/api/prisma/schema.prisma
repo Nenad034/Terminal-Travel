@@ -235,6 +235,12 @@ model Product {
   sourceExternalId   String?           @map("source_external_id")
   destinationCountry String            @map("destination_country")
   destinationCity    String            @map("destination_city")
+  // M2 spec §2.1b (4.9.2026, vlasnikova odluka — nalaz: "Sitonija" nije mesto nego jedno od tri
+  // poluostrva regije Halkidiki, mesto je npr. Nikiti). Opciono, slobodan tekst — ista konvencija
+  // kao destinationCity (bez strogog FK/enum, poglavlje 2.1). `destinationCity` ostaje STVARNO
+  // mesto/naselje; ovo nosi širu regiju/poluostrvo/grupu ostrva KAD postoji i kad se razlikuje od
+  // mesta (npr. "Sitonija, Halkidiki"). Prazno kod destinacija bez te dvoslojnosti (većina).
+  destinationArea    String?           @map("destination_area")
   geoLat             Decimal?          @map("geo_lat")
   geoLng             Decimal?          @map("geo_lng")
   media              Json              @default("[]") // §2.3a — niz strukturiranih stavki galerije

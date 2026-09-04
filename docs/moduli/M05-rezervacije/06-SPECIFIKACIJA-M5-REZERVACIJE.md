@@ -1197,7 +1197,7 @@ Redosled ekrana koji agent (M17) ili subagent (M7) prolazi od finalne Ponude do 
 **Ispravka otkrivena pri gradnji (1.9.2026) — `GET /bookings/:id` nije vraćao ni naziv proizvoda ni putnike.** Odgovor je po stavci sadržao samo `product_id` (sirov UUID) i nijednog putnika, iako `BookingItem.stay_from/stay_to/unit_count` (poglavlje 4.2) i `BookingItemGuest` (poglavlje 4.3) postoje u modelu od početka. Posledica je bila da ekran rezervacije **nije mogao da prikaže šta je kupljeno ni ko putuje** — na ekranu je stajalo `proizvod 8f3a2b1c…`. Ovo nije bila namerna ograda nego propust: §6.2 (maskiranje) štiti identitet DOBAVLJAČA i nabavnu cenu, ne naziv proizvoda koji gost ionako ima na vaučeru.
 
 Odgovor sada po stavci nosi:
-- `product`: `{id, type, name, destination_city, destination_country}` — `name` je **već razrešen po jeziku** na strani M5 (M2 §2.2 fallback sr→en), da pozivalac ne mora da poznaje `ProductTranslation` niti da pravi dodatan poziv ka M2 po svakoj stavci;
+- `product`: `{id, type, name, destination_city, destination_area, destination_country}` — `name` je **već razrešen po jeziku** na strani M5 (M2 §2.2 fallback sr→en), da pozivalac ne mora da poznaje `ProductTranslation` niti da pravi dodatan poziv ka M2 po svakoj stavci; `destination_area` dodat 4.9.2026 (M2 spec §2.1b — region/poluostrvo kad se razlikuje od naselja, npr. "Sitonija, Halkidiki" uz `destination_city = Nikiti`), isto opciono kao u M2;
 - `guests`: `[{id, guest_first_name, guest_last_name, guest_profile_id}]` — imena putnika sa te stavke;
 - `unit_count` — dodat i u maskiran (B2C/B2B) prikaz, jer "koliko soba/jedinica" nije podatak o dobavljaču.
 

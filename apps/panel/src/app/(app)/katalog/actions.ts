@@ -22,6 +22,9 @@ export async function createProduct(_prev: FormState, formData: FormData): Promi
         type: formData.get('type'),
         destinationCountry: formData.get('destinationCountry'),
         destinationCity: formData.get('destinationCity'),
+        // Prazno polje ostaje neuneto (undefined), ne prazan string — isti princip kao svako
+        // drugo opciono polje ovde (M2 spec §2.1b).
+        destinationArea: formData.get('destinationArea') || undefined,
       },
     });
     // Odmah upisujemo srpski naziv/opis (obavezan prevod da proizvod ima ijedan naziv).
@@ -45,7 +48,12 @@ export async function createProduct(_prev: FormState, formData: FormData): Promi
   redirect('/katalog');
 }
 
-export async function updateProductTranslation(_prev: FormState, formData: FormData): Promise<FormState> {
+// M2 spec §2.1b (4.9.2026) — dok je EditProductForm imao samo naziv/opis/slug, mesto/regija/
+// država nisu se mogle ispraviti ni na jednom postojećem proizvodu (npr. zatečeni pogrešan unos
+// "Sitonija, Halkidiki" u polju mesto). Zato ista forma sad upisuje i prevod (PUT translations)
+// i odredište (PATCH /catalog/products/:id) — dva poziva, jedan submit, isti obrazac kao
+// createProduct u istom fajlu.
+export async function updateProduct(_prev: FormState, formData: FormData): Promise<FormState> {
   const id = String(formData.get('id'));
   try {
     await apiFetch(`/catalog/products/${id}/translations`, {
@@ -55,6 +63,14 @@ export async function updateProductTranslation(_prev: FormState, formData: FormD
         name: formData.get('name'),
         description: formData.get('description'),
         slug: formData.get('slug'),
+      },
+    });
+    await apiFetch(`/catalog/products/${id}`, {
+      method: 'PATCH',
+      body: {
+        destinationCountry: formData.get('destinationCountry'),
+        destinationCity: formData.get('destinationCity'),
+        destinationArea: formData.get('destinationArea') || undefined,
       },
     });
     revalidatePath(`/katalog/${id}`);

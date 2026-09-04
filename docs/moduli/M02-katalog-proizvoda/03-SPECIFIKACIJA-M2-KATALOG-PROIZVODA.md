@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.19 — novo polje **`destination_area`** i poglavlje 2.1b (4.9.2026, vlasnikova odluka, "idi na opciju 1"): nalaz na M5 ekranu rezervacije — grčki region Halkidiki ima tri poluostrva (jedno je Sitonija), a `destination_city` je za jedan hotel nosio vrednost `"Sitonija, Halkidiki"` umesto stvarnog naselja (npr. Nikiti). `destination_city` ostaje STVARNO naselje; `destination_area` je novo opciono polje za širu regiju/poluostrvo/grupu ostrva kad se razlikuje od naselja. Detalji, obrazloženje i namerno odloženi ekrani: §2.1b ispod. **Provera:** migracija primenjena (`prisma migrate deploy`), `tsc` čist na `apps/api`+`apps/panel`; uživo — Pregled/Aranžman tab i vaučer prikazuju "Nikiti, Sitonija, Halkidiki, Grčka", izmena postojećeg proizvoda moguća kroz `katalog/[id]` formu.
 **Verzija:** 1.18 — `Product` dobija **`supplier_id`** i `ProductSourceType` dobija **`MANUAL`** (3.9.2026, uz M5 §6.7b — ručno uneta usluga na rezervaciji). Ugovoreni proizvod ima dobavljača posredno (kroz `source_contract`), API proizvod kroz provajdera; **ručno uneta usluga ga nije imala nigde**, a bez dobavljača ne mogu ni vaučer po dobavljaču ni najava po dobavljaču (M5 §6/§6.7) — vlasnikov zahtev je bio da „svaka usluga ima svog dobavljača". Polje je opciono (postojeći proizvodi ga nemaju), ali **obavezno pri ručnom unosu**. Jednokratna ručna usluga se upisuje kao `status = DRAFT` sa praznim `visible_channels` — postoji, ima cenu i dobavljača, i ne vidi se ni u pretrazi (`GET /search` traži `ACTIVE`), ni na sajtu, ni u B2B portalu; kvačica „sačuvaj u katalog" je prevodi u `ACTIVE`. Time katalog ne postaje spisak jednokratnih unosa, a ne uvodi se ni drugi paralelan zapis za „proizvod koji nije proizvod".
 
 **Verzija:** 1.17 — novo poglavlje 2.1a (3.9.2026, vlasnikova odluka): kanonski oblik `destination_country` je NAZIV države na srpskom, ne ISO kod. Zatečeno `RS` (24 proizvoda) i `Srbija` (2) kao DVE države — pretraga po „Srbija" bila slepa za onih 24, a AI agent je tvrdio da nemamo hotele u Crnoj Gori iako ih imamo. Normalizacija pri upisu (`normalizeDestinationCountry`, `POST`/`PATCH /products`) + jednokratno sređivanje zatečenih podataka (`npm run normalize:countries`, 35 zapisa: 24 proizvoda + 11 analitičkih redova). Nepoznata vrednost se NE pogađa. Nove zamke 3.6 i 3.7 u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`. **Provera:** tsc čist, 66 jediničnih testova (5 novih za normalizaciju) prolazi; uživo — predlaganje vraća `Srbija (26)`, agent odgovara tačno.
@@ -33,7 +34,8 @@ Van obima ove specifikacije: uslovi ugovora, alotmani i cenovnici (to je M3), lo
 | source_contract_id | UUID, nullable | FK ka M3 (Ugovor) — popunjeno samo kad `source_type = CONTRACTED` |
 | source_provider | string, nullable | npr. `travelgate` — popunjeno samo kad `source_type = API` |
 | source_external_id | string, nullable | id proizvoda kod spoljnog provajdera |
-| destination_country / destination_city | string | strukturirana lokacija radi pretrage i filtriranja. **`destination_country` se upisuje kao NAZIV države na srpskom (`Srbija`, `Crna Gora`, `Grčka`), ne kao ISO kod** — vlasnikova odluka 3.9.2026; vidi §2.1a |
+| destination_country / destination_city | string | strukturirana lokacija radi pretrage i filtriranja. **`destination_country` se upisuje kao NAZIV države na srpskom (`Srbija`, `Crna Gora`, `Grčka`), ne kao ISO kod** — vlasnikova odluka 3.9.2026; vidi §2.1a. **`destination_city` mora biti STVARNO naselje** (npr. `Nikiti`), ne šira regija — vidi §2.1b |
+| destination_area | string, nullable | **opciono** — šira regija/poluostrvo/grupa ostrva KAD se razlikuje od `destination_city` (npr. `"Sitonija, Halkidiki"` za mesto koje je unutar Halkidikija). Dodato 4.9.2026; vidi §2.1b |
 | geo_lat / geo_lng | decimal, nullable | za prikaz na mapi. **Popunjava se automatski** iz naziva i mesta proizvoda (`apps/api/prisma/seed/geocode-products.ts`, `npm run geocode:products`), vlasnikova odluka 2.9.2026 — ne unosi se ručno. Do tog datuma polje je bilo prazno u svakom redu, pa mapa nigde nije ni postojala; detalji i tačnost: M5 §3.0h. Trajno geokodiranje NOVIH proizvoda (pri objavi, periodično, ili ručno) još nije odlučeno |
 | media | JSONB | niz strukturiranih stavki galerije (poglavlje 2.3a) — jezički nezavisno (iste slike za sve jezike) |
 | attributes | JSONB | polja specifična za `type` (vidi 2.3) — jezički nezavisna (npr. broj zvezdica, trajanje) |
@@ -57,6 +59,34 @@ Van obima ove specifikacije: uslovi ugovora, alotmani i cenovnici (to je M3), lo
 - Skripta bez normalizacije pri upisu bila bi čišćenje koje traje do sledećeg unosa — zato oboje, u istom prolazu.
 
 **Izvedeno 3.9.2026**, sređeno 35 zapisa (24 proizvoda + 11 analitičkih redova). Posle toga predlaganje država vraća `Srbija (26)` umesto razdvojenih `RS (24)` i `Srbija (2)`, a AI agent na isto pitanje odgovara tačno.
+
+### 2.1b `destination_area` — region/poluostrvo odvojeno od naselja (dopuna, 4.9.2026, vlasnikova odluka)
+
+Nalaz na M5 ekranu detalja rezervacije (Pregled tab): pod nazivom hotela pisalo je „Sitonija, Halkidiki, Grčka" — bez ijednog stvarnog naselja. Uzrok: `destination_city` je za taj proizvod nosio vrednost `"Sitonija, Halkidiki"`. Halkidiki je **region** sa tri poluostrva (Kasandra, Sitonija, Atos), ne mesto — isti obrazac problema kao „RS" vs. „Srbija" u §2.1a, samo na drugom polju: neko je u polje za mesto upisao ono što je zapravo šira regija, jer za nju u modelu nije postojalo sopstveno mesto.
+
+Vlasniku su predložene dve opcije: (1) novo opciono polje `destination_area` uz pravilo da `destination_city` uvek nosi stvarno naselje, ili (2) bez izmene modela — samo obavezna konvencija unosa. Odluka, doslovno: **„idi na opciju 1"**.
+
+- **`destination_city` ubuduće uvek stvarno naselje** (npr. `Nikiti`, `Neos Marmaras`) — nikad regija/poluostrvo/grupa ostrva.
+- **`destination_area`** — novo opciono `string` polje, `nullable`, bez migracije podataka (zatečeni proizvodi ga jednostavno nemaju popunjeno, prikaz se ponaša isto kao i danas). Popunjava se SAMO kad postoji šira odrednica različita od naselja koju je vredno pokazati gostu/agentu — nije obavezno za svaki proizvod (npr. hotel u Beogradu nema poluostrvo).
+- **Prikaz**, svuda gde se do sada prikazivalo `destinationCity, destinationCountry`: `destinationCity[, destinationArea], destinationCountry` — npr. „Nikiti, Sitonija, Halkidiki, Grčka". Kad `destinationArea` nije popunjeno, prikaz ostaje nepromenjen (`Beograd, Srbija`).
+- Isti princip kao §2.1a: **ne pogađa se unazad** koji zatečeni `destination_city` zapravo krije regiju — sređuje se ručno, kroz izmenu proizvoda (ekran ispod), kad se na njega naiđe.
+
+**Gde je uvedeno u ovom prolazu** (M5 booking-detail ekran je bio povod nalaza):
+- `Product.destination_area` (Prisma, migracija `20260904071211_m2_product_destination_area`), `CreateProductDto`/`UpdateProductDto`, `products.service.ts` (create/update).
+- `apps/panel/src/app/(app)/katalog/novi/NewProductForm.tsx` — polje „mesto odredišta" preimenovano (bilo je „grad odredišta" sa placeholder-om `Halkidiki` — sam obrazac forme je učio unos greške), dodato opciono „regija / poluostrvo".
+- `apps/panel/src/app/(app)/katalog/[id]/EditProductForm.tsx` + `actions.ts` (`updateProduct`, bio `updateProductTranslation`) — **novo**: do ovog prolaza nije postojao NIJEDAN ekran za izmenu `destination_city`/`destination_area`/`destination_country` na već postojećem proizvodu (samo pri kreiranju). Bez ovoga zatečeni pogrešan unos ne bi mogao da se ispravi ni ovde opisanim putem — dodato u istom prolazu (standing pravilo 31.8.2026, „logika i forma u istom prolazu").
+- M5 booking-detail ekran (Pregled tab, Aranžman tab, birač zamene usluge) i gostov vaučer (`apps/web`) — `booking-visibility.ts`, `bookings.service.ts` (select + `toVoucherItem`), `apps/web/src/lib/types.ts` i vaučer stranica.
+
+**Namerno VAN OBIMA ovog prolaza** (nema `destination_area` ni na jednom od ovih mesta — polje ostaje `undefined`/ignorisano dok se ne uradi poseban prolaz, ne greška):
+- M4 provajder adapteri (API proizvodi ne dobijaju automatsko popunjavanje `destination_area` iz spoljnog izvora).
+- M8 javni sajt — stranice pretrage/kataloga za gosta.
+- M9 aplikacija terenskog osoblja.
+- M13 BI/`FactBooking` (denormalizovana kopija odredišta u analitici).
+- M15 omnipretraga/BI terminal (AI agent odgovara i dalje samo na osnovu `destination_city`/`destination_country`).
+- M12 generisanje marketinškog sadržaja.
+- M5 predikativni unos/filter u polju pretrage (autocomplete predlaže mesta, ne regije).
+
+Svaka od ovih stavki je otvorena stavka — upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
 
 ### 2.2 `ProductTranslation` — jezički zavisan sadržaj
 Prevodi se **ne** čuvaju kao fiksne kolone (sr_name, en_name...) jer je broj jezika velik (8) i može rasti — čuvaju se kao redovi, po jeziku:

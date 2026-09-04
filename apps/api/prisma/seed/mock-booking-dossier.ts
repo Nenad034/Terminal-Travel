@@ -61,12 +61,16 @@ async function main() {
   }
 
   // --- Proizvodi (M2) — hotel + transfer, da Aranžman ima dve stavke ---
+  // M2 spec §2.1b (4.9.2026) — `city` je bio "Sitonija, Halkidiki" (regija, ne naselje); ovo je
+  // upravo primer koji je naveo na nalaz. Ispravljeno: `city` = stvarno naselje, `area` = nova
+  // regija/poluostrvo. `country` istovremeno usklađen sa §2.1a (naziv na srpskom, ne ISO kod).
   const productDefs = [
     {
       slug: 'mock-dossier-hotel-alexander-sitonija',
       type: 'ACCOMMODATION' as const,
-      country: 'GR',
-      city: 'Sitonija, Halkidiki',
+      country: 'Grčka',
+      city: 'Nikiti',
+      area: 'Sitonija, Halkidiki',
       name: 'Hotel Alexander The Great 4*',
       desc: 'Hotel na prvoj liniji, privatna plaža, dva bazena, polupansion.',
       attributes: { stars: 4, board: 'polupansion', room_type: 'Superior soba sa pogledom na more' },
@@ -74,11 +78,12 @@ async function main() {
     {
       slug: 'mock-dossier-transfer-solun-sitonija',
       type: 'TRANSFER' as const,
-      country: 'GR',
-      city: 'Sitonija, Halkidiki',
-      name: 'Transfer aerodrom Solun — Sitonija',
+      country: 'Grčka',
+      city: 'Nikiti',
+      area: 'Sitonija, Halkidiki',
+      name: 'Transfer aerodrom Solun — Nikiti',
       desc: 'Privatni transfer u oba pravca, klimatizovano vozilo.',
-      attributes: { vehicle_type: 'kombi', route: 'aerodrom Solun (SKG) — Sitonija' },
+      attributes: { vehicle_type: 'kombi', route: 'aerodrom Solun (SKG) — Nikiti' },
     },
   ];
   const products: Record<string, Awaited<ReturnType<typeof prisma.product.create>>> = {};
@@ -91,6 +96,7 @@ async function main() {
           sourceType: 'CONTRACTED',
           destinationCountry: def.country,
           destinationCity: def.city,
+          destinationArea: def.area,
           status: 'ACTIVE',
           visibleChannels: ['B2C_SITE'],
           attributes: def.attributes,
@@ -329,7 +335,7 @@ async function main() {
         buyerName: 'Jovana Marković',
         totalPrice,
         currency: 'EUR',
-        destination: 'Sitonija, Halkidiki, Grčka',
+        destination: 'Nikiti, Sitonija, Halkidiki, Grčka',
         stayFrom: stayFrom.toISOString(),
         stayTo: stayTo.toISOString(),
       },

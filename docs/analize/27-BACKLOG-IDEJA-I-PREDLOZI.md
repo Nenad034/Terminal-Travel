@@ -134,6 +134,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 - **`attributes.category` vrednosti za `EXCURSION`/`EVENT`/`TICKET`** ("Things to do", M5 poglavlje 3.0d.4, 17.8.2026) — dorađuje se pri stvarnoj izradi ekrana, isti princip kao `AmenityTag`.
 - ~~Tip kreveta u `beds`~~ — **rešeno 28.8.2026** (M2 spec v1.14): `base_bed_type`/`extra_bed_type` enumi dodati uz panel ekran za unos tipa sobe.
 - ~~Panel ekran za uređivanje hotelskih (ne-sobnih) `attributes` polja~~ — **rešeno 29.8.2026**: `HotelAttributesEditor.tsx` pokriva `stars`/`board_type`/`amenities`/`accommodation_type`/`contact`, uz `RoomTypesEditor.tsx` (v1.14) koji ostaje isključivo za `room_types[]`.
+- **`destination_area` (§2.1b, v1.19, 4.9.2026) nije popunjen/prikazan van M5 booking-detaila i vaučera** — namerno odloženo u istom prolazu: M4 provajder adapteri (API proizvodi), M8 javni sajt (pretraga/katalog), M9 aplikacija terenskog osoblja, M13 BI/`FactBooking`, M15 omnipretraga/AI agent, M12 marketing sadržaj, M5 predikativni unos u polju pretrage.
 
 ## M3 — Ugovaranje i alotmani
 *(§8, `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`)*

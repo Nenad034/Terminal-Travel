@@ -111,6 +111,7 @@ export class ProductsService {
         // upisane pod drugim (zatečeno 3.9.2026: `RS` 24 proizvoda naspram `Srbija` 2).
         destinationCountry: normalizeDestinationCountry(dto.destinationCountry),
         destinationCity: dto.destinationCity,
+        destinationArea: dto.destinationArea,
         status: 'DRAFT',
         cacheStatus: 'N_A',
         createdBy: actorId,
@@ -136,6 +137,7 @@ export class ProductsService {
       data: {
         destinationCountry: normalizeDestinationCountry(dto.destinationCountry),
         destinationCity: dto.destinationCity,
+        destinationArea: dto.destinationArea,
         geoLat: dto.geoLat,
         geoLng: dto.geoLng,
         media: dto.media as unknown as Prisma.InputJsonValue,

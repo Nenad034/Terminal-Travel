@@ -92,6 +92,8 @@ export interface VoucherItem {
   productName: string | null;
   productType: string | null;
   destinationCity: string | null;
+  /** M2 spec §2.1b — regija/poluostrvo KAD se razlikuje od destinationCity (npr. "Sitonija, Halkidiki"). */
+  destinationArea: string | null;
   destinationCountry: string | null;
   stayFrom: string;
   stayTo: string;

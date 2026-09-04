@@ -51,6 +51,10 @@ export interface BookingItemProduct {
   name: string | null;
   destinationCity: string | null;
   destinationCountry: string | null;
+  // M2 spec §2.1b (4.9.2026) — regija/poluostrvo KAD se razlikuje od destinationCity
+  // (npr. "Sitonija, Halkidiki"). Nije osetljiv podatak (za razliku od dobavljača, §6.2) —
+  // sme svuda gde i destinationCity.
+  destinationArea?: string | null;
 }
 
 export interface BookingItemGuestView {
