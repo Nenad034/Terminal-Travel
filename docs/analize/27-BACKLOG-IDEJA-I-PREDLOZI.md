@@ -114,7 +114,6 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 ## M1 — Core / Identitet i pristup
 *(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
 - **`seed.ts` ne pravi nijedan `STAFF` nalog** (nalaz 2.9.2026) — posle svežeg seed-a niko se ne može prijaviti u panel; uloge i dozvole postoje, korisnika nema. Zamka 5.7.
-- **Nema endpointa za dodelu dozvola ulozi** (nalaz 3.9.2026, pri pisanju `docs/api/M1-core-identitet.md`) — `POST /iam/roles` kreira ulogu, ali veza uloga↔dozvola postoji isključivo u seed skripti, pa uloga napravljena preko API-ja ostaje trajno prazna i neupotrebljiva. Zaobilazno rešenje danas su pojedinačni `PermissionOverride` zapisi, što ne skalira preko nekoliko korisnika. M1 spec §9 izlazni kriterijum.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda

@@ -125,3 +125,26 @@ export async function deletePermissionOverride(userId: string, overrideId: strin
   revalidatePath(`/korisnici/${userId}`);
   return { error: null };
 }
+
+// M1 spec §6/§7 (dopuna 4.9.2026) — dozvole po ulozi. Ekran šalje SAMO razliku (dodate
+// posebno, uklonjene posebno), pa dva čoveka koja istovremeno uređuju istu ulogu ne brišu
+// jedan drugom izmene — što bi se desilo da se šalje ceo izabrani skup kao zamena.
+export async function saveRolePermissions(
+  roleId: string,
+  added: string[],
+  removed: string[],
+): Promise<FormState> {
+  try {
+    if (added.length) {
+      await apiFetch(`/iam/roles/${roleId}/permissions`, { method: 'POST', body: { permissionIds: added } });
+    }
+    for (const permissionId of removed) {
+      await apiFetch(`/iam/roles/${roleId}/permissions/${permissionId}`, { method: 'DELETE' });
+    }
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Čuvanje dozvola uloge nije uspelo.' };
+  }
+  revalidatePath(`/korisnici/uloge/${roleId}`);
+  revalidatePath('/korisnici/uloge');
+  return { error: null };
+}

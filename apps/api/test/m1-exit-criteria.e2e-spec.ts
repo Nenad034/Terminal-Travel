@@ -268,6 +268,147 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
     });
   });
 
+  // M1 spec §6 (dopuna 4.9.2026) — izlazni kriterijum: "Postoji endpoint za dodelu dozvola
+  // ulozi". Do ove dopune uloga napravljena preko API-ja ostajala je trajno prazna, jer je
+  // veza uloga↔dozvola postojala isključivo u seed skripti.
+  describe('Dozvole se mogu dodeliti ulozi preko API-ja (izlazni kriterijum)', () => {
+    const createdRoleIds: string[] = [];
+
+    afterAll(async () => {
+      if (createdRoleIds.length) {
+        await prisma.rolePermission.deleteMany({ where: { roleId: { in: createdRoleIds } } });
+        await prisma.role.deleteMany({ where: { id: { in: createdRoleIds } } });
+      }
+    });
+
+    async function vlasnikToken(suffix: string) {
+      const secret = authenticator.generateSecret();
+      const user = await createUser({
+        email: `role-adm-${suffix}-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+        mfaEnabled: true,
+        mfaSecret: secret,
+      });
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: user.email, password: 'ispravna-lozinka-123' });
+      const mfaRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/verify')
+        .send({ mfaToken: loginRes.body.mfaToken, code: authenticator.generate(secret) });
+      return mfaRes.body.accessToken as string;
+    }
+
+    async function createRole(adminToken: string, name: string) {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/iam/roles')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name, description: 'e2e test uloga' });
+      expect(res.status).toBe(201);
+      createdRoleIds.push(res.body.id);
+      return res.body.id as string;
+    }
+
+    it('nova uloga dobija dozvole, one odmah važe njenom nosiocu, i uklanjanje ih odmah gasi', async () => {
+      const adminToken = await vlasnikToken('a');
+      const roleId = await createRole(adminToken, `E2E_ULOGA_${testRunId}`);
+
+      // Nosilac nove (prazne) uloge ne sme moći ništa — to je stanje pre ove dopune.
+      const member = await createUser({ email: `clan-${testRunId}@tt-test.rs` });
+      await prisma.userRole.create({ data: { userId: member.id, roleId, assignedBy: member.id } });
+      const memberLogin = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: member.email, password: 'ispravna-lozinka-123' });
+      const memberToken = memberLogin.body.accessToken;
+
+      const before = await request(app.getHttpServer())
+        .get('/api/v1/iam/users')
+        .set('Authorization', `Bearer ${memberToken}`);
+      expect(before.status).toBe(403);
+
+      const permission = await prisma.permission.findFirstOrThrow({
+        where: { module: 'M1', resource: 'user', action: 'VIEW' },
+      });
+      const addRes = await request(app.getHttpServer())
+        .post(`/api/v1/iam/roles/${roleId}/permissions`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ permissionIds: [permission.id] });
+      expect(addRes.status).toBe(201);
+      expect(addRes.body).toHaveLength(1);
+
+      // Isti, nepromenjen token nosioca — prava se računaju uživo, bez ponovne prijave.
+      const after = await request(app.getHttpServer())
+        .get('/api/v1/iam/users')
+        .set('Authorization', `Bearer ${memberToken}`);
+      expect(after.status).toBe(200);
+
+      const removeRes = await request(app.getHttpServer())
+        .delete(`/api/v1/iam/roles/${roleId}/permissions/${permission.id}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+      expect(removeRes.status).toBe(200);
+
+      const afterRemove = await request(app.getHttpServer())
+        .get('/api/v1/iam/users')
+        .set('Authorization', `Bearer ${memberToken}`);
+      expect(afterRemove.status).toBe(403);
+    });
+
+    it('izmena dozvola uloge ostavlja trag u audit logu sa pre/posle stanjem', async () => {
+      const adminToken = await vlasnikToken('b');
+      const roleId = await createRole(adminToken, `E2E_ULOGA_LOG_${testRunId}`);
+
+      const permission = await prisma.permission.findFirstOrThrow({
+        where: { module: 'M1', resource: 'role', action: 'VIEW' },
+      });
+      await request(app.getHttpServer())
+        .post(`/api/v1/iam/roles/${roleId}/permissions`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ permissionIds: [permission.id] });
+
+      const entries = await prisma.auditLogEntry.findMany({
+        where: { module: 'M1', action: 'role.permissions_changed', resourceId: roleId },
+      });
+      expect(entries.length).toBeGreaterThan(0);
+      expect((entries[0].afterState as { permissions: string[] }).permissions).toContain('M1/role/VIEW');
+    });
+
+    it('odbija nepostojeću dozvolu i ne dodaje nijednu iz istog zahteva (fail-closed)', async () => {
+      const adminToken = await vlasnikToken('c');
+      const roleId = await createRole(adminToken, `E2E_ULOGA_FC_${testRunId}`);
+
+      const valid = await prisma.permission.findFirstOrThrow({
+        where: { module: 'M1', resource: 'role', action: 'VIEW' },
+      });
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/iam/roles/${roleId}/permissions`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ permissionIds: [valid.id, 'ne-postoji-ova-dozvola'] });
+
+      expect(res.status).toBe(400);
+      const rows = await prisma.rolePermission.findMany({ where: { roleId } });
+      expect(rows).toHaveLength(0);
+    });
+
+    it('odbija korisnika bez M1/role/EDIT dozvole', async () => {
+      const adminToken = await vlasnikToken('d');
+      const roleId = await createRole(adminToken, `E2E_ULOGA_403_${testRunId}`);
+
+      const gost = await createUser({ email: `gost-role-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
+      const gostLogin = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: gost.email, password: 'ispravna-lozinka-123' });
+
+      const permission = await prisma.permission.findFirstOrThrow({
+        where: { module: 'M1', resource: 'role', action: 'VIEW' },
+      });
+      const res = await request(app.getHttpServer())
+        .post(`/api/v1/iam/roles/${roleId}/permissions`)
+        .set('Authorization', `Bearer ${gostLogin.body.accessToken}`)
+        .send({ permissionIds: [permission.id] });
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe('UserPermissionOverride ima trenutni efekat bez ponovne prijave (izlazni kriterijum, stavka 3)', () => {
     it('override dodat posle izdavanja access tokena odmah utiče na sledeći zahtev istim tokenom', async () => {
       const user = await createUser({ email: `override-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.GOST });
