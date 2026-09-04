@@ -103,6 +103,16 @@ async function main() {
           translations: { create: { languageCode: 'sr', name: def.name, description: def.desc, slug: def.slug } },
         },
       });
+    } else {
+      // M2 spec §2.1b (4.9.2026) — dosije se ranije pokretao (npr. sa starim "Sitonija,
+      // Halkidiki" u polju mesto) na svakoj razvojnoj mašini pojedinačno, pa je proizvod već
+      // postojao po slug-u i `create` iznad se nikad nije izvršio — destinacija je zato ostajala
+      // ZAGLAVLJENA na staru vrednost pri svakom sledećem pokretanju skripte, uprkos ispravci
+      // ovde u `productDefs`. Osvežava se pri svakom pokretanju, ne samo pri prvom.
+      product = await prisma.product.update({
+        where: { id: product.id },
+        data: { destinationCountry: def.country, destinationCity: def.city, destinationArea: def.area },
+      });
     }
     products[def.slug] = product;
   }
