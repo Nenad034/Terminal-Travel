@@ -119,42 +119,47 @@ async function main() {
 
   const productDefs = [
     {
-      type: 'ACCOMMODATION' as const, country: 'Crna Gora', city: 'Budva',
+      type: 'ACCOMMODATION' as const, country: 'Crna Gora', city: 'Budva', area: undefined as string | undefined,
       sr: { name: 'Hotel Avala Resort', slug: 'hotel-avala-resort', desc: 'Hotel prvog reda do mora u srcu Budve, 200 m od Starog grada. Dva bazena, spa centar i restoran sa terasom nad plažom. Sobe sa balkonom i pogledom na more, klima, sef i besplatan Wi-Fi.\n\nDoručak i večera su na bazi švedskog stola, sa lokalnim specijalitetima i dnevno svežom ribom. Za goste sa decom obezbeđen je animacijski program tokom jula i avgusta.' },
       en: { name: 'Hotel Avala Resort', slug: 'hotel-avala-resort-en', desc: 'Beachfront hotel in the heart of Budva, 200 m from the Old Town. Two pools, spa and a terrace restaurant above the beach.' },
     },
     {
-      type: 'ACCOMMODATION' as const, country: 'Grčka', city: 'Halkidiki',
+      // M2 spec §2.1b (4.9.2026) — `city` je bio "Halkidiki" (regija sa tri poluostrva, ne
+      // naselje); opis već govori "na Kasandri", pa je Kasandra tačna regija/poluostrvo, ne
+      // Sitonija kao u M5 primeru koji je naveo na nalaz. `city` ispravljen na stvarno naselje.
+      type: 'ACCOMMODATION' as const, country: 'Grčka', city: 'Siviri', area: 'Kasandra, Halkidiki' as string | undefined,
       sr: { name: 'Blue Bay Hotel', slug: 'blue-bay-hotel', desc: 'Mirna uvala na Kasandri, 50 m od peščane plaže sa plavom zastavom. Porodični hotel sa velikom baštom, bazenom i igraonicom za decu.\n\nPolupansion uključuje doručak i večeru; taverna u dvorištu radi do ponoći. Do Solunskog aerodroma je 95 km, transfer se organizuje po dogovoru.' },
       en: { name: 'Blue Bay Hotel', slug: 'blue-bay-hotel-en', desc: 'Quiet bay on Kassandra, 50 m from a blue-flag sandy beach. Family hotel with a large garden and pool.' },
     },
     {
-      type: 'ACCOMMODATION' as const, country: 'Srbija', city: 'Zlatibor',
+      type: 'ACCOMMODATION' as const, country: 'Srbija', city: 'Zlatibor', area: undefined as string | undefined,
       sr: { name: 'Apartmani Vidikovac', slug: 'apartmani-vidikovac', desc: 'Apartmani na obodu šume, 1,2 km od centra Zlatibora. Svaki apartman ima kuhinju, kamin i terasu sa pogledom na Tornik.\n\nZimi je ski-bus stajalište na 300 m, leti staza za planinarenje počinje ispred objekta.' },
       en: { name: 'Vidikovac Apartments', slug: 'vidikovac-apartments-en', desc: 'Apartments at the forest edge, 1.2 km from the centre of Zlatibor, each with a kitchen and terrace.' },
     },
     {
-      type: 'PACKAGE' as const, country: 'Italija', city: 'Rim',
+      type: 'PACKAGE' as const, country: 'Italija', city: 'Rim', area: undefined as string | undefined,
       sr: { name: 'Rim — tri dana u večnom gradu', slug: 'rim-tri-dana', desc: 'Autobuski aranžman iz Beograda: dva noćenja sa doručkom u hotelu 3*, panoramsko razgledanje i pola dana slobodno za Vatikan.\n\nU cenu je uključen prevoz, smeštaj, vodič i putno osiguranje. Nije uključeno: gradska taksa (3 € po osobi po noći) i ulaznice.' },
       en: { name: 'Rome — three days in the eternal city', slug: 'rome-three-days-en', desc: 'Coach package from Belgrade: two nights with breakfast in a 3* hotel, panoramic sightseeing and half a day free.' },
     },
     {
-      type: 'PACKAGE' as const, country: 'Turska', city: 'Antalija',
+      type: 'PACKAGE' as const, country: 'Turska', city: 'Antalija', area: undefined as string | undefined,
       sr: { name: 'Antalija — sedam noći all inclusive', slug: 'antalija-sedam-noci', desc: 'Čarter let iz Beograda, sedam noćenja po sistemu all inclusive u hotelu 5* na plaži u Larai.\n\nU cenu su uključeni let, transfer aerodrom–hotel, smeštaj i sve obroke sa domaćim pićima. Sopstvena plaža sa ležaljkama i suncobranima bez doplate.' },
       en: { name: 'Antalya — seven nights all inclusive', slug: 'antalya-seven-nights-en', desc: 'Charter flight from Belgrade, seven all-inclusive nights in a 5* beach hotel in Lara.' },
     },
     {
-      type: 'EXCURSION' as const, country: 'Crna Gora', city: 'Kotor',
+      type: 'EXCURSION' as const, country: 'Crna Gora', city: 'Kotor', area: undefined as string | undefined,
       sr: { name: 'Boka Kotorska brodom — celodnevni izlet', slug: 'boka-kotorska-brodom', desc: 'Celodnevna plovidba Bokokotorskim zalivom sa obilaskom Gospe od Škrpjela i Plave pećine. Pauza za kupanje u Žanjicama i ručak na brodu.\n\nPolazak u 9.00 iz Kotora, vraćanje oko 17.30. Izlet se ne organizuje pri jakom jugu.' },
       en: { name: 'Bay of Kotor by boat — full-day trip', slug: 'bay-of-kotor-by-boat-en', desc: 'Full-day cruise of the Bay of Kotor with Our Lady of the Rocks and the Blue Cave.' },
     },
     {
-      type: 'TRANSFER' as const, country: 'Grčka', city: 'Solun',
+      // `city: 'Solun'` je ovde POLAZIŠTE transfera (aerodrom u stvarnom gradu), ne odredište —
+      // nije primer istog nalaza, ostaje nepromenjeno.
+      type: 'TRANSFER' as const, country: 'Grčka', city: 'Solun', area: undefined as string | undefined,
       sr: { name: 'Transfer aerodrom Solun — Halkidiki', slug: 'transfer-solun-halkidiki', desc: 'Privatni transfer klimatizovanim kombijem od aerodroma "Makedonija" do smeštaja na Kasandri ili Sitoniji.\n\nVozač čeka u dolasku sa tablom sa imenom. Cena je po vozilu, do 7 putnika sa prtljagom.' },
       en: { name: 'Thessaloniki airport transfer — Halkidiki', slug: 'thessaloniki-transfer-halkidiki-en', desc: 'Private air-conditioned van transfer from Thessaloniki airport to Kassandra or Sithonia.' },
     },
     {
-      type: 'EXCURSION' as const, country: 'Srbija', city: 'Novi Sad',
+      type: 'EXCURSION' as const, country: 'Srbija', city: 'Novi Sad', area: undefined as string | undefined,
       sr: { name: 'Fruška gora i Sremski Karlovci', slug: 'fruska-gora-sremski-karlovci', desc: 'Poludnevni izlet iz Novog Sada: manastir Krušedol, degustacija u karlovačkom podrumu i šetnja centrom Sremskih Karlovaca.\n\nPolazak subotom u 10.00, trajanje oko pet sati. Minimum osam prijavljenih putnika.' },
       en: { name: 'Fruška Gora and Sremski Karlovci', slug: 'fruska-gora-karlovci-en', desc: 'Half-day trip from Novi Sad: Krušedol monastery, a wine cellar tasting and a walk through Sremski Karlovci.' },
     },
@@ -169,6 +174,7 @@ async function main() {
         sourceContractId: contract.id,
         destinationCountry: def.country,
         destinationCity: def.city,
+        destinationArea: def.area,
         // Galerija je namerno prazna: nijedna stranica sajta još ne iscrtava <img>, prikazuje
         // obojen okvir sa tipom proizvoda. Lažni URL-ovi bi samo proizveli slomljene slike.
         media: [],
