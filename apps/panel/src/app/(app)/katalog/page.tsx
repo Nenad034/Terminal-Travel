@@ -1,25 +1,22 @@
-import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import Icon from '@/components/Icon';
-import TabLink from '@/components/TabLink';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-
-
-interface Product {
-  id: string;
-  type: string;
-  destinationCountry: string;
-  destinationCity: string;
-  status: string;
-  sourceType: string;
-  translations?: { languageCode: string; name: string }[];
-}
+import Link from 'next/link';
+import KatalogCatalog, { type Product } from './KatalogCatalog';
 
 // M17 spec §4/§7 (Faza 1) — "tim može ručno da unese proizvod (M2)". Lista poziva
 // GET /catalog/products (interni kanal M17, uključuje source_* polja, M2 spec §7).
+//
+// Filteri (4.9.2026, na zahtev vlasnika: "uvesti filtere po vrsti proizvoda, drzavi,
+// destinaciji, konekciji") — kompletna lista se povlači JEDNOM, filtriranje ide u
+// `KatalogCatalog.tsx` nad već dobijenim podacima (isti princip kao filteri u
+// `SearchSidebarPanel.tsx`, M5 §3.0g.1: trenutno, klijentsko, bez novog poziva serveru).
+// Interni katalog realno ima na desetine/stotine, ne desetine hiljada zapisa — nema razloga
+// za server-side paginaciju/filtriranje, backend API ugovor (spec §7) ostaje nepromenjen.
+// Stanje filtera se ipak upisuje u adresu (`?tip=...&drzava=...`) da pogled bude deljiv/
+// bookmark-ovan, isto očekivanje kao Audit log i Lista rezervacija.
 export default async function KatalogPage() {
   const me = await getMe();
   const canCreate = hasPermission(me, 'M2', 'product', 'CREATE');
@@ -53,42 +50,7 @@ export default async function KatalogPage() {
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
-      {!error && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {products.length === 0 && <p className="text-xs text-ink-faint">Nema proizvoda u katalogu.</p>}
-          {products.map((p) => {
-            const name = p.translations?.find((t) => t.languageCode === 'sr')?.name ?? '(bez naziva)';
-            return (
-              <TabLink
-                key={p.id}
-                href={`/katalog/${p.id}`}
-                label={name}
-                className="rounded-lg border border-border bg-panel p-4 hover:border-accent"
-                dragPayload={{
-                  key: `katalog:${p.id}`,
-                  moduleId: 'katalog-nabavka',
-                  label: name,
-                  subtitle: `${p.type} — ${p.destinationCity}, ${p.destinationCountry}`,
-                  href: `/katalog/${p.id}`,
-                }}
-              >
-                <div className="mb-1 flex items-center justify-between">
-                  <Badge variant="outline" className="border-transparent bg-accent2-soft text-accent2">
-                    {p.type}
-                  </Badge>
-                  <Badge variant={p.status === 'ACTIVE' ? 'ok' : 'secondary'} className={p.status === 'ACTIVE' ? '' : 'text-ink-faint'}>
-                    {p.status}
-                  </Badge>
-                </div>
-                <div className="text-sm font-medium text-ink">{name}</div>
-                <div className="text-xs text-ink-faint">
-                  {p.destinationCity}, {p.destinationCountry}
-                </div>
-              </TabLink>
-            );
-          })}
-        </div>
-      )}
+      {!error && <KatalogCatalog products={products} />}
     </div>
   );
 }
