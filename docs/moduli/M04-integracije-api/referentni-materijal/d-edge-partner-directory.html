@@ -1,0 +1,693 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found]){display:none!important}</style></head><body>
+<title>D-EDGE Partner Directory</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #eef1f1;
+  --surface: #ffffff;
+  --surface-2: #e4e9e9;
+  --ink: #16232b;
+  --ink-dim: #52646d;
+  --ink-faint: #8697a0;
+  --line: #d3dcdc;
+  --accent: #0e7c86;
+  --accent-ink: #063d43;
+  --accent-soft: #dcf0ef;
+  --live: #2f8f5b;
+  --live-soft: #e2f3e9;
+  --new: #c97a22;
+  --new-soft: #fbecd9;
+  --soon: #6b6f8c;
+  --soon-soft: #e7e7f0;
+  --shadow: 0 1px 2px rgba(22,35,43,0.06), 0 8px 24px -12px rgba(22,35,43,0.18);
+  --radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1719;
+    --surface: #162225;
+    --surface-2: #1d2c30;
+    --ink: #e7eef0;
+    --ink-dim: #a4b6bc;
+    --ink-faint: #6e8189;
+    --line: #263539;
+    --accent: #4fc7c9;
+    --accent-ink: #cdf3f1;
+    --accent-soft: #16363a;
+    --live: #59c98a;
+    --live-soft: #12301f;
+    --new: #e5a24d;
+    --new-soft: #3a2a12;
+    --soon: #a3a7cf;
+    --soon-soft: #262647;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1719;
+  --surface: #162225;
+  --surface-2: #1d2c30;
+  --ink: #e7eef0;
+  --ink-dim: #a4b6bc;
+  --ink-faint: #6e8189;
+  --line: #263539;
+  --accent: #4fc7c9;
+  --accent-ink: #cdf3f1;
+  --accent-soft: #16363a;
+  --live: #59c98a;
+  --live-soft: #12301f;
+  --new: #e5a24d;
+  --new-soft: #3a2a12;
+  --soon: #a3a7cf;
+  --soon-soft: #262647;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Source Sans 3', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+header.page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.75rem;
+}
+
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+h1 {
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.7rem, 3.2vw, 2.35rem);
+  margin: 0;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.sub {
+  color: var(--ink-dim);
+  font-size: 0.98rem;
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+.totals {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  font-size: 0.85rem;
+}
+.totals b { color: var(--accent-ink); font-weight: 600; }
+
+.controls {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  padding: 1rem 0 0.9rem;
+  margin-bottom: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.search-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-box svg {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
+#search {
+  width: 100%;
+  padding: 0.7rem 0.9rem 0.7rem 2.4rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.96rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+#search::placeholder { color: var(--ink-faint); }
+
+.status-filters {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.status-chip {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 0.42rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-dim);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+.status-chip:hover { border-color: var(--accent); }
+.status-chip[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.cat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cat-chip {
+  font-size: 0.82rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-dim);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cat-chip .n {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+}
+.cat-chip[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.cat-chip[aria-pressed="true"] .n { color: var(--accent-ink); }
+.cat-chip:hover { border-color: var(--accent); }
+
+main { margin-top: 1.5rem; }
+
+.category-block {
+  margin-bottom: 2.25rem;
+}
+
+.category-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--ink);
+}
+
+.category-head h2 {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.category-head .count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.55rem;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem 0.6rem 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+.card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.card.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.card .name-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.card .right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.go-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+.go-icon svg { width: 14px; height: 14px; }
+.card:hover .go-icon { color: var(--accent); }
+
+.card .name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+
+.card .group {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  margin-top: 0.1rem;
+  overflow-wrap: anywhere;
+}
+
+.pill {
+  flex-shrink: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
+}
+.pill.LIVE { background: var(--live-soft); color: var(--live); }
+.pill.NEW { background: var(--new-soft); color: var(--new); }
+.pill.SOON { background: var(--soon-soft); color: var(--soon); }
+
+.empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+}
+
+mark {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-radius: 3px;
+  padding: 0 0.1em;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 640px) {
+  .search-row { flex-wrap: wrap; }
+  .status-filters { width: 100%; justify-content: flex-start; }
+}
+
+.google-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.google-row .g-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--ink-faint);
+}
+
+.google-row .g-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#googleQuery {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+}
+#googleQuery:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+#googleQuery::placeholder { color: var(--ink-faint); }
+
+#googleGo {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 7px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-family: 'Source Sans 3', sans-serif;
+  font-size: 0.87rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.12s ease;
+}
+#googleGo:hover { opacity: 0.88; }
+#googleGo[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+#googleGo svg { width: 14px; height: 14px; }
+
+@media (max-width: 640px) {
+  .google-row { flex-wrap: wrap; }
+  .google-row .g-label { width: 100%; }
+}
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <span class="eyebrow">D-EDGE &middot; Connected Partners</span>
+    <h1>Partner directory</h1>
+    <p class="sub">Every technology partner listed on D-EDGE's Connected Partners page, across all 10 integration categories &mdash; searchable and filterable in one place.</p>
+    <div class="totals" id="totals"></div>
+  </header>
+
+  <div class="controls">
+    <div class="search-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input id="search" type="text" placeholder="Search partners or vendor groups..." autocomplete="off" />
+      </div>
+      <div class="status-filters" id="statusFilters">
+        <div class="status-chip" data-status="LIVE" aria-pressed="false" role="button" tabindex="0">LIVE</div>
+        <div class="status-chip" data-status="NEW" aria-pressed="false" role="button" tabindex="0">NEW</div>
+        <div class="status-chip" data-status="SOON" aria-pressed="false" role="button" tabindex="0">SOON</div>
+      </div>
+    </div>
+    <div class="cat-row" id="catRow"></div>
+    <div class="google-row">
+      <svg class="g-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <span class="g-label">Google pretraga</span>
+      <input id="googleQuery" type="text" placeholder="Kliknite na karticu partnera da popunite pretragu..." autocomplete="off" />
+      <a id="googleGo" href="#" target="_blank" rel="noopener noreferrer" aria-disabled="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        Pretraži
+      </a>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <footer>
+    Sourced from d-edge.com/connected-partners on 2026-08-28. Status labels (LIVE / NEW / SOON) reflect that page at the time of capture and may since have changed. The source page itself links to no partner websites, so clicking any card fills the Google search field above with that partner's name &mdash; press Enter or "Pretraži" to open the search.
+  </footer>
+</div>
+
+<script>
+const DATA = {"OTAS":{"has_group":false,"items":[{"name":"3BIS","group":"","status":"LIVE"},{"name":"3 Vallées Travel","group":"","status":"LIVE"},{"name":"ABC Travel","group":"","status":"LIVE"},{"name":"Abreu Online","group":"","status":"LIVE"},{"name":"Accent Travel","group":"","status":"LIVE"},{"name":"AeroGuest","group":"","status":"NEW"},{"name":"Agoda","group":"","status":"LIVE"},{"name":"AIC Travel Group","group":"","status":"LIVE"},{"name":"Airbnb","group":"","status":"LIVE"},{"name":"All.accor.com","group":"","status":"LIVE"},{"name":"Alliance réseaux - Open System","group":"","status":"LIVE"},{"name":"Almosafer International Travel and Tourism","group":"","status":"NEW"},{"name":"Alpes d'Huez Tourisme","group":"","status":"LIVE"},{"name":"Alpharooms","group":"","status":"LIVE"},{"name":"Amazing Places","group":"","status":"LIVE"},{"name":"Asian Trails","group":"","status":"NEW"},{"name":"AsiaTravel","group":"","status":"LIVE"},{"name":"Atrapalo","group":"","status":"LIVE"},{"name":"Avenue Six","group":"","status":"LIVE"},{"name":"Backyou by Groupcorner","group":"","status":"SOON"},{"name":"Bakuun","group":"","status":"LIVE"},{"name":"Barcelò Viajes","group":"","status":"LIVE"},{"name":"Bedsopia","group":"","status":"NEW"},{"name":"Beds4Travel","group":"","status":"LIVE"},{"name":"Belvilla AG","group":"","status":"LIVE"},{"name":"Best of Travel","group":"","status":"LIVE"},{"name":"Bibi Touring","group":"","status":"LIVE"},{"name":"Blu Welcome","group":"","status":"LIVE"},{"name":"Bnetwork","group":"","status":"LIVE"},{"name":"BookingIna","group":"","status":"NEW"},{"name":"Booking.com","group":"","status":"LIVE"},{"name":"BritHotel Distribution","group":"","status":"LIVE"},{"name":"British Airways Holidays","group":"","status":"LIVE"},{"name":"BSPHotels","group":"","status":"LIVE"},{"name":"BungalowSpecials.nl","group":"","status":"LIVE"},{"name":"Carol France Incoming","group":"","status":"LIVE"},{"name":"CHECK 24","group":"","status":"LIVE"},{"name":"Centrale de réservation BtoC des Menuires/St Martin","group":"","status":"LIVE"},{"name":"Citybreak by Visit Technology","group":"","status":"LIVE"},{"name":"Cityzenbooking","group":"","status":"LIVE"},{"name":"CnTravel","group":"","status":"LIVE"},{"name":"Constellation / Elloha","group":"","status":"LIVE"},{"name":"Corporate Rate Club (CRC)","group":"","status":"NEW"},{"name":"Corsica Travel","group":"","status":"LIVE"},{"name":"Courchevel Tourisme","group":"","status":"LIVE"},{"name":"Ctoutvert","group":"","status":"LIVE"},{"name":"CVC","group":"","status":"LIVE"},{"name":"Cybevasion","group":"","status":"LIVE"},{"name":"Destination Italia","group":"","status":"NEW"},{"name":"Destinations of the World / DOTW","group":"","status":"LIVE"},{"name":"Didatravel","group":"","status":"LIVE"},{"name":"Digibreaks","group":"","status":"LIVE"},{"name":"Direct Booking","group":"","status":"LIVE"},{"name":"DIRS21 Switch","group":"","status":"LIVE"},{"name":"Djoca Travel","group":"","status":"LIVE"},{"name":"Dnata","group":"","status":"LIVE"},{"name":"Dormitur Travel","group":"","status":"LIVE"},{"name":"Dorms.com","group":"","status":"LIVE"},{"name":"easyJet Holidays","group":"","status":"NEW"},{"name":"Ebookers.com","group":"","status":"LIVE"},{"name":"EC Travel","group":"","status":"LIVE"},{"name":"EcoHotels.com","group":"","status":"LIVE"},{"name":"EET Global","group":"","status":"LIVE"},{"name":"E Hotels","group":"","status":"NEW"},{"name":"Emerging Travel Group","group":"","status":"LIVE"},{"name":"Ephatta","group":"","status":"LIVE"},{"name":"ESF+","group":"","status":"LIVE"},{"name":"ESTEC","group":"","status":"LIVE"},{"name":"Estiber","group":"","status":"LIVE"},{"name":"eTravel.pl","group":"","status":"LIVE"},{"name":"Europe Express","group":"","status":"NEW"},{"name":"Evian Tourisme","group":"","status":"LIVE"},{"name":"Eximtur","group":"","status":"LIVE"},{"name":"Expedia","group":"","status":"LIVE"},{"name":"ez Travel","group":"","status":"NEW"},{"name":"FamilyTrip","group":"","status":"LIVE"},{"name":"FastPayHotels - Zinantis by FPH","group":"","status":"LIVE"},{"name":"Feratel Deskline","group":"","status":"LIVE"},{"name":"Fliggy","group":"","status":"SOON"},{"name":"Flight Centre","group":"","status":"LIVE"},{"name":"Fluege.de","group":"","status":"LIVE"},{"name":"France Hotel Guide","group":"","status":"LIVE"},{"name":"G2 Travel","group":"","status":"LIVE"},{"name":"GastroPlusTour","group":"","status":"LIVE"},{"name":"GetARoom","group":"","status":"LIVE"},{"name":"GIE Val d'Isère Réservation","group":"","status":"LIVE"},{"name":"Go to Mont Blanc","group":"","status":"LIVE"},{"name":"Go Travel","group":"","status":"LIVE"},{"name":"Go4Travel","group":"","status":"NEW"},{"name":"Goelett","group":"","status":"LIVE"},{"name":"Goibibo (Makemytrip)","group":"","status":"LIVE"},{"name":"Golden Tours","group":"","status":"SOON"},{"name":"GreenGo","group":"","status":"LIVE"},{"name":"GreenRing Solutions","group":"","status":"SOON"},{"name":"Groupon","group":"","status":"LIVE"},{"name":"Guest Incoming","group":"","status":"NEW"},{"name":"H-resa / Misterfly","group":"","status":"LIVE"},{"name":"Harvest Elite","group":"","status":"NEW"},{"name":"Hcorpo","group":"","status":"LIVE"},{"name":"Heart of Paris Hotels","group":"","status":"LIVE"},{"name":"Heidi","group":"","status":"LIVE"},{"name":"HeyTrip","group":"","status":"NEW"},{"name":"HIS International Tours","group":"","status":"LIVE"},{"name":"HK Convergent","group":"","status":"LIVE"},{"name":"Hopper","group":"","status":"LIVE"},{"name":"HostelsClub","group":"","status":"LIVE"},{"name":"Hostelworld","group":"","status":"LIVE"},{"name":"Hotel to Business (H2B)","group":"","status":"LIVE"},{"name":"Hotel Trader","group":"","status":"NEW"},{"name":"Hotel.cz","group":"","status":"LIVE"},{"name":"Hotel.de","group":"","status":"LIVE"},{"name":"HotelBeds","group":"","status":"LIVE"},{"name":"HotelClub","group":"","status":"LIVE"},{"name":"HotelDirect","group":"","status":"LIVE"},{"name":"Hotele.pl","group":"","status":"LIVE"},{"name":"HotelGuru.ro","group":"","status":"LIVE"},{"name":"Hoteliers.com","group":"","status":"LIVE"},{"name":"Hotelliveeb","group":"","status":"LIVE"},{"name":"Hotelnjoy","group":"","status":"LIVE"},{"name":"Hotelreservierung.de","group":"","status":"LIVE"},{"name":"Hotels In One","group":"","status":"LIVE"},{"name":"Hotels.com (Expedia)","group":"","status":"LIVE"},{"name":"HotelSpecials","group":"","status":"LIVE"},{"name":"HotelsTrack by 11infotech","group":"","status":"LIVE"},{"name":"HotelSwaps","group":"","status":"LIVE"},{"name":"HotelTonight","group":"","status":"LIVE"},{"name":"HotelTravel","group":"","status":"LIVE"},{"name":"Hoterip","group":"","status":"LIVE"},{"name":"Hotwire","group":"","status":"LIVE"},{"name":"Hpro Travel (MetGlobal - HotelsPro)","group":"","status":"LIVE"},{"name":"HRS","group":"","status":"LIVE"},{"name":"HRS Australasia (former Lido Group)","group":"","status":"LIVE"},{"name":"Hutchison Priceline","group":"","status":"LIVE"},{"name":"Hyperguest","group":"","status":"LIVE"},{"name":"i-escape","group":"","status":"LIVE"},{"name":"Icastelli","group":"","status":"LIVE"},{"name":"im-web.de","group":"","status":"LIVE"},{"name":"Imperatore Travel World","group":"","status":"LIVE"},{"name":"InfiniteHotel","group":"","status":"LIVE"},{"name":"Ingénie","group":"","status":"LIVE"},{"name":"Inghams by HotelPlan UK","group":"","status":"NEW"},{"name":"Innstant Travel","group":"","status":"SOON"},{"name":"Inntopia","group":"","status":"LIVE"},{"name":"InovTravel","group":"","status":"LIVE"},{"name":"iOL (Illusions Online)","group":"","status":"LIVE"},{"name":"Iri Travel","group":"","status":"LIVE"},{"name":"Isula Vacances","group":"","status":"LIVE"},{"name":"Italcamel","group":"","status":"LIVE"},{"name":"IXPIRA","group":"","status":"NEW"},{"name":"Jawara","group":"","status":"LIVE"},{"name":"JDB Hotels","group":"","status":"LIVE"},{"name":"Jet2holidays","group":"","status":"LIVE"},{"name":"Jetsetter","group":"","status":"LIVE"},{"name":"Joy Travel (HK Qiaoyi International)","group":"","status":"LIVE"},{"name":"Jumbonline (a TBO.com company)","group":"","status":"LIVE"},{"name":"Jumbo Tours","group":"","status":"LIVE"},{"name":"Keytel Phoenix","group":"","status":"NEW"},{"name":"KlikHotel","group":"","status":"LIVE"},{"name":"Kliknbook","group":"","status":"LIVE"},{"name":"Klook","group":"","status":"LIVE"},{"name":"Koedia Hotel Direct Access","group":"","status":"LIVE"},{"name":"KTS Voyages","group":"","status":"LIVE"},{"name":"Kurzurlaub","group":"","status":"LIVE"},{"name":"La Plagne Resort","group":"","status":"LIVE"},{"name":"lastminute.com","group":"","status":"LIVE"},{"name":"Lazne Travel","group":"","status":"LIVE"},{"name":"LCI-MTC","group":"","status":"LIVE"},{"name":"Le Grand Bornand Tourisme","group":"","status":"LIVE"},{"name":"LeaveTown","group":"","status":"LIVE"},{"name":"Les 2 Alpes","group":"","status":"LIVE"},{"name":"Les Carroz Réservation","group":"","status":"LIVE"},{"name":"Les Gets Reservation","group":"","status":"LIVE"},{"name":"Les Saisies Village Tourisme","group":"","status":"LIVE"},{"name":"Lifestyle Hotels","group":"","status":"LIVE"},{"name":"Lion Travel","group":"","status":"SOON"},{"name":"LitoralulRomanesc.ro","group":"","status":"LIVE"},{"name":"Logitravel","group":"","status":"LIVE"},{"name":"Loveholidays","group":"","status":"LIVE"},{"name":"MaCorsica","group":"","status":"LIVE"},{"name":"Maeva.com","group":"","status":"LIVE"},{"name":"1Way2Italy","group":"","status":"NEW"},{"name":"MaxMind Technlogies (OpenGDS)","group":"","status":"LIVE"},{"name":"Menuire Saint Martin Tours - Sevabel","group":"","status":"LIVE"},{"name":"Mera Hotels","group":"","status":"LIVE"},{"name":"MG Holiday Group","group":"","status":"LIVE"},{"name":"Miki Travel","group":"","status":"LIVE"},{"name":"MilleVista","group":"","status":"LIVE"},{"name":"MisterAladin","group":"","status":"LIVE"},{"name":"Morzine Reservation","group":"","status":"LIVE"},{"name":"Mount Vacation","group":"","status":"LIVE"},{"name":"Mr & Mrs Smith","group":"","status":"LIVE"},{"name":"MTS Globe","group":"","status":"LIVE"},{"name":"MyBoutiqueHotel.com","group":"","status":"LIVE"},{"name":"MyGo.pro","group":"","status":"LIVE"},{"name":"NB Incoming","group":"","status":"NEW"},{"name":"New Logic","group":"","status":"LIVE"},{"name":"Nocleg.pl","group":"","status":"LIVE"},{"name":"Noriunoriunoriu.lt","group":"","status":"NEW"},{"name":"NucoTravel/Erna Low","group":"","status":"LIVE"},{"name":"Nuitee","group":"","status":"NEW"},{"name":"ODIGEO Connect / eDreams Odigeo","group":"","status":"LIVE"},{"name":"Odisseias","group":"","status":"NEW"},{"name":"Office de Tourisme & des Congrès Tours Loire Valle","group":"","status":"LIVE"},{"name":"Office de tourisme d'Avoriaz 1800","group":"","status":"LIVE"},{"name":"Office de tourisme de Calvi-Balagne","group":"","status":"LIVE"},{"name":"Office de tourisme de Cassis","group":"","status":"LIVE"},{"name":"Office de tourisme de l'Ile Rousse Balagne","group":"","status":"LIVE"},{"name":"Office de Tourisme de La Rosière","group":"","status":"LIVE"},{"name":"Office de tourisme de Saint Lary","group":"","status":"LIVE"},{"name":"Office de tourisme de Samoëns","group":"","status":"LIVE"},{"name":"Office de tourisme de Serre Chevalier","group":"","status":"LIVE"},{"name":"Office de tourisme de Tignes","group":"","status":"LIVE"},{"name":"Office de tourisme de Val d'Arly","group":"","status":"LIVE"},{"name":"Office de tourisme et des Congrès de Lille","group":"","status":"LIVE"},{"name":"Office de Tourisme Porticcio Taravo Ornan","group":"","status":"LIVE"},{"name":"Office Municipale de Tourisme de BONIFACIO","group":"","status":"LIVE"},{"name":"Oh My Hotel","group":"","status":"LIVE"},{"name":"Ollandini","group":"","status":"SOON"},{"name":"OlympiaVoyage","group":"","status":"LIVE"},{"name":"Omega Hotels","group":"","status":"LIVE"},{"name":"On Travel Solutions","group":"","status":"LIVE"},{"name":"OntheBeach.co.uk","group":"","status":"LIVE"},{"name":"Opentours","group":"","status":"LIVE"},{"name":"Paradis Vacante De Vis","group":"","status":"LIVE"},{"name":"Paralela 45 turism","group":"","status":"LIVE"},{"name":"Parcours Vacances","group":"","status":"LIVE"},{"name":"Paris Je T'aime - Office du Tourisme de Paris","group":"","status":"LIVE"},{"name":"Pays du Mont Blanc","group":"","status":"LIVE"},{"name":"Peak Retreats","group":"","status":"LIVE"},{"name":"Pierre & Vacances","group":"","status":"LIVE"},{"name":"Portimar","group":"","status":"LIVE"},{"name":"RateHawk","group":"","status":"LIVE"},{"name":"Rehlat","group":"","status":"LIVE"},{"name":"Reisen.de","group":"","status":"LIVE"},{"name":"Resanet","group":"","status":"LIVE"},{"name":"RevNGo.com","group":"","status":"LIVE"},{"name":"Risskov","group":"","status":"LIVE"},{"name":"Roibos","group":"","status":"LIVE"},{"name":"Roomex","group":"","status":"LIVE"},{"name":"Rovi Travel","group":"","status":"NEW"},{"name":"RTS","group":"","status":"LIVE"},{"name":"Sardegna.com","group":"","status":"LIVE"},{"name":"Secretplaces","group":"","status":"LIVE"},{"name":"Serhs Tourism","group":"","status":"LIVE"},{"name":"Serre Chevalier Tours B2B","group":"","status":"LIVE"},{"name":"Shiji Horizon Distribution","group":"","status":"LIVE"},{"name":"ShowroomPrivé","group":"","status":"LIVE"},{"name":"Sidetours","group":"","status":"LIVE"},{"name":"Ski-Planet","group":"","status":"LIVE"},{"name":"Ski.com","group":"","status":"LIVE"},{"name":"Skilink","group":"","status":"LIVE"},{"name":"Skinetworks","group":"","status":"LIVE"},{"name":"SkiWeekends / Flexiski","group":"","status":"LIVE"},{"name":"Ski Yodl","group":"","status":"NEW"},{"name":"Skywide.tech","group":"","status":"LIVE"},{"name":"Slevomat","group":"","status":"LIVE"},{"name":"Smartbox","group":"","status":"LIVE"},{"name":"Snowtrade Royale","group":"","status":"LIVE"},{"name":"Société d'Aménagement Touristique de l'Alpe d'Huez (SATA)","group":"","status":"LIVE"},{"name":"Société d'Aménagement Touristique des Deux Alpes (SATA 2 Alpes)","group":"","status":"LIVE"},{"name":"Solferias","group":"","status":"LIVE"},{"name":"SPA.CZ","group":"","status":"LIVE"},{"name":"Speedy Booker","group":"","status":"LIVE"},{"name":"Splendia","group":"","status":"LIVE"},{"name":"Sport Découverte","group":"","status":"LIVE"},{"name":"Staycation","group":"","status":"LIVE"},{"name":"StayPoland.com","group":"","status":"LIVE"},{"name":"STC","group":"","status":"LIVE"},{"name":"STGlobe","group":"","status":"LIVE"},{"name":"Sun Series","group":"","status":"LIVE"},{"name":"Sunhotels","group":"","status":"LIVE"},{"name":"Sunweb Group","group":"","status":"LIVE"},{"name":"Szallas.hu","group":"","status":"LIVE"},{"name":"Szallasvadasz","group":"","status":"LIVE"},{"name":"Tablet Hotels","group":"","status":"LIVE"},{"name":"Tailorbeds","group":"","status":"LIVE"},{"name":"TBO Holidays","group":"","status":"LIVE"},{"name":"Teldar Travel","group":"","status":"LIVE"},{"name":"Thalasseo.com","group":"","status":"LIVE"},{"name":"Thalasso n°1","group":"","status":"LIVE"},{"name":"The Bradery","group":"","status":"LIVE"},{"name":"TheBestSpaHotels","group":"","status":"LIVE"},{"name":"The Ski Company","group":"","status":"LIVE"},{"name":"Thinggaard","group":"","status":"LIVE"},{"name":"Tick'nBox","group":"","status":"LIVE"},{"name":"TideSquare","group":"","status":"LIVE"},{"name":"Tiket","group":"","status":"LIVE"},{"name":"Tomas","group":"","status":"LIVE"},{"name":"Top Atlantico","group":"","status":"LIVE"},{"name":"Topflight Travel Group","group":"","status":"NEW"},{"name":"Topkur","group":"","status":"LIVE"},{"name":"Tour 10","group":"","status":"LIVE"},{"name":"Travco","group":"","status":"LIVE"},{"name":"Travel Destinations Solutions (TDS)","group":"","status":"NEW"},{"name":"Travel Republic","group":"","status":"LIVE"},{"name":"TravelFactory","group":"","status":"LIVE"},{"name":"TravelgateX","group":"","status":"LIVE"},{"name":"Travelking","group":"","status":"LIVE"},{"name":"Travelocity","group":"","status":"LIVE"},{"name":"Traveloka","group":"","status":"LIVE"},{"name":"Travel Partner","group":"","status":"LIVE"},{"name":"TravelPlan Ski","group":"","status":"NEW"},{"name":"Travelrepublic","group":"","status":"LIVE"},{"name":"Traveltino","group":"","status":"LIVE"},{"name":"TravTravel","group":"","status":"LIVE"},{"name":"Trendy Hotels","group":"","status":"LIVE"},{"name":"Trip.com (Ctrip)","group":"","status":"LIVE"},{"name":"Trip Affiliates Network","group":"","status":"LIVE"},{"name":"Trip and Co / Camping and Co","group":"","status":"LIVE"},{"name":"Tripbtoz","group":"","status":"NEW"},{"name":"TripStax Hotels","group":"","status":"NEW"},{"name":"Triverna","group":"","status":"LIVE"},{"name":"TUI Dynamic European Markets","group":"","status":"LIVE"},{"name":"TUI Italia","group":"","status":"NEW"},{"name":"TUI Malaysia","group":"","status":"NEW"},{"name":"Unitravel - GHRS","group":"","status":"LIVE"},{"name":"Urlaubstours.de","group":"","status":"LIVE"},{"name":"Utazzitthon","group":"","status":"LIVE"},{"name":"Val Thorens Réservation","group":"","status":"LIVE"},{"name":"Vap Incoming","group":"","status":"LIVE"},{"name":"Verona Booking","group":"","status":"LIVE"},{"name":"VeryChic","group":"","status":"LIVE"},{"name":"Veturis","group":"","status":"LIVE"},{"name":"Viajes Interrias","group":"","status":"LIVE"},{"name":"Viajes Olympia","group":"","status":"LIVE"},{"name":"Viajes Para Ti","group":"","status":"LIVE"},{"name":"Viajes Urbis","group":"","status":"LIVE"},{"name":"Virtuous Travel & Concierge","group":"","status":"NEW"},{"name":"Visit Berlin","group":"","status":"LIVE"},{"name":"Voyamar","group":"","status":"LIVE"},{"name":"Voyage Privé","group":"","status":"LIVE"},{"name":"We Go Zen","group":"","status":"LIVE"},{"name":"We Ski","group":"","status":"LIVE"},{"name":"We Chat via Shiji","group":"","status":"NEW"},{"name":"Weekendesk","group":"","status":"LIVE"},{"name":"Wellbeds","group":"","status":"NEW"},{"name":"WHL","group":"","status":"LIVE"},{"name":"Wink (Ex - iko.travel)","group":"","status":"LIVE"},{"name":"Within Earth","group":"","status":"LIVE"},{"name":"World 2 Meet - W2M","group":"","status":"LIVE"},{"name":"Wotif (Expedia)","group":"","status":"LIVE"},{"name":"Wozozo Travel Technology","group":"","status":"LIVE"},{"name":"Zanadu.cn","group":"","status":"LIVE"},{"name":"ZenHotels","group":"","status":"LIVE"},{"name":"FoxoBoxo / ZlavaDna","group":"","status":"LIVE"},{"name":"Zlavomat","group":"","status":"LIVE"}]},"GDS":{"has_group":false,"items":[{"name":"Amadeus","group":"","status":"LIVE"},{"name":"Arteh Hotels","group":"","status":"LIVE"},{"name":"Atel","group":"","status":"LIVE"},{"name":"Classic International Hotels (CIH)","group":"","status":"LIVE"},{"name":"D-EDGE GDS","group":"","status":"LIVE"},{"name":"Galileo","group":"","status":"LIVE"},{"name":"Global Hospitality Services","group":"","status":"LIVE"},{"name":"GlobRes","group":"","status":"LIVE"},{"name":"HotelRez","group":"","status":"LIVE"},{"name":"Navarino Services","group":"","status":"LIVE"},{"name":"Pegasus","group":"","status":"LIVE"},{"name":"Quality Reservations","group":"","status":"LIVE"},{"name":"Reconline","group":"","status":"LIVE"},{"name":"RHN (REZ:Online Hotel Network)","group":"","status":"LIVE"},{"name":"Sabre","group":"","status":"LIVE"},{"name":"Travelclick","group":"","status":"LIVE"},{"name":"Worldspan","group":"","status":"LIVE"}]},"PMS":{"has_group":true,"items":[{"name":"5stelle","group":"Cinquestelle","status":"LIVE"},{"name":"Abaton","group":"Abaton Praha","status":"LIVE"},{"name":"ACI Hotel","group":"ACI Grup","status":"LIVE"},{"name":"Adresio","group":"AD Présence","status":"LIVE"},{"name":"Agnis","group":"Agnis","status":"LIVE"},{"name":"Aida.X","group":"X Software Solutions","status":"LIVE"},{"name":"Alto","group":"ALTO Slovakia","status":"LIVE"},{"name":"Alyante - Figaro","group":"TeamSystem","status":"LIVE"},{"name":"Amadeus Smart Inventory","group":"","status":"LIVE"},{"name":"Apaleo","group":"","status":"LIVE"},{"name":"Asterio","group":"Sequoiasoft","status":"LIVE"},{"name":"Athena","group":"Athena Information Systems","status":"LIVE"},{"name":"ARICOMA","group":"ARICOMA Enterprise Applications","status":"LIVE"},{"name":"Betisoft","group":"Betisoft","status":"LIVE"},{"name":"Big Solutions","group":"","status":"LIVE"},{"name":"Bookelier","group":"Egluu","status":"LIVE"},{"name":"Cabane Nature et SPA PMS","group":"","status":"NEW"},{"name":"CakraSoft PMS","group":"","status":"NEW"},{"name":"Cambridge by Shiji","group":"","status":"LIVE"},{"name":"CBP Hôtel","group":"Sequoiasoft","status":"LIVE"},{"name":"Chloé","group":"Sphère Informatique","status":"LIVE"},{"name":"CHR365","group":"ACANTECH","status":"LIVE"},{"name":"ClockPMS","group":"ClockSoftware","status":"LIVE"},{"name":"Com-Pasz","group":"","status":"LIVE"},{"name":"Comanche","group":"Comanche International","status":"LIVE"},{"name":"Cudbe","group":"Infognia","status":"LIVE"},{"name":"DayLight PMS","group":"","status":"LIVE"},{"name":"Dihotel","group":"","status":"LIVE"},{"name":"Easyfo","group":"Easyfo Companylimited","status":"LIVE"},{"name":"Egluu","group":"Labsystems A&G S.L","status":"LIVE"},{"name":"Ekoncept","group":"Ekoncept","status":"LIVE"},{"name":"Elite Frontoffice","group":"Elite Solutions Gmbh","status":"LIVE"},{"name":"Eole","group":"GHM Gesthotel","status":"LIVE"},{"name":"Ericsoft","group":"Ericsoft Italia S.r.l","status":"LIVE"},{"name":"Eticadata","group":"Eticadata","status":"LIVE"},{"name":"Eurhôtel","group":"Euresto","status":"LIVE"},{"name":"Evols Figaro Channel Manager","group":"Team System","status":"LIVE"},{"name":"eZee Technosys","group":"","status":"LIVE"},{"name":"Family Hotel","group":"Gherold Network Design","status":"LIVE"},{"name":"Fiducial Hôtel-Restaurant","group":"Fiducial Informatique","status":"LIVE"},{"name":"Flexys","group":"Flexys","status":"LIVE"},{"name":"Fokus","group":"Zalion","status":"LIVE"},{"name":"Galaxy Hotels","group":"","status":"LIVE"},{"name":"Geho","group":"Geho","status":"LIVE"},{"name":"Gestione Albergo (Leonardo)","group":"Zuchetti","status":"SOON"},{"name":"GoldenUp","group":"","status":"LIVE"},{"name":"GreenHotel","group":"GreenSoftware S.L.","status":"LIVE"},{"name":"Gustodian PMS","group":"","status":"NEW"},{"name":"HERMES","group":"","status":"LIVE"},{"name":"HHS - Host Hotel System","group":"Host Hotel System","status":"LIVE"},{"name":"HMS","group":"Infor","status":"LIVE"},{"name":"Homing","group":"Sequoiasoft","status":"LIVE"},{"name":"HOP","group":"Dylog","status":"LIVE"},{"name":"Horec","group":"Asseco Solutions, a.s.","status":"LIVE"},{"name":"Hores","group":"Hores Plus s.r.o","status":"LIVE"},{"name":"Hostware","group":"Hostware Kft.","status":"LIVE"},{"name":"Hotel and More PMS","group":"","status":"LIVE"},{"name":"Hotel In Cloud","group":"Team System","status":"LIVE"},{"name":"Hotel Superhero","group":"","status":"LIVE"},{"name":"Hotel32","group":"ComArr","status":"LIVE"},{"name":"HotelCube","group":"Proxima","status":"LIVE"},{"name":"HotelEasy","group":"HotelEasy","status":"LIVE"},{"name":"Hoteles i+D","group":"i+D Informatica","status":"LIVE"},{"name":"Hotelia","group":"Télicom","status":"LIVE"},{"name":"Hoteliers Guru","group":"","status":"LIVE"},{"name":"HotelKey","group":"","status":"LIVE"},{"name":"Hotello","group":"Mingus Software","status":"LIVE"},{"name":"Hotelmis","group":"Logmis","status":"LIVE"},{"name":"Hoteloplus","group":"CPS","status":"LIVE"},{"name":"HotelProfi","group":"DATAReform","status":"LIVE"},{"name":"Hotelsoftware","group":"Hotline Group GmbH","status":"LIVE"},{"name":"HotelSystem (Kompas Gramedia)","group":"","status":"LIVE"},{"name":"HotelTime","group":"HotelTime","status":"LIVE"},{"name":"Hotelus Milenium PMS","group":"DormaKaba","status":"LIVE"},{"name":"HotelX PMS by IFCA","group":"IFCA","status":"NEW"},{"name":"Hotix PMS","group":"","status":"NEW"},{"name":"Hotline - Hotelsoftware","group":"","status":"LIVE"},{"name":"Hotsoft","group":"Hoist Group","status":"LIVE"},{"name":"HS3 Hotelsoftware","group":"HS/3 Hotel Software","status":"LIVE"},{"name":"Ibelsa","group":"Ibelsa","status":"LIVE"},{"name":"IDB","group":"","status":"LIVE"},{"name":"IDPMS","group":"Itesso","status":"LIVE"},{"name":"Infhotik","group":"Infhotik","status":"LIVE"},{"name":"InovGuest","group":"WareGuest","status":"LIVE"},{"name":"InSoft PMS","group":"","status":"NEW"},{"name":"Intea Hotel","group":"","status":"LIVE"},{"name":"IReckonU","group":"IReckonU","status":"LIVE"},{"name":"Jazotel","group":"Flag Orisha","status":"LIVE"},{"name":"KWhotel","group":"Kajware","status":"LIVE"},{"name":"Lauryn","group":"Lauryn V.O.S","status":"LIVE"},{"name":"Lean PMS","group":"","status":"LIVE"},{"name":"Maistro Front Office","group":"Maistro Informatikai Kft.","status":"LIVE"},{"name":"MasterYield","group":"MasterYield","status":"LIVE"},{"name":"Maxial","group":"Maxial Solutions Pty Ltd","status":"LIVE"},{"name":"Medialog","group":"Medialog","status":"LIVE"},{"name":"Mefisto Software","group":"Mefisto Solutions, S.L.","status":"LIVE"},{"name":"MemberPro","group":"Luxart s.r.o.","status":"LIVE"},{"name":"Mews","group":"Mews Systems","status":"LIVE"},{"name":"MisterBooking","group":"Misterbooking.net","status":"LIVE"},{"name":"Morphée","group":"Micrologic","status":"LIVE"},{"name":"MultiMicro Cloud","group":"MultiMicro Cloud SA","status":"LIVE"},{"name":"Newbook Cloud","group":"Newbook","status":"LIVE"},{"name":"Newhotel","group":"Newhotel","status":"LIVE"},{"name":"Noray Software","group":"Noray","status":"LIVE"},{"name":"Nuconga","group":"Team System","status":"LIVE"},{"name":"Oasis Hospitality Software","group":"","status":"LIVE"},{"name":"Oberon","group":"Exalogic","status":"LIVE"},{"name":"Opera","group":"Oracle","status":"LIVE"},{"name":"Optima","group":"Silverbyte Ltd","status":"LIVE"},{"name":"Orchestra","group":"Orchestra","status":"LIVE"},{"name":"Power Pro Hotel System","group":"","status":"LIVE"},{"name":"Previo Pro PMS","group":"Previo","status":"LIVE"},{"name":"Protel Hotel Software","group":"Protel","status":"LIVE"},{"name":"QuoHotel","group":"CEI Europe SL","status":"LIVE"},{"name":"REHOT PMS","group":"LSI Software","status":"LIVE"},{"name":"Resalys","group":"","status":"LIVE"},{"name":"Resthel Office","group":"Resthel","status":"LIVE"},{"name":"RezLynx","group":"Guestline","status":"LIVE"},{"name":"Rhapsody","group":"PT Realta Chakradarma","status":"LIVE"},{"name":"RMS Cloud","group":"","status":"LIVE"},{"name":"Roomlynx","group":"Guestline","status":"LIVE"},{"name":"roommaster","group":"NFS Innquest","status":"LIVE"},{"name":"Scrigno","group":"Zucchetti Group","status":"LIVE"},{"name":"Shiji Daylight PMS","group":"","status":"SOON"},{"name":"Sihot","group":"Sihot","status":"LIVE"},{"name":"Siros Management Solutions S.L.","group":"Siros Management Solutions S.L.","status":"LIVE"},{"name":"SirrahSoft","group":"SirrahSoft","status":"LIVE"},{"name":"SITEC Front Office Cloud","group":"Simplify Hospitality","status":"LIVE"},{"name":"SKY PMS","group":"","status":"NEW"},{"name":"Slope PMS","group":"","status":"NEW"},{"name":"Smart Finder","group":"","status":"LIVE"},{"name":"Smile","group":"","status":"LIVE"},{"name":"SoftConcept","group":"Vgest","status":"LIVE"},{"name":"Sothis","group":"Realsoft","status":"LIVE"},{"name":"Starlight","group":"Infor","status":"LIVE"},{"name":"StayNTouch Cloud PMS","group":"StayNTouch","status":"LIVE"},{"name":"Suite PMS","group":"Innovaciones Informaticas","status":"LIVE"},{"name":"Suite8","group":"Oracle","status":"LIVE"},{"name":"Team System Hospitality","group":"Team System","status":"LIVE"},{"name":"Thaïs-Hôtel","group":"Thaïs-Soft","status":"LIVE"},{"name":"Thex by TOTVS","group":"","status":"LIVE"},{"name":"Top Hotel / Topsys","group":"Topsys","status":"LIVE"},{"name":"Ulyses Cloud by Tesipro","group":"Tesipro Solutions, SL","status":"LIVE"},{"name":"Vega","group":"Quatuhore","status":"LIVE"},{"name":"Verial Hotel","group":"Verial Soft","status":"LIVE"},{"name":"VHP / Visual Hotel Program","group":"PT. Supranusa Sindata","status":"LIVE"},{"name":"Visual Front Office","group":"Swiss Hotel Software","status":"LIVE"},{"name":"Visual One by Agilysys","group":"Agilysys","status":"LIVE"},{"name":"WebHotel","group":"Team System","status":"LIVE"},{"name":"Wings","group":"SanhaIT","status":"LIVE"},{"name":"WinHotel Neo","group":"Sequoiasoft","status":"LIVE"},{"name":"Wintouch","group":"Wintouch","status":"LIVE"},{"name":"WISH Prologic First","group":"Prologic First","status":"LIVE"}]},"RMS":{"has_group":false,"items":[{"name":"Atomize RMS","group":"","status":"LIVE"},{"name":"Beonprice","group":"","status":"LIVE"},{"name":"Climber RMS","group":"","status":"LIVE"},{"name":"DoYield RMS","group":"","status":"NEW"},{"name":"Duetto","group":"","status":"LIVE"},{"name":"EzRMS","group":"","status":"LIVE"},{"name":"HotelPartner Revenue Management","group":"","status":"LIVE"},{"name":"Hotellab.io OÜ","group":"","status":"LIVE"},{"name":"IdeaS","group":"","status":"LIVE"},{"name":"LodgiQ RMS","group":"","status":"LIVE"},{"name":"Lybra RMS","group":"","status":"NEW"},{"name":"MyForecast","group":"","status":"LIVE"},{"name":"Peaqplus","group":"","status":"LIVE"},{"name":"Qualpro RMS","group":"","status":"LIVE"},{"name":"RateWise","group":"","status":"LIVE"},{"name":"REVBELL","group":"","status":"LIVE"},{"name":"RevControl","group":"","status":"LIVE"},{"name":"RoomPrice Genie","group":"","status":"LIVE"},{"name":"RoomRaiser","group":"","status":"LIVE"},{"name":"Smartness RMS","group":"","status":"LIVE"},{"name":"Spotpilot","group":"","status":"LIVE"}]},"CRM":{"has_group":false,"items":[{"name":"Boost Inn","group":"","status":"LIVE"},{"name":"D-EDGE CRM (formerly LoungeUp)","group":"","status":"LIVE"},{"name":"Dailypoint","group":"","status":"LIVE"},{"name":"Experience Hôtel (Sellinity)","group":"","status":"LIVE"},{"name":"H.api CRM","group":"","status":"LIVE"},{"name":"HotelAppz","group":"","status":"LIVE"}]},"METASEARCH":{"has_group":false,"items":[{"name":"Google Hotel Ads","group":"","status":"LIVE"},{"name":"HotelsCombined","group":"","status":"LIVE"},{"name":"Kayak","group":"","status":"LIVE"},{"name":"Skyscanner","group":"","status":"LIVE"},{"name":"TripAdvisor","group":"","status":"LIVE"},{"name":"TripAdvisor Instant Booking","group":"","status":"LIVE"},{"name":"Trivago","group":"","status":"LIVE"},{"name":"Wego","group":"","status":"LIVE"}]},"BOOKING ENGINES":{"has_group":false,"items":[{"name":"ARO","group":"","status":"LIVE"},{"name":"Attraction by D-EDGE (former Fastbooking)","group":"","status":"LIVE"},{"name":"Avvio","group":"","status":"LIVE"},{"name":"Book Online Now","group":"","status":"NEW"},{"name":"Bookassist","group":"","status":"LIVE"},{"name":"Bookolo System","group":"","status":"LIVE"},{"name":"Dijitally - RoomStay","group":"","status":"LIVE"},{"name":"ED for hotels","group":"","status":"LIVE"},{"name":"GuestCentric","group":"","status":"LIVE"},{"name":"Guestlink","group":"","status":"LIVE"},{"name":"Hoteliers.com","group":"","status":"LIVE"},{"name":"iHotelier","group":"","status":"LIVE"},{"name":"Mirai","group":"","status":"LIVE"},{"name":"Morgens - Dormitory BE","group":"","status":"LIVE"},{"name":"Namastay","group":"","status":"LIVE"},{"name":"NetAffinity","group":"","status":"LIVE"},{"name":"ParatyTech","group":"","status":"LIVE"},{"name":"Rapibo","group":"","status":"LIVE"},{"name":"RESnWEB","group":"","status":"LIVE"},{"name":"Roiback","group":"","status":"LIVE"},{"name":"RoomSome","group":"","status":"LIVE"},{"name":"RoomZ","group":"","status":"LIVE"},{"name":"Softinn","group":"","status":"LIVE"},{"name":"Synergy (Keytel Booking Engine)","group":"","status":"LIVE"},{"name":"SynXis","group":"","status":"LIVE"},{"name":"Think Hotels","group":"","status":"LIVE"},{"name":"Travelanium","group":"","status":"LIVE"}]},"PAYMENT SYSTEMS":{"has_group":true,"items":[{"name":"3C / Web2Pay","group":"","status":"LIVE"},{"name":"Adyen","group":"","status":"LIVE"},{"name":"AsiaPay (Paydollar, PesoPay, SiamPay)","group":"","status":"LIVE"},{"name":"BNP IRB (Lyra Network)","group":"","status":"LIVE"},{"name":"Clic&Pay (Lyra Network)","group":"","status":"LIVE"},{"name":"Concardis","group":"","status":"LIVE"},{"name":"CSB (Lyra Network)","group":"","status":"LIVE"},{"name":"D-EDGE Clearing Service (former Availpro)","group":"","status":"LIVE"},{"name":"D-EDGE PAY","group":"","status":"LIVE"},{"name":"Doku","group":"","status":"LIVE"},{"name":"Global Payment Eastern Europe","group":"","status":"LIVE"},{"name":"HiTrust","group":"","status":"LIVE"},{"name":"IPay88","group":"","status":"LIVE"},{"name":"Iveri","group":"","status":"LIVE"},{"name":"Kashier","group":"","status":"LIVE"},{"name":"Lyra Network","group":"","status":"LIVE"},{"name":"MarocTelecommerce","group":"","status":"LIVE"},{"name":"Maybank","group":"","status":"LIVE"},{"name":"National Bank of Egypt / NBE","group":"","status":"LIVE"},{"name":"Noelse","group":"","status":"LIVE"},{"name":"OSB (Lyra Network)","group":"","status":"LIVE"},{"name":"PayPal","group":"","status":"LIVE"},{"name":"PayU Eastern Europe","group":"","status":"LIVE"},{"name":"PayZen (Lyra Network)","group":"","status":"LIVE"},{"name":"Red Dot Payment","group":"","status":"LIVE"},{"name":"Six / SaferPay","group":"","status":"LIVE"},{"name":"Sogecommerce (Lyra Network)","group":"","status":"LIVE"},{"name":"Sogenactif","group":"","status":"LIVE"},{"name":"Sprint Asia","group":"","status":"LIVE"},{"name":"SysPay","group":"","status":"LIVE"},{"name":"Systempay (Lyra Network)","group":"","status":"LIVE"},{"name":"Verifone / Paybox","group":"","status":"LIVE"},{"name":"Worldline (former Ingenico/Ogone)","group":"","status":"LIVE"},{"name":"WSPay / WebStudio","group":"","status":"LIVE"},{"name":"XPay Nexi","group":"","status":"LIVE"}]},"MARKETING ADDONS":{"has_group":false,"items":[{"name":"Almoa","group":"","status":"LIVE"},{"name":"AskSuite","group":"","status":"LIVE"},{"name":"BeSafe Rate","group":"","status":"LIVE"},{"name":"Customer Alliance","group":"","status":"LIVE"},{"name":"Flae Robotics","group":"","status":"LIVE"},{"name":"Guest-Suite","group":"","status":"LIVE"},{"name":"HiJiffy","group":"","status":"LIVE"},{"name":"Hotel Direct Booster / HDB Solutions","group":"","status":"LIVE"},{"name":"Hotelchamp","group":"","status":"LIVE"},{"name":"Hoteldoor CRO","group":"","status":"LIVE"},{"name":"Hotel Price Explorer","group":"","status":"LIVE"},{"name":"KAI CRM","group":"","status":"NEW"},{"name":"Oaky by Plusgrade","group":"","status":"LIVE"},{"name":"Qualitando","group":"","status":"LIVE"},{"name":"Qualitelis","group":"","status":"LIVE"},{"name":"Quinta","group":"","status":"LIVE"},{"name":"Re-Guest","group":"","status":"LIVE"},{"name":"The Guestbook","group":"","status":"LIVE"},{"name":"The Hotels Network","group":"","status":"LIVE"},{"name":"TrustYou","group":"","status":"LIVE"},{"name":"Welcome Pickups","group":"","status":"LIVE"}]},"CRS":{"has_group":true,"items":[{"name":"Booking Expert","group":"","status":"LIVE"},{"name":"Cloudbeds","group":"","status":"LIVE"},{"name":"Cubilis","group":"Stardekk","status":"LIVE"},{"name":"CultSwitch","group":"","status":"LIVE"},{"name":"DIRS21","group":"","status":"LIVE"},{"name":"Ermes Hotels","group":"","status":"LIVE"},{"name":"HotelNet","group":"","status":"LIVE"},{"name":"I-resa","group":"Flag Orisha","status":"LIVE"},{"name":"iHotelier","group":"TravelClick","status":"LIVE"},{"name":"MyFidelio - OHDCS","group":"Oracle","status":"LIVE"},{"name":"Octorate","group":"","status":"LIVE"},{"name":"Passepartout","group":"","status":"LIVE"},{"name":"RateTiger","group":"eRevMax","status":"LIVE"},{"name":"ResAvenue","group":"","status":"NEW"},{"name":"RezGain","group":"RateGain","status":"LIVE"},{"name":"Roomcloud","group":"RoomCloud","status":"LIVE"},{"name":"Simple Booking","group":"","status":"LIVE"},{"name":"Smart Channel Manager by D-EDGE","group":"","status":"LIVE"},{"name":"Staah","group":"","status":"LIVE"},{"name":"Temairazu","group":"","status":"LIVE"},{"name":"The Channel Manager","group":"SiteMinder","status":"LIVE"},{"name":"TL-Lincoln","group":"Seanuts","status":"LIVE"},{"name":"Vertical Booking","group":"Zucchetti Group","status":"LIVE"},{"name":"YieldPlanet","group":"","status":"LIVE"}]}};
+
+const CATS = Object.keys(DATA);
+const state = { q: '', statuses: new Set(), cat: 'ALL' };
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function highlight(text, q) {
+  if (!q) return escapeHtml(text);
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return escapeHtml(text);
+  return escapeHtml(text.slice(0, idx)) + '<mark>' + escapeHtml(text.slice(idx, idx + q.length)) + '</mark>' + escapeHtml(text.slice(idx + q.length));
+}
+
+function totalCount() {
+  return CATS.reduce((sum, c) => sum + DATA[c].items.length, 0);
+}
+
+function buildCatRow() {
+  const row = document.getElementById('catRow');
+  const all = document.createElement('div');
+  all.className = 'cat-chip';
+  all.setAttribute('role', 'button');
+  all.tabIndex = 0;
+  all.dataset.cat = 'ALL';
+  all.innerHTML = 'All categories <span class="n">' + totalCount() + '</span>';
+  row.appendChild(all);
+  CATS.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'cat-chip';
+    chip.setAttribute('role', 'button');
+    chip.tabIndex = 0;
+    chip.dataset.cat = cat;
+    chip.innerHTML = titleCase(cat) + ' <span class="n">' + DATA[cat].items.length + '</span>';
+    row.appendChild(chip);
+  });
+  row.addEventListener('click', e => {
+    const chip = e.target.closest('.cat-chip');
+    if (!chip) return;
+    state.cat = chip.dataset.cat;
+    syncCatChips();
+    render();
+  });
+  row.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const chip = e.target.closest('.cat-chip');
+      if (chip) { e.preventDefault(); chip.click(); }
+    }
+  });
+  syncCatChips();
+}
+
+function syncCatChips() {
+  document.querySelectorAll('.cat-chip').forEach(c => {
+    c.setAttribute('aria-pressed', c.dataset.cat === state.cat ? 'true' : 'false');
+  });
+}
+
+function titleCase(s) {
+  return s.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+function buildStatusFilters() {
+  const wrap = document.getElementById('statusFilters');
+  wrap.addEventListener('click', e => {
+    const chip = e.target.closest('.status-chip');
+    if (!chip) return;
+    const s = chip.dataset.status;
+    if (state.statuses.has(s)) state.statuses.delete(s); else state.statuses.add(s);
+    chip.setAttribute('aria-pressed', state.statuses.has(s) ? 'true' : 'false');
+    render();
+  });
+  wrap.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const chip = e.target.closest('.status-chip');
+      if (chip) { e.preventDefault(); chip.click(); }
+    }
+  });
+}
+
+function matches(item) {
+  if (state.statuses.size && !state.statuses.has(item.status)) return false;
+  if (state.q) {
+    const q = state.q.toLowerCase();
+    if (!item.name.toLowerCase().includes(q) && !item.group.toLowerCase().includes(q)) return false;
+  }
+  return true;
+}
+
+function render() {
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const cats = state.cat === 'ALL' ? CATS : [state.cat];
+  let shown = 0;
+  let totalMatched = 0;
+
+  cats.forEach(cat => {
+    const items = DATA[cat].items.filter(matches);
+    totalMatched += items.length;
+    if (!items.length) return;
+    shown++;
+    const block = document.createElement('section');
+    block.className = 'category-block';
+    const head = document.createElement('div');
+    head.className = 'category-head';
+    head.innerHTML = '<h2>' + titleCase(cat) + '</h2><span class="count">' + items.length + (items.length === DATA[cat].items.length ? '' : ' / ' + DATA[cat].items.length) + '</span>';
+    block.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const groupHtml = item.group ? '<div class="group">' + highlight(item.group, state.q) + '</div>' : '';
+      const q = item.name + (item.group ? ' ' + item.group : '');
+      card.dataset.query = q;
+      card.setAttribute('role', 'button');
+      card.tabIndex = 0;
+      card.title = 'Klikni da popuniš Google pretragu za ' + item.name;
+      card.innerHTML =
+        '<div class="name-block"><div class="name">' + highlight(item.name, state.q) + '</div>' + groupHtml + '</div>' +
+        '<div class="right">' +
+          '<span class="pill ' + item.status + '">' + item.status + '</span>' +
+          '<span class="go-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>' +
+        '</div>';
+      grid.appendChild(card);
+    });
+    block.appendChild(grid);
+    main.appendChild(block);
+  });
+
+  if (!shown) {
+    main.innerHTML = '<div class="empty">No partners match your filters.</div>';
+  }
+
+  document.getElementById('totals').innerHTML =
+    'Showing <b>' + totalMatched + '</b> of <b>' + totalCount() + '</b> partners across <b>' + CATS.length + '</b> categories';
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  state.q = e.target.value.trim();
+  render();
+});
+
+const googleInput = document.getElementById('googleQuery');
+const googleGo = document.getElementById('googleGo');
+
+function setActiveCard(card) {
+  document.querySelectorAll('.card.is-active').forEach(c => c.classList.remove('is-active'));
+  if (card) card.classList.add('is-active');
+}
+
+function updateGoogleLink() {
+  const q = googleInput.value.trim();
+  if (q) {
+    googleGo.href = 'https://www.google.com/search?q=' + encodeURIComponent(q);
+    googleGo.removeAttribute('aria-disabled');
+  } else {
+    googleGo.href = '#';
+    googleGo.setAttribute('aria-disabled', 'true');
+  }
+}
+
+function fillGoogleQuery(query, card) {
+  googleInput.value = query + ' official website';
+  updateGoogleLink();
+  setActiveCard(card);
+  googleInput.focus();
+  googleInput.select();
+}
+
+document.getElementById('main').addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  fillGoogleQuery(card.dataset.query, card);
+});
+
+document.getElementById('main').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('.card');
+  if (!card) return;
+  e.preventDefault();
+  fillGoogleQuery(card.dataset.query, card);
+});
+
+googleInput.addEventListener('input', updateGoogleLink);
+googleInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (!googleGo.hasAttribute('aria-disabled')) googleGo.click();
+  }
+});
+
+buildCatRow();
+buildStatusFilters();
+render();
+</script>
+
+</body></html>
