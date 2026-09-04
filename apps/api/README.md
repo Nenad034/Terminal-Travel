@@ -27,6 +27,20 @@ npm run start:dev
 
 API: `http://localhost:3000/api/v1`
 Primljena pošta (pozivnice, reset lozinke): `http://localhost:8025` — vidi `SMTP_*` u `.env.example`.
+
+### Demo podaci (prazna baza = prazni ekrani, ne pokvaren kod)
+
+Posle `db seed` baza ima uloge, dozvole i prvi nalog — ali nijedan proizvod ni rezervaciju, pa katalog, pretraga i lista rezervacija izgledaju "pokvareno". Ove skripte pune bazu; **redosled nije proizvoljan** (zamka 5.14 — geokodiranje se pušta POSLE svih skripti koje prave proizvode, nikad uporedo):
+
+```bash
+# iz apps/api
+npm run seed:mock-destinacije        # katalog: 209 proizvoda (75 smeštaja, 102 leta, 32 transfera) kroz 16 država
+npm run seed:mock-b2c                # 8 proizvoda vidljivih na javnom sajtu + nalog gosta + 1 rezervacija
+npm run seed:mock-lista-rezervacija  # 16 rezervacija — svi statusi/kanali/statusi plaćanja, sa gostom, beleškom i uplatom
+npm run geocode:products             # TEK SADA koordinate za sve — bez njih mapa u pretrazi nema šta da prikaže
+```
+
+Svaka ima svoj `:clean` par koji briše tačno svoje (`npm run seed:mock-lista-rezervacija:clean` i tako dalje). `seed:mock-booking-dossier` je izuzetak — traži rezervaciju po hardkodovanom UUID-u koji nijedna druga skripta ne pravi, pa na svežoj bazi puca (zamka 5.15).
 Upozorenje: `SMTP_HOST` u lokalnom `.env` sme da pokazuje ISKLJUČIVO na mailpit — e2e testovi stvarno šalju poruke (zamka 5.13).
 OpenAPI dokumentacija (Swagger UI): `http://localhost:3000/api/docs`
 
