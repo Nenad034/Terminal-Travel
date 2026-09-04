@@ -100,7 +100,7 @@ type MultiKey = 'tip' | 'status' | 'drzava' | 'grad' | 'konekcija';
 const FILTER_TITLE_CLASS = 'block w-full text-[10px] font-bold uppercase tracking-wide text-ink-dim';
 const FILTER_BLOCK_CLASS = 'rounded bg-sunken p-2';
 const FILTER_PILL_CLASS =
-  'cursor-pointer rounded border border-border bg-panel text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong';
+  'cursor-pointer rounded border border-border bg-panel font-semibold text-ink-dim has-[:checked]:border-accent has-[:checked]:bg-accent-soft has-[:checked]:text-accent-strong';
 
 const TEXT_DEBOUNCE_MS = 300;
 
