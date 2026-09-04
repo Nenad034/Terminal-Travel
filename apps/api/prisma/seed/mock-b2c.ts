@@ -333,7 +333,10 @@ async function main() {
 
   const markupRule = await prisma.markupRule.findFirstOrThrow({ where: { scopeId: supplier.id } });
   const rateLine = await prisma.rateLine.findFirstOrThrow({ where: { contractPeriodId: periods[0].id } });
-  const hotel = products[0];
+  // M2 spec §2.1b (4.9.2026) — namerno Blue Bay Hotel (products[1], destination_area popunjen),
+  // ne Avala Resort (products[0], bez regije) — da ista ispravka bude vidljiva i na M5 ekranu
+  // rezervacije ("Moje rezervacije"/dosije), ne samo na katalog ekranu.
+  const hotel = products[1];
 
   const booking = await prisma.booking.create({
     data: {
