@@ -19,6 +19,11 @@ const REFRESH_TOKEN_TTL_DAYS = 7; // M1 spec §3.7
 const MFA_SETUP_TOKEN_TTL = '10m';
 const MFA_PENDING_TOKEN_TTL = '5m';
 const PASSWORD_RESET_TTL_HOURS = 1; // M1 spec §5
+// M1 spec §5 (dopuna 4.9.2026) — pozivnica NIJE isto što i reset lozinke, pa ne deli rok.
+// Reset traje 1h jer ga traži sam korisnik i odmah ga koristi; pozivnicu neko drugi mora
+// proslediti (dok slanje email-a nije povezano, i ručno), pa bi rok od sat vremena istekao
+// pre nego što pozvani uopšte vidi link.
+const INVITE_TTL_HOURS = 48;
 
 @Injectable()
 export class AuthService {
@@ -301,7 +306,7 @@ export class AuthService {
       data: {
         userId,
         tokenHash: hashToken(rawToken),
-        expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_HOURS * 60 * 60_000),
+        expiresAt: new Date(Date.now() + INVITE_TTL_HOURS * 60 * 60_000),
       },
     });
     return rawToken;

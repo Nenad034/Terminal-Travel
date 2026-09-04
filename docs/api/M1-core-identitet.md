@@ -178,11 +178,21 @@ Odgovor: **nov par** `accessToken` + `refreshToken`.
 Odjava **ne poništava `accessToken`** koji je već izdat — on prirodno ističe za najviše 15 minuta. Poništava se mogućnost da se dobije nov.
 
 ### POST /iam/auth/activate
-Pozvani korisnik postavlja prvu lozinku preko linka iz e-pošte.
+**Bez tokena** (nosi jednokratan `token` iz pozivnice u telu). Pozvani korisnik postavlja prvu lozinku. Token dolazi iz odgovora na `POST /iam/users`, traje **48 sati** i troši se jednom.
 ```json
 { "token": "iz-linka-u-emailu", "newPassword": "NovaDugackaSifra1" }
 ```
 **Odgovor `201`:** `{ "ok": true }`
+
+Lozinka mora imati **najmanje 12 karaktera**.
+
+**Greške:**
+```json
+{"message":"Nevažeći ili istekao link za aktivaciju","error":"Bad Request","statusCode":400}
+{"message":"Lozinka mora imati bar 12 karaktera","error":"Bad Request","statusCode":400}
+```
+
+> **Aktivacija NE izdaje tokene za prijavu** — postavlja samo lozinku. Prijava je poseban poziv, i za internu ulogu uvek prolazi kroz 2FA (podešavanje pri prvoj prijavi). Nov nalog tako ne može dobiti pristup bez drugog faktora ni na dan otvaranja.
 
 ### POST /iam/auth/password/forgot · POST /iam/auth/password/reset
 ```json
@@ -268,6 +278,9 @@ Dozvola: `M1/user/CREATE`. Ovo je **poziv**, ne kreiranje sa lozinkom — nalog 
 }
 ```
 `roleIds[]` je obavezan (može biti prazan niz). `linkedProfileId` popunjava se samo kad nalog pripada franšizi (M7).
+
+
+> **Odgovor sadrži `inviteToken` — bez njega pozvani nalog ostaje neupotrebljiv.** Automatsko slanje email-a još nije povezano, pa link `/aktivacija?token=<inviteToken>` prosleđujete sami. Token traje **48 sati** (namerno duže od tokena za reset lozinke, koji traje 1 sat) i koristi se **jednom**. Pozvani nalog do aktivacije nema lozinku i prijava mu vraća `403`.
 
 ### GET /iam/users/:id · PATCH /iam/users/:id
 Dozvole: `M1/user/VIEW` odnosno `EDIT`. `PATCH` prima samo `fullName` i `phone`.

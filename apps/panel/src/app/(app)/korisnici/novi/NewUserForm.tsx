@@ -1,16 +1,50 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
+import Link from 'next/link';
 import { useActionState } from 'react';
-import { inviteUser, FormState } from '../actions';
+import { inviteUser, InviteState } from '../actions';
 import { Button } from '@/components/ui/button';
 
-const initialState: FormState = { error: null };
+const initialState: InviteState = { error: null };
 
 // M1 spec §7 — POST /iam/users, kreira nalog u statusu INVITED (nema lozinku dok pozvani
-// korisnik ne završi sopstvenu registraciju preko inviteToken-a, van obima ovog ekrana).
+// korisnik ne postavi svoju preko linka za aktivaciju).
+//
+// Dopuna 4.9.2026: slanje email-a još nije povezano, pa se link posle kreiranja PRIKAZUJE
+// ovde da ga pozivalac prosledi ručno (isti obrazac kao M19 pozivnica dobavljaču). Ranije
+// je token tiho nestajao i pozvani čovek nikad nije mogao da se prijavi.
 export default function NewUserForm({ roles }: { roles: { id: string; name: string }[] }) {
   const [state, formAction] = useActionState(inviteUser, initialState);
+
+  if (state.inviteToken && state.userId) {
+    const link = `${typeof window === 'undefined' ? '' : window.location.origin}/aktivacija?token=${state.inviteToken}`;
+    return (
+      <div className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5">
+        <p className="rounded bg-ok-bg p-3 text-sm text-ok">Nalog je napravljen i čeka aktivaciju.</p>
+        <div>
+          <p className="text-xs text-ink-faint">
+            Pošaljite ovaj link pozvanom kolegi — na njemu postavlja svoju lozinku. Važi 48 sati i
+            koristi se jednom. (Automatsko slanje email-a još nije povezano.)
+          </p>
+          <input
+            readOnly
+            value={link}
+            onFocus={(e) => e.currentTarget.select()}
+            className="input mt-2 w-full font-mono text-xs"
+          />
+        </div>
+        <div className="flex gap-3">
+          <Link href={`/korisnici/${state.userId}`} className="text-xs text-accent underline">
+            otvori nalog
+          </Link>
+          <Link href="/korisnici/novi" className="text-xs text-ink-faint hover:text-ink">
+            pozovi još jednog
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="flex max-w-lg flex-col gap-3 rounded-lg border border-border bg-panel p-5">

@@ -1,11 +1,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+
 import { apiFetch, ApiError } from '@/lib/api-client';
 
 export interface FormState {
   error: string | null;
+}
+
+// Pozivanje korisnika vraća i podatke o napravljenom nalogu — forma iz njih sklapa link za
+// aktivaciju koji se prosleđuje ručno dok slanje email-a nije povezano.
+export interface InviteState extends FormState {
+  userId?: string;
+  inviteToken?: string;
 }
 
 function extractMessage(err: ApiError): string {
@@ -20,10 +27,17 @@ function str(formData: FormData, key: string): string | undefined {
 }
 
 // M1 spec §7 — POST /iam/users ("+ Pozovi korisnika"), nalog kreiran u statusu INVITED.
-export async function inviteUser(_prev: FormState, formData: FormData): Promise<FormState> {
-  let user: { user: { id: string } };
+//
+// Dopuna 4.9.2026 (na zahtev vlasnika): endpoint vraća `inviteToken`, ali slanje email-a
+// još nije povezano (`UsersService.invite` to i kaže u komentaru). Do sada je panel taj
+// token TIHO ODBACIVAO — nalog je nastajao, a pozvani čovek nikad nije dobio ništa i nije
+// mogao da postavi lozinku. Sada se link prikazuje pozivaocu da ga prosledi ručno, isti
+// obrazac koji M19 već koristi za pozivnicu dobavljaču (§9.7). Kad email infrastruktura
+// dođe na red, ovo ostaje kao rezervni put, ne uklanja se.
+export async function inviteUser(_prev: InviteState, formData: FormData): Promise<InviteState> {
+  let user: { user: { id: string }; inviteToken: string };
   try {
-    user = await apiFetch<{ user: { id: string } }>('/iam/users', {
+    user = await apiFetch<{ user: { id: string }; inviteToken: string }>('/iam/users', {
       method: 'POST',
       body: {
         fullName: str(formData, 'fullName'),
@@ -36,7 +50,7 @@ export async function inviteUser(_prev: FormState, formData: FormData): Promise<
     return { error: err instanceof ApiError ? extractMessage(err) : 'Pozivanje korisnika nije uspelo.' };
   }
   revalidatePath('/korisnici');
-  redirect(`/korisnici/${user.user.id}`);
+  return { error: null, userId: user.user.id, inviteToken: user.inviteToken };
 }
 
 // M1 spec §7 — PATCH /iam/users/:id, samo ime/telefon (email/status se ne menjaju odavde).

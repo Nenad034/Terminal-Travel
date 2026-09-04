@@ -113,7 +113,6 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M1 — Core / Identitet i pristup
 *(§9, `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`)*
-- **`seed.ts` ne pravi nijedan `STAFF` nalog** (nalaz 2.9.2026) — posle svežeg seed-a niko se ne može prijaviti u panel; uloge i dozvole postoje, korisnika nema. Zamka 5.7.
 - Konkretna dodela dozvola po ulozi definiše se kad svaki modul dođe na red, ne unapred u M1.
 
 ## M2 — Katalog proizvoda

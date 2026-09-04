@@ -16,6 +16,7 @@ export default function LoginForm() {
   // koji se tim tokenom otvara.
   const [setupToken, setSetupToken] = useState('');
   const [otpauthUrl, setOtpauthUrl] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -89,6 +90,7 @@ export default function LoginForm() {
       return;
     }
     setOtpauthUrl(body.otpauthUrl);
+    setQrDataUrl(body.qrDataUrl ?? '');
     setRecoveryCodes(body.recoveryCodes ?? []);
   }
 
@@ -130,9 +132,17 @@ export default function LoginForm() {
 
         {manualSecret && (
           <div className="rounded border border-border bg-panel-2 p-3">
-            <p className="text-xs text-ink-faint">1. dodajte nalog u autentifikator aplikaciju</p>
+            <p className="text-xs text-ink-faint">1. skenirajte QR kod autentifikator aplikacijom</p>
+            {qrDataUrl && (
+              // Beli okvir je namerno fiksan, ne tematski — čitači QR koda traže svetlu
+              // podlogu i tamne module; na tamnoj temi bi kod bez ovoga postao nečitljiv.
+              <div className="mt-2 flex justify-center rounded bg-white p-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={qrDataUrl} alt="QR kod za podešavanje dvofaktorske prijave" width={220} height={220} />
+              </div>
+            )}
             <a href={otpauthUrl} className="mt-2 block break-all font-mono text-xs text-accent underline">
-              otvori u aplikaciji (na telefonu)
+              ili otvorite direktno u aplikaciji (na telefonu)
             </a>
             <p className="mt-2 text-xs text-ink-faint">ili unesite ključ ručno:</p>
             <code className="mt-1 block select-all break-all rounded bg-bg px-2 py-1 font-mono text-sm tracking-widest text-ink">

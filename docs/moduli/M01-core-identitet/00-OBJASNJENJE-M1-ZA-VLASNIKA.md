@@ -34,6 +34,29 @@ Portir koji proverava "traku" je alat koji smo napravili jednom, u posebnoj kuti
 
 Ovo je i razlog zašto se sve stvarno **pokreće i isprobava uživo**, ne samo piše i ostavlja — da se ovakve stvari uhvate odmah, ne mesecima kasnije kad neko stvarno pokuša da uđe u pogrešnu sobu.
 
+## Kako zaposleni uopšte dobija nalog (dopuna, 4.9.2026)
+
+Do sada je ovaj deo ličio na vrata bez kvake: sve je bilo napravljeno, ali se kroz njih nije moglo proći.
+
+Tri stvari su nedostajale, i svaka je sama za sebe delovala kao da radi:
+
+1. **Prvi nalog nije postojao.** Skripta koja puni praznu bazu pravila je uloge, prava i naloge za AI pomoćnike — ali nijednog čoveka. A novog zaposlenog može da pozove samo neko ko je već unutra. Zatvoren krug: da biste ušli, morate već biti unutra.
+2. **Pozivnica se gubila.** Kad neko iz panela pozove kolegu, sistem napravi nalog i izda jednokratan link kojim taj kolega postavlja svoju lozinku. Taj link se nigde nije prikazivao — nastajao je i odmah nestajao. Nalog bi se pojavio u listi kao da je sve u redu, a pozvani čovek nikad ništa ne bi dobio.
+3. **Stranice za postavljanje lozinke nije bilo.** Čak i da je link stigao, nije postojao ekran na koji bi vodio.
+
+Sada lanac radi od početka do kraja:
+
+- Skripta pravi **jedan** nalog vlasnika i ispiše njegovu lozinku — jednom, u trenutku pravljenja. Lozinka nije upisana u kod (to bi značilo da je zna svako ko ima pristup kodu); generiše se nasumično na licu mesta. Na pravom serveru se taj nalog ne pravi automatski uopšte — tamo se lozinka mora zadati svesno, spolja.
+- Kad pozovete kolegu, ekran vam **pokaže link** koji mu prosleđujete sami (porukom, telefonom, kako vam odgovara). Slanje email-a još nije povezano, pa je ovo privremeni put — ali put koji stvarno postoji, umesto da ga nema.
+- Link vodi na stranicu gde kolega postavlja svoju lozinku. Traje **48 sati**, ne sat vremena — jer ga vi prosleđujete ručno, pa mora da preživi put do njega.
+- Postavljanje lozinke **ne pušta ga unutra samo po sebi.** Posle toga se prijavljuje kao i svi ostali, i pri prvoj prijavi podešava dvostruku proveru. Nema naloga koji ulazi bez nje, ni prvog dana.
+
+## Dvostruka provera sada ima sliku, ne samo šifru (dopuna, 4.9.2026)
+
+Kad neko prvi put podešava dvostruku proveru, aplikacija na telefonu treba da „upozna" njegov nalog. To se radi skeniranjem kvadratića sa tačkicama (QR koda). Do sada smo umesto slike prikazivali samo dugačku šifru za ručno prepisivanje — radilo je, ali je bilo nezgodno.
+
+Sada se crta prava slika. Sitnica koju vredi znati: kod se uvek crta na **beloj podlozi**, čak i kad je ostatak ekrana taman — čitači QR koda traže tamne tačkice na svetloj pozadini, pa bi na tamnoj podlozi kod postao nečitljiv. Šifra za ručno prepisivanje ostaje ispod slike, za slučaj da kamera zakaže.
+
 ---
 
 *Za tehničke detalje (tačna imena tabela, API pozivi, pravila evaluacije prava) vidi `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje tu specifikaciju.*

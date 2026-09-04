@@ -271,6 +271,74 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
   // M1 spec §6 (dopuna 4.9.2026) — izlazni kriterijum: "Postoji endpoint za dodelu dozvola
   // ulozi". Do ove dopune uloga napravljena preko API-ja ostajala je trajno prazna, jer je
   // veza uloga↔dozvola postojala isključivo u seed skripti.
+  // M1 spec §5/§7 (dopuna 4.9.2026, na zahtev vlasnika) — pun lanac otvaranja naloga
+  // zaposlenog. Ranije je svaki od tri koraka postojao odvojeno, ali lanac nije bio spojen:
+  // POST /users je vraćao inviteToken koji panel odbacuje, ekrana za postavljanje lozinke
+  // nije bilo, a i da jeste — token je trajao 1 sat, koliko i reset lozinke.
+  describe('Pozivanje zaposlenog: poziv → aktivacija → prijava (izlazni kriterijum)', () => {
+    it('pozvani nalog postavlja lozinku svojim tokenom i potom stiže do podešavanja 2FA', async () => {
+      const secret = authenticator.generateSecret();
+      const inviter = await createUser({
+        email: `pozivalac-${testRunId}@tt-test.rs`,
+        roleName: SYSTEM_ROLES.VLASNIK,
+        mfaEnabled: true,
+        mfaSecret: secret,
+      });
+      const inviterLogin = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: inviter.email, password: 'ispravna-lozinka-123' });
+      const inviterMfa = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/verify')
+        .send({ mfaToken: inviterLogin.body.mfaToken, code: authenticator.generate(secret) });
+      const adminToken = inviterMfa.body.accessToken;
+
+      const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.RACUNOVODJA } });
+      const email = `pozvani-${testRunId}@tt-test.rs`;
+      const inviteRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ fullName: 'Pozvani Kolega', email, roleIds: [role.id] });
+
+      expect(inviteRes.status).toBe(201);
+      expect(inviteRes.body.inviteToken).toEqual(expect.any(String));
+      createdUserIds.push(inviteRes.body.user.id);
+      expect(inviteRes.body.user.status).toBe('INVITED');
+
+      // Nalog još nema lozinku — prijava mora biti odbijena, ne propuštena.
+      const beforeActivation = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email, password: 'bilo-kakva-lozinka-12' });
+      expect(beforeActivation.status).toBe(403);
+
+      // Pozivnica traje 48h (ne 1h kao reset lozinke) — link se prosleđuje ručno dok
+      // slanje email-a nije povezano, pa bi rok od sat vremena istekao pre isporuke.
+      const storedToken = await prisma.passwordResetToken.findFirstOrThrow({
+        where: { userId: inviteRes.body.user.id },
+        orderBy: { expiresAt: 'desc' },
+      });
+      const hoursValid = (storedToken.expiresAt.getTime() - Date.now()) / 3_600_000;
+      expect(hoursValid).toBeGreaterThan(24);
+
+      const activateRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/activate')
+        .send({ token: inviteRes.body.inviteToken, newPassword: 'moja-nova-lozinka-12' });
+      expect(activateRes.status).toBe(201);
+
+      // Interna uloga (Računovođa) → prijava vodi na podešavanje 2FA, ne na pun pristup.
+      const afterActivation = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email, password: 'moja-nova-lozinka-12' });
+      expect(afterActivation.status).toBe(201);
+      expect(afterActivation.body).toEqual({ requiresMfaSetup: true, setupToken: expect.any(String) });
+
+      // Token za aktivaciju je jednokratan — ponovljena upotreba mora pasti.
+      const reuse = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/activate')
+        .send({ token: inviteRes.body.inviteToken, newPassword: 'jos-jedna-lozinka-12' });
+      expect(reuse.status).toBe(400);
+    });
+  });
+
   describe('Dozvole se mogu dodeliti ulozi preko API-ja (izlazni kriterijum)', () => {
     const createdRoleIds: string[] = [];
 

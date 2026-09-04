@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import { setSession } from '@/lib/session';
+import { toDataURL } from 'qrcode';
 
 // M1 spec §5/§6/§7 (dopuna 4.9.2026) — treći korak prijave: PRVO podešavanje obavezne 2FA.
 // `setupToken` stiže iz odgovora na /iam/auth/login kad je lozinka tačna a 2FA još nije
@@ -16,7 +17,11 @@ export async function POST(req: NextRequest) {
         '/iam/auth/mfa/setup/start',
         { method: 'POST', body: { setupToken }, auth: false },
       );
-      return NextResponse.json(result);
+      // QR se crta OVDE, na serveru, a ne u pretraživaču — tajna (`otpauthUrl`) tako ne
+      // prolazi kroz klijentski JS bundle više nego što mora, i slika stiže gotova kao
+      // data URI. `toDataURL` je čist izračun, bez mrežnog poziva.
+      const qrDataUrl = await toDataURL(result.otpauthUrl, { margin: 1, width: 220 });
+      return NextResponse.json({ ...result, qrDataUrl });
     }
 
     const result = await apiFetch<{ accessToken: string; refreshToken: string }>(

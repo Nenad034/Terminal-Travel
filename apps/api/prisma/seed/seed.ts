@@ -1,4 +1,6 @@
 import { AgentActionTier, PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
+import { randomBytes } from 'node:crypto';
 import { SYSTEM_ROLES } from '../../src/modules/m1-core-identitet/roles/system-roles.constants';
 
 const prisma = new PrismaClient();
@@ -814,10 +816,71 @@ async function main() {
   await seedM23KnowledgeAgent();
   await seedM5CalendarMockBookings();
   await seedM10Banks();
+  await seedBootstrapVlasnik();
 
   console.log(
     `Seed OK — ${SYSTEM_ROLE_SEED.length} sistemskih uloga, ${M1_PERMISSIONS.length} M1 dozvola, ${M2_PERMISSIONS.length} M2 dozvola, ${M3_PERMISSIONS.length} M3 dozvola, ${M4_PERMISSIONS.length} M4 dozvola, ${M5_PERMISSIONS.length} M5 dozvola, ${M6_PERMISSIONS.length} M6 dozvola, ${M10_PERMISSIONS.length} M10 dozvola, ${M11_PERMISSIONS.length} M11 dozvola, ${M7_PERMISSIONS.length} M7 dozvola, ${M20_PERMISSIONS.length} M20 dozvola, ${M14_PERMISSIONS.length} M14 dozvola, ${M13_PERMISSIONS.length} M13 dozvola, ${M12_PERMISSIONS.length} M12 dozvola, ${M16_PERMISSIONS.length} M16 dozvola, ${M9_PERMISSIONS.length} M9 dozvola, ${M15_PERMISSIONS.length} M15 dozvola, ${M18_PERMISSIONS.length} M18 dozvola, ${M19_PERMISSIONS.length} M19 dozvola, ${M21_PERMISSIONS.length} M21 dozvola, ${M22_PERMISSIONS.length} M22 dozvola, ${M23_PERMISSIONS.length} M23 dozvola.`,
   );
+}
+
+// M1 spec §8 / zamka 5.7 (dopuna 4.9.2026, na zahtev vlasnika) — PRVI ljudski nalog.
+//
+// Do sada je seed pravio uloge, dozvole i sistemske AI naloge, ali nijedan STAFF nalog:
+// posle svežeg seed-a niko se nije mogao prijaviti u panel, a pozvati nekoga (POST /users)
+// može samo već prijavljen korisnik — zatvoren krug. Ovaj nalog ga otvara i ništa više;
+// sve ostale zaposlene taj nalog dalje poziva kroz panel.
+//
+// Bezbednosna pravila, namerno stroga:
+//   1. Lozinka NIKAD nije konstanta u kodu. Uzima se iz `SEED_VLASNIK_PASSWORD`, a ako te
+//      promenljive nema — van produkcije se generiše nasumična i ISPIŠE jednom u izlazu
+//      seed-a (jedino mesto gde se vidi), dok se na produkciji nalog uopšte ne pravi.
+//   2. 2FA ostaje obavezna i za njega — `mfaEnabled` je `false`, pa prva prijava ide kroz
+//      podešavanje 2FA (M1 spec §5, dopuna 4.9.2026). Nalog dakle nije prečica oko 2FA.
+//   3. Idempotentno: ako nalog već postoji, lozinka se NE menja (ponovno pokretanje seed-a
+//      ne sme resetovati lozinku naloga koji neko već koristi).
+async function seedBootstrapVlasnik() {
+  const email = process.env.SEED_VLASNIK_EMAIL ?? 'vlasnik@terminal-travel.local';
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    console.log(`seedBootstrapVlasnik: nalog ${email} već postoji — lozinka nije dirana`);
+    return;
+  }
+
+  const provided = process.env.SEED_VLASNIK_PASSWORD;
+  if (!provided && process.env.NODE_ENV === 'production') {
+    console.log(
+      'seedBootstrapVlasnik: PRESKOČENO — na produkciji se prvi nalog pravi isključivo uz ' +
+        'izričito zadatu SEED_VLASNIK_PASSWORD (nikad nasumična lozinka ispisana u log).',
+    );
+    return;
+  }
+
+  // 24 znaka base64url ≈ 144 bita entropije — daleko iznad minimuma od 12 znakova (§5).
+  const password = provided ?? randomBytes(18).toString('base64url');
+  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      fullName: process.env.SEED_VLASNIK_NAME ?? 'Vlasnik agencije',
+      accountType: 'STAFF',
+      status: 'ACTIVE',
+      mfaEnabled: false,
+    },
+  });
+  const role = await prisma.role.findUniqueOrThrow({ where: { name: SYSTEM_ROLES.VLASNIK } });
+  await prisma.userRole.create({ data: { userId: user.id, roleId: role.id, assignedBy: user.id } });
+
+  console.log('seedBootstrapVlasnik: napravljen prvi nalog za prijavu u panel');
+  console.log(`  email:   ${email}`);
+  if (provided) {
+    console.log('  lozinka: (iz SEED_VLASNIK_PASSWORD)');
+  } else {
+    console.log(`  lozinka: ${password}`);
+    console.log('  ^ prikazuje se SAMO sada — zapišite je. Promena ide kroz „zaboravljena lozinka“.');
+  }
+  console.log('  Prva prijava vodi na podešavanje 2FA (obavezna za interne uloge).');
 }
 
 // M15 spec §4 (registar), §3 (ModuleAgentActivation), §6.5.1 (OmnisearchAgent) — prvi prolaz
