@@ -247,7 +247,7 @@ export default function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col rounded-lg border border-border bg-panel">
+    <div className="flex h-full flex-col rounded-lg border border-border bg-panel">
       <div className="flex items-center justify-between border-b border-border px-4 py-2 text-[11px] text-ink-faint">
         <span>
           <Icon name={connected ? 'plug' : 'debug-disconnect'} className={connected ? 'text-ok' : 'text-ink-faint'} />{' '}
@@ -266,7 +266,7 @@ export default function ChatPanel({
         )}
       </div>
 
-      <div className="flex max-h-[28rem] min-h-[16rem] flex-col gap-2 overflow-y-auto p-4">
+      <div className="flex min-h-[16rem] flex-1 flex-col gap-2 overflow-y-auto p-4">
         {messages.length === 0 && <p className="text-center text-xs text-ink-faint">Nema poruka. Napišite prvu.</p>}
         {messages.map((m) => {
           const mine = m.senderId === currentUserId;

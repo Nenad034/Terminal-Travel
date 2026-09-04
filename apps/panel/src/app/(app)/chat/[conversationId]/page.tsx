@@ -67,7 +67,11 @@ export default async function ConversationPage(props: { params: Promise<{ conver
   const backHref = conversation.type === 'EXTERNAL_SUPPLIER' ? '/chat/dobavljaci' : '/chat';
 
   return (
-    <div className="p-6">
+    // Kolona na punu visinu modula (4.9.2026, na zahtev vlasnika: "neka prikaz zauzima celu
+    // visinu modula") — header (link nazad + naslov) zadržava prirodnu visinu, ChatPanel
+    // ispunjava sav preostali prostor (flex-1 ispod), umesto ranije fiksne visine liste poruka
+    // koja je ostavljala prazan prostor na dnu ekrana.
+    <div className="flex h-full flex-col p-6">
       <RegisterTab label={title} />
       <Link href={backHref} className="mb-3 inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
         <Icon name="arrow-left" /> nazad na listu
@@ -82,14 +86,16 @@ export default async function ConversationPage(props: { params: Promise<{ conver
         </p>
       </div>
 
-      <ChatPanel
-        conversationId={conversation.id}
-        conversationType={conversation.type}
-        currentUserId={me.userId}
-        participants={conversation.participants}
-        initialMessages={messages}
-        canSend={canSend}
-      />
+      <div className="min-h-0 flex-1">
+        <ChatPanel
+          conversationId={conversation.id}
+          conversationType={conversation.type}
+          currentUserId={me.userId}
+          participants={conversation.participants}
+          initialMessages={messages}
+          canSend={canSend}
+        />
+      </div>
     </div>
   );
 }
