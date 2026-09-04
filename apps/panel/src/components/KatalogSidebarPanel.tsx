@@ -66,10 +66,13 @@ export function connectionKey(p: Pick<Product, 'sourceType' | 'sourceProvider'>)
   return p.sourceType === 'CONTRACTED' ? 'CONTRACTED' : `API:${p.sourceProvider ?? ''}`;
 }
 
+// Uz naziv ide i vrsta konekcije (4.9.2026, na zahtev vlasnika: "Kod konekcije stavite pored
+// Direktan ugovor i Api") — "Direktan ugovor" već govori šta jeste, ali API provajderi su do
+// sada stajali samo pod svojim imenom (npr. "Travelgate") bez oznake da je reč o API konekciji.
 function connectionLabel(key: string): string {
   if (key === 'CONTRACTED') return 'Direktan ugovor';
   const provider = key.slice('API:'.length);
-  return PROVIDER_LABELS[provider] ?? provider;
+  return `${PROVIDER_LABELS[provider] ?? provider} (API)`;
 }
 
 export function readKatalogFilters(sp: URLSearchParams): KatalogFilters {
