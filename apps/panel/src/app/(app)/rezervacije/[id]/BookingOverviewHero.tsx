@@ -108,6 +108,7 @@ export default function BookingOverviewHero({
 // širine sekcije da bi red bio čitljiv kao granica, ne kao natpis koji lebdi iznad sadržaja.
 export function SectionHeading({
   title,
+  icon,
   meta,
   action,
   href,
@@ -115,6 +116,13 @@ export function SectionHeading({
   linkTitle,
 }: {
   title: string;
+  /** Codicon ime (4.9.2026, na zahtev vlasnika: "dosada... ništa ne iskače da pokrene oko") —
+   * osam sekcija Pregleda su do sada bile identičnog izgleda, samo sa različitim tekstom u
+   * traci naslova; oko nije imalo ZA ŠTA da se prvo uhvati pri brzom skeniranju ekrana. Ikona
+   * ne uvodi novu boju (§3a — Codicons prate `currentColor`, `text-accent` je već postojeća
+   * akcentna boja korišćena svuda u interfejsu, npr. `RelatedIcon`) — samo daje svakoj sekciji
+   * prepoznatljiv OBLIK, čitljiv i pre nego što se pročita naslov. */
+  icon?: string;
   meta?: string;
   action?: React.ReactNode;
   /** Kartica na kojoj se vidi CEO sadržaj ove sekcije. Dopuna 2.9.2026, na zahtev vlasnika
@@ -131,6 +139,7 @@ export function SectionHeading({
 }) {
   return (
     <h2 className="flex items-center gap-2 border-b border-border bg-sunken px-2.5 py-1.5 text-[13px] font-semibold text-ink">
+      {icon && <Icon name={icon} className="text-accent" />}
       {title}
       {meta && <span className="font-mono text-[10px] font-normal text-ink-faint">{meta}</span>}
       {href && (
@@ -160,6 +169,7 @@ export function SectionHeading({
 // sadržaj. Telo nosi `bg-panel` (jedina površina koja se "diže"), traka `bg-sunken`.
 export function OverviewSection({
   title,
+  icon,
   meta,
   href,
   linkLabel,
@@ -167,6 +177,7 @@ export function OverviewSection({
   children,
 }: {
   title: string;
+  icon?: string;
   meta?: string;
   href?: string;
   linkLabel?: string;
@@ -175,7 +186,7 @@ export function OverviewSection({
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-panel">
-      <SectionHeading title={title} meta={meta} href={href} linkLabel={linkLabel} linkTitle={linkTitle} />
+      <SectionHeading title={title} icon={icon} meta={meta} href={href} linkLabel={linkLabel} linkTitle={linkTitle} />
       <div className="px-2.5 py-2">{children}</div>
     </div>
   );

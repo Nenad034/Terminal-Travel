@@ -661,6 +661,7 @@ export default async function BookingDetailPage(props: {
                 <div className="space-y-6">
                   <OverviewSection
                     title="Aranžman"
+                    icon="package"
                     meta={`${booking.items.length} ${booking.items.length === 1 ? 'usluga' : 'usluge'} · ${formatMoney(booking.totalPrice ?? 0, booking.currency)}`}
                     {...sectionLink('aranzman', 'Aranžman', booking.items.length)}
                   >
@@ -672,7 +673,7 @@ export default async function BookingDetailPage(props: {
                     </ScrollableRows>
                   </OverviewSection>
 
-                  <OverviewSection title="Putnici" meta={guestSummaryMeta} {...sectionLink('putnici', 'Putnici', guestCount)}>
+                  <OverviewSection title="Putnici" icon="organization" meta={guestSummaryMeta} {...sectionLink('putnici', 'Putnici', guestCount)}>
                     <ScrollableRows limited={guestCount > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[11rem]">
                       <GuestsSummaryList
                         items={booking.items}
@@ -686,6 +687,7 @@ export default async function BookingDetailPage(props: {
                   {canViewPayments && (
                     <OverviewSection
                       title="Uplate"
+                      icon="credit-card"
                       meta={`${payments.length} · ${formatMoney(paidTotal, booking.currency)}`}
                       {...sectionLink('finansije', 'Finansije', payments.length)}
                     >
@@ -710,7 +712,7 @@ export default async function BookingDetailPage(props: {
                   )}
 
                   {(canViewClientAccount || canViewRegistrations || canViewContracts) && (
-                    <OverviewSection title="Povezano">
+                    <OverviewSection title="Povezano" icon="link">
                       <div className="-mx-2">
                         {canViewClientAccount &&
                           (clientAccount ? (
@@ -766,7 +768,7 @@ export default async function BookingDetailPage(props: {
                 </div>
 
                 <div className="space-y-6">
-                  <OverviewSection title="Beleške" meta={notes.length > 0 ? String(notes.length) : undefined} {...sectionLink('beleske', 'Beleške', notes.length)}>
+                  <OverviewSection title="Beleške" icon="file-text" meta={notes.length > 0 ? String(notes.length) : undefined} {...sectionLink('beleske', 'Beleške', notes.length)}>
                     <ScrollableRows limited={notes.length > OVERVIEW_ROW_LIMIT} maxHeight="max-h-[22rem]">
                       <NotesSummaryList notes={notes} directoryById={directoryById} flat />
                     </ScrollableRows>
@@ -775,6 +777,7 @@ export default async function BookingDetailPage(props: {
                   {canViewCommunication && booking.clientAccountId && (
                     <OverviewSection
                       title="Komunikacija"
+                      icon="comment-discussion"
                       meta={communications.length > 0 ? String(communications.length) : undefined}
                       {...sectionLink('komunikacija', 'Komunikacija', communications.length)}
                     >
@@ -787,6 +790,7 @@ export default async function BookingDetailPage(props: {
                   {canViewTickets && (
                     <OverviewSection
                       title="Reklamacije"
+                      icon="warning"
                       meta={tickets.length > 0 ? String(tickets.length) : undefined}
                       {...sectionLink('reklamacije', 'Reklamacije', tickets.length)}
                     >
@@ -796,7 +800,7 @@ export default async function BookingDetailPage(props: {
                     </OverviewSection>
                   )}
 
-                  <OverviewSection title="Predstavnici" {...sectionLink('predstavnici', 'Predstavnici', booking.items.length)}>
+                  <OverviewSection title="Predstavnici" icon="account" {...sectionLink('predstavnici', 'Predstavnici', booking.items.length)}>
                     <RepsSummaryList
                       items={booking.items}
                       checkIns={checkIns}
@@ -810,7 +814,7 @@ export default async function BookingDetailPage(props: {
                   {/* Prenos vlasništva / predaja zaduženja — iste forme, samo više nisu na vrhu
                       ekrana. Koriste se retko, a zauzimale su prvi ekran iznad svega. */}
                   {me && (
-                    <OverviewSection title="Vlasništvo i zaduženje">
+                    <OverviewSection title="Vlasništvo i zaduženje" icon="bookmark">
                       <BookingOwnershipCard
                         bookingId={booking.id}
                         ownerId={booking.ownerId ?? null}
