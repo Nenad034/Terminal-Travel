@@ -7,6 +7,7 @@ import SearchSidebarPanel from './SearchSidebarPanel';
 import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
 import SavedGroupSearchesSidebarPanel from './SavedGroupSearchesSidebarPanel';
 import HomeSidebarPanel from './HomeSidebarPanel';
+import KatalogSidebarPanel from './KatalogSidebarPanel';
 import { useTabs } from './TabsContext';
 import type { NavGroup, NavItem } from '@/lib/nav';
 
@@ -104,6 +105,9 @@ export default function Sidebar({
               ekrana GitLens-ove "Get Started" table kao primer) — isti obrazac kao dva
               panela iznad, popunjava ranije prazan prostor ispod naslova "Početna". */}
           {selected.id === 'pocetna' && <HomeSidebarPanel items={items} />}
+          {/* Filteri kataloga (4.9.2026, na zahtev vlasnika: "ove filtere stavite u levi panel
+              kao sto smo uradili kod pretrage") — isti obrazac kao pretraga iznad. */}
+          {selected.id === 'katalog' && <KatalogSidebarPanel />}
         </>
       ) : (
         <>
