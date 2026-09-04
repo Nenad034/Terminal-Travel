@@ -141,15 +141,15 @@ export default function AranzmanItemCard({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-panel p-4">
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-lg border border-border bg-panel p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-start gap-2">
           <span title={item.type} className="mt-0.5 text-accent">
             <Icon name={iconName} />
           </span>
           <div>
             <div className="text-sm font-semibold text-ink">{item.name}</div>
-            <div className="mt-0.5 text-xs text-ink-faint">{[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ')}</div>
+            <div className="text-xs text-ink-faint">{[item.destinationCity, item.destinationCountry].filter(Boolean).join(', ')}</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -158,19 +158,32 @@ export default function AranzmanItemCard({
         </div>
       </div>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs sm:grid-cols-4">
+      {/* Kompaktan jednoredni prikaz — pre je svako polje bilo sopstvena kolona u
+          grid-cols-4, što je na širokoj kartici ostavljalo veliki prazan prostor
+          (posebno kad drugi red ima manje od 4 polja). flex-wrap sad pakuje polja
+          jedno uz drugo, po prirodnoj širini sadržaja. */}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
         <Field label="Od" value={item.stayFrom ? new Date(item.stayFrom).toLocaleDateString('sr-RS') : '—'} />
+        <Dot />
         <Field label="Do" value={item.stayTo ? new Date(item.stayTo).toLocaleDateString('sr-RS') : '—'} />
+        <Dot />
         <Field label="Noćenja" value={nightsBetween(item.stayFrom, item.stayTo)} />
+        <Dot />
         <Field label="Jedinica" value={String(item.unitCount ?? 1)} />
+        <Dot />
         <Field label="Putnika na stavci" value={String(item.guestCount)} />
-        {item.supplierReference && <Field label="Ref. dobavljača" value={item.supplierReference} />}
-      </dl>
+        {item.supplierReference && (
+          <>
+            <Dot />
+            <Field label="Ref. dobavljača" value={item.supplierReference} />
+          </>
+        )}
+      </div>
 
       {/* §6.7a — vezane doplate/popusti stoje UZ stavku kojoj pripadaju. Otkazana doplata
           ostaje vidljiva, precrtana: trag da je nekad postojala je deo dosijea. */}
       {ancillaries && ancillaries.length > 0 && (
-        <div className="mt-3 space-y-1 border-l-2 border-border pl-3">
+        <div className="mt-2 space-y-1 border-l-2 border-border pl-3">
           {ancillaries.map((a) => (
             <div key={a.id} className={`flex items-center justify-between text-xs ${a.itemStatus === 'CANCELLED' ? 'text-ink-faint line-through' : 'text-ink-dim'}`}>
               <span>
@@ -186,7 +199,7 @@ export default function AranzmanItemCard({
       )}
 
       {canEdit && !editing && (
-        <div className="mt-3 flex flex-wrap items-center gap-4">
+        <div className="mt-2 flex flex-wrap items-center gap-4">
           <button onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline">
             <Icon name="edit" /> Izmeni uslugu / datume
           </button>
@@ -380,11 +393,15 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <dt className="text-[11px] uppercase tracking-wide text-ink-faint">{label}</dt>
-      <dd className="text-ink">{value}</dd>
-    </div>
+    <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+      <span className="text-[10px] uppercase tracking-wide text-ink-faint">{label}</span>
+      <span className="text-ink">{value}</span>
+    </span>
   );
+}
+
+function Dot() {
+  return <span className="text-ink-faint">·</span>;
 }
 
 function Badge({ label }: { label: string }) {
