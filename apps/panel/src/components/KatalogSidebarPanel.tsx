@@ -200,13 +200,16 @@ function PillGroup({
   return (
     <div className={`text-ink-faint ${FILTER_BLOCK_CLASS}`}>
       <span className={FILTER_TITLE_CLASS}>{label}</span>
-      <div className="mt-1 flex flex-wrap gap-1">
-        <label key="sve" className={`px-2 py-0.5 text-[11px] ${FILTER_PILL_CLASS}`}>
+      {/* Jedan ispod drugog, cela širina levog panela (4.9.2026, na zahtev vlasnika) — isti
+          `stack` obrazac kao "vrsta usluge" u `SearchSidebarPanel.tsx`, ovde primenjen na sve
+          grupe u ovom panelu (uzak panel, ne red pored reda kao u vodoravnoj traci). */}
+      <div className="mt-1 flex flex-col items-stretch gap-1">
+        <label key="sve" className={`w-full px-2 py-1 text-[11px] ${FILTER_PILL_CLASS}`}>
           <input type="radio" checked={value === ''} onChange={() => onPick('')} className="sr-only" />
           sve
         </label>
         {options.map((o) => (
-          <label key={o.value} className={`px-2 py-0.5 text-[11px] ${FILTER_PILL_CLASS}`}>
+          <label key={o.value} className={`w-full px-2 py-1 text-[11px] ${FILTER_PILL_CLASS}`}>
             <input type="radio" checked={value === o.value} onChange={() => onPick(o.value)} className="sr-only" />
             {o.label}
           </label>
