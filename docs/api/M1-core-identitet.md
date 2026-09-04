@@ -348,7 +348,37 @@ Dozvole: `M1/role/CREATE` odnosno `EDIT`.
 ```
 `PATCH` menja **samo** `description`.
 
-> **Rupa koju treba znati pre nego što napravite ulogu: ne postoji endpoint koji dodeljuje dozvole ulozi.** Uloga napravljena preko API-ja nastaje **prazna** i takva ostaje — veza uloga↔dozvola postoji samo u skripti za početno punjenje baze. Dok se to ne doda, nove uloge se u praksi ne mogu koristiti; pojedinačan pristup se dodeljuje preko izuzetaka (odeljak iznad).
+> **Nova uloga nastaje prazna** — dodelite joj dozvole endpointima ispod pre nego što je nekome dodelite. (Do 4.9.2026 to nije bilo moguće kroz API uopšte: veza uloga↔dozvola postojala je samo u skripti za početno punjenje baze.)
+
+### GET /iam/roles/:id/permissions
+Dozvola: `M1/role/VIEW`. Vraća dozvole koje uloga trenutno ima, u istom obliku kao katalog ispod.
+
+```json
+[
+  { "id": "69cb66e8-6365-469a-8894-35b494a8668f", "module": "M1", "resource": "audit-log", "action": "VIEW", "description": "Uvid u audit log" }
+]
+```
+
+### POST /iam/roles/:id/permissions
+Dozvola: `M1/role/EDIT`. **Dodaje** navedene dozvole — ne zamenjuje postojeći skup. Šaljite samo razliku; već postojeće dozvole u listi se tiho preskaču.
+
+```json
+{ "permissionIds": ["69cb66e8-6365-469a-8894-35b494a8668f", "54cc5f61-1133-47ba-9418-610b28d89739"] }
+```
+Odgovor `201` je **puna** lista dozvola uloge posle izmene.
+
+**Greška:**
+```json
+{"message":"Jedna ili više navedenih dozvola ne postoji u katalogu.","error":"Bad Request","statusCode":400}
+```
+> **Sve ili ništa:** ako makar jedan `permissionId` ne postoji, **nijedna** dozvola iz tog zahteva se ne dodaje. Delimično primenjena izmena prava bila bi gora od odbijene.
+
+### DELETE /iam/roles/:id/permissions/:permissionId
+Dozvola: `M1/role/EDIT`. Uklanja jednu dozvolu; odgovor `200` je puna lista posle izmene.
+
+> **Izmena važi odmah, bez ponovne prijave nosilaca uloge** — prava se računaju uživo pri svakom pozivu. Ista logika kao kod izuzetaka.
+>
+> **Sistemske uloge se SMEJU menjati.** `isSystemRole: true` sprečava brisanje uloge, ne dopunu njenih dozvola (vlasnik mora moći da doda dozvolu novog modula postojećoj ulozi). Svaka izmena upisuje `role.permissions_changed` u audit log sa punim stanjem pre i posle.
 
 ### GET /iam/permissions
 Ceo katalog dozvola u sistemu — spisak svega što se može dodeliti.

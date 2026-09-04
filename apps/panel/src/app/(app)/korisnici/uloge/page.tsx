@@ -42,7 +42,7 @@ export default async function UlogePage() {
           <h1 className="font-mono text-lg">
             <span className="text-accent">$</span> korisnici/uloge/
           </h1>
-          <p className="text-xs text-ink-dim">Sistemske uloge i broj nosilaca — M1 spec poglavlje 4.</p>
+          <p className="text-xs text-ink-dim">Sistemske uloge i broj nosilaca. Klik na karticu otvara dozvole te uloge — M1 spec poglavlje 4 i 7.</p>
         </div>
         <Link href="/korisnici" className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink">
           <Icon name="arrow-left" /> nazad na korisnike
@@ -54,7 +54,9 @@ export default async function UlogePage() {
       {!error && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {roles.map((r) => (
-            <Card key={r.id}>
+            // Dopuna 4.9.2026 — kartica vodi na uređivanje dozvola te uloge (M1 spec §7).
+            <Link key={r.id} href={`/korisnici/uloge/${r.id}`} className="block focus:outline-none">
+            <Card className="h-full transition-colors hover:border-accent">
               <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
                 <CardTitle>{r.name}</CardTitle>
                 {r.isSystemRole && (
@@ -68,8 +70,10 @@ export default async function UlogePage() {
                 <p className="mt-2 text-[11px] text-ink-faint">
                   {r._count.userRoles} {r._count.userRoles === 1 ? 'nosilac' : 'nosilaca'}
                 </p>
+                <p className="mt-2 text-[11px] text-accent">uredi dozvole →</p>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
       )}
