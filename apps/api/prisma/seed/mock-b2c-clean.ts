@@ -74,6 +74,17 @@ async function main() {
     }
     await prisma.contract.deleteMany({ where: { id: { in: cids } } });
     await prisma.markupRule.deleteMany({ where: { scopeId: { in: supplierIds } } });
+    // Nalaz 4.9.2026: `SupplierManifest` (M5 §8.8) je dodat POSLE ove skripte, pa je brisanje
+    // dobavljača pucalo na stranom ključu (`P2003`, `supplier_manifests_supplier_id_fkey`) —
+    // i to tek posle desetak već izvršenih brisanja, jer skripta nije u transakciji, pa je
+    // mock skup ostajao polovično obrisan. Stavke idu pre samog manifesta (svoj FK).
+    const manifestIds = (
+      await prisma.supplierManifest.findMany({ where: { supplierId: { in: supplierIds } }, select: { id: true } })
+    ).map((m) => m.id);
+    if (manifestIds.length) {
+      await prisma.supplierManifestItem.deleteMany({ where: { supplierManifestId: { in: manifestIds } } });
+      await prisma.supplierManifest.deleteMany({ where: { id: { in: manifestIds } } });
+    }
     await prisma.supplier.deleteMany({ where: { id: { in: supplierIds } } });
   }
 
