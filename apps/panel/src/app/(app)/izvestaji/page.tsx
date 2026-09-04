@@ -7,6 +7,7 @@ import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
+import BarChart, { type ChartSeries } from './BarChart';
 
 
 interface Bucket {
@@ -75,6 +76,15 @@ const TAB_LABELS = {
 } as const;
 type TabKey = keyof typeof TAB_LABELS;
 
+// Serije za grafike (BarChart.tsx) — `var(--accent)`/`var(--accent2)`, isti tokeni kao svaki
+// drugi akcent u panelu (dizajn dok. §2.0f), ne nova paleta.
+const REVENUE_SERIES: ChartSeries<Bucket>[] = [{ label: 'prihod', color: 'var(--accent)', value: (b) => b.revenue, money: true }];
+const PROFIT_SERIES: ChartSeries<Bucket>[] = [
+  { label: 'prihod', color: 'var(--accent)', value: (b) => b.revenue, money: true },
+  { label: 'marža', color: 'var(--accent2)', value: (b) => b.margin, money: true },
+];
+const NIGHTS_SERIES: ChartSeries<Bucket & { nights: number }>[] = [{ label: 'noćenja', color: 'var(--accent)', value: (b) => b.nights }];
+
 const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
 
@@ -89,6 +99,7 @@ interface SearchParams {
   channel?: string;
   productType?: string;
   groupBy?: string;
+  view?: string;
 }
 
 // M17 spec §4/§7 (Faza 5) — "Izveštaji", M13 §7 API ugovor. Svaki izveštaj je čist read-only
@@ -111,6 +122,27 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   const tab = (searchParams?.tab && availableTabs.includes(searchParams.tab as TabKey) ? (searchParams.tab as TabKey) : availableTabs[0]) as
     | TabKey
     | undefined;
+
+  // Prekidač tabela/grafik (4.9.2026, na zahtev vlasnika: "omogucite i vizuelni prikaz... ali
+  // jednostavan i sveden") — dopuna postojećih tabela, ne zamena; podrazumevano ostaje tabela
+  // (tačno "i", ne "umesto"). Stanje ide u adresu kao i ostatak ekrana (nema klijentskog stanja
+  // na ovoj stranici — server komponenta, isti obrazac kao tabovi/filter forma iznad).
+  const view = searchParams?.view === 'grafik' ? 'grafik' : 'tabela';
+  function viewHref(next: 'tabela' | 'grafik'): string {
+    const v = new URLSearchParams();
+    if (tab) v.set('tab', tab);
+    if (searchParams?.from) v.set('from', searchParams.from);
+    if (searchParams?.to) v.set('to', searchParams.to);
+    if (searchParams?.destinationCountry) v.set('destinationCountry', searchParams.destinationCountry);
+    if (searchParams?.destinationCity) v.set('destinationCity', searchParams.destinationCity);
+    if (searchParams?.supplierId) v.set('supplierId', searchParams.supplierId);
+    if (searchParams?.providerCode) v.set('providerCode', searchParams.providerCode);
+    if (searchParams?.channel) v.set('channel', searchParams.channel);
+    if (searchParams?.productType) v.set('productType', searchParams.productType);
+    if (searchParams?.groupBy) v.set('groupBy', searchParams.groupBy);
+    if (next === 'grafik') v.set('view', 'grafik');
+    return `/izvestaji?${v.toString()}`;
+  }
 
   if (availableTabs.length === 0) {
     return (
@@ -173,7 +205,25 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           </h1>
           <p className="text-xs text-ink-dim">Upravljački izveštaji nad M13 projekcijom (profitabilnost, prodaja, smeštaj, marketing) — read-only.</p>
         </div>
-        {canReconcile && <ReconciliationButton />}
+        <div className="flex items-center gap-2">
+          {tab && tab !== 'dinamicki' && (
+            <div className="flex overflow-hidden rounded-full border border-border text-xs">
+              {(['tabela', 'grafik'] as const).map((v) => (
+                <Link
+                  key={v}
+                  href={viewHref(v)}
+                  aria-pressed={view === v}
+                  className={`flex items-center gap-1 px-2.5 py-1 ${
+                    view === v ? 'bg-accent-soft font-semibold text-accent-strong' : 'text-ink-dim hover:text-ink'
+                  }`}
+                >
+                  <Icon name={v === 'tabela' ? 'list-flat' : 'graph'} /> {v}
+                </Link>
+              ))}
+            </div>
+          )}
+          {canReconcile && <ReconciliationButton />}
+        </div>
       </div>
 
       <div className="mb-4 flex gap-1 border-b border-border">
@@ -265,9 +315,25 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       {!error && tab === 'profitabilnost' && profitability && (
         <div className="flex flex-col gap-4">
           <LastSynced value={profitability.lastSyncedAt} />
-          <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin />
-          <BucketTable title="Po dobavljaču/provajderu" buckets={profitability.bySupplier} showMargin />
-          <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin />
+          {view === 'grafik' ? (
+            <>
+              <ChartSection title="Po destinaciji">
+                <BarChart rows={profitability.byDestination} series={PROFIT_SERIES} />
+              </ChartSection>
+              <ChartSection title="Po dobavljaču/provajderu">
+                <BarChart rows={profitability.bySupplier} series={PROFIT_SERIES} />
+              </ChartSection>
+              <ChartSection title="Po kanalu">
+                <BarChart rows={profitability.byChannel} series={PROFIT_SERIES} />
+              </ChartSection>
+            </>
+          ) : (
+            <>
+              <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin />
+              <BucketTable title="Po dobavljaču/provajderu" buckets={profitability.bySupplier} showMargin />
+              <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin />
+            </>
+          )}
         </div>
       )}
 
@@ -279,8 +345,21 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
             <Stat label="ukupna vrednost" value={formatMoney(sales.totalValue)} />
             <Stat label="prosečna vrednost" value={formatMoney(sales.averageValue)} />
           </div>
-          <BucketTable title="Po kanalu" buckets={sales.byChannel} />
-          <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} />
+          {view === 'grafik' ? (
+            <>
+              <ChartSection title="Po kanalu">
+                <BarChart rows={sales.byChannel} series={REVENUE_SERIES} />
+              </ChartSection>
+              <ChartSection title="Po tipu proizvoda">
+                <BarChart rows={sales.byProductType} series={REVENUE_SERIES} />
+              </ChartSection>
+            </>
+          ) : (
+            <>
+              <BucketTable title="Po kanalu" buckets={sales.byChannel} />
+              <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} />
+            </>
+          )}
         </div>
       )}
 
@@ -293,26 +372,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
             <Stat label="prodate sobe — ukupno" value={occupancy.soldUnitsTotal.toLocaleString('sr-RS')} />
           </div>
           {occupancy.breakdown && (
-            <div>
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
-                <Icon name="graph-line" className="text-accent" /> Razvrstano po {occupancy.groupBy}
-                {occupancy.unclassifiedCount > 0 && (
-                  <Badge variant="warn" className="font-normal">
-                    {occupancy.unclassifiedCount} stavki nije razvrstano (obično API-sourced)
-                  </Badge>
-                )}
-              </div>
-              <div className="overflow-hidden rounded-lg border border-border">
-                {occupancy.breakdown.map((b) => (
-                  <div key={b.key} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-xs last:border-b-0">
-                    <span className="font-medium text-ink">{b.key}</span>
-                    <span className="text-ink-faint">
-                      {b.count} stavki · {b.nights.toLocaleString('sr-RS')} noćenja
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <OccupancyBreakdown breakdown={occupancy.breakdown} groupBy={occupancy.groupBy} unclassifiedCount={occupancy.unclassifiedCount} view={view} />
           )}
         </div>
       )}
@@ -340,7 +400,13 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               value={`${marketing.withoutKnownOrigin.count.toLocaleString('sr-RS')} (${formatMoney(marketing.withoutKnownOrigin.revenue)})`}
             />
           </div>
-          <BucketTable title="Rezervacije/prihod po sadržaju (M12)" buckets={marketing.byContent} />
+          {view === 'grafik' ? (
+            <ChartSection title="Rezervacije/prihod po sadržaju (M12)">
+              <BarChart rows={marketing.byContent} series={REVENUE_SERIES} />
+            </ChartSection>
+          ) : (
+            <BucketTable title="Rezervacije/prihod po sadržaju (M12)" buckets={marketing.byContent} />
+          )}
         </div>
       )}
     </div>
@@ -366,7 +432,61 @@ function DynamicTree({ nodes, depth }: { nodes: DynamicNode[]; depth: number }) 
   );
 }
 
+function OccupancyBreakdown({
+  breakdown,
+  groupBy,
+  unclassifiedCount,
+  view,
+}: {
+  breakdown: (Bucket & { nights: number })[];
+  groupBy: string | null;
+  unclassifiedCount: number;
+  view: 'tabela' | 'grafik';
+}) {
+  const total = breakdown.reduce((sum, b) => sum + b.nights, 0);
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
+        <Icon name="graph-line" className="text-accent" /> Razvrstano po {groupBy}
+        {unclassifiedCount > 0 && (
+          <Badge variant="warn" className="font-normal">
+            {unclassifiedCount} stavki nije razvrstano (obično API-sourced)
+          </Badge>
+        )}
+      </div>
+      {view === 'grafik' ? (
+        <BarChart rows={breakdown} series={NIGHTS_SERIES} />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border">
+          {breakdown.map((b) => (
+            <div key={b.key} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-xs last:border-b-0">
+              <span className="font-medium text-ink">{b.key}</span>
+              <span className="text-ink-faint">
+                {b.count} stavki · {b.nights.toLocaleString('sr-RS')} noćenja ({formatPct(b.nights, total)})
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChartSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-2 text-sm font-semibold text-ink">{title}</div>
+      {children}
+    </div>
+  );
+}
+
 function BucketTable({ title, buckets, showMargin = false }: { title: string; buckets: Bucket[]; showMargin?: boolean }) {
+  // Udeo u procentima (4.9.2026, na zahtev vlasnika: "prikazite i u % u obe vrste izvestaja")
+  // — udeo reda u zbiru CELE grupe (svih redova, ne samo prikazanih), ne u ukupnom prometu
+  // agencije — "koliki deo OVOG rasporeda nosi ova destinacija/kanal/dobavljač".
+  const totalRevenue = buckets.reduce((sum, b) => sum + b.revenue, 0);
+  const totalMargin = buckets.reduce((sum, b) => sum + b.margin, 0);
   return (
     <div>
       <div className="mb-2 text-sm font-semibold text-ink">{title}</div>
@@ -378,8 +498,8 @@ function BucketTable({ title, buckets, showMargin = false }: { title: string; bu
             <div key={b.key} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-xs last:border-b-0">
               <span className="font-medium text-ink">{b.key}</span>
               <span className="text-ink-faint">
-                {b.count} rez. · prihod {formatMoney(b.revenue)}
-                {showMargin ? ` · marža ${formatMoney(b.margin)}` : ''}
+                {b.count} rez. · prihod {formatMoney(b.revenue)} ({formatPct(b.revenue, totalRevenue)})
+                {showMargin ? ` · marža ${formatMoney(b.margin)} (${formatPct(b.margin, totalMargin)})` : ''}
               </span>
             </div>
           ))}
@@ -417,4 +537,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function formatMoney(value: number): string {
   return `${(value / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })}`;
+}
+
+/** Udeo vrednosti u zbiru, kao procenat — "—" kad je zbir nula (nema od čega deliti). */
+function formatPct(value: number, total: number): string {
+  if (total === 0) return '—';
+  return `${((value / total) * 100).toLocaleString('sr-RS', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
