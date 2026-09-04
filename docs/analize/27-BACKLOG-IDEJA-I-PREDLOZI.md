@@ -263,7 +263,6 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M10 — Finansije i računovodstvo
 *(§12, `docs/moduli/M10-finansije/07-SPECIFIKACIJA-M10-FINANSIJE.md`)*
-- **E2E test `§5.2 — uplata dovodi Booking do PAID` PADA** (zatečeno 4.9.2026, postoji od `f5ccb27`; potvrđeno da nije posledica izmena od 3–4.9.2026 — pada i sa stash-ovanim izmenama). `POST /finance/payments` vraća `404` umesto `201`; jedini `404` na toj putanji je „Booking … nije pronađen", pa je problem u `createConfirmedBookingFixture()`, ne u logici uplate. Prethodni pokušaj ispravke (`92d74a5`) pomerio grešku sa `400` na `404`. Pun opis, osumnjičeni i sledeći korak: M10 spec §12 izlazni kriterijum.
 - Tačan tehnički ugovor sa SEF v4.0.0 i izabranim ESIR/fiskalnim rešenjem — potvrditi sa knjigovođom.
 - Automatski dnevni uvoz NBS kursa — za sada moguć i ručni unos.
 - **Nalaz (29.8.2026):** ako se doda panel ekran za kursnu listu (`nbsMiddleRate`) ili pregled AI-uparivanja faktura (`matchConfidence`) — oba su Prisma `Decimal` polja, primeniti zamku `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` §10.1 (`Decimal` stiže kao string preko JSON-a, ne broj) od prvog dana tog ekrana.
