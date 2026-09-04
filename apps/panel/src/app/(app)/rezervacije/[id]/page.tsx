@@ -1267,21 +1267,25 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
                   manje čitljivo od manje bitnog detalja (4.9.2026, na zahtev vlasnika: "u
                   stavkama su mala slova jedva vidljivi nazivi država i destinacija, tipova
                   smeštaja"). Sad su na `text-xs`/`ink-dim` — ista težina kao red uplate; termin/
-                  noćenja/putnici ostaju tiši (`ink-faint`) jer su stvarno sekundaran detalj u
-                  odnosu na šta/gde. Sva tri reda dodatno `font-medium` (4.9.2026, na zahtev
-                  vlasnika: "ove informacije podebljajte") — boja/veličina i dalje nose glavnu
-                  razliku u težini, podebljanje je dodatan, manji korak preko cele tri linije. */}
-              <div className="mt-0.5 text-xs font-medium text-ink-dim">
+                  noćenja/putnici ostaju sitniji (`text-[11px]`) jer su stvarno sekundaran detalj
+                  u odnosu na šta/gde, ali dele istu boju/debljinu radi čitljivosti.
+                  Sva tri reda `font-semibold` (4.9.2026, na zahtev vlasnika, u dva koraka —
+                  prvo `font-medium` nije bilo dovoljno vidljivo: "meni tako ne deluje"; isto
+                  `font-semibold` kao naziv proizvoda iznad, radi jasne, nedvosmislene razlike u
+                  odnosu na normalan tekst). Treći red prebačen sa `ink-faint` na `ink-dim`
+                  istom prilikom — razlika između te dve nijanse nije bila dovoljno uočljiva da
+                  opravda zadržavanje najbleđeg tona na ijednom od tri reda. */}
+              <div className="mt-0.5 text-xs font-semibold text-ink-dim">
                 {[item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
               </div>
               {(item.roomType || item.boardType) && (
-                <div className="mt-0.5 text-xs font-medium text-ink-dim">
+                <div className="mt-0.5 text-xs font-semibold text-ink-dim">
                   {[formatRoomType(item.roomType), formatBoard(item.boardType), formatOccupancy(item.occupancy)]
                     .filter(Boolean)
                     .join(' · ')}
                 </div>
               )}
-              <div className="mt-0.5 text-[11px] font-medium text-ink-faint">
+              <div className="mt-0.5 text-[11px] font-semibold text-ink-dim">
                 {[
                   item.stayFrom
                     ? `${new Date(item.stayFrom).toLocaleDateString('sr-RS')}${item.stayTo && item.stayTo !== item.stayFrom ? ` — ${new Date(item.stayTo).toLocaleDateString('sr-RS')}` : ''}`
