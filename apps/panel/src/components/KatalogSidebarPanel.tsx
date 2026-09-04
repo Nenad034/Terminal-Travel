@@ -162,6 +162,14 @@ export default function KatalogSidebarPanel() {
         </div>
       </label>
 
+      <ComboFilter
+        label="država"
+        value={filters.drzava}
+        options={countries}
+        onPick={(v) => apply({ drzava: v, grad: v && v !== filters.drzava ? '' : filters.grad })}
+      />
+      <ComboFilter label="destinacija" value={filters.grad} options={cities} onPick={(v) => apply({ grad: v })} />
+
       <PillGroup label="vrsta" value={filters.tip} onPick={(v) => apply({ tip: v })} options={TYPE_OPTIONS} />
       <PillGroup label="status" value={filters.status} onPick={(v) => apply({ status: v })} options={STATUS_OPTIONS} />
       {connections.length > 0 && (
@@ -172,14 +180,6 @@ export default function KatalogSidebarPanel() {
           options={connections.map((k) => ({ value: k, label: connectionLabel(k) }))}
         />
       )}
-
-      <ComboFilter
-        label="država"
-        value={filters.drzava}
-        options={countries}
-        onPick={(v) => apply({ drzava: v, grad: v && v !== filters.drzava ? '' : filters.grad })}
-      />
-      <ComboFilter label="destinacija" value={filters.grad} options={cities} onPick={(v) => apply({ grad: v })} />
     </div>
   );
 }
