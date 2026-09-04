@@ -1257,16 +1257,23 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
               <div className="text-[13px] font-semibold text-ink">
                 {item.product?.name ?? <span className="text-ink-faint">naziv proizvoda nije dostupan</span>}
               </div>
-              {/* Destinacija, termin, noćenja i broj putnika u JEDNOM redu sitnog teksta umesto
-                  u mreži od četiri polja sa sopstvenim oznakama — na Pregledu se ti podaci
-                  čitaju kao rečenica, ne porede se kolonski. */}
-              {/* Tip smeštajne jedinice i usluga stoje u SVOM redu, iznad reda sa destinacijom i
-                  datumima (2.9.2026, na zahtev vlasnika) — to je ono što je stvarno kupljeno i
-                  ono oko čega gost najčešće zove ("da li imam doručak?"), pa ne sme da se izgubi
-                  na kraju niza tačkica sa ostalim detaljima. Prikazuje se samo kad postoji: za
-                  stavke iz spoljnog API-ja (M4) ovih podataka nema i red se ne crta. */}
+              {/* Destinacija/država i tip smeštaja u sopstvenim redovima, termin/noćenja/putnici
+                  ispod kao rečenica (2.9.2026) — to je ono što je stvarno kupljeno i ono oko
+                  čega gost najčešće zove ("da li imam doručak?"), pa ne sme da se izgubi na
+                  kraju niza tačkica. Prikazuje se samo kad postoji: za stavke iz spoljnog API-ja
+                  (M4) roomType/boardType nema i taj red se ne crta.
+                  Oba gornja reda su bila tiša (11px, `ink-faint`) od reda uplate u susednoj
+                  kutiji (13px, `ink-dim`) — iako je ovo najvažniji podatak na ekranu, ispalo je
+                  manje čitljivo od manje bitnog detalja (4.9.2026, na zahtev vlasnika: "u
+                  stavkama su mala slova jedva vidljivi nazivi država i destinacija, tipova
+                  smeštaja"). Sad su na `text-xs`/`ink-dim` — ista težina kao red uplate; termin/
+                  noćenja/putnici ostaju tiši (`ink-faint`) jer su stvarno sekundaran detalj u
+                  odnosu na šta/gde. */}
+              <div className="mt-0.5 text-xs text-ink-dim">
+                {[item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ')}
+              </div>
               {(item.roomType || item.boardType) && (
-                <div className="mt-0.5 text-[11px] text-ink-dim">
+                <div className="mt-0.5 text-xs text-ink-dim">
                   {[formatRoomType(item.roomType), formatBoard(item.boardType), formatOccupancy(item.occupancy)]
                     .filter(Boolean)
                     .join(' · ')}
@@ -1274,7 +1281,6 @@ function ItemsSummaryList({ items, currency, flat }: { items: BookingItem[]; cur
               )}
               <div className="mt-0.5 text-[11px] text-ink-faint">
                 {[
-                  [item.product?.destinationCity, formatCountry(item.product?.destinationCountry)].filter(Boolean).join(', ') || null,
                   item.stayFrom
                     ? `${new Date(item.stayFrom).toLocaleDateString('sr-RS')}${item.stayTo && item.stayTo !== item.stayFrom ? ` — ${new Date(item.stayTo).toLocaleDateString('sr-RS')}` : ''}`
                     : null,
