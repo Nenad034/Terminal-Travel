@@ -545,8 +545,20 @@ export default function Shell({
             se odmontira i ponovo montira, pa se gubi i istorija razgovora i nedovršen tekst u
             polju (izmereno: tekst je posle premeštanja bio prazan). Ovde React uopšte ne dira
             roditelja — samo mi premestimo jedan čvor, a njegovo stanje ostaje netaknuto. */}
-        <div ref={aiHostRef} className="flex h-full min-h-0 w-full flex-col overflow-hidden">
-          <AiChatBox />
+        {/* Parkiralište domaćina dok nijedan slot nije aktivan (ispravka 4.9.2026, vlasnikov
+            nalaz: "i dalje se pojavljuje ovaj prazan prostor kada se skroluje na dole").
+            Domaćin je SUSED glavnog `h-screen` bloka, pa je — dok stoji ovde nepremešten —
+            bio običan element u toku dokumenta i dodavao svoju visinu ISPOD ekrana: telo
+            stranice je time postajalo više od prozora, skrol se pojavljivao, a ispod statusne
+            trake zjapio je prazan pravougaonik veličine chata. Omotač je `fixed` i nulte
+            veličine, pa parkiran domaćin ne doprinosi visini dokumenta; kad ga `useEffect`
+            iznad premesti u slot, ovde ostaje prazna ljuska bez ikakvog uticaja. Ne `hidden`
+            i ne `display:none` — čvor mora ostati živ i merljiv, jer se FIZIČKI premešta sa
+            svojim stanjem (vidi napomenu iznad). */}
+        <div className="pointer-events-none fixed bottom-0 left-0 h-0 w-0 overflow-hidden">
+          <div ref={aiHostRef} className="flex h-full min-h-0 w-full flex-col overflow-hidden">
+            <AiChatBox />
+          </div>
         </div>
         <CommandPalette items={items} />
         <NotificationStack />

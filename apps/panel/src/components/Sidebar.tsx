@@ -51,8 +51,10 @@ export default function Sidebar({
   // v1.x "tanka traka sa ikonicama" obrazac (19.8.2026). `ResizablePane` (Shell.tsx) sad
   // kolabuje na 0px umesto 40px — ova grana više nema gde da se prikaže (overflow-hidden na
   // 0-širinom kontejneru), pa se ovde ni ne pokušava renderovati (mrtav kod bi ostao ako bi
-  // se prikazivao samo u markup-u nikad na ekranu). Ponovno širenje ide preko `ActivityBar.tsx`
-  // (klik na već aktivnu grupu), ne preko strelice koja je ranije živela ovde.
+  // se prikazivao samo u markup-u nikad na ekranu). Ponovno širenje ide preko `ActivityBar.tsx`:
+  // do 4.9.2026 isključivo kao sporedan efekat klika na ikonicu grupe, a od tada i preko
+  // sopstvene `chevron-right` strelice pri vrhu te trake — par ove `chevron-left` ispod (vlasnikov
+  // nalaz: "kada skupimo levi panel strelicom u levo, nemamo za širenje strelicu u desno").
   if (collapsed) return null;
 
   return (

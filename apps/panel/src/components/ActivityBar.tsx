@@ -69,6 +69,24 @@ export default function ActivityBar({
 }) {
   return (
     <nav className="flex w-[43px] flex-shrink-0 flex-col items-center gap-1 bg-panel-2 py-1">
+      {/* Strelica za PONOVNO širenje (4.9.2026, vlasnikov nalaz: "kada skupimo levi panel
+          strelicom u levo, nemamo za širenje strelicu u desno"). `Sidebar` nosi `chevron-left`
+          za skupljanje pri svom vrhu, ali se pri skupljanju ceo odmontira (`if (collapsed)
+          return null`) i odnese strelicu sa sobom — povratak je do sad postojao samo kao
+          SPOREDAN efekat klika na ikonicu grupe, što nigde ne piše i ne liči na dugme. Ovo je
+          sam par te strelice: ista visina reda, ista strana ekrana, suprotan smer. Prikazuje se
+          isključivo dok je skupljeno — u proširenom stanju bi bio drugi taster za isti posao. */}
+      {collapsed && (
+        <button
+          type="button"
+          title="Proširi levu traku"
+          aria-label="Proširi levu traku"
+          onClick={onToggleCollapse}
+          className="mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+        >
+          <Icon name="chevron-right" />
+        </button>
+      )}
       {groups.map((group, idx) => {
         const single = group.itemIds.length === 1 ? NAV_ITEMS.find((i) => i.id === group.itemIds[0]) : null;
         const active = group.id === activeGroupId;

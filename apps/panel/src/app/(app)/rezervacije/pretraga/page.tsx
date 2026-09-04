@@ -149,12 +149,12 @@ export default async function SearchPage(
     // popuni sve do dna centralnog panela, a ne da stane na fiksnoj visini i ostavi belu traku
     // ispod sebe. `min-h-full` (ne `h-full`) jer u prikazu LISTE sadržaj ume da bude viši od
     // panela i tada mora normalno da skroluje u `<main>`-u, koji je `overflow-y-auto`.
-    <div className="flex min-h-full flex-col p-6">
+    // Gornji razmak je namerno manji od bočnog/donjeg `p-6` (4.9.2026, na zahtev vlasnika:
+    // "podignite ikone za pretragu skoro do vrha panela") — ikonice vrsta su prvo što se gleda
+    // pri otvaranju, a naslov "$ pretraga" sa podnaslovom je uklonjen istim potezom: tab već
+    // nosi naziv ekrana (RegisterTab ispod), pa je naslov ponavljao ono što je vidljivo iznad.
+    <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <RegisterTab label="Pretraga" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> pretraga
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4).</p>
 
       <SearchPanel hasResults={showsResults} />
 

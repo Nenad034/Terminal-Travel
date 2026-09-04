@@ -145,7 +145,14 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
     <div className="mb-4">
       {/* 1. Devet ikonica, centrirano pri vrhu centralnog panela (§3.0g.1 tačka 1). Postavlja se
              svih devet i onda kad pet nema izvor podataka — poruka umesto prazne liste je u
-             page.tsx (§3.0g.5), ne izostavljena ikonica. */}
+             page.tsx (§3.0g.5), ne izostavljena ikonica.
+
+             Dopuna 4.9.2026 (na zahtev vlasnika: "ikone povećajte za 20% i približite ih jedne
+             drugima za 20%"): razmak se meri od CENTRA do centra ikonice, ne po `gap`-u — `gap`
+             je već bio 4px, pa bi -20% na njemu bilo nevidljivo. Šire dugme je ono što ih je
+             držalo razdvojenim: 6rem + 0.25rem = 100px između centara → 4.75rem + 0.25rem = 80px,
+             tačno -20%. Tanka linija ispod je istog dana dodata pa uklonjena na vlasnikov poziv
+             ("višak je ipak") — razmak sam dovoljno odvaja izbor vrste od forme pod njim. */}
       <div className="mb-4 flex flex-wrap items-start justify-center gap-1">
         {PRODUCT_ICONS.map((p) => {
           const active = p.packageMode ? packageMode : p.types.length > 0 && typeKeyOf(p.types) === typeKey;
@@ -161,7 +168,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
                   ? 'Individualni paket — svaka sledeća usluga preuzima datum poslednje dodate stavke (M5 §3.0d.5a)'
                   : (p.locked ?? p.label)
               }
-              className={`flex w-24 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-[11px] leading-none transition-colors ${
+              className={`flex w-[4.75rem] flex-col items-center justify-center gap-1 rounded-lg px-1 py-2.5 text-[11px] leading-none transition-colors ${
                 disabled
                   ? 'cursor-not-allowed text-ink-faint opacity-40'
                   : active
@@ -169,7 +176,8 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
                     : 'text-ink-dim hover:bg-panel hover:text-ink'
               }`}
             >
-              <Icon name={p.icon} className="text-lg" />
+              {/* +20% u odnosu na `text-lg` (18px → 21.6px), 4.9.2026 na zahtev vlasnika. */}
+              <Icon name={p.icon} className="text-[1.35rem]" />
               <span className="text-center">{p.label}</span>
             </button>
           );
