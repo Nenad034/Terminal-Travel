@@ -3,6 +3,7 @@
 **Status:** Nacrt za usvajanje — polazna tačka, dorađuje se kad UI kod stvarno počne (prvo M17)
 **Odnosi se na:** svaki kanal koji ima korisnički interfejs — M17 (interni panel, prvi na redu) i M7 (B2B portal, isti obrazac — poglavlje 7), kasnije M8 (B2C sajt), M9 (mobilna aplikacija). Rešava "dizajnersko pitanje van obima" ostavljeno otvoreno u M17 specifikaciji (poglavlje 5.5, "Otvoreno za dalje").
 **Nastalo:** avgust 2026, na zahtev vlasnika — polazna paleta boja potvrđena na osnovu slike koju je vlasnik podelio (par sa kišobranom, retro putni plakat stil).
+**Verzija:** 1.66 — poglavlje 2.0f, svetli mod (4.9.2026, vlasnikov zahtev: "bleštava bela zamara, hoću svetlo plavu nijansu i tamnije nijanse za ivice kartica/trake" + poređenje sa `mylighthouse.com/company/partnerships`): nova paleta svetlog moda **"Azur + Svetionik"** — podloga spuštena u svetlo plavo, tekst/granice u tegetu i akcent u tealu sa Lighthouse sajta (izvučeno iz njihovog CSS-a, ne procenjeno sa slike), ranija indigo akcent boja seli se na `--accent2` (zamenila mesto sa tealom, koji je do sad bio sekundaran). Tri predloga (čisto plava, doslovna Lighthouse, kombinacija) prikazana vizuelno kroz Artifact pre nego što je vlasnik birao. Dim i tamni mod nepromenjeni. Sve vrednosti prošle `tools/check-contrast.js` protiv svih pet podloga (§2.0f, zamka 1.9).
 **Verzija:** 1.65 — poglavlje 6d, treći korak istog dana (3.9.2026, vlasnikov zahtev: *„stavite u jedan red filtere iznad rezultata pretrage i odvojite ih vertikalnom linijom"*): brzi filteri, sortiranje i prekidač lista/mapa stoje u **jednom** redu, grupe razdvojene **uspravnom crtom** (`h-4 w-px bg-border`, ista boja kao svaka druga granica — bez sopstvenog tokena). Uspravna crta je time i opšti obrazac ovog dokumenta za razdvajanje grupa **unutar** jedne vodoravne trake; vodoravna linija između sekcija je 1.63 uklonjena i ne vraća se (drugi slučaj — tamo su blokovi jedan ispod drugog, ovde grupe jedna kraj druge u istom redu).
 
 **Verzija:** 1.64 — poglavlje 6d, brzi filteri menjaju mesto (3.9.2026, vlasnikov zahtev: *„u horizontalni filter iznad rezultata pretrage u centralnom panelu postavite i filtere za Non refundable, Refundable… za Kategoriju zvezdice postavite tag koji ima od 1 do 5 zvezdica"*): par **Refundabilno/Nerefundabilno** se seli iz levog panela u **vodoravnu traku iznad rezultata**, uz sortiranje, i tamo mu se pridružuje nov filter **kategorije (zvezdice)** — jedan tag sa pet zvezdica, ali pet nezavisnih prekidača, ne skala „N i više". Par **Odmah potvrda/Upit** ostaje u levom panelu (vlasnikov zahtev je imenovao samo druga dva) — poznata razlika u odnosu na raniji tekst, ne previd. Podaci/logika: M5 poglavlje 3.0c.3a (dopuna) i 3.0c.3c (novo).
@@ -226,11 +227,13 @@ Tamni mod nije tražio treću nijansu — `--bar` tamo dobija istu vrednost kao 
 
 Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak od nje. `--text` je već na 16.97:1 — ×0,7 bi dao 18.07:1, razliku koju oko ne registruje, a sva tri nivoa teksta bi se stisnula ka crnom i **hijerarhija (glavni / prigušen / slab) bi se izgubila**; to je jedini realan rizik ovakve izmene i jedini razlog da se ne primeni ravnomerno. `--icon-line` bi tamnjenjem izgubio prepoznatljiv "navy teget" ton koji je sam po sebi bio vlasnikov zahtev (21.8.2026, §3a) — to je estetska, ne kontrastna odluka i traži poseban zahtev. Smer izmene je isključivo naviše, pa nijedan AA prag (§2a) ne može da padne. Izmena je upisana u **oba** svetla bloka u `globals.css` — `:root` (prati OS) i `:root[data-theme='light']` (ručni prekidač); prepisivanje samo prvog je zamka koja daje promenu koja nestane čim korisnik izabere svetli mod dugmetom (zabeleženo u `33-ZAMKE-I-OBAVEZNE-PROVERE.md`).
 
-### 2.0f Tekuća paleta — shadcn/ui (zinc + indigo), tri moda (29.8.2026; upisano u dokument 2.9.2026)
+### 2.0f Tekuća paleta — "Azur + Svetionik" u svetlom modu, shadcn zinc + indigo u dim/tamnom (4.9.2026)
 
 **Ovo je jedini izvor istine za boje panela.** Sve iznad (§2.0a–§2.0e) je istorija kako se do ovoga došlo.
 
 **Kako je nastalo.** Vlasnik je 29.8.2026. izabrao shadcn/ui posle vizuelnog poređenja tri kandidata na istom ekranu (M17 "Rezervacije" mockup): Fluent UI React, PatternFly i shadcn/ui + Radix UI — obrazloženje izbora je u master dokumentu, poglavlje 6. Odluka nije bila samo "uzmi njihove komponente" nego **usvoji ceo vizuelni jezik**, pa je maslinasta `#8A8A5E` prestala da bude brend boja. Prvi prolaz migracije namerno nije dirao boje (da se ništa ne pokvari pre potvrde); vlasnik je javio da ne vidi razliku — očekivano — pa je drugi prolaz zamenio stvarne vrednosti tokena.
+
+**Svetli mod je 4.9.2026. ponovo menjan** (vlasnikov zahtev: "bleštava bela zamara, hoću svetlo plavu nijansu i tamnije ivice/trake"), uz poređenje sa `mylighthouse.com/company/partnerships` kao referencom koju je vlasnik doneo. Tri predloga (čisto plava "Azur", doslovna Lighthouse paleta "Svetionik", i njihova kombinacija) prikazana su vizuelno kroz Artifact — vlasnik je izabrao **treću, kombinovanu varijantu**: podloga spuštena u svetlo plavo (izvedena, ne sa Lighthouse sajta — njihova stvarna podloga je krem), tekst i granice u tegetu i glavni akcent u tealu sa Lighthouse sajta (vrednosti izvučene direktno iz njihovog CSS-a preko `_next/static/css/*.css`, ne procenjene sa slike). Ranija indigo boja (`#4f46e5`) nije napuštena — **zamenila je mesto sa tealom**: pošto teal sada nosi ulogu glavnog akcenta, indigo silazi na `--accent2` (sekundarni signal — kalendar/katalog/audit log), koju je do tada nosio teal. Dim i tamni mod **nisu dirani u ovom prolazu** — i dalje su shadcn zinc + indigo od 29.8.2026.
 
 **Zašto je promena bila jeftina.** Nijedna komponenta nije menjana zbog boje. Tokeni su CSS promenljive u jednom fajlu, pa je izmena ~100 linija promenila izgled svih ~60 ekrana panela odjednom — isti mehanizam koji poglavlje 2 opisuje kao "paleta ostaje promenljiva".
 
@@ -238,38 +241,39 @@ Dva tokena su namerno ostavljena netaknuta, i to je suština odluke, ne izuzetak
 
 | Token | Svetli | Dim | Tamni | Uloga |
 | :---- | :---- | :---- | :---- | :---- |
-| `--bg` | `#fafafa` | `#0f172a` | `#09090b` | Osnovna pozadina |
-| `--panel` | `#ffffff` | `#1e293b` | `#18181b` | Centralni sadržaj, kartice |
-| `--panel-2` | `#f4f4f5` | `#334155` | `#27272a` | Bočni paneli |
-| `--bar` | `#f4f4f5` | `#334155` | `#27272a` | Gornja/donja traka *(u svetlom modu trenutno jednako `--panel-2` — §2.0e)* |
-| `--border` | `#858c92` | `#94a3b8` | `#748088` | Granice — **namerno odstupanje od doslovne Tailwind vrednosti** da prođe 3:1 na sve tri podloge, §2.0d |
-| `--text` | `#18181b` | `#f8fafc` | `#fafafa` | Glavni tekst |
-| `--text-dim` | `#2c2c31` | `#cbd5e1` | `#d4d4d8` | Prigušen tekst |
-| `--text-faint` | `#45454a` | `#a3b0c2` | `#a1a1aa` | Slab tekst, zaglavlja kolona, datumi |
-| `--accent` | `#4f46e5` | `#818cf8` | `#818cf8` | Brend boja, glavna radnja |
-| `--accent-strong` | `#4338ca` | `#a5b4fc` | `#a5b4fc` | Tekst na `--accent-soft` (tvrdo pravilo §2a) |
-| `--accent-soft` | `#4f46e533` | `#818cf833` | `#818cf833` | Meka podloga akcenta (20% alfa) |
+| `--bg` | `#e8eef6` | `#0f172a` | `#09090b` | Osnovna pozadina |
+| `--panel` | `#f9fbfd` | `#1e293b` | `#18181b` | Centralni sadržaj, kartice |
+| `--sunken` | `#dbe4ef` | `#16202f` | `#131316` | Utonula traka naslova sekcije (§6h) |
+| `--panel-2` | `#dde6f1` | `#334155` | `#27272a` | Bočni paneli |
+| `--bar` | `#dde6f1` | `#334155` | `#27272a` | Gornja/donja traka *(u svetlom modu trenutno jednako `--panel-2` — §2.0e)* |
+| `--border` | `#6c7a90` | `#94a3b8` | `#748088` | Granice — **namerno odstupanje od doslovne Tailwind vrednosti** da prođe 3:1 na sve podloge, §2.0d |
+| `--text` | `#232636` | `#f8fafc` | `#fafafa` | Glavni tekst — teget sa mylighthouse.com |
+| `--text-dim` | `#333645` | `#cbd5e1` | `#d4d4d8` | Prigušen tekst — sa mylighthouse.com |
+| `--text-faint` | `#464e5d` | `#a3b0c2` | `#a1a1aa` | Slab tekst, zaglavlja kolona, datumi — sa mylighthouse.com |
+| `--accent` | `#00686e` | `#818cf8` | `#818cf8` | Brend boja, glavna radnja — teal sa mylighthouse.com u svetlom modu |
+| `--accent-strong` | `#004c4c` | `#a5b4fc` | `#a5b4fc` | Tekst na `--accent-soft` (tvrdo pravilo §2a) |
+| `--accent-soft` | `#00686e33` | `#818cf833` | `#818cf833` | Meka podloga akcenta (20% alfa) |
 | `--accent-ink` | `#ffffff` | `#0b1120` | `#0b0b0f` | Tekst na punom akcentu |
-| `--accent2` / `-soft` | `#0f766e` / `#0f766e1a` | `#5eead4` / `#5eead41a` | `#5eead4` / `#5eead41a` | Sekundarni signal — kalendar, katalog, audit log |
-| `--ok` / `--ok-bg` | `#15803d` / `#f0fdf4` | `#4ade80` / `#0d1f13` | `#4ade80` / `#0d1f13` | Uspeh |
-| `--warn` / `--warn-bg` | `#b45309` / `#fffbeb` | `#fbbf24` / `#241a06` | `#fbbf24` / `#241a06` | Upozorenje |
+| `--accent2` / `-soft` | `#4f46e5` / `#4f46e51a` | `#5eead4` / `#5eead41a` | `#5eead4` / `#5eead41a` | Sekundarni signal — kalendar, katalog, audit log *(u svetlom modu: ranija indigo, sišla sa `--accent` 4.9.2026)* |
+| `--ok` / `--ok-bg` | `#166534` / `#f0fdf4` | `#4ade80` / `#0d1f13` | `#4ade80` / `#0d1f13` | Uspeh |
+| `--warn` / `--warn-bg` | `#92400e` / `#fffbeb` | `#fbbf24` / `#241a06` | `#fbbf24` / `#241a06` | Upozorenje |
 | `--danger` / `--danger-bg` | `#b91c1c` / `#fef2f2` | `#f87171` / `#240b0b` | `#f87171` / `#240b0b` | Greška |
 | `--icon-line` | `#1f3a5f` | `currentColor` | `currentColor` | Navy linije ikonica, samo svetli mod (§3a) |
 
-**Izmereni kontrasti** (`node tools/check-contrast.js --all`, 2.9.2026 — najgori slučaj po tokenu, tj. protiv najnepovoljnije pozadine uz koju se pojavljuje):
+**Izmereni kontrasti** (`node tools/check-contrast.js --all`, 4.9.2026 — najgori slučaj po tokenu, tj. protiv najnepovoljnije od pet podloga: `bg`/`panel`/`sunken`/`panel-2`/`bar`):
 
 | Par | Svetli | Dim | Tamni | Prag |
 | :---- | :---- | :---- | :---- | :---- |
-| `--text` na površinama | 16.12:1 | 9.90:1 | 14.27:1 | 4.5:1 |
-| `--text-dim` na površinama | 12.64:1 | 6.97:1 | 10.08:1 | 4.5:1 |
-| `--text-faint` na površinama | 8.67:1 | 4.71:1 | 5.81:1 | 4.5:1 |
-| `--icon-line` na površinama | 10.45:1 | — | — | 3:1 |
-| `--accent-ink` na `--accent` (dugme) | 6.29:1 | 6.31:1 | 6.59:1 | 4.5:1 |
-| `--accent-strong` na `--accent-soft` | 5.82:1 | 5.33:1 | 6.55:1 | 4.5:1 |
-| `--ok` / `--warn` / `--danger` na svojim pill pozadinama | 4.79 / 4.84 / 5.91 | 9.86 / 10.27 / 6.73 | 9.86 / 10.27 / 6.73 | 4.5:1 |
-| `--border` (najgore od tri podloge) | 3.10:1 | 4.04:1 | 3.68:1 | 3:1 |
+| `--text` na površinama | 11.67:1 | 9.90:1 | 14.27:1 | 4.5:1 |
+| `--text-dim` na površinama | 9.32:1 | 6.97:1 | 10.08:1 | 4.5:1 |
+| `--text-faint` na površinama | 6.52:1 | 4.71:1 | 5.81:1 | 4.5:1 |
+| `--icon-line` na površinama | 8.94:1 | — | — | 3:1 |
+| `--accent-ink` na `--accent` (dugme) | 6.55:1 | 6.31:1 | 6.59:1 | 4.5:1 |
+| `--accent-strong` na `--accent-soft` | 6.99:1 | 5.33:1 | 6.55:1 | 4.5:1 |
+| `--ok` / `--warn` / `--danger` na svojim pill pozadinama | 6.81 / 6.84 / 5.91 | 9.86 / 10.27 / 6.73 | 9.86 / 10.27 / 6.73 | 4.5:1 |
+| `--border` (najgore od pet podloga) | 3.39:1 | 4.04:1 | 3.68:1 | 3:1 |
 
-**Sve prolazi** (stanje od 2.9.2026, kad je i poslednji par — `--border` — vraćen iznad praga, §2.0d). Tri mesta su najbliža padu i zaslužuju pažnju pri svakoj sledećoj izmeni: `--border` u svetlom modu na bočnom panelu (3.10:1, prag 3), `--text-faint` u dim modu (4.71:1, prag 4.5) i `--ok` u svetlom (4.79:1). Sve tri vrednosti su ručno pomerene sa doslovne Tailwind vrednosti upravo zato što je doslovna padala — zato uz svaku stoji komentar u `globals.css`; bez njega ih sledeća zamena palete tiho vraća (zamka 1.9).
+**Sve prolazi** (stanje od 4.9.2026, posle prelaska svetlog moda na "Azur + Svetionik"). Mesta najbliža padu i dalje zaslužuju pažnju pri svakoj sledećoj izmeni: `--border` u svetlom modu na `--sunken`/`--panel-2` (3.39:1, prag 3), `--text-faint` u dim modu (4.71:1, prag 4.5) i `--danger` u svetlom (5.91:1 — nepromenjen ovim prolazom, ali najbliži prag među statusnim bojama). Sve vrednosti su ručno merene, ne pretpostavljene sa Lighthouse ili Tailwind referenci — zato uz svaku stoji komentar u `globals.css`; bez njega ih sledeća zamena palete tiho vraća (zamka 1.9).
 
 **Pravilo §2a i dalje ima razlog da postoji.** `--accent` na `--accent-soft` (zabranjena kombinacija) daje 4.63:1 u svetlom, ali **4.38:1 u tamnom i 3.56:1 u dim modu** — i dalje pada. Zato ostaje tvrdo pravilo: na mekom akcentu ide `--accent-strong`, nikad `--accent`, u svakom modu i u svakom stanju (uključujući hover).
 

@@ -84,15 +84,22 @@
 
 :root {
   /* svetli mod — podrazumevane vrednosti, važe i kad OS nema tamni mod uključen */
-  /* Paleta "shadcn/ui" (29.8.2026, tt-shadcn-redesign) — zamenjuje raniju GitHub Light/VS Code
-     paletu u okviru odobrene vizuelne promene (poglavlje 6 master dokumenta, vlasnik odabrao
-     shadcn/ui pravac posle poređenja sa Fluent UI React i PatternFly mockup-ima). Neutralne boje
-     su Tailwind "zinc" skala, akcent je Tailwind "indigo" (ranija maslinasta #8A8A5E NIJE više
-     brend boja — vlasnikova odluka je bila da se usvoji ceo shadcn vizuelni jezik, ne samo
-     komponente). Sve vrednosti PROVERENE WCAG 2.1 AA kontrast-skriptom (4.5:1 tekst, veći/UI
-     elementi 3:1) pre primene, isti princip kao ranija "Horizont"/GitHub paleta. */
-  --bg: #fafafa;
-  --panel: #ffffff;
+  /* Paleta "Azur + Svetionik" (4.9.2026, na zahtev vlasnika: "bleštava bela zamara, hoću svetlo
+     plavu nijansu i tamnije ivice/trake" + poređenje sa mylighthouse.com/company/partnerships).
+     Zamenjuje raniju shadcn/ui zinc+indigo paletu (29.8.2026) SAMO u svetlom modu — tamni i dim
+     mod su nepromenjeni. Podloga (`--bg`/`--panel`/`--sunken`/`--panel-2`/`--bar`) je spuštena u
+     svetlo plavo (izvedeno, ne sa Lighthouse sajta — njihova podloga je krem, ne plava). Tekst i
+     akcent SU sa mylighthouse.com/company/partnerships (izvučeni direktno iz njihovog CSS-a,
+     `grep -oiE "#[0-9a-f]{6}"` nad skinutim `_next/static/css/*.css`): teget tekst `#333645`,
+     teal akcent `#00686e`. Ranija indigo boja (`#4f46e5`) NIJE napuštena — postaje `--accent2`
+     (sekundarni signal, kalendar/katalog/audit log), pošto je tu ulogu do sad nosio teal koji je
+     sada glavni akcent (§ komentar uz `--accent2` ispod). Vlasnik birao između tri predloga
+     (Azur / Svetionik / kombinacija) preko vizuelnog Artifact-a — ovo je izabrana treća varijanta.
+     Sve vrednosti PROVERENE WCAG 2.1 AA kontrast-skriptom (4.5:1 tekst, veći/UI elementi 3:1),
+     protiv SVE ČETIRI pozadine (bg/panel/sunken/panel-2 — zamka 1.9), isti princip kao ranije
+     palete. */
+  --bg: #e8eef6;
+  --panel: #f9fbfd;
   /* "Utonula" površina (2.9.2026, na zahtev vlasnika: "sektori — naslovni deo tamnija nijansa a
      sadržaj ispod svetlija"). ČETVRTA nijansa, pored --bg / --panel / --panel-2.
 
@@ -104,58 +111,52 @@
      `--sunken` je zato UVEK tamniji od `--panel`. Koristi ga traka naslova sekcije i sažetak na
      vrhu kartice Pregled (dizajn dok. §6h). `--panel-2` ostaje nepromenjen i dalje služi bočnim
      panelima i zaglavljima tabela — dve različite uloge, dve boje. */
-  --sunken: #eeeef0;
-  --panel-2: #f4f4f5;
-  --bar: #f4f4f5;
-  /* Vraćeno iznad 3:1 praga (2.9.2026, na zahtev vlasnika, posle uporednog prikaza četiri jačine).
-     NAMERNO ODSTUPANJE OD DOSLOVNE TAILWIND VREDNOSTI — ne dirati pri sledećoj zameni palete bez
-     ponovnog merenja. Tailwind zinc-200 (#e4e4e7), koji je ovde stajao od prelaska na shadcn
-     29.8.2026, daje 1.27:1 na `--panel`, 1.22:1 na `--bg` i samo 1.15:1 na `--panel-2` (bočni
-     panel) — daleko ispod 3:1 praga za granice (29-DIZAJN-SISTEM-UI.md §2a). Tim prelazom je tiho
-     poništena ispravka od 21.8.2026, koja je nastala na vlasnikovu prijavu "jedva se vide okvirne
-     linije sadržaja u centralnom delu" — ista vrednost se sada vraća. #858c92: 3.41 / 3.26 / 3.10
-     na te tri podloge, dakle prolazi na SVE tri, ne samo na belu. Vidi zamku 1.9. */
-  --border: #858c92;
-  --text: #18181b;
-  /* Potamnjenje slabijih nivoa teksta u svetlom modu (2.9.2026, na zahtev vlasnika: "u Light modu
-     sve ikone i sva slova treba da budu za 30% tamnija"). Primenjeno CILJANO, ne ravnomerno —
-     odluka vlasnika posle uporednog prikaza sve četiri varijante:
-       --text      #18181b → nepromenjeno; već 16,97:1 na `--bg`, ×0,7 bi dalo 18,07:1, razlika
-                   koju oko ne registruje, a svi nivoi teksta bi se stisnuli ka crnom i hijerarhija
-                   (glavni / prigušen / slab) bi se izgubila — to je jedini realan rizik ove izmene.
-       --text-dim  #3f3f46 → #2c2c31 (×0,7): 10,01:1 → 13,31:1 na `--bg`, 12,64:1 na `--panel-2`.
-       --text-faint #63636a → #45454a (×0,7): 5,71:1 → 9,13:1 na `--bg`, 8,67:1 na `--panel-2`.
-       --icon-line #1f3a5f → nepromenjeno; tamnjenje bi mu oduzelo prepoznatljiv "navy teget" ton
-                   koji je sam po sebi bio vlasnikov zahtev (21.8.2026, § komentar iznad .codicon) —
-                   to je estetska, ne kontrastna odluka i traži poseban zahtev.
-     Sve vrednosti izmerene istom WCAG 2.1 formulom kojom je i cela paleta proveravana; smer je
-     isključivo naviše, pa nijedan AA prag ne može da padne ovom izmenom.
-
-     Prethodno obrazloženje za `--text-faint` (29.8.2026), i dalje važi kao razlog zašto polazna
-     vrednost NIJE bila Tailwind zinc-500 (#71717a): zinc-500 prolazi 4.83:1 na belu ALI PADA na
-     4.40:1 na `--panel-2` (#f4f4f5, sivkasta traka zaglavlja tabele/sidebar-a) gde se
-     `--text-faint` takođe koristi (npr. datumi u tabeli rezervacija) — potamnjeno na sledeću
-     proveru koja prolazi na OBE pozadine, ne pretpostavkom da je "zvanična" Tailwind vrednost
-     automatski dovoljna. Ista provera na obe pozadine ponovljena je i za novu vrednost. */
-  --text-dim: #2c2c31;
-  --text-faint: #45454a;
-  --accent: #4f46e5;
-  --accent-strong: #4338ca;
-  --accent-soft: #4f46e533;
-  /* Belo, ne tamno kao ranija maslinasta paleta — indigo-600 je dovoljno tamna/zasićena da
-     beo tekst na njoj prolazi 6.29:1 (kontrast-skripta), za razliku od svetle maslinaste kojoj
-     je trebao taman tekst. */
+  --sunken: #dbe4ef;
+  --panel-2: #dde6f1;
+  --bar: #dde6f1;
+  /* Ivica potamnjena zajedno sa podlogom, iz istog razloga kao 21.8.2026/2.9.2026 ispravke ispod
+     — plavlja podloga bi inače podigla kontrast ivice iznad prethodno izmerene vrednosti dovoljno
+     da izgleda drugačije nego što je namerno, ali ne i dovoljno bez ponovnog merenja (zamka 1.9).
+     #6c7a90: 3.73 / 4.20 / 3.39 / 3.45 na bg/panel/sunken/panel-2 (4.9.2026) — prolazi na SVE
+     četiri, ne samo na najsvetliju. */
+  --border: #6c7a90;
+  --text: #232636;
+  /* `--text`/`--text-dim`/`--text-faint` (4.9.2026, "Azur + Svetionik") — teget skala sa
+     mylighthouse.com/company/partnerships, doslovno njihove izmerene vrednosti (§ komentar uz
+     `:root` iznad), NE zatamnjena verzija ranije shadcn zinc skale. Zamenjuje 2.9.2026 "×0,7"
+     ciljano zatamnjenje — ovaj prolaz menja paletu u celini, pa se stara procentualna izmena
+     više ne primenjuje na te vrednosti. `--icon-line` ostaje nepromenjeno navy `#1f3a5f` —
+     estetska, ne kontrastna odluka, ista kao 21.8.2026 (§ komentar iznad .codicon).
+     Izmereno protiv sve četiri podloge (bg/panel/sunken/panel-2), WCAG 2.1 AA:
+       --text       #232636 → 12,83 / 14,44 / 11,67 / 11,89
+       --text-dim   #333645 → 10,26 / 11,54 / 9,32 / 9,50
+       --text-faint #464e5d → 7,17 / 8,07 / 6,52 / 6,64
+     Sve iznad 4,5:1 praga na svakoj od četiri podloge, ne samo na najsvetlijoj (zamka 1.9). */
+  --text-dim: #333645;
+  --text-faint: #464e5d;
+  /* Glavni akcent postaje teal sa mylighthouse.com (4.9.2026) — ranija indigo (`#4f46e5`) SE NE
+     napušta, seli se dole na `--accent2` (bila je rezervisana za teal kao sekundarni signal, pa
+     zamena mesta čuva "dva različita tona" pravilo bez uvođenja treće boje). `#00686e`:
+     5,61 / 6,32 / 5,10 / 5,20 na bg/panel/sunken/panel-2 — belo na njemu 6,55:1. */
+  --accent: #00686e;
+  --accent-strong: #004c4c;
+  --accent-soft: #00686e33;
   --accent-ink: #ffffff;
-  /* Sekundarni akcent (kalendar/katalog/audit log postojeći potrošači) — teal, namerno različit
-     ton od indigo brend boje da ostane vizuelno razdvojiv kao drugi signal, ne varijacija istog. */
-  --accent2: #0f766e;
-  --accent2-soft: #0f766e1a;
-  /* `--ok`/`--danger`/`--warn` — Tailwind green-700/amber-700/red-700 (tekst) + odgovarajuće
-     50-nijanse (pill pozadina). Kontrast provereni kontrast-skriptom: ok 5.02:1/4.79:1,
-     warn 5.02:1/4.84:1, danger 6.47:1/5.91:1 — svi iznad 4.5:1 AA praga. */
-  --ok: #15803d;
+  /* Sekundarni akcent (kalendar/katalog/audit log postojeći potrošači) — indigo, ranija glavna
+     brend boja pre 4.9.2026 (§ komentar uz `--accent` iznad). `#4f46e5`: 5,39 / 6,06 / 4,90 / 4,99
+     na bg/panel/sunken/panel-2 — belo na njemu 6,29:1. */
+  --accent2: #4f46e5;
+  --accent2-soft: #4f46e51a;
+  /* `--ok`/`--warn` potamnjeni sa plavljom podlogom (4.9.2026) — stare shadcn vrednosti
+     (green-700/amber-700) padale su ispod 4,5:1 na `--sunken`/`--panel-2` posle prelaska na
+     plavu paletu, ista vrsta provere kao svaki drugi token ovde. `--danger` ostaje nepromenjen,
+     i dalje prolazi (5,04 najgore) bez izmene.
+       --ok    #166534 → 6,11 / 6,87 / 5,55 / 5,66
+       --warn  #92400e → 6,07 / 6,84 / 5,52 / 5,63
+       --danger #b91c1c → 5,54 / 6,24 / 5,04 / 5,13 (nepromenjeno) */
+  --ok: #166534;
   --ok-bg: #f0fdf4;
-  --warn: #b45309;
+  --warn: #92400e;
   --warn-bg: #fffbeb;
   --danger: #b91c1c;
   --danger-bg: #fef2f2;
@@ -225,29 +226,29 @@
 }
 
 :root[data-theme='light'] {
-  --bg: #fafafa;
-  --panel: #ffffff;
-  --sunken: #eeeef0;
-  --panel-2: #f4f4f5;
-  --bar: #f4f4f5;
+  --bg: #e8eef6;
+  --panel: #f9fbfd;
+  --sunken: #dbe4ef;
+  --panel-2: #dde6f1;
+  --bar: #dde6f1;
   /* Mora ostati identično bloku `:root` iznad (zamka 1.7). Obrazloženje: komentar uz `--border`
      u tom bloku. */
-  --border: #858c92;
-  --text: #18181b;
+  --border: #6c7a90;
+  --text: #232636;
   /* Mora ostati identično bloku `:root` iznad — ovo je ISTI svetli mod, samo izabran ručnim
      prekidačem umesto preko OS-a. Ako se ovde ne prepiše ista vrednost, promena boje važi samo
      kad je OS na svetloj temi, a nestane čim korisnik izabere svetlo dugmetom (2.9.2026). */
-  --text-dim: #2c2c31;
-  --text-faint: #45454a;
-  --accent: #4f46e5;
-  --accent-strong: #4338ca;
-  --accent-soft: #4f46e533;
+  --text-dim: #333645;
+  --text-faint: #464e5d;
+  --accent: #00686e;
+  --accent-strong: #004c4c;
+  --accent-soft: #00686e33;
   --accent-ink: #ffffff;
-  --accent2: #0f766e;
-  --accent2-soft: #0f766e1a;
-  --ok: #15803d;
+  --accent2: #4f46e5;
+  --accent2-soft: #4f46e51a;
+  --ok: #166534;
   --ok-bg: #f0fdf4;
-  --warn: #b45309;
+  --warn: #92400e;
   --warn-bg: #fffbeb;
   --danger: #b91c1c;
   --danger-bg: #fef2f2;
