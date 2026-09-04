@@ -127,14 +127,87 @@ describe('M1 — izlazni kriterijum (e2e)', () => {
   });
 
   describe('Prijava, obavezna 2FA za interne uloge, zaključavanje (izlazni kriterijum, stavke 1 i 5)', () => {
-    it('interna uloga (VLASNIK) bez podešene 2FA ne može da se prijavi', async () => {
+    // M1 spec §5 (dopuna 4.9.2026) — ranije je ovaj slučaj vraćao 403 i test je to
+    // proveravao, čime je test čuvao stvarnu blokadu: nijedan novozaposleni se nije mogao
+    // prijaviti (zamka 13.6 — test koji opisuje zatečeno stanje umesto željenog pravila).
+    // Sada login vraća uzak setupToken koji otvara ISKLJUČIVO podešavanje 2FA.
+    it('interna uloga (VLASNIK) bez podešene 2FA dobija setupToken, ne grešku', async () => {
       const user = await createUser({ email: `vlasnik-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/iam/auth/login')
         .send({ email: user.email, password: 'ispravna-lozinka-123' });
 
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual({ requiresMfaSetup: true, setupToken: expect.any(String) });
+      expect(res.body).not.toHaveProperty('accessToken');
+    });
+
+    it('setupToken NIJE pristupni token — ne otvara nijedan zaštićen endpoint', async () => {
+      const user = await createUser({ email: `vlasnik-uzak-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: user.email, password: 'ispravna-lozinka-123' });
+      const { setupToken } = loginRes.body;
+
+      // VLASNIK inače sme sve — da je token prihvaćen kao pristupni, ovo bi vratilo 200.
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/iam/auth/me')
+        .set('Authorization', `Bearer ${setupToken}`);
+
+      expect(res.status).toBe(401);
+    });
+
+    it('pun tok prvog podešavanja 2FA: login → setup/start → setup/confirm → prijavljen', async () => {
+      const user = await createUser({ email: `vlasnik-setup-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: user.email, password: 'ispravna-lozinka-123' });
+      const { setupToken } = loginRes.body;
+
+      const startRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/setup/start')
+        .send({ setupToken });
+      expect(startRes.status).toBe(201);
+      expect(startRes.body.otpauthUrl).toContain('otpauth://');
+      expect(startRes.body.recoveryCodes).toHaveLength(10);
+
+      const secret = new URL(startRes.body.otpauthUrl.replace('otpauth://', 'https://')).searchParams.get('secret')!;
+      const confirmRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/setup/confirm')
+        .send({ setupToken, code: authenticator.generate(secret) });
+
+      expect(confirmRes.status).toBe(201);
+      expect(confirmRes.body).toHaveProperty('accessToken');
+      expect(confirmRes.body).toHaveProperty('refreshToken');
+
+      // 2FA je sada stvarno uključena — sledeća prijava ide redovnim dvokoračnim tokom.
+      const updated = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+      expect(updated.mfaEnabled).toBe(true);
+
+      const secondLogin = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: user.email, password: 'ispravna-lozinka-123' });
+      expect(secondLogin.body).toEqual({ requiresMfa: true, mfaToken: expect.any(String) });
+    });
+
+    it('pogrešan kod pri podešavanju odbija i broji se u isto zaključavanje kao pogrešna lozinka', async () => {
+      const user = await createUser({ email: `vlasnik-los-kod-${testRunId}@tt-test.rs`, roleName: SYSTEM_ROLES.VLASNIK });
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/login')
+        .send({ email: user.email, password: 'ispravna-lozinka-123' });
+      const { setupToken } = loginRes.body;
+      await request(app.getHttpServer()).post('/api/v1/iam/auth/mfa/setup/start').send({ setupToken });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/iam/auth/mfa/setup/confirm')
+        .send({ setupToken, code: '000000' });
+
+      expect(res.status).toBe(401);
+      const after = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+      expect(after.failedLoginAttempts).toBe(1);
+      expect(after.mfaEnabled).toBe(false);
     });
 
     it('Gost bez 2FA sme da se prijavi (2FA opciona za Gosta)', async () => {

@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { SearchService } from './search.service';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
-import { AccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 
 // M5 spec §11 dopuna (avgust 2026, priprema za M8) — pretraga je JAVNA, bez guard-a.
 // M8 spec poglavlje 3 korak 1 zahteva anonimnu pretragu (gost bez naloga); ranija verzija
@@ -35,7 +35,7 @@ export class SearchController {
     }
     let payload: AccessTokenPayload;
     try {
-      payload = this.jwt.verify<AccessTokenPayload>(authHeader.slice('Bearer '.length));
+      payload = assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(authHeader.slice('Bearer '.length)));
     } catch {
       throw new UnauthorizedException('Nevažeći ili istekao token.');
     }

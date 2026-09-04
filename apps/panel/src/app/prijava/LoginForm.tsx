@@ -3,14 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-// M1 spec §5, M17 spec §3 — prijava je uvek dvokoračna za interne uloge (obavezna 2FA).
+// M1 spec §5, M17 spec §3 — prijava je za interne uloge uvek višekoračna (obavezna 2FA).
 // Korak 1: email+lozinka -> /api/session/login. Ako nalog ima MFA (uvek za STAFF), server
 // vraća {requiresMfa, mfaToken} umesto tokena; korak 2 šalje 6-cifreni kod ka
 // /api/session/mfa, koji jedini upisuje sesijski kolačić.
 export default function LoginForm() {
   const router = useRouter();
-  const [step, setStep] = useState<'credentials' | 'mfa'>('credentials');
+  const [step, setStep] = useState<'credentials' | 'mfa' | 'mfa-setup'>('credentials');
   const [mfaToken, setMfaToken] = useState('');
+  // M1 spec §5/§7 (dopuna 4.9.2026) — prvo podešavanje 2FA. Nalog koji 2FA mora imati a
+  // još je nema više ne dobija grešku nego uzak setupToken; ovaj korak je jedini deo panela
+  // koji se tim tokenom otvara.
+  const [setupToken, setSetupToken] = useState('');
+  const [otpauthUrl, setOtpauthUrl] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -37,6 +43,12 @@ export default function LoginForm() {
       setStep('mfa');
       return;
     }
+    if (body.requiresMfaSetup) {
+      setSetupToken(body.setupToken);
+      setStep('mfa-setup');
+      void startMfaSetup(body.setupToken);
+      return;
+    }
     router.push('/');
     router.refresh();
   }
@@ -61,6 +73,108 @@ export default function LoginForm() {
     }
     router.push('/');
     router.refresh();
+  }
+
+  async function startMfaSetup(token: string) {
+    setPending(true);
+    const res = await fetch('/api/session/mfa-setup', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'start', setupToken: token }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const body = await res.json();
+    setPending(false);
+    if (!res.ok) {
+      setError(body?.message ?? 'Podešavanje 2FA nije uspelo.');
+      return;
+    }
+    setOtpauthUrl(body.otpauthUrl);
+    setRecoveryCodes(body.recoveryCodes ?? []);
+  }
+
+  async function onMfaSetupSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+    const form = new FormData(e.currentTarget);
+
+    const res = await fetch('/api/session/mfa-setup', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'confirm', setupToken, code: form.get('code') }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const body = await res.json();
+    setPending(false);
+
+    if (!res.ok) {
+      setError(body?.message ?? 'Neispravan kod.');
+      return;
+    }
+    router.push('/');
+    router.refresh();
+  }
+
+  // Tajna se čita iz otpauth URL-a — ista vrednost koju nosi QR kod, za ručan unos u
+  // aplikaciju kad skeniranje nije moguće (npr. autentifikator na istom računaru).
+  const manualSecret = otpauthUrl ? new URLSearchParams(otpauthUrl.split('?')[1] ?? '').get('secret') : null;
+
+  if (step === 'mfa-setup') {
+    return (
+      <form onSubmit={onMfaSetupSubmit} className="flex flex-col gap-3">
+        <h1 className="font-mono text-lg">&gt; 2fa --setup</h1>
+        <p className="text-xs text-ink-dim">
+          Ovaj nalog još nema podešenu dvofaktorsku prijavu, a ona je obavezna za interne uloge.
+          Podesite je sada — traje jednom.
+        </p>
+        {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+
+        {manualSecret && (
+          <div className="rounded border border-border bg-panel-2 p-3">
+            <p className="text-xs text-ink-faint">1. dodajte nalog u autentifikator aplikaciju</p>
+            <a href={otpauthUrl} className="mt-2 block break-all font-mono text-xs text-accent underline">
+              otvori u aplikaciji (na telefonu)
+            </a>
+            <p className="mt-2 text-xs text-ink-faint">ili unesite ključ ručno:</p>
+            <code className="mt-1 block select-all break-all rounded bg-bg px-2 py-1 font-mono text-sm tracking-widest text-ink">
+              {manualSecret}
+            </code>
+          </div>
+        )}
+
+        {recoveryCodes.length > 0 && (
+          <div className="rounded border border-warn bg-warn-bg p-3">
+            <p className="text-xs font-semibold text-ink">
+              2. sačuvajte rezervne kodove — prikazuju se SAMO sada
+            </p>
+            <p className="text-xs text-ink-dim">Svaki važi jednom, za slučaj gubitka telefona.</p>
+            <div className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs text-ink">
+              {recoveryCodes.map((c) => (
+                <code key={c} className="select-all rounded bg-bg px-2 py-1">{c}</code>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <label className="text-xs text-ink-faint">
+          3. unesite prvi 6-cifreni kod iz aplikacije
+          <input
+            name="code"
+            required
+            maxLength={6}
+            autoFocus
+            placeholder="000000"
+            className="mt-1 w-full rounded border border-border bg-bg px-3 py-2 text-center font-mono text-lg tracking-[0.4em] text-ink"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={pending || !manualSecret}
+          className="rounded bg-accent px-4 py-2 font-mono font-semibold text-accent-ink hover:bg-accent-strong disabled:opacity-50"
+        >
+          ./aktiviraj_2fa
+        </button>
+      </form>
+    );
   }
 
   if (step === 'mfa') {

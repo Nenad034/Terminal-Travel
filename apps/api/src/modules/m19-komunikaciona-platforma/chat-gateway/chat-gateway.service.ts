@@ -13,7 +13,7 @@ import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PresenceService } from '../presence/presence.service';
 import { ConversationsService } from '../conversations/conversations.service';
-import { AccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { AccessTokenPayload, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 
 // M19 spec §3/§8 — WS namespace /ws/chat. Prvi WebSocket kod u repozitorijumu (nema postojećeg
 // presedana, standardni NestJS Gateway obrazac — vlasnik potvrdio @nestjs/websockets + socket.io,
@@ -47,7 +47,7 @@ export class ChatGatewayService implements OnGatewayConnection, OnGatewayDisconn
 
     let payload: AccessTokenPayload;
     try {
-      payload = this.jwt.verify<AccessTokenPayload>(token);
+      payload = assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(token));
     } catch {
       socket.disconnect(true);
       return;

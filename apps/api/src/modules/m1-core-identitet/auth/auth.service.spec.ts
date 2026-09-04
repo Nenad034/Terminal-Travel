@@ -182,7 +182,10 @@ describe('AuthService', () => {
       await expect(service.login('user@tt.rs', 'ispravna-lozinka-12', null)).rejects.toThrow(ForbiddenException);
     });
 
-    it('interna uloga bez podešene 2FA ne sme proći login (M1 spec §5 — "ne može proći bez uspešno podešene 2FA")', async () => {
+    // M1 spec §5 (dopuna 4.9.2026) — pravilo "ne može proći bez 2FA" ostaje; menja se SAMO
+    // oblik odbijanja: umesto greške (koja je novozaposlenog trajno blokirala) izdaje se uzak
+    // token koji otvara isključivo podešavanje 2FA. Pun pristup i dalje NE dobija.
+    it('interna uloga bez podešene 2FA ne dobija pristupni token, nego setupToken (M1 spec §5)', async () => {
       const { service, prisma } = makeService();
       const passwordHash = await argon2.hash('ispravna-lozinka-12', { type: argon2.argon2id });
       prisma.user.findUnique.mockResolvedValue({
@@ -195,7 +198,10 @@ describe('AuthService', () => {
       });
       prisma.userRole.findMany.mockResolvedValue([{ role: { name: 'VLASNIK' } }]);
 
-      await expect(service.login('vlasnik@tt.rs', 'ispravna-lozinka-12', null)).rejects.toThrow(ForbiddenException);
+      const res = await service.login('vlasnik@tt.rs', 'ispravna-lozinka-12', null);
+
+      expect(res).toEqual({ requiresMfaSetup: true, setupToken: expect.any(String) });
+      expect(res).not.toHaveProperty('accessToken');
     });
 
     it('Gost bez 2FA sme da se prijavi (2FA je opciona za Gosta, M1 spec §5)', async () => {

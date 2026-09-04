@@ -6,6 +6,7 @@ import { PermissionsService } from '../permissions/permissions.service';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
+import { ConfirmMfaSetupDto, StartMfaSetupDto } from './dto/mfa-setup.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -32,6 +33,20 @@ export class AuthController {
   @Post('mfa/verify')
   verifyMfa(@Body() dto: MfaVerifyDto, @Req() req: Request) {
     return this.auth.verifyMfa(dto.mfaToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
+  }
+
+  // M1 spec §5/§6 (dopuna 4.9.2026) — prvo podešavanje 2FA za nalog koji je 2FA obavezan
+  // a još je nema. Namerno BEZ JwtAuthGuard: access token u tom trenutku ne postoji i ne
+  // može postojati. Ogradu nosi sam `setupToken` (izdaje ga login tek posle tačne lozinke,
+  // traje 10 min, i nijedan drugi guard ga ne prihvata) — vidi AuthService.verifyMfaSetupToken.
+  @Post('mfa/setup/start')
+  startMfaSetup(@Body() dto: StartMfaSetupDto) {
+    return this.auth.startMfaSetup(dto.setupToken);
+  }
+
+  @Post('mfa/setup/confirm')
+  confirmMfaSetup(@Body() dto: ConfirmMfaSetupDto, @Req() req: Request) {
+    return this.auth.confirmMfaSetup(dto.setupToken, dto.code, req.ip ?? null, req.headers['user-agent'] ?? null);
   }
 
   @Post('refresh')

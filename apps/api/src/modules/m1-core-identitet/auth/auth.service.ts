@@ -13,6 +13,10 @@ const FAILED_ATTEMPTS_BEFORE_LOCK = 5; // M1 spec §5
 const LOCK_DURATION_MINUTES = 15; // M1 spec §5
 const ACCESS_TOKEN_TTL = '15m'; // M1 spec §3.7
 const REFRESH_TOKEN_TTL_DAYS = 7; // M1 spec §3.7
+// M1 spec §5 (dopuna 4.9.2026) — token za PRVO podešavanje 2FA. Kraći život nema smisla
+// (skeniranje QR koda + prepisivanje rezervnih kodova traje), duži bi bespotrebno proširio
+// prozor u kom postoji token izdat pre nego što je 2FA uopšte uključena.
+const MFA_SETUP_TOKEN_TTL = '10m';
 const MFA_PENDING_TOKEN_TTL = '5m';
 const PASSWORD_RESET_TTL_HOURS = 1; // M1 spec §5
 
@@ -107,9 +111,13 @@ export class AuthService {
 
     const requiresMfa = await this.userRequiresMfa(user.id);
     if (requiresMfa && !user.mfaEnabled) {
-      // M1 spec §5: interna uloga mora podesiti 2FA pre prvog pristupa bilo čemu
-      // osim stranice za podešavanje — ta stranica/endpoint je van obima ovog fajla.
-      throw new ForbiddenException('Podešavanje dvofaktorske autentikacije je obavezno pre prijave — dovršite podešavanje 2FA.');
+      // M1 spec §5 (dopuna 4.9.2026, odluka vlasnika): interna uloga mora podesiti 2FA pre
+      // prvog pristupa bilo čemu osim stranice za podešavanje. Ranije je ovde bacana greška,
+      // pa se novozaposleni NIKAD nije mogao prijaviti — jedini enroll endpoint tražio je
+      // access token koji se izdaje tek posle prijave (zatvoren krug, blokada i na
+      // produkciji). Sada se izdaje uzak token koji otvara isključivo mfa/setup/* endpointe.
+      const setupToken = this.jwt.sign({ sub: user.id, type: 'mfa_setup_pending' }, { expiresIn: MFA_SETUP_TOKEN_TTL });
+      return { requiresMfaSetup: true, setupToken };
     }
 
     if (user.mfaEnabled) {
@@ -343,6 +351,82 @@ export class AuthService {
     });
 
     return { otpauthUrl, recoveryCodes: rawCodes };
+  }
+
+  /**
+   * M1 spec §5/§6 (dopuna 4.9.2026) — prvo podešavanje 2FA, bez access tokena.
+   * Prihvata ISKLJUČIVO `mfa_setup_pending` token koji `login` izdaje kad je lozinka
+   * tačna a obavezna 2FA još nije uključena. Namerno odvojeno od `enrollMfa` (koji ostaje
+   * iza JwtAuthGuard, za korisnika koji 2FA menja iz već prijavljene sesije).
+   */
+  private verifyMfaSetupToken(setupToken: string): string {
+    let payload: { sub: string; type: string };
+    try {
+      payload = this.jwt.verify(setupToken);
+    } catch {
+      throw new UnauthorizedException('Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.');
+    }
+    if (payload.type !== 'mfa_setup_pending') {
+      throw new UnauthorizedException('Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.');
+    }
+    return payload.sub;
+  }
+
+  /** Fail-closed provera zajednička za oba koraka podešavanja. */
+  private async loadUserForMfaSetup(setupToken: string) {
+    const userId = this.verifyMfaSetupToken(setupToken);
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      throw new ForbiddenException('Nalog je privremeno zaključan — pokušajte kasnije');
+    }
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException(`Nalog nije aktivan (status: ${user.status})`);
+    }
+    // Token vredi samo dok 2FA STVARNO nije uključena. Ako jeste (npr. podešavanje je u
+    // međuvremenu završeno na drugom uređaju), ovaj put ne sme ponovo da generiše tajnu —
+    // time bi se postojeći autentifikator tiho poništio.
+    if (user.mfaEnabled) {
+      throw new ForbiddenException('Dvofaktorska autentikacija je već podešena za ovaj nalog — prijavite se normalno.');
+    }
+    return user;
+  }
+
+  async startMfaSetup(setupToken: string) {
+    const user = await this.loadUserForMfaSetup(setupToken);
+    return this.enrollMfa(user.id);
+  }
+
+  async confirmMfaSetup(setupToken: string, code: string, ip: string | null, userAgent: string | null) {
+    const user = await this.loadUserForMfaSetup(setupToken);
+    if (!user.mfaSecretEncrypted) {
+      throw new BadRequestException('Podešavanje 2FA nije započeto — pozovite /auth/mfa/setup/start.');
+    }
+
+    const secret = decryptSecret(user.mfaSecretEncrypted);
+    if (!authenticator.verify({ token: code, secret })) {
+      // Isti brojač i isto zaključavanje kao pogrešna lozinka i pogrešan mfa/verify kod
+      // (M1 spec §5, dopuna 29.8.2026) — namerno bez posebnog brojača za ovaj korak.
+      await this.recordFailedAttempt(user.id, user.failedLoginAttempts, ip, 'auth.mfa_failed');
+      throw new UnauthorizedException('Neispravan MFA kod');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { mfaEnabled: true, failedLoginAttempts: 0, lockedUntil: null },
+    });
+    await this.auditLog.write({
+      actorType: 'HUMAN',
+      actorId: user.id,
+      module: 'M1',
+      action: 'auth.mfa_enabled',
+      resourceType: 'User',
+      resourceId: user.id,
+      context: { via: 'mfa_setup_pending' },
+    });
+
+    // Podešavanje je ujedno i dokaz identiteta (tačna lozinka + važeći TOTP) — nema razloga
+    // terati korisnika da ponovo unosi lozinku odmah posle skeniranja QR koda.
+    return this.issueTokens(user.id, ip, userAgent);
   }
 
   async confirmMfaEnrollment(userId: string, code: string) {

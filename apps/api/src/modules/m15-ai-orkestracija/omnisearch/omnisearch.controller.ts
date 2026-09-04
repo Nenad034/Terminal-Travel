@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { OmnisearchService } from './omnisearch.service';
 import { ExtractFileService } from './extract-file.service';
 import { OmnisearchQueryDto } from './dto/omnisearch-query.dto';
-import { AccessTokenPayload, JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
+import { AccessTokenPayload, JwtAuthGuard, assertAccessTokenPayload } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 // M15 spec §6.5.4.3 dopuna v1.43 — gornja granica veličine priloženog dokumenta (odbrana u
@@ -77,7 +77,7 @@ export class OmnisearchController {
     if (channel === 'INTERNAL_PANEL') {
       if (!token) throw new UnauthorizedException('channel=INTERNAL_PANEL zahteva prijavu (Bearer token).');
       try {
-        return this.jwt.verify<AccessTokenPayload>(token).sub;
+        return assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(token)).sub;
       } catch {
         throw new UnauthorizedException('Nevažeći ili istekao token.');
       }
@@ -85,7 +85,7 @@ export class OmnisearchController {
 
     if (!token) return null;
     try {
-      return this.jwt.verify<AccessTokenPayload>(token).sub;
+      return assertAccessTokenPayload(this.jwt.verify<AccessTokenPayload>(token)).sub;
     } catch {
       return null; // istekao/nevažeći token na anonimnom kanalu — tretiraj kao anoniman posetilac, ne grešku
     }

@@ -17,9 +17,17 @@ POST /iam/auth/login
    │
    ├─ nalog nema 2FA  ──────────────►  {accessToken, refreshToken}   ✔ gotovo
    │
-   └─ nalog ima 2FA   ──────────────►  {requiresMfa: true, mfaToken}
+   ├─ nalog ima 2FA   ──────────────►  {requiresMfa: true, mfaToken}
+   │                                          │
+   │                                POST /iam/auth/mfa/verify
+   │                                          │
+   │                                          └─►  {accessToken, refreshToken}  ✔
+   │
+   └─ 2FA obavezna, još nije podešena ──►  {requiresMfaSetup: true, setupToken}
                                               │
-                                    POST /iam/auth/mfa/verify
+                                    POST /iam/auth/mfa/setup/start    (tajna + rezervni kodovi)
+                                              │
+                                    POST /iam/auth/mfa/setup/confirm  (prvi kod)
                                               │
                                               └─►  {accessToken, refreshToken}  ✔
 ```
@@ -30,6 +38,10 @@ POST /iam/auth/login
 | :---- | :---- | :---- |
 | `accessToken` | **15 minuta** | šalje se u `Authorization: Bearer` na svaki poziv |
 | `refreshToken` | **7 dana** | služi samo da se dobije nov `accessToken` |
+| `mfaToken` | **5 minuta** | isključivo `POST /iam/auth/mfa/verify` |
+| `setupToken` | **10 minuta** | isključivo `POST /iam/auth/mfa/setup/*` |
+
+**Privremeni tokeni (`mfaToken`, `setupToken`) NISU pristupni tokeni.** Poslati kao `Authorization: Bearer` vraćaju `401` na svakom endpointu — provera gleda i vrstu tokena, ne samo da li je potpis važeći (ispravljeno 4.9.2026).
 
 **`accessToken` ne nosi nijedan podatak o pravima** — samo ko ste i koja je sesija. Prava se računaju **uživo nad bazom** pri svakom pozivu. To znači da oduzimanje dozvole deluje odmah, a ne tek kad token istekne. Ako gradite integraciju, nemojte pokušavati da čitate prava iz tokena — nisu tamo.
 
@@ -78,8 +90,13 @@ Nalog nastaje odmah kao `ACTIVE` (ne čeka aktivaciju e-poštom) i automatski do
 {"message":"Nalog je privremeno zaključan — pokušajte kasnije","error":"Forbidden","statusCode":403}
 {"message":"Nalog čeka aktivaciju — postavite lozinku preko linka poslatog na email","error":"Forbidden","statusCode":403}
 {"message":"Nalog nije aktivan (status: SUSPENDED)","error":"Forbidden","statusCode":403}
-{"message":"Podešavanje dvofaktorske autentikacije je obavezno pre prijave — dovršite podešavanje 2FA.","error":"Forbidden","statusCode":403}
 ```
+
+**Odgovor `201` — 2FA je obavezna za ovaj nalog, ali još nije podešena** (dodato 4.9.2026):
+```json
+{ "requiresMfaSetup": true, "setupToken": "eyJhbGciOiJIUzI1NiIs..." }
+```
+Ranije je ovaj slučaj vraćao `403` i nije postojao način da se 2FA uopšte podesi — nalog je bio trajno blokiran. `setupToken` traje **10 minuta** i otvara isključivo dva endpointa ispod.
 
 > **Ista poruka za nepostojeći nalog i za pogrešnu lozinku** — „Pogrešan email ili lozinka" u oba slučaja. Namerno: različite poruke bi dozvolile da se pogađanjem adresa utvrdi ko ima nalog u sistemu. Ne pokušavajte da razlikujete ta dva slučaja, ne možete.
 
@@ -96,6 +113,47 @@ Nalog nastaje odmah kao `ACTIVE` (ne čeka aktivaciju e-poštom) i automatski do
 ```json
 {"message":"Nevažeći ili istekao MFA token","error":"Unauthorized","statusCode":401}
 ```
+
+### POST /iam/auth/mfa/setup/start
+**Bez tokena** (nosi `setupToken` u telu). Prvi korak podešavanja obavezne 2FA za nalog koji je još nema.
+
+**Zahtev:**
+```json
+{ "setupToken": "eyJhbGciOiJIUzI1NiIs..." }
+```
+
+**Odgovor `201`:**
+```json
+{
+  "otpauthUrl": "otpauth://totp/Terminal:petar.petrovic%40primer.rs?secret=JBSWY3DPEHPK3PXP&period=30&digits=6&algorithm=SHA1&issuer=Terminal",
+  "recoveryCodes": ["a3f9c1d0e2", "7b4e8a2c9f", "..."]
+}
+```
+`recoveryCodes` su **10 jednokratnih kodova**; vraćaju se **samo ovde i samo jednom** (u bazi stoje heširani). Prikažite ih korisniku da ih sačuva — kasnije se ne mogu ponovo pročitati.
+
+Poziv **ne uključuje** 2FA: `mfaEnabled` ostaje `false` dok kod nije potvrđen. Ponovljen poziv sa istim tokenom generiše novu tajnu (raniji QR prestaje da važi) — namerno, jer korisnik može prekinuti skeniranje na pola.
+
+**Greške:**
+```json
+{"message":"Nevažeći ili istekao token za podešavanje 2FA — prijavite se ponovo.","error":"Unauthorized","statusCode":401}
+{"message":"Dvofaktorska autentikacija je već podešena za ovaj nalog — prijavite se normalno.","error":"Forbidden","statusCode":403}
+```
+
+### POST /iam/auth/mfa/setup/confirm
+**Bez tokena** (nosi `setupToken` u telu). Drugi korak — potvrđuje prvi kod iz autentifikator aplikacije.
+
+```json
+{ "setupToken": "eyJhbGciOiJIUzI1NiIs...", "code": "482915" }
+```
+Odgovor je **isti par tokena kao uspešna prijava** — korisnik ne mora ponovo da unosi lozinku.
+
+**Greške:**
+```json
+{"message":"Neispravan MFA kod","error":"Unauthorized","statusCode":401}
+{"message":"Podešavanje 2FA nije započeto — pozovite /auth/mfa/setup/start.","error":"Bad Request","statusCode":400}
+```
+
+> **Pogrešan kod se broji u isto zaključavanje kao pogrešna lozinka** — 5 pokušaja i nalog je zaključan 15 minuta. Ne pokušavajte automatski u petlji.
 
 ### POST /iam/auth/refresh
 **Bez tokena** (nosi `refreshToken` u telu).
