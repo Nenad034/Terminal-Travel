@@ -39,11 +39,11 @@ export default function KatalogCatalog({ products }: { products: Product[] }) {
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     return products.filter((p) => {
-      if (filters.tip && p.type !== filters.tip) return false;
-      if (filters.status && p.status !== filters.status) return false;
-      if (filters.drzava && p.destinationCountry !== filters.drzava) return false;
-      if (filters.grad && p.destinationCity !== filters.grad) return false;
-      if (filters.konekcija && connectionKey(p) !== filters.konekcija) return false;
+      if (filters.tip.length > 0 && !filters.tip.includes(p.type)) return false;
+      if (filters.status.length > 0 && !filters.status.includes(p.status)) return false;
+      if (filters.drzava.length > 0 && !filters.drzava.includes(p.destinationCountry)) return false;
+      if (filters.grad.length > 0 && !filters.grad.includes(p.destinationCity)) return false;
+      if (filters.konekcija.length > 0 && !filters.konekcija.includes(connectionKey(p))) return false;
       if (q) {
         const name = p.translations?.find((t) => t.languageCode === 'sr')?.name ?? '';
         if (!name.toLowerCase().includes(q)) return false;
@@ -52,7 +52,8 @@ export default function KatalogCatalog({ products }: { products: Product[] }) {
     });
   }, [products, filters]);
 
-  const activeCount = [filters.tip, filters.status, filters.drzava, filters.grad, filters.konekcija, filters.q].filter(Boolean).length;
+  const activeCount =
+    filters.tip.length + filters.status.length + filters.drzava.length + filters.grad.length + filters.konekcija.length + (filters.q ? 1 : 0);
 
   return (
     <div className="flex flex-col gap-3">
