@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import ClearableTextField from '@/components/ClearableTextField';
-import ClearableDateRange from '@/components/ClearableDateRange';
 import DateRangeField from '@/components/DateRangeField';
+import SuggestField, { type Suggestion } from '@/components/SuggestField';
 import type { CalendarFiltersShape, CalendarView } from './calendar-utils';
 
 // Isti filter-skup kao "Lista rezervacija" (RealFilterBar.tsx), na zahtev vlasnika 27.8.2026
@@ -128,10 +128,27 @@ function DetailedSearchModal({
   const [stayTo, setStayTo] = useState(filters.stayTo ?? '');
   const [returnFrom, setReturnFrom] = useState(filters.returnFrom ?? '');
   const [returnTo, setReturnTo] = useState(filters.returnTo ?? '');
+  const [createdFrom, setCreatedFrom] = useState(filters.createdFrom ?? '');
+  const [createdTo, setCreatedTo] = useState(filters.createdTo ?? '');
+  // Naziv hotela — prediktivno (5.9.2026, vlasnikov zahtev: "hotel (prediktivno)"). Spisak
+  // naziva se učitava JEDNOM po otvaranju modala (`GET /catalog/products?type=ACCOMMODATION`,
+  // ista BFF ruta kao `AddServicePanel.tsx`) i dalje se filtrira lokalno po otkucanom tekstu —
+  // katalog ne raste dovoljno brzo da bi ovo bilo skupo, a izbegava mrežni poziv na svaki taster.
+  const [productName, setProductName] = useState(filters.productName ?? '');
+  const hotelCache = useRef<{ name: string; destinationCity: string }[] | null>(null);
+  async function fetchHotelSuggestions(q: string): Promise<Suggestion[]> {
+    if (!hotelCache.current) {
+      const res = await fetch('/api/catalog/products?type=ACCOMMODATION');
+      hotelCache.current = res.ok ? await res.json() : [];
+    }
+    const needle = q.trim().toLowerCase();
+    const matches = needle ? hotelCache.current!.filter((p) => p.name.toLowerCase().includes(needle)) : hotelCache.current!;
+    return matches.slice(0, 8).map((p) => ({ value: p.name, label: p.name, hint: p.destinationCity }));
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[8vh]" onClick={onClose}>
-      <div className="w-full max-w-2xl rounded-xl border border-border bg-panel p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full max-w-4xl rounded-xl border border-border bg-panel p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-ink">Detaljna pretraga</h2>
           <button type="button" onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
@@ -152,29 +169,37 @@ function DetailedSearchModal({
               je uvek uži od stranice, pa `flex-1` polja nemaju fiksnu širinsku referencu i
               `flex-wrap` ih sažima nepredvidivo. Rešenje: `grid` sa fiksnim brojem kolona —
               svako polje dobija stvarno poznatu širinu kolone bez obzira na širinu modala. */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {/* Država / destinacija / hotel u JEDNOM redu (5.9.2026, vlasnikov zahtev) — logički
+              jedna celina (gde je hotel), pa idu prvi, jedni pored drugih, ne razbacani po
+              gridu redosledom kojim su ranije dodavani. */}
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Destinacija (država)">
+              <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
+            </Field>
+            <Field label="Destinacija (grad)">
+              <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
+            </Field>
+            {/* Naziv hotela, prediktivno (5.9.2026, vlasnikov zahtev) — pretražuje
+                `ProductTranslation.name` (M2 spec §2.2) na serveru; predlozi ovde su samo
+                pomoć pri kucanju (`SuggestField.tsx`, isti obrazac kao država/destinacija na
+                ekranu pretrage), slobodan unos i dalje važi i bez izbora sa liste. */}
+            <Field label="Naziv hotela">
+              <input type="hidden" name="productName" value={productName} />
+              <SuggestField value={productName} onChange={setProductName} fetchSuggestions={fetchHotelSuggestions} placeholder="npr. Sunce" />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
             <Field label="Broj">
               <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={false} />
             </Field>
             <Field label="Nosilac rezervacije">
               <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={false} />
             </Field>
-            {/* Naziv hotela (5.9.2026, vlasnikov zahtev: "treba da dodate i pretragu po nazivu
-                hotela") — pretražuje `ProductTranslation.name` (M2 spec §2.2), ne `Product`
-                samog (naziv je jezički zavisan, isti razlog kao M5 spec §11 komentar). */}
-            <Field label="Naziv hotela">
-              <ClearableTextField name="productName" defaultValue={filters.productName ?? ''} placeholder="npr. Sunce" className={inputClass} autoSubmit={false} />
-            </Field>
             <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={false} />
             <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} autoSubmit={false} />
             <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} autoSubmit={false} />
             <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} autoSubmit={false} />
-            <Field label="Destinacija (grad)">
-              <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
-            </Field>
-            <Field label="Destinacija (država)">
-              <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
-            </Field>
             <Field label="Valuta">
               <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={false} />
             </Field>
@@ -187,13 +212,25 @@ function DetailedSearchModal({
             </Field>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3">
+            {/* Kreirano/dolazak/odlazak od-do — ISTI dvomesečni kalendar za sve troje (5.9.2026,
+                vlasnikov zahtev: "kalendar za kreirano od...do treba da bude isti kao preostala
+                dva"), bez broja noćenja i +3/+5/+7 dana kod sve tri (nezavisne granice, ne
+                "boravak od N noći"). */}
             <Field label="Kreirano od/do">
-              <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} autoSubmit={false} />
+              <DateRangeField
+                fromValue={createdFrom}
+                toValue={createdTo}
+                onChange={(f, t) => {
+                  setCreatedFrom(f);
+                  setCreatedTo(t);
+                }}
+                showNightsAndQuick={false}
+                nameFrom="createdFrom"
+                nameTo="createdTo"
+                className={inputClass}
+              />
             </Field>
-            {/* Dolazak/odlazak od-do (5.9.2026, vlasnikov zahtev) — isti dvomesečni kalendar kao
-                "termin" na ekranu pretrage (M5 spec §3.0c.2), ali BEZ broja noćenja i +3/+5/+7
-                dana ("ne trebaju nam sada") — ovo su nezavisne granice, ne "boravak od N noći". */}
             <Field label="Dolazak od/do">
               <DateRangeField
                 fromValue={stayFrom}
