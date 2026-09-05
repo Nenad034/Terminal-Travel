@@ -49,18 +49,37 @@ Isto se dešavalo i pri kliku na termin u **kalendaru**. Klik na sam **broj reze
 
 ---
 
-### 1.2 Najava dobavljaču se obeleži kao poslata, a mejl ne ode
+### 1.2 Sistem beleži „poslato" za poštu koja ne izlazi iz kuće
 
-**Simptom:** `M22MailboxStubService.sendViaSharedMailbox()` vraća `{ sent: true }` i samo upiše red u dnevnik. Pozivaju ga `SupplierManifestsService` i `SupplierChangeNoticesService` — dakle **operativne liste i izmene rezervacija ka dobavljačima**. Status pređe `DRAFT → SENT`, ekran pokaže „poslato", hotel nikad ne dobije poruku.
+> **Dopuna i ispravka predloga (5.9.2026), po `40-PRAVILA-REVIZIJE-KODA.md`.** Sam nalaz opstaje i potvrđen je. Ali **predloženo rešenje iz prve verzije bilo je neizvodljivo**, i obim je bio uži nego što jeste — oboje je otkrio obavezan pokušaj obaranja (pravilo 5). Detalji u „Pokušaj obaranja" ispod.
 
-**Uzrok:** stub je pisan dok M22 nije postojao, i to piše u njemu:
+**Klasa dokaza: C (pročitano u kodu), sa prebrojanim obimom.**
 
-> „M22 (Email/Inbox platforma) **još nije implementiran** … ovaj servis je TODO stub/no-op"
+**Simptom.** Na tri mesta sistem trajno upisuje da je poruka poslata, a nijedna ne izlazi iz kuće:
 
-Ali M22 **jeste** implementiran (`apps/api/src/modules/m22-email-inbox/` sa `email-threads`, `mailboxes`, `email-provider`), a od 4.9.2026 postoji i `MailerService` sa pravim SMTP-om. Tvrdnja u komentaru je preživela modul koji opisuje — **to je zamka 13.2 iz `33-ZAMKE`, ponovljena**.
+| # | Gde | Šta se upiše kao istina | Vidi li to čovek danas |
+| :-- | :---- | :---- | :---- |
+| 1 | `SupplierManifestsService.send()` | `status = SENT`, `sentAt`, `sentToEmail`, `BookingItem.announcedAt`, revizijski trag `supplier_manifest.sent` | ne — nema ekrana u panelu |
+| 2 | `SupplierChangeNoticesService.send()` | `status = SENT`, `sentAt`, trag `supplier_change_notice.sent` | ne — nema ekrana u panelu |
+| 3 | `EmailThreadsService.sendDraft()` (M22) | `sentBy`, `providerMessageId = mock-<uuid>`, trag `email_message.draft_sent` | **da** — dugme „pošalji" u `EmailMessagesPanel.tsx` |
 
-**Predlog:** povezati stub sa stvarnim M22 sandučetom (ili `MailerService`-om), a do tada — što je važnije — **prestati vraćati `sent: true` za nešto što nije poslato**. Lažan uspeh je gori od jasne greške, jer niko ne zna da hotel nije obavešten.
-**Procena:** 1–2 sata za iskren povratni podatak, oko dan za pravo povezivanje na M22.
+Treće mesto je jedino koje čovek danas stvarno klikne, i ono ponaša se kao uspeh.
+
+**Uzrok (odvojen dokaz, pravilo 2).** Nije jedan stub, nego **jedan izbor koji nije donet**. `MockEmailProviderAdapter` je *jedina* implementacija `EmailProviderAdapter` (`EmailProviderFactory` nema drugu granu); ona samo loguje upozorenje i vraća izmišljen `providerMessageId`. To nije previd — M22 spec §10 izričito čeka **vlasnikov izbor provajdera** (Gmail API / Microsoft Graph / IMAP-SMTP). Poštena je i sama poruka u logu („NIJE stvarno poslat"). Neiskren je samo **zapis u bazi**, koji ne pravi razliku između poslatog i pripremljenog.
+
+Uz to, komentar u `M22MailboxStubService` tvrdi da „M22 još nije implementiran" — netačno od kad M22 postoji (`M22EmailInboxModule` je registrovan u `app.module.ts:56`). To je zamka 13.2 (tvrdnja preživela stanje koje opisuje); komentar ispravljen 5.9.2026.
+
+**Pokušaj obaranja (pravilo 5): „nalaz bi bio netačan ako postoji spreman put za stvarno slanje."** Provereno — **ne postoji**, i time je prvobitni predlog oboren:
+
+- *„povezati stub sa M22"* — **ne bi poslalo ništa.** M22 jeste implementiran, ali njegov jedini provajder je mock. Povezivanje bi lažno „poslato" pomerilo jedan sloj dublje, ne uklonilo ga.
+- *„ili sa `MailerService`-om"* — **suprotno pisanom pravilu.** Sopstvena dokumentacija tog servisa isključuje ovu upotrebu: „NIJE za … sandučad iz M22 (tamo se šalje U IME sandučeta, preko konekcije tog sandučeta, što je zaseban provajderski izbor — M22 §10)." `MailerService` šalje sistemsku poštu sa adrese kuće; najava dobavljaču ide iz zajedničkog sandučeta i mora ostati u toj niti da bi odgovor hotela imao gde da se veže.
+
+Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajderu**. Ono što jeste popravljivo odmah je da zapis prestane da tvrdi neistinu.
+
+**Sporedni nalaz koji je isplivao (klasa A):** za `SupplierManifest` i `SupplierChangeNotice` **ne postoji nijedan ekran u panelu** — pretraga po `apps/panel/src` vraća samo M22 ekran e-pošte. Operativne liste i izmene ka dobavljaču danas se mogu pokrenuti isključivo pozivom API-ja. Ovo je „logika postoji, UI ne" iz `CLAUDE.md`, i vodi se odvojeno od 1.2.
+
+**Predlog (odluka je vlasnikova, v. razgovor 5.9.2026):** dok provajder nije izabran, klik na „pošalji" ne sme da ostavi trag koji se ne razlikuje od stvarnog slanja. Tri moguća oblika — od najmanje do najviše zahvatne izmene — dati su vlasniku na izbor; svaka menja ponašanje, pa traži dopunu M5 §8.4/§8.8 (i M22 §4) pre koda, po tvrdom pravilu iz `CLAUDE.md`.
+**Procena:** 2–4 sata za izabran oblik iskrenog zapisa; pravo slanje zavisi od izbora provajdera, ne od koda.
 
 ---
 
