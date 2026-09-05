@@ -8,7 +8,11 @@ describe('secret-box (M1 spec §3.1/§3.7 — enkripcija MFA sekreta, heš token
   });
 
   afterAll(() => {
-    process.env.ENCRYPTION_KEY = ORIGINAL_ENV;
+    // ISPRAVKA 5.9.2026 — ranije je ovde stajalo samo dodeljivanje, pa je kad `ORIGINAL_ENV`
+    // nije postojao promenljiva ostajala u pogrešnom stanju i RUŠILA sledeći test fajl u istom
+    // jest radniku (M4 `provider-configs.service.spec.ts`). Vidi `src/jest.setup.ts`.
+    if (ORIGINAL_ENV === undefined) delete process.env.ENCRYPTION_KEY;
+    else process.env.ENCRYPTION_KEY = ORIGINAL_ENV;
   });
 
   describe('encryptSecret / decryptSecret', () => {
