@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
 import BarChart, { type ChartSeries } from './BarChart';
 import ShareReportButton from './ShareReportButton';
+import DynamicTree, { type DynamicNode } from './DynamicTree';
 
 
 interface Bucket {
@@ -47,17 +48,6 @@ interface OccupancyReport {
   breakdown: (Bucket & { nights: number })[] | null;
   unclassifiedCount: number;
   lastSyncedAt: string | null;
-}
-
-interface DynamicNode {
-  key: string;
-  count: number;
-  pax: number;
-  nights: number;
-  revenue: number;
-  paid: number;
-  balance: number;
-  children: DynamicNode[];
 }
 
 interface DynamicReport {
@@ -112,6 +102,18 @@ const NIGHTS_SERIES: ChartSeries<Bucket & { nights: number }>[] = [{ label: 'no�
 
 const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
+// Preset kombinacije za "Dinamički" (5.9.2026, vlasnikov zahtev: "dodajte i pregled na nivou
+// hotela na destinacijama") — brz izbor umesto ručnog kucanja tačnih imena dimenzija.
+const DYNAMIC_PRESETS = [
+  { label: 'Destinacija', dims: 'destination_country,destination_city' },
+  { label: 'Destinacija → Hotel', dims: 'destination_country,destination_city,product_name' },
+  { label: 'Kanal', dims: 'channel' },
+  { label: 'Dobavljač', dims: 'supplier_name' },
+] as const;
+// Serija za grafik-prikaz "Dinamički" (5.9.2026, vlasnikov zahtev: "omoguci infografik pregled
+// kako sam ranije trazio") — SAMO vrhovi stabla (`dynamicReport.tree`, prvi nivo), isti princip
+// kao ostali izveštaji (grafik nije svestan ugnježdene strukture).
+const DYNAMIC_SERIES: ChartSeries<DynamicNode>[] = [{ label: 'prihod', color: 'var(--accent)', value: (n) => n.revenue, money: true }];
 
 interface SearchParams {
   tab?: string;
@@ -183,6 +185,18 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     v.set('sub', next);
     return `/izvestaji?${v.toString()}`;
   }
+  // Preset kombinacije dimenzija za "Dinamički" (5.9.2026, vlasnikov zahtev: "dodajte i pregled
+  // na nivou hotela na destinacijama") — isti obrazac kao `subHref`, menja SAMO `groupBy`. Bez
+  // ovoga je jedini način da se dođe do nivoa hotela bilo ručno kucanje u tekstualno polje ispod
+  // (`destination_country,destination_city,product_name`) — presek je brži i ne traži da
+  // korisnik zna tačna imena dimenzija napamet.
+  function dimensionsHref(dims: string): string {
+    const v = baseParams();
+    if (view === 'grafik') v.set('view', 'grafik');
+    v.set('groupBy', dims);
+    return `/izvestaji?${v.toString()}`;
+  }
+  const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
   const profSub: ProfitabilnostSub =
     searchParams?.sub && searchParams.sub in PROFITABILNOST_SUB_LABELS ? (searchParams.sub as ProfitabilnostSub) : 'destinacija';
   const prodajaSub: ProdajaSub = searchParams?.sub && searchParams.sub in PRODAJA_SUB_LABELS ? (searchParams.sub as ProdajaSub) : 'kanal';
@@ -327,7 +341,11 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {/* "poslednje ažurirano" pored dugmadi tabela/grafik (5.9.2026, vlasnikov zahtev) —
               vidi komentar uz `currentLastSyncedAt` iznad za razlog premeštanja. */}
           {tab && <LastSynced value={currentLastSyncedAt} />}
-          {tab && tab !== 'dinamicki' && (
+          {/* "omoguci infografik pregled kako sam ranije trazio" (5.9.2026) — prekidač tabela/
+              grafik radi i za "Dinamički" (ranije jedini izuzetak), na VRHOVIMA stabla
+              (`DYNAMIC_CHART_SERIES` ispod, isti princip kao ostali izveštaji — grafik ne prati
+              ugnježdenu strukturu, samo prvi nivo). */}
+          {tab && (
             <div className="flex overflow-hidden rounded-full border border-border text-xs">
               {(['tabela', 'grafik'] as const).map((v) => (
                 <Link
@@ -418,14 +436,35 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
             </Field>
           )}
           {tab === 'dinamicki' && (
-            <Field label="dimenzije (redosled, zarezom)">
-              <input
-                name="groupBy"
-                defaultValue={searchParams?.groupBy ?? 'destination_country,destination_city'}
-                placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                className="input w-72"
-              />
-            </Field>
+            <>
+              <Field label="dimenzije (redosled, zarezom)">
+                <input
+                  name="groupBy"
+                  defaultValue={currentDims}
+                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
+                  className="input w-72"
+                />
+              </Field>
+              {/* Preset kombinacije (5.9.2026, vlasnikov zahtev: "dodajte i pregled na nivou
+                  hotela na destinacijama") — brz izbor umesto ručnog kucanja; `<Link>`, ne dugme
+                  forme, jer menjaju putanju direktno (isti obrazac kao `SubTabBar`). */}
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] text-ink-faint">brzo</span>
+                <div className="flex flex-wrap gap-1">
+                  {DYNAMIC_PRESETS.map((p) => (
+                    <Link
+                      key={p.dims}
+                      href={dimensionsHref(p.dims)}
+                      className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
+                        currentDims === p.dims ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                      }`}
+                    >
+                      {p.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
           <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             primeni filter
@@ -514,6 +553,10 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
         <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
           {dynamicReport.tree.length === 0 ? (
             <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
+          ) : view === 'grafik' ? (
+            <ChartSection title="Prihod po vrhu stabla">
+              <BarChart rows={dynamicReport.tree} series={DYNAMIC_SERIES} />
+            </ChartSection>
           ) : (
             <DynamicTree nodes={dynamicReport.tree} />
           )}
@@ -538,59 +581,6 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-interface FlatDynamicRow {
-  node: DynamicNode;
-  depth: number;
-}
-
-// Stablo mora ostati stablo (roditelj = zbir dece, §4.2.1) — "Kibana" tabelarni stil (5.9.2026,
-// vlasnikov zahtev: "sredite tabelu kao sto ste za profitabilnost") primenjuje se BEZ menjanja
-// te strukture: sve grane se izravnaju u JEDNU listu redova sa uvlačenjem po dubini (prvi red
-// svakog čvora), ne pretvara se u ravnu Bucket tabelu (roditelji bi se dupli sabrali sa decom).
-function flattenDynamicTree(nodes: DynamicNode[], depth: number, out: FlatDynamicRow[]) {
-  for (const n of nodes) {
-    out.push({ node: n, depth });
-    if (n.children.length > 0) flattenDynamicTree(n.children, depth + 1, out);
-  }
-}
-
-function DynamicTree({ nodes }: { nodes: DynamicNode[] }) {
-  const rows: FlatDynamicRow[] = [];
-  flattenDynamicTree(nodes, 0, rows);
-  return (
-    <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
-      <table className="w-full border-collapse text-xs">
-        <thead>
-          <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
-            <th className="px-4 py-2 text-left font-medium">naziv</th>
-            <th className="px-4 py-2 text-right font-medium">rezervacija</th>
-            <th className="px-4 py-2 text-right font-medium">osoba</th>
-            <th className="px-4 py-2 text-right font-medium">noćenja</th>
-            <th className="px-4 py-2 text-right font-medium">prihod</th>
-            <th className="px-4 py-2 text-right font-medium">naplaćeno</th>
-            <th className="px-4 py-2 text-right font-medium">saldo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ node: n, depth }, i) => (
-            <tr key={`${depth}-${n.key}-${i}`} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
-              <td className="border-t border-border px-4 py-2 font-medium text-ink" style={{ paddingLeft: 16 + depth * 16 }}>
-                {n.key}
-              </td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.count.toLocaleString('sr-RS')}</td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.pax.toLocaleString('sr-RS')}</td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.nights.toLocaleString('sr-RS')}</td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.revenue)}</td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.paid)}</td>
-              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.balance)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
