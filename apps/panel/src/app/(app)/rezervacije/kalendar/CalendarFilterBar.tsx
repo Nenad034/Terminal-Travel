@@ -122,12 +122,16 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
             <form ref={formRef} action="/rezervacije/kalendar" onChange={handleFormChange} className="flex flex-col gap-2 text-xs">
               <input type="hidden" name="view" value={view} />
               <input type="hidden" name="date" value={date} />
-              {/* ISPRAVKA (27.8.2026, na zahtev vlasnika, uz snimak ekrana — "nije sve lepo stalo") —
-                  `flex-wrap` sa `flex-1` po polju je poslednje polje isturao van vidljive širine umesto
-                  da lepo prelomi red. Zamenjeno DVA REDA bez wrap-a (isti obrazac kao RealFilterBar.tsx,
-                  već proveren u produkciji): svako polje u istom `flex` redu dobija `flex-1` da deli
-                  RASPOLOŽIVU širinu ravnomerno, dolazak/odlazak datum-opseg ide u sopstveni drugi red. */}
-              <div className="flex flex-wrap items-end gap-2">
+              {/* ISPRAVKA (5.9.2026, vlasnikov nalaz uz snimak ekrana — polja Status/Uplata/Tip
+                  nastupanja/Tip proizvoda su se stiskala i preklapala). Uzrok: `flex flex-wrap`
+                  + `flex-1 min-w-0` po polju (obrazac preuzet iz PUNE širine stranice, gde je
+                  originalni `CalendarFilterBar` namerno bio BEZ wrap-a — vidi zamenjenu napomenu
+                  od 27.8.2026) ovde radi nad MODALOM koji je uvek uži od stranice, pa `flex-1`
+                  polja nemaju fiksnu širinsku referencu i `flex-wrap` ih sažima nepredvidivo.
+                  Rešenje: `grid` sa fiksnim brojem kolona — svako polje dobija stvarno poznatu
+                  širinu kolone bez obzira na širinu modala, isti princip kao svaka druga forma
+                  fiksne širine u panelu (npr. `SearchCriteriaForm.tsx` `sm:grid-cols-2`). */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Field label="Broj">
                   <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} />
                 </Field>
