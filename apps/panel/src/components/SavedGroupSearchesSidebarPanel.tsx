@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
+import SidebarSection from './SidebarSection';
 import { useTabs } from './TabsContext';
 import { SAVED_VIEWS_CHANGED_EVENT } from './SavedViewsSidebarPanel';
 import type { SavedGroupSearch } from './SearchCriteriaChip';
@@ -28,6 +29,8 @@ function toQueryString(filters: Record<string, string | string[]>): string {
 // navigaciju) — nema novog ekrana, samo više tabova odjednom.
 export default function SavedGroupSearchesSidebarPanel() {
   const [groups, setGroups] = useState<SavedGroupSearch[] | null>(null);
+  // Sklopivo (5.9.2026, vlasnikov zahtev — isti razlog/obrazac kao SavedViewsSidebarPanel.tsx).
+  const [open, setOpen] = useState(false);
   const { openTab } = useTabs();
 
   async function load() {
@@ -38,7 +41,9 @@ export default function SavedGroupSearchesSidebarPanel() {
         return;
       }
       const data = await res.json();
-      setGroups(Array.isArray(data[PREFERENCE_KEY]) ? data[PREFERENCE_KEY] : []);
+      const next: SavedGroupSearch[] = Array.isArray(data[PREFERENCE_KEY]) ? data[PREFERENCE_KEY] : [];
+      setGroups(next);
+      if (next.length > 0) setOpen(true);
     } catch {
       setGroups([]);
     }
@@ -69,10 +74,10 @@ export default function SavedGroupSearchesSidebarPanel() {
   if (groups === null) return null;
 
   return (
-    <div className="mx-2 mt-3 border-t border-border pt-3">
-      <div className="mb-1.5 px-2 text-[11px] font-medium text-ink-faint">Grupne pretrage ({groups.length}/10)</div>
+    <div className="mx-2 mt-3 border-t border-border pt-3 text-xs">
+      <SidebarSection title={`Grupne pretrage (${groups.length}/10)`} open={open} onToggle={() => setOpen((v) => !v)}>
       {groups.length === 0 ? (
-        <p className="px-2 text-[11px] text-ink-faint">
+        <p className="px-1 text-[11px] text-ink-faint">
           Dodaj bar dve pretrage u grupu (dugme "dodaj u grupu" pored "sačuvaj" na vrhu) da je vidiš ovde.
         </p>
       ) : (
@@ -100,6 +105,7 @@ export default function SavedGroupSearchesSidebarPanel() {
           ))}
         </ul>
       )}
+      </SidebarSection>
     </div>
   );
 }

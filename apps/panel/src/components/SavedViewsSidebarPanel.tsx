@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Icon from './Icon';
+import SidebarSection from './SidebarSection';
 
 export interface SavedView {
   id: string;
@@ -59,6 +60,11 @@ export default function SavedViewsSidebarPanel({
   emptyHint?: string;
 } = {}) {
   const [views, setViews] = useState<SavedView[] | null>(null);
+  // Sklopivo (5.9.2026, vlasnikov zahtev: "previše praznog prostora u vrhu levog panela...
+  // kao što su filteri kao accordion tako stavite i ove dve stavke ispod") — podrazumevano
+  // ZATVORENO dok se ne potvrdi da ima sačuvanih prikaza (prazno stanje inače zauzima isti
+  // prostor kao puno, samo sa objašnjenjem umesto sadržaja).
+  const [open, setOpen] = useState(false);
 
   async function load() {
     try {
@@ -68,7 +74,11 @@ export default function SavedViewsSidebarPanel({
         return;
       }
       const data = await res.json();
-      setViews(Array.isArray(data[preferenceKey]) ? data[preferenceKey] : []);
+      const next: SavedView[] = Array.isArray(data[preferenceKey]) ? data[preferenceKey] : [];
+      setViews(next);
+      // Otvara se čim ima šta da se vidi (npr. odmah po čuvanju novog prikaza) — ručno
+      // zatvaranje i dalje važi dok god je lista prazna između dva učitavanja.
+      if (next.length > 0) setOpen(true);
     } catch {
       setViews([]);
     }
@@ -94,12 +104,14 @@ export default function SavedViewsSidebarPanel({
   if (views === null) return null;
 
   return (
-    <div className="mx-2 mt-3 border-t border-border pt-3">
-      <div className="mb-1.5 px-2 text-[11px] font-medium text-ink-faint">
-        Sačuvani prikazi{maxItems ? ` (${views.length}/${maxItems})` : ''}
-      </div>
+    <div className="mx-2 mt-3 border-t border-border pt-3 text-xs">
+      <SidebarSection
+        title={`Sačuvani prikazi${maxItems ? ` (${views.length}/${maxItems})` : ''}`}
+        open={open}
+        onToggle={() => setOpen((v) => !v)}
+      >
       {views.length === 0 ? (
-        <p className="px-2 text-[11px] text-ink-faint">{emptyHint}</p>
+        <p className="px-1 text-[11px] text-ink-faint">{emptyHint}</p>
       ) : (
         <ul className="flex flex-col gap-0.5">
           {views.map((v) => (
@@ -119,6 +131,7 @@ export default function SavedViewsSidebarPanel({
           ))}
         </ul>
       )}
+      </SidebarSection>
     </div>
   );
 }

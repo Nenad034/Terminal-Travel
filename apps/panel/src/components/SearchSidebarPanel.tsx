@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
+import SidebarSection from './SidebarSection';
 import { airlineOptions, connectionAirportOptions } from '@/lib/mock-flights';
 import { useSearchFilters } from './SearchFiltersContext';
 import { ALL_FILTER_KEYS } from '@/lib/search-filters';
@@ -201,7 +202,7 @@ export default function SearchSidebarPanel() {
           router.push(`/rezervacije/pretraga?${next.toString()}`);
         }}
       >
-        <Section title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)}>
+        <SidebarSection title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName={FILTER_SECTIONS_CLASS}>
           {/* Bez dugmeta koje se mora pritisnuti, korisniku treba mesto na kom vidi ŠTA je sve
               uključeno i način da to skine jednim potezom — inače aktivan filter iz prethodne
               pretrage tiho sužava sledeću. */}
@@ -380,21 +381,9 @@ export default function SearchSidebarPanel() {
           >
             <Icon name="filter" /> primeni filtere
           </button>
-        </Section>
+        </SidebarSection>
       </form>
       )}
-    </div>
-  );
-}
-
-function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
-  return (
-    <div className="border-t border-border pt-2 first:border-t-0 first:pt-0">
-      <button type="button" onClick={onToggle} className="flex w-full items-center gap-1.5 py-1 text-left font-medium text-ink">
-        <Icon name={open ? 'chevron-down' : 'chevron-right'} className="text-ink-faint" />
-        {title}
-      </button>
-      {open && <div className={`${FILTER_SECTIONS_CLASS} pl-1 pt-1`}>{children}</div>}
     </div>
   );
 }
