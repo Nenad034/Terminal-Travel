@@ -89,6 +89,41 @@ export default function ShareReportButton({
     return exportAndSend(conversation, { reportKind, title, format, rows });
   }
 
+  // "Izvoz" — direktno preuzimanje na računar, bez slanja u chat (5.9.2026, vlasnikov zahtev:
+  // "kada se klkne na podeli dodati i opciju export pa stavite ikone za excel i google sheet").
+  // Obe ikonice preuzimaju ISTI Excel (.xlsx) fajl preko postojećeg export/download mehanizma
+  // (isti kao `rezervacije/lista/ExportButton.tsx`) — nema stvarne Google Sheets integracije
+  // (to bi tražilo Google OAuth, nov eksterni servis van tehničkog steka, potvrđeno preko
+  // `AskUserQuestion` da NIJE obim ovog zahteva); Google Sheets otvara .xlsx bez problema, pa je
+  // ikonica ovde čisto vizuelni pokazatelj namene, ne poseban format ni poseban poziv.
+  async function exportAndDownload() {
+    setSending('export');
+    setError(null);
+    setSentTo(null);
+    try {
+      const exportRes = await fetch('/api/bi/reports/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportKind, title, format: 'EXCEL', rows }),
+      });
+      if (!exportRes.ok) throw new Error();
+      const { id } = await exportRes.json();
+      const downloadRes = await fetch(`/api/bi/reports/export/${id}/download`);
+      if (!downloadRes.ok) throw new Error();
+      const blob = await downloadRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Izvoz nije uspeo — pokušaj ponovo.');
+    } finally {
+      setSending(null);
+    }
+  }
+
   async function sendInfographic(conversation: Conversation) {
     setSending(conversation.id);
     setError(null);
@@ -143,6 +178,26 @@ export default function ShareReportButton({
               <option value="PDF">PDF</option>
               <option value="HTML">HTML</option>
             </select>
+          </div>
+
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Izvoz</div>
+          <div className="mb-2 flex gap-1.5">
+            <button
+              disabled={sending === 'export'}
+              onClick={exportAndDownload}
+              title="Preuzmi kao Excel (.xlsx)"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded border border-ink-faint px-2 py-1.5 text-accent hover:border-accent disabled:opacity-40"
+            >
+              <Icon name="cloud-download" /> Excel
+            </button>
+            <button
+              disabled={sending === 'export'}
+              onClick={exportAndDownload}
+              title="Preuzmi kao fajl pogodan za Google Sheets (.xlsx)"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded border border-ink-faint px-2 py-1.5 text-accent hover:border-accent disabled:opacity-40"
+            >
+              <Icon name="globe" /> Google Sheet
+            </button>
           </div>
 
           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Interni chat</div>

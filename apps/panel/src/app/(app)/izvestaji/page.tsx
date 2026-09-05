@@ -94,12 +94,23 @@ type ProdajaSub = keyof typeof PRODAJA_SUB_LABELS;
 
 // Serije za grafike (BarChart.tsx) — `var(--accent)`/`var(--accent2)`, isti tokeni kao svaki
 // drugi akcent u panelu (dizajn dok. §2.0f), ne nova paleta.
+// Za tabele BEZ marže (samo marketing) — jedina novčana kolona je "prihod".
 const REVENUE_SERIES: ChartSeries<Bucket>[] = [{ label: 'prihod', color: 'var(--accent)', value: (b) => b.revenue, money: true }];
-const PROFIT_SERIES: ChartSeries<Bucket>[] = [
-  { label: 'prihod', color: 'var(--accent)', value: (b) => b.revenue, money: true },
-  { label: 'marža', color: 'var(--accent2)', value: (b) => b.margin, money: true },
+// Infografik prati KOLONE tabele (5.9.2026, vlasnikov zahtev: "Infografik treba da ima prikaz po
+// kolonama tabele") — kad `BucketTable` prikazuje `showMargin` (neto/bruto/marža, profitabilnost
+// i prodaja), grafik sad ima TRI serije umesto ranije jedne/dve ("prihod" ili "prihod"+"marža"),
+// tačno kolone koje tabela stvarno pokazuje (bez "marža %"/"udeo" — to su procentualni odnosi,
+// ne apsolutni iznosi, BarChart svaku vrednost i onako prikazuje sa procentom udela pored nje).
+const MARGIN_SERIES: ChartSeries<Bucket>[] = [
+  { label: 'neto', color: 'var(--accent2)', value: (b) => b.baseCost, money: true },
+  { label: 'bruto', color: 'var(--accent)', value: (b) => b.revenue, money: true },
+  { label: 'marža', color: 'var(--brand)', value: (b) => b.margin, money: true },
 ];
-const NIGHTS_SERIES: ChartSeries<Bucket & { nights: number }>[] = [{ label: 'noćenja', color: 'var(--accent)', value: (b) => b.nights }];
+// Occupancy tabela (§4.1) ima kolone stavki/noćenja/udeo — grafik prati prve dve (isti razlog).
+const OCCUPANCY_SERIES: ChartSeries<Bucket & { nights: number }>[] = [
+  { label: 'stavki', color: 'var(--accent2)', value: (b) => b.count },
+  { label: 'noćenja', color: 'var(--accent)', value: (b) => b.nights },
+];
 
 const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
@@ -122,22 +133,43 @@ const DYNAMIC_OTHER_PRESETS = [
   { label: 'Kanal', dims: 'channel', productType: undefined },
   { label: 'Dobavljač', dims: 'supplier_name', productType: undefined },
 ] as const;
+interface DynamicLeafRow {
+  key: string;
+  count: number;
+  pax: number;
+  nights: number;
+  revenue: number;
+  paid: number;
+  balance: number;
+}
+
 // Serija za grafik-prikaz "Dinamički" (5.9.2026, vlasnikov zahtev: "omoguci infografik pregled
 // kako sam ranije trazio"; dopunjeno isti dan, "Infografik takodje treba da bude dinamicki i da
 // prati tabelu" — grafik NIJE više fiksiran na prvi nivo (države), nego prikazuje NAJDUBLJI nivo
 // stabla (liste, `flattenDynamicLeaves` ispod), tačno onaj skup redova koji tabela stvarno
 // prikazuje kad je do kraja proširena — puna putanja (država › mesto › proizvod) kao naziv reda.
-const DYNAMIC_SERIES: ChartSeries<{ key: string; revenue: number }>[] = [
+// SVE kolone tabele (5.9.2026, isti dan, "Infografik treba da ima prikaz po kolonama tabele") —
+// `DynamicTree.tsx` ima šest brojčanih kolona (rezervacija/osoba/noćenja/prihod/naplaćeno/saldo),
+// grafik ih sad sve nosi kao odvojene serije umesto samo prihoda.
+const DYNAMIC_SERIES: ChartSeries<DynamicLeafRow>[] = [
+  { label: 'rezervacija', color: 'var(--accent2)', value: (n) => n.count },
+  { label: 'osoba', color: 'var(--accent)', value: (n) => n.pax },
+  { label: 'noćenja', color: 'var(--brand)', value: (n) => n.nights },
   { label: 'prihod', color: 'var(--accent)', value: (n) => n.revenue, money: true },
+  { label: 'naplaćeno', color: 'var(--ok)', value: (n) => n.paid, money: true },
+  { label: 'saldo', color: 'var(--danger)', value: (n) => n.balance, money: true },
 ];
 
 /** Listovi stabla (čvorovi bez dece), sa punom putanjom kao ključem — isti princip sklapanja
  * putanje kao `DynamicTree.tsx`, ovde bez skupljanja jer grafik uvek prikazuje krajnji nivo. */
-function flattenDynamicLeaves(nodes: DynamicNode[], parentPath: string, out: { key: string; revenue: number }[]) {
+function flattenDynamicLeaves(nodes: DynamicNode[], parentPath: string, out: DynamicLeafRow[]) {
   for (const n of nodes) {
     const path = parentPath ? `${parentPath} › ${n.key}` : n.key;
-    if (n.children.length === 0) out.push({ key: path, revenue: n.revenue });
-    else flattenDynamicLeaves(n.children, path, out);
+    if (n.children.length === 0) {
+      out.push({ key: path, count: n.count, pax: n.pax, nights: n.nights, revenue: n.revenue, paid: n.paid, balance: n.balance });
+    } else {
+      flattenDynamicLeaves(n.children, path, out);
+    }
   }
 }
 
@@ -145,6 +177,14 @@ interface SearchParams {
   tab?: string;
   from?: string;
   to?: string;
+  /** Na koje polje se `from`/`to` odnosi — 5.9.2026, vlasnikov zahtev: "dinamicki izvestaj treba
+   * da ima datume za filtriranje... Kreirano od...do, Dolasci od...do, Odlasci od...do... Mozete
+   * staviti jedan kalendar a ovo gore kao okidace... da ustedimo prostor" — JEDAN par od/do,
+   * ovo bira NA ŠTA se odnosi (umesto tri istovremena para kao u Listi rezervacija). */
+  dateField?: string;
+  /** Segment prodaje — B2B/B2C/Subagenti, tačno jedan aktivan (5.9.2026, vlasnikov zahtev:
+   * "treba dodati i fitere Subagenti, B2B, B2C"). */
+  segment?: string;
   destinationCountry?: string;
   destinationCity?: string;
   supplierId?: string;
@@ -155,6 +195,19 @@ interface SearchParams {
   view?: string;
   sub?: string;
 }
+
+const DATE_FIELD_LABELS: Record<string, string> = {
+  stay_from: 'Dolasci',
+  stay_to: 'Odlasci',
+  created: 'Kreirano',
+};
+const DATE_FIELD_OPTIONS = ['stay_from', 'stay_to', 'created'] as const;
+const SEGMENT_LABELS: Record<string, string> = {
+  B2B: 'B2B',
+  B2C: 'B2C',
+  SUBAGENT: 'Subagenti',
+};
+const SEGMENT_OPTIONS = ['B2B', 'B2C', 'SUBAGENT'] as const;
 
 // M17 spec §4/§7 (Faza 5) — "Izveštaji", M13 §7 API ugovor. Svaki izveštaj je čist read-only
 // upit nad M13 projekciji (M13 spec §1.1) — ova stranica ne uvodi novu logiku, samo poziva
@@ -189,6 +242,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     if (tab) v.set('tab', tab);
     if (searchParams?.from) v.set('from', searchParams.from);
     if (searchParams?.to) v.set('to', searchParams.to);
+    if (searchParams?.dateField) v.set('dateField', searchParams.dateField);
+    if (searchParams?.segment) v.set('segment', searchParams.segment);
     if (searchParams?.destinationCountry) v.set('destinationCountry', searchParams.destinationCountry);
     if (searchParams?.destinationCity) v.set('destinationCity', searchParams.destinationCity);
     if (searchParams?.supplierId) v.set('supplierId', searchParams.supplierId);
@@ -227,6 +282,28 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     else v.delete('productType');
     return `/izvestaji?${v.toString()}`;
   }
+  // Kreirano/Dolasci/Odlasci — jedan aktivan par od/do, ovo bira na šta se odnosi (5.9.2026,
+  // vlasnikov zahtev). Podrazumevano "Dolasci" (`stay_from`) — najbliže starom podrazumevanom
+  // ponašanju (preklapanje sa terminom boravka) od sva tri eksplicitna kriterijuma.
+  function dateFieldHref(field: string): string {
+    const v = baseParams();
+    if (view === 'grafik') v.set('view', 'grafik');
+    if (searchParams?.sub) v.set('sub', searchParams.sub);
+    v.set('dateField', field);
+    return `/izvestaji?${v.toString()}`;
+  }
+  const currentDateField = searchParams?.dateField && searchParams.dateField in DATE_FIELD_LABELS ? searchParams.dateField : 'stay_from';
+  // Subagenti/B2B/B2C — tačno jedan aktivan (potvrđeno preko `AskUserQuestion`, isti princip kao
+  // ikonice vrste proizvoda). Klik na već aktivan segment ga isključuje ("Svi") — isti obrazac
+  // kao "obriši filter" linkovi na drugim mestima u panelu.
+  function segmentHref(segment: string | null): string {
+    const v = baseParams();
+    if (view === 'grafik') v.set('view', 'grafik');
+    if (searchParams?.sub) v.set('sub', searchParams.sub);
+    if (segment) v.set('segment', segment);
+    else v.delete('segment');
+    return `/izvestaji?${v.toString()}`;
+  }
   const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
   const profSub: ProfitabilnostSub =
     searchParams?.sub && searchParams.sub in PROFITABILNOST_SUB_LABELS ? (searchParams.sub as ProfitabilnostSub) : 'destinacija';
@@ -244,6 +321,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   const qs = new URLSearchParams();
   if (searchParams?.from) qs.set('from', searchParams.from);
   if (searchParams?.to) qs.set('to', searchParams.to);
+  if (searchParams?.dateField) qs.set('dateField', searchParams.dateField);
+  if (searchParams?.segment) qs.set('segment', searchParams.segment);
   if (searchParams?.destinationCountry) qs.set('destinationCountry', searchParams.destinationCountry);
   if (searchParams?.destinationCity) qs.set('destinationCity', searchParams.destinationCity);
   if (searchParams?.supplierId) qs.set('supplierId', searchParams.supplierId);
@@ -271,6 +350,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       const dqs = new URLSearchParams();
       if (searchParams?.from) dqs.set('from', searchParams.from);
       if (searchParams?.to) dqs.set('to', searchParams.to);
+      if (searchParams?.dateField) dqs.set('dateField', searchParams.dateField);
+      if (searchParams?.segment) dqs.set('segment', searchParams.segment);
       dqs.set('group_by', searchParams?.groupBy || 'destination_country,destination_city');
       // (dopuna, vlasnikov nalaz: "niste dodali hotele u destinacijama") — bez ovoga je preset
       // "Destinacija → Hotel" postavljao `productType` u adresu, ali ga niko nije čitao pri
@@ -281,6 +362,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       const mqs = new URLSearchParams();
       if (searchParams?.from) mqs.set('from', searchParams.from);
       if (searchParams?.to) mqs.set('to', searchParams.to);
+      if (searchParams?.dateField) mqs.set('dateField', searchParams.dateField);
+      if (searchParams?.segment) mqs.set('segment', searchParams.segment);
       marketing = await apiFetch<MarketingReport>(`/bi/reports/marketing?${mqs.toString()}`);
     }
   } catch {
@@ -419,20 +502,66 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       {!error && tab && (
         <form className="mb-4 flex flex-wrap items-end gap-2 text-xs" action="/izvestaji">
           <input type="hidden" name="tab" value={tab} />
-          {/* "Dinamički" datume iznosi u SVOJ red, spojene sa ručnim poljem za dimenzije ispod
-              (5.9.2026, vlasnikov zahtev: "da ne bi bilo 3 vec dva reda polja za pretragu datuma
-              premestite u istu liniju sa poljem po pretrazi pojma") — za ostale tabove ostaju
-              ovde, na vrhu, nepromenjeno. */}
-          {tab !== 'dinamicki' && (
-            <>
-              <Field label="od (datum)">
-                <DateField name="from" defaultValue={searchParams?.from ?? ''} />
-              </Field>
-              <Field label="do (datum)">
-                <DateField name="to" defaultValue={searchParams?.to ?? ''} />
-              </Field>
-            </>
-          )}
+          {/* Jedan kalendar + "okidači" (5.9.2026, vlasnikov zahtev: "izvestaji treba da imaju
+              datume za filtriranje po sledecim kriterijumima... Kreirano od...do, Dolasci
+              od...do, Odlasci od...do... Mozete staviti jedan kalendar a ovo gore kao okidace
+              sta treba da se filtrura, da ustedimo prostor") — VAŽI ZA SVE TABOVE ("isto tako i
+              ostali izvestaji"), zamenjuje raniji jedini par od/do (koji je filtrirao preklapanje
+              sa terminom boravka — i dalje podrazumevano ponašanje na API strani ako `dateField`
+              izostane, ovde se uvek šalje eksplicitno). Isti hidden-input obrazac kao
+              `groupBy`/`view` na drugim mestima — dugmad su `<Link>` koji menjaju SAMO
+              `dateField`, dok su `from`/`to` obična polja forme (podnose se klikom na
+              "primeni filter"). */}
+          <input type="hidden" name="dateField" value={currentDateField} />
+          {/* Bez ovog hidden polja bi klik na "primeni filter" (posle kucanja novog od/do)
+              submit-ovao formu BEZ `segment` (dugmad ispod su `<Link>`, ne pravi form field) —
+              tiho brisao aktivan B2B/B2C/Subagenti filter i pored toga što ostaje vizuelno
+              "aktivan" do sledećeg osvežavanja stranice. */}
+          <input type="hidden" name="segment" value={searchParams?.segment ?? ''} />
+          <Field label="od (datum)">
+            <DateField name="from" defaultValue={searchParams?.from ?? ''} />
+          </Field>
+          <Field label="do (datum)">
+            <DateField name="to" defaultValue={searchParams?.to ?? ''} />
+          </Field>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-ink-faint">odnosi se na</span>
+            <div className="flex overflow-hidden rounded border border-border text-[11px]">
+              {DATE_FIELD_OPTIONS.map((f, i) => (
+                <Link
+                  key={f}
+                  href={dateFieldHref(f)}
+                  className={`px-2 py-1.5 font-medium ${i > 0 ? 'border-l border-border' : ''} ${
+                    currentDateField === f ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'
+                  }`}
+                >
+                  {DATE_FIELD_LABELS[f]}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-ink-faint">segment</span>
+            <div className="flex overflow-hidden rounded border border-border text-[11px]">
+              <Link
+                href={segmentHref(null)}
+                className={`px-2 py-1.5 font-medium ${!searchParams?.segment ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
+              >
+                svi
+              </Link>
+              {SEGMENT_OPTIONS.map((s) => (
+                <Link
+                  key={s}
+                  href={segmentHref(s)}
+                  className={`border-l border-border px-2 py-1.5 font-medium ${
+                    searchParams?.segment === s ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'
+                  }`}
+                >
+                  {SEGMENT_LABELS[s]}
+                </Link>
+              ))}
+            </div>
+          </div>
           {(tab === 'profitabilnost' || tab === 'smestaj') && (
             <>
               <Field label="država">
@@ -509,25 +638,20 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               </div>
               {/* Kanal/Dobavljač premešteni IZNAD tabele/grafika, uz desnu ivicu (5.9.2026,
                   vlasnikov zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne
-                  gornje ivice tabele") — vidi render tela izveštaja ispod, van ove forme.
-                  Datumi + ručno polje za dimenzije u ISTOM redu (isti zahtev, "spojite u istu
-                  liniju sa poljem za pretragu pojma") — svega dva reda za "Dinamički" umesto tri. */}
-              <div className="flex flex-wrap items-end gap-2">
-                <Field label="od (datum)">
-                  <DateField name="from" defaultValue={searchParams?.from ?? ''} />
-                </Field>
-                <Field label="do (datum)">
-                  <DateField name="to" defaultValue={searchParams?.to ?? ''} />
-                </Field>
-                <Field label="dimenzije (ručno, redosled zarezom)">
-                  <input
-                    name="groupBy"
-                    defaultValue={currentDims}
-                    placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                    className="input w-72"
-                  />
-                </Field>
-              </div>
+                  gornje ivice tabele") — vidi render tela izveštaja ispod, van ove forme. */}
+              {/* Nalaz uz ovaj isti prolaz (isti razlog kao hidden `segment` iznad) — `productType`
+                  se postavlja SAMO preko ikonica (`<Link>`), bez ovog hidden polja bi klik na
+                  "primeni filter" (posle izmene ručnog polja za dimenzije ili datuma) tiho
+                  obrisao izabranu vrstu proizvoda. */}
+              <input type="hidden" name="productType" value={searchParams?.productType ?? ''} />
+              <Field label="dimenzije (ručno, redosled zarezom)">
+                <input
+                  name="groupBy"
+                  defaultValue={currentDims}
+                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
+                  className="input w-72"
+                />
+              </Field>
             </>
           )}
           <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
@@ -547,7 +671,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {profSub === 'destinacija' &&
             (view === 'grafik' ? (
               <ChartSection title="Po destinaciji">
-                <BarChart rows={profitability.byDestination} series={PROFIT_SERIES} />
+                <BarChart rows={profitability.byDestination} series={MARGIN_SERIES} />
               </ChartSection>
             ) : (
               <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin linkFor={destinationLinkFor} />
@@ -555,7 +679,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {profSub === 'dobavljac' &&
             (view === 'grafik' ? (
               <ChartSection title="Po dobavljaču/provajderu">
-                <BarChart rows={profitability.bySupplier} series={PROFIT_SERIES} />
+                <BarChart rows={profitability.bySupplier} series={MARGIN_SERIES} />
               </ChartSection>
             ) : (
               // Bez linka namerno — "Lista rezervacija" danas nema filter po dobavljaču
@@ -565,7 +689,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {profSub === 'kanal' &&
             (view === 'grafik' ? (
               <ChartSection title="Po kanalu">
-                <BarChart rows={profitability.byChannel} series={PROFIT_SERIES} />
+                <BarChart rows={profitability.byChannel} series={MARGIN_SERIES} />
               </ChartSection>
             ) : (
               <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin linkFor={channelLinkFor} />
@@ -584,7 +708,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {prodajaSub === 'kanal' &&
             (view === 'grafik' ? (
               <ChartSection title="Po kanalu">
-                <BarChart rows={sales.byChannel} series={REVENUE_SERIES} />
+                <BarChart rows={sales.byChannel} series={MARGIN_SERIES} />
               </ChartSection>
             ) : (
               <BucketTable title="Po kanalu" buckets={sales.byChannel} showMargin linkFor={channelLinkFor} />
@@ -592,7 +716,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {prodajaSub === 'tip' &&
             (view === 'grafik' ? (
               <ChartSection title="Po tipu proizvoda">
-                <BarChart rows={sales.byProductType} series={REVENUE_SERIES} />
+                <BarChart rows={sales.byProductType} series={MARGIN_SERIES} />
               </ChartSection>
             ) : (
               <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} showMargin linkFor={productTypeLinkFor} />
@@ -637,9 +761,9 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {dynamicReport.tree.length === 0 ? (
             <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
           ) : view === 'grafik' ? (
-            <ChartSection title="Prihod po najdubljem nivou (prati tabelu ispod)">
+            <ChartSection title="Po kolonama tabele, najdublji nivo (prati tabelu ispod)">
               <BarChart rows={(() => {
-                const leaves: { key: string; revenue: number }[] = [];
+                const leaves: DynamicLeafRow[] = [];
                 flattenDynamicLeaves(dynamicReport.tree, '', leaves);
                 return leaves;
               })()} series={DYNAMIC_SERIES} />
@@ -696,7 +820,7 @@ function OccupancyBreakdown({
         )}
       </div>
       {view === 'grafik' ? (
-        <BarChart rows={breakdown} series={NIGHTS_SERIES} />
+        <BarChart rows={breakdown} series={OCCUPANCY_SERIES} />
       ) : (
         <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
           <table className="w-full border-collapse text-xs">

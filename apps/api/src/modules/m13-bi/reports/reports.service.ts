@@ -11,7 +11,28 @@ import { generateExcelBuffer, generateHtmlString, generatePdfBuffer, type Report
 import { getReport, saveReport, type StoredReport } from '../../../common/reports/report-store';
 import { ExportReportDto } from './dto/export-report.dto';
 
-type PeriodFilter = { from?: string; to?: string };
+// Datumski filter po IZABRANOM polju (5.9.2026, vlasnikov zahtev: "dinamicki izvestaj treba da
+// ima datume za filtriranje po sledecim kriterijumima... Kreirano od...do, Dolasci od...do,
+// Odlasci od...do... Mozete staviti jedan kalendar a ovo gore kao okidace sta treba da se
+// filtrira, da ustedimo prostor") — ZAMENjuje raniji jedini `from`/`to` (preklapanje sa terminom
+// boravka, i dalje podrazumevano ponašanje kad `dateField` izostane, radi kompatibilnosti sa
+// pozivaocima koji ga ne šalju). `created` → `bookingDate`, `stay_from` → `stayFrom` (dolazak),
+// `stay_to` → `stayTo` (odlazak) — isti nazivi kriterijuma kao "Lista rezervacija"
+// (`createdFrom/To`, `stayFrom/To`, `returnFrom/To`), samo JEDAN aktivan par od/do umesto tri
+// istovremena (svesna razlika — ovde se štedi prostor, ne traži kombinovanje).
+export type ReportDateField = 'created' | 'stay_from' | 'stay_to';
+export const REPORT_DATE_FIELDS: ReportDateField[] = ['created', 'stay_from', 'stay_to'];
+
+// Segment prodaje (5.9.2026, vlasnikov zahtev: "treba dodati i filtere Subagenti, B2B, B2C") —
+// tačno JEDAN aktivan odjednom (potvrđeno preko `AskUserQuestion`, isti princip kao ikonice
+// vrste proizvoda kod "Dinamički"). B2B/B2C mapiraju na `FactBooking.channel` (M5Channel
+// `B2B_PORTAL`/`B2C_SITE`, isti izvor kao postojeći `channel` filter); SUBAGENT je NEZAVISAN od
+// kanala — "subagentName != null" (§3.1 "null = direktna prodaja"), jer subagentske rezervacije
+// mogu stići kroz bilo koji kanal, ne samo B2B_PORTAL.
+export type ReportSegment = 'B2B' | 'B2C' | 'SUBAGENT';
+export const REPORT_SEGMENTS: ReportSegment[] = ['B2B', 'B2C', 'SUBAGENT'];
+
+type PeriodFilter = { from?: string; to?: string; dateField?: ReportDateField; segment?: ReportSegment };
 
 export interface Bucket {
   key: string;
@@ -285,10 +306,37 @@ export class ReportsService {
   // ==========================================================================
   private periodWhere(filters: PeriodFilter): Prisma.FactBookingWhereInput {
     // §4.1 — "aktivne stavke (status != CANCELLED)", primenjeno na sve izveštaje (poglavlje 4).
-    const where: Prisma.FactBookingWhereInput = { status: { not: 'CANCELLED' } };
-    if (filters.from) where.stayTo = { gte: new Date(filters.from) };
-    if (filters.to) where.stayFrom = { lte: new Date(filters.to) };
+    const where: Prisma.FactBookingWhereInput = { status: { not: 'CANCELLED' }, ...this.segmentWhere(filters.segment) };
+
+    if (!filters.dateField) {
+      // Bez eksplicitnog `dateField` — staro ponašanje (preklapanje sa terminom boravka),
+      // radi kompatibilnosti sa pozivaocima koji ga ne šalju (npr. M15 omnisearch).
+      if (filters.from) where.stayTo = { gte: new Date(filters.from) };
+      if (filters.to) where.stayFrom = { lte: new Date(filters.to) };
+      return where;
+    }
+    if (!filters.from && !filters.to) return where;
+
+    const field = filters.dateField === 'created' ? 'bookingDate' : filters.dateField === 'stay_to' ? 'stayTo' : 'stayFrom';
+    // `bookingDate` nosi stvaran trenutak (kao M5 `createdAt`) — "do" granica mora zaključno sa
+    // krajem tog dana, inače bi isključila skoro sve zapise tog dana (isti razlog kao M5
+    // `createdTo`/M1 audit-log `endOfDayIfDateOnly`). `stayFrom`/`stayTo` su čisti kalendarski
+    // datumi (bez značajnog vremena) — poređenje bez podešavanja, isti obrazac kao M5
+    // `stayFrom`/`returnFrom`/`returnTo`.
+    (where as Record<string, unknown>)[field] = {
+      ...(filters.from ? { gte: new Date(filters.from) } : {}),
+      ...(filters.to
+        ? { lte: filters.dateField === 'created' ? new Date(`${filters.to}T23:59:59.999Z`) : new Date(filters.to) }
+        : {}),
+    };
     return where;
+  }
+
+  private segmentWhere(segment?: ReportSegment): Prisma.FactBookingWhereInput {
+    if (segment === 'B2B') return { channel: 'B2B_PORTAL' };
+    if (segment === 'B2C') return { channel: 'B2C_SITE' };
+    if (segment === 'SUBAGENT') return { subagentName: { not: null } };
+    return {};
   }
 
   private bucketize(rows: FactBooking[], keyFn: (r: FactBooking) => string): Bucket[] {
