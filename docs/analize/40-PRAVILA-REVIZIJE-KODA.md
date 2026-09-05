@@ -33,7 +33,7 @@ Nijedan nalaz ne ulazi u dokument bez jedne od ove četiri oznake, upisane u sam
 
 ## 2. Simptom i uzrok su dva odvojena dokaza — nikad jedan
 
-Provera kroz stvaran ekran (zamka 5.13) dokazuje **da** se nešto dešava. Ne dokazuje **zašto**.
+Provera kroz stvaran ekran (zamka 7.1) dokazuje **da** se nešto dešava. Ne dokazuje **zašto**.
 
 U svakom nalazu klase B, simptom i uzrok se pišu kao dve odvojene stavke, svaka sa svojim dokazom. Ako uzrok nema sopstveni dokaz, nalaz se objavljuje **samo kao simptom**, sa rečenicom „uzrok nije utvrđen".
 

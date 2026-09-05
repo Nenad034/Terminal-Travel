@@ -41,7 +41,7 @@ npm run geocode:products             # TEK SADA koordinate za sve — bez njih m
 ```
 
 Svaka ima svoj `:clean` par koji briše tačno svoje (`npm run seed:mock-lista-rezervacija:clean` i tako dalje). `seed:mock-booking-dossier` je izuzetak — traži rezervaciju po hardkodovanom UUID-u koji nijedna druga skripta ne pravi, pa na svežoj bazi puca (zamka 5.15).
-Upozorenje: `SMTP_HOST` u lokalnom `.env` sme da pokazuje ISKLJUČIVO na mailpit — e2e testovi stvarno šalju poruke (zamka 5.13).
+Upozorenje: `SMTP_HOST` u lokalnom `.env` sme da pokazuje ISKLJUČIVO na mailpit — e2e testovi stvarno šalju poruke (zamka 5.21).
 OpenAPI dokumentacija (Swagger UI): `http://localhost:3000/api/docs`
 
 ## Testovi

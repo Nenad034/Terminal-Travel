@@ -149,3 +149,9 @@ jobs:
       # samo kad bi se neko setio — sada je uslov za prolaz.
       - name: Provera — kontrast boja (WCAG 2.1)
         run: node tools/check-contrast.js
+
+      # Broj zamke je adresa na koju pokazuju drugi dokumenti i komentari u kodu. Do 6.9.2026
+      # je osam brojeva nosilo po dva unosa, a četiri mesta su pokazivala na značenje koje taj
+      # broj nikad nije imao — ništa od toga se ne vidi golim okom u dokumentu od sto unosa.
+      - name: Provera — numeracija zamki i pokazivači na njih
+        run: node tools/provera-zamki.mjs

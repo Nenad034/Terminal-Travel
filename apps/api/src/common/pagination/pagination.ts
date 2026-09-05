@@ -27,7 +27,7 @@ export const MAX_PAGE_SIZE = 200;
  * validiran protiv TOG dtoa — i svaki drugi parametar (`status`, `buyerName`, `stayFrom`...)
  * je počeo da vraća `400 property status should not exist`. Time bi svi filteri liste
  * rezervacija prestali da rade. `tsc` i 997 testova to nisu uhvatili; uhvatio je tek poziv
- * pravog endpointa (zamka 5.13). Zato: pojedinačni parametri i ručna provera ispod.
+ * pravog endpointa (zamka 7.1). Zato: pojedinačni parametri i ručna provera ispod.
  */
 export interface PaginationQueryDto {
   page?: number;
