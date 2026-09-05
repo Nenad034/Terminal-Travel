@@ -84,8 +84,14 @@ export default async function ZnanjePage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
-            filtriraj
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            title="Filtriraj"
+            className="h-9 w-9 border-transparent bg-brand p-0 text-brand-ink hover:bg-brand hover:brightness-90"
+          >
+            <Icon name="arrow-right" />
           </Button>
           {(searchParams?.subjectType || searchParams?.status) && (
             <Button asChild variant="ghost" size="sm">

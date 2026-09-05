@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
+import Icon from '@/components/Icon';
 import NadzorSubnav from './NadzorSubnav';
 import RunWeeklyReviewButton from './RunWeeklyReviewButton';
 import { Badge } from '@/components/ui/badge';
@@ -133,8 +134,14 @@ export default async function NadzorPage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
-            filtriraj
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            title="Filtriraj"
+            className="h-9 w-9 border-transparent bg-brand p-0 text-brand-ink hover:bg-brand hover:brightness-90"
+          >
+            <Icon name="arrow-right" />
           </Button>
           {(searchParams?.module || searchParams?.type || searchParams?.severity) && (
             <Button asChild variant="ghost" size="sm">

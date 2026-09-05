@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
+import Icon from '@/components/Icon';
 import NewSubagentForm from './NewSubagentForm';
 
 
@@ -42,8 +43,12 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
       <form className="mb-4 flex gap-2 rounded-lg border border-border bg-panel p-3 text-xs" action="/b2b/novi">
         <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga nalogodavca (pravno lice) po email-u" className="input flex-1" />
         <input name="taxId" defaultValue={searchParams?.taxId ?? ''} placeholder="ili po PIB-u" className="input flex-1" />
-        <button type="submit" className="rounded bg-brand px-3 py-1.5 font-medium text-brand-ink hover:brightness-90">
-          traži
+        <button
+          type="submit"
+          title="Traži"
+          className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+        >
+          <Icon name="arrow-right" />
         </button>
       </form>
 

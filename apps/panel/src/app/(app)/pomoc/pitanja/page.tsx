@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
+import Icon from '@/components/Icon';
 import HelpTabs from '../HelpTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -71,8 +72,14 @@ export default async function PitanjaPage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
-            filtriraj
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            title="Filtriraj"
+            className="h-9 w-9 border-transparent bg-brand p-0 text-brand-ink hover:bg-brand hover:brightness-90"
+          >
+            <Icon name="arrow-right" />
           </Button>
           {(searchParams?.audienceContext || searchParams?.confidence) && (
             <Button asChild variant="ghost" size="sm">
