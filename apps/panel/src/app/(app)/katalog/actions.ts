@@ -7,6 +7,7 @@ import type { RoomType } from './[id]/RoomTypesEditor';
 import type { HotelAttributes } from './[id]/HotelAttributesEditor';
 import type { PackageAttributes } from './[id]/PackageAttributesEditor';
 import type { PackageDeparture } from './[id]/PackageDeparturesEditor';
+import type { DestinationProfile, DestinationType, ActivityTag } from './destinacije/DestinationProfilesEditor';
 
 export interface FormState {
   error: string | null;
@@ -129,6 +130,46 @@ export async function addPackageDeparture(productId: string, departureDate: stri
 export async function cancelPackageDeparture(productId: string, departureId: string): Promise<void> {
   await apiFetch(`/catalog/products/${productId}/package-departures/${departureId}`, { method: 'DELETE' });
   revalidatePath(`/katalog/${productId}`);
+}
+
+// M2 spec §2.1c (dopuna 5.9.2026) — CRUD nad DestinationProfile (tip destinacije + aktivnosti),
+// backend endpoint već postoji (commit 351b2fd): `POST`/`PATCH /catalog/destination-profiles`.
+// Isti obrazac kao ostatak fajla — server action tanak omotač oko `apiFetch`, greška
+// izvučena preko `extractMessage`. Ovo je ljudski unos/potvrda (poglavlje 7 Master dokumenta,
+// "predloži pa čovek odobri") — AI-predlog-tok je van obima ovog prolaza.
+export interface DestinationProfileFormState {
+  error: string | null;
+}
+
+export async function createDestinationProfile(
+  input: { destinationCountry: string; destinationCity: string; destinationType: DestinationType; activities: ActivityTag[] },
+): Promise<DestinationProfileFormState & { profile?: DestinationProfile }> {
+  try {
+    const profile = await apiFetch<DestinationProfile>('/catalog/destination-profiles', {
+      method: 'POST',
+      body: input,
+    });
+    revalidatePath('/katalog/destinacije');
+    return { error: null, profile };
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Kreiranje profila destinacije nije uspelo.' };
+  }
+}
+
+export async function updateDestinationProfile(
+  id: string,
+  input: { destinationType: DestinationType; activities: ActivityTag[] },
+): Promise<DestinationProfileFormState & { profile?: DestinationProfile }> {
+  try {
+    const profile = await apiFetch<DestinationProfile>(`/catalog/destination-profiles/${id}`, {
+      method: 'PATCH',
+      body: input,
+    });
+    revalidatePath('/katalog/destinacije');
+    return { error: null, profile };
+  } catch (err) {
+    return { error: err instanceof ApiError ? extractMessage(err) : 'Izmena profila destinacije nije uspela.' };
+  }
 }
 
 function extractMessage(err: ApiError): string {

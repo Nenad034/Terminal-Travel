@@ -29,6 +29,15 @@ import { ALL_FILTER_KEYS } from '@/lib/search-filters';
 // trenutnim rezultatima, isto pojednostavljenje kao postojeći "dostupnost" select) i sadržaji-
 // tagovi (`amenity_tags[]`, M2 spec §2.3c `AmenityTag` enum, pravi upitni parametar `GET
 // /search`, I-logika na serveru — proizvod mora imati SVE izabrane tagove).
+// M5 spec §3.0c.3d/§3.0c.3e (dopuna 5.9.2026) — kontekstualni filteri (npr. "udaljenost od
+// mora") koji se u pravoj pretrazi pojavljuju/nestaju po `DestinationProfile.destination_type`
+// i sezoni dobijaju suptilnu oznaku razloga, ne tiho nestajanje (dizajn dok. §6d). Ovaj ekran je
+// mock (M5 spec §3.0b.2) i nema stvarnu destinaciju iz koje bi se to izračunalo — oznaka je
+// čisto vizuelan signal ("ovako će izgledati kad filter postane kontekstualan"), bez logike
+// prikazivanja/skrivanja. Skup grupa koje bi u pravoj FilterDefinition tabeli bile kontekstualne
+// (§3.0c.3d primer: "udaljenost od mora"/"blizina ski lifta") — danas samo "Udaljenost od plaže".
+const CONTEXTUAL_FILTER_GROUPS = new Set(['Udaljenost od plaže']);
+
 const AMENITY_GROUPS: { label: string; tags: { value: string; label: string }[] }[] = [
   {
     label: 'Udaljenost od plaže',
@@ -106,6 +115,24 @@ const BOARD_TYPE_OPTIONS = [
   { value: 'FB', label: 'Pun pansion' },
   { value: 'AI', label: 'All Inclusive' },
   { value: 'UAI', label: 'Ultra All Inclusive' },
+];
+
+// M2 spec §2.1c / M5 spec §3.0c.3e (dopuna 5.9.2026, vlasnikov zahtev) — `ActivityTag`, isti
+// zatvoren-ali-proširiv enum kao na tri ostala mesta (DestinationProfile.activities[],
+// EXCURSION.attributes.activity_type, AmenityTag "Aktivnosti u okolini" — namerno odvojeno).
+// MOCK prikaz: ovaj ekran (rezervacije/pretraga) je i danas potpuno mock (M5 spec §3.0b.2
+// dopuna 1.9.2026) — dugmad ovde ne filtrira rezultate uživo, samo pokazuje kako će grupa
+// izgledati kad pretraga zaista bude nosila `DestinationProfile.activities[]`.
+const ACTIVITY_OPTIONS: { value: string; label: string }[] = [
+  { value: 'CYCLING', label: 'Biciklizam' },
+  { value: 'HIKING', label: 'Planinarenje' },
+  { value: 'HUNTING', label: 'Lov' },
+  { value: 'FISHING', label: 'Ribolov' },
+  { value: 'DIVING', label: 'Ronjenje' },
+  { value: 'SKIING', label: 'Skijanje' },
+  { value: 'RAFTING', label: 'Rafting' },
+  { value: 'WILDLIFE_WATCHING', label: 'Posmatranje divljih životinja' },
+  { value: 'WINE_TASTING', label: 'Degustacija vina' },
 ];
 
 // Naslov sekcije filtera — bez sopstvene podloge (izmena 3.9.2026, vidi `FILTER_BLOCK_CLASS`):
@@ -201,6 +228,14 @@ export default function SearchSidebarPanel() {
             ]}
           />
 
+          {/* "Aktivnosti" — sopstvena, UVEK OTVORENA grupa, bez ševrona za sklapanje (dizajn dok.
+              §6d dopuna 5.9.2026, M5 spec §3.0c.3e). Razlika u odnosu na grupe sadržaja ispod:
+              po vlasnikovom nalazu ovo sve češće postaje PRIMARNI kriterijum izbora destinacije,
+              ne sporedan detalj koji se traži tek kad je destinacija već poznata. Ekran pretrage
+              je i dalje potpuno mock (M5 spec §3.0b.2 dopuna 1.9.2026) — dugmad ovde je čisto
+              vizuelan prikaz, ne filtrira stvarne rezultate. */}
+          <ActivityGroupMock />
+
           {showAccommodationFilters && (
             <>
               <PillCheckboxGroup
@@ -218,7 +253,14 @@ export default function SearchSidebarPanel() {
               <div className="contents">
                   {AMENITY_GROUPS.map((group) => (
                     <div key={group.label} className={FILTER_BLOCK_CLASS}>
-                      <div className={`mb-1.5 ${FILTER_TITLE_CLASS}`}>{group.label}</div>
+                      <div className={`mb-1.5 flex items-center gap-1 ${FILTER_TITLE_CLASS}`}>
+                        {group.label}
+                        {CONTEXTUAL_FILTER_GROUPS.has(group.label) && (
+                          <span title="Prikazano za ovu destinaciju/period — kontekstualan filter (M5 spec §3.0c.3d)">
+                            <Icon name="info" className="normal-case text-ink-faint" />
+                          </span>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-1">
                         {group.tags.map((tag) => (
                           <label
@@ -416,6 +458,35 @@ function PriceRangeFields() {
         />
       </div>
     </label>
+  );
+}
+
+/**
+ * M5 spec §3.0c.3e / dizajn dok. §6d dopuna (5.9.2026) — "Aktivnosti", uvek otvorena, bez
+ * ševrona. Sopstveno, lokalno stanje (ne `useSearchFilters`): ovaj ceo ekran je mock (M5 spec
+ * §3.0b.2), a `ActivityTag` još nema pravi upitni parametar na `GET /search` — dugme ovde
+ * pokazuje IZGLED grupe, ne stvarno filtriranje. Kad pretraga po aktivnosti dobije pravu žicu
+ * (M5 spec §3.0c.3e, "namerno van obima ovog prolaza"), ovo se zamenjuje pravim filterom.
+ */
+function ActivityGroupMock() {
+  const [selected, setSelected] = useState<string[]>([]);
+  return (
+    <div className={FILTER_BLOCK_CLASS}>
+      <div className={`mb-1.5 ${FILTER_TITLE_CLASS}`}>Aktivnosti</div>
+      <div className="flex flex-wrap gap-1">
+        {ACTIVITY_OPTIONS.map((tag) => (
+          <label key={tag.value} className={`flex items-center gap-1 px-1.5 py-0.5 text-[11px] ${FILTER_PILL_CLASS}`}>
+            <input
+              type="checkbox"
+              checked={selected.includes(tag.value)}
+              onChange={() => setSelected((prev) => (prev.includes(tag.value) ? prev.filter((v) => v !== tag.value) : [...prev, tag.value]))}
+              className="sr-only"
+            />
+            {tag.label}
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 

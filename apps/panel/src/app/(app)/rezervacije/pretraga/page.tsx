@@ -13,6 +13,7 @@ import FlightResultsMock from './FlightResultsMock';
 import TransferResultsMock from './TransferResultsMock';
 import ExcursionResultsMock from './ExcursionResultsMock';
 import RealResults from './RealResults';
+import ActivitySearchEntry from './ActivitySearchEntry';
 import type { SearchResult } from './types';
 
 
@@ -155,6 +156,8 @@ export default async function SearchPage(
         <span className="text-accent">$</span> pretraga
       </h1>
       <p className="mb-4 text-xs text-ink-dim">Objedinjena pretraga kataloga (M2), ugovorene dostupnosti (M3) i uživo ponuda (M4).</p>
+
+      <ActivitySearchEntry />
 
       <SearchPanel hasResults={showsResults} />
 
