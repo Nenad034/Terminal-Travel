@@ -183,8 +183,22 @@ export class ReportsService {
   // do sad je "Destinacija → Hotel" (`product_name` kao treća dimenzija) mešao SVE vrste
   // proizvoda pod istom destinacijom (let, transfer, izlet...), ne samo smeštaj — `product_name`
   // sam po sebi ne razlikuje vrstu. Opcioni filter, isti obrazac kao `sales()` iznad.
+  //
+  // Zarezom razdvojena lista (dopuna, vlasnikov zahtev: "stavi ikone iz pretrage") — ikonice
+  // ekrana pretrage (`PRODUCT_ICONS`, `apps/panel/src/lib/search-product-types.ts`) po nekim
+  // vrstama pokrivaju VIŠE `ProductType` vrednosti odjednom (npr. "Things to do" = EXCURSION +
+  // EVENT + TICKET), pa jedan string parametar mora da nosi ceo skup, ne samo jednu vrednost.
   async dynamic(filters: PeriodFilter & { productType?: string }, dimensions: DynamicDimension[]) {
-    const where: Prisma.FactBookingWhereInput = { ...this.periodWhere(filters), productType: filters.productType as never };
+    const types = filters.productType
+      ? filters.productType
+          .split(',')
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
+    const where: Prisma.FactBookingWhereInput = {
+      ...this.periodWhere(filters),
+      ...(types.length === 1 ? { productType: types[0] as never } : types.length > 1 ? { productType: { in: types as never[] } } : {}),
+    };
     const rows = await this.prisma.factBooking.findMany({ where });
     const payments = await this.prisma.factPayment.findMany();
     const paidByBookingId = new Map<string, number>();

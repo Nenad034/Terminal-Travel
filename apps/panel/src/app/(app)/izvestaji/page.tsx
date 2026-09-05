@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
-import Icon from '@/components/Icon';
+import Icon, { IconDuo } from '@/components/Icon';
+import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -102,24 +103,43 @@ const NIGHTS_SERIES: ChartSeries<Bucket & { nights: number }>[] = [{ label: 'no�
 
 const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
-// Preset kombinacije za "Dinamički" (5.9.2026, vlasnikov zahtev: "dodajte i pregled na nivou
-// hotela na destinacijama") — brz izbor umesto ručnog kucanja tačnih imena dimenzija.
-// `productType` (dopuna, vlasnikov nalaz: "niste dodali hotele u destinacijama") — sama
-// dimenzija `product_name` ne razlikuje vrstu proizvoda, pa je "Destinacija → Hotel" do sad
-// mešala SVE vrste (let/transfer/izlet...) pod istom destinacijom; ovaj preset sad DODATNO
-// filtrira na `productType=ACCOMMODATION`, isti razlog zašto se to zove "→ Hotel" a ne
-// "→ proizvod". Ostali preseti ostaju bez filtera (svesno — kanal/dobavljač imaju smisla za sve
-// vrste proizvoda).
-const DYNAMIC_PRESETS = [
-  { label: 'Destinacija', dims: 'destination_country,destination_city', productType: undefined },
-  { label: 'Destinacija → Hotel', dims: 'destination_country,destination_city,product_name', productType: 'ACCOMMODATION' },
+// Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "nije dobro ovo kod dinamickih paketa.
+// Stavi ikone iz pretrage i koju ikonu ukljucimo... treba da se kreira dinamicki izvestaj i sve
+// treba da ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — poništava raniji
+// tekstualni preset "Destinacija"/"Destinacija → Hotel" (v1.8/v1.9): ISTE ikonice kao ekran
+// pretrage (`PRODUCT_ICONS`, `lib/search-product-types.ts`, jedan izvor istine — vidi komentar
+// tamo), ne nova, druga lista. Klik UVEK postavlja isti trodelni niz dimenzija (država → mesto →
+// proizvod), filtriran na TU vrstu — "proizvod koji smo odabrali" doslovno znači `product_name`
+// filtrirano na kliknutu ikonicu, ne generičko "sve vrste zajedno" kao ranije. Samo ikonice sa
+// nepraznim `types` ulaze ovde ("Individualni paketi" je `packageMode` bez sopstvenog
+// `ProductType`, ne postoji u M13 projekciji). Neke ikonice (npr. "Things to do") pokrivaju VIŠE
+// `ProductType` vrednosti — spojene zarezom, `dynamic()` na API strani ih čita kao `IN` listu.
+const DYNAMIC_DRILLDOWN_DIMS = 'destination_country,destination_city,product_name';
+const DYNAMIC_PRODUCT_ICONS = PRODUCT_ICONS.filter((p) => p.types.length > 0);
+// Preostala dva preseta koja NISU vezana za vrstu proizvoda — kanal/dobavljač imaju smisla za
+// sve vrste odjednom, ostaju kao pre.
+const DYNAMIC_OTHER_PRESETS = [
   { label: 'Kanal', dims: 'channel', productType: undefined },
   { label: 'Dobavljač', dims: 'supplier_name', productType: undefined },
 ] as const;
 // Serija za grafik-prikaz "Dinamički" (5.9.2026, vlasnikov zahtev: "omoguci infografik pregled
-// kako sam ranije trazio") — SAMO vrhovi stabla (`dynamicReport.tree`, prvi nivo), isti princip
-// kao ostali izveštaji (grafik nije svestan ugnježdene strukture).
-const DYNAMIC_SERIES: ChartSeries<DynamicNode>[] = [{ label: 'prihod', color: 'var(--accent)', value: (n) => n.revenue, money: true }];
+// kako sam ranije trazio"; dopunjeno isti dan, "Infografik takodje treba da bude dinamicki i da
+// prati tabelu" — grafik NIJE više fiksiran na prvi nivo (države), nego prikazuje NAJDUBLJI nivo
+// stabla (liste, `flattenDynamicLeaves` ispod), tačno onaj skup redova koji tabela stvarno
+// prikazuje kad je do kraja proširena — puna putanja (država › mesto › proizvod) kao naziv reda.
+const DYNAMIC_SERIES: ChartSeries<{ key: string; revenue: number }>[] = [
+  { label: 'prihod', color: 'var(--accent)', value: (n) => n.revenue, money: true },
+];
+
+/** Listovi stabla (čvorovi bez dece), sa punom putanjom kao ključem — isti princip sklapanja
+ * putanje kao `DynamicTree.tsx`, ovde bez skupljanja jer grafik uvek prikazuje krajnji nivo. */
+function flattenDynamicLeaves(nodes: DynamicNode[], parentPath: string, out: { key: string; revenue: number }[]) {
+  for (const n of nodes) {
+    const path = parentPath ? `${parentPath} › ${n.key}` : n.key;
+    if (n.children.length === 0) out.push({ key: path, revenue: n.revenue });
+    else flattenDynamicLeaves(n.children, path, out);
+  }
+}
 
 interface SearchParams {
   tab?: string;
@@ -452,24 +472,40 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           )}
           {tab === 'dinamicki' && (
             <>
-              <Field label="dimenzije (redosled, zarezom)">
-                <input
-                  name="groupBy"
-                  defaultValue={currentDims}
-                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                  className="input w-72"
-                />
-              </Field>
-              {/* Preset kombinacije (5.9.2026, vlasnikov zahtev: "dodajte i pregled na nivou
-                  hotela na destinacijama") — brz izbor umesto ručnog kucanja; `<Link>`, ne dugme
-                  forme, jer menjaju putanju direktno (isti obrazac kao `SubTabBar`). */}
+              {/* Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "stavi ikone iz pretrage i
+                  koju ikonu ukljucimo za to treba da se kreira dinamicki izvestaj i sve treba da
+                  ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — iste ikonice kao
+                  ekran pretrage (`PRODUCT_ICONS`), klik UVEK postavlja isti trodelni niz
+                  (država → mesto → proizvod) filtriran na tu vrstu. */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-[11px] text-ink-faint">brzo</span>
+                <span className="text-[11px] text-ink-faint">po vrsti proizvoda (država → mesto → proizvod)</span>
                 <div className="flex flex-wrap gap-1">
-                  {DYNAMIC_PRESETS.map((p) => {
-                    // Aktivan preset uzima u obzir I dimenzije I productType (dopuna) — dva
-                    // preseta mogu deliti iste dimenzije, filter ih razlikuje.
-                    const active = currentDims === p.dims && (searchParams?.productType ?? '') === (p.productType ?? '');
+                  {DYNAMIC_PRODUCT_ICONS.map((p) => {
+                    const typeParam = p.types.join(',');
+                    const active = currentDims === DYNAMIC_DRILLDOWN_DIMS && (searchParams?.productType ?? '') === typeParam;
+                    return (
+                      <Link
+                        key={p.label}
+                        href={dimensionsHref(DYNAMIC_DRILLDOWN_DIMS, typeParam)}
+                        title={p.label}
+                        className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium ${
+                          active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                        }`}
+                      >
+                        {p.iconDuo ? <IconDuo name={p.icon} /> : <Icon name={p.icon} />}
+                        {p.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Preostala dva preseta, van vrste proizvoda — kanal/dobavljač imaju smisla za
+                  sve vrste odjednom, ostaju tekstualni linkovi kao pre. */}
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[11px] text-ink-faint">po drugom kriterijumu</span>
+                <div className="flex flex-wrap gap-1">
+                  {DYNAMIC_OTHER_PRESETS.map((p) => {
+                    const active = currentDims === p.dims && !searchParams?.productType;
                     return (
                       <Link
                         key={p.label}
@@ -484,6 +520,14 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                   })}
                 </div>
               </div>
+              <Field label="dimenzije (ručno, redosled zarezom)">
+                <input
+                  name="groupBy"
+                  defaultValue={currentDims}
+                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
+                  className="input w-72"
+                />
+              </Field>
             </>
           )}
           <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
@@ -574,8 +618,12 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           {dynamicReport.tree.length === 0 ? (
             <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
           ) : view === 'grafik' ? (
-            <ChartSection title="Prihod po vrhu stabla">
-              <BarChart rows={dynamicReport.tree} series={DYNAMIC_SERIES} />
+            <ChartSection title="Prihod po najdubljem nivou (prati tabelu ispod)">
+              <BarChart rows={(() => {
+                const leaves: { key: string; revenue: number }[] = [];
+                flattenDynamicLeaves(dynamicReport.tree, '', leaves);
+                return leaves;
+              })()} series={DYNAMIC_SERIES} />
             </ChartSection>
           ) : (
             <DynamicTree nodes={dynamicReport.tree} />
