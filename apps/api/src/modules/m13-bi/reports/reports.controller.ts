@@ -1,7 +1,17 @@
 import { BadRequestException, Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { ReportsService, DYNAMIC_DIMENSIONS, DynamicDimension, OCCUPANCY_GROUP_BY, OccupancyGroupBy } from './reports.service';
+import {
+  ReportsService,
+  DYNAMIC_DIMENSIONS,
+  DynamicDimension,
+  OCCUPANCY_GROUP_BY,
+  OccupancyGroupBy,
+  REPORT_DATE_FIELDS,
+  ReportDateField,
+  REPORT_SEGMENTS,
+  ReportSegment,
+} from './reports.service';
 import { ExportReportDto } from './dto/export-report.dto';
 import { SendReportChatDto } from './dto/send-report-chat.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
@@ -17,18 +27,47 @@ import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 export class ReportsController {
   constructor(private readonly reports: ReportsService) {}
 
+  // Zajednička provera za `dateField`/`segment` (5.9.2026, vlasnikov zahtev: "dinamicki izvestaj
+  // treba da ima datume za filtriranje... Isto tako i ostali izvestaji... filtere Subagenti, B2B,
+  // B2C") — identična na svih pet endpoint-a ispod, izdvojena da se ne ponavlja pet puta.
+  private assertValidDateField(dateField?: string): void {
+    if (dateField && !REPORT_DATE_FIELDS.includes(dateField as ReportDateField)) {
+      throw new BadRequestException(`dateField mora biti jedno od: ${REPORT_DATE_FIELDS.join(', ')} (M13 spec §7).`);
+    }
+  }
+
+  private assertValidSegment(segment?: string): void {
+    if (segment && !REPORT_SEGMENTS.includes(segment as ReportSegment)) {
+      throw new BadRequestException(`segment mora biti jedno od: ${REPORT_SEGMENTS.join(', ')} (M13 spec §7).`);
+    }
+  }
+
   @Get('profitability')
   @RequirePermission('M13', 'report:profitability', 'VIEW')
   profitability(
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('dateField') dateField?: string,
+    @Query('segment') segment?: string,
     @Query('destinationCountry') destinationCountry?: string,
     @Query('destinationCity') destinationCity?: string,
     @Query('supplierId') supplierId?: string,
     @Query('providerCode') providerCode?: string,
     @Query('channel') channel?: string,
   ) {
-    return this.reports.profitability({ from, to, destinationCountry, destinationCity, supplierId, providerCode, channel });
+    this.assertValidDateField(dateField);
+    this.assertValidSegment(segment);
+    return this.reports.profitability({
+      from,
+      to,
+      dateField: dateField as ReportDateField | undefined,
+      segment: segment as ReportSegment | undefined,
+      destinationCountry,
+      destinationCity,
+      supplierId,
+      providerCode,
+      channel,
+    });
   }
 
   @Get('sales')
@@ -36,10 +75,21 @@ export class ReportsController {
   sales(
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('dateField') dateField?: string,
+    @Query('segment') segment?: string,
     @Query('channel') channel?: string,
     @Query('productType') productType?: string,
   ) {
-    return this.reports.sales({ from, to, channel, productType });
+    this.assertValidDateField(dateField);
+    this.assertValidSegment(segment);
+    return this.reports.sales({
+      from,
+      to,
+      dateField: dateField as ReportDateField | undefined,
+      segment: segment as ReportSegment | undefined,
+      channel,
+      productType,
+    });
   }
 
   @Get('occupancy')
@@ -47,17 +97,23 @@ export class ReportsController {
   occupancy(
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('dateField') dateField?: string,
+    @Query('segment') segment?: string,
     @Query('destinationCountry') destinationCountry?: string,
     @Query('destinationCity') destinationCity?: string,
     @Query('supplierId') supplierId?: string,
     @Query('group_by') groupBy?: string,
   ) {
+    this.assertValidDateField(dateField);
+    this.assertValidSegment(segment);
     if (groupBy && !OCCUPANCY_GROUP_BY.includes(groupBy as OccupancyGroupBy)) {
       throw new BadRequestException(`group_by mora biti jedno od: ${OCCUPANCY_GROUP_BY.join(', ')} (M13 spec §7).`);
     }
     return this.reports.occupancy({
       from,
       to,
+      dateField: dateField as ReportDateField | undefined,
+      segment: segment as ReportSegment | undefined,
       destinationCountry,
       destinationCity,
       supplierId,
@@ -70,9 +126,13 @@ export class ReportsController {
   dynamic(
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('dateField') dateField?: string,
+    @Query('segment') segment?: string,
     @Query('group_by') groupBy?: string,
     @Query('productType') productType?: string,
   ) {
+    this.assertValidDateField(dateField);
+    this.assertValidSegment(segment);
     const dims = (groupBy ?? '')
       .split(',')
       .map((d) => d.trim())
@@ -84,13 +144,23 @@ export class ReportsController {
     if (invalid.length > 0) {
       throw new BadRequestException(`Nepoznate dimenzije: ${invalid.join(', ')}. Dozvoljeno: ${DYNAMIC_DIMENSIONS.join(', ')} (M13 spec §4.2).`);
     }
-    return this.reports.dynamic({ from, to, productType }, dims);
+    return this.reports.dynamic(
+      { from, to, dateField: dateField as ReportDateField | undefined, segment: segment as ReportSegment | undefined, productType },
+      dims,
+    );
   }
 
   @Get('marketing')
   @RequirePermission('M13', 'report:marketing', 'VIEW')
-  marketing(@Query('from') from?: string, @Query('to') to?: string) {
-    return this.reports.marketing({ from, to });
+  marketing(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('dateField') dateField?: string,
+    @Query('segment') segment?: string,
+  ) {
+    this.assertValidDateField(dateField);
+    this.assertValidSegment(segment);
+    return this.reports.marketing({ from, to, dateField: dateField as ReportDateField | undefined, segment: segment as ReportSegment | undefined });
   }
 
   // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u

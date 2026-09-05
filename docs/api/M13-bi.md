@@ -13,9 +13,11 @@
 
 ## Izveštaji
 
+**Zajednički parametri `from`/`to`/`dateField`/`segment`** (5.9.2026 dopuna, M13 spec v1.12) — dostupni na SVIH pet izveštaja ispod. `dateField` bira NA KOJE polje se `from`/`to` odnosi: `created` (`bookingDate`), `stay_from` (dolazak), `stay_to` (odlazak); kad je izostavljen, `from`/`to` filtriraju po preklapanju sa terminom boravka (staro ponašanje, radi kompatibilnosti). `segment` filtrira po prodajnom kanalu: `B2B` (`channel = B2B_PORTAL`), `B2C` (`channel = B2C_SITE`), `SUBAGENT` (`subagentName` postavljen, nezavisno od kanala) — tačno jedan odjednom.
+
 ### GET /bi/reports/profitability
 
-Profitabilnost po destinaciji/dobavljaču/kanalu (Faza 5 izlazni kriterijum). Query: `from`, `to` (ISO datum, filtriraju po preklapanju perioda boravka), `destinationCountry`, `destinationCity`, `supplierId`, `providerCode`, `channel` — svi opcioni.
+Profitabilnost po destinaciji/dobavljaču/kanalu (Faza 5 izlazni kriterijum). Query: `from`, `to`, `dateField`, `segment` (zajednički, gore), `destinationCountry`, `destinationCity`, `supplierId`, `providerCode`, `channel` — svi opcioni.
 
 **Odgovor `200`:**
 ```json
@@ -36,7 +38,7 @@ Profitabilnost po destinaciji/dobavljaču/kanalu (Faza 5 izlazni kriterijum). Qu
 
 ### GET /bi/reports/sales
 
-Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `from`, `to`, `channel`, `productType`.
+Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `from`, `to`, `dateField`, `segment`, `channel`, `productType`.
 
 **Odgovor `200`:**
 ```json
@@ -53,7 +55,7 @@ Broj rezervacija, ukupna/prosečna vrednost, po kanalu/tipu proizvoda. Query: `f
 
 ### GET /bi/reports/occupancy
 
-Operativna statistika smeštaja (poglavlje 4.1). Query: `from`, `to`, `destinationCountry`, `destinationCity`, `supplierId`, `group_by` (opciono, jedno od `room_type`, `board_type`, `stars`, `accommodation_type`).
+Operativna statistika smeštaja (poglavlje 4.1). Query: `from`, `to`, `dateField`, `segment`, `destinationCountry`, `destinationCity`, `supplierId`, `group_by` (opciono, jedno od `room_type`, `board_type`, `stars`, `accommodation_type`).
 
 **Odgovor `200`:**
 ```json
@@ -73,7 +75,7 @@ Operativna statistika smeštaja (poglavlje 4.1). Query: `from`, `to`, `destinati
 
 ### GET /bi/reports/dynamic
 
-Dinamički drill-down izveštaj (poglavlje 4.2). Query: `from`, `to`, `group_by` — **obavezan**, zarezom razdvojena uređena lista dimenzija: `destination_country`, `destination_city`, `product_name`, `supplier_name`, `channel`, `subagent_name`.
+Dinamički drill-down izveštaj (poglavlje 4.2). Query: `from`, `to`, `dateField`, `segment`, `productType` (opciono, zarezom razdvojena lista `ProductType` vrednosti — `IN` filter), `group_by` — **obavezan**, zarezom razdvojena uređena lista dimenzija: `destination_country`, `destination_city`, `product_name`, `supplier_name`, `channel`, `subagent_name`.
 
 **Zahtev:** `GET /bi/reports/dynamic?group_by=destination_country,channel`
 
@@ -102,7 +104,7 @@ Nepoznata dimenzija u `group_by` → `400`. `paid` se računa iz `FactPayment` p
 
 ### GET /bi/reports/marketing
 
-Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3). Query: `from`, `to`.
+Marketing performanse — atribucija rezervacije ka M12 sadržaju (poglavlje 4.3). Query: `from`, `to`, `dateField`, `segment`.
 
 **Odgovor `200`:**
 ```json
