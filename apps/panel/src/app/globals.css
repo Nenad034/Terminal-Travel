@@ -312,6 +312,16 @@
 html,
 body {
   height: 100%;
+  /* Ispravka 5.9.2026 (vlasnikov nalaz: "kada se skroluje donja traka se pomeri gore umesto da
+     ostane prikovana za donju ivicu ekrana") — panel upravlja SVIM sopstvenim skrolovanjem
+     iznutra (`Shell.tsx`, `h-screen overflow-hidden` koren + `overflow-y-auto` samo na `<main>`/
+     bočnim panelima), isti obrazac kao VS Code. Bez ove brane, čim BILO KOJI potomak i za koji
+     piksel probije 100vh (izmereno uživo: koren div, `scrollHeight` 812 nasuprot manjem
+     `window.innerHeight`, i pored sopstvenog `overflow-hidden` na tom divu), `body` to tiho
+     prihvata (ima samo `height: 100%`, ne i gornju granicu) i postaje skrolabilan — vuče CEO
+     panel (uklj. donju statusnu traku) sa sobom. `overflow: hidden` ovde je tvrd stop: telo
+     stranice nikad ne sme samo da skroluje, bez obzira šta se unutra desi. */
+  overflow: hidden;
 }
 body {
   background: var(--bg);
