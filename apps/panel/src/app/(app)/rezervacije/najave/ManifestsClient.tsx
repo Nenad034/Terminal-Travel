@@ -12,9 +12,8 @@ import {
   confirmManifest,
   sendChangeNotice,
   confirmChangeNotice,
-  emptyState,
-  type FormState,
 } from './actions';
+import { emptyState, type FormState } from './types';
 
 export interface Manifest {
   id: string;

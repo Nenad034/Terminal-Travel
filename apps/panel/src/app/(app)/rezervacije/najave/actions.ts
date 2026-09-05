@@ -2,13 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { apiFetch, ApiError } from '@/lib/api-client';
-
-export interface FormState {
-  error: string | null;
-  notice: string | null;
-}
-
-export const emptyState: FormState = { error: null, notice: null };
+import type { FormState } from './types';
 
 const PATH = '/rezervacije/najave';
 
