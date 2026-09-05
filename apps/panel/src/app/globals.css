@@ -450,6 +450,26 @@ code,
   font-weight: 700;
   color: var(--text);
 }
+/* Do tri ponude u baneru (5.9.2026 dopuna, vlasnikov zahtev: "dodaj sve informacije kao na
+   banerima u rezultatima pretrage") — isti "red usluge + cena" jezik kao ResultCard/
+   ResultRowGroup (`bg-panel2` kartica), samo bez React-a (baner je čist HTML). */
+.tt-map-offer {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.tt-map-offer-price {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-weight: 600;
+  color: var(--text);
+}
 .tt-map-add {
   margin-top: 8px;
   width: 100%;
