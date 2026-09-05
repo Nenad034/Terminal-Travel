@@ -27,3 +27,6 @@ apps/panel/src/app/api/session/dev-login/
 apps/panel/public/maps/
 *.pmtiles
 apps/panel/public/maplibre/
+
+# Snimci ekrana iz `npm run qa` — prave se iznova pri svakom pokretanju.
+qa-snimci/
