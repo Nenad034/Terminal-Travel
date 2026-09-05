@@ -261,7 +261,7 @@ Obe nove provere su **prvo dokazane obaranjem** — nije dovoljno da ćute nad i
 
 ---
 
-### 2.5 Nijedan ekran nema svoju stranicu greške
+### 2.5 Nijedan ekran nema svoju stranicu greške — GREŠKA REŠENA 5.9.2026, 404 NIJE
 
 U `apps/panel` i `apps/web` ne postoji **nijedan** `error.tsx`, `global-error.tsx` ni `not-found.tsx`.
 
@@ -269,6 +269,23 @@ Posledica: svaka greška u renderu — kao ona sa `base_beds` — daje golu Next
 
 **Predlog:** `error.tsx` po glavnim celinama (rezervacije, katalog, finansije) + jedan `global-error.tsx`, sa porukom na srpskom, dugmetom za ponovni pokušaj i tihim upisom u M18 nadzor.
 **Procena:** pola dana.
+
+---
+
+**REŠENO 5.9.2026 — stranica greške. 404 NIJE, i to se ne prikazuje kao da jeste.**
+
+**Urađeno:**
+- `apps/panel/(app)/error.tsx` — prikazuje se UNUTAR ljuske panela (leva traka, tabovi i meni ostaju), poruka na srpskom, dugmad „pokušaj ponovo" i „na početnu", i **oznaka za prijavu** (`digest`) — jedina nit koja spaja ono što korisnik vidi sa tragom u logu servera.
+- `apps/panel/global-error.tsx` — poslednja odbrana kad padne i korenski raspored. Namerno bez ijedne naše klase i komponente: u tom stanju se ne sme računati ni na to da su stilovi učitani.
+- `apps/web/[locale]/(site)/error.tsx` — isto za javni sajt, kroz `next-intl`; poruka izričito kaže gostu da ništa nije upisano, jer greška u prikazu nastaje pre bilo kakvog upisa. Prevodi dodati za svih 8 jezika.
+
+**Provereno u pravom browseru, nad produkcijskim buildom** (privremena strana koja baca izuzetak → `build` → `start` → snimak ekrana → strana obrisana): stranica se prikazuje ispravno, unutar ljuske.
+
+**Nauk koji je usput izašao i upisan kao zamka 7.1b:** stranica greške se **ne vidi** u serverskom HTML-u — ni u dev ni u produkciji. Provera preko `curl`/`fetch` pokazuje prazan 500 i navodi na zaključak „ne radi", a u browseru sve radi: granicu greške popunjava tek klijent posle hidratacije. Uz to `next dev` servira sopstveni dijagnostički ekran, pa dev nije merodavan ni za jedno.
+
+**Napomena o dometu provere:** ekran greške panela je dokazan uživo. Verzija za sajt koristi ISTI mehanizam u istoj verziji Next-a, ali nije zasebno pokrenuta u browseru — kaže se, ne prećutkuje.
+
+**NIJE REŠENO — 404.** Pogrešna adresa i dalje daje Next-ovu englesku stranicu. Napravljen `not-found.tsx` (u korenu i u `(app)` grupi) **nije se aktivirao** — ni za nepostojeću adresu ni za `notFound()` pozvan iz ekrana, ni u dev ni u produkciji. Fajlovi su **uklonjeni**, a ne ostavljeni: mrtav fajl koji sugeriše pokrivenost koje nema je gori od odsustva. Uputstvo te verzije kaže da adrese van svih ruta pokriva `global-not-found.js`, koji je **eksperimentalan** i traži prekidač u konfiguraciji — izmena steka, čeka potvrdu. Zavedeno u backlog, uz otvoreno pitanje zašto se ni obična `not-found.tsx` nije aktivirala.
 
 ---
 
@@ -369,7 +386,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 

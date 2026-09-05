@@ -152,5 +152,12 @@
     "infoTitle": "Information",
     "terms": "Terms",
     "rightsReserved": "All rights reserved."
+  },
+  "errors": {
+    "errorTitle": "This page could not be displayed",
+    "errorBody": "Something went wrong. Your booking and data are safe — nothing was saved because of this. Please try again.",
+    "retry": "try again",
+    "home": "go to home page",
+    "reference": "Reference code"
   }
 }
