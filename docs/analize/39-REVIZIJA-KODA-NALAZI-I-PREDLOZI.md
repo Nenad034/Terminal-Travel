@@ -188,7 +188,7 @@ Zajednički obrazac je u `apps/api/src/common/pagination/`: `parsePagination` (�
 
 ---
 
-### 2.3 Usklađivanje BI podataka radi tri upita po svakoj stavci, nad neograničenim skupom
+### 2.3 Usklađivanje BI podataka radi tri upita po svakoj stavci, nad neograničenim skupom — REŠENO 5.9.2026
 
 `m13-bi/reconciliation/reconciliation.service.ts:40` uzme **sve** stavke rezervacija bez limita, pa u petlji za svaku uradi `findUnique` + `syncBookingItem` + još jedan `findUnique`.
 
@@ -196,6 +196,32 @@ Sa 10.000 stavki to je preko 30.000 upita u jednoj operaciji. Danas radi jer je 
 
 **Predlog:** obrada u serijama (npr. po 500), sa jednim upitom po seriji umesto po zapisu. Isti obrazac postoji na još ~15 mesta u drugim servisima; ovaj je najizraženiji, pa neka bude prvi.
 **Procena:** pola dana za ovaj, 1–2 dana za pregled ostalih.
+
+---
+
+**REŠENO 5.9.2026.**
+
+**Ispravka brojke iz prvobitnog nalaza:** nije bilo „tri upita po stavci" nego **oko šesnaest**. Tri su bila vidljiva u samoj rekonsilijaciji; ostalo je bilo skriveno u `buildFactBookingData`, koje za svaku stavku posebno povlači proizvod, ugovor, dobavljača, klijentski nalog, subagenta, goste i kurs. Prvobitni nalaz je izbrojao samo ono što se vidi u jednoj funkciji — greška u istom rodu kao 8.4 (obim procenjen, ne prebrojan).
+
+**Šta je urađeno:**
+1. **Serije od 500 umesto svega odjednom.** Kretanje ide „kursorom" po `id`, ne `skip`-om — `skip` na velikoj tabeli tera bazu da prebroji i preskoči sve prethodne redove pri svakoj seriji, pa posao usporava što dalje odmiče.
+2. **Jedan upit po seriji umesto dva po stavci** za stanje pre i posle (`findMany … in [ids]` umesto `findUnique` u petlji).
+3. **Keš za jedan prolaz** (`FactSyncCache`) — proizvod/ugovor/dobavljač/klijent/kurs se ponavljaju kroz hiljade stavki; hiljadu rezervacija istog hotela značilo je hiljadu identičnih upita za tog dobavljača. Keš namerno **ne živi između prolaza**: rekonsilijaciji je ceo posao da uhvati promene u izvornim modulima, pa bi trajan keš značio ispravljanje projekcije na zastarelu vrednost.
+4. **Čišćenje siročadi jednim SQL naredbom** umesto dovlačenja svih identifikatora sa obe strane u memoriju radi poređenja.
+5. **Uplate se sada stvarno čiste** — `paymentsRemoved` je ranije samo BROJAO redove čiji izvor više ne kvalifikuje, a brisanje je zavisilo od toga da `syncPayment` naiđe na tu uplatu; uplata koja je u međuvremenu obrisana nije bila pokrivena nikako.
+
+**Izmereno na živom sistemu, ista metoda na oba koda** (25 stavki + 13 uplata, `pg_stat_user_tables`, tri prolaza po verziji, uz pauzu da statistika Postgresa stigne — merenje bez te pauze daje lažno niske brojeve):
+
+| | pretraga tabela po prolazu |
+| :---- | :---- |
+| pre | 395–451 |
+| posle | 292–315 |
+
+**Pošteno o veličini dobitka:** na 25 stavki to je oko **25% manje** — nije dramatično, i ne treba ga tako prikazivati. Većina preostalih upita je po prirodi jedinstvena za svaku stavku (sama stavka, njena rezervacija, njeni gosti, upis projekcije) i nju ni keš ni serije ne uklanjaju. Ono što se stvarno menja je **kako raste**: dosadašnji kod je učitavao ceo skup u memoriju i broj upita mu je rastao pravolinijski sa brojem stavki, a udeo keširanih pogodaka raste sa količinom podataka (agencija ima hiljade rezervacija, ali desetine dobavljača). Prava provera efekta je moguća tek nad stvarnim obimom podataka — do tada se ovo ne sme prijaviti kao „rešen problem performansi", nego kao uklonjen obrazac koji bi tamo pukao.
+
+**Provereno:** rezultat rekonsilijacije nepromenjen (25 provereno, 25 projektovano, 0 siročadi), ponovljen prolaz javlja 0 ispravki (idempotentno), 1.012 testova prolazi.
+
+**Nalaz koji je usput isplivao (zaveden, ne rešen):** `fact_payments` je prazan iako postoji 12 primljenih uplata — u bazi su samo 2 zapisa kursne liste i nijedan na dan uplate ili pre njega, pa projekcija ne može da se izgradi. Servis to pošteno loguje i odlaže za sledeći prolaz, ali izveštaji o naplati su zato prazni. Nije uzrokovano ovom izmenom.
 
 ---
 
@@ -325,7 +351,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 

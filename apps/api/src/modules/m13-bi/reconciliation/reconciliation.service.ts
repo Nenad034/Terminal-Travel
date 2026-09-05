@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { FactSyncService } from '../sync/fact-sync.service';
+import { FactSyncCache } from '../sync/fact-sync-cache';
 
 export interface ReconciliationResult {
   bookingsChecked: number;
@@ -34,49 +35,101 @@ export class ReconciliationService {
     await this.reconcile();
   }
 
+  /**
+   * Veličina serije (5.9.2026, dok. 39 nalaz 2.3). Do tada je posao učitavao SVE stavke odjednom
+   * i za svaku radio zaseban upit — sa 10.000 stavki to je jedan ogroman rezultat u memoriji i
+   * desetine hiljada upita. Sada se ide u serijama: po seriji jedan upit za stanje pre i jedan
+   * za stanje posle, umesto po dva za svaku stavku.
+   */
+  private static readonly BATCH_SIZE = 500;
+
   async reconcile(): Promise<ReconciliationResult> {
     const ranAt = new Date();
+    // Jedan keš za CEO prolaz — proizvod/ugovor/dobavljač/klijent se ponavljaju kroz hiljade
+    // stavki; bez njega je isti podatak povlačen iznova za svaku (v. `FactSyncCache`).
+    const cache = new FactSyncCache();
 
-    const items = await this.prisma.bookingItem.findMany({ select: { id: true } });
-    const currentItemIds = new Set(items.map((i) => i.id));
-
+    let bookingsChecked = 0;
     let bookingsCorrected = 0;
-    for (const item of items) {
-      const before = await this.prisma.factBooking.findUnique({ where: { bookingItemId: item.id } });
-      await this.factSync.syncBookingItem(item.id);
-      const after = await this.prisma.factBooking.findUnique({ where: { bookingItemId: item.id } });
-      if (!before || this.factBookingChanged(before, after)) bookingsCorrected++;
+    let cursor: string | undefined;
+
+    // Kretanje kroz stavke „kursorom" po `id`, ne `skip`-om: `skip` na velikoj tabeli tera bazu
+    // da prebroji i preskoči sve prethodne redove pri svakoj seriji, pa posao usporava što dalje
+    // odmiče. Uz to je otporno na to da neko u međuvremenu doda ili obriše stavku.
+    for (;;) {
+      const batch = await this.prisma.bookingItem.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: ReconciliationService.BATCH_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+      if (batch.length === 0) break;
+      cursor = batch[batch.length - 1].id;
+      bookingsChecked += batch.length;
+
+      const ids = batch.map((i) => i.id);
+      // JEDAN upit za celu seriju umesto jednog po stavci (ranije: `findUnique` u petlji).
+      const beforeRows = await this.prisma.factBooking.findMany({ where: { bookingItemId: { in: ids } } });
+      const before = new Map(beforeRows.map((f) => [f.bookingItemId, f]));
+
+      for (const id of ids) {
+        await this.factSync.syncBookingItem(id, cache);
+      }
+
+      const afterRows = await this.prisma.factBooking.findMany({ where: { bookingItemId: { in: ids } } });
+      const after = new Map(afterRows.map((f) => [f.bookingItemId, f]));
+
+      for (const id of ids) {
+        const b = before.get(id);
+        if (!b || this.factBookingChanged(b, after.get(id) ?? null)) bookingsCorrected++;
+      }
     }
 
     // Orphan cleanup — FactBooking redovi čiji izvorni BookingItem više ne postoji u M5.
-    const existingFactBookings = await this.prisma.factBooking.findMany({ select: { bookingItemId: true } });
-    const orphanBookingIds = existingFactBookings
-      .map((f) => f.bookingItemId)
-      .filter((id) => !currentItemIds.has(id));
-    if (orphanBookingIds.length > 0) {
-      await this.prisma.factBooking.deleteMany({ where: { bookingItemId: { in: orphanBookingIds } } });
+    // Jedan upit u bazi umesto dovlačenja SVIH id-jeva sa obe strane u memoriju radi poređenja
+    // (dok. 39 nalaz 2.3 — isti razlog kao serije iznad).
+    const bookingsRemoved = await this.prisma.$executeRaw`
+      DELETE FROM fact_bookings f
+      WHERE NOT EXISTS (SELECT 1 FROM booking_items bi WHERE bi.id = f.booking_item_id)
+    `;
+
+    // FactPayment — resinhronizuj sve trenutno postojeće uplate; `syncPayment` sam briše
+    // projektovani red kad uplata više nije RECEIVED.
+    let paymentsChecked = 0;
+    let paymentCursor: string | undefined;
+    for (;;) {
+      const batch = await this.prisma.payment.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: ReconciliationService.BATCH_SIZE,
+        ...(paymentCursor ? { cursor: { id: paymentCursor }, skip: 1 } : {}),
+      });
+      if (batch.length === 0) break;
+      paymentCursor = batch[batch.length - 1].id;
+      paymentsChecked += batch.length;
+      for (const p of batch) {
+        await this.factSync.syncPayment(p.id, cache);
+      }
     }
 
-    // FactPayment — resinhronizuj sve trenutno RECEIVED uplate i ukloni projektovane redove
-    // čija izvorna uplata više nije RECEIVED (syncPayment sam briše u tom slučaju).
-    const allPayments = await this.prisma.payment.findMany({ select: { id: true, status: true } });
-    for (const payment of allPayments) {
-      await this.factSync.syncPayment(payment.id);
-    }
-    const currentReceivedIds = new Set(allPayments.filter((p) => p.status === 'RECEIVED').map((p) => p.id));
-    const existingFactPayments = await this.prisma.factPayment.findMany({ select: { paymentId: true } });
-    const paymentsRemoved = existingFactPayments.filter((f) => !currentReceivedIds.has(f.paymentId)).length;
+    // Uklanja projektovane uplate čiji izvor više ne postoji ILI više nije RECEIVED. Ranije se
+    // ovaj broj samo RAČUNAO (u memoriji), a redovi su ostajali dok ih `syncPayment` ne obriše
+    // pojedinačno — što nije pokrivalo uplatu koja je u međuvremenu potpuno obrisana.
+    const paymentsRemoved = await this.prisma.$executeRaw`
+      DELETE FROM fact_payments f
+      WHERE NOT EXISTS (SELECT 1 FROM payments p WHERE p.id = f.payment_id AND p.status = 'RECEIVED')
+    `;
 
     const result: ReconciliationResult = {
-      bookingsChecked: items.length,
+      bookingsChecked,
       bookingsCorrected,
-      bookingsRemoved: orphanBookingIds.length,
-      paymentsChecked: allPayments.length,
+      bookingsRemoved,
+      paymentsChecked,
       paymentsRemoved,
       ranAt,
     };
     this.logger.log(
-      `Rekonsilijacija završena: ${bookingsCorrected}/${items.length} FactBooking redova ispravljeno, ${orphanBookingIds.length} uklonjeno; FactPayment ${paymentsRemoved} uklonjeno.`,
+      `Rekonsilijacija završena: ${bookingsCorrected}/${bookingsChecked} FactBooking redova ispravljeno, ${bookingsRemoved} uklonjeno; FactPayment ${paymentsChecked} provereno, ${paymentsRemoved} uklonjeno (keširano ${cache.size()} pomoćnih zapisa).`,
     );
     return result;
   }
