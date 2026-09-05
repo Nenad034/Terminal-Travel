@@ -179,8 +179,13 @@ export class ReportsService {
   // ==========================================================================
   // §4.2 — Dinamički drill-down izveštaj (korisnički sastavljiv redosled dimenzija)
   // ==========================================================================
-  async dynamic(filters: PeriodFilter, dimensions: DynamicDimension[]) {
-    const rows = await this.prisma.factBooking.findMany({ where: this.periodWhere(filters) });
+  // `productType` (5.9.2026 dopuna, vlasnikov nalaz: "niste dodali hotele u destinacijama") —
+  // do sad je "Destinacija → Hotel" (`product_name` kao treća dimenzija) mešao SVE vrste
+  // proizvoda pod istom destinacijom (let, transfer, izlet...), ne samo smeštaj — `product_name`
+  // sam po sebi ne razlikuje vrstu. Opcioni filter, isti obrazac kao `sales()` iznad.
+  async dynamic(filters: PeriodFilter & { productType?: string }, dimensions: DynamicDimension[]) {
+    const where: Prisma.FactBookingWhereInput = { ...this.periodWhere(filters), productType: filters.productType as never };
+    const rows = await this.prisma.factBooking.findMany({ where });
     const payments = await this.prisma.factPayment.findMany();
     const paidByBookingId = new Map<string, number>();
     for (const p of payments) {
