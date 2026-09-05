@@ -257,7 +257,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
 
   // "Podeli izveštaj" seli se u isto zaglavlje (ista dopuna) — jedan proračun ovde umesto
   // ponovljenog bloka po tabu ispod.
-  const shareProps: { reportKind: 'profitability' | 'sales' | 'occupancy' | 'marketing'; title: string; rows: Bucket[] } | null =
+  const shareProps: { reportKind: 'profitability' | 'sales' | 'occupancy' | 'marketing' | 'dynamic'; title: string; rows: Bucket[] } | null =
     tab === 'profitabilnost' && profitability
       ? {
           reportKind: 'profitability',
@@ -274,7 +274,17 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
           ? { reportKind: 'occupancy', title: 'Operativna statistika smeštaja', rows: occupancy.breakdown ?? [] }
           : tab === 'marketing' && marketing
             ? { reportKind: 'marketing', title: 'Marketing performanse', rows: marketing.byContent }
-            : null;
+            : tab === 'dinamicki' && dynamicReport
+              ? {
+                  reportKind: 'dynamic',
+                  title: 'Dinamički izveštaj',
+                  // Stablo nema smisla kao ravna tabela za Excel/PDF/HTML — samo VRHOVI (bez
+                  // dece, koja su već sadržana u roditelju) kao najbliža aproksimacija; ono što
+                  // vlasnik ovde stvarno traži je INFOGRAFIK (snimak ekrana), kom ovaj oblik
+                  // uopšte nije bitan.
+                  rows: dynamicReport.tree.map((n) => ({ key: n.key, count: n.count, revenue: n.revenue, baseCost: 0, margin: 0 })),
+                }
+              : null;
 
   // Linkovanje redova tabele ka rezervacijama koje ih čine (5.9.2026, vlasnikov zahtev:
   // "omogucite da sve sto se nalazi u tabelama linkujete prema rezervacijama kije ulaze u taj
@@ -501,14 +511,12 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       )}
 
       {!error && tab === 'dinamicki' && dynamicReport && (
-        <div className="flex flex-col gap-4">
-          <div className="overflow-x-auto rounded-lg border border-border bg-panel p-3">
-            {dynamicReport.tree.length === 0 ? (
-              <p className="p-2 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
-            ) : (
-              <DynamicTree nodes={dynamicReport.tree} depth={0} />
-            )}
-          </div>
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          {dynamicReport.tree.length === 0 ? (
+            <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
+          ) : (
+            <DynamicTree nodes={dynamicReport.tree} />
+          )}
         </div>
       )}
 
@@ -534,21 +542,55 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   );
 }
 
-function DynamicTree({ nodes, depth }: { nodes: DynamicNode[]; depth: number }) {
+interface FlatDynamicRow {
+  node: DynamicNode;
+  depth: number;
+}
+
+// Stablo mora ostati stablo (roditelj = zbir dece, §4.2.1) — "Kibana" tabelarni stil (5.9.2026,
+// vlasnikov zahtev: "sredite tabelu kao sto ste za profitabilnost") primenjuje se BEZ menjanja
+// te strukture: sve grane se izravnaju u JEDNU listu redova sa uvlačenjem po dubini (prvi red
+// svakog čvora), ne pretvara se u ravnu Bucket tabelu (roditelji bi se dupli sabrali sa decom).
+function flattenDynamicTree(nodes: DynamicNode[], depth: number, out: FlatDynamicRow[]) {
+  for (const n of nodes) {
+    out.push({ node: n, depth });
+    if (n.children.length > 0) flattenDynamicTree(n.children, depth + 1, out);
+  }
+}
+
+function DynamicTree({ nodes }: { nodes: DynamicNode[] }) {
+  const rows: FlatDynamicRow[] = [];
+  flattenDynamicTree(nodes, 0, rows);
   return (
-    <div className="flex flex-col gap-1">
-      {nodes.map((n) => (
-        <div key={`${depth}-${n.key}`}>
-          <div className="flex items-center justify-between border-b border-border py-1.5 text-xs" style={{ paddingLeft: depth * 16 }}>
-            <span className="font-medium text-ink">{n.key}</span>
-            <span className="text-ink-faint">
-              {n.count} rez. · {n.pax} os. · {n.nights} noć. · prihod {formatMoney(n.revenue)} · naplaćeno {formatMoney(n.paid)} · saldo{' '}
-              {formatMoney(n.balance)}
-            </span>
-          </div>
-          {n.children.length > 0 && <DynamicTree nodes={n.children} depth={depth + 1} />}
-        </div>
-      ))}
+    <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+            <th className="px-4 py-2 text-left font-medium">naziv</th>
+            <th className="px-4 py-2 text-right font-medium">rezervacija</th>
+            <th className="px-4 py-2 text-right font-medium">osoba</th>
+            <th className="px-4 py-2 text-right font-medium">noćenja</th>
+            <th className="px-4 py-2 text-right font-medium">prihod</th>
+            <th className="px-4 py-2 text-right font-medium">naplaćeno</th>
+            <th className="px-4 py-2 text-right font-medium">saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ node: n, depth }, i) => (
+            <tr key={`${depth}-${n.key}-${i}`} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+              <td className="border-t border-border px-4 py-2 font-medium text-ink" style={{ paddingLeft: 16 + depth * 16 }}>
+                {n.key}
+              </td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.count.toLocaleString('sr-RS')}</td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.pax.toLocaleString('sr-RS')}</td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{n.nights.toLocaleString('sr-RS')}</td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.revenue)}</td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.paid)}</td>
+              <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(n.balance)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
