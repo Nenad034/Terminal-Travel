@@ -1391,4 +1391,69 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       await expect(service.acceptHandoff('h1', { userId: 'b' })).rejects.toThrow(BadRequestException);
     });
   });
+
+  // M5 spec §7 dopuna (5.9.2026, vlasnikov zahtev — dolazak/odlazak od-do + pretraga po nazivu
+  // hotela na Kalendaru rezervacija). `stayFrom`/`stayTo` (dolazak) i `returnFrom`/`returnTo`
+  // (odlazak) moraju se SPOJITI sa prikazanim `from`/`to` prozorom na UŽI opseg, ne prepisati ga.
+  describe('calendarSummary/calendarDay — spajanje dolazak/odlazak filtera sa prozorom (5.9.2026)', () => {
+    it('calendarSummary: filter.stayTo (dolazak do) je stroži od prozora "to" — uzima se filter', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await service.calendarSummary(new Date('2026-09-01T00:00:00.000Z'), new Date('2026-09-30T00:00:00.000Z'), {
+        stayTo: '2026-09-10',
+      });
+
+      const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+      // Prozor bi dao lte=30.9, filter traži dolazak najkasnije 10.9 — uže pobeđuje.
+      expect(where.stayFrom.lte.toISOString().slice(0, 10)).toBe('2026-09-10');
+    });
+
+    it('calendarSummary: filter.returnFrom (odlazak od) je stroži od prozora "from" — uzima se filter', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await service.calendarSummary(new Date('2026-09-01T00:00:00.000Z'), new Date('2026-09-30T00:00:00.000Z'), {
+        returnFrom: '2026-09-15',
+      });
+
+      const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+      // Prozor bi dao gte=1.9, filter traži odlazak najranije 15.9 — uže (kasnije) pobeđuje.
+      expect(where.stayTo.gte.toISOString().slice(0, 10)).toBe('2026-09-15');
+    });
+
+    it('calendarSummary: bez filtera dolazak/odlazak, prozor ostaje nepromenjen (nazadnokompatibilno)', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await service.calendarSummary(new Date('2026-09-01T00:00:00.000Z'), new Date('2026-09-30T00:00:00.000Z'), {});
+
+      const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+      expect(where.stayFrom.lte.toISOString().slice(0, 10)).toBe('2026-09-30');
+      expect(where.stayTo.gte.toISOString().slice(0, 10)).toBe('2026-09-01');
+    });
+
+    it('calendarDay: filter.stayFrom (dolazak od) se spaja sa jednodnevnim prozorom', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await service.calendarDay(new Date('2026-09-05T00:00:00.000Z'), { stayFrom: '2026-09-01' });
+
+      const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+      expect(where.stayFrom.gte.toISOString().slice(0, 10)).toBe('2026-09-01');
+      expect(where.stayFrom.lte.toISOString().slice(0, 10)).toBe('2026-09-05');
+    });
+
+    it('productName filtrira preko ProductTranslation.name (svi jezici, insensitive)', async () => {
+      const { service, prisma } = makeService();
+      prisma.bookingItem.findMany.mockResolvedValue([]);
+
+      await service.calendarSummary(new Date('2026-09-01T00:00:00.000Z'), new Date('2026-09-30T00:00:00.000Z'), {
+        productName: 'Sunce',
+      });
+
+      const where = prisma.bookingItem.findMany.mock.calls[0][0].where;
+      expect(where.product.translations).toEqual({ some: { name: { contains: 'Sunce', mode: 'insensitive' } } });
+    });
+  });
 });

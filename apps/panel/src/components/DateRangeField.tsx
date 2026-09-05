@@ -65,11 +65,25 @@ export default function DateRangeField({
   toValue,
   onChange,
   className,
+  showNightsAndQuick = true,
+  nameFrom,
+  nameTo,
 }: {
   fromValue: string;
   toValue: string;
   onChange: (from: string, to: string) => void;
   className?: string;
+  /** `false` za opsege koji NISU "boravak" (npr. datum dolaska od/do, datum odlaska od/do,
+   * 5.9.2026, vlasnikov zahtev: "ne trebaju nam broj noćenja i +- broj dana") — sakriva broj
+   * noćenja u oznaci/popover-u i red "+3/+5/+7 dana", ostaje isti dvomesečni kalendar sa
+   * klikom na opseg i ručnim unosom početka/kraja preko dva odvojena datuma. */
+  showNightsAndQuick?: boolean;
+  /** Skrivena polja za PRAVU (native) GET formu — isti obrazac kao `DateField.tsx`/
+   * `ClearableDateRange.tsx` (5.9.2026, kalendar rezervacija koristi native form, ne React
+   * state + `router.push` kao `SearchCriteriaForm.tsx`). Bez ovoga komponenta radi samo u
+   * kontrolisanom režimu (vrednost ide kroz `onChange`, ne kroz sam `<form>` submit). */
+  nameFrom?: string;
+  nameTo?: string;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -119,13 +133,17 @@ export default function DateRangeField({
     onChange(start, addDays(start, n));
   }
 
+  function setTypedEnd(iso: string) {
+    onChange(fromValue, iso);
+  }
+
   const nights = nightsBetween(fromValue, toValue);
   const label =
     fromValue && toValue
-      ? `${formatDisplay(fromValue)} – ${formatDisplay(toValue)}${nights ? ` · ${nightsLabel(nights)}` : ''}`
+      ? `${formatDisplay(fromValue)} – ${formatDisplay(toValue)}${showNightsAndQuick && nights ? ` · ${nightsLabel(nights)}` : ''}`
       : fromValue
         ? `${formatDisplay(fromValue)} – izaberite datum`
-        : 'izaberite termin';
+        : 'izaberite period';
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -137,15 +155,19 @@ export default function DateRangeField({
         <Icon name="calendar" className="!text-[13px] flex-shrink-0 text-ink-faint" />
         <span className={`truncate text-left ${fromValue ? '' : 'text-ink-faint'}`}>{label}</span>
       </button>
+      {nameFrom && <input type="hidden" name={nameFrom} value={fromValue} />}
+      {nameTo && <input type="hidden" name={nameTo} value={toValue} />}
       {open && (
         <DateRangePopover
           fromValue={fromValue}
           toValue={toValue}
           nights={nights}
+          showNightsAndQuick={showNightsAndQuick}
           onSelectDay={selectDay}
           onQuickNights={applyQuickNights}
           onTypedStart={setTypedStart}
           onTypedNights={setTypedNights}
+          onTypedEnd={setTypedEnd}
         />
       )}
     </div>
@@ -156,26 +178,32 @@ function DateRangePopover({
   fromValue,
   toValue,
   nights,
+  showNightsAndQuick,
   onSelectDay,
   onQuickNights,
   onTypedStart,
   onTypedNights,
+  onTypedEnd,
 }: {
   fromValue: string;
   toValue: string;
   nights: number | null;
+  showNightsAndQuick: boolean;
   onSelectDay: (iso: string) => void;
   onQuickNights: (n: number) => void;
   onTypedStart: (iso: string) => void;
   onTypedNights: (n: number) => void;
+  onTypedEnd: (iso: string) => void;
 }) {
   const base = parseIso(fromValue) ?? new Date();
   const [viewYear, setViewYear] = useState(base.getFullYear());
   const [viewMonth, setViewMonth] = useState(base.getMonth());
   const [startDigits, setStartDigits] = useState(() => isoToDigits(fromValue));
+  const [endDigits, setEndDigits] = useState(() => isoToDigits(toValue));
   const [nightsDraft, setNightsDraft] = useState(nights ? String(nights) : '');
 
   useEffect(() => setStartDigits(isoToDigits(fromValue)), [fromValue]);
+  useEffect(() => setEndDigits(isoToDigits(toValue)), [toValue]);
   useEffect(() => setNightsDraft(nights ? String(nights) : ''), [nights]);
 
   // Levi mesec je "tekući pogled", desni je uvek sledeći — jedan par strelica pomera OBA
@@ -231,53 +259,93 @@ function DateRangePopover({
       </div>
 
       <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-        {/* Ukucavanje kao prečica (5.9.2026, vlasnikov zahtev: "ko želi može da ukuca početni
-            datum, da ukuca broj noći kako bi se izdefinisao datum do") — isti DD-MM-GGGG
-            maskiran unos kao DateField, plus broj noći; menjanje bilo kog od dva polja odmah
-            preračunava drugi kraj opsega. */}
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
-          <span>početak</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={digitsToDisplay(startDigits)}
-            placeholder="dd.mm.gggg."
-            onChange={(e) => {
-              const digits = onlyDigits(e.target.value);
-              setStartDigits(digits);
-              const iso = digitsToIso(digits);
-              if (iso) onTypedStart(iso);
-              else if (digits.length === 0) onTypedStart('');
-            }}
-            className="input w-24 !py-1 text-center text-ink"
-          />
-          <span>broj noći</span>
-          <input
-            type="number"
-            min={1}
-            max={60}
-            value={nightsDraft}
-            onChange={(e) => setNightsDraft(e.target.value)}
-            onBlur={() => {
-              const n = Number(nightsDraft);
-              if (n > 0) onTypedNights(n);
-            }}
-            className="input w-16 !py-1 text-center text-ink"
-          />
-          {nights != null && nights > 0 && <span className="ml-auto font-medium text-ink">{nightsLabel(nights)}</span>}
-        </div>
-        <div className="flex gap-1.5">
-          {[3, 5, 7].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onQuickNights(n)}
-              className="flex-1 rounded-lg border border-border bg-panel2 py-1 text-[11px] font-medium text-ink-dim hover:border-accent hover:text-accent-strong"
-            >
-              +{n} dana
-            </button>
-          ))}
-        </div>
+        {showNightsAndQuick ? (
+          <>
+            {/* Ukucavanje kao prečica (5.9.2026, vlasnikov zahtev: "ko želi može da ukuca početni
+                datum, da ukuca broj noći kako bi se izdefinisao datum do") — isti DD-MM-GGGG
+                maskiran unos kao DateField, plus broj noći; menjanje bilo kog od dva polja odmah
+                preračunava drugi kraj opsega. */}
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+              <span>početak</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={digitsToDisplay(startDigits)}
+                placeholder="dd.mm.gggg."
+                onChange={(e) => {
+                  const digits = onlyDigits(e.target.value);
+                  setStartDigits(digits);
+                  const iso = digitsToIso(digits);
+                  if (iso) onTypedStart(iso);
+                  else if (digits.length === 0) onTypedStart('');
+                }}
+                className="input w-24 !py-1 text-center text-ink"
+              />
+              <span>broj noći</span>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={nightsDraft}
+                onChange={(e) => setNightsDraft(e.target.value)}
+                onBlur={() => {
+                  const n = Number(nightsDraft);
+                  if (n > 0) onTypedNights(n);
+                }}
+                className="input w-16 !py-1 text-center text-ink"
+              />
+              {nights != null && nights > 0 && <span className="ml-auto font-medium text-ink">{nightsLabel(nights)}</span>}
+            </div>
+            <div className="flex gap-1.5">
+              {[3, 5, 7].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => onQuickNights(n)}
+                  className="flex-1 rounded-lg border border-border bg-panel2 py-1 text-[11px] font-medium text-ink-dim hover:border-accent hover:text-accent-strong"
+                >
+                  +{n} dana
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          // Bez "broj noći"/brzih dana (5.9.2026, vlasnikov zahtev: "ne trebaju nam broj
+          // noćenja i +- broj dana") — ovo su nezavisne granice (npr. dolazak od/do), ne
+          // "početak + trajanje", pa se oba kraja unose direktno kao datumi.
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+            <span>od</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={digitsToDisplay(startDigits)}
+              placeholder="dd.mm.gggg."
+              onChange={(e) => {
+                const digits = onlyDigits(e.target.value);
+                setStartDigits(digits);
+                const iso = digitsToIso(digits);
+                if (iso) onTypedStart(iso);
+                else if (digits.length === 0) onTypedStart('');
+              }}
+              className="input w-24 !py-1 text-center text-ink"
+            />
+            <span>do</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={digitsToDisplay(endDigits)}
+              placeholder="dd.mm.gggg."
+              onChange={(e) => {
+                const digits = onlyDigits(e.target.value);
+                setEndDigits(digits);
+                const iso = digitsToIso(digits);
+                if (iso) onTypedEnd(iso);
+                else if (digits.length === 0) onTypedEnd('');
+              }}
+              className="input w-24 !py-1 text-center text-ink"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

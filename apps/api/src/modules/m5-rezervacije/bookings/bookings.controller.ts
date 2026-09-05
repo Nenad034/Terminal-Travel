@@ -95,9 +95,11 @@ export class BookingsController {
     );
   }
 
-  // Isti v1 filter-skup kao `GET /sales/bookings` (iznad), BEZ datumskih opsega — vidi komentar
-  // uz `buildCalendarItemWhere` u servisu. Dopuna 27.8.2026, na zahtev vlasnika: "Dodati filtere
-  // koji postoje u Listi rezervacija" u novi kalendar (M17 spec, Google Calendar stil).
+  // Isti v1 filter-skup kao `GET /sales/bookings` (iznad). Dopuna 27.8.2026, na zahtev vlasnika:
+  // "Dodati filtere koji postoje u Listi rezervacija" u novi kalendar (M17 spec, Google Calendar
+  // stil). `stayFrom`/`stayTo`/`returnFrom`/`returnTo`/`productName` dodati 5.9.2026 (dolazak/
+  // odlazak od-do + pretraga po nazivu hotela) — vidi `BookingsService.calendarSummary` za kako
+  // se datumski opseg spaja sa prikazanim `from`/`to` prozorom bez gubljenja jedne strane.
   @Get('calendar-summary')
   @RequirePermission('M5', 'booking', 'VIEW')
   calendarSummary(
@@ -116,6 +118,11 @@ export class BookingsController {
     @Query('destinationCity') destinationCity: string | undefined,
     @Query('destinationCountry') destinationCountry: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+    @Query('productName') productName: string | undefined,
+    @Query('stayFrom') stayFrom: string | undefined,
+    @Query('stayTo') stayTo: string | undefined,
+    @Query('returnFrom') returnFrom: string | undefined,
+    @Query('returnTo') returnTo: string | undefined,
   ) {
     const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
     return this.bookings.calendarSummary(new Date(from), new Date(to), {
@@ -132,6 +139,11 @@ export class BookingsController {
       destinationCity,
       destinationCountry,
       hasTravelGuarantee,
+      productName,
+      stayFrom,
+      stayTo,
+      returnFrom,
+      returnTo,
     });
   }
 
@@ -152,6 +164,11 @@ export class BookingsController {
     @Query('destinationCity') destinationCity: string | undefined,
     @Query('destinationCountry') destinationCountry: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+    @Query('productName') productName: string | undefined,
+    @Query('stayFrom') stayFrom: string | undefined,
+    @Query('stayTo') stayTo: string | undefined,
+    @Query('returnFrom') returnFrom: string | undefined,
+    @Query('returnTo') returnTo: string | undefined,
   ) {
     const toArray = (v: string | string[] | undefined): string[] | undefined => (v === undefined ? undefined : Array.isArray(v) ? v : [v]);
     return this.bookings.calendarDay(new Date(date), {
@@ -168,6 +185,11 @@ export class BookingsController {
       destinationCity,
       destinationCountry,
       hasTravelGuarantee,
+      productName,
+      stayFrom,
+      stayTo,
+      returnFrom,
+      returnTo,
     });
   }
 

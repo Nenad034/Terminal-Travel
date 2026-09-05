@@ -25,8 +25,10 @@ export {
 } from '@/lib/calendar-date';
 import type { CalendarView } from '@/lib/calendar-date';
 
-// Filteri deljeni sa "Lista rezervacija" (RealFilterBar.tsx), BEZ datumskih opsega dolaska/
-// odlaska — sam prikaz (mesec/nedelja/dan) već zadaje taj opseg (vidi M5 spec §7 dopuna).
+// Filteri deljeni sa "Lista rezervacija" (RealFilterBar.tsx). Dolazak/odlazak od-do
+// (`stayFrom`/`stayTo`/`returnFrom`/`returnTo`, dopuna 5.9.2026, vlasnikov zahtev) su NEZAVISNI
+// od prikaza (mesec/nedelja/dan) — taj prozor ostaje, ovo ga dodatno sužava (M5 spec §7, isti
+// nazivi parametara kao već postojeći `GET /sales/bookings`, radi doslednosti).
 export interface CalendarFiltersShape {
   status?: string | string[];
   paymentStatus?: string | string[];
@@ -38,14 +40,24 @@ export interface CalendarFiltersShape {
   createdTo?: string;
   productType?: string | string[];
   productId?: string;
+  /** Pretraga po nazivu proizvoda/hotela (5.9.2026, vlasnikov zahtev) — vidi M5 spec komentar
+   * uz `CalendarFilters.productName` (pretražuje sve jezike prevoda odjednom). */
+  productName?: string;
   destinationCity?: string;
   destinationCountry?: string;
   hasTravelGuarantee?: string;
+  /** Datum dolaska od/do (5.9.2026) — filtrira `BookingItem.stayFrom`. */
+  stayFrom?: string;
+  stayTo?: string;
+  /** Datum odlaska od/do (5.9.2026) — filtrira `BookingItem.stayTo`. */
+  returnFrom?: string;
+  returnTo?: string;
 }
 
 const FILTER_KEYS: (keyof CalendarFiltersShape)[] = [
   'status', 'paymentStatus', 'tipNastupanja', 'buyerName', 'bookingNumber', 'currency',
-  'createdFrom', 'createdTo', 'productType', 'productId', 'destinationCity', 'destinationCountry', 'hasTravelGuarantee',
+  'createdFrom', 'createdTo', 'productType', 'productId', 'productName', 'destinationCity', 'destinationCountry', 'hasTravelGuarantee',
+  'stayFrom', 'stayTo', 'returnFrom', 'returnTo',
 ];
 
 export function extractFilters(searchParams: Record<string, string | string[] | undefined>): CalendarFiltersShape {

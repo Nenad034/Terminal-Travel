@@ -6,15 +6,15 @@ import Icon from '@/components/Icon';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import ClearableTextField from '@/components/ClearableTextField';
 import ClearableDateRange from '@/components/ClearableDateRange';
+import DateRangeField from '@/components/DateRangeField';
 import type { CalendarFiltersShape, CalendarView } from './calendar-utils';
 
 // Isti filter-skup kao "Lista rezervacija" (RealFilterBar.tsx), na zahtev vlasnika 27.8.2026
-// ("Dodati filtere koji postoje u Listi rezervacija"), BEZ dolazak/odlazak opsega — sam prikaz
-// (mesec/nedelja/dan) već zadaje taj opseg (M5 spec §7 dopuna). `view`/`date` idu kao skriveni
-// input tako da se prikaz i pozicija u kalendaru ne izgube kad se filter primeni (obična
-// GET forma, PRAVA navigacija preglednika — ne App Router "meko" navigiranje, isti obrazac
-// kao RealFilterBar.tsx, pouzdanije od kliknjivog <Link> za ovakve promene, vidi zamku 9.2
-// u docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md).
+// ("Dodati filtere koji postoje u Listi rezervacija"). `view`/`date` idu kao skriveni input
+// tako da se prikaz i pozicija u kalendaru ne izgube kad se filter primeni (obična GET forma,
+// PRAVA navigacija preglednika — ne App Router "meko" navigiranje, isti obrazac kao
+// RealFilterBar.tsx, pouzdanije od kliknjivog <Link> za ovakve promene, vidi zamku 9.2 u
+// docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md).
 //
 // "Detaljna pretraga" — modal umesto stalno vidljivog bloka (5.9.2026, vlasnikov predlog, prva
 // proba na ovom ekranu pre eventualnog širenja na Listu rezervacija). Ceo dosadašnji blok
@@ -37,15 +37,17 @@ function hasValue(v: string | string[] | undefined): boolean {
   return Array.isArray(v) ? v.length > 0 : Boolean(v);
 }
 
-// "Kreirano od/do" broji se kao JEDAN kriterijum (ne dva) — to je jedan pojam za korisnika,
-// makar bio upisan u dva polja.
+// "Kreirano od/do", "Dolazak od/do", "Odlazak od/do" broje se kao PO JEDAN kriterijum (ne dva) —
+// svaki je jedan pojam za korisnika, makar bio upisan u dva polja.
 function countActiveCriteria(f: CalendarFiltersShape): number {
   const singleFields: (keyof CalendarFiltersShape)[] = [
     'bookingNumber', 'buyerName', 'status', 'paymentStatus', 'tipNastupanja',
-    'productType', 'destinationCity', 'destinationCountry', 'currency', 'hasTravelGuarantee',
+    'productType', 'productName', 'destinationCity', 'destinationCountry', 'currency', 'hasTravelGuarantee',
   ];
   let n = singleFields.filter((k) => hasValue(f[k])).length;
   if (f.createdFrom || f.createdTo) n += 1;
+  if (f.stayFrom || f.stayTo) n += 1;
+  if (f.returnFrom || f.returnTo) n += 1;
   return n;
 }
 
@@ -96,83 +98,147 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
           </button>
         ))}
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[8vh]" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-panel p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-ink">Detaljna pretraga</h2>
-              <button type="button" onClick={() => setOpen(false)} title="Zatvori" className="text-ink-faint hover:text-ink">
-                <Icon name="close" />
-              </button>
-            </div>
-            {/* Bez auto-submit na promenu (5.9.2026, vlasnikov nalaz: "momentalno filtriranje...
-                svaki put treba da se ponovo otvori modal") — svaka promena je do sad odmah
-                slala formu (pravu GET navigaciju), što je zatvaralo modal pre nego što je
-                korisnik stigao da popuni ostala polja. Sad se šalje isključivo na "pretraži". */}
-            <form action="/rezervacije/kalendar" className="flex flex-col gap-2 text-xs">
-              <input type="hidden" name="view" value={view} />
-              <input type="hidden" name="date" value={date} />
-              {/* ISPRAVKA (5.9.2026, vlasnikov nalaz uz snimak ekrana — polja Status/Uplata/Tip
-                  nastupanja/Tip proizvoda su se stiskala i preklapala). Uzrok: `flex flex-wrap`
-                  + `flex-1 min-w-0` po polju (obrazac preuzet iz PUNE širine stranice, gde je
-                  originalni `CalendarFilterBar` namerno bio BEZ wrap-a — vidi zamenjenu napomenu
-                  od 27.8.2026) ovde radi nad MODALOM koji je uvek uži od stranice, pa `flex-1`
-                  polja nemaju fiksnu širinsku referencu i `flex-wrap` ih sažima nepredvidivo.
-                  Rešenje: `grid` sa fiksnim brojem kolona — svako polje dobija stvarno poznatu
-                  širinu kolone bez obzira na širinu modala, isti princip kao svaka druga forma
-                  fiksne širine u panelu (npr. `SearchCriteriaForm.tsx` `sm:grid-cols-2`). */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <Field label="Broj">
-                  <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={false} />
-                </Field>
-                <Field label="Nosilac rezervacije">
-                  <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={false} />
-                </Field>
-                <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={false} />
-                <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} autoSubmit={false} />
-                <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} autoSubmit={false} />
-                <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} autoSubmit={false} />
-                <Field label="Destinacija (grad)">
-                  <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
-                </Field>
-                <Field label="Destinacija (država)">
-                  <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
-                </Field>
-                <Field label="Valuta">
-                  <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={false} />
-                </Field>
-                <Field label="Garancija putovanja">
-                  <select name="hasTravelGuarantee" defaultValue={filters.hasTravelGuarantee ?? ''} className={inputClass}>
-                    <option value="">svejedno</option>
-                    <option value="true">ima</option>
-                    <option value="false">nema</option>
-                  </select>
-                </Field>
-              </div>
+      {/* Ceo modal (uklj. sopstveno stanje za dolazak/odlazak, ispod) se montira TEK kad je
+          otvoren — "otkaži" tako uvek odbacuje nedovršen unos i vraća se na `filters` iz URL-a,
+          isto ponašanje kao ostala (uncontrolled) polja u ovoj formi. */}
+      {open && <DetailedSearchModal view={view} date={date} filters={filters} hasAnyFilter={hasAnyFilter} onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
 
-              <div className="flex items-end gap-2">
-                <Field label="Kreirano od/do">
-                  <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} autoSubmit={false} />
-                </Field>
-              </div>
+function DetailedSearchModal({
+  view,
+  date,
+  filters,
+  hasAnyFilter,
+  onClose,
+}: {
+  view: CalendarView;
+  date: string;
+  filters: CalendarFiltersShape;
+  hasAnyFilter: boolean;
+  onClose: () => void;
+}) {
+  // Dolazak/odlazak od-do (5.9.2026, vlasnikov zahtev) — `DateRangeField.tsx` je kontrolisan
+  // (React state, izgrađen za `SearchCriteriaForm.tsx`), pa mu ovde treba sopstveno stanje;
+  // `nameFrom`/`nameTo` propovi dodaju skrivena polja da ista PRAVA GET forma i dalje ponese
+  // vrednosti pri submit-u (isti "kontrolisan prikaz + skriveno polje" obrazac kao
+  // `ClearableDateRange.tsx`/`DateField.tsx`).
+  const [stayFrom, setStayFrom] = useState(filters.stayFrom ?? '');
+  const [stayTo, setStayTo] = useState(filters.stayTo ?? '');
+  const [returnFrom, setReturnFrom] = useState(filters.returnFrom ?? '');
+  const [returnTo, setReturnTo] = useState(filters.returnTo ?? '');
 
-              <div className="mt-1 flex items-center gap-2">
-                <button type="submit" className="rounded bg-accent px-3 py-1.5 font-medium text-accent-ink hover:opacity-90">
-                  pretraži
-                </button>
-                {hasAnyFilter && (
-                  <Link href={`/rezervacije/kalendar?view=${view}&date=${date}`} className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-                    obriši filter
-                  </Link>
-                )}
-                <button type="button" onClick={() => setOpen(false)} className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
-                  otkaži
-                </button>
-              </div>
-            </form>
-          </div>
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[8vh]" onClick={onClose}>
+      <div className="w-full max-w-2xl rounded-xl border border-border bg-panel p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Detaljna pretraga</h2>
+          <button type="button" onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
+            <Icon name="close" />
+          </button>
         </div>
-      )}
+        {/* Bez auto-submit na promenu (5.9.2026, vlasnikov nalaz: "momentalno filtriranje...
+            svaki put treba da se ponovo otvori modal") — svaka promena je do sad odmah slala
+            formu (pravu GET navigaciju), što je zatvaralo modal pre nego što je korisnik stigao
+            da popuni ostala polja. Sad se šalje isključivo na "pretraži". */}
+        <form action="/rezervacije/kalendar" className="flex flex-col gap-2 text-xs">
+          <input type="hidden" name="view" value={view} />
+          <input type="hidden" name="date" value={date} />
+          {/* ISPRAVKA (5.9.2026, vlasnikov nalaz uz snimak ekrana — polja Status/Uplata/Tip
+              nastupanja/Tip proizvoda su se stiskala i preklapala). Uzrok: `flex flex-wrap`
+              + `flex-1 min-w-0` po polju (obrazac preuzet iz PUNE širine stranice, gde je
+              originalni `CalendarFilterBar` namerno bio BEZ wrap-a) ovde radi nad MODALOM koji
+              je uvek uži od stranice, pa `flex-1` polja nemaju fiksnu širinsku referencu i
+              `flex-wrap` ih sažima nepredvidivo. Rešenje: `grid` sa fiksnim brojem kolona —
+              svako polje dobija stvarno poznatu širinu kolone bez obzira na širinu modala. */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Field label="Broj">
+              <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={false} />
+            </Field>
+            <Field label="Nosilac rezervacije">
+              <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={false} />
+            </Field>
+            {/* Naziv hotela (5.9.2026, vlasnikov zahtev: "treba da dodate i pretragu po nazivu
+                hotela") — pretražuje `ProductTranslation.name` (M2 spec §2.2), ne `Product`
+                samog (naziv je jezički zavisan, isti razlog kao M5 spec §11 komentar). */}
+            <Field label="Naziv hotela">
+              <ClearableTextField name="productName" defaultValue={filters.productName ?? ''} placeholder="npr. Sunce" className={inputClass} autoSubmit={false} />
+            </Field>
+            <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={false} />
+            <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} autoSubmit={false} />
+            <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} autoSubmit={false} />
+            <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} autoSubmit={false} />
+            <Field label="Destinacija (grad)">
+              <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
+            </Field>
+            <Field label="Destinacija (država)">
+              <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
+            </Field>
+            <Field label="Valuta">
+              <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={false} />
+            </Field>
+            <Field label="Garancija putovanja">
+              <select name="hasTravelGuarantee" defaultValue={filters.hasTravelGuarantee ?? ''} className={inputClass}>
+                <option value="">svejedno</option>
+                <option value="true">ima</option>
+                <option value="false">nema</option>
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Field label="Kreirano od/do">
+              <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} autoSubmit={false} />
+            </Field>
+            {/* Dolazak/odlazak od-do (5.9.2026, vlasnikov zahtev) — isti dvomesečni kalendar kao
+                "termin" na ekranu pretrage (M5 spec §3.0c.2), ali BEZ broja noćenja i +3/+5/+7
+                dana ("ne trebaju nam sada") — ovo su nezavisne granice, ne "boravak od N noći". */}
+            <Field label="Dolazak od/do">
+              <DateRangeField
+                fromValue={stayFrom}
+                toValue={stayTo}
+                onChange={(f, t) => {
+                  setStayFrom(f);
+                  setStayTo(t);
+                }}
+                showNightsAndQuick={false}
+                nameFrom="stayFrom"
+                nameTo="stayTo"
+                className={inputClass}
+              />
+            </Field>
+            <Field label="Odlazak od/do">
+              <DateRangeField
+                fromValue={returnFrom}
+                toValue={returnTo}
+                onChange={(f, t) => {
+                  setReturnFrom(f);
+                  setReturnTo(t);
+                }}
+                showNightsAndQuick={false}
+                nameFrom="returnFrom"
+                nameTo="returnTo"
+                className={inputClass}
+              />
+            </Field>
+          </div>
+
+          <div className="mt-1 flex items-center gap-2">
+            <button type="submit" className="rounded bg-accent px-3 py-1.5 font-medium text-accent-ink hover:opacity-90">
+              pretraži
+            </button>
+            {hasAnyFilter && (
+              <Link href={`/rezervacije/kalendar?view=${view}&date=${date}`} className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+                obriši filter
+              </Link>
+            )}
+            <button type="button" onClick={onClose} className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+              otkaži
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

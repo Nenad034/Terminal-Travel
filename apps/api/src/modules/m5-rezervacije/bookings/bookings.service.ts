@@ -55,9 +55,24 @@ export interface CalendarFilters {
   createdTo?: string;
   productType?: string[];
   productId?: string;
+  /** Pretraga po nazivu proizvoda/hotela (5.9.2026, vlasnikov zahtev) — `contains` nad
+   * `ProductTranslation.name` (M2 spec §2.2), ne nad `Product` samim (ime je jezički zavisno,
+   * ne postoji direktno na `Product`). Pretražuje SVE jezike odjednom, ne samo trenutni
+   * panel-jezik — agent traži hotel po nazivu koji zna, ne po tome kako je prevod tog dana. */
+  productName?: string;
   destinationCity?: string;
   destinationCountry?: string;
   hasTravelGuarantee?: string;
+  /** Datum dolaska od/do (5.9.2026, vlasnikov zahtev) — filtrira `BookingItem.stayFrom`,
+   * NEZAVISNO od `from`/`to` prozora vidljivog u kalendaru (taj prozor ostaje, ovo ga dodatno
+   * sužava). Isti nazivi parametara kao već postojeći `GET /sales/bookings` (Lista rezervacija,
+   * §11), radi doslednosti. */
+  stayFrom?: string;
+  stayTo?: string;
+  /** Datum odlaska od/do — filtrira `BookingItem.stayTo`, isti obrazac kao `stayFrom`/`stayTo`
+   * iznad samo za suprotan kraj boravka. */
+  returnFrom?: string;
+  returnTo?: string;
 }
 
 interface ItemReservationOutcome {
@@ -2018,11 +2033,13 @@ export class BookingsService {
   // ==========================================================================
   // M5 spec §7 — kalendar rezervacija
   // ==========================================================================
-  // Isti filter-skup kao `findAll` (poglavlje iznad), BEZ datumskih opsega (stayFrom/stayTo/
-  // returnFrom/returnTo) — u kalendaru taj opseg već zadaje SAM prikaz (mesec/nedelja/dan koji
-  // se gleda), drugi, zaseban datumski filter bi bio konfuzan/redundantan. Dopuna 27.8.2026, na
-  // zahtev vlasnika: "Dodati filtere koji postoje u Listi rezervacija" u novi Google Calendar
-  // stil kalendara (M17 spec).
+  // Isti filter-skup kao `findAll` (poglavlje iznad). Dopuna 27.8.2026, na zahtev vlasnika:
+  // "Dodati filtere koji postoje u Listi rezervacija" u novi Google Calendar stil kalendara
+  // (M17 spec). `stayFrom`/`stayTo`/`returnFrom`/`returnTo` (dolazak/odlazak od-do, dopuna
+  // 5.9.2026) su NAMERNO IZOSTAVLJENI iz OVOG metoda — spajaju se sa `from`/`to` prozorom
+  // direktno u `calendarSummary`/`calendarDay` (ispod), jer oba moraju delovati na ISTO Prisma
+  // polje (`stayFrom` naspram `stayTo`) i moraju se spojiti na uži opseg, ne prepisati jedno
+  // drugo (`{...a, ...b}` bi tiho izgubio prozor kad bi oba pisala isti ključ).
   private buildCalendarItemWhere(filters: CalendarFilters): Prisma.BookingItemWhereInput {
     const bookingWhere: Prisma.BookingWhereInput = {};
     if (filters.status && filters.status.length > 0) bookingWhere.status = { in: filters.status as any };
@@ -2041,11 +2058,15 @@ export class BookingsService {
     if (filters.hasTravelGuarantee === 'false') bookingWhere.travelGuaranteeRegistration = { is: null };
 
     const itemWhere: Prisma.BookingItemWhereInput = {};
-    if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry) {
+    if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry || filters.productName) {
       itemWhere.product = {
         ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
         ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
         ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
+        // Naziv je jezički zavisan (M2 spec §2.2 `ProductTranslation`), ne postoji na `Product`
+        // samom — pretražuje se preko SVIH prevoda odjednom (`some`), ne samo trenutnog jezika
+        // panela, jer agent traži hotel po nazivu koji zna, ne po prevodu za taj dan.
+        ...(filters.productName ? { translations: { some: { name: { contains: filters.productName, mode: 'insensitive' } } } } : {}),
       };
     }
     if (filters.productId) itemWhere.productId = filters.productId;
@@ -2053,12 +2074,31 @@ export class BookingsService {
     return itemWhere;
   }
 
+  // Spaja prikazan prozor (§7 `from`/`to`, uvek prisutan) sa opcionim dolazak/odlazak filterom
+  // (5.9.2026) na ISTO Prisma polje — uzima UŽI od dva `gte`/`lte` para (`max`/`min`), nikad
+  // prosto prepisivanje (`{...a, ...b}` bi izgubilo jednu stranu čim oba pišu isti ključ).
+  private static tighterGte(a: Date | undefined, b: Date | undefined): Date | undefined {
+    if (!a) return b;
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+  private static tighterLte(a: Date | undefined, b: Date | undefined): Date | undefined {
+    if (!a) return b;
+    if (!b) return a;
+    return a < b ? a : b;
+  }
+
   async calendarSummary(from: Date, to: Date, filters: CalendarFilters = {}) {
+    const arrivalGte = BookingsService.tighterGte(undefined, filters.stayFrom ? new Date(filters.stayFrom) : undefined);
+    const arrivalLte = BookingsService.tighterLte(to, filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined);
+    const departureGte = BookingsService.tighterGte(from, filters.returnFrom ? new Date(filters.returnFrom) : undefined);
+    const departureLte = BookingsService.tighterLte(undefined, filters.returnTo ? new Date(`${filters.returnTo}T23:59:59.999Z`) : undefined);
+
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
-        stayFrom: { lte: to },
-        stayTo: { gte: from },
+        stayFrom: { ...(arrivalGte ? { gte: arrivalGte } : {}), ...(arrivalLte ? { lte: arrivalLte } : {}) },
+        stayTo: { ...(departureGte ? { gte: departureGte } : {}), ...(departureLte ? { lte: departureLte } : {}) },
         ...this.buildCalendarItemWhere(filters),
       },
       select: { stayFrom: true, stayTo: true },
@@ -2094,11 +2134,16 @@ export class BookingsService {
 
   async calendarDay(date: Date, filters: CalendarFilters = {}) {
     const day = toMidnightUtc(date);
+    const arrivalGte = filters.stayFrom ? new Date(filters.stayFrom) : undefined;
+    const arrivalLte = BookingsService.tighterLte(day, filters.stayTo ? new Date(`${filters.stayTo}T23:59:59.999Z`) : undefined);
+    const departureGte = BookingsService.tighterGte(day, filters.returnFrom ? new Date(filters.returnFrom) : undefined);
+    const departureLte = filters.returnTo ? new Date(`${filters.returnTo}T23:59:59.999Z`) : undefined;
+
     const items = await this.prisma.bookingItem.findMany({
       where: {
         itemStatus: { in: ['CONFIRMED', 'PENDING_SUPPLIER_CONFIRMATION'] },
-        stayFrom: { lte: day },
-        stayTo: { gte: day },
+        stayFrom: { ...(arrivalGte ? { gte: arrivalGte } : {}), ...(arrivalLte ? { lte: arrivalLte } : {}) },
+        stayTo: { ...(departureGte ? { gte: departureGte } : {}), ...(departureLte ? { lte: departureLte } : {}) },
         ...this.buildCalendarItemWhere(filters),
       },
       include: { booking: true, guests: true, product: { select: { type: true, destinationCity: true, destinationCountry: true } } },
