@@ -17,15 +17,17 @@ import Icon from './Icon';
 // SearchCriteriaPopup.tsx) — ISO "yyyy-mm-dd" ostaje spoljni ugovor u oba slučaja, ništa dole
 // niz tok (server actions, filter parsiranje) se ne menja.
 
-const MONTH_NAMES = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
-const WEEKDAY_LETTERS = ['P', 'U', 'S', 'Č', 'P', 'S', 'N']; // ponedeljak prvi, sr-RS konvencija
+export const MONTH_NAMES = ['januar', 'februar', 'mart', 'april', 'maj', 'jun', 'jul', 'avgust', 'septembar', 'oktobar', 'novembar', 'decembar'];
+export const WEEKDAY_LETTERS = ['P', 'U', 'S', 'Č', 'P', 'S', 'N']; // ponedeljak prvi, sr-RS konvencija
 
-function onlyDigits(s: string): string {
+// Izvezeno (5.9.2026) — `DateRangeField.tsx` (dva meseca, unos "od + broj noći") ponovo
+// koristi isti DD-MM-GGGG maskirani unos, umesto da ga duplira.
+export function onlyDigits(s: string): string {
   return s.replace(/\D/g, '').slice(0, 8);
 }
 
 // "12082026" -> "12.08.2026." (tačke se dodaju kako se kuca, ne čekaju kraj unosa).
-function digitsToDisplay(digits: string): string {
+export function digitsToDisplay(digits: string): string {
   const day = digits.slice(0, 2);
   const month = digits.slice(2, 4);
   const year = digits.slice(4, 8);
@@ -36,7 +38,7 @@ function digitsToDisplay(digits: string): string {
   return out;
 }
 
-function digitsToIso(digits: string): string | null {
+export function digitsToIso(digits: string): string | null {
   if (digits.length !== 8) return null;
   const day = Number(digits.slice(0, 2));
   const month = Number(digits.slice(2, 4));
@@ -47,7 +49,7 @@ function digitsToIso(digits: string): string | null {
   return `${digits.slice(4, 8)}-${digits.slice(2, 4)}-${digits.slice(0, 2)}`;
 }
 
-function isoToDigits(iso: string | undefined): string {
+export function isoToDigits(iso: string | undefined): string {
   const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
   return m ? `${m[3]}${m[2]}${m[1]}` : '';
 }

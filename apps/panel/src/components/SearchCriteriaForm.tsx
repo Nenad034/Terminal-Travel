@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import Icon from './Icon';
 import DateField from './DateField';
+import DateRangeField from './DateRangeField';
 import SuggestField, { type Suggestion } from './SuggestField';
 import RoomsField from './RoomsField';
 import {
@@ -237,20 +238,20 @@ export default function SearchCriteriaForm({
               />
             </div>
           </label>
-          <div className="flex gap-2">
-            <label className="flex-1 text-ink-faint">
-              od
-              <div className="mt-1">
-                <DateField value={values.stayFrom} onChange={(iso) => setValues((v) => ({ ...v, stayFrom: iso }))} className="input w-full" />
-              </div>
-            </label>
-            <label className="flex-1 text-ink-faint">
-              do
-              <div className="mt-1">
-                <DateField value={values.stayTo} onChange={(iso) => setValues((v) => ({ ...v, stayTo: iso }))} className="input w-full" />
-              </div>
-            </label>
-          </div>
+          {/* Jedno polje umesto dva "od"/"do" (5.9.2026, vlasnikov zahtev: "ustedeti prostor")
+              — klik otvara kalendar sa dva meseca, brzim +3/5/7 dana i brojem noćenja;
+              `stayFrom`/`stayTo` (ISO) idu dalje nepromenjeno, isti ugovor sa ostatkom forme. */}
+          <label className="text-ink-faint">
+            termin
+            <div className="mt-1">
+              <DateRangeField
+                fromValue={values.stayFrom}
+                toValue={values.stayTo}
+                onChange={(from, to) => setValues((v) => ({ ...v, stayFrom: from, stayTo: to }))}
+                className="input w-full"
+              />
+            </div>
+          </label>
           {/* Smeštaj i paket se cene po sobi (M5 spec §3.2a) — unos ide soba po soba, sa
               uzrastom svakog deteta. Ostalih 7 vrsta nema sobe, pa ostaju dva zbirna broja. */}
           {roomBased ? (
