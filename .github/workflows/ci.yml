@@ -4,6 +4,16 @@ name: CI
 # ne samo kod. Ovaj pipeline pokreće build + unit + e2e testove apps/api na svaki
 # push/PR ka main — ista provera koju bi razvojna mašina radila ručno, samo
 # automatizovana (vidi apps/api/README.md za lokalni ekvivalent ovih koraka).
+#
+# DOPUNA 5.9.2026 (dok. 39 nalaz 2.4 + „sloj 1" iz razgovora sa vlasnikom): do tada je CI
+# gradio ISKLJUČIVO apps/api. Panel (42.000 linija) i sajt se nisu ni kompajlirali, pa je
+# greška u njima stizala do ekrana. Uz to su dodate tri provere koje su ranije bile SAMO
+# zapisane kao zamke u `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` — a zapisano pravilo
+# zavisi od toga da ga se neko seti. Dokaz da to ne radi: zamka 7.1 (provera u browseru)
+# postoji od 2.9.2026, a prekršena je 5.9.2026. Zato ove tri sada PADAJU SAME:
+#   • indeksi na stranim ključevima  (nalaz 2.1 — inače se tiho vrati sa svakom novom relacijom)
+#   • `'use server'` izvozi          (zamka 7.1a — ruši ekran, a tsc/build ćute)
+#   • kontrast boja po WCAG          (dizajn dok. §2a — skripta je postojala, nije se pokretala)
 
 on:
   push:
@@ -83,3 +93,59 @@ jobs:
       - name: E2E testovi (dokazuju M1 izlazni kriterijum nad pravom bazom)
         working-directory: apps/api
         run: npm run test:e2e
+
+      # Postgres NE pravi indeks na koloni koja pokazuje na drugu tabelu. Zatečeno 81 takav
+      # ključ od 102 (dok. 39 nalaz 2.1). Bez ove provere se vraća sa svakom novom relacijom
+      # u schema.prisma, a nijedan test to ne primećuje.
+      - name: Provera — svaki strani ključ ima indeks
+        working-directory: apps/api
+        run: node ../../tools/provera-indeksa.mjs
+
+  panel-web:
+    name: apps/panel i apps/web — tipovi, build i provere koje tsc ne hvata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Preuzmi kod
+        uses: actions/checkout@v4
+
+      - name: Podesi Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instaliraj zavisnosti (monorepo, npm workspaces)
+        run: npm ci
+
+      # Panel i web uvoze tipove iz @prisma/client; bez generisanog klijenta `tsc` pada.
+      - name: Generiši Prisma klijent
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: TypeScript — apps/panel
+        working-directory: apps/panel
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: TypeScript — apps/web
+        working-directory: apps/web
+        run: npx tsc --noEmit -p tsconfig.json
+
+      - name: Build — apps/panel
+        working-directory: apps/panel
+        run: npm run build
+
+      - name: Build — apps/web
+        working-directory: apps/web
+        run: npm run build
+
+      # Fajl sa `'use server'` sme da izvozi samo async funkcije. Obična konstanta u njemu ruši
+      # CEO ekran u browseru, a ni tsc ni next build to ne prijavljuju (zamka 7.1a) — greška je
+      # 5.9.2026 stigla do ekrana upravo tako.
+      - name: Provera — `'use server'` fajlovi izvoze samo async funkcije
+        run: node tools/provera-use-server.mjs
+
+      # Dizajn dok. §2a je tvrd, merljiv zahtev. Skripta postoji od 2.9.2026, ali se pokretala
+      # samo kad bi se neko setio — sada je uslov za prolaz.
+      - name: Provera — kontrast boja (WCAG 2.1)
+        run: node tools/check-contrast.js

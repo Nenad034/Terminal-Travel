@@ -225,7 +225,7 @@ Sa 10.000 stavki to je preko 30.000 upita u jednoj operaciji. Danas radi jer je 
 
 ---
 
-### 2.4 Panel nema nijedan test, a CI ga uopšte ne dodiruje
+### 2.4 Panel nema nijedan test, a CI ga uopšte ne dodiruje — (a) URAĐENO 5.9.2026, (b) čeka odluku vlasnika
 
 | Celina | Testova | Gradi se u CI? |
 | :---- | :---- | :---- |
@@ -240,6 +240,24 @@ CI (`.github/workflows/ci.yml`) gradi i testira isključivo `apps/api`. Ni `tsc`
 
 **Predlog:** (a) u CI dodati `tsc --noEmit` i `next build` za panel i web — to samo po sebi hvata celu klasu grešaka i košta par minuta po push-u; (b) uvesti minimalan skup testova panela za putanje koje se ne smeju pokvariti (prijava, lista rezervacija, dosije, pretraga). Za (b) je potreban `@testing-library/react`, koji je nova zavisnost — **traži tvoju potvrdu** po pravilu iz `CLAUDE.md`.
 **Procena:** (a) 2 sata, (b) 2–3 dana za smislen skup.
+
+---
+
+**(a) URAĐENO 5.9.2026** — CI dobio drugi posao, `panel-web`: `tsc --noEmit` i `next build` za panel i sajt. Oba su pre uvođenja **pokrenuta lokalno** da se ne doda korak koji nije viđen kako prolazi (zamka 7.0) — panel i sajt se grade čisto.
+
+**Uz to su tri dotad SAMO ZAPISANE zamke pretvorene u provere koje padaju same** — deo šireg dogovora sa vlasnikom (5.9.2026) da pravilo koje zavisi od sećanja nije prevencija. Dokaz da ne radi: zamka 7.1 postoji od 2.9.2026, a prekršena je 5.9.2026, tri dana kasnije.
+
+| Provera | Zamka koju zamenjuje | Dokazano da hvata |
+| :---- | :---- | :---- |
+| `tools/provera-indeksa.mjs` | nalaz 2.1 se tiho vraća sa svakom novom relacijom | indeks uklonjen ručno → provera pala sa tačnim imenom tabele i kolone, pa vraćen |
+| `tools/provera-use-server.mjs` | 7.1a — ruši ekran, `tsc`/`build` ćute | ubačena TAČNO ona konstanta koja je rušila ekran → provera je našla, pa uklonjena |
+| `tools/check-contrast.js` | dizajn §2a — skripta je postojala od 2.9.2026, ali se pokretala samo kad bi se neko setio | prolazi nad trenutnim tokenima |
+
+Obe nove provere su **prvo dokazane obaranjem** — nije dovoljno da ćute nad ispravnim kodom, moraju da progovore nad pokvarenim.
+
+**Zatečeno usput:** `npm run lint` u panelu je pokvaren — `eslint-plugin-react` nije spojiv sa ESLint 10, `npx eslint .` puca. Skripta izgleda kao da radi dok se ne pokrene. Lint zato **nije** dodat u CI; popravka traži izmenu zavisnosti, pa čeka potvrdu. Zavedeno.
+
+**(b) Testovi panela — ne mogu bez odluke vlasnika.** `@testing-library/react` je nova zavisnost, a `CLAUDE.md` traži izričitu potvrdu pre uvođenja bilo čega van postojećeg steka.
 
 ---
 
@@ -351,7 +369,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 
