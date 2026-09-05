@@ -134,53 +134,61 @@ export default function Sidebar({
               za vođenje/indent guide kao u VS Code stablu) — poravnata sa horizontalnim
               centrom ikonica stavki ispod (`left-5` = 20px = `mx-2`(8px) stavke + pola od
               `w-6`(24px) ikonice), proteže se od dna naslova do dna poslednje stavke. */}
-          <div className="relative">
+          <div>
             <div className="mx-2 mb-2 flex items-center gap-2 px-2 text-[14.52px] font-bold uppercase text-ink-faint">
               <span className="truncate">{activeGroup.label}</span>
             </div>
-            <div aria-hidden className="pointer-events-none absolute bottom-2 left-5 top-[26px] w-px bg-ink-faint/30" />
-            {sectionItems.map((item) => {
-              if (!item.implemented) {
+            {/* Kartica po stavci (5.9.2026, vlasnikov zahtev: "unificirajte sve linkove u
+                meniju, stavite u tagove") — isti jezik kao `SidebarSection`/`QuickLinkCard`
+                (`rounded-lg border border-border bg-panel p-2`, ikonica u `rounded-md` bedžu).
+                Zamenjuje raniju ravnu listu + VS Code "indent guide" liniju (18.8.2026) — ta
+                linija je pretpostavljala tanak, neuokviren spisak; kartice sa sopstvenim
+                ivicama su suprotan, dosledniji jezik sa ostatkom panela, linija bi ih sad samo
+                sekla. */}
+            <div className="mx-2 flex flex-col gap-1">
+              {sectionItems.map((item) => {
+                if (!item.implemented) {
+                  return (
+                    <div
+                      key={item.id}
+                      title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 opacity-40"
+                    >
+                      <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-faint">
+                        <Icon name="lock" />
+                      </span>
+                      <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
+                        <span className="truncate text-xs font-medium text-ink-faint">{item.label}</span>
+                        <span className="ml-2 rounded-full bg-panel2 px-1.5 py-0.5 text-[11px] font-mono text-ink-faint">F{item.phase}</span>
+                      </span>
+                    </div>
+                  );
+                }
                 return (
-                  <div
+                  // ISPRAVKA (27.8.2026, na zahtev vlasnika: "kada kliknem na Pretraga i
+                  // rezervacije ništa se ne događa... moram da kliknem na drugu ikonu pa da se
+                  // vratim") — obična `<Link href>` je ovde ponekad ostavljala adresu promenjenu
+                  // ali sadržaj neosvežen (nepouzdano App Router "meko" navigiranje na ovoj
+                  // stranici), isti simptom kao ranije popravljena "openTab je ranije SAMO
+                  // upisivao zapis" greška (`TabsContext.tsx` komentar). Rešenje je isto — umesto
+                  // pasivnog `<Link>`-a, klik EKSPLICITNO zove `openTab(href, label)`, koji
+                  // eksplicitno poziva `router.push` i sinhrono upisuje/aktivira tab, bez
+                  // oslanjanja na to da će `<Link>` sam pouzdano izvršiti tranziciju.
+                  <button
                     key={item.id}
-                    title={`${item.label} — dostupno od Faze ${item.phase} (nije još implementirano)`}
-                    className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-ink-faint opacity-40"
+                    type="button"
+                    onClick={() => openTab(item.href, item.label)}
+                    title={item.label}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-panel p-2 text-left hover:border-accent"
                   >
-                    <span className="flex w-[29px] items-center justify-center">
-                      <Icon name="lock" />
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
+                      <Icon name={item.icon} />
                     </span>
-                    <span className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap text-xs">
-                      <span className="truncate">{item.label}</span>
-                      <span className="ml-2 rounded-full bg-panel px-1.5 py-0.5 text-[11px] font-mono">F{item.phase}</span>
-                    </span>
-                  </div>
+                    <span className="truncate text-xs font-medium text-ink">{item.label}</span>
+                  </button>
                 );
-              }
-              return (
-                // ISPRAVKA (27.8.2026, na zahtev vlasnika: "kada kliknem na Pretraga i
-                // rezervacije ništa se ne događa... moram da kliknem na drugu ikonu pa da se
-                // vratim") — obična `<Link href>` je ovde ponekad ostavljala adresu promenjenu
-                // ali sadržaj neosvežen (nepouzdano App Router "meko" navigiranje na ovoj
-                // stranici), isti simptom kao ranije popravljena "openTab je ranije SAMO
-                // upisivao zapis" greška (`TabsContext.tsx` komentar). Rešenje je isto — umesto
-                // pasivnog `<Link>`-a, klik EKSPLICITNO zove `openTab(href, label)`, koji
-                // eksplicitno poziva `router.push` i sinhrono upisuje/aktivira tab, bez
-                // oslanjanja na to da će `<Link>` sam pouzdano izvršiti tranziciju.
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => openTab(item.href, item.label)}
-                  title={item.label}
-                  className="mx-2 flex items-center gap-3 rounded px-2 py-2 text-left text-sm text-ink-dim hover:bg-panel hover:text-ink"
-                >
-                  <span className="flex w-6 items-center justify-center">
-                    <Icon name={item.icon} />
-                  </span>
-                  <span className="truncate">{item.label}</span>
-                </button>
-              );
-            })}
+              })}
+            </div>
           </div>
         </>
       )}
