@@ -53,7 +53,7 @@ Od avgusta 2026. ovo ide kroz Skill strukturu u `.claude/skills/` umesto obavezn
 
 `docs/analize/33-ZAMKE-I-OBAVEZNE-PROVERE.md` je lista grešaka u koje se lako ponovo upada — svaka je stvarno napravljena ili pronađena u ovom repozitorijumu, ne pretpostavljena. Nastala 17.8.2026. na izričit zahtev vlasnika ("sve napomene koje ste napisali pribeležite i proveravajte prilikom dodatnog rada").
 
-- **Pre rada** pročitaj odeljak koji odgovara oblasti koju zadatak dotiče (boje/kontrast, prava pristupa, katalog i javni sajt, obeležavanje AI poteza, seed skripte, paralelan rad sa drugim agentom, definicija "gotovo").
+- **Pre rada** otvori tabelu „Kratka lista pre posla — po situaciji" na vrhu tog fajla (dodata 5.9.2026), nađi red koji opisuje ono što radiš i pročitaj zamke na koje upućuje. Tabela je ulaz u dokument, ne sažetak — postoji zato što je dokument prerastao stotinu unosa, pa se u praksi preskakao. Ako nijedan red ne odgovara, pročitaj odeljak koji tematski najbliže stoji (boje/kontrast, prava pristupa, katalog i javni sajt, obeležavanje AI poteza, seed skripte, paralelan rad sa drugim agentom, definicija "gotovo").
 - **Pre nego što zadatak proglasiš gotovim** ponovo prođi kroz taj odeljak — nekoliko zamki (npr. "build prolazi a ekran je pokvaren", "prazan ekran je prazna baza, ne pokvaren kod") postoje upravo zato što su prvi put promašene na kraju posla.
 - **Kad naiđeš na novu zamku, dodaj je u taj fajl u istom prolazu**, u istom obliku (simptom → uzrok → provera). Zamka se ne briše kad se jednom ispravi — samo ako je uzrok strukturno uklonjen.
 

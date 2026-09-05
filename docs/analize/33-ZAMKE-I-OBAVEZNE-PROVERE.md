@@ -13,10 +13,36 @@ Ovo **nije** lista bagova (bagovi se ispravljaju i zatvaraju) ni backlog (`27-BA
 Svaki unos ima isti oblik: **simptom** (šta vidiš), **uzrok** (zašto), **provera** (šta uraditi da se ne ponovi).
 
 **Kada se čita:**
-- pre rada na oblasti koju neki odeljak pokriva (npr. pre dodavanja boje — odeljak 1),
-- pre nego što se zadatak proglasi gotovim — proći kroz odeljak koji odgovara dotaknutim modulima.
+- **pre rada** — kroz „Kratku listu pre posla" odmah ispod: nađi red koji opisuje ono što radiš i pročitaj zamke na koje upućuje. Lista je dodata 5.9.2026 jer je dokument prerastao stotinu unosa i traženje kroz njega postalo skuplje od samog posla,
+- **pre nego što se zadatak proglasi gotovim** — kroz treću kolonu iste liste, pa kroz odeljak koji odgovara dotaknutim modulima.
 
 Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti na drugom mestu. Briše se samo ako je uzrok strukturno uklonjen (npr. polje više ne postoji).
+
+---
+
+## Kratka lista pre posla — po situaciji
+
+Dokument je narastao na preko sto zamki i trinaest odeljaka. Traženje kroz njega postalo je skuplje od samog posla, pa se u praksi preskakalo — a zamka koja se ne pročita ne postoji. Ovo je **ulaz**, ne sažetak: nađi red koji opisuje ono što radiš i pročitaj navedene zamke u celini. Numerisani pokazivači vode u odeljke ispod.
+
+Ako nijedan red ne odgovara poslu, pročitaj odeljak koji tematski najbliže stoji — i **dodaj nov red ovde** ako se ispostavi da je situacija česta.
+
+| Radim ovo | Pročitaj pre nego što počneš | Ne prijavljuj kao gotovo dok |
+|---|---|---|
+| **Menjam boju, token ili paletu** | 1.2, 1.7, 1.9, 1.10 | `node tools/check-contrast.js` prođe i, ako je dirana cela paleta, dok se ne proveri da nijedna ranija ručna ispravka nije pregažena (1.9) |
+| **Pravim ili menjam ekran** (stranica, `'use client'` komponenta, server akcija) | 7.1, 7.1a, 9.5, 9.2 | `npm run qa` ne prođe za taj ekran — HTTP 200 i tačan HTML **nisu** dokaz (7.1a) |
+| **Menjam `tailwind.config.ts` ili `globals.css`** | 1.5, 1.6, 1.7 | se pravilo ne pročita iz **iskompajliranog** CSS-a; posle izmene konfiguracije restartuj dev server |
+| **Dodajem ili menjam API endpoint** | 13.1, 13.3, 13.4, 13.5, 2.5 | se ne pozove **stvarni** endpoint sa pravim parametrima — `@RequirePermission` na klasi se tiho ignoriše (13.5) |
+| **Postavljam ogradu prava pristupa** | 13.5, 13.6, 6.5, 2.1, 2.2 | ne postoji test koji dokazuje da ograda **odbija** — test koji tvrdi da ograde nema je rupa, ne pokrivenost (13.6) |
+| **Diram Prisma šemu ili migraciju** | 12.0, 12.1, 12.2 (EPERM), 12.6, 5.1 | se ne ugasi API pre `prisma generate` i ne potvrdi da je klijent stvarno nov (12.0) |
+| **Pišem ili menjam seed** | 5.2, 5.3, 5.13 (JSONB ključ), 12.4, 12.7 | se ne proveri da je **postojeća** baza dobila izmenu — ispravka u skripti ne stiže do već zasejanih podataka (12.4, 12.7) |
+| **Prikazujem podatke iz baze na ekranu** | 10.1 (`Decimal` je string), 10.2 (granica datuma), 10.3, 3.6 | se ne pogleda pravi zapis na pravom ekranu; prazan ekran je češće prazna baza nego kvar (7.2) |
+| **Povlačim sa GitHub-a i pokrećem** | 12.1, 12.3, 12.6, 12.2 (lažno negativna prva provera) | se ne potvrdi da radi **nov** proces, a ne stara instanca na istom portu (12.1) |
+| **Radim uporedo sa drugom sesijom** | 6.1, 6.2, 6.4, 6.6 | se ne pogleda `git diff` svakog fajla koji je i druga strana mogla dotaći; nikad `git add -A` (6.1) |
+| **Pišem reviziju, nalaz ili izveštaj o kodu** | 8.1, 8.4, 8.5 + ceo `40-PRAVILA-REVIZIJE-KODA.md` | svaki nalaz ne nosi klasu dokaza, a obim nije **prebrojan** umesto procenjen (8.4) |
+| **Pravim nov alat za proveru** (`tools/`) | 7.1c, 7.1d | alat ne padne bar jednom nad namerno pokvarenim slučajem (7.1d), a preduslovi mu nisu upisani u skriptu (7.1c) |
+| **Proglašavam bilo šta gotovim** | 7.0, 7.1, 7.2, 7.3, 8.3 | rezultat provere nije **viđen** u zasebnom potezu pre commit-a — nikad `test && commit` u jednoj komandi (7.0) |
+
+**Poznat nedostatak ovog dokumenta (5.9.2026):** numeracija ima duplikate — postoje po dva unosa pod `5.6`, `5.7`, `5.10`–`5.14`, `9.4` i `12.2`, nastala kad su se dve sesije uporedo dopisivale. Pozivanje na „zamku 5.13" je zato dvosmisleno. Preimenovanje bi pokidalo šezdesetak pokazivača iz drugih dokumenata i iz komentara u kodu, pa se **ne radi usput** — to je zaseban posao koji traži da se svi pokazivači isprave u istom prolazu. Do tada: kad pišeš pokazivač na zamku iz odeljka 5, dodaj i nekoliko reči iz naslova (`zamka 5.13 — JSONB ključ`), ne samo broj.
 
 ---
 
