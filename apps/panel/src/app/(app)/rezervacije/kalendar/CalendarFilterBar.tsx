@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
@@ -27,7 +27,6 @@ const TIP_NASTUPANJA = ['ORGANIZATOR', 'POSREDNIK'];
 const PRODUCT_TYPES = ['ACCOMMODATION', 'PACKAGE', 'TRANSFER', 'EXCURSION', 'FLIGHT', 'INSURANCE', 'TRANSPORT', 'TICKET', 'EVENT', 'CRUISE'];
 
 const inputClass = 'input text-xs';
-const TEXT_DEBOUNCE_MS = 600;
 
 function toArray(v: string | string[] | undefined): string[] {
   if (v === undefined) return [];
@@ -54,19 +53,6 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
   const activeCount = countActiveCriteria(filters);
   const hasAnyFilter = activeCount > 0;
   const [open, setOpen] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function handleFormChange(e: React.ChangeEvent<HTMLFormElement>) {
-    const target = e.target as unknown as HTMLInputElement;
-    const isTypedText = target.tagName === 'INPUT' && target.type === 'text';
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (isTypedText) {
-      debounceRef.current = setTimeout(() => formRef.current?.requestSubmit(), TEXT_DEBOUNCE_MS);
-    } else {
-      formRef.current?.requestSubmit();
-    }
-  }
 
   // Zatvaranje na Escape — modal blokira ostatak ekrana dok je otvoren, isti očekivan izlaz
   // kao svaki drugi modal u panelu (CommandPalette.tsx, DestinationProfilesEditor.tsx).
@@ -119,7 +105,11 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
                 <Icon name="close" />
               </button>
             </div>
-            <form ref={formRef} action="/rezervacije/kalendar" onChange={handleFormChange} className="flex flex-col gap-2 text-xs">
+            {/* Bez auto-submit na promenu (5.9.2026, vlasnikov nalaz: "momentalno filtriranje...
+                svaki put treba da se ponovo otvori modal") — svaka promena je do sad odmah
+                slala formu (pravu GET navigaciju), što je zatvaralo modal pre nego što je
+                korisnik stigao da popuni ostala polja. Sad se šalje isključivo na "pretraži". */}
+            <form action="/rezervacije/kalendar" className="flex flex-col gap-2 text-xs">
               <input type="hidden" name="view" value={view} />
               <input type="hidden" name="date" value={date} />
               {/* ISPRAVKA (5.9.2026, vlasnikov nalaz uz snimak ekrana — polja Status/Uplata/Tip
@@ -133,23 +123,23 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
                   fiksne širine u panelu (npr. `SearchCriteriaForm.tsx` `sm:grid-cols-2`). */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <Field label="Broj">
-                  <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} />
+                  <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={false} />
                 </Field>
                 <Field label="Nosilac rezervacije">
-                  <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} />
+                  <ClearableTextField name="buyerName" defaultValue={filters.buyerName ?? ''} placeholder="ime/naziv" className={inputClass} autoSubmit={false} />
                 </Field>
-                <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} />
-                <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} />
-                <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} />
-                <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} />
+                <MultiSelectDropdown name="status" label="Status" options={STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.status)} autoSubmit={false} />
+                <MultiSelectDropdown name="paymentStatus" label="Uplata" options={PAYMENT_STATUSES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.paymentStatus)} autoSubmit={false} />
+                <MultiSelectDropdown name="tipNastupanja" label="Tip nastupanja" options={TIP_NASTUPANJA.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.tipNastupanja)} autoSubmit={false} />
+                <MultiSelectDropdown name="productType" label="Tip proizvoda" options={PRODUCT_TYPES.map((s) => ({ value: s, label: s }))} defaultValues={toArray(filters.productType)} autoSubmit={false} />
                 <Field label="Destinacija (grad)">
-                  <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} />
+                  <ClearableTextField name="destinationCity" defaultValue={filters.destinationCity ?? ''} placeholder="npr. Budva" className={inputClass} autoSubmit={false} />
                 </Field>
                 <Field label="Destinacija (država)">
-                  <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} />
+                  <ClearableTextField name="destinationCountry" defaultValue={filters.destinationCountry ?? ''} placeholder="npr. Grčka" className={inputClass} autoSubmit={false} />
                 </Field>
                 <Field label="Valuta">
-                  <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} />
+                  <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={false} />
                 </Field>
                 <Field label="Garancija putovanja">
                   <select name="hasTravelGuarantee" defaultValue={filters.hasTravelGuarantee ?? ''} className={inputClass}>
@@ -162,7 +152,7 @@ export default function CalendarFilterBar({ view, date, filters }: { view: Calen
 
               <div className="flex items-end gap-2">
                 <Field label="Kreirano od/do">
-                  <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} />
+                  <ClearableDateRange nameFrom="createdFrom" nameTo="createdTo" defaultFrom={filters.createdFrom ?? ''} defaultTo={filters.createdTo ?? ''} className={inputClass} autoSubmit={false} />
                 </Field>
               </div>
 

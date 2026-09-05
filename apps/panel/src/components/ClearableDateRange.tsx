@@ -16,12 +16,16 @@ export default function ClearableDateRange({
   defaultFrom,
   defaultTo,
   className,
+  autoSubmit = true,
 }: {
   nameFrom: string;
   nameTo: string;
   defaultFrom: string;
   defaultTo: string;
   className: string;
+  /** `false` unutar formi koje NE šalju na svaku promenu, npr. modal "Detaljna pretraga"
+   * (5.9.2026) — vidi isti prop na `MultiSelectDropdown.tsx`/`ClearableTextField.tsx`. */
+  autoSubmit?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [from, setFrom] = useState(defaultFrom);
@@ -40,7 +44,7 @@ export default function ClearableDateRange({
             setTo('');
             // Automatska primena (24.8.2026, na zahtev vlasnika) — vidi isti komentar u
             // ClearableTextField.tsx.
-            containerRef.current?.closest('form')?.requestSubmit();
+            if (autoSubmit) containerRef.current?.closest('form')?.requestSubmit();
           }}
           title="Obriši ovo polje"
           className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded text-ink-faint hover:text-danger"

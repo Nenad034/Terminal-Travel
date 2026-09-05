@@ -14,12 +14,16 @@ export default function ClearableTextField({
   defaultValue,
   placeholder,
   className,
+  autoSubmit = true,
 }: {
   name: string;
   type?: string;
   defaultValue: string;
   placeholder?: string;
   className: string;
+  /** `false` unutar formi koje NE šalju na svaku promenu, npr. modal "Detaljna pretraga"
+   * (5.9.2026) — vidi isti prop na `MultiSelectDropdown.tsx`. */
+  autoSubmit?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [hasValue, setHasValue] = useState(Boolean(defaultValue));
@@ -44,7 +48,7 @@ export default function ClearableTextField({
             // Automatska primena (24.8.2026, na zahtev vlasnika) — brisanje ne pokreće pravi
             // DOM 'change' događaj (samo React state + direktna DOM izmena), pa se ovde
             // eksplicitno traži submit umesto da se osloni na delegovani onChange u RealFilterBar.tsx.
-            ref.current?.closest('form')?.requestSubmit();
+            if (autoSubmit) ref.current?.closest('form')?.requestSubmit();
           }}
           title="Obriši ovo polje"
           className="absolute right-1 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded text-ink-faint hover:text-danger"

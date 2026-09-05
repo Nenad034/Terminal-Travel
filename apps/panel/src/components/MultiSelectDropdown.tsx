@@ -25,11 +25,17 @@ export default function MultiSelectDropdown({
   label,
   options,
   defaultValues,
+  autoSubmit = true,
 }: {
   name: string;
   label: string;
   options: MultiSelectOption[];
   defaultValues: string[];
+  /** `false` unutar formi koje NE šalju na svaku promenu, npr. modal "Detaljna pretraga"
+   * (5.9.2026, vlasnikov nalaz: "momentalno filtriranje... svaki put treba da se ponovo
+   * otvori modal") — "Obriši izbor" dugme ispod tad samo prazni selekciju, bez slanja forme;
+   * ostatak (prava GET forma sa dugmetom "pretraži") ostaje nepromenjen kao podrazumevano. */
+  autoSubmit?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [checked, setChecked] = useState<Set<string>>(new Set(defaultValues));
@@ -82,7 +88,7 @@ export default function MultiSelectDropdown({
                 i.checked = false;
               });
               setChecked(new Set());
-              ref.current?.closest('form')?.requestSubmit();
+              if (autoSubmit) ref.current?.closest('form')?.requestSubmit();
             }}
             className="mb-1 flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-[11px] text-ink-faint hover:bg-panel2 hover:text-danger"
           >
