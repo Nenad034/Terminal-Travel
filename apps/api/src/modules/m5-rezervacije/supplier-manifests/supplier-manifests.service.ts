@@ -19,8 +19,18 @@ export class SupplierManifestsService {
     private readonly mailbox: SupplierMailboxService,
   ) {}
 
+  // Dopuna 5.9.2026 — ekran u panelu (M17) traži naziv dobavljača i broj stavaka uz svaku listu;
+  // bez toga bi spisak bio niz UUID-jeva. Čisto proširenje payload-a već autorizovanog upita
+  // (isti obrazac kao M22 v1.5 `mailbox` u `GET /email/threads`), bez nove dozvole.
   findAll(supplierId?: string) {
-    return this.prisma.supplierManifest.findMany({ where: { supplierId }, orderBy: { generatedAt: 'desc' } });
+    return this.prisma.supplierManifest.findMany({
+      where: { supplierId },
+      orderBy: { generatedAt: 'desc' },
+      include: {
+        supplier: { select: { id: true, name: true, contactEmail: true } },
+        _count: { select: { items: true } },
+      },
+    });
   }
 
   async findOne(id: string) {

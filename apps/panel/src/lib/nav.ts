@@ -95,6 +95,18 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M5 spec §8 (5.9.2026) — ekran za operativne liste i najave izmene/storna. Pozadinska
+    // logika postoji od avgusta 2026, ali do danas nije imala nijedan ulaz iz panela: funkcija
+    // je postojala u kodu i praktično ne za operatera („logika postoji, UI ne", CLAUDE.md).
+    id: 'rezervacije-najave',
+    label: 'Najave dobavljačima',
+    icon: 'mail',
+    href: '/rezervacije/najave',
+    permission: { module: 'M5', resource: 'supplier-manifest', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     id: 'finansije',
     label: 'Finansije',
     icon: 'credit-card',
@@ -251,7 +263,7 @@ export interface NavGroup {
  */
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
-  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista'] },
+  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
   { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'dobavljaci'] },
   { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
   { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },

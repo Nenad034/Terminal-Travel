@@ -76,7 +76,7 @@ Uz to, komentar u `M22MailboxStubService` tvrdi da „M22 još nije implementira
 
 Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajderu**. Ono što jeste popravljivo odmah je da zapis prestane da tvrdi neistinu.
 
-**Sporedni nalaz koji je isplivao (klasa A):** za `SupplierManifest` i `SupplierChangeNotice` **ne postoji nijedan ekran u panelu** — pretraga po `apps/panel/src` vraća samo M22 ekran e-pošte. Operativne liste i izmene ka dobavljaču danas se mogu pokrenuti isključivo pozivom API-ja. Ovo je „logika postoji, UI ne" iz `CLAUDE.md`, i vodi se odvojeno od 1.2.
+**Sporedni nalaz koji je isplivao (klasa A) — REŠEN 5.9.2026:** za `SupplierManifest` i `SupplierChangeNotice` **ne postoji nijedan ekran u panelu** — pretraga po `apps/panel/src` vraća samo M22 ekran e-pošte. Operativne liste i izmene ka dobavljaču danas se mogu pokrenuti isključivo pozivom API-ja. Ovo je „logika postoji, UI ne" iz `CLAUDE.md`, i vodi se odvojeno od 1.2.
 
 **Predlog (odluka je vlasnikova, v. razgovor 5.9.2026):** dok provajder nije izabran, klik na „pošalji" ne sme da ostavi trag koji se ne razlikuje od stvarnog slanja. Tri moguća oblika — od najmanje do najviše zahvatne izmene — dati su vlasniku na izbor; svaka menja ponašanje, pa traži dopunu M5 §8.4/§8.8 (i M22 §4) pre koda, po tvrdom pravilu iz `CLAUDE.md`.
 **Procena:** 2–4 sata za izabran oblik iskrenog zapisa; pravo slanje zavisi od izbora provajdera, ne od koda.
@@ -104,7 +104,7 @@ Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajd
 **Ostaje otvoreno i zavedeno (ne prećutano):**
 - **Dovlačenje pristigle pošte** (`fetchNewMessages`) — SMTP to po prirodi ne radi; traži IMAP ili API provajdera. Odgovor dobavljača se zato još ne uvozi sam. Nalaz 1.2 je time rešen u smeru „mi → hotel"; smer „hotel → mi" ostaje.
 - **Izbor pravog provajdera** za produkciju (Gmail API / Microsoft Graph / IMAP) — vlasnikova odluka, M22 §10.
-- **Nema ekrana u panelu** za `SupplierManifest`/`SupplierChangeNotice` (sporedni nalaz iznad) — vodi se odvojeno.
+- ~~**Nema ekrana u panelu** za `SupplierManifest`/`SupplierChangeNotice`~~ — **rešeno istog dana** na zahtev vlasnika: `/rezervacije/najave` (M17 v2.37). Ceo tok se sada vodi sa ekrana.
 
 ---
 

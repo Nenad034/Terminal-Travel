@@ -27,8 +27,27 @@ export class SupplierChangeNoticesService {
     });
   }
 
+  // Dopuna 5.9.2026 — ekran u panelu treba da zna KOME se šalje, a adresa dobavljača se dobija
+  // tek kroz lanac stavka → proizvod → ugovor → dobavljač. Bez ovoga bi operater morao ručno da
+  // kuca mejl hotela pri svakom slanju, što je tačno mesto gde se prave greške.
   findAll(bookingItemId?: string) {
-    return this.prisma.supplierChangeNotice.findMany({ where: { bookingItemId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.supplierChangeNotice.findMany({
+      where: { bookingItemId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        bookingItem: {
+          select: {
+            id: true,
+            stayFrom: true,
+            stayTo: true,
+            booking: { select: { id: true, bookingNumber: true } },
+            // `Product` nema polje `name` (nazivi žive u prevodima, M2 §2.2) — za ovaj ekran je
+            // dovoljno ko je dobavljač i koje je mesto; naziv objekta se vidi u samoj rezervaciji.
+            product: { select: { type: true, destinationCity: true, sourceContract: { select: { supplier: { select: { id: true, name: true, contactEmail: true } } } } } },
+          },
+        },
+      },
+    });
   }
 
   async findOne(id: string) {
