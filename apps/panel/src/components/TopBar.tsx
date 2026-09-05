@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import TabBar from './TabBar';
+import { BrandLogoFull, BrandLogoShort } from './BrandMark';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice preseljene u ActivityBar.tsx
 // (vertikalna traka, 21.8.2026) — gornja traka sad nosi tabove, pretragu i desni klaster
@@ -77,36 +78,13 @@ export default function TopBar({
             logoZoomed ? 'relative z-20 scale-[2]' : 'scale-100'
           }`}
         >
-          {/* Nova ikonica (26.8.2026, na zahtev vlasnika, uz sopstveni Gemini-generisan koncept:
-              "ovo ce sada da bude nas logo... samo ga prilagodite za prikaz u aplikaciji") —
-              4 polja (kvadrat-obris / linije / terminal ">_" / linije), `terminal-travel-icon-v2.svg`,
-              nadahnuto konceptom sa slike ali NIJE identična kopija (nadahnuće, ne kopija —
-              dogovoreno u razgovoru), maskirana istim mask-image tehnikom kao pre (SVG umesto
-              PNG) preko `bg-accent` — zlatna boja aplikacije, isti token kao pre. Wordmark sad
-              MALIM slovima ("terminal travel", ne "TTerminal TTravel") u `font-brand`
-              (Chakra Petch, globals.css/tailwind.config.ts) — font sa slike koju je vlasnik
-              poslao kao ISKLJUČIVO primer željenog fonta za natpis (potvrđeno u razgovoru), ne
-              kao logo za kopiranje. */}
-          {/* Logo uvećan +15% (26.8.2026, na zahtev vlasnika: "kada se skupi levi panel previše
-              se smanjuje logo, uvecajte generalno logo za 15%") — 20px→23px (prošireno stanje),
-              16px→18.4px (skupljeno stanje, `!showLabel`), 14px→16.1px (natpis). */}
-          <span
-            aria-hidden
-            className={`block flex-shrink-0 bg-accent ${showLabel ? 'h-[23px] w-[23px]' : 'h-[18.4px] w-[18.4px]'}`}
-            style={{
-              WebkitMaskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
-              maskImage: 'url(/brand/terminal-travel-icon-v2.svg)',
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain',
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-            }}
-          />
-          {showLabel && (
-            <span className="truncate font-brand text-[16.1px] font-bold tracking-wide text-accent">terminal travel</span>
-          )}
+          {/* Nov logotip (5.9.2026, vlasnikova ideja) — zamenjuje raniji `terminal-travel-icon-v2.svg`
+              (mask-image ikonica) + odvojen "terminal travel" natpis. Vidi `BrandMark.tsx` za pun
+              razlog dizajna (dva "T" oblika sa stvarnim praznim razmakom u sredini, umesto
+              velikog slova T na početku "Terminal"/"Travel"). Skraćena verzija (samo dva T
+              simbola, bez reči) se prikazuje kad je bočna traka skupljena/uska — isti razlog kao
+              ranije, samo skraćen natpis: "previše se smanjuje logo" u uskom prostoru. */}
+          {showLabel ? <BrandLogoFull heightPx={23} /> : <BrandLogoShort heightPx={18.4} />}
         </button>
       </div>
       {/* Traka tabova prati levu ivicu sadržaja kad je on sužen (2.9.2026, na zahtev vlasnika:
