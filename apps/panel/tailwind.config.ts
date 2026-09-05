@@ -45,9 +45,14 @@ const config: Config = {
           DEFAULT: 'var(--tab-line)',
           strong: 'var(--tab-line-strong)',
         },
-        // Brend logotip (5.9.2026) — narandzasto, fiksno u sva tri moda, vidi `--brand` u
-        // globals.css. Odvojen token od `tabline` iznad iako ista vrednost — druga semantika.
-        brand: 'var(--brand)',
+        // Brend logotip + dugmad pretrage/filtriranja (5.9.2026) — narandzasto, fiksno u sva tri
+        // moda, vidi `--brand`/`--brand-ink` u globals.css. Odvojen token od `tabline` iznad iako
+        // ista vrednost — druga semantika. `ink` je TAMAN tekst (ne beo) — vidi obrazloženje
+        // kontrasta uz `--brand-ink`.
+        brand: {
+          DEFAULT: 'var(--brand)',
+          ink: 'var(--brand-ink)',
+        },
         ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
         warn: { DEFAULT: 'var(--warn)', bg: 'var(--warn-bg)' },
         danger: { DEFAULT: 'var(--danger)', bg: 'var(--danger-bg)' },

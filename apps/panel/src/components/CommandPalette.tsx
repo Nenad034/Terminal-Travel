@@ -6,7 +6,13 @@ import Icon from './Icon';
 import { useTabs } from './TabsContext';
 import type { NavItem } from '@/lib/nav';
 
-// docs/analize/29-DIZAJN-SISTEM-UI.md §4, M17 spec §5.5, M15 spec §6.5 — Ctrl+K/Cmd+K overlay.
+// docs/analize/29-DIZAJN-SISTEM-UI.md §4, M17 spec §5.5, M15 spec §6.5 — Ctrl+T/Cmd+T overlay
+// (prečica promenjena sa Ctrl+K na Ctrl+T, 5.9.2026, vlasnikov zahtev). NAPOMENA: Ctrl+T je u
+// većini desktop browsera rezervisana prečica za "nov tab" na nivou browsera samog — stranica
+// preko JS-a ne može pouzdano da je preotme (isti razlog kao Ctrl+N/Ctrl+W), za razliku od Ctrl+K
+// koje browseri po konvenciji prepuštaju stranicama. `preventDefault()` ispod i dalje stoji, ali
+// u nekim browserima/OS kombinacijama fizička prečica može otvoriti pravi nov tab pregledača
+// umesto ovog prekidača — dugme u StatusBar.tsx ostaje pouzdan način da se panel otvori klikom.
 // "Prazan upit + Enter" ostaje čisto lokalna navigacija (§6.5.3, ne zove API). "Upit sa
 // tekstom" poziva POST /api/omnisearch (→ M15 POST /ai-orchestration/omnisearch) — glasovni
 // unos (§6.6) i M15 §6.5.6 spoljne recenzije ostaju van obima ovog prolaza.
@@ -20,7 +26,7 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setOpen((o) => !o);
         setQuery('');

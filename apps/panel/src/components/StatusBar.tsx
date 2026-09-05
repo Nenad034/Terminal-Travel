@@ -103,12 +103,12 @@ export default function StatusBar({
           -translate-y-1/2` (umesto ranijeg `top-0 h-[29px]`) da ostane vertikalno na sredini sad
           više trake. */}
       <button
-        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true }))}
         className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-md border border-border bg-panel-2 px-2 py-1 font-mono text-ink-faint hover:border-accent hover:text-ink"
       >
         <Icon name="search" />
         traži ili izvrši
-        <kbd className="rounded border border-border bg-panel px-1 text-[11px]">Ctrl K</kbd>
+        <kbd className="rounded border border-border bg-panel px-1 text-[11px]">Ctrl T</kbd>
       </button>
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>
