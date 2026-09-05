@@ -133,7 +133,7 @@ export default async function NadzorPage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             filtriraj
           </Button>
           {(searchParams?.module || searchParams?.type || searchParams?.severity) && (

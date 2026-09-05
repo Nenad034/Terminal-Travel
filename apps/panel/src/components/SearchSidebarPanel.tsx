@@ -377,7 +377,7 @@ export default function SearchSidebarPanel() {
 
           <button
             type="submit"
-            className="mt-1 flex items-center justify-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 font-semibold text-ink-dim hover:border-accent hover:text-ink"
+            className="mt-1 flex items-center justify-center gap-1.5 rounded border border-brand bg-panel px-3 py-1.5 font-semibold text-brand hover:brightness-90"
           >
             <Icon name="filter" /> primeni filtere
           </button>

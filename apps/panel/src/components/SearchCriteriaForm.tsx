@@ -408,7 +408,7 @@ export default function SearchCriteriaForm({
       <button
         onClick={submit}
         disabled={!destinationValid}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded bg-brand px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <Icon name="search" /> pretraži
       </button>

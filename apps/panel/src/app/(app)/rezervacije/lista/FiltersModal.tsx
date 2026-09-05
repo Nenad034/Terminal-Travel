@@ -118,7 +118,7 @@ export default function FiltersModal({
           <button onClick={clearAll} className="text-xs text-ink-faint hover:text-danger">
             Ukloni sve filtere
           </button>
-          <button onClick={onClose} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent-strong">
+          <button onClick={onClose} className="rounded bg-brand px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-90">
             Primeni
           </button>
         </div>

@@ -71,7 +71,7 @@ export default async function PitanjaPage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             filtriraj
           </Button>
           {(searchParams?.audienceContext || searchParams?.confidence) && (

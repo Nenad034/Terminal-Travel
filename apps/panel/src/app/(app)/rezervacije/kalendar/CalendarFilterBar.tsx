@@ -262,7 +262,7 @@ function DetailedSearchModal({
           </div>
 
           <div className="mt-1 flex items-center gap-2">
-            <button type="submit" className="rounded bg-accent px-3 py-1.5 font-medium text-accent-ink hover:opacity-90">
+            <button type="submit" className="rounded bg-brand px-3 py-1.5 font-medium text-brand-ink hover:brightness-90">
               pretraži
             </button>
             {hasAnyFilter && (

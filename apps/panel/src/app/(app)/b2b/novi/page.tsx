@@ -42,7 +42,7 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
       <form className="mb-4 flex gap-2 rounded-lg border border-border bg-panel p-3 text-xs" action="/b2b/novi">
         <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga nalogodavca (pravno lice) po email-u" className="input flex-1" />
         <input name="taxId" defaultValue={searchParams?.taxId ?? ''} placeholder="ili po PIB-u" className="input flex-1" />
-        <button type="submit" className="rounded bg-panel2 px-3 py-1.5 font-medium text-ink hover:bg-border">
+        <button type="submit" className="rounded bg-brand px-3 py-1.5 font-medium text-brand-ink hover:brightness-90">
           traži
         </button>
       </form>

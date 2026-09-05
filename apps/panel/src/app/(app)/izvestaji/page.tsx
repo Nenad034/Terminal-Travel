@@ -339,7 +339,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               />
             </Field>
           )}
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             primeni filter
           </Button>
         </form>

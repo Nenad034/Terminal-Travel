@@ -105,7 +105,7 @@ export default async function PomocPage(
             <input type="checkbox" name="isCriticalExample" value="true" defaultChecked={searchParams?.isCriticalExample === 'true'} className="h-3.5 w-3.5" />
             samo kritični primeri
           </label>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             filtriraj
           </Button>
           {(searchParams?.relatedModule || searchParams?.lang || searchParams?.isCriticalExample || status) && (
