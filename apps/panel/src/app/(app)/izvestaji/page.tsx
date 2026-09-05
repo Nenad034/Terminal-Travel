@@ -6,8 +6,9 @@ import Icon, { IconDuo } from '@/components/Icon';
 import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import PeriodRangeField from './PeriodRangeField';
+import FilterLocationFields from './FilterLocationFields';
+import FieldInline from './FieldInline';
 import BarChart, { type ChartSeries } from './BarChart';
 import ShareReportButton from './ShareReportButton';
 import DynamicTree, { type DynamicNode } from './DynamicTree';
@@ -113,6 +114,24 @@ const OCCUPANCY_SERIES: ChartSeries<Bucket & { nights: number }>[] = [
 ];
 
 const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
+// Kanal/tip proizvoda kao padajući meni umesto slobodnog teksta (5.9.2026, vlasnikov nalaz uz
+// snimak ekrana: "polja u kojima se kuca ne reaguju, a tu treba da vec postoje podaci koji se
+// biraju") — vrednosti su poznat, fiksan skup (M5 spec `M5Channel`/M2 `ProductType`), isti
+// princip kao `RealFilterBar.tsx`/`CalendarFilterBar.tsx` (ti fajlovi drže sopstvenu kopiju iste
+// liste — mala dupliranost, isti obrazac).
+const CHANNEL_OPTIONS = ['B2C_SITE', 'B2B_PORTAL', 'MOBILE', 'INTERNAL_PANEL', 'PHONE', 'MCP_AGENT'] as const;
+const PRODUCT_TYPE_OPTIONS = [
+  'ACCOMMODATION',
+  'PACKAGE',
+  'TRANSFER',
+  'EXCURSION',
+  'FLIGHT',
+  'INSURANCE',
+  'TRANSPORT',
+  'TICKET',
+  'EVENT',
+  'CRUISE',
+] as const;
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
 // Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "nije dobro ovo kod dinamickih paketa.
 // Stavi ikone iz pretrage i koju ikonu ukljucimo... treba da se kreira dinamicki izvestaj i sve
@@ -284,26 +303,11 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   }
   // Kreirano/Dolasci/Odlasci — jedan aktivan par od/do, ovo bira na šta se odnosi (5.9.2026,
   // vlasnikov zahtev). Podrazumevano "Dolasci" (`stay_from`) — najbliže starom podrazumevanom
-  // ponašanju (preklapanje sa terminom boravka) od sva tri eksplicitna kriterijuma.
-  function dateFieldHref(field: string): string {
-    const v = baseParams();
-    if (view === 'grafik') v.set('view', 'grafik');
-    if (searchParams?.sub) v.set('sub', searchParams.sub);
-    v.set('dateField', field);
-    return `/izvestaji?${v.toString()}`;
-  }
+  // ponašanju (preklapanje sa terminom boravka) od sva tri eksplicitna kriterijuma. Renderuje se
+  // kao pravi `<select name="dateField">` (dopuna isti dan — "odnosi se na"/"segment" ne smeju
+  // vizuelno da odudaraju od ostalih polja), pa mu više ne treba `<Link>`-zasnovan href helper
+  // niti skriveno polje da preživi "primeni filter" — ista forma ga nosi kao svako drugo polje.
   const currentDateField = searchParams?.dateField && searchParams.dateField in DATE_FIELD_LABELS ? searchParams.dateField : 'stay_from';
-  // Subagenti/B2B/B2C — tačno jedan aktivan (potvrđeno preko `AskUserQuestion`, isti princip kao
-  // ikonice vrste proizvoda). Klik na već aktivan segment ga isključuje ("Svi") — isti obrazac
-  // kao "obriši filter" linkovi na drugim mestima u panelu.
-  function segmentHref(segment: string | null): string {
-    const v = baseParams();
-    if (view === 'grafik') v.set('view', 'grafik');
-    if (searchParams?.sub) v.set('sub', searchParams.sub);
-    if (segment) v.set('segment', segment);
-    else v.delete('segment');
-    return `/izvestaji?${v.toString()}`;
-  }
   const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
   const profSub: ProfitabilnostSub =
     searchParams?.sub && searchParams.sub in PROFITABILNOST_SUB_LABELS ? (searchParams.sub as ProfitabilnostSub) : 'destinacija';
@@ -500,109 +504,133 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       </div>
 
       {!error && tab && (
-        <form className="mb-4 flex flex-wrap items-end gap-2 text-xs" action="/izvestaji">
+        <form className="mb-4 flex flex-wrap items-center gap-2 text-xs" action="/izvestaji">
           <input type="hidden" name="tab" value={tab} />
-          {/* Jedan kalendar + "okidači" (5.9.2026, vlasnikov zahtev: "izvestaji treba da imaju
-              datume za filtriranje po sledecim kriterijumima... Kreirano od...do, Dolasci
-              od...do, Odlasci od...do... Mozete staviti jedan kalendar a ovo gore kao okidace
-              sta treba da se filtrura, da ustedimo prostor") — VAŽI ZA SVE TABOVE ("isto tako i
-              ostali izvestaji"), zamenjuje raniji jedini par od/do (koji je filtrirao preklapanje
-              sa terminom boravka — i dalje podrazumevano ponašanje na API strani ako `dateField`
-              izostane, ovde se uvek šalje eksplicitno). Isti hidden-input obrazac kao
-              `groupBy`/`view` na drugim mestima — dugmad su `<Link>` koji menjaju SAMO
-              `dateField`, dok su `from`/`to` obična polja forme (podnose se klikom na
-              "primeni filter"). */}
-          <input type="hidden" name="dateField" value={currentDateField} />
-          {/* Bez ovog hidden polja bi klik na "primeni filter" (posle kucanja novog od/do)
-              submit-ovao formu BEZ `segment` (dugmad ispod su `<Link>`, ne pravi form field) —
-              tiho brisao aktivan B2B/B2C/Subagenti filter i pored toga što ostaje vizuelno
-              "aktivan" do sledećeg osvežavanja stranice. */}
-          <input type="hidden" name="segment" value={searchParams?.segment ?? ''} />
-          <Field label="period">
-            <PeriodRangeField initialFrom={searchParams?.from ?? ''} initialTo={searchParams?.to ?? ''} />
-          </Field>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] text-ink-faint">odnosi se na</span>
-            <div className="flex overflow-hidden rounded border border-border text-[11px]">
-              {DATE_FIELD_OPTIONS.map((f, i) => (
-                <Link
-                  key={f}
-                  href={dateFieldHref(f)}
-                  className={`px-2 py-1.5 font-medium ${i > 0 ? 'border-l border-border' : ''} ${
-                    currentDateField === f ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'
-                  }`}
-                >
+          {/* Jedan red, sva polja istog izgleda — ivica + naziv UNUTAR polja, ravnomerna širina
+              (5.9.2026, vlasnikov nalaz uz snimak ekrana: "razlikuju se polja... nazive polja
+              stavite unutar polja ne iznad ili ispod... nema razloga da 'odnosi se na' i
+              'segment' budu drugaciji vizuelno od ostalih polja... ravnomerno rasporedite sirinu
+              svih drugih polja prema velicini ekrana"). `FieldInline` (ivica+naziv), `flex-1
+              min-w-[140px]` po polju — raspoređuju se ravnomerno preko širine ekrana, prelamaju
+              u novi red kad ponestane prostora (isti flex-wrap obrazac kao `RealFilterBar.tsx`).
+              `dateField`/`segment` su sad PRAVI `<select>` (ne `<Link>` dugmad) — nema više
+              potrebe za skrivenim poljima da prežive "primeni filter", ista forma ih nosi kao i
+              svako drugo polje. */}
+          <PeriodRangeField initialFrom={searchParams?.from ?? ''} initialTo={searchParams?.to ?? ''} />
+          <FieldInline label="odnosi se na">
+            <select
+              name="dateField"
+              defaultValue={currentDateField}
+              className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+            >
+              {DATE_FIELD_OPTIONS.map((f) => (
+                <option key={f} value={f}>
                   {DATE_FIELD_LABELS[f]}
-                </Link>
+                </option>
               ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] text-ink-faint">segment</span>
-            <div className="flex overflow-hidden rounded border border-border text-[11px]">
-              <Link
-                href={segmentHref(null)}
-                className={`px-2 py-1.5 font-medium ${!searchParams?.segment ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
-              >
-                svi
-              </Link>
+            </select>
+          </FieldInline>
+          <FieldInline label="segment">
+            <select
+              name="segment"
+              defaultValue={searchParams?.segment ?? ''}
+              className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+            >
+              <option value="">svi</option>
               {SEGMENT_OPTIONS.map((s) => (
-                <Link
-                  key={s}
-                  href={segmentHref(s)}
-                  className={`border-l border-border px-2 py-1.5 font-medium ${
-                    searchParams?.segment === s ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'
-                  }`}
-                >
+                <option key={s} value={s}>
                   {SEGMENT_LABELS[s]}
-                </Link>
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
+          </FieldInline>
           {(tab === 'profitabilnost' || tab === 'smestaj') && (
             <>
-              <Field label="država">
-                <input name="destinationCountry" defaultValue={searchParams?.destinationCountry ?? ''} className="input w-32" />
-              </Field>
-              <Field label="destinacija">
-                <input name="destinationCity" defaultValue={searchParams?.destinationCity ?? ''} className="input w-32" />
-              </Field>
-              <Field label="dobavljač (ID)">
-                <input name="supplierId" defaultValue={searchParams?.supplierId ?? ''} className="input w-32" />
-              </Field>
+              <FilterLocationFields
+                initialCountry={searchParams?.destinationCountry ?? ''}
+                initialCity={searchParams?.destinationCity ?? ''}
+              />
+              <FieldInline label="dobavljač (ID)">
+                <input
+                  name="supplierId"
+                  defaultValue={searchParams?.supplierId ?? ''}
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
+                />
+              </FieldInline>
             </>
           )}
           {tab === 'profitabilnost' && (
             <>
-              <Field label="provajder (M4)">
-                <input name="providerCode" defaultValue={searchParams?.providerCode ?? ''} className="input w-28" />
-              </Field>
-              <Field label="kanal">
-                <input name="channel" defaultValue={searchParams?.channel ?? ''} className="input w-28" />
-              </Field>
+              <FieldInline label="provajder (M4)">
+                <input
+                  name="providerCode"
+                  defaultValue={searchParams?.providerCode ?? ''}
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
+                />
+              </FieldInline>
+              <FieldInline label="kanal">
+                <select
+                  name="channel"
+                  defaultValue={searchParams?.channel ?? ''}
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+                >
+                  <option value="">svi</option>
+                  {CHANNEL_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </FieldInline>
             </>
           )}
           {tab === 'prodaja' && (
             <>
-              <Field label="kanal">
-                <input name="channel" defaultValue={searchParams?.channel ?? ''} className="input w-28" />
-              </Field>
-              <Field label="tip proizvoda">
-                <input name="productType" defaultValue={searchParams?.productType ?? ''} className="input w-28" />
-              </Field>
+              <FieldInline label="kanal">
+                <select
+                  name="channel"
+                  defaultValue={searchParams?.channel ?? ''}
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+                >
+                  <option value="">svi</option>
+                  {CHANNEL_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </FieldInline>
+              <FieldInline label="tip proizvoda">
+                <select
+                  name="productType"
+                  defaultValue={searchParams?.productType ?? ''}
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+                >
+                  <option value="">svi</option>
+                  {PRODUCT_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </FieldInline>
             </>
           )}
           {tab === 'smestaj' && (
-            <Field label="razvrstaj po">
-              <select name="groupBy" defaultValue={searchParams?.groupBy ?? ''} className="input">
-                <option value="">(bez razvrstavanja)</option>
+            <FieldInline label="razvrstaj po">
+              <select
+                name="groupBy"
+                defaultValue={searchParams?.groupBy ?? ''}
+                className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
+              >
+                <option value="">bez razvrstavanja</option>
                 {OCCUPANCY_GROUP_BY.map((g) => (
                   <option key={g} value={g}>
                     {g}
                   </option>
                 ))}
               </select>
-            </Field>
+            </FieldInline>
           )}
           {tab === 'dinamicki' && (
             <>
@@ -610,8 +638,9 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                   koju ikonu ukljucimo za to treba da se kreira dinamicki izvestaj i sve treba da
                   ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — iste ikonice kao
                   ekran pretrage (`PRODUCT_ICONS`), klik UVEK postavlja isti trodelni niz
-                  (država → mesto → proizvod) filtriran na tu vrstu. */}
-              <div className="flex flex-col gap-0.5">
+                  (država → mesto → proizvod) filtriran na tu vrstu. `w-full` — sopstven red,
+                  van ravnomerne mreže polja iznad/ispod (širok skup ikonica, ne "polje"). */}
+              <div className="flex w-full flex-col gap-0.5">
                 <span className="text-[11px] text-ink-faint">po vrsti proizvoda (država → mesto → proizvod)</span>
                 <div className="flex flex-wrap gap-1">
                   {DYNAMIC_PRODUCT_ICONS.map((p) => {
@@ -636,24 +665,34 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               {/* Kanal/Dobavljač premešteni IZNAD tabele/grafika, uz desnu ivicu (5.9.2026,
                   vlasnikov zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne
                   gornje ivice tabele") — vidi render tela izveštaja ispod, van ove forme. */}
-              {/* Nalaz uz ovaj isti prolaz (isti razlog kao hidden `segment` iznad) — `productType`
-                  se postavlja SAMO preko ikonica (`<Link>`), bez ovog hidden polja bi klik na
-                  "primeni filter" (posle izmene ručnog polja za dimenzije ili datuma) tiho
-                  obrisao izabranu vrstu proizvoda. */}
+              {/* Nalaz uz ovaj isti prolaz (isti razlog kao ranije "segment" hidden polje) —
+                  `productType` se postavlja SAMO preko ikonica (`<Link>`), bez ovog hidden polja
+                  bi klik na "primeni filter" (posle izmene ručnog polja za dimenzije ili datuma)
+                  tiho obrisao izabranu vrstu proizvoda. */}
               <input type="hidden" name="productType" value={searchParams?.productType ?? ''} />
-              <Field label="dimenzije (ručno, redosled zarezom)">
+              <FieldInline label="dimenzije">
                 <input
                   name="groupBy"
                   defaultValue={currentDims}
                   placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                  className="input w-72"
+                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
                 />
-              </Field>
+              </FieldInline>
             </>
           )}
-          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
-            primeni filter
-          </Button>
+          {/* Dugme akcije — zatvorena strelica umesto teksta (5.9.2026, vlasnikov zahtev: "sva
+              dugmad koja pozivaju na akciju (narandzasta) umesto slova treba da imaju zatvorenu
+              strelicu sa vrhom prema desno... skratite to dugme na cetvrtasti tag sa strelicom
+              unutra") — isti obrazac primenjen na sve slične "filtriraj/pretraži/primeni" tastere
+              u panelu (vidi dizajn dok. §izmena istog dana), `title` nosi tekstualno objašnjenje
+              za hover/čitač ekrana pošto slovo nestaje iz samog dugmeta. */}
+          <button
+            type="submit"
+            title="Primeni filter"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+          >
+            <Icon name="arrow-right" />
+          </button>
         </form>
       )}
 
@@ -1034,15 +1073,6 @@ function LastSynced({ value }: { value: string | null }) {
     <p className="text-[11px] text-ink-faint">
       <Icon name="history" /> poslednje ažurirano: {value ? new Date(value).toLocaleString('sr-RS') : 'nikad (projekcija prazna)'}
     </p>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="text-[11px] text-ink-faint">
-      {label}
-      <div className="mt-1">{children}</div>
-    </label>
   );
 }
 

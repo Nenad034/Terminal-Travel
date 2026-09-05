@@ -118,8 +118,12 @@ export default function FiltersModal({
           <button onClick={clearAll} className="text-xs text-ink-faint hover:text-danger">
             Ukloni sve filtere
           </button>
-          <button onClick={onClose} className="rounded bg-brand px-3 py-1.5 text-xs font-semibold text-brand-ink hover:brightness-90">
-            Primeni
+          <button
+            onClick={onClose}
+            title="Primeni"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+          >
+            <Icon name="arrow-right" />
           </button>
         </div>
       </div>

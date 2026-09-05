@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
+import Icon from '@/components/Icon';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import ClearableTextField from '@/components/ClearableTextField';
 import ClearableDateRange from '@/components/ClearableDateRange';
@@ -124,8 +125,12 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
       </div>
 
       <div className="flex items-center gap-2">
-        <button type="submit" className="rounded bg-brand px-3 py-1.5 font-medium text-brand-ink hover:brightness-90">
-          filtriraj
+        <button
+          type="submit"
+          title="Filtriraj"
+          className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+        >
+          <Icon name="arrow-right" />
         </button>
         {hasAnyFilter && (
           <Link href="/rezervacije/lista" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">

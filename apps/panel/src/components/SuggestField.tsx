@@ -36,6 +36,7 @@ export default function SuggestField({
   required,
   disabled,
   disabledHint,
+  inputClassName,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -47,6 +48,11 @@ export default function SuggestField({
   disabled?: boolean;
   /** Objašnjenje zašto je polje zaključano — bolje od nemog sivog polja. */
   disabledHint?: string;
+  /** Override za izgled input polja (5.9.2026, dopuna) — podrazumevano `input w-full` (sopstvena
+   * ivica/pozadina), ali kad se polje ugnežđuje u tuđ omotač koji već crta ivicu (npr.
+   * `izvestaji` filter red — jedan zajednički okvir sa nazivom polja unutra), treba providan
+   * unos bez druge ivice preko prve. */
+  inputClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Suggestion[]>([]);
@@ -127,7 +133,7 @@ export default function SuggestField({
         disabled={disabled}
         required={required}
         autoComplete="off"
-        className="input w-full disabled:cursor-not-allowed disabled:opacity-60"
+        className={`disabled:cursor-not-allowed disabled:opacity-60 ${inputClassName ?? 'input w-full'}`}
       />
       {open && !disabled && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-panel p-1 shadow-lg">
