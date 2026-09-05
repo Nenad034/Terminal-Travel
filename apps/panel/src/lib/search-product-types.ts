@@ -60,8 +60,11 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     emptyMessage: 'Grupni paketi još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   {
+    // `codicon-flag` NE POSTOJI u stvarnom @vscode/codicons setu (izmišljeno 5.9.2026, ispravljeno
+    // istog dana kad je vlasnik prijavio da se ikonica ne prikazuje) — `person` predstavlja
+    // stručnog vodiča koji putovanje razlikuje od običnog "Grupnog paketa".
     label: 'Putovanja',
-    icon: 'flag',
+    icon: 'person',
     types: ['PACKAGE'],
     hasExpertGuide: true,
     emptyMessage: 'Putovanja sa vodičem još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
