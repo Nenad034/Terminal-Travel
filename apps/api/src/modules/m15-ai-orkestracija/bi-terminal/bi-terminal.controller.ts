@@ -5,7 +5,7 @@ import { BiTerminalService } from './bi-terminal.service';
 import { BiTerminalQueryDto } from './dto/bi-terminal-query.dto';
 import { SendReportChatDto } from './dto/send-report-chat.dto';
 import { WebFetchDecisionDto } from './dto/web-fetch-decision.dto';
-import { getReport } from './report-store';
+import { getReport } from '../../../common/reports/report-store';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
