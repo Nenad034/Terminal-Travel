@@ -202,7 +202,7 @@ export default function SearchSidebarPanel() {
           router.push(`/rezervacije/pretraga?${next.toString()}`);
         }}
       >
-        <SidebarSection title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName={FILTER_SECTIONS_CLASS}>
+        <SidebarSection title="Filteri" icon="filter" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName={FILTER_SECTIONS_CLASS}>
           {/* Bez dugmeta koje se mora pritisnuti, korisniku treba mesto na kom vidi ŠTA je sve
               uključeno i način da to skine jednim potezom — inače aktivan filter iz prethodne
               pretrage tiho sužava sledeću. */}

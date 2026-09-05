@@ -173,7 +173,7 @@ export default function KatalogSidebarPanel() {
 
   return (
     <div className="flex flex-col overflow-y-auto px-2 pb-3 text-xs">
-    <SidebarSection title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName="flex flex-col gap-3">
+    <SidebarSection title="Filteri" icon="filter" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName="flex flex-col gap-3">
       {activeChips.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded border border-accent bg-accent-soft p-1.5 text-[11px] text-accent-strong">
           <div className="flex flex-wrap gap-1">

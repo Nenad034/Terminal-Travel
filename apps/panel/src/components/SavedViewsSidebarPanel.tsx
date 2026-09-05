@@ -104,21 +104,24 @@ export default function SavedViewsSidebarPanel({
   if (views === null) return null;
 
   return (
-    <div className="mx-2 mt-3 border-t border-border pt-3 text-xs">
+    <div className="mx-2 mt-1.5 text-xs">
       <SidebarSection
         title={`Sačuvani prikazi${maxItems ? ` (${views.length}/${maxItems})` : ''}`}
+        icon="bookmark"
         open={open}
         onToggle={() => setOpen((v) => !v)}
       >
       {views.length === 0 ? (
         <p className="px-1 text-[11px] text-ink-faint">{emptyHint}</p>
       ) : (
-        <ul className="flex flex-col gap-0.5">
+        <ul className="flex flex-col gap-1">
           {views.map((v) => (
-            <li key={v.id} className="group flex items-center gap-1 rounded px-2 py-1.5 hover:bg-panel">
-              <Link href={`${baseHref}${toQueryString(v.filters)}`} className="flex flex-1 items-center gap-2 truncate text-xs text-ink-dim hover:text-ink">
-                <Icon name="bookmark" />
-                <span className="truncate">{v.name}</span>
+            <li key={v.id} className="group flex items-center gap-2 rounded-lg border border-border bg-panel p-2 hover:border-accent">
+              <Link href={`${baseHref}${toQueryString(v.filters)}`} className="flex flex-1 items-center gap-2 truncate">
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-panel2 text-ink-dim">
+                  <Icon name="bookmark" />
+                </span>
+                <span className="truncate text-xs font-medium text-ink">{v.name}</span>
               </Link>
               <button
                 onClick={() => remove(v.id)}

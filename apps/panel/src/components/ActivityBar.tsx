@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Icon from './Icon';
+import Icon, { IconDuo } from './Icon';
 import { NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/nav';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice premeštene iz gornje (horizontalne)
@@ -84,7 +84,10 @@ export default function ActivityBar({
           onClick={onToggleCollapse}
           className="mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
         >
-          <Icon name="chevron-right" />
+          {/* Dupla strelica (5.9.2026, vlasnikov zahtev: "stavite dve strelice kada širimo levi
+              panel") — par sa `IconDuo` skupljanja u `Sidebar.tsx` (v1.71): jedna strelica je
+              "nazad jedan nivo", dve strelice su uvek "cela traka", u oba smera dosledno. */}
+          <IconDuo name="chevron-right" />
         </button>
       )}
       {groups.map((group, idx) => {
@@ -105,8 +108,13 @@ export default function ActivityBar({
         // takav anchor "proguta" ili da klik na njega proglasi klikom na dugme, pa bi stavke
         // menija nepredvidivo prestale da navigiraju. `group`/`relative` i `mt-auto` zato stoje
         // na omotaču; sama ikonica zadržava samo svoj izgled.
-        const className = `flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${
-          active ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+        // Kvadratna "oznaka" oko SVAKE ikonice, ne samo aktivne (5.9.2026, vlasnikov zahtev:
+        // "sve ikone stavite u četvrtaste tagove sa vrlo blago zaobljenim ivicama") — isti jezik
+        // kao značka ikonice u `HomeSidebarPanel.tsx` `QuickLinkCard`/`SummaryCard` (`rounded-md`,
+        // blaga zaobljenost, ne `rounded-full`/pilula). Veličina bedža (36px) namerno manja od
+        // dugmeta (43px) da ostavi vidljivu marginu, isti odnos kao `h-7 w-7` bedž u `p-2` kartici.
+        const className = `flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
+          active ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`;
         const wrapperClassName = `group relative flex-shrink-0 ${isLast ? 'mt-auto' : ''}`;
         // Dok podmeni radi, izostavlja se `title` — inače bi se preko stilizovanog menija

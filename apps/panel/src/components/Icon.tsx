@@ -7,9 +7,13 @@ export default function Icon({ name, className = '' }: { name: string; className
   // linijskom visinom uparen sa `.codicon` (16px/1, §3a) da stoji ravnopravno pored ostalih
   // ikonica u istom redu (ActivityBar/gornja traka).
   if (name === 'euro') {
+    // Uvećano (5.9.2026, vlasnikov nalaz: "nije srazmerna veličini ostalih ikona") — 15px/w-4
+    // je vizuelno ispalo manje od codicon glifova na istoj visini reda; 20px/w-5 vraća isti
+    // vizuelni "otisak" kao susedne 16px codicon ikonice (znak € ima manje crne mase po pikselu
+    // od punih Codicon glifova, pa mu treba veći font da deluje isto veliko).
     return (
       <span
-        className={`inline-block w-4 text-center font-sans text-[15px] font-semibold leading-4 ${className}`}
+        className={`inline-block w-5 text-center font-sans text-[20px] font-semibold leading-5 ${className}`}
         aria-hidden="true"
       >
         €
