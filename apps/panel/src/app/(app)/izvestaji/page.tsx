@@ -7,7 +7,7 @@ import { PRODUCT_ICONS } from '@/lib/search-product-types';
 import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import DateField from '@/components/DateField';
+import PeriodRangeField from './PeriodRangeField';
 import BarChart, { type ChartSeries } from './BarChart';
 import ShareReportButton from './ShareReportButton';
 import DynamicTree, { type DynamicNode } from './DynamicTree';
@@ -518,11 +518,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               tiho brisao aktivan B2B/B2C/Subagenti filter i pored toga što ostaje vizuelno
               "aktivan" do sledećeg osvežavanja stranice. */}
           <input type="hidden" name="segment" value={searchParams?.segment ?? ''} />
-          <Field label="od (datum)">
-            <DateField name="from" defaultValue={searchParams?.from ?? ''} />
-          </Field>
-          <Field label="do (datum)">
-            <DateField name="to" defaultValue={searchParams?.to ?? ''} />
+          <Field label="period">
+            <PeriodRangeField initialFrom={searchParams?.from ?? ''} initialTo={searchParams?.to ?? ''} />
           </Field>
           <div className="flex flex-col gap-0.5">
             <span className="text-[11px] text-ink-faint">odnosi se na</span>
