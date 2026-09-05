@@ -70,13 +70,7 @@ export default async function RevizijePage(props: { params: Promise<{ id: string
         <Icon name="arrow-left" /> nazad na članak
       </Link>
 
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> znanje/clanci/{params.id.slice(0, 8)}/revizije
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">
-        Nacrti (početna izrada, 30-dnevno osvežavanje ili istraživanje pokrenuto iz neodgovorenog pitanja, §2.4). Odobrenje upisuje predloženi sadržaj kao
-        stvaran prevod i pomera rok sledećeg osvežavanja; odbijanje ne menja objavljen sadržaj.
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">{`Revizije — ${article.translation?.title ?? params.id.slice(0, 8)}`}</h1>
 
       <ArticleTabs id={params.id} active="revizije" />
 

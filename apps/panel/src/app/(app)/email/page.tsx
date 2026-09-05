@@ -66,10 +66,7 @@ export default async function EmailInboxPage(
       <RegisterTab label="Email/Inbox" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls email/inbox/
-          </h1>
-          <p className="text-xs text-ink-dim">Centralizovan email klijent — M22. Vidljivo samo sandučadima na koje imate MailboxAccess.</p>
+          <h1 className="text-lg font-semibold text-ink">Email/Inbox</h1>
         </div>
         {canManageMailboxes && (
           <Button asChild variant="secondary" size="sm">

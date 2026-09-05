@@ -92,13 +92,7 @@ export default async function IntegracijePage() {
     <div className="p-6">
       <RegisterTab label="API konekcije" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls integracije/
-        </h1>
-        <p className="text-xs text-ink-dim">
-          Sve žive konekcije ka spoljnim dobavljačima (M4 spec §6/§7) — konfiguracioni status i poslednji health-check nalaz
-          (M18 spec §2.3, računa se na 15 minuta).
-        </p>
+        <h1 className="text-lg font-semibold text-ink">API konekcije</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

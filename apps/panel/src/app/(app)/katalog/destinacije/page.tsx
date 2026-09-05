@@ -17,13 +17,7 @@ export default async function DestinationProfilesPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Profili destinacija" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> ls katalog/destinacije/
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">
-        Tip destinacije (primorska/planinska/…) i podržane aktivnosti, tagovano po mestu — ulaz za M5 kontekstualne filtere i pretragu po
-        aktivnosti (M2 spec §2.1c).
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">Profili destinacija</h1>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {!error && <DestinationProfilesEditor initial={profiles} />}

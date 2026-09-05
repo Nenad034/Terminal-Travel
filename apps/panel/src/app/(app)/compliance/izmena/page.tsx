@@ -27,9 +27,7 @@ export default async function UpdateGuaranteePage() {
   return (
     <div className="p-6">
       <RegisterTab label="Izmena garancije" />
-      <h1 className="mb-4 font-mono text-lg">
-        <span className="text-accent">$</span> {guarantee ? 'izmeni_garanciju' : 'unesi_garanciju'}
-      </h1>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Izmena garancije</h1>
       <UpdateGuaranteeForm guarantee={guarantee} />
     </div>
   );

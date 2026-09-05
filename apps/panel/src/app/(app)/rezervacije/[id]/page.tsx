@@ -479,9 +479,7 @@ export default async function BookingDetailPage(props: {
       {booking && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="font-mono text-lg">
-              <span className="text-accent">$</span> {booking.bookingNumber}
-            </h1>
+            <h1 className="text-lg font-semibold text-ink">{booking.bookingNumber}</h1>
             <div className="flex items-center gap-2">
               <BookingHistoryButton bookingId={booking.id} />
               <Badge label={booking.status} />

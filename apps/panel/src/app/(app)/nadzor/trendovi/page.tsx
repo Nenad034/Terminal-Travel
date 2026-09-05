@@ -37,10 +37,7 @@ export default async function NadzorTrendoviPage() {
     <div className="p-6">
       <RegisterTab label="Nadzor — trendovi" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> nadzor/trendovi/
-        </h1>
-        <p className="text-xs text-ink-dim">Predlozi agenta za praćenje trendova (M18 spec §5) — čeka ljudsko odobrenje pre ulaska u Dodatak A Master dokumenta.</p>
+        <h1 className="text-lg font-semibold text-ink">Nadzor — trendovi</h1>
       </div>
 
       <NadzorSubnav active="/nadzor/trendovi" />

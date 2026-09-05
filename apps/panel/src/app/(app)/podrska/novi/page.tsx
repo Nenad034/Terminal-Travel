@@ -9,10 +9,7 @@ export default async function NoviTicketPage(props: { searchParams: Promise<{ bo
   return (
     <div className="p-6">
       <RegisterTab label="Novi tiket" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> podrska/tiketi/novi
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">Unos tiketa u ime gosta/subagenta koji je zvao telefonom (M14 spec §2.1).</p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">Novi tiket</h1>
       <NewTicketForm defaultBookingId={searchParams.bookingId ?? ''} />
     </div>
   );

@@ -27,9 +27,7 @@ export default async function NoviKorisnikPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Pozovi korisnika" />
-      <h1 className="mb-4 font-mono text-lg">
-        <span className="text-accent">$</span> korisnici/novi
-      </h1>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Pozovi korisnika</h1>
       <NewUserForm roles={roles} />
     </div>
   );

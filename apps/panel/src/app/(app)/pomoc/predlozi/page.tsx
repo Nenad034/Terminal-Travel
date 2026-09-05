@@ -35,12 +35,7 @@ export default async function PredloziPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Predlozi članaka" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> ls pomoc/predlozi/
-      </h1>
-      <p className="mb-2 text-xs text-ink-dim">
-        AI nacrti nastali iz ponovljenih pitanja bez dobrog odgovora (§5.4) — odobravanje kreira nacrt članka koji i dalje čeka sopstveno objavljivanje.
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">Predlozi članaka</h1>
 
       <HelpTabs active="predlozi" showSuggestions={canReview} showQuestions={showQuestions} />
 

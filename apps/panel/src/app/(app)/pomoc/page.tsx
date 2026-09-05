@@ -67,10 +67,7 @@ export default async function PomocPage(
       <RegisterTab label="Centar za pomoć" />
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls pomoc/clanci/
-          </h1>
-          <p className="text-xs text-ink-dim">Baza znanja za korišćenje platforme (uputstvo za rad, ne uputstvo za putovanje) — M21.</p>
+          <h1 className="text-lg font-semibold text-ink">Centar za pomoć</h1>
         </div>
         {canCreate && (
           <Button asChild size="sm">

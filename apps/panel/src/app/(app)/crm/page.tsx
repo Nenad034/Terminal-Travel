@@ -48,10 +48,7 @@ export default async function CrmPage(props: { searchParams: Promise<{ email?: s
       <RegisterTab label="Gosti i nalogodavci (CRM)" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls crm/nalogodavci/
-          </h1>
-          <p className="text-xs text-ink-dim">Profili nalogodavaca (ko plaća), istorija putovanja, lojalnost, komunikacija — M6.</p>
+          <h1 className="text-lg font-semibold text-ink">Gosti i nalogodavci (CRM)</h1>
         </div>
         <div className="flex gap-2">
           {canViewSurveys && (

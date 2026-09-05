@@ -11,6 +11,11 @@ export interface StoredReport {
   fileName: string;
   createdBy: string;
   createdAt: number;
+  // M13 spec §7 (v1.5 dopuna) — opciono, samo M13 ga postavlja. Omogućava da se dozvola za
+  // preuzimanje/slanje u chat proveri PROGRAMSKI po sadržaju zapisa (koji M13 izveštaj je ovo
+  // bio), pošto ruta sama ne nosi statičnu @RequirePermission (poglavlje 7 spec-a). BI Terminal
+  // (M15) ga ne postavlja — ponašanje mu ostaje identično pre premeštanja ovog fajla.
+  reportKind?: string;
 }
 
 const TTL_MS = 30 * 60 * 1000;

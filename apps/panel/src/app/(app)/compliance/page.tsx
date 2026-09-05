@@ -82,10 +82,7 @@ export default async function CompliancePage(props: { searchParams: Promise<{ st
       <RegisterTab label="Compliance" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls compliance/
-          </h1>
-          <p className="text-xs text-ink-dim">Garancija putovanja (YUTA) — status, iskorišćenost, CIS registracije po rezervaciji.</p>
+          <h1 className="text-lg font-semibold text-ink">Compliance</h1>
         </div>
         {canEdit && (
           <Button asChild size="sm">

@@ -43,13 +43,7 @@ export default async function SupplierNoticesPage() {
     <div className="p-6">
       <RegisterTab label="Najave dobavljačima" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> rezervacije/najave
-        </h1>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-faint">
-          <Icon name="info" /> Operativne liste (ko dolazi hotelu) i najave izmene/storna. Priprema može biti automatska; slanje i
-          potvrda dobavljača su uvek ljudski klik (M5 §8.4/§8.6).
-        </p>
+        <h1 className="text-lg font-semibold text-ink">Najave dobavljačima</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

@@ -65,9 +65,7 @@ export default async function TicketDetailPage(props: { params: Promise<{ id: st
       </Link>
 
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> podrska/tiketi/{ticket.ticketNumber}
-        </h1>
+        <h1 className="text-lg font-semibold text-ink">{ticket.ticketNumber}</h1>
         <p className="mt-1 text-sm text-ink">{ticket.subject}</p>
         <p className="text-xs text-ink-faint">
           {ticket.category} · {ticket.channel} · otvoren {new Date(ticket.createdAt).toLocaleString('sr-RS')}

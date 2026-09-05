@@ -8,10 +8,7 @@ export default function NoviSadrzajPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Nov sadržaj" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> marketing/sadrzaj/nov
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">Ručno kreiranje — prevod (naslov/tekst) se dodaje na sledećoj stranici (M12 spec §2.2).</p>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Nov sadržaj</h1>
       <NewContentForm />
     </div>
   );

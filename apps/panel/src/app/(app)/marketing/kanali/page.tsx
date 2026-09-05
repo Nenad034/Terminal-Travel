@@ -32,10 +32,7 @@ export default async function KanaliPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Marketing kanali" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> marketing/kanali/
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">Distribucioni kanali (M12 spec §4) — Facebook/Instagram/email adapteri, M8_SITE i MOBILE_PUSH ne zahtevaju konfiguraciju.</p>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Marketing kanali</h1>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

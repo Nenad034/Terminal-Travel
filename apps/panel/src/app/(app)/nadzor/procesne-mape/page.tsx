@@ -28,10 +28,7 @@ export default async function ProcessMapsPage() {
     <div className="p-6">
       <RegisterTab label="Procesne mape" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls nadzor/procesne-mape/
-        </h1>
-        <p className="text-xs text-ink-dim">Živa slika kako se šta izvršava u modulu, građena nad postojećim audit logom (M18 spec §9a).</p>
+        <h1 className="text-lg font-semibold text-ink">Procesne mape</h1>
       </div>
 
       <NadzorSubnav active="/nadzor/procesne-mape" />

@@ -32,9 +32,7 @@ export default async function QuoteDetailPage(props: { params: Promise<{ id: str
   return (
     <div className="p-6">
       <RegisterTab label={`Ponuda ${params.id.slice(0, 8)}`} />
-      <h1 className="mb-4 font-mono text-lg">
-        <span className="text-accent">$</span> ponuda/{params.id.slice(0, 8)}
-      </h1>
+      <h1 className="mb-4 text-lg font-semibold text-ink">{`Ponuda ${params.id.slice(0, 8)}`}</h1>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 

@@ -93,9 +93,7 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
 
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> {user.fullName}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{user.fullName}</h1>
           <p className="text-xs text-ink-dim">{user.email}</p>
         </div>
         <div className="flex items-center gap-2">

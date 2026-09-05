@@ -115,13 +115,7 @@ export default async function SupplierChatPage() {
       </Link>
 
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls chat/dobavljaci/
-        </h1>
-        <p className="text-xs text-ink-dim">
-          M19 spec §9 — real-time chat sa kontakt-osobom dobavljača. Vidljivo samo razgovorima za koje imate dodeljen pristup
-          (<code className="rounded bg-panel2 px-1">SupplierConversationAccess</code>), čak i uz opštu dozvolu.
-        </p>
+        <h1 className="text-lg font-semibold text-ink">Razgovori sa dobavljačima</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

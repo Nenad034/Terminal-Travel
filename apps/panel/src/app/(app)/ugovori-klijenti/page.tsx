@@ -37,10 +37,7 @@ export default async function ClientContractsPage(props: { searchParams: Promise
     <div className="p-6">
       <RegisterTab label="Ugovori sa klijentima" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls ugovori-klijenti/
-        </h1>
-        <p className="text-xs text-ink-dim">Ugovor o organizovanju putovanja/posredovanju — generiše se automatski iz potvrđene rezervacije (M20 §3.1).</p>
+        <h1 className="text-lg font-semibold text-ink">Ugovori sa klijentima</h1>
       </div>
 
       {!error && (

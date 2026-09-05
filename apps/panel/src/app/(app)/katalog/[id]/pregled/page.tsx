@@ -49,17 +49,11 @@ export default async function ProductGalleryPage(props: { params: Promise<{ id: 
     <div className="p-6">
       <RegisterTab label={name} />
       <div className="mb-4 flex items-center gap-2">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> {name}
-        </h1>
+        <h1 className="text-lg font-semibold text-ink">{name}</h1>
         {attrs.stars !== undefined && (
           <span className="rounded bg-panel2 px-1.5 py-0.5 text-[11px] font-semibold text-warn">{attrs.stars}*</span>
         )}
       </div>
-      <p className="mb-4 text-xs text-ink-faint">
-        {product.destinationCountry}, {product.destinationCity} · {attrs.accommodation_type ?? product.type}
-        {attrs.board_type ? ` · ${attrs.board_type}` : ''}
-      </p>
 
       {media.length > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">

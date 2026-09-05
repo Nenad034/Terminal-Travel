@@ -110,8 +110,8 @@ export default async function SubagentDetailPage(props: { params: Promise<{ id: 
       {subagent && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="font-mono text-lg">
-              <span className="text-accent">$</span> {account?.companyName ?? account?.fullName ?? subagent.clientAccountId.slice(0, 8)}
+            <h1 className="text-lg font-semibold text-ink">
+              {account?.companyName ?? account?.fullName ?? subagent.clientAccountId.slice(0, 8)}
             </h1>
             <StatusBadge status={subagent.status} />
           </div>

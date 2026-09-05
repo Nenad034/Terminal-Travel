@@ -44,8 +44,7 @@ export default function BookingOverviewHero({
     <div className="mb-5 rounded-lg border border-border bg-sunken p-4">
       <div className="mb-3.5 flex flex-wrap items-start gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-1.5 font-mono text-base font-semibold text-ink">
-            <span className="text-accent">$</span>
+          <div className="flex items-center gap-1.5 text-base font-semibold text-ink">
             <span className="truncate">{bookingNumber}</span>
           </div>
           {/* Nosilac rezervacije je krupniji i podebljan — jedini deo zaglavlja koji nije ni

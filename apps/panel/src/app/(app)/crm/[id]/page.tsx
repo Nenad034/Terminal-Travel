@@ -107,8 +107,8 @@ export default async function ClientAccountDetailPage(props: { params: Promise<{
       {account && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="font-mono text-lg">
-              <span className="text-accent">$</span> {account.accountType === 'LEGAL_ENTITY' ? account.companyName : account.fullName}
+            <h1 className="text-lg font-semibold text-ink">
+              {account.accountType === 'LEGAL_ENTITY' ? account.companyName : account.fullName}
             </h1>
             <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">
               {account.accountType === 'LEGAL_ENTITY' ? 'PRAVNO LICE' : 'FIZIČKO LICE'}

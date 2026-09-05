@@ -49,9 +49,7 @@ export default function BookingRecordClient({ booking }: { booking: MockBookingR
           <span title={productIcon?.label} className="flex h-7 w-7 items-center justify-center rounded bg-panel2 text-accent">
             <Icon name={productIcon?.icon ?? 'question'} />
           </span>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> {b.bookingNumber}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{b.bookingNumber}</h1>
           <Badge label={b.status} />
           {b.urgent?.map((u, i) => (
             <span key={i} className="flex items-center gap-1 rounded bg-danger-bg px-2 py-0.5 text-[11px] font-medium text-danger">

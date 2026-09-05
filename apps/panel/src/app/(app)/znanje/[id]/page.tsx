@@ -64,9 +64,7 @@ export default async function ZnanjeDetailPage(props: { params: Promise<{ id: st
 
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> znanje/clanci/{article.id.slice(0, 8)}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{article.translation?.title ?? article.subjectType}</h1>
           <p className="flex flex-wrap items-center gap-1 text-xs text-ink-faint">
             {article.subjectType}
             {article.destinationCountry ? ` · ${article.destinationCountry}${article.destinationCity ? `, ${article.destinationCity}` : ''}` : ''}

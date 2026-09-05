@@ -49,10 +49,7 @@ export default async function PitanjaPage(
   return (
     <div className="p-6">
       <RegisterTab label="Pitanja AI asistentu" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> ls pomoc/pitanja/
-      </h1>
-      <p className="mb-2 text-xs text-ink-dim">Log svakog pitanja postavljenog AI asistentu (§2.3) — kvalitet sadržaja i bezbednosni pregled.</p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">Pitanja AI asistentu</h1>
 
       <HelpTabs active="pitanja" showSuggestions={showSuggestions} showQuestions />
 

@@ -63,9 +63,7 @@ export default async function HelpArticleDetailPage(props: { params: Promise<{ i
 
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> pomoc/clanci/{article.slug}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{article.slug}</h1>
           <p className="text-xs text-ink-faint">
             {article.audience.join(', ')} · {article.relatedModule ?? '(bez modula)'} · {article.generatedBy === 'AI' ? 'AI nacrt' : 'ručni unos'}
             {article.isCriticalExample && <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-[11px] text-accent-strong">kritičan primer</span>}

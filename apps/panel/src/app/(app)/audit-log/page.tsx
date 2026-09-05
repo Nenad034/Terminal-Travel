@@ -63,10 +63,7 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
         </Link>
       )}
 
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> tail -f audit.log
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">Append-only zapis svake izmene u sistemu.</p>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Audit log</h1>
 
       {hasFilter && (
         // Klik iz "Procesne mape" (M18 spec §9a) ili iz drugih dashboard upozorenja vodi

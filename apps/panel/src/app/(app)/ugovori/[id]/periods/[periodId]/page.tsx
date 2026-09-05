@@ -54,9 +54,7 @@ export default async function ContractPeriodDetailPage(props: { params: Promise<
   return (
     <div className="p-6">
       <RegisterTab label={`${period.roomType} — period`} />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> {period.roomType}
-      </h1>
+      <h1 className="mb-1 text-lg font-semibold text-ink">{`${period.roomType} — period`}</h1>
       <p className="mb-4 text-xs text-ink-faint">
         {new Date(period.stayFrom).toLocaleDateString('sr-RS')} – {new Date(period.stayTo).toLocaleDateString('sr-RS')} ·{' '}
         <Badge variant="secondary">{MODE_LABELS[period.allotmentMode]}</Badge>

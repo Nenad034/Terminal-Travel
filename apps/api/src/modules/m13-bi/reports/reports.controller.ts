@@ -1,9 +1,13 @@
-import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, Post, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { ReportsService, DYNAMIC_DIMENSIONS, DynamicDimension, OCCUPANCY_GROUP_BY, OccupancyGroupBy } from './reports.service';
+import { ExportReportDto } from './dto/export-report.dto';
+import { SendReportChatDto } from './dto/send-report-chat.dto';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 
 // M13 spec §7, prefiks /api/v1/bi
 @ApiTags('bi-reports')
@@ -82,5 +86,27 @@ export class ReportsController {
   @RequirePermission('M13', 'report:marketing', 'VIEW')
   marketing(@Query('from') from?: string, @Query('to') to?: string) {
     return this.reports.marketing({ from, to });
+  }
+
+  // §7 (v1.5 dopuna) — BEZ @RequirePermission na ove tri rute: dozvola zavisi od `reportKind` u
+  // TELU zahteva (export) ili u zapisu koji je export napravio (download/send-chat), ne može
+  // biti statična po ruti. PermissionsGuard i dalje propušta rutu bez @RequirePermission
+  // (`permissions.guard.ts`: "if (!required) return true") — JwtAuthGuard i dalje važi, stvarna
+  // provera je RUČNA unutar ReportsService (assertCanAccess).
+  @Post('export')
+  export(@Body() dto: ExportReportDto, @CurrentUser() actor: { userId: string }) {
+    return this.reports.exportReport(dto, actor.userId);
+  }
+
+  @Get('export/:id/download')
+  async downloadExport(@Param('id') id: string, @CurrentUser() actor: { userId: string }, @Res() res: Response) {
+    const report = await this.reports.downloadExport(id, actor.userId);
+    res.set({ 'Content-Type': report.mimeType, 'Content-Disposition': `attachment; filename="${report.fileName}"` });
+    res.send(report.buffer);
+  }
+
+  @Post('export/:id/send-chat')
+  sendExportToChat(@Param('id') id: string, @Body() dto: SendReportChatDto, @CurrentUser() actor: { userId: string }) {
+    return this.reports.sendExportToChat(id, dto.conversationId, actor.userId);
   }
 }

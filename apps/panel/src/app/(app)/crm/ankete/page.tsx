@@ -36,10 +36,7 @@ export default async function PostTripSurveysPage(props: { searchParams: Promise
     <div className="p-6">
       <RegisterTab label="Ankete posle putovanja" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls crm/ankete/
-        </h1>
-        <p className="text-xs text-ink-dim">Anketa se automatski šalje T+2 dana posle povratka; ocena ≥ praga nudi gostu link ka Google recenziji (M6 §4.3).</p>
+        <h1 className="text-lg font-semibold text-ink">Ankete posle putovanja</h1>
       </div>
 
       {!error && (
