@@ -103,7 +103,7 @@ export default async function EmailInboxPage(
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             filtriraj
           </Button>
           {(searchParams?.mailboxId || searchParams?.status || searchParams?.correspondentType) && (

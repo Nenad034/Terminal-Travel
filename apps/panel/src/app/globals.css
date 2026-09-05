@@ -180,6 +180,14 @@
      `bg-accent` (temom zavisna boja) na logotipu — logotip sad ostaje isti u sva tri moda, isti
      princip kao `--tab-line`. */
   --brand: #f97316;
+  /* Dugmad za pretragu/filtriranje ("pretraži"/"filtriraj"/"primeni filter") prelaze na istu
+     narandžastu (5.9.2026, vlasnikov zahtev: "sva dugmad koja pozivaju na akciju pretrazi ili
+     filtriraj neka budu u vec dogovorenoj narandzastoj boji loga") — isti `--brand` token kao
+     logotip/linije tabova. Tekst NA dugmetu ne sme ostati belo/svetlo (`--accent-ink` obrazac) —
+     belo na `#f97316` daje samo ~2.9:1 kontrast (WCAG zahteva 4.5:1 za običan tekst, 3:1 za
+     veliki/podebljan) — TAMAN tekst daje ~6:1, izmereno `tools/check-contrast.js` logikom ručno
+     (luminance formula), fiksno u sva tri moda iz istog razloga kao `--brand` iznad. */
+  --brand-ink: #1f1300;
 }
 
 @media (prefers-color-scheme: dark) {

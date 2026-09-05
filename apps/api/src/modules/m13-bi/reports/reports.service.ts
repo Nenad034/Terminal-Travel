@@ -16,7 +16,16 @@ type PeriodFilter = { from?: string; to?: string };
 export interface Bucket {
   key: string;
   count: number;
+  /** Bruto — cena koju plaća klijent (`FactBooking.finalPrice`, isti izvor kao dosad, samo
+   * preimenovan naziv polja u prikazu — M13 spec dopuna, 5.9.2026, vlasnikov zahtev: "tabela za
+   * profitabilnost i prodaju treba da imaju neto kolonu, bruto kolonu"). */
   revenue: number;
+  /** Neto — cena koju agencija plaća dobavljaču (`FactBooking.baseCost`) — DOSAD se nigde nije
+   * agregirao po grupi (samo `margin` = razlika), sad se izlaže odvojeno da se neto/bruto/marža
+   * mogu prikazati kao tri odvojene kolone, ne samo marža sama. */
+  baseCost: number;
+  /** Marža (iznos) — `revenue − baseCost`, identično `FactBooking.margin` sumirano po grupi,
+   * nepromenjeno od ranije. */
   margin: number;
 }
 
@@ -267,9 +276,10 @@ export class ReportsService {
     const map = new Map<string, Bucket>();
     for (const r of rows) {
       const key = keyFn(r);
-      const bucket = map.get(key) ?? { key, count: 0, revenue: 0, margin: 0 };
+      const bucket = map.get(key) ?? { key, count: 0, revenue: 0, baseCost: 0, margin: 0 };
       bucket.count += 1;
       bucket.revenue += r.finalPrice;
+      bucket.baseCost += r.baseCost;
       bucket.margin += r.margin;
       map.set(key, bucket);
     }
@@ -280,9 +290,10 @@ export class ReportsService {
     const map = new Map<string, Bucket & { nights: number }>();
     for (const r of rows) {
       const key = keyFn(r);
-      const bucket = map.get(key) ?? { key, count: 0, revenue: 0, margin: 0, nights: 0 };
+      const bucket = map.get(key) ?? { key, count: 0, revenue: 0, baseCost: 0, margin: 0, nights: 0 };
       bucket.count += 1;
       bucket.revenue += r.finalPrice;
+      bucket.baseCost += r.baseCost;
       bucket.margin += r.margin;
       bucket.nights += r.guestCount * r.nights;
       map.set(key, bucket);

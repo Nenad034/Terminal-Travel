@@ -78,7 +78,7 @@ export default async function PodrskaPage(props: { searchParams: Promise<{ statu
               </option>
             ))}
           </select>
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             filtriraj
           </Button>
           {(searchParams?.status || searchParams?.category) && (

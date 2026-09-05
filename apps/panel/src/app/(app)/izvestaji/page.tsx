@@ -14,7 +14,12 @@ import ShareReportButton from './ShareReportButton';
 interface Bucket {
   key: string;
   count: number;
+  /** Bruto — cena koju plaća klijent. */
   revenue: number;
+  /** Neto — cena koju agencija plaća dobavljaču (5.9.2026 dopuna, vlasnikov zahtev: "tabela za
+   * profitabilnost i prodaju treba da imaju neto kolonu, bruto kolonu"). */
+  baseCost: number;
+  /** Marža (iznos) — `revenue − baseCost`. */
   margin: number;
 }
 
@@ -233,6 +238,74 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     error = 'Izveštaj trenutno nije dostupan (nemate dozvolu ili je M13 projekcija prazna).';
   }
 
+  // "poslednje ažurirano" pored dugmadi tabela/grafik (5.9.2026, vlasnikov zahtev: "ovo
+  // premestite pored dugnadi za biranje tabele ili infografika") — JEDNA linija u gornjem
+  // zaglavlju umesto ponavljanja u svakom od pet blokova ispod (koji su time izgubili sopstveni
+  // red i "podigli se" za tačno tu visinu, isti zahtev: "za toliko podignite deo ispod").
+  const currentLastSyncedAt =
+    tab === 'profitabilnost'
+      ? (profitability?.lastSyncedAt ?? null)
+      : tab === 'prodaja'
+        ? (sales?.lastSyncedAt ?? null)
+        : tab === 'smestaj'
+          ? (occupancy?.lastSyncedAt ?? null)
+          : tab === 'dinamicki'
+            ? (dynamicReport?.lastSyncedAt ?? null)
+            : tab === 'marketing'
+              ? (marketing?.lastSyncedAt ?? null)
+              : null;
+
+  // "Podeli izveštaj" seli se u isto zaglavlje (ista dopuna) — jedan proračun ovde umesto
+  // ponovljenog bloka po tabu ispod.
+  const shareProps: { reportKind: 'profitability' | 'sales' | 'occupancy' | 'marketing'; title: string; rows: Bucket[] } | null =
+    tab === 'profitabilnost' && profitability
+      ? {
+          reportKind: 'profitability',
+          title: `Profitabilnost — ${PROFITABILNOST_SUB_LABELS[profSub]}`,
+          rows: profSub === 'destinacija' ? profitability.byDestination : profSub === 'dobavljac' ? profitability.bySupplier : profitability.byChannel,
+        }
+      : tab === 'prodaja' && sales
+        ? {
+            reportKind: 'sales',
+            title: `Prodaja — ${PRODAJA_SUB_LABELS[prodajaSub]}`,
+            rows: prodajaSub === 'kanal' ? sales.byChannel : sales.byProductType,
+          }
+        : tab === 'smestaj' && occupancy
+          ? { reportKind: 'occupancy', title: 'Operativna statistika smeštaja', rows: occupancy.breakdown ?? [] }
+          : tab === 'marketing' && marketing
+            ? { reportKind: 'marketing', title: 'Marketing performanse', rows: marketing.byContent }
+            : null;
+
+  // Linkovanje redova tabele ka rezervacijama koje ih čine (5.9.2026, vlasnikov zahtev:
+  // "omogucite da sve sto se nalazi u tabelama linkujete prema rezervacijama kije ulaze u taj
+  // deo izvestaja") — vodi na `/rezervacije/lista` sa filterom koji odgovara TOJ konkretnoj
+  // grupi, plus isti period (`from`/`to`) kao trenutni izveštaj. `Lista rezervacija` (i njen BFF
+  // `page.tsx`) prosleđuje SVAKI query parametar bez belе liste (postojeći obrazac), a
+  // `GET /sales/bookings` (M5) već prihvata `destinationCountry`/`destinationCity`/`channel`/
+  // `productType` — zato ove četiri dimenzije rade već danas, bez ijedne nove linije backend
+  // koda. `bySupplier` (profitabilnost) i `byContent` (marketing) NAMERNO nemaju link — M5 lista
+  // rezervacija danas nema filter ni po dobavljaču ni po marketing sadržaju; ovo je poznat,
+  // svesno odložen nedostatak (M13 spec, ne ćuti se).
+  function bookingsHref(params: Record<string, string>): string {
+    const v = new URLSearchParams(params);
+    if (searchParams?.from) v.set('stayFrom', searchParams.from);
+    if (searchParams?.to) v.set('stayTo', searchParams.to);
+    return `/rezervacije/lista?${v.toString()}`;
+  }
+  // Ključ "Zemlja / Grad" (bucketize u reports.service.ts) — razdvaja se na dva filtera. Format
+  // je pod NAŠOM kontrolom na obe strane (backend gradi tačno ovaj separator), pa cepanje ovde
+  // nije krhko nagađanje.
+  function destinationLinkFor(b: Bucket): string {
+    const [country, city] = b.key.split(' / ');
+    return bookingsHref({ destinationCountry: country ?? '', destinationCity: city ?? '' });
+  }
+  function channelLinkFor(b: Bucket): string {
+    return bookingsHref({ channel: b.key });
+  }
+  function productTypeLinkFor(b: Bucket): string {
+    return bookingsHref({ productType: b.key });
+  }
+
   return (
     <div className="p-6">
       <RegisterTab label="Izveštaji" />
@@ -240,7 +313,10 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
         <div>
           <h1 className="text-lg font-semibold text-ink">Izveštaji</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* "poslednje ažurirano" pored dugmadi tabela/grafik (5.9.2026, vlasnikov zahtev) —
+              vidi komentar uz `currentLastSyncedAt` iznad za razlog premeštanja. */}
+          {tab && <LastSynced value={currentLastSyncedAt} />}
           {tab && tab !== 'dinamicki' && (
             <div className="flex overflow-hidden rounded-full border border-border text-xs">
               {(['tabela', 'grafik'] as const).map((v) => (
@@ -257,6 +333,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               ))}
             </div>
           )}
+          {/* "Podeli izveštaj" seli se u isto zaglavlje (ista dopuna) — vidi `shareProps` iznad. */}
+          {shareProps && <ShareReportButton {...shareProps} captureElementId="izvestaj-sadrzaj" />}
           {canReconcile && <ReconciliationButton />}
         </div>
       </div>
@@ -339,7 +417,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               />
             </Field>
           )}
-          <Button type="submit" variant="secondary" size="sm">
+          <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
             primeni filter
           </Button>
         </form>
@@ -349,19 +427,6 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
 
       {!error && tab === 'profitabilnost' && profitability && (
         <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <LastSynced value={profitability.lastSyncedAt} />
-            {/* "Podeli izveštaj" (5.9.2026, vlasnikov zahtev) — nosi TAČNO ono što je trenutno
-                izabrano pod-tabom (destinacija/dobavljač/kanal), ne ceo skup od tri tabele
-                odjednom; `captureElementId` cilja OVAJ omotač (isti sadržaj koji korisnik vidi,
-                tabela ili grafik u zavisnosti od `view`). */}
-            <ShareReportButton
-              reportKind="profitability"
-              title={`Profitabilnost — ${PROFITABILNOST_SUB_LABELS[profSub]}`}
-              rows={profSub === 'destinacija' ? profitability.byDestination : profSub === 'dobavljac' ? profitability.bySupplier : profitability.byChannel}
-              captureElementId="izvestaj-sadrzaj"
-            />
-          </div>
           {/* Pod-tabovi (5.9.2026, vlasnikov zahtev: "izvestaje po kategorijama stavite takodje
               u tabove kako se ne bi skrolovalo na dole") — tri razlaganja ove kategorije su do
               sad stajala naslagana jedno ispod drugog; sad je vidljivo samo IZABRANO. */}
@@ -372,7 +437,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                 <BarChart rows={profitability.byDestination} series={PROFIT_SERIES} />
               </ChartSection>
             ) : (
-              <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin />
+              <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin linkFor={destinationLinkFor} />
             ))}
           {profSub === 'dobavljac' &&
             (view === 'grafik' ? (
@@ -380,6 +445,8 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                 <BarChart rows={profitability.bySupplier} series={PROFIT_SERIES} />
               </ChartSection>
             ) : (
+              // Bez linka namerno — "Lista rezervacija" danas nema filter po dobavljaču
+              // (poznat, svesno odložen nedostatak, vidi komentar uz `bookingsHref` iznad).
               <BucketTable title="Po dobavljaču/provajderu" buckets={profitability.bySupplier} showMargin />
             ))}
           {profSub === 'kanal' &&
@@ -388,22 +455,13 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                 <BarChart rows={profitability.byChannel} series={PROFIT_SERIES} />
               </ChartSection>
             ) : (
-              <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin />
+              <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin linkFor={channelLinkFor} />
             ))}
         </div>
       )}
 
       {!error && tab === 'prodaja' && sales && (
         <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <LastSynced value={sales.lastSyncedAt} />
-            <ShareReportButton
-              reportKind="sales"
-              title={`Prodaja — ${PRODAJA_SUB_LABELS[prodajaSub]}`}
-              rows={prodajaSub === 'kanal' ? sales.byChannel : sales.byProductType}
-              captureElementId="izvestaj-sadrzaj"
-            />
-          </div>
           <div className="grid grid-cols-3 gap-3">
             <Stat label="broj rezervacija" value={sales.bookingCount.toLocaleString('sr-RS')} />
             <Stat label="ukupna vrednost" value={formatMoney(sales.totalValue)} />
@@ -416,7 +474,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                 <BarChart rows={sales.byChannel} series={REVENUE_SERIES} />
               </ChartSection>
             ) : (
-              <BucketTable title="Po kanalu" buckets={sales.byChannel} />
+              <BucketTable title="Po kanalu" buckets={sales.byChannel} showMargin linkFor={channelLinkFor} />
             ))}
           {prodajaSub === 'tip' &&
             (view === 'grafik' ? (
@@ -424,22 +482,13 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                 <BarChart rows={sales.byProductType} series={REVENUE_SERIES} />
               </ChartSection>
             ) : (
-              <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} />
+              <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} showMargin linkFor={productTypeLinkFor} />
             ))}
         </div>
       )}
 
       {!error && tab === 'smestaj' && occupancy && (
         <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <LastSynced value={occupancy.lastSyncedAt} />
-            <ShareReportButton
-              reportKind="occupancy"
-              title="Operativna statistika smeštaja"
-              rows={occupancy.breakdown ?? []}
-              captureElementId="izvestaj-sadrzaj"
-            />
-          </div>
           <div className="grid grid-cols-3 gap-3">
             <Stat label="broj osoba" value={occupancy.guestCount.toLocaleString('sr-RS')} />
             <Stat label="noćenja (gost-noćenja)" value={occupancy.nights.toLocaleString('sr-RS')} />
@@ -453,7 +502,6 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
 
       {!error && tab === 'dinamicki' && dynamicReport && (
         <div className="flex flex-col gap-4">
-          <LastSynced value={dynamicReport.lastSyncedAt} />
           <div className="overflow-x-auto rounded-lg border border-border bg-panel p-3">
             {dynamicReport.tree.length === 0 ? (
               <p className="p-2 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
@@ -466,15 +514,6 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
 
       {!error && tab === 'marketing' && marketing && (
         <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <LastSynced value={marketing.lastSyncedAt} />
-            <ShareReportButton
-              reportKind="marketing"
-              title="Marketing performanse"
-              rows={marketing.byContent}
-              captureElementId="izvestaj-sadrzaj"
-            />
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <Stat label="udeo atribuisanih rezervacija" value={`${(marketing.attributedShare * 100).toFixed(1)}%`} />
             <Stat
@@ -526,6 +565,7 @@ function OccupancyBreakdown({
   view: 'tabela' | 'grafik';
 }) {
   const total = breakdown.reduce((sum, b) => sum + b.nights, 0);
+  const totalCount = breakdown.reduce((sum, b) => sum + b.count, 0);
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink">
@@ -561,6 +601,14 @@ function OccupancyBreakdown({
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border bg-sunken font-semibold text-ink">
+                <td className="px-4 py-2">Ukupno</td>
+                <td className="px-4 py-2 text-right font-mono">{totalCount.toLocaleString('sr-RS')}</td>
+                <td className="px-4 py-2 text-right font-mono">{total.toLocaleString('sr-RS')}</td>
+                <td className="px-4 py-2 text-right font-mono">100,0%</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
@@ -614,11 +662,32 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
 // procenat udela. Isti markap (pravi `<table>`) koristi se i kad se ovaj sadržaj snimi kao
 // infografik (`ShareReportButton.tsx`, html2canvas) — izgled sa ekrana IDE u sliku, ne posebna
 // "verzija za slanje".
-function BucketTable({ title, buckets, showMargin = false }: { title: string; buckets: Bucket[]; showMargin?: boolean }) {
+function BucketTable({
+  title,
+  buckets,
+  showMargin = false,
+  linkFor,
+}: {
+  title: string;
+  buckets: Bucket[];
+  /** Profitabilnost/Prodaja (5.9.2026, vlasnikov zahtev: "tabela za profitabilnost i prodaju
+   * treba da imaju neto kolonu, bruto kolonu, marzu u procentima, marzu u iznosu") — kad je
+   * `true`, "prihod" kolona se deli na Neto (`baseCost`)/Bruto (`revenue`) + Marža % (marža kao
+   * udeo BRUTO cene ovog reda, "razlika u ceni") + Marža (iznos), pored postojećeg Udela
+   * (procenat u odnosu na ukupan bruto promet ove tabele — "ostavite i % u odnosu na total"). */
+  showMargin?: boolean;
+  /** Link ka rezervacijama koje čine ovaj red (5.9.2026, vlasnikov zahtev: "omogucite da sve sto
+   * se nalazi u tabelama linkujete prema rezervacijama"). Izostavljen prop = red ostaje običan
+   * tekst — koristi se za grupe koje "Lista rezervacija" danas ne ume da filtrira (dobavljač,
+   * marketing sadržaj), poznat i svesno odložen nedostatak, ne ćutanje. */
+  linkFor?: (bucket: Bucket) => string;
+}) {
   // Udeo u procentima (4.9.2026, na zahtev vlasnika: "prikazite i u % u obe vrste izvestaja")
   // — udeo reda u zbiru CELE grupe (svih redova, ne samo prikazanih), ne u ukupnom prometu
   // agencije — "koliki deo OVOG rasporeda nosi ova destinacija/kanal/dobavljač".
+  const totalCount = buckets.reduce((sum, b) => sum + b.count, 0);
   const totalRevenue = buckets.reduce((sum, b) => sum + b.revenue, 0);
+  const totalBaseCost = buckets.reduce((sum, b) => sum + b.baseCost, 0);
   const totalMargin = buckets.reduce((sum, b) => sum + b.margin, 0);
   return (
     <div>
@@ -632,32 +701,72 @@ function BucketTable({ title, buckets, showMargin = false }: { title: string; bu
               <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
                 <th className="px-4 py-2 text-left font-medium">naziv</th>
                 <th className="px-4 py-2 text-right font-medium">rezervacija</th>
-                <th className="px-4 py-2 text-right font-medium">prihod</th>
+                {showMargin ? (
+                  <>
+                    <th className="px-4 py-2 text-right font-medium">neto</th>
+                    <th className="px-4 py-2 text-right font-medium">bruto</th>
+                    <th className="px-4 py-2 text-right font-medium">marža %</th>
+                    <th className="px-4 py-2 text-right font-medium">marža</th>
+                  </>
+                ) : (
+                  <th className="px-4 py-2 text-right font-medium">prihod</th>
+                )}
                 <th className="px-4 py-2 text-right font-medium">udeo</th>
-                {showMargin && <th className="px-4 py-2 text-right font-medium">marža</th>}
-                {showMargin && <th className="px-4 py-2 text-right font-medium">udeo</th>}
               </tr>
             </thead>
             <tbody>
-              {buckets.map((b, i) => (
-                <tr key={b.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
-                  <td className="border-t border-border px-4 py-2 font-medium text-ink">{b.key}</td>
-                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{b.count.toLocaleString('sr-RS')}</td>
-                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.revenue)}</td>
-                  <td className="border-t border-border px-4 py-2 text-right">
-                    <PctBadge value={formatPct(b.revenue, totalRevenue)} />
-                  </td>
-                  {showMargin && (
-                    <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.margin)}</td>
-                  )}
-                  {showMargin && (
+              {buckets.map((b, i) => {
+                const href = linkFor?.(b);
+                const nameCell = href ? (
+                  <Link href={href} className="text-brand hover:underline" title="Prikaži rezervacije koje čine ovaj red">
+                    {b.key}
+                  </Link>
+                ) : (
+                  b.key
+                );
+                return (
+                  <tr key={b.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+                    <td className="border-t border-border px-4 py-2 font-medium text-ink">{nameCell}</td>
+                    <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{b.count.toLocaleString('sr-RS')}</td>
+                    {showMargin ? (
+                      <>
+                        <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.baseCost)}</td>
+                        <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.revenue)}</td>
+                        <td className="border-t border-border px-4 py-2 text-right">
+                          <PctBadge value={formatPct(b.margin, b.revenue)} />
+                        </td>
+                        <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.margin)}</td>
+                      </>
+                    ) : (
+                      <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.revenue)}</td>
+                    )}
                     <td className="border-t border-border px-4 py-2 text-right">
-                      <PctBadge value={formatPct(b.margin, totalMargin)} />
+                      <PctBadge value={formatPct(b.revenue, totalRevenue)} />
                     </td>
-                  )}
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
+            {/* Totali (5.9.2026, vlasnikov zahtev: "nigde nemate totale, treba i to da uvedete") —
+                zbir cele tabele, ne samo prikazanih redova (ovde su svi redovi uvek prikazani,
+                bez straničenja). */}
+            <tfoot>
+              <tr className="border-t-2 border-border bg-sunken font-semibold text-ink">
+                <td className="px-4 py-2">Ukupno</td>
+                <td className="px-4 py-2 text-right font-mono">{totalCount.toLocaleString('sr-RS')}</td>
+                {showMargin ? (
+                  <>
+                    <td className="px-4 py-2 text-right font-mono">{formatMoney(totalBaseCost)}</td>
+                    <td className="px-4 py-2 text-right font-mono">{formatMoney(totalRevenue)}</td>
+                    <td className="px-4 py-2 text-right font-mono">{formatPct(totalMargin, totalRevenue)}</td>
+                    <td className="px-4 py-2 text-right font-mono">{formatMoney(totalMargin)}</td>
+                  </>
+                ) : (
+                  <td className="px-4 py-2 text-right font-mono">{formatMoney(totalRevenue)}</td>
+                )}
+                <td className="px-4 py-2 text-right font-mono">100,0%</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
