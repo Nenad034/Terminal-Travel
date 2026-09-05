@@ -94,6 +94,10 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([roleId, permissionId])
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([permissionId])
   @@map("role_permissions")
 }
 
@@ -108,6 +112,10 @@ model UserRole {
   role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([roleId])
   @@map("user_roles")
 }
 
@@ -126,6 +134,12 @@ model UserPermissionOverride {
   grantedByUser User       @relation("OverrideGrantedBy", fields: [grantedBy], references: [id])
   permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([grantedBy])
+  @@index([permissionId])
+  @@index([userId])
   @@map("user_permission_overrides")
 }
 
@@ -147,6 +161,10 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([userId])
   @@map("refresh_tokens")
 }
 
@@ -159,6 +177,10 @@ model MfaRecoveryCode {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([userId])
   @@map("mfa_recovery_codes")
 }
 
@@ -175,6 +197,10 @@ model PasswordResetToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([userId])
   @@map("password_reset_tokens")
 }
 
@@ -271,6 +297,11 @@ model Product {
   // sopstvene datume polaska (ne izvodi ih presekom perioda sastojaka kao ranija verzija).
   packageDepartures PackageDeparture[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
+  @@index([sourceContractId])
   @@map("products")
 }
 
@@ -391,6 +422,10 @@ model ProductContentImport {
   product Product?                    @relation(fields: [productId], references: [id], onDelete: SetNull)
   fields  ProductContentImportField[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([productId])
   @@map("product_content_imports")
 }
 
@@ -425,6 +460,10 @@ model ProductContentImportField {
 
   import ProductContentImport @relation(fields: [importId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([importId])
   @@map("product_content_import_fields")
 }
 
@@ -510,6 +549,10 @@ model SupplierContact {
 
   supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
   @@map("supplier_contacts")
 }
 
@@ -545,6 +588,10 @@ model Contract {
   periods  ContractPeriod[]
   products Product[] // M2 Product.sourceContractId — proizvod referencira ugovor, ne duplira cenu (M3 spec §3)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
   @@map("contracts")
 }
 
@@ -603,6 +650,10 @@ model ContractPeriod {
   // M5 spec §8.1 — dopuna avgust 2026, back-relacija ka operativnim listama.
   supplierManifests SupplierManifest[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractId])
   @@map("contract_periods")
 }
 
@@ -631,6 +682,10 @@ model RateLine {
   quoteItems     QuoteItem[]
   bookingItems   BookingItem[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractPeriodId])
   @@map("rate_lines")
 }
 
@@ -652,6 +707,10 @@ model RateLineAgePricing {
 
   rateLine RateLine @relation(fields: [rateLineId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([rateLineId])
   @@map("rate_line_age_pricing")
 }
 
@@ -683,6 +742,10 @@ model CancellationRule {
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractPeriodId])
   @@map("cancellation_rules")
 }
 
@@ -720,6 +783,10 @@ model PricelistOffer {
 
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractPeriodId])
   @@map("pricelist_offers")
 }
 
@@ -768,6 +835,10 @@ model AncillaryService {
   contractPeriod ContractPeriod @relation(fields: [contractPeriodId], references: [id], onDelete: Cascade)
   bookingItems   BookingItem[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractPeriodId])
   @@map("ancillary_services")
 }
 
@@ -836,6 +907,10 @@ model PricelistImport {
   supplier Supplier             @relation(fields: [supplierId], references: [id])
   rows     PricelistImportRow[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
   @@map("pricelist_imports")
 }
 
@@ -878,6 +953,11 @@ model PricelistImportRow {
   import         PricelistImport @relation(fields: [pricelistImportId], references: [id], onDelete: Cascade)
   matchedProduct Product?        @relation(fields: [matchedProductId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([pricelistImportId])
+  @@index([matchedProductId])
   @@map("pricelist_import_rows")
 }
 
@@ -990,6 +1070,10 @@ model ProviderCallLog {
 
   provider ProviderConfig @relation(fields: [providerCode], references: [providerCode])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([providerCode])
   @@map("provider_call_logs")
 }
 
@@ -1109,6 +1193,11 @@ model ItinerarySegment {
   itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
   product   Product?  @relation(fields: [productId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([itineraryId])
+  @@index([productId])
   @@map("itinerary_segments")
 }
 
@@ -1130,6 +1219,10 @@ model Quote {
   items     QuoteItem[]
   payments  Payment[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([itineraryId])
   @@map("quotes")
 }
 
@@ -1170,6 +1263,13 @@ model QuoteItem {
   rateLine   RateLine?  @relation(fields: [rateLineId], references: [id])
   markupRule MarkupRule @relation(fields: [markupRuleId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([markupRuleId])
+  @@index([quoteId])
+  @@index([productId])
+  @@index([rateLineId])
   @@map("quote_items")
 }
 
@@ -1265,6 +1365,10 @@ model BookingHandoffRequest {
 
   booking Booking @relation(fields: [bookingId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingId])
   @@map("booking_handoff_requests")
 }
 
@@ -1361,6 +1465,15 @@ model BookingItem {
   // M10 spec §8 — dopuna avgust 2026, back-relacija ka obavezi prema dobavljaču.
   supplierObligations SupplierObligation[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingId])
+  @@index([markupRuleId])
+  @@index([ancillaryServiceId])
+  @@index([parentItemId])
+  @@index([rateLineId])
+  @@index([productId])
   @@map("booking_items")
 }
 
@@ -1439,6 +1552,12 @@ model SupplierManifest {
   supersededBy   SupplierManifest[]     @relation("ManifestSupersedes")
   items          SupplierManifestItem[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contractPeriodId])
+  @@index([supplierId])
+  @@index([supersedesManifestId])
   @@map("supplier_manifests")
 }
 
@@ -1452,6 +1571,10 @@ model SupplierManifestItem {
   bookingItem      BookingItem      @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
 
   @@id([supplierManifestId, bookingItemId])
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingItemId])
   @@map("supplier_manifest_items")
 }
 
@@ -1482,6 +1605,10 @@ model SupplierChangeNotice {
 
   bookingItem BookingItem @relation(fields: [bookingItemId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingItemId])
   @@map("supplier_change_notices")
 }
 
@@ -1505,6 +1632,10 @@ model SupplierAnnouncementRule {
 
   supplier Supplier? @relation(fields: [supplierId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
   @@map("supplier_announcement_rules")
 }
 
@@ -1599,6 +1730,12 @@ model FiscalDocument {
   stornoOf             FiscalDocument?       @relation("FiscalDocumentStorno", fields: [stornoOfDocumentId], references: [id])
   stornoDocuments      FiscalDocument[]      @relation("FiscalDocumentStorno")
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([stornoOfDocumentId])
+  @@index([bookingId])
+  @@index([exchangeRateSnapshotId])
   @@map("fiscal_documents")
 }
 
@@ -1654,6 +1791,12 @@ model Payment {
   refundInstructions RefundInstruction[]
   checkDetails       PaymentCheckDetail[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingId])
+  @@index([quoteId])
+  @@index([bankId])
   @@map("payments")
 }
 
@@ -1692,6 +1835,11 @@ model PaymentCheckDetail {
   payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   bank    Bank    @relation(fields: [bankId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([paymentId])
+  @@index([bankId])
   @@map("payment_check_details")
 }
 
@@ -1768,6 +1916,13 @@ model SupplierObligation {
   paymentInstructions   SupplierPaymentInstruction[]
   importedRows          SupplierInvoiceImportRow[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
+  @@index([exchangeRateSnapshotIdAtPayment])
+  @@index([exchangeRateSnapshotIdAtInvoice])
+  @@index([bookingItemId])
   @@map("supplier_obligations")
 }
 
@@ -1792,6 +1947,10 @@ model SupplierPaymentInstruction {
 
   supplierObligation SupplierObligation @relation(fields: [supplierObligationId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierObligationId])
   @@map("supplier_payment_instructions")
 }
 
@@ -1822,6 +1981,10 @@ model RefundInstruction {
 
   payment Payment @relation(fields: [paymentId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([paymentId])
   @@map("refund_instructions")
 }
 
@@ -1854,6 +2017,10 @@ model SupplierInvoiceImport {
   supplier Supplier                   @relation(fields: [supplierId], references: [id])
   rows     SupplierInvoiceImportRow[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierId])
   @@map("supplier_invoice_imports")
 }
 
@@ -1882,6 +2049,11 @@ model SupplierInvoiceImportRow {
   import            SupplierInvoiceImport @relation(fields: [supplierInvoiceImportId], references: [id], onDelete: Cascade)
   matchedObligation SupplierObligation?   @relation(fields: [matchedSupplierObligationId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([supplierInvoiceImportId])
+  @@index([matchedSupplierObligationId])
   @@map("supplier_invoice_import_rows")
 }
 
@@ -1938,6 +2110,10 @@ model TravelGuaranteeRegistration {
   booking         Booking          @relation(fields: [bookingId], references: [id])
   travelGuarantee TravelGuarantee? @relation(fields: [travelGuaranteeId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([travelGuaranteeId])
   @@map("travel_guarantee_registrations")
 }
 
@@ -1994,6 +2170,11 @@ model ClientContract {
   supersedesContract ClientContract?  @relation("ClientContractRevision", fields: [supersedesContractId], references: [id])
   supersededBy       ClientContract[] @relation("ClientContractRevision")
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([bookingId])
+  @@index([supersedesContractId])
   @@map("client_contracts")
 }
 
@@ -2062,6 +2243,10 @@ model GuestProfile {
 
   linkedClientAccount ClientAccount? @relation(fields: [linkedClientAccountId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([linkedClientAccountId])
   @@map("guest_profiles")
 }
 
@@ -2114,6 +2299,11 @@ model ClientLoyaltyStatus {
   currentTier        LoyaltyTier? @relation("CurrentTier", fields: [currentTierId], references: [id])
   manualOverrideTier LoyaltyTier? @relation("OverrideTier", fields: [manualOverrideTierId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([currentTierId])
+  @@index([manualOverrideTierId])
   @@map("client_loyalty_statuses")
 }
 
@@ -2234,6 +2424,10 @@ model Subagent {
   volumeStatus SubagentVolumeStatus?
   rebates      CommissionRebate[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([parentSubagentId])
   @@map("subagents")
 }
 
@@ -2269,6 +2463,10 @@ model CommissionVolumeTier {
   currentForStatuses   SubagentVolumeStatus[]
   triggeringForRebates CommissionRebate[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([subagentId])
   @@map("commission_volume_tiers")
 }
 
@@ -2287,6 +2485,10 @@ model SubagentVolumeStatus {
   subagent    Subagent              @relation(fields: [subagentId], references: [id])
   currentTier CommissionVolumeTier? @relation(fields: [currentTierId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([currentTierId])
   @@map("subagent_volume_statuses")
 }
 
@@ -2318,6 +2520,11 @@ model CommissionRebate {
   subagent       Subagent             @relation(fields: [subagentId], references: [id])
   triggeringTier CommissionVolumeTier @relation(fields: [triggeringTierId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([triggeringTierId])
+  @@index([subagentId])
   @@map("commission_rebates")
 }
 
@@ -2409,6 +2616,10 @@ model TicketMessage {
 
   ticket Ticket @relation(fields: [ticketId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([ticketId])
   @@map("ticket_messages")
 }
 
@@ -2567,6 +2778,10 @@ model ContentMedia {
 
   contentPiece ContentPiece @relation(fields: [contentPieceId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([contentPieceId])
   @@map("content_media")
 }
 
@@ -2938,6 +3153,10 @@ model AgentInvocationLog {
 
   agent AIAgent @relation(fields: [agentId], references: [id])
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([agentId])
   @@map("agent_invocation_logs")
 }
 
@@ -3063,6 +3282,10 @@ model Message {
   conversation Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   attachments  MessageAttachment[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([conversationId])
   @@map("messages")
 }
 
@@ -3086,6 +3309,10 @@ model MessageAttachment {
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([messageId])
   @@map("message_attachments")
 }
 
@@ -3349,6 +3576,10 @@ model EmailThread {
   mailbox  Mailbox        @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
   messages EmailMessage[]
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([mailboxId])
   @@map("email_threads")
 }
 
@@ -3384,6 +3615,10 @@ model EmailMessage {
 
   thread EmailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([threadId])
   @@map("email_messages")
 }
 
@@ -3486,6 +3721,10 @@ model ArticleSource {
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([articleId])
   @@map("article_sources")
 }
 
@@ -3518,6 +3757,10 @@ model ArticleRevision {
 
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
+  // Indeksi na stranim ključevima (5.9.2026, dok. 39 nalaz 2.1). Postgres ih NE pravi sam:
+  // pravi ih samo na strani na koju se pokazuje (PK), ne i na koloni koja pokazuje. Bez njih
+  // svaki JOIN i svaka provera pri brisanju roditelja čita celu tabelu.
+  @@index([articleId])
   @@map("article_revisions")
 }
 

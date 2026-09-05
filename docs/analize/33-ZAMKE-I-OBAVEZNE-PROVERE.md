@@ -490,6 +490,11 @@ Zamka se **ne briše** kad se jednom ispravi, jer se u nju može ponovo upasti n
 - *Uzrok:* `SupplierManifest`/`SupplierManifestItem` (M5 §8.8) dodati su u šemu POSLE ove skripte, a nju niko nije dopunio — brisanje roditelja puca na detetu koje skripta ne poznaje. Gore od samog pada: skripta **nije u transakciji**, pa je desetak brisanja pre te tačke već izvršeno; mock skup ostaje polovično obrisan, a ponovno pokretanje `mock-b2c.ts` tada puca na drugom mestu.
 - *Provera:* kad se u šemu doda model koji visi o entitetu koji neka `*-clean` skripta briše (`Supplier`, `Contract`, `Product`, `Booking`), dopuniti tu skriptu u ISTOM prolazu — `grep -rn "<ImeRoditelja>.deleteMany" apps/api/prisma/seed/`. Kad clean skripta pukne na pola, ne pokretati seed dok se ne dovrši brisanje: prvo popraviti skriptu pa je pustiti ponovo, jer je pisana da bude idempotentna i drugi prolaz očisti ostatak.
 
+**12.2 Prva provera posle restarta dev servera daje LAŽNO NEGATIVAN rezultat**
+- *Simptom:* 5.9.2026, odmah posle ponovnog pokretanja API-ja, ista skripta za proveru je javila „prikazuje broj rezervacije: NE" i „lista nosi interni ID: NE" — a ručna provera iste adrese tri sekunde kasnije je pokazala da oba PODATKA jesu u HTML-u. Ponovno pokretanje iste skripte: sve „DA".
+- *Uzrok:* `next dev` kompajlira stranicu tek na PRVI zahtev za nju. Taj prvi odgovor je HTTP 200, ali još ne sadrži pun sadržaj — provera koja traži tekst u HTML-u ga ne nađe i prijavi kvar koji ne postoji. Isto važi i za `nest start --watch` u prvim sekundama posle restarta.
+- *Provera:* posle svakog restarta dev servera, prvi zahtev ka svakoj proveravanoj adresi je „zagrevanje" i njegov rezultat se **ne broji**. Provera se pokreće drugi put, ili se svaka adresa jednom pozove pre merenja. Obrnuto pravilo je jednako važno: neočekivano „NE" odmah posle restarta se ne prijavljuje kao nalaz dok se ne ponovi na zagrejanom serveru — inače se prijavljuje kvar koji ne postoji (isti rod greške kao zamka 8.4, samo u drugom smeru).
+
 ## 13. Javni (neautentikovani) endpointi
 
 **13.1 Obavezan query parametar javnog endpointa nije validiran — nedostatak ili pogrešna vrednost ruše zahtev sa `500` umesto `400`**

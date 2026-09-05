@@ -110,7 +110,7 @@ Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajd
 
 ## 2. Visoko — radi danas, pada pod stvarnim opterećenjem
 
-### 2.1 Baza nema indekse na stranim ključevima — 81 komad
+### 2.1 Baza nema indekse na stranim ključevima — 81 komad — REŠENO 5.9.2026
 
 **Dokaz (upit nad stvarnom bazom, ne procena):**
 
@@ -125,6 +125,34 @@ Pogođeno je praktično sve: `refresh_tokens.user_id`, `products.source_contract
 
 **Predlog:** jedna migracija koja doda `@@index` na sve FK kolone (Prisma ih zatim održava). Nema rizika po podatke — indeks ne menja sadržaj, samo brzinu.
 **Procena:** pola dana uključujući proveru da je migracija čista.
+
+---
+
+**REŠENO 5.9.2026.** Migracija `20260905091500_indeksi_na_stranim_kljucevima`, 81 `CREATE INDEX`, uz `@@index` u `schema.prisma` (54 modela) da Prisma ostane izvor istine.
+
+**Pokušaj obaranja (pravilo 5, dok. 40): „nalaz bi bio netačan ako su te kolone već pokrivene kao vodeći stubac nekog složenog indeksa."** Provereno — upit poredi kolone stranog ključa sa PREFIKSOM svakog indeksa nad istom tabelom, ne sa tačnim poklapanjem. I uz tu proveru: **81 od 102**. Nalaz opstaje.
+
+**Izmereno posle (klasa A):**
+
+| | pre | posle |
+| :---- | :---- | :---- |
+| strani ključevi bez indeksa | 81 od 102 | **0 od 102** |
+| indeksa u bazi | 160 | 241 |
+
+**Stvaran efekat, izmeren `EXPLAIN ANALYZE`-om nad `rate_lines` (1.542 reda), isti upit oba puta:**
+
+| | pročitano blokova |
+| :---- | :---- |
+| sa indeksom (od danas) | **4** (Bitmap Index Scan) |
+| bez indeksa (kako je bilo) | **30** (Seq Scan) |
+
+Broj pročitanih blokova bez indeksa raste sa veličinom tabele; sa indeksom ostaje skoro ravan. Na 1.542 reda to je 30 naspram 4 — nevidljivo. Na sto hiljada redova ista razlika je između trenutnog i minutnog odgovora, i to na svakom ekranu istovremeno.
+
+**Cena koja se ne prećutkuje:** 81 nov indeks znači nešto sporije upisivanje (svaki `INSERT`/`UPDATE` održava i indekse) i nešto više prostora. Za sistem u kom se mnogo više čita nego piše — a rezervacije se čitaju sa svakog ekrana, a pišu jednom — to je dobra razmena. Ako se neki indeks u praksi pokaže kao nekorišćen, `pg_stat_user_indexes` to pokazuje i pojedinačan indeks se može ukloniti.
+
+**Namerno NIJE urađeno:** automatski generisan `migrate diff` je uz indekse ponudio i `DROP TABLE destination_profiles` sa dva `DROP TYPE` — tabela postoji u razvojnoj bazi a ne u šemi (prazna je), ostatak rada sa druge grane koja deli istu bazu. Izbačeno iz migracije; brisanje tuđeg posla nije deo ovog nalaza. **Zavedeno odvojeno** (v. backlog).
+
+**Provera da ništa nije pokvareno:** `tsc` čist, 976 testova prolazi, `/rezervacije/lista`, `/katalog`, `/rezervacije/kalendar`, `/email` i `/rezervacije/najave` svi HTTP 200 kroz pravu prijavu.
 
 ---
 
@@ -278,7 +306,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ (oba urađena 5.9.2026) · 2.1 indeksi · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ (sve urađeno 5.9.2026) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 
