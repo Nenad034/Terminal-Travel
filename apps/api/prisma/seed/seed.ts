@@ -45,6 +45,10 @@ const M2_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M2', resource: 'product-content-import', action: 'CREATE', description: 'Pokretanje AI-potpomognutog uvoza sadržaja' },
   { module: 'M2', resource: 'product-content-import', action: 'VIEW', description: 'Uvid u uvoze sadržaja' },
   { module: 'M2', resource: 'product-content-import', action: 'REVIEW_FIELD', description: 'Odobri/odbij/izmeni izvučenu stavku uvoza' },
+  // M2 spec §2.1c (dopuna 5.9.2026) — CRUD nad DestinationProfile (tip destinacije + aktivnosti).
+  { module: 'M2', resource: 'destination-profile', action: 'VIEW', description: 'Uvid u profile destinacija (tip/aktivnosti)' },
+  { module: 'M2', resource: 'destination-profile', action: 'CREATE', description: 'Kreiranje profila destinacije' },
+  { module: 'M2', resource: 'destination-profile', action: 'EDIT', description: 'Izmena tipa destinacije / aktivnosti' },
 ];
 
 // M3 spec §5 — dozvole ugovaranja i alotmana.

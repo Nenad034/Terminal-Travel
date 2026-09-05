@@ -3,6 +3,9 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.22 — "Putovanja" — grupni paket sa vodičem i programom po danima (5.9.2026, vlasnikov zahtev, uz konkretan primer sa olympic.rs — Gruzija/Jermenija 8 dana/7 noćenja). Ne nov `Product.type` — `PACKAGE` (§2.3) dobija tri nova opciona polja: **`has_expert_guide`**/`guide_language` (putovanje u pratnji stručnog vodiča, sopstvena ikonica u M5 pretrazi pored "Grupni paketi", isti obrazac kao `RENT_A_CAR` pod `TRANSPORT`); **`optional_products[]`** (fakultativni izleti — reference na proizvode koji se NE sabiraju u osnovnu cenu paketa kao `included_products[]`, gost ih bira i plaća posebno pri pravljenju Ponude); **`daily_program[]`** (strukturiran program po danima — dan, naslov/destinacije, opis aktivnosti, obroci, noćenje — ne slobodan tekst, isti princip kao `itinerary_ports[]` kod `CRUISE`). Detalji: §2.3 tabela (red `PACKAGE`) i novo poglavlje 2.3f ispod. M5 §3.0d.6b (isti prolaz) definiše ekran/pretragu.
+**Verzija:** 1.21 — pretraga po aktivnosti (5.9.2026, vlasnikov zahtev: "mnogi se odlučuju da idu na destinaciju na osnovu aktivnosti — biciklizam, planinarenje, lov"). Nov enum **`ActivityTag`** (§2.1c dopuna) i novo polje **`DestinationProfile.activities[]`** — destinacija dobija spisak aktivnosti koje podržava, isti "AI predlaže/čovek potvrđuje" tok kao `destination_type`. `EXCURSION.attributes` (§2.3) dobija **`activity_type`** — konkretan izlet JESTE ta aktivnost, uneto ručno kao i `difficulty_level`. `AmenityTag` (§2.3c) dobija novu grupu "Aktivnosti u okolini" (`BIKE_RENTAL`/`BIKE_STORAGE`) za hotelsku pogodnost, namerno ODVOJENO od `ActivityTag` — destinacija "podržava" aktivnost nezavisno od toga da li baš taj hotel iznajmljuje opremu. M5 §3.0c.3e (isti prolaz) definiše novi ulaz u pretragu.
+**Verzija:** 1.20 — novi entitet **`DestinationProfile`** i enum **`DestinationType`**, poglavlje 2.1c (5.9.2026, vlasnikov zahtev, tokom razgovora o M5 filterima pretrage) — vlasnikov nalaz: filter "udaljenost od mora" se prikazivao i za hotele u unutrašnjosti, gde nema smisla. Rešenje: destinacija (par `destination_country`+`destination_city`) dobija tip (`COASTAL`/`MOUNTAIN`/`URBAN`/`SPA`/`LAKE`/`RURAL`), tagovan JEDNOM po mestu, ne po proizvodu. M5 §3.0c.3d (isti prolaz) koristi ovaj tip, uz sezonski prozor po filteru, da odluči koji filter uopšte ponuditi u datoj pretrazi — npr. "blizina ski lifta" se ne nudi za planinsku destinaciju van zimskih meseci. `DestinationProfile` popunjava AI predlogom (iz naziva mesta i `geo_lat`/`geo_lng`), čovek potvrđuje pre upisa (poglavlje 7 Master dokumenta, "predloži pa čovek odobri"). Detalji: §2.1c ispod.
 **Verzija:** 1.19 — novo polje **`destination_area`** i poglavlje 2.1b (4.9.2026, vlasnikova odluka, "idi na opciju 1"): nalaz na M5 ekranu rezervacije — grčki region Halkidiki ima tri poluostrva (jedno je Sitonija), a `destination_city` je za jedan hotel nosio vrednost `"Sitonija, Halkidiki"` umesto stvarnog naselja (npr. Nikiti). `destination_city` ostaje STVARNO naselje; `destination_area` je novo opciono polje za širu regiju/poluostrvo/grupu ostrva kad se razlikuje od naselja. Detalji, obrazloženje i namerno odloženi ekrani: §2.1b ispod. **Provera:** migracija primenjena (`prisma migrate deploy`), `tsc` čist na `apps/api`+`apps/panel`; uživo — Pregled/Aranžman tab i vaučer prikazuju "Nikiti, Sitonija, Halkidiki, Grčka", izmena postojećeg proizvoda moguća kroz `katalog/[id]` formu.
 **Verzija:** 1.18 — `Product` dobija **`supplier_id`** i `ProductSourceType` dobija **`MANUAL`** (3.9.2026, uz M5 §6.7b — ručno uneta usluga na rezervaciji). Ugovoreni proizvod ima dobavljača posredno (kroz `source_contract`), API proizvod kroz provajdera; **ručno uneta usluga ga nije imala nigde**, a bez dobavljača ne mogu ni vaučer po dobavljaču ni najava po dobavljaču (M5 §6/§6.7) — vlasnikov zahtev je bio da „svaka usluga ima svog dobavljača". Polje je opciono (postojeći proizvodi ga nemaju), ali **obavezno pri ručnom unosu**. Jednokratna ručna usluga se upisuje kao `status = DRAFT` sa praznim `visible_channels` — postoji, ima cenu i dobavljača, i ne vidi se ni u pretrazi (`GET /search` traži `ACTIVE`), ni na sajtu, ni u B2B portalu; kvačica „sačuvaj u katalog" je prevodi u `ACTIVE`. Time katalog ne postaje spisak jednokratnih unosa, a ne uvodi se ni drugi paralelan zapis za „proizvod koji nije proizvod".
 
@@ -88,6 +91,36 @@ Vlasniku su predložene dve opcije: (1) novo opciono polje `destination_area` uz
 
 Svaka od ovih stavki je otvorena stavka — upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
 
+### 2.1c `DestinationProfile` i `DestinationType` — tip destinacije za kontekstualne filtere (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikova primedba — filter "udaljenost od mora" se u M5 pretrazi prikazivao i za hotele u unutrašnjosti, gde je besmislen. Isti problem postoji i u drugom smeru (npr. "blizina ski lifta" prikazano za primorski hotel, ili za planinski hotel van sezone). Rešenje ne dira `Product` — dodaje se mali, odvojen entitet koji tipizuje **mesto**, ne pojedinačan proizvod, jer desetine hotela dele istu destinaciju i ne treba tagovati svaki posebno.
+
+**`DestinationProfile`**
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| destination_country | string | mora se poklapati sa kanonskim oblikom iz §2.1a |
+| destination_city | string | mora se poklapati sa stvarnim naseljem iz §2.1b (nikad regija) |
+| destination_type | enum: `COASTAL`, `MOUNTAIN`, `URBAN`, `SPA`, `LAKE`, `RURAL` | glavna, celogodišnja odrednica tipa mesta |
+| activities | niz enum `ActivityTag`, nullable | **dodato 5.9.2026** — koje aktivnosti destinacija podržava (vidi ispod); prazno = nepoznato, ne "nijedna" |
+| created_by | UUID | M1 User koji je potvrdio predlog, ili AI agent koji ga je pripremio (poglavlje 7 Master dokumenta) — potvrđeno tek pri odobrenju, ne pri predlogu |
+| created_at / updated_at | timestamp | |
+
+**`ActivityTag` (dodato 5.9.2026, vlasnikov zahtev)** — zatvoren, ali proširiv enum, isti obrazac kao `AmenityTag` (§2.3c): `CYCLING` (biciklizam), `HIKING` (planinarenje), `HUNTING` (lov), `FISHING` (ribolov), `DIVING` (ronjenje), `SKIING` (skijanje), `RAFTING`, `WILDLIFE_WATCHING` (posmatranje divljih životinja), `WINE_TASTING` (degustacija vina). Koristi se na **tri odvojena mesta**, namerno razdvojena da se ne pomešaju nivoi:
+
+1. **`DestinationProfile.activities[]`** (ovde) — destinacija podržava aktivnost, širok/regionalni nivo, nezavisno od konkretnog proizvoda.
+2. **`EXCURSION.attributes.activity_type`** (poglavlje 2.3) — konkretan izlet KOJI SE REZERVIŠE jeste ta aktivnost.
+3. **`AmenityTag`** (poglavlje 2.3c, nova grupa "Aktivnosti u okolini") — hotelska pogodnost (npr. iznajmljivanje bicikla) — namerno OSTAJE u postojećem `AmenityTag` mehanizmu, ne u `ActivityTag`, jer je to svojstvo konkretnog objekta, ne destinacije.
+
+Mešanje ova tri bi dalo pogrešne rezultate — npr. hotel bez ijednog bicikla u destinaciji poznatoj po biciklizmu ne bi trebalo da se izjednači sa hotelom koji stvarno iznajmljuje opremu.
+
+Jedinstven par (`destination_country`, `destination_city`) — svaka destinacija ima najviše jedan profil. Destinacija bez profila (nov grad, još netagovan) se tretira kao "nepoznat tip" — filteri vezani za tip se jednostavno ne prikazuju za nju (isti princip kao svuda u sistemu: nepoznata vrednost se ne pogađa, §2.1a).
+
+**Popunjavanje — AI predlaže, čovek potvrđuje.** Jednokratno, u seriji nad svim postojećim destinacijama (izvedeno iz `destination_city`/`destination_country`/`geo_lat`/`geo_lng` koji već postoje na `Product`, §2.1) — AI agent predlaže `destination_type` po destinaciji, ne po proizvodu, čovek pregleda listu predloga i odobrava pre upisa. Ubuduće, kad se doda proizvod u novu destinaciju, isti mali predlog-i-odobri korak se ponavlja samo za tu jednu destinaciju. Ovo je klasifikacija/predlog (poglavlje 7 Master dokumenta, nivo "autonomno" — priprema predloga, ne izvršenje), ali upis u `DestinationProfile` je akcija koja menja šta gost vidi u pretrazi (M5 §3.0c.3d), pa ide kroz "predloži pa čovek odobri" nivo pre nego što utiče na filtere.
+
+**Namerno van obima ovog prolaza:** sezonske izuzetke po destinaciji (mesto koje leti radi "jezersko", zimi "planinsko") — `destination_type` je za sada jedna, celogodišnja vrednost po mestu; sezonski deo problema (npr. "ski lift" filter van zimskih meseci) rešava se na nivou FILTERA, ne destinacije — vidi M5 §3.0c.3d.
+
 ### 2.2 `ProductTranslation` — jezički zavisan sadržaj
 Prevodi se **ne** čuvaju kao fiksne kolone (sr_name, en_name...) jer je broj jezika velik (8) i može rasti — čuvaju se kao redovi, po jeziku:
 
@@ -111,9 +144,9 @@ Nije prinudno na nivou baze (JSONB je fleksibilan), ali svaki modul koji čita/p
 | Tip | Očekivana polja u `attributes` |
 | :---- | :---- |
 | `ACCOMMODATION` | `accommodation_type` (enum: `HOTEL`, `VILA`, `APARTMAN`, `HOSTEL`, `KAMP`, `KABINA_NA_BRODU`, `DRUGO` — proširivo bez izmene strukture), `stars`, `board_type` (npr. all-inclusive, polupansion), `room_types[]` (strukturirano, poglavlje 2.3a), `amenities[]` |
-| `PACKAGE` | `duration_days`, `included_products[]` (reference na druge Product id-jeve — **potvrđeno 17.8.2026: namerno može sadržati proizvode iz više destinacija/gradova**, npr. hotel u Rimu + hotel u Veneciji + transfer između njih, isti niz nosi ceo multi-destinacijski raspored), `itinerary` (redosled/opis segmenata, prati redosled u `included_products[]`) |
+| `PACKAGE` | `duration_days`, `included_products[]` (reference na druge Product id-jeve — **potvrđeno 17.8.2026: namerno može sadržati proizvode iz više destinacija/gradova**, npr. hotel u Rimu + hotel u Veneciji + transfer između njih, isti niz nosi ceo multi-destinacijski raspored), `itinerary` (redosled/opis segmenata, prati redosled u `included_products[]`); **dodato 5.9.2026, "Putovanja" — sve opciono**: `has_expert_guide`/`guide_language`, `optional_products[]` (fakultativni izleti, van osnovne cene), `daily_program[]` (strukturiran program po danima — poglavlje 2.3f) |
 | `TRANSFER` | `vehicle_type`, `max_passengers`, `route` (**strukturirano polazište/odredište** — dopuna 17.8.2026, isti razlog kao `TRANSPORT.route` ispod: slobodan tekst ne dozvoljava filtriranje u pretrazi; **podključevi imenovani 1.9.2026** — `route.origin_city`/`route.destination_city`, isti "_city" obrazac kao `Product.destinationCity`, vidi napomenu ispod tabele) — tačka-do-tačke prevoz vezan za dolazak/odlazak gosta (npr. aerodrom→hotel), **ne** meša se sa `TRANSPORT` niže |
-| `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level`, `departure_point`, `min_participants`/`max_participants` |
+| `EXCURSION` | `duration_hours`, `itinerary`, `includes[]`, `difficulty_level`, `departure_point`, `min_participants`/`max_participants`, `activity_type` (enum `ActivityTag`, poglavlje 2.1c — dodato 5.9.2026, koja aktivnost je ovaj izlet, npr. `CYCLING`/`HIKING`) |
 | `FLIGHT` | `airline`, `route` (**strukturirano polazište/odredište** — dopuna 17.8.2026, isti razlog kao `TRANSPORT.route`; **podključevi imenovani 1.9.2026** — `route.origin_city`/`route.destination_city`, vidi napomenu ispod tabele; jedan `Product` = jedna noga leta na jedan datum, isti princip kao jedan `ACCOMMODATION` = jedan hotel — povratni/multi-city let je kombinacija više `FLIGHT` proizvoda birana pri pretrazi, M5 poglavlje 3.0d, ne atribut jednog proizvoda), `departure_datetime`/`arrival_datetime`, `cabin_class` — ostaje poseban tip (ne pod `TRANSPORT`) jer ima drugačiju logiku i vremenom dobija GDS/NDC integraciju preko M4 (Master dokument, Dodatak A, nalaz 2.8.2026) |
 | `INSURANCE` | `coverage_type`, `provider`, `terms_document_url` — **napomena (dopuna 17.8.2026):** ovo su svojstva SAME polise, ne parametri konkretnog putovanja koje se osigurava (odredište, datumi, broj i uzrast putnika, vrednost putovanja) — ti podaci su parametri **pretrage/ponude**, isti princip kao `occupancy` kod smeštaja (M5 poglavlje 3.2a), ne čuvaju se na `Product`. Vidi M5 poglavlje 3.0d za tačna polja upita. |
 | `TRANSPORT` *(dodato avgust 2026)* | `transport_mode` (enum: `BUS`, `MINIBUS`, `TRAIN`, `BOAT`, `RENT_A_CAR`, `PRIVATE_CAR_WITH_DRIVER` — proširivo bez izmene strukture), `route` (strukturirano polazište/odredište, ne slobodan tekst — radi filtriranja u pretrazi; **podključevi imenovani 1.9.2026** — `route.origin_city`/`route.destination_city`, vidi napomenu ispod tabele; **ne primenjuje se na `RENT_A_CAR`**, koji ima sopstvena imenovana polja ispod), `departure_datetime`/`arrival_datetime`, `class` (nivo udobnosti/kategorija vozila). Za `RENT_A_CAR` dodatno: `vehicle_category`, `min_driver_age`, `pickup_location`/`dropoff_location` (zamenjuju `route` za ovaj podtip — mesto preuzimanja/vraćanja, ne polazište/odredište puta). Za `PRIVATE_CAR_WITH_DRIVER` dodatno: `max_passengers` (isti oblik kao `TRANSFER`, ali vozilo/vozač su proizvod sam po sebi, ne vezano za konkretan dolazak/odlazak gosta) |
@@ -199,6 +232,7 @@ Ova tabela se dopunjuje kad se svaki tip stvarno počne koristiti u Fazi 1 — n
 | Soba | `AC`, `TV`, `KITCHENETTE`, `MINIBAR`, `BALCONY`, `SEA_VIEW`, `MOUNTAIN_VIEW` |
 | Pogodno za | `FAMILY_FRIENDLY`, `ADULTS_ONLY`, `PETS_ALLOWED` |
 | Politika | `FREE_CANCELLATION`, `PAY_AT_PROPERTY`, `NON_SMOKING` |
+| Aktivnosti u okolini *(dodato 5.9.2026, vlasnikov zahtev)* | `BIKE_RENTAL`, `BIKE_STORAGE` — hotelska pogodnost, namerno ODVOJENO od `ActivityTag` (poglavlje 2.1c): ovo znači da BAŠ TAJ hotel iznajmljuje/čuva bicikle, ne da destinacija podržava biciklizam |
 
 Lista je namerno polazna, ne konačna — proširuje se pri stvarnoj izradi ekrana (M17/M7 poglavlje "Vođena pretraga smeštaja") ako se pokaže potreba za dodatnom vrednošću, isti princip kao `MediaCategory`/`accommodation_type`.
 
@@ -219,6 +253,30 @@ Lista je namerno polazna, ne konačna — proširuje se pri stvarnoj izradi ekra
 | address | string, nullable | slobodan tekst (ulica/mesto), ne strukturiran — dovoljno za prikaz, nije geolokacija (za to već postoje `geo_lat`/`geo_lng` na `Product`, poglavlje 2.1) |
 
 Sva tri podpolja su opciona — proizvod bez ijednog ne prikazuje grešku, samo poruku "kontakt nije unet" (desni panel) ili odgovarajuću izjavu (AI agent, nikad izmišljen podatak). Nema migracije postojećih proizvoda — polje se popunjava ubuduće, ručno ili kroz `ProductContentImport` (proširenje na `field_type = CONTACT` je razmatrano naredni prolaz ako se pokaže potreba, van obima ove dopune).
+
+### 2.3f `PACKAGE` — "Putovanja" (vodič, fakultativni izleti, program po danima) (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikov primer — putovanje u Gruziju/Jermeniju, 8 dana/7 noćenja, u pratnji stručnog vodiča, sa fiksnim terminom (npr. 20-25.10.2026), sastavljeno od leta+transfera+smeštaja+uključenih razgledanja, uz mogućnost fakultativnog (dodatno plaćenog) izleta — po uzoru na `olympic.rs` (referenca dostavljena, konkretan primer: Dan 2 prelazi u Jermeniju, obilazi manastire Sanahin/Haghpat, grad Dilidžan, jezero Sevan, završava noćenjem u Jerevanu). Strukturno, ovo je **isti `PACKAGE` mehanizam** kao "Grupni paketi" (§3.0d.6/§3.0d.6a Master specifikacije M5) — fiksni termin (`PackageDeparture`), sastojci koji mogu biti `CONTRACTED` (fiksna cena, npr. ugovoren čarter let) ili `API` (dinamička cena, menja se dnevno) POMEŠANI u istom putovanju, već potpuno pokriveno M5 §3.0d.6a bez izmene. Ono što nedostaje su tri stvari specifične za VOĐENO putovanje, ne za običan smeštajni paket:
+
+**1. `has_expert_guide` (boolean) / `guide_language` (string, nullable)** — putovanje se realizuje u pratnji stručnog vodiča. Kad je `true`, M5 pretraga (poglavlje 3.0d.6b) prikazuje ovaj proizvod pod **sopstvenom ikonicom "Putovanja"**, odvojeno od običnih "Grupnih paketa" — isti `Product.type = PACKAGE` u bazi, dve ikonice u UI, isti obrazac kao `RENT_A_CAR` (sopstvena ikonica, pod-tip `TRANSPORT`, M5 §3.0d.3).
+
+**2. `optional_products[]`** (niz referenci na `Product.id`, isti oblik kao `included_products[]`) — fakultativni izleti/usluge koje NISU deo osnovne cene. Razlika od `included_products[]` je namerna i bitna za cenovanje (M5 §3.0d.6a): `included_products[]` se UVEK sabira u cenu paketa; `optional_products[]` se nudi kao **dodatan izbor** pri pravljenju Ponude — cena se dodaje SAMO ako ga gost izabere, isto poreklo cene (`CONTRACTED`/`API`) kao i svaki drugi proizvod, samo van automatskog zbira.
+
+**3. `daily_program[]`** — strukturiran program po danima, ne slobodan tekst (isti princip kao `itinerary_ports[]` kod `CRUISE`, poglavlje 2.3 tabela — redosled nosi značenje, mora biti mašinski čitljiv, ne samo prikaziv):
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| day_number | integer | redni broj dana putovanja, počev od 1 |
+| title | string | kratak naslov dana, npr. "Beograd — Tbilisi" ili "Manastiri Sanahin i Haghpat, jezero Sevan" |
+| description | text | opis aktivnosti tog dana |
+| meals | niz enum: `BREAKFAST`, `LUNCH`, `DINNER`, nullable | koji obroci su uključeni tog dana; prazno = nijedan naveden |
+| overnight_product_id | UUID, nullable (FK → `Product.id` iz `included_products[]`) | koji smeštaj (ako ga taj dan ima) je noćenje tog dana — veže dan za konkretnu stavku iz `included_products[]`, umesto da se smeštaj ponavlja kao slobodan tekst |
+
+**Kalendarski datum se NE čuva na `daily_program[]`** — izvodi se u prikazu iz `PackageDeparture.departure_date + (day_number - 1)`, isti princip kao `PackageDeparture.return_date` koji se već izvodi iz `departure_date + duration_days` (M5 §3.0d.6). Razlog: isto putovanje ima više termina (više `PackageDeparture` redova), program po danima je isti za sve njih — čuvanje fiksnog datuma na programu bi ga vezalo za JEDAN termin.
+
+**`day_number` mora pokrivati `1..duration_days` bez rupa da bi se paket smatrao potpuno opisanim** — paket sa `has_expert_guide = true` i nepotpunim/praznim `daily_program[]` se i dalje može objaviti (nema tvrde validacije), ali prikazuje jasno "program putovanja u pripremi" umesto prazne/nepotpune tabele (isti princip "prazan ekran je prazna baza, ne pokvaren kod").
+
+**Namerno van obima ove dopune:** ekran za unos/uređivanje `daily_program[]` u panelu (M17) — čeka svoj prolaz, isto stanje kao ostatak PACKAGE CRUD-a; da li se `optional_products[]` prikazuje i gostu na M8/M7, ili prvo samo internom timu (M17) — verovatno oba, ali M8/M7 prikaz čeka da M8/M7 tok pravljenja Ponude uopšte podrži izbor opcionih stavki, van obima M2. Upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
 
 ---
 

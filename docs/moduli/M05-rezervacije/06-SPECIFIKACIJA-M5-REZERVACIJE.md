@@ -4,6 +4,13 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.35 — Ikonica "Putovanja" stvarno ožičena u panelu (5.9.2026, nalaz vlasnika: "ne vidim ikonu za putovanja u pretrazi" — v2.34 je opisala ikonicu u spec-u, ali `apps/panel/src/lib/search-product-types.ts` (jedan izvor istine za red ikonica, §3.0g.1) nije bio dopunjen u prethodnom prolazu). `PRODUCT_ICONS` dobija desetu stavku (`icon: 'flag'`, `types: ['PACKAGE']`, `hasExpertGuide: true`) pored postojeće "Grupni paketi" (isti `types`, bez ovog polja). `findIconByTypes`/`typeKeyOf`/`urlFor` (`SearchPanel.tsx`, `SearchCriteriaChip.tsx`) dopunjeni da razlikuju dva taba sa istim `types` nizom preko `hasExpertGuide` — bez toga bi "Grupni paketi" i "Putovanja" delili isto pamćenje kriterijuma (§3.0g.4) i klik bi menjao samo naziv, ne stvarnu pretragu. Stvaran `GET /search` poziv (`rezervacije/pretraga/page.tsx`) sad prosleđuje `hasExpertGuide=true` samo kad je taj tab aktivan — "Grupni paketi" ostaje nepromenjen (i dalje vraća sve PACKAGE proizvode). **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo kroz browser nije potvrđeno (razvojni nalog zahteva 2FA podešavanje pri prvoj prijavi, van obima ove izmene) — isto ograničenje kao većina ranijih panel provera u ovom dokumentu.
+**Verzija:** 2.34 — "Putovanja" dobijaju sopstvenu ikonicu pretrage, poglavlje 3.0d.6b (5.9.2026, vlasnikov zahtev, konkretan primer sa olympic.rs). Broj ikonica u §3.0g.1/§3.0g.5 raste sa devet na **deset** — `PACKAGE` sa `has_expert_guide = true` (M2 §2.3f, isti prolaz) dobija sopstvenu ikonicu "Putovanja", odvojenu od "Grupni paketi", isti obrazac kao `RENT_A_CAR` pod `TRANSPORT`. Detalji: §3.0d.6b ispod.
+
+**Verzija:** 2.33 — Pretraga po aktivnosti, poglavlje 3.0c.3e (5.9.2026, vlasnikov zahtev: "mnogi se odlučuju da idu na destinaciju na osnovu aktivnosti — biciklizam, planinarenje, lov... dajte predlog za tu vrstu pretrage"). Nov ulaz u pretragu, pored postojećeg geografskog toka (§3.0c.2): gost/agent bira `ActivityTag` (M2 §2.1c), sistem vraća destinacije čiji `DestinationProfile.activities[]` sadrži tu vrednost. Uz to, dizajn dokument §6d dobija dve dopune: "Aktivnosti" postaje **sopstvena, uvek-otvorena grupa** u panelu filtera (ne sklopljena kao amenity tagovi, ne pinovana pojedinačno kao brzi filteri), i kontekstualni filteri iz §3.0c.3d (v2.32) dobijaju suptilnu oznaku koja objašnjava zašto se filter povremeno ne prikazuje — sprečava utisak kvara kad filter nestane za drugu destinaciju/mesec. Detalji: §3.0c.3e ispod.
+
+**Verzija:** 2.32 — Kontekstualni filteri po tipu destinacije i sezoni, poglavlje 3.0c.3d (5.9.2026, vlasnikov zahtev: "nervira me kad gledam hotel u unutrašnjosti a postoji filter za udaljenost od mora") — novi entitet `FilterDefinition` (katalog svih filtera pretrage smeštaja, sa opcionim `applicable_destination_types[]` i `active_months[]`) odlučuje koji filter se uopšte PRIKAZUJE za datu pretragu, na osnovu `DestinationProfile.destination_type` destinacije (M2 §2.1c, novi entitet, isti prolaz) i trenutnog meseca pretrage. Primer: "udaljenost od mora" se ne nudi za `MOUNTAIN`/`URBAN`/`RURAL` destinacije; "blizina ski lifta" se ne nudi van zimskih meseci čak ni za `MOUNTAIN` destinaciju. Detalji: §3.0c.3d ispod.
+
 **Verzija:** 2.31 — `font-medium` nije bilo dovoljno podebljano — `font-semibold` (4.9.2026, na zahtev vlasnika: "meni tako ne deluje", uz snimak ekrana koji pokazuje da tri reda i dalje ne odskaču od pozadine). Sva tri reda (destinacija/država, tip smeštaja/usluga, termin/noćenja/putnika) prebačena sa `font-medium` na `font-semibold` — ista debljina kao naziv proizvoda iznad, jasna i nedvosmislena razlika u odnosu na običan tekst, umesto suptilnog koraka koji se u praksi nije osetio. Treći red (termin/noćenja/putnici) uz to prebačen sa `ink-faint` na `ink-dim` — razlika između te dve nijanse boje nije bila dovoljno uočljiva da opravda zadržavanje najbleđeg tona. Napomena: vlasnikov snimak je pokazivao žućkasto-braon nijansu teksta koje nijedan token u `globals.css`/`tailwind.config.ts` ne proizvodi (`--text-dim`/`--text-faint` su tamno sive/skoro crne u svetloj temi) — verovatno filter tople boje na monitoru/OS-u (npr. Night Light), van domašaja ove izmene; `font-semibold` je namerno robustan izbor koji ostaje čitljiv bez obzira na takav filter, jer menja OBLIK slova, ne samo boju. **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo potvrđeno da su sva tri reda vizuelno iste debljine kao naziv proizvoda.
 
 **Verzija:** 2.30 — Podebljana destinacija/tip smeštaja/termin u stavci Aranžmana (4.9.2026, na zahtev vlasnika, neposredan nastavak v2.29: "ove informacije podebljajte"). Sva tri reda (destinacija/država, tip smeštaja/usluga, termin/noćenja/putnika) dobijaju `font-medium` — veličina/boja i dalje nose glavnu razliku u težini iz v2.29, podebljanje je dodatan korak preko sve tri linije, uključujući i termin/noćenja/putnika koji ostaju vizuelno najtiši (i dalje `text-[11px] text-ink-faint`, samo sad i `font-medium`). **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo, sa stvarno povezanim `rateLine`/`ContractPeriod` (soba+usluga podaci) — sve tri linije potvrđene čitljivo podebljane, tekst se poklapa sa vlasnikovim citiranim primerom ("Standardna soba (STD) · Polupansion (HB) · 2 odraslih").
@@ -470,6 +477,45 @@ Dva para filtera koji ostaju **vrlo vidljivi**, ne sklopljeni unutar grupe kao o
 - **Odmah potvrda / Upit** — filtrira po već postojećem `SearchResultOffer.availability_status` (poglavlje 3.0b.2): "Odmah potvrda" = `AVAILABLE`, "Upit" = `ON_REQUEST`. Filtrira se **na klijentu** nad već dobijenim rezultatima, isti princip kao "vrsta usluge" (poglavlje 3.0c.2, tačka 3) — polje već postoji u odgovoru, nema potrebe za novim parametrom `GET /search`.
 - **Refundabilno / Nerefundabilno** — filtrira po `SearchResultOffer.is_refundable` (poglavlje 3.0b.2). Isto klijentsko filtriranje. Polje je uvek `boolean` (dopuna 1.9.2026 — više ne postoji `null` slučaj, izračunato za oba izvora), pa se ovaj filter ponaša isto kao "vrsta usluge"/"Odmah potvrda/Upit" iznad, bez posebnog trećeg stanja. **Sam filter UI i dalje čeka žicu** — `/rezervacije/pretraga` je i dalje potpuno MOCK ekran (poglavlje 3.0b.2 dopuna 1.9.2026), poznat nedostatak, ne prećutan.
 
+### 3.0c.3d Kontekstualni filteri po tipu destinacije i sezoni (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikova primedba — filter "udaljenost od mora" se prikazivao i za hotele u unutrašnjosti, gde nema smisla; isti problem postoji i obrnuto (npr. "blizina ski lifta" van zimske sezone). Rešenje uvodi jedan nov entitet koji odlučuje koji filter se uopšte PRIKAZUJE, nezavisno od toga da li bi filtriranje po njemu tehnički "radilo".
+
+**`FilterDefinition`** — katalog svih filtera koje pretraga smeštaja zna da ponudi (cena, zvezdice, ocena gostiju, `amenity_tags[]` iz M2 §2.3c, "vrsta usluge", "odmah potvrda/upit", "refundabilno", i novi lokacijski/sezonski filteri poput "udaljenost od mora"/"blizina ski lifta"):
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| key | string (PK) | npr. `DISTANCE_TO_SEA`, `DISTANCE_TO_SKI_LIFT`, `PRICE`, `STAR_RATING` — stabilan tehnički identifikator |
+| applicable_destination_types | niz `DestinationType` (M2 §2.1c), nullable | `null`/prazno = filter je relevantan za SVAKI tip destinacije (npr. cena, zvezdice, wi-fi) — ne menja se ponašanje postojećih filtera |
+| active_months | niz brojeva 1–12, nullable | `null`/prazno = filter je relevantan celu godinu |
+
+**Pravilo prikaza:** filter iz `FilterDefinition` se nudi u datoj pretrazi samo ako (a) `applicable_destination_types` je prazno, ILI bar jedna destinacija iz rezultata pretrage ima `DestinationProfile.destination_type` na toj listi, **I** (b) `active_months` je prazno, ILI je trenutni mesec pretrage na toj listi. Oba uslova moraju proći — tip destinacije sam po sebi nije dovoljan za sezonski filter (primer ispod).
+
+**Konkretan primer (potvrđen sa vlasnikom):** pretraga za Bad Klajnkirhajm (Austrija, `destination_type = MOUNTAIN`) za jul 2027. "Blizina ski lifta" ima `applicable_destination_types = [MOUNTAIN]` (uslov a prolazi) i `active_months = [11,12,1,2,3]` (uslov b NE prolazi, jul nije na listi) — filter se **ne prikazuje**, iako je destinacija planinska. Postojeći generički filteri (cena, zvezdice, ocena, `amenity_tags[]`) imaju oba polja prazna i ponašaju se identično kao danas — ova dopuna ne menja njihov prikaz.
+
+**Odnos prema postojećem klijentskom filtriranju (§3.0c.3b):** ovo pravilo odlučuje KOJI filteri se uopšte iscrtavaju u UI (pre bilo kakvog klika), ne menja kako se filtriranje izvršava kad je filter već prikazan — filteri koji prođu proveru i dalje rade klijentski nad već dobijenim rezultatima, isti mehanizam kao ostatak §3.0c.3.
+
+**Poreklo `DestinationProfile`/`destination_type` po destinaciji:** M2 §2.1c — AI predlaže, čovek potvrđuje, jednom po destinaciji (ne po proizvodu). Destinacija bez profila se ponaša kao da nema tip: filteri sa `applicable_destination_types` popunjenim se za nju ne prikazuju (isti princip "nepoznata vrednost se ne pogađa" kao M2 §2.1a).
+
+**Namerno van obima ovog prolaza:** tačan, kompletan spisak koji od budućih lokacijskih/sezonskih filtera (osim gore navedena dva primera) ulazi u `FilterDefinition` i sa kojim vrednostima — čeka konkretnu listu filtera koje vlasnik/tim smatra vrednim uvođenja, upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`; sezonski izuzetak po POJEDINAČNOJ destinaciji (mesto koje leti radi "jezersko" a zimi "planinsko") — danas `destination_type` (M2 §2.1c) je jedna, celogodišnja vrednost po mestu, sezonska granularnost postoji samo na nivou filtera, ne destinacije.
+
+### 3.0c.3e Pretraga po aktivnosti (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikov nalaz — sve više gostiju bira DESTINACIJU na osnovu aktivnosti koju žele da rade (biciklizam, planinarenje, lov, ribolov...), ne obrnuto. Postojeći geografski tok (§3.0c.2: zemlja → destinacija/hotel → smeštaj) pretpostavlja da gost već zna gde želi da ide.
+
+**Nov, alternativan ulaz u pretragu:**
+1. Gost/agent bira jedan `ActivityTag` (M2 §2.1c) — npr. "Biciklizam".
+2. Sistem vraća **destinacije** čiji `DestinationProfile.activities[]` sadrži tu vrednost (isti entitet kao §3.0c.3d, samo drugo polje), po mogućstvu sortirane po broju `EXCURSION` proizvoda tog `activity_type` u toj destinaciji (§2.1c napomena o tri nivoa).
+3. Klik na destinaciju vodi u već postojeći geografski tok (§3.0c.2), predfiltriran na tu destinaciju i (kad postoje) na `EXCURSION` proizvode istog `activity_type`.
+
+Ovo NE zamenjuje geografski tok — dva su nezavisna, ravnopravna ulaza u istu pretragu (isti podaci, različita polazna tačka), isti princip kao što M15 omnisearch (kad dobije pristup ovim istim podacima) može odgovoriti na "želim biciklizam" bez novog mehanizma, samo čitanjem `DestinationProfile.activities[]`.
+
+**Panel filtera — "Aktivnosti" kao sopstvena grupa (dizajn dokument §6d dopuna).** Za razliku od amenity tagova (§3.0c.3, podrazumevano sklopljeni dok se ne koriste), grupa "Aktivnosti" ostaje **uvek otvorena** kad je prisutna u trenutnoj pretrazi — razlog je da ovo, po vlasnikovom opisu, sve više postaje PRIMARNI kriterijum izbora, ne sporedan detalj koji se traži tek kad se destinacija već zna. Nije pinovana pojedinačno kao brzi filteri (§3.0c.3a, "Odmah potvrda/Upit"/"Refundabilno") — ti su specifični za trenutak zaključivanja prodaje, ovo je specifično za sam izbor destinacije.
+
+**Kontekstualni filteri dobijaju objašnjenje, ne samo tiho nestajanje (dizajn dokument §6d dopuna).** Filteri iz `FilterDefinition` (§3.0c.3d) koji se pojavljuju/nestaju po destinaciji/mesecu dobijaju suptilnu oznaku (npr. mala info-ikonica sa tekstom "prikazano za ovu destinaciju/period") — bez ovoga, korisnik koji retko menja destinaciju može pomisliti da je nestanak filtera greška, ne namerno ponašanje. Namerno BEZ posebne grupe/isticanja (za razliku od "Aktivnosti" iznad) — svrha je samo da nestajanje ne deluje kao kvar, ne da se dodatno istakne.
+
+**Namerno van obima ovog prolaza:** da li se prikazuje kao poseban ekran/dugme na M8/M17 ili se ugrađuje u M15 omnisearch (verovatno oba, ali omnisearch deo ne zahteva novi mehanizam — samo pristup istim podacima); tačan izgled ulaznog ekrana "Pretraga po aktivnosti" (M17/M8 dizajn, čeka svoj prolaz kao i ostatak dizajn dokumenta §6d).
+
 Oba filtera su nezavisna jedan od drugog i od ostatka sekcije "Filteri" (I-logika sa svim ostalim aktivnim filterima, isto kao amenity tagovi).
 
 **Dopuna 3.9.2026 (vlasnikova odluka) — mesto se menja, i filter je ožičen.**
@@ -564,6 +610,18 @@ Vlasnikova odluka (17.8.2026): "Grupna putovanja" i "Grupni paketi" su ista stav
 
 **Otvoreno, ne rešeno ovom odlukom:** kako TT modeluje popust na nivou paketa (stvaran "paket je jeftiniji od zbira pojedinačnih komponenti" slučaj, čest u praksi) — predlog za kasnije je da se to reši kroz postojeći `MarkupRule` mehanizam (poglavlje 2.1, uslovno pravilo koje se primenjuje kad su stavke grupisane pod istim paket-proizvodom), ne kroz nov M3 entitet — tačan oblik tog pravila nije razrađen ovde, čeka posebnu odluku kad se pokaže stvarna potreba.
 
+### 3.0d.6b "Putovanja" — grupni paket sa vodičem i programom po danima (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikov primer — putovanje u Gruziju/Jermeniju, 8 dana/7 noćenja, u pratnji stručnog vodiča, konkretna referenca `olympic.rs` (program po danima, sa datumom/destinacijom/aktivnostima/obrocima/noćenjem za svaki dan). Podaci: M2 §2.3f (isti prolaz) — `PACKAGE.attributes` dobija `has_expert_guide`/`guide_language`, `optional_products[]` (fakultativni izleti, van osnovne cene) i `daily_program[]` (strukturiran program po danima).
+
+**Pretraga:** ista kao "Grupni paketi" (§3.0d.6) — `destination_country`/`destination_city`, `occupancy`, termin sa liste `PackageDeparture` — jedina razlika je `GET /search?type=PACKAGE&has_expert_guide=true` (novi opcioni parametar) koji razdvaja "Putovanja" od običnih paketa. **Nema novog `Product.type`, nema nove logike cenovanja** — mešanje `CONTRACTED`/`API` sastojaka (§3.0d.6a) i izvođenje `return_date` (§3.0d.6) rade nepromenjeno.
+
+**Prikaz — program po danima.** Ekran proizvoda/ponude prikazuje `daily_program[]` kao listu dana (naslov, opis, obroci, noćenje), kalendarski datum svakog dana izveden iz izabranog `PackageDeparture.departure_date + (day_number - 1)` (M2 §2.3f) — isti princip kao izvođenje `return_date`, ne čuva se dupliran datum.
+
+**Fakultativni izleti u toku Ponude.** `optional_products[]` se nudi kao poseban, jasno obeležen odeljak ("Dodatni izleti — plaćaju se posebno") pri pravljenju Ponude za ovo putovanje (§3.0e.3, desni panel) — cena se dodaje u zbir SAMO ako gost/agent izabere stavku, za razliku od `included_products[]` koji je uvek u osnovnoj ceni. Ovo je specifično za KONKRETNO putovanje (kurirano od strane tima pri unosu proizvoda), ne generički predlog unakrsne prodaje (§3.0e.1, i dalje neimplementirana backlog stavka) — dve odvojene stvari koje se ne mešaju.
+
+**Namerno van obima ove dopune:** ekran za unos `daily_program[]` u panelu (M17/M2 katalog) — čeka svoj prolaz; prikaz `optional_products[]` gostu na M8/M7 (van obima dok ti kanali uopšte ne podrže izbor opcionih stavki u toku Ponude). Upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
+
 ### 3.0d.7 Krstarenja (`CRUISE`)
 `destination_country` (ili region — `attributes.itinerary_ports[]` sadrži zemlje svake luke, pretraga po regionu je pretraga po bilo kojoj luci u tom regionu, ne novo polje), `stay_from` (datum/mesec polaska), `occupancy.adults`/`children`, `duration_nights` (novi opcioni parametar, opseg trajanja), `cabin_type` (novi opcioni parametar — filtrira `SearchResultOffer` na `cabin_types[].category`, isti mehanizam kao `cabin_class` za letove).
 
@@ -585,7 +643,7 @@ Polja ispod su proverena naspram onoga što velike platforme i profesionalni API
 
 Vlasnikova odluka (2.9.2026), menja dosadašnji raspored iz `29-DIZAJN-SISTEM-UI.md` §5b:
 
-1. **Ikonice svih devet vrsta proizvoda — centrirane pri vrhu centralnog panela**, ne u levom panelu. Postavlja se **svih devet**, uključujući i one bez izvora podataka (vidi 3.0g.5).
+1. **Ikonice svih deset vrsta proizvoda — centrirane pri vrhu centralnog panela**, ne u levom panelu. Postavlja se **svih deset** (deseto je "Putovanja", §3.0d.6b, dodato 5.9.2026), uključujući i one bez izvora podataka (vidi 3.0g.5).
 2. **Forma pretrage ispod ikonica, u centralnom panelu** — različita za svaku vrstu proizvoda (poglavlje 3.0g.6), jer se skupovi polja stvarno razlikuju.
 3. **Levi panel sadrži isključivo filtere**, i oni se menjaju prema aktivnoj vrsti proizvoda. Broj presedanja i udaljenost od plaže nemaju šta jedno kraj drugog — ista tvrdnja koju §3.0c.3/§3.0d.1 već prave na nivou podataka, ovde primenjena na ekran.
 4. **Rezultati ispod forme**, izbor i dalje ide u desni panel (§3.0e.3, nepromenjeno).
@@ -625,7 +683,7 @@ Kriterijumi aktivne pretrage ostaju u adresi (`searchParams`, već tako radi) da
 
 ### 3.0g.5 Vrsta proizvoda bez izvora podataka dobija poruku, ne praznu listu
 
-Od devet vrsta, pet danas nema nijedan ugovor (M3) niti provajdera (M4) iza sebe: **krstarenja, putno osiguranje, rent-a-car, grupni paketi** i **individualni paketi** (ovaj poslednji i strukturno — otvara nacrt, poglavlje 3.0d.5, koji još nema ekran). Vlasnikova odluka je da se svih devet ikonica ipak postavi.
+Od deset vrsta, šest danas nema nijedan ugovor (M3) niti provajdera (M4) iza sebe: **krstarenja, putno osiguranje, rent-a-car, grupni paketi, individualni paketi** (ovaj poslednji i strukturno — otvara nacrt, poglavlje 3.0d.5, koji još nema ekran) i **putovanja** (§3.0d.6b, dodato 5.9.2026 — isti razlog kao grupni paketi, deli `PACKAGE` bazu bez ijednog unetog proizvoda sa `has_expert_guide = true`). Vlasnikova odluka je da se svih deset ikonica ipak postavi.
 
 **Ispravka (2.9.2026, pri implementaciji ovog poglavlja):** ranija verzija ovog teksta je tvrdila da `CRUISE` ne postoji kao vrednost `ProductType` enuma u šemi. **To više nije tačno** — vrednost je dodata 21.8.2026 (commit `8a52578`, "M2/M5/M16: dodaje CRUISE u ProductType semu, otkljucava M17 ikonicu Krstarenja"), dvanaest dana pre nego što je ovo poglavlje napisano. Krstarenja stoje tačno u istom položaju kao ostale četiri vrste iz ove liste: enum i ikonica postoje, ugovor (M3) i provajder (M4) ne — pa je poruka iz ovog poglavlja i dalje ispravan prikaz, samo iz drugog razloga nego što je pisalo.
 

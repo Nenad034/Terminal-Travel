@@ -56,6 +56,17 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M2 spec §2.1c (dopuna 5.9.2026) — CRUD nad DestinationProfile (tip destinacije +
+    // aktivnosti), backend gotov (commit 351b2fd); ovo je prvi panel prikaz nad njim.
+    id: 'destinacije',
+    label: 'Profili destinacija',
+    icon: 'globe',
+    href: '/katalog/destinacije',
+    permission: { module: 'M2', resource: 'destination-profile', action: 'VIEW' },
+    phase: 1,
+    implemented: true,
+  },
+  {
     id: 'dobavljaci',
     label: 'Dobavljači i ugovori',
     icon: 'briefcase',
@@ -264,7 +275,7 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
   { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
-  { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'dobavljaci'] },
+  { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'destinacije', 'dobavljaci'] },
   { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
   { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },
   { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },

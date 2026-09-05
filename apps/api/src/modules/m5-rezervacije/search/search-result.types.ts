@@ -23,6 +23,22 @@ export interface SearchResultOffer {
   packageDepartureDate: string | null;
 }
 
+/**
+ * M2 spec §2.3f `attributes.daily_program[]` — strukturiran program po danima za "Putovanja"
+ * (`PACKAGE` sa `has_expert_guide = true`, M5 spec §3.0d.6b). Kalendarski datum se namerno NE
+ * nosi ovde — izvodi se u prikazu iz `PackageDeparture.departureDate + (dayNumber - 1)`, isti
+ * princip kao izvođenje `packageDepartureDate`/`return_date` (M5 §3.0d.6), jer isti program važi
+ * za sve termine tog putovanja.
+ */
+export interface DailyProgramDay {
+  dayNumber: number;
+  title: string;
+  description: string;
+  meals: ('BREAKFAST' | 'LUNCH' | 'DINNER')[] | null;
+  /** FK → `Product.id` iz `included_products[]` — koje noćenje (ako ga taj dan ima) je taj dan. */
+  overnightProductId: string | null;
+}
+
 export interface SearchResultProduct {
   productId: string;
   type: string;
@@ -64,9 +80,46 @@ export interface SearchResultProduct {
    * nije smeštaj i za smeštaj kome kategorija nije uneta.
    */
   stars: number | null;
+  /**
+   * M2 spec §2.1c `DestinationProfile.destination_type` — tip destinacije (COASTAL/MOUNTAIN/...),
+   * lookup po (destinationCountry, destinationCity) ovog proizvoda.
+   *
+   * Dodato 5.9.2026, M5 spec §3.0c.3d — bez ovoga klijent ne zna koji kontekstualni filter
+   * (npr. "udaljenost od mora") ima smisla za rezultate trenutne pretrage. `null` kad destinacija
+   * nema profil (nov grad, još netagovan) — "nepoznata vrednost se ne pogađa", isto pravilo kao
+   * M2 §2.1a. Klijentska logika (koji filter prikazati) je van obima ovog prolaza.
+   */
+  destinationType: string | null;
   thumbnail: { url: string; category: string } | null;
   shortDescription: string | null;
+  /**
+   * M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — samo `PACKAGE`. `true` kad je putovanje
+   * u pratnji stručnog vodiča (`attributes.has_expert_guide`) — ovo je mehanizam kojim klijent
+   * razdvaja ikonicu "Putovanja" od "Grupni paketi", isti `Product.type = PACKAGE` u bazi.
+   * `null` za sve ostale tipove proizvoda i za PACKAGE kome polje nije uneto.
+   */
+  hasExpertGuide: boolean | null;
+  /** M2 spec §2.3f — samo `PACKAGE` sa `has_expert_guide = true`, jezik na kom vodič radi. `null` inače. */
+  guideLanguage: string | null;
+  /** M2 spec §2.3f `attributes.daily_program[]` — vidi `DailyProgramDay`. `null` kad nije uneto. */
+  dailyProgram: DailyProgramDay[] | null;
+  /**
+   * M2 spec §2.3f `attributes.optional_products[]` — fakultativni izleti/usluge VAN osnovne cene
+   * paketa (za razliku od `included_products[]`, koji je uvek u zbiru). M5 spec §3.0d.6b: samo
+   * spisak `Product.id` referenci — klijent po potrebi dovlači detalje/cenu svakog posebno (isti
+   * princip kao svaki drugi proizvod), ovaj mehanizam samo otkriva ŠTA je ponuđeno uz ovo putovanje.
+   * `null` za proizvode koji nemaju nijedan fakultativan izlet.
+   */
+  optionalProductIds: string[] | null;
   offers: SearchResultOffer[];
+}
+
+/** Stavka rezultata M5 spec §3.0c.3e — pretraga po aktivnosti. */
+export interface ActivityDestinationResult {
+  destinationCountry: string;
+  destinationCity: string;
+  /** Broj `EXCURSION` proizvoda istog `activity_type` u ovoj destinaciji (§2.1c napomena o tri nivoa). */
+  excursionCount: number;
 }
 
 /**

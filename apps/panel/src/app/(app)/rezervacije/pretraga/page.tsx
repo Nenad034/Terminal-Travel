@@ -13,6 +13,7 @@ import FlightResultsMock from './FlightResultsMock';
 import TransferResultsMock from './TransferResultsMock';
 import ExcursionResultsMock from './ExcursionResultsMock';
 import RealResults from './RealResults';
+import ActivitySearchEntry from './ActivitySearchEntry';
 import type { SearchResult } from './types';
 
 
@@ -84,6 +85,9 @@ export default async function SearchPage(
     // kao pravi upitni parametar (I-logika na serveru); ostali (cena/dostupnost/vrsta usluge)
     // ostaju klijentski nad već dobijenim rezultatima, isti obrazac kao ispod.
     for (const tag of normalizeTypes(searchParams.amenityTags)) params.append('amenityTags', tag);
+    // M5 spec §3.0d.6b (dopuna 5.9.2026) — samo "Putovanja"; bez ovoga "Grupni paketi" i
+    // "Putovanja" bi zvali identičan `GET /search` i vraćali isti, nefiltriran skup.
+    if (first(searchParams.hasExpertGuide) === 'true') params.set('hasExpertGuide', 'true');
 
     try {
       results = await apiFetch<SearchResult[]>(`/sales/search?${params.toString()}`);
@@ -111,7 +115,7 @@ export default async function SearchPage(
   const usesMock = ['ACCOMMODATION', 'FLIGHT', 'TRANSFER'].includes(singleType ?? '') || isThingsToDo;
   const showsResults = hasQuery && !error && (usesMock || results.length > 0);
 
-  const activeIcon = findIconByTypes(types);
+  const activeIcon = findIconByTypes(types, first(searchParams.hasExpertGuide) === 'true');
 
   // M5 spec §3.0h — prikaz lista/mapa. Mapa se nudi SAMO kad stvarno ima šta da prikaže:
   // smeštaj (mock ima koordinate gradova) i pravi rezultati koji nose `geoLat`/`geoLng`.
@@ -155,6 +159,8 @@ export default async function SearchPage(
     // nosi naziv ekrana (RegisterTab ispod), pa je naslov ponavljao ono što je vidljivo iznad.
     <div className="flex min-h-full flex-col px-6 pb-6 pt-2">
       <RegisterTab label="Pretraga" />
+
+      <ActivitySearchEntry />
 
       <SearchPanel hasResults={showsResults} />
 
