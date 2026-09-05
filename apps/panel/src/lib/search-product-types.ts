@@ -39,6 +39,12 @@ export interface ProductIconDef {
    * poklapanje i po `types` i po ovom polju, da dva taba sa istim `types` nizom ostanu razdvojiva.
    */
   hasExpertGuide?: boolean;
+  /**
+   * Prikaži `icon` DVA PUTA, blago preklopljeno (`Icon.tsx` → `IconDuo`), umesto jednom —
+   * `@vscode/codicons` nema jedinstven glif za "grupu ljudi", samo `person` za jednu osobu.
+   * Dodato 5.9.2026 na vlasnikov zahtev ("stavite dve ikone čoveka jer je putovanje grupno").
+   */
+  iconDuo?: boolean;
 }
 
 export const PRODUCT_ICONS: ProductIconDef[] = [
@@ -65,6 +71,7 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     // stručnog vodiča koji putovanje razlikuje od običnog "Grupnog paketa".
     label: 'Putovanja',
     icon: 'person',
+    iconDuo: true,
     types: ['PACKAGE'],
     hasExpertGuide: true,
     emptyMessage: 'Putovanja sa vodičem još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',

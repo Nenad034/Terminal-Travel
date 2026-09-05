@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Icon from './Icon';
+import Icon, { IconDuo } from './Icon';
 import { describeRooms, parseRooms } from '@/lib/search-rooms';
 import { findIconByTypes } from '@/lib/search-product-types';
 import { SAVED_VIEWS_CHANGED_EVENT, type SavedView } from './SavedViewsSidebarPanel';
@@ -167,7 +167,11 @@ export default function SearchCriteriaChip({
           da razvuku red u jednu nečitku traku. */}
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-full border border-accent bg-accent-soft px-3 py-1.5 text-xs text-ink">
         <div className="flex flex-wrap items-center gap-2">
-          <Icon name={icon?.icon ?? 'search'} className="text-accent-strong" />
+          {icon?.iconDuo ? (
+            <IconDuo name={icon.icon} className="text-accent-strong" />
+          ) : (
+            <Icon name={icon?.icon ?? 'search'} className="text-accent-strong" />
+          )}
           <span className="font-semibold">{label}</span>
           {destination && <span className="text-ink-dim">· {destination}</span>}
           {dates && <span className="text-ink-dim">· {dates}</span>}

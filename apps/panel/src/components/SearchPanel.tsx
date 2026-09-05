@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Icon from './Icon';
+import Icon, { IconDuo } from './Icon';
 import SearchCriteriaForm, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaForm';
 import SearchCriteriaChip from './SearchCriteriaChip';
 import { useSearchState } from './SearchStateContext';
@@ -186,7 +186,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
               }`}
             >
               {/* +20% u odnosu na `text-lg` (18px → 21.6px), 4.9.2026 na zahtev vlasnika. */}
-              <Icon name={p.icon} className="text-[1.35rem]" />
+              {p.iconDuo ? <IconDuo name={p.icon} className="text-[1.35rem]" /> : <Icon name={p.icon} className="text-[1.35rem]" />}
               <span className="text-center">{p.label}</span>
             </button>
           );
