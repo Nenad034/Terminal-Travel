@@ -29,8 +29,11 @@ const CRITERIA_KEYS = [
   'priceMin', 'priceMax', 'availability', 'boardTypes', 'amenityTags',
 ];
 
-function typeKeyOf(types: string[]): string {
-  return [...types].sort().join('+');
+// M5 spec §3.0d.6b (dopuna 5.9.2026) — `hasExpertGuide` ulazi u ključ da "Grupni paketi" i
+// "Putovanja" (isti `types: ['PACKAGE']`) ostanu dva odvojena tab-a sa sopstvenim pamćenjem
+// kriterijuma (§3.0g.4), ne isti unos koji bi se međusobno prepisivao.
+function typeKeyOf(types: string[], hasExpertGuide?: boolean): string {
+  return [...types].sort().join('+') + (hasExpertGuide ? '+guide' : '');
 }
 
 /** Izvlači kriterijume tekuće vrste iz adrese, kao query string bez `type`. */
@@ -42,9 +45,12 @@ function criteriaFromParams(sp: URLSearchParams): string {
   return out.toString();
 }
 
-function urlFor(types: string[], criteria: string): string {
+function urlFor(types: string[], criteria: string, hasExpertGuide?: boolean): string {
   const next = new URLSearchParams(criteria);
   for (const t of types) next.append('type', t);
+  // M5 spec §3.0d.6b — samo "Putovanja" dodaje ovaj parametar; "Grupni paketi" ga izostavlja i
+  // time i dalje vraća SVE PACKAGE proizvode (vodjene i obicne), nepromenjeno ponašanje.
+  if (hasExpertGuide) next.set('hasExpertGuide', 'true');
   return `/rezervacije/pretraga?${next.toString()}`;
 }
 
@@ -55,8 +61,11 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
   const { items } = useSelection();
 
   const types = sp.getAll('type');
-  const activeIcon = findIconByTypes(types);
-  const typeKey = typeKeyOf(types);
+  // M5 spec §3.0d.6b (dopuna 5.9.2026) — razdvaja "Grupni paketi" od "Putovanja" (isti
+  // types: ['PACKAGE']) preko ovog upitnog parametra, ne preko novog Product.type.
+  const hasExpertGuideParam = sp.get('hasExpertGuide') === 'true';
+  const activeIcon = findIconByTypes(types, hasExpertGuideParam);
+  const typeKey = typeKeyOf(types, hasExpertGuideParam);
   // M5 spec §3.0d.5a — „Individualni paketi" je jedan prekidač, ne poseban ekran: dok je
   // uključen, svaka sledeća pretraga preuzima datum poslednje stavke iz desnog panela.
   const packageMode = isPackageMode(sp);
@@ -79,7 +88,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
   useEffect(() => {
     for (const p of PRODUCT_ICONS) {
       if (p.locked || p.types.length === 0) continue;
-      router.prefetch(urlFor(p.types, criteriaFor(typeKeyOf(p.types)) ?? ''));
+      router.prefetch(urlFor(p.types, criteriaFor(typeKeyOf(p.types, p.hasExpertGuide)) ?? '', p.hasExpertGuide));
     }
   }, [typeKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,7 +112,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
       return;
     }
     if (p.locked || p.types.length === 0) return;
-    const target = typeKeyOf(p.types);
+    const target = typeKeyOf(p.types, p.hasExpertGuide);
     if (target === typeKey) {
       setExpanded((v) => !v);
       return;
@@ -121,12 +130,12 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
       if (inherited) nextCriteria.set('stayFrom', inherited);
     }
     if (packageMode) nextCriteria.set('paket', '1');
-    router.push(urlFor(p.types, nextCriteria.toString()));
+    router.push(urlFor(p.types, nextCriteria.toString(), p.hasExpertGuide));
   }
 
   function reset() {
     forgetCriteria(typeKey);
-    router.push(urlFor(types, ''));
+    router.push(urlFor(types, '', hasExpertGuideParam));
     setExpanded(true);
   }
 
@@ -148,7 +157,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
              page.tsx (§3.0g.5), ne izostavljena ikonica. */}
       <div className="mb-4 flex flex-wrap items-start justify-center gap-1">
         {PRODUCT_ICONS.map((p) => {
-          const active = p.packageMode ? packageMode : p.types.length > 0 && typeKeyOf(p.types) === typeKey;
+          const active = p.packageMode ? packageMode : p.types.length > 0 && typeKeyOf(p.types, p.hasExpertGuide) === typeKey;
           const disabled = p.packageMode ? false : Boolean(p.locked) || p.types.length === 0;
           return (
             <button

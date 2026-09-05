@@ -68,7 +68,9 @@ export default function SearchCriteriaChip({
   const types = sp.getAll('type');
   if (types.length === 0) return null; // nema aktivne pretrage — nema šta da se sažme
 
-  const icon = findIconByTypes(types);
+  // M5 spec §3.0d.6b (dopuna 5.9.2026) — bez ovog flega bi "Putovanja" u skupljenom redu
+  // pokazivalo naziv "Grupni paketi" (isti types: ['PACKAGE']).
+  const icon = findIconByTypes(types, sp.get('hasExpertGuide') === 'true');
   const label = icon?.label ?? types.join(', ');
   const destination = [sp.get('destinationCity'), sp.get('destinationCountry')].filter(Boolean).join(', ');
   const dates = sp.get('stayFrom') && sp.get('stayTo') ? `${sp.get('stayFrom')} – ${sp.get('stayTo')}` : null;

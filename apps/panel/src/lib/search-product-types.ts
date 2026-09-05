@@ -31,6 +31,14 @@ export interface ProductIconDef {
    * paketi"; paket nije `Product.type` (§3.0d.5), zato mu `types` i ostaje prazan.
    */
   packageMode?: boolean;
+  /**
+   * M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — samo "Putovanja": isti
+   * `Product.type = PACKAGE` kao "Grupni paketi" (koje ovo polje nema), razdvojeno upitnim
+   * parametrom `hasExpertGuide`, ne novim tipom — isti obrazac kao "Rent-a-car" pod `TRANSPORT`.
+   * `urlFor` dodaje `hasExpertGuide=true` u adresu kad je postavljeno; `findIconByTypes` zahteva
+   * poklapanje i po `types` i po ovom polju, da dva taba sa istim `types` nizom ostanu razdvojiva.
+   */
+  hasExpertGuide?: boolean;
 }
 
 export const PRODUCT_ICONS: ProductIconDef[] = [
@@ -52,6 +60,13 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
     emptyMessage: 'Grupni paketi još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
   },
   {
+    label: 'Putovanja',
+    icon: 'flag',
+    types: ['PACKAGE'],
+    hasExpertGuide: true,
+    emptyMessage: 'Putovanja sa vodičem još nemaju ugovorene ponude — nijedan ugovor (M3) ni provajder (M4) još ne pokriva ovu vrstu.',
+  },
+  {
     label: 'Krstarenja',
     icon: 'globe',
     types: ['CRUISE'],
@@ -65,7 +80,13 @@ export const PRODUCT_ICONS: ProductIconDef[] = [
   },
 ];
 
-/** Nalazi definiciju čiji se `types` skup TAČNO poklapa sa zadatim (bez obzira na redosled). */
-export function findIconByTypes(types: string[]): ProductIconDef | undefined {
-  return PRODUCT_ICONS.find((p) => p.types.length > 0 && p.types.length === types.length && p.types.every((t) => types.includes(t)));
+/**
+ * Nalazi definiciju čiji se `types` skup TAČNO poklapa sa zadatim (bez obzira na redosled), I
+ * čiji `hasExpertGuide` fleg odgovara — bez ovog drugog uslova "Grupni paketi" i "Putovanja" (isti
+ * `types: ['PACKAGE']`) ne bi mogli da se razdvoje (M5 spec §3.0d.6b, dopuna 5.9.2026).
+ */
+export function findIconByTypes(types: string[], hasExpertGuide = false): ProductIconDef | undefined {
+  return PRODUCT_ICONS.find(
+    (p) => p.types.length > 0 && p.types.length === types.length && p.types.every((t) => types.includes(t)) && Boolean(p.hasExpertGuide) === hasExpertGuide,
+  );
 }
