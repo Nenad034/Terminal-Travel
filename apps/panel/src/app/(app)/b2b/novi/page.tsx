@@ -48,7 +48,7 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
           title="Traži"
           className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
         >
-          <Icon name="arrow-right" />
+          <Icon name="play" />
         </button>
       </form>
 

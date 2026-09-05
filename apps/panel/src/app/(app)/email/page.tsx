@@ -110,7 +110,7 @@ export default async function EmailInboxPage(
             title="Filtriraj"
             className="h-9 w-9 border-transparent bg-brand p-0 text-brand-ink hover:bg-brand hover:brightness-90"
           >
-            <Icon name="arrow-right" />
+            <Icon name="play" />
           </Button>
           {(searchParams?.mailboxId || searchParams?.status || searchParams?.correspondentType) && (
             <Button asChild variant="ghost" size="sm">

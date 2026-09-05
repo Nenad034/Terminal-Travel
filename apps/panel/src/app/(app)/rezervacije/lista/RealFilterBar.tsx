@@ -130,7 +130,7 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           title="Filtriraj"
           className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
         >
-          <Icon name="arrow-right" />
+          <Icon name="play" />
         </button>
         {hasAnyFilter && (
           <Link href="/rezervacije/lista" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">

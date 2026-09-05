@@ -123,7 +123,7 @@ export default function FiltersModal({
             title="Primeni"
             className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
           >
-            <Icon name="arrow-right" />
+            <Icon name="play" />
           </button>
         </div>
       </div>
