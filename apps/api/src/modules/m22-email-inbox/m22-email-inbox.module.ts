@@ -10,6 +10,7 @@ import { ReferenceMatcherService } from './reference-matching/reference-matcher.
 import { EmailAiAssistantService } from './ai-assistant/email-ai-assistant.service';
 import { EmailProviderFactory } from './email-provider/email-provider.factory';
 import { MockEmailProviderAdapter } from './email-provider/mock-email-provider-adapter.service';
+import { SmtpEmailProviderAdapter } from './email-provider/smtp-email-provider-adapter.service';
 import { AuthModule } from '../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.module';
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
@@ -36,7 +37,12 @@ import { M14HelpdeskModule } from '../m14-helpdesk/m14-helpdesk.module';
     EmailAiAssistantService,
     EmailProviderFactory,
     MockEmailProviderAdapter,
+    SmtpEmailProviderAdapter,
     AnthropicClientService,
   ],
+  // M5 §8.8 (5.9.2026) — najava dobavljaču ide kroz jedinstveno M22 sanduče, pa M5
+  // `SupplierMailboxService` treba ove tri stvari (in-process DI, isti hibridni obrazac kao
+  // M22→M14 konverzija u tiket iznad).
+  exports: [MailboxesService, EmailProviderFactory],
 })
 export class M22EmailInboxModule {}

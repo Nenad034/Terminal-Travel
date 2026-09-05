@@ -16,6 +16,7 @@ interface EmailMessage {
   body: string;
   aiSummary: string | null;
   sentBy: string | null;
+  deliveredAt: string | null;
   receivedAt: string;
 }
 

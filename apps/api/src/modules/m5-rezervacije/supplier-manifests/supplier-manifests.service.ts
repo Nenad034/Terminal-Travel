@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { BookingStatus, Prisma, SupplierManifestLanguage, SupplierType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
-import { M22MailboxStubService } from '../common/m22-mailbox-stub.service';
+import { SupplierMailboxService } from '../common/supplier-mailbox.service';
 import { nextReferenceCode } from '../common/reference-code';
 import { GenerateManifestDto } from './dto/generate-manifest.dto';
 
@@ -16,7 +16,7 @@ export class SupplierManifestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
-    private readonly mailbox: M22MailboxStubService,
+    private readonly mailbox: SupplierMailboxService,
   ) {}
 
   findAll(supplierId?: string) {
@@ -246,38 +246,59 @@ export class SupplierManifestsService {
   // §8.4/§10 — slanje zahteva M5/supplier-manifest/SEND, NIKAD AI agent.
   async send(id: string, actorId: string) {
     const manifest = await this.findOne(id);
-    if (manifest.status !== 'DRAFT') throw new BadRequestException(`SupplierManifest ${id} nije u statusu DRAFT.`);
+    // §8.4 (5.9.2026) — PENDING_SEND je takođe dozvoljen ulaz: to je lista koju smo pokušali da
+    // pošaljemo a isporuke nije bilo. Kad provajder proradi, ista lista se šalje ponovo, bez
+    // pravljenja nove. SENT i dalje odbija (ta lista je otišla; izmena ide preko SUPERSEDED, §8.5).
+    if (manifest.status !== 'DRAFT' && manifest.status !== 'PENDING_SEND') {
+      throw new BadRequestException(`SupplierManifest ${id} nije u statusu DRAFT ni PENDING_SEND.`);
+    }
     const supplier = await this.prisma.supplier.findUniqueOrThrow({ where: { id: manifest.supplierId } });
 
-    await this.mailbox.sendViaSharedMailbox({
+    const result = await this.mailbox.sendViaSharedMailbox({
       toEmail: supplier.contactEmail,
       referenceCode: manifest.referenceCode ?? '',
       subject: `Operativna lista — ${supplier.name}`,
       documentUrl: manifest.documentUrl,
+      supplierId: manifest.supplierId,
+      supplierManifestId: manifest.id,
+      actorUserId: actorId,
     });
 
+    // §8.4 (5.9.2026, dok. 39 nalaz 1.2) — status prati STVARAN ishod isporuke. Kad poruka nije
+    // otišla: `sent_at` ostaje prazan i `announced_at` se NE upisuje, pa stavke ostaju
+    // nenajavljene u svakoj postojećoj proveri, bez ijedne dodatne logike. Ranije je ovde
+    // bezuslovno pisalo SENT, pa se pripremljeno nije razlikovalo od poslatog.
     const now = new Date();
-    const [updated] = await this.prisma.$transaction([
-      this.prisma.supplierManifest.update({
-        where: { id },
-        data: { status: 'SENT', sentAt: now, sentBy: actorId, sentToEmail: supplier.contactEmail },
-      }),
-      // §8.6 — announced_at se popunjava na svakoj obuhvaćenoj BookingItem.
-      this.prisma.bookingItem.updateMany({
-        where: { id: { in: manifest.items.map((i) => i.bookingItemId) } },
-        data: { announcedAt: now },
-      }),
-    ]);
+    const updated = result.delivered
+      ? (
+          await this.prisma.$transaction([
+            this.prisma.supplierManifest.update({
+              where: { id },
+              data: { status: 'SENT', sentAt: now, sentBy: actorId, sentToEmail: supplier.contactEmail },
+            }),
+            // §8.6 — announced_at se popunjava na svakoj obuhvaćenoj BookingItem.
+            this.prisma.bookingItem.updateMany({
+              where: { id: { in: manifest.items.map((i) => i.bookingItemId) } },
+              data: { announcedAt: now },
+            }),
+          ])
+        )[0]
+      : await this.prisma.supplierManifest.update({
+          where: { id },
+          data: { status: 'PENDING_SEND', sentBy: actorId, sentToEmail: supplier.contactEmail },
+        });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,
       module: 'M5',
-      action: 'supplier_manifest.sent',
+      // Odvojena akcija za neisporučeno — u revizijskom tragu se posle mora videti razlika
+      // između „otišlo hotelu" i „pokušano, nije otišlo".
+      action: result.delivered ? 'supplier_manifest.sent' : 'supplier_manifest.send_pending',
       resourceType: 'SupplierManifest',
       resourceId: id,
       afterState: updated,
-      context: {},
+      context: result.delivered ? {} : { reason: result.reason ?? null },
     });
     return updated;
   }

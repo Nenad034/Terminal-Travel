@@ -813,6 +813,7 @@ async function main() {
   await seedM21HelpCenterAgent();
   await seedM21PublicGuestArticles();
   await seedM22EmailInboxAgent();
+  await seedM22SupplierUnifiedInbox();
   await seedM23KnowledgeAgent();
   await seedM5CalendarMockBookings();
   await seedM10Banks();
@@ -1482,6 +1483,32 @@ async function seedM5CalendarMockBookings() {
 // zvaničnog izvora; spisak bankarskog tržišta se povremeno menja usled spajanja/licenciranja).
 // Upsert po `name` — dopuna/ispravka ide izmenom ove liste, ne ručnim SQL-om. Ako se pokaže
 // netačnost, ispraviti ovde u istom prolazu kad se primeti.
+/**
+ * M5 spec §8.8 / M22 §2.1 — JEDNO zajedničko sanduče kroz koje ide sva prepiska sa dobavljačima
+ * (najava, izmena, storno). Bez ovog reda `SupplierMailboxService` nema kuda da pošalje, pa
+ * svaka najava ostaje u statusu PENDING_SEND („čeka slanje") — što je tačno, ali beskorisno.
+ *
+ * `provider_connection_ref = "smtp:env"` bira `SmtpEmailProviderAdapter` (M22 §10, 5.9.2026):
+ * lokalno to znači mailpit iz `docker-compose.yml` — poruke se stvarno šalju i vide na
+ * http://localhost:8025, a NIJEDNA ne odlazi stvarnom dobavljaču. Za pravo okruženje menja se
+ * samo `SMTP_HOST` (i po potrebi ovaj `ref` na budući Gmail/Graph adapter) — kod ostaje isti.
+ */
+async function seedM22SupplierUnifiedInbox() {
+  const address = 'dobavljaci@terminal-travel.local';
+  const mailbox = await prisma.mailbox.upsert({
+    where: { address },
+    update: { isSupplierUnifiedInbox: true, providerConnectionRef: 'smtp:env', status: 'ACTIVE' },
+    create: {
+      address,
+      displayName: 'Terminal Travel — dobavljači',
+      mailboxType: 'SHARED',
+      providerConnectionRef: 'smtp:env',
+      isSupplierUnifiedInbox: true,
+    },
+  });
+  console.log(`seedM22SupplierUnifiedInbox: jedinstveno sanduče za dobavljače ${mailbox.address} (${mailbox.id})`);
+}
+
 async function seedM10Banks() {
   const BANKS = [
     'Banca Intesa',

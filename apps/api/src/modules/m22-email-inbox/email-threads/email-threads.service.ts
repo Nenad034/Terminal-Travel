@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EmailCorrespondentType, EmailThread } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
@@ -28,6 +28,7 @@ type EmailThreadWithMailbox = EmailThread & { mailbox: { address: string; displa
 // naloga uopšte sme da pokuša"), ova klasa je fina kapija ("baš OVO sanduče/nit").
 @Injectable()
 export class EmailThreadsService {
+  private readonly logger = new Logger(EmailThreadsService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
@@ -157,14 +158,31 @@ export class EmailThreadsService {
     const message = await this.prisma.emailMessage.findUnique({ where: { id: messageId } });
     if (!message || message.threadId !== threadId) throw new NotFoundException(`EmailMessage ${messageId} nije pronađen u niti ${threadId}.`);
     if (message.direction !== 'OUTBOUND') throw new BadRequestException('Samo OUTBOUND poruke (nacrti) se šalju preko ove rute.');
-    if (message.sentBy) throw new BadRequestException('Poruka je već poslata.');
+    // Ponovno slanje je dozvoljeno dok isporuke NIJE bilo (5.9.2026) — inače bi poruka
+    // zaglavljena na neispravnom provajderu ostala zauvek neposlata, bez načina da se pošalje
+    // kad se provajder podesi. Odbija se samo ono što je stvarno otišlo.
+    if (message.deliveredAt) throw new BadRequestException('Poruka je već poslata.');
 
     const adapter = this.providerFactory.getAdapter(mailbox);
     const result = await adapter.sendMessage(mailbox, { toAddresses: message.toAddresses, subject: thread.subject, body: message.body });
 
+    // ISPRAVKA 5.9.2026 (dok. 39 nalaz 1.2, M22 §2.4): ranije je poruka bezuslovno dobijala
+    // `sentBy` i izmišljen `providerMessageId` od mock adaptera, pa se u bazi nije razlikovala
+    // od stvarno poslate. Sada `sentBy` beleži KO JE KLIKNUO (pokušaj), a `deliveredAt` se
+    // upisuje ISKLJUČIVO kad je provajder potvrdio prijem. Poruka bez `deliveredAt` je
+    // „čeka slanje" — ponovan poziv ove rute je dozvoljen dok isporuke ne bude.
+    if (!result.delivered) {
+      this.logger.warn(
+        `EmailMessage ${messageId} NIJE isporučena (${result.reason ?? 'bez razloga'}) — ostaje "čeka slanje", poruka se može poslati ponovo.`,
+      );
+    }
     const sent = await this.prisma.emailMessage.update({
       where: { id: messageId },
-      data: { sentBy: actorUserId, providerMessageId: message.providerMessageId ?? result.providerMessageId },
+      data: {
+        sentBy: actorUserId,
+        deliveredAt: result.delivered ? new Date() : null,
+        providerMessageId: message.providerMessageId ?? result.providerMessageId,
+      },
     });
 
     await this.prisma.emailThread.update({ where: { id: threadId }, data: { lastMessageAt: new Date(), status: 'OPEN' } });

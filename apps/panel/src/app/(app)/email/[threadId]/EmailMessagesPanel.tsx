@@ -17,6 +17,8 @@ interface EmailMessage {
   body: string;
   aiSummary: string | null;
   sentBy: string | null;
+  /** M22 §2.4 (5.9.2026) — popunjeno tek kad je provajder stvarno primio poruku. */
+  deliveredAt: string | null;
   receivedAt: string;
 }
 
@@ -49,12 +51,27 @@ export default function EmailMessagesPanel({ threadId, messages, canReply }: { t
                   <Icon name="sparkle" /> AI sažetak: {m.aiSummary}
                 </p>
               )}
-              {m.direction === 'OUTBOUND' && !m.sentBy && canReply && (
+              {/* Dugme stoji dok poruka STVARNO ne ode (5.9.2026, dok. 39 nalaz 1.2) — ranije je
+                  nestajalo čim se klikne, pa je poruka koja nije isporučena izgledala kao poslata
+                  i nije imala načina da se pošalje ponovo kad provajder proradi. */}
+              {m.direction === 'OUTBOUND' && !m.deliveredAt && canReply && (
                 <div className="mt-1">
-                  <SendDraftButton threadId={threadId} messageId={m.id} />
+                  <SendDraftButton threadId={threadId} messageId={m.id} retry={Boolean(m.sentBy)} />
                 </div>
               )}
-              {m.sentBy && <p className="mt-1 text-[11px] text-ink-faint">poslao: {m.sentBy}</p>}
+              {m.deliveredAt ? (
+                <p className="mt-1 text-[11px] text-ink-faint">
+                  poslao: {m.sentBy} · isporučeno {new Date(m.deliveredAt).toLocaleString('sr-RS')}
+                </p>
+              ) : (
+                m.sentBy && (
+                  // Ovo je vidljiva polovina nalaza 1.2: dok isporuke nema, ekran to KAŽE, umesto
+                  // da ćuti i ostavi utisak da je dobavljač obavešten.
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-warn">
+                    <Icon name="warning" /> čeka slanje — {m.sentBy} je pokušao, poruka još nije otišla
+                  </p>
+                )
+              )}
             </div>
           ))}
         </div>
@@ -99,22 +116,24 @@ function SubmitButton() {
   );
 }
 
-function SendDraftButton({ threadId, messageId }: { threadId: string; messageId: string }) {
+// `retry` (5.9.2026) — ista ruta, drugačija reč: poruka koju je neko već pokušao da pošalje
+// nije nacrt koji čeka odobrenje, nego pokušaj koji nije prošao (dok. 39 nalaz 1.2).
+function SendDraftButton({ threadId, messageId, retry }: { threadId: string; messageId: string; retry?: boolean }) {
   const boundAction = sendEmailDraft.bind(null, threadId, messageId);
   const [state, formAction] = useActionState(boundAction, initialState);
   return (
     <form action={formAction} className="inline-flex items-center gap-2">
-      <SendSubmit />
+      <SendSubmit retry={retry} />
       {state.error && <span className="text-xs text-danger">{state.error}</span>}
     </form>
   );
 }
 
-function SendSubmit() {
+function SendSubmit({ retry }: { retry?: boolean }) {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" disabled={pending} variant="outline" size="sm" className="h-auto border-accent px-2 py-0.5 text-accent-strong hover:bg-accent-soft">
-      {pending ? 'Šaljem…' : 'pošalji'}
+      {pending ? 'Šaljem…' : retry ? 'pošalji ponovo' : 'pošalji'}
     </Button>
   );
 }

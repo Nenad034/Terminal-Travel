@@ -21,7 +21,17 @@ export interface OutboundEmail {
 }
 
 export interface SendResult {
-  providerMessageId: string;
+  /** Prazan kad isporuke nije bilo — nikad izmišljen identifikator (M22 §2.4, 5.9.2026). */
+  providerMessageId: string | null;
+  /**
+   * Da li je provajder STVARNO primio poruku. Uveden 5.9.2026 (dok. 39 nalaz 1.2): ranije je
+   * `sendMessage` vraćao samo `providerMessageId`, pa mock (koji ne šalje ništa) nije mogao da
+   * se razlikuje od uspeha — pozivaoci su upisivali „poslato" za poštu koja ne izlazi iz kuće.
+   * Nijedan pozivalac ne sme upisati isporuku bez `delivered === true`.
+   */
+  delivered: boolean;
+  /** Popunjeno kad `delivered` nije tačno — ide u log/status, ne korisniku doslovno. */
+  reason?: string;
 }
 
 export interface EmailProviderAdapter {
@@ -30,6 +40,10 @@ export interface EmailProviderAdapter {
   /** Poziva se pri periodičnom/ručnom pollingu — mock uvek vraća prazan niz (§10, nema žive konekcije). */
   fetchNewMessages(mailbox: Mailbox): Promise<RawEmail[]>;
 
-  /** Šalje poruku preko konekcije sandučeta — mock samo loguje "poslao bi" (graceful, isti stil kao M18 EmailClientService). */
+  /**
+   * Šalje poruku preko konekcije sandučeta. NIKAD ne baca izuzetak ka pozivaocu — greška se
+   * vraća kao `{ delivered: false, reason }` (isti graceful princip kao `MailerService`), da
+   * priprema dokumenta ne padne zato što je pošta trenutno nedostupna.
+   */
   sendMessage(mailbox: Mailbox, message: OutboundEmail): Promise<SendResult>;
 }

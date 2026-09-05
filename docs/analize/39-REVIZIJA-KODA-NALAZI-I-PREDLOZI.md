@@ -49,7 +49,7 @@ Isto se dešavalo i pri kliku na termin u **kalendaru**. Klik na sam **broj reze
 
 ---
 
-### 1.2 Sistem beleži „poslato" za poštu koja ne izlazi iz kuće
+### 1.2 Sistem beleži „poslato" za poštu koja ne izlazi iz kuće — REŠENO 5.9.2026
 
 > **Dopuna i ispravka predloga (5.9.2026), po `40-PRAVILA-REVIZIJE-KODA.md`.** Sam nalaz opstaje i potvrđen je. Ali **predloženo rešenje iz prve verzije bilo je neizvodljivo**, i obim je bio uži nego što jeste — oboje je otkrio obavezan pokušaj obaranja (pravilo 5). Detalji u „Pokušaj obaranja" ispod.
 
@@ -80,6 +80,31 @@ Nalaz dakle opstaje, ali **nije popravljiv kodom bez vlasnikove odluke o provajd
 
 **Predlog (odluka je vlasnikova, v. razgovor 5.9.2026):** dok provajder nije izabran, klik na „pošalji" ne sme da ostavi trag koji se ne razlikuje od stvarnog slanja. Tri moguća oblika — od najmanje do najviše zahvatne izmene — dati su vlasniku na izbor; svaka menja ponašanje, pa traži dopunu M5 §8.4/§8.8 (i M22 §4) pre koda, po tvrdom pravilu iz `CLAUDE.md`.
 **Procena:** 2–4 sata za izabran oblik iskrenog zapisa; pravo slanje zavisi od izbora provajdera, ne od koda.
+
+---
+
+**REŠENO 5.9.2026** (vlasnikova odluka: „nov status *pripremljeno, čeka slanje*"; M5 spec v1.99 §8.4/§8.8, M22 spec v1.7 §2.4/§10). Ispalo je bolje nego što je odluka tražila — uz iskren zapis, slanje je i **stvarno prorađeno**:
+
+1. **`SupplierManifestStatus`/`SupplierChangeNoticeStatus` dobili `PENDING_SEND`.** Kad isporuke nema: `sent_at` ostaje prazan i `announced_at` se NE upisuje, pa stavke ostaju nenajavljene u svakoj postojećoj proveri — bez ijedne dodatne logike. `sent_by` se ipak upisuje (ko je pokušao). Revizijski trag razdvaja `supplier_manifest.sent` od `supplier_manifest.send_pending`.
+2. **`EmailMessage.delivered_at`** (M22 §2.4) — `sent_by` znači „ko je kliknuo", `delivered_at` znači „provajder je primio". Mock adapter više ne vraća izmišljen `providerMessageId`, nego `delivered: false`.
+3. **`SmtpEmailProviderAdapter`** — prva implementacija koja stvarno šalje, **u ime sandučeta** (`from` = adresa sandučeta, ne adresa kuće — zato `MailerService` i nije mogao da posluži). Bira se po sandučetu preko `provider_connection_ref = "smtp:env"`.
+4. **`M22MailboxStubService` obrisan**, zamenjen `SupplierMailboxService`-om koji radi ono što je §8.8 sve vreme opisivao: nalazi jedinstveno sanduče, otvara M22 nit sa `[REF: TT-NNNNNN]` u naslovu, vezuje je na izvor i predaje poruku provajderu.
+5. **Panel** (`EmailMessagesPanel.tsx`): poruka bez isporuke prikazuje se kao **„čeka slanje — X je pokušao, poruka još nije otišla"**, sa dugmetom „pošalji ponovo". Ranije je dugme nestajalo čim se klikne, pa je neisporučena poruka izgledala kao poslata.
+
+**Provereno kroz stvaran API** (prijava, 2FA, `POST /sales/supplier-manifests/:id/send`), ne iz koda:
+
+| Provera | Ishod |
+| :---- | :---- |
+| provajder radi → slanje | `SENT`, `sent_at` upisan, **mejl stvarno stigao** u mailpit: `dobavljaci@terminal-travel.local → rezervacije@nile-incoming-services.example`, naslov `[REF: TT-000001] Operativna lista — ...` |
+| provajder nedostupan → slanje | `PENDING_SEND`, `sent_at` = `null`, **0 stavaka** označeno kao najavljeno, trag `supplier_manifest.send_pending` |
+| provajder proradi → ponovno slanje iste liste | `SENT` |
+
+976 testova prolazi (5 novih, `supplier-manifest-send-honesty.spec.ts` — zaključavaju baš ovo ponašanje, jer greška nije bila pad nego pogrešan upis).
+
+**Ostaje otvoreno i zavedeno (ne prećutano):**
+- **Dovlačenje pristigle pošte** (`fetchNewMessages`) — SMTP to po prirodi ne radi; traži IMAP ili API provajdera. Odgovor dobavljača se zato još ne uvozi sam. Nalaz 1.2 je time rešen u smeru „mi → hotel"; smer „hotel → mi" ostaje.
+- **Izbor pravog provajdera** za produkciju (Gmail API / Microsoft Graph / IMAP) — vlasnikova odluka, M22 §10.
+- **Nema ekrana u panelu** za `SupplierManifest`/`SupplierChangeNotice` (sporedni nalaz iznad) — vodi se odvojeno.
 
 ---
 
@@ -253,7 +278,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ (urađeno 5.9.2026) · 1.2 lažno „poslato" dobavljaču · 2.1 indeksi · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ (oba urađena 5.9.2026) · 2.1 indeksi · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 

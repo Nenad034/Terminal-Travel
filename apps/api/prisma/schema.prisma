@@ -1401,6 +1401,9 @@ model BookingItemGuest {
 
 enum SupplierManifestStatus {
   DRAFT
+  // M5 §8.4 (5.9.2026) — „pripremljeno, čeka slanje": čovek je kliknuo „pošalji", ali M22 nije
+  // potvrdio isporuku. NIJE najavljeno — `announced_at` na stavkama ostaje prazan.
+  PENDING_SEND
   SENT
   SUPERSEDED
 }
@@ -1459,6 +1462,7 @@ enum SupplierChangeNoticeType {
 
 enum SupplierChangeNoticeStatus {
   DRAFT
+  PENDING_SEND // M5 §8.4 (5.9.2026), isto značenje kao SupplierManifestStatus.PENDING_SEND
   SENT
 }
 
@@ -3370,7 +3374,10 @@ model EmailMessage {
   toAddresses       String[]        @map("to_addresses")
   body              String
   aiSummary         String?         @map("ai_summary")
-  sentBy            String?         @map("sent_by") // FK -> M1 User
+  sentBy            String?         @map("sent_by") // FK -> M1 User — KO JE KLIKNUO, ne dokaz isporuke (M22 §2.4)
+  // M22 §2.4 (5.9.2026) — popunjeno tek kad provajder stvarno primi poruku. `sentBy` popunjen a
+  // ovo prazno = „čeka slanje". Bez ovog polja se pripremljeno nije razlikovalo od poslatog.
+  deliveredAt       DateTime?       @map("delivered_at")
   providerMessageId String?         @unique @map("provider_message_id") // Message-ID header — threading/idempotentnost pri ponovnom uvozu
   receivedAt        DateTime        @default(now()) @map("received_at")
   createdAt         DateTime        @default(now()) @map("created_at")

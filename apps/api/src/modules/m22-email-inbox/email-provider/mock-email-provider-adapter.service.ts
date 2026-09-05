@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { Mailbox } from '@prisma/client';
 import { EmailProviderAdapter, OutboundEmail, RawEmail, SendResult } from './email-provider-adapter.interface';
 
@@ -23,6 +22,9 @@ export class MockEmailProviderAdapter implements EmailProviderAdapter {
     this.logger.warn(
       `[MOCK] Email sa ${mailbox.address} ka ${message.toAddresses.join(', ')} NIJE stvarno poslat (provider konekcija čeka odluku vlasnika, M22 spec §10) — subject: "${message.subject}", body: ${message.body.slice(0, 200)}`,
     );
-    return { providerMessageId: `mock-${randomUUID()}` };
+    // ISPRAVKA 5.9.2026 (dok. 39 nalaz 1.2): do danas je ovde vraćan izmišljen
+    // `mock-<uuid>` identifikator, koji je pozivalac upisivao kao dokaz slanja — zapis u bazi
+    // se time nije razlikovao od stvarno poslate poruke. Sada mock kaže istinu o sebi.
+    return { providerMessageId: null, delivered: false, reason: 'MOCK provajder — konekcija nije podešena (M22 §10).' };
   }
 }

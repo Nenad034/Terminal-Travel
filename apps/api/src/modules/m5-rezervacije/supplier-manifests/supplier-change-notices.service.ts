@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupplierChangeNoticeType } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
-import { M22MailboxStubService } from '../common/m22-mailbox-stub.service';
+import { SupplierMailboxService } from '../common/supplier-mailbox.service';
 import { nextReferenceCode } from '../common/reference-code';
 
 /**
@@ -15,7 +15,7 @@ export class SupplierChangeNoticesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
-    private readonly mailbox: M22MailboxStubService,
+    private readonly mailbox: SupplierMailboxService,
   ) {}
 
   // Priprema DRAFT je nivo "Autonomno" (§8.8) — okidač je promena item_status na
@@ -40,28 +40,41 @@ export class SupplierChangeNoticesService {
   // Slanje ostaje "Predloži pa čovek odobri" — isti princip kao §8.4, NIKAD AI agent (§10).
   async send(id: string, supplierEmail: string, actorId: string) {
     const notice = await this.findOne(id);
-    if (notice.status !== 'DRAFT') throw new NotFoundException(`SupplierChangeNotice ${id} nije u statusu DRAFT.`);
+    // §8.4 (5.9.2026) — kao i kod operativne liste, PENDING_SEND se sme poslati ponovo.
+    if (notice.status !== 'DRAFT' && notice.status !== 'PENDING_SEND') {
+      throw new NotFoundException(`SupplierChangeNotice ${id} nije u statusu DRAFT ni PENDING_SEND.`);
+    }
 
-    await this.mailbox.sendViaSharedMailbox({
+    const result = await this.mailbox.sendViaSharedMailbox({
       toEmail: supplierEmail,
       referenceCode: notice.referenceCode,
       subject: notice.noticeType === 'CANCELLATION' ? 'Storno rezervacije' : 'Izmena rezervacije',
+      supplierChangeNoticeId: notice.id,
+      actorUserId: actorId,
     });
 
-    const updated = await this.prisma.supplierChangeNotice.update({
-      where: { id },
-      data: { status: 'SENT', sentAt: new Date(), sentBy: actorId },
-    });
+    // §8.4 (5.9.2026, dok. 39 nalaz 1.2) — `sent_at` samo za stvarno poslato. Ovo je važnije
+    // ovde nego kod operativne liste: §8.6 dozvoljava unos potvrde dobavljača ISKLJUČIVO nad
+    // porukom u statusu SENT, pa neisporučena izmena ne može ni greškom biti „potvrđena".
+    const updated = result.delivered
+      ? await this.prisma.supplierChangeNotice.update({
+          where: { id },
+          data: { status: 'SENT', sentAt: new Date(), sentBy: actorId },
+        })
+      : await this.prisma.supplierChangeNotice.update({
+          where: { id },
+          data: { status: 'PENDING_SEND', sentBy: actorId },
+        });
 
     await this.auditLog.write({
       actorType: 'HUMAN',
       actorId,
       module: 'M5',
-      action: 'supplier_change_notice.sent',
+      action: result.delivered ? 'supplier_change_notice.sent' : 'supplier_change_notice.send_pending',
       resourceType: 'SupplierChangeNotice',
       resourceId: id,
       afterState: updated,
-      context: {},
+      context: result.delivered ? {} : { reason: result.reason ?? null },
     });
     return updated;
   }
