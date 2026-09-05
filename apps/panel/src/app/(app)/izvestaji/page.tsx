@@ -104,11 +104,17 @@ const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_t
 const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
 // Preset kombinacije za "Dinamički" (5.9.2026, vlasnikov zahtev: "dodajte i pregled na nivou
 // hotela na destinacijama") — brz izbor umesto ručnog kucanja tačnih imena dimenzija.
+// `productType` (dopuna, vlasnikov nalaz: "niste dodali hotele u destinacijama") — sama
+// dimenzija `product_name` ne razlikuje vrstu proizvoda, pa je "Destinacija → Hotel" do sad
+// mešala SVE vrste (let/transfer/izlet...) pod istom destinacijom; ovaj preset sad DODATNO
+// filtrira na `productType=ACCOMMODATION`, isti razlog zašto se to zove "→ Hotel" a ne
+// "→ proizvod". Ostali preseti ostaju bez filtera (svesno — kanal/dobavljač imaju smisla za sve
+// vrste proizvoda).
 const DYNAMIC_PRESETS = [
-  { label: 'Destinacija', dims: 'destination_country,destination_city' },
-  { label: 'Destinacija → Hotel', dims: 'destination_country,destination_city,product_name' },
-  { label: 'Kanal', dims: 'channel' },
-  { label: 'Dobavljač', dims: 'supplier_name' },
+  { label: 'Destinacija', dims: 'destination_country,destination_city', productType: undefined },
+  { label: 'Destinacija → Hotel', dims: 'destination_country,destination_city,product_name', productType: 'ACCOMMODATION' },
+  { label: 'Kanal', dims: 'channel', productType: undefined },
+  { label: 'Dobavljač', dims: 'supplier_name', productType: undefined },
 ] as const;
 // Serija za grafik-prikaz "Dinamički" (5.9.2026, vlasnikov zahtev: "omoguci infografik pregled
 // kako sam ranije trazio") — SAMO vrhovi stabla (`dynamicReport.tree`, prvi nivo), isti princip
@@ -190,10 +196,15 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   // ovoga je jedini način da se dođe do nivoa hotela bilo ručno kucanje u tekstualno polje ispod
   // (`destination_country,destination_city,product_name`) — presek je brži i ne traži da
   // korisnik zna tačna imena dimenzija napamet.
-  function dimensionsHref(dims: string): string {
+  function dimensionsHref(dims: string, productType: string | undefined): string {
     const v = baseParams();
     if (view === 'grafik') v.set('view', 'grafik');
     v.set('groupBy', dims);
+    // Presek EKSPLICITNO postavlja ILI briše `productType` (dopuna, vlasnikov nalaz: "niste
+    // dodali hotele u destinacijama") — mora obrisati kad prelazi NA preset bez filtera,
+    // inače bi ostao zaglavljen filter sa prethodno izabranog preseta (npr. sa "→ Hotel").
+    if (productType) v.set('productType', productType);
+    else v.delete('productType');
     return `/izvestaji?${v.toString()}`;
   }
   const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
@@ -241,6 +252,10 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       if (searchParams?.from) dqs.set('from', searchParams.from);
       if (searchParams?.to) dqs.set('to', searchParams.to);
       dqs.set('group_by', searchParams?.groupBy || 'destination_country,destination_city');
+      // (dopuna, vlasnikov nalaz: "niste dodali hotele u destinacijama") — bez ovoga je preset
+      // "Destinacija → Hotel" postavljao `productType` u adresu, ali ga niko nije čitao pri
+      // dovlačenju izveštaja, pa je filter tiho bio odbačen.
+      if (searchParams?.productType) dqs.set('productType', searchParams.productType);
       dynamicReport = await apiFetch<DynamicReport>(`/bi/reports/dynamic?${dqs.toString()}`);
     } else if (tab === 'marketing') {
       const mqs = new URLSearchParams();
@@ -451,17 +466,22 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
               <div className="flex flex-col gap-0.5">
                 <span className="text-[11px] text-ink-faint">brzo</span>
                 <div className="flex flex-wrap gap-1">
-                  {DYNAMIC_PRESETS.map((p) => (
-                    <Link
-                      key={p.dims}
-                      href={dimensionsHref(p.dims)}
-                      className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
-                        currentDims === p.dims ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
-                      }`}
-                    >
-                      {p.label}
-                    </Link>
-                  ))}
+                  {DYNAMIC_PRESETS.map((p) => {
+                    // Aktivan preset uzima u obzir I dimenzije I productType (dopuna) — dva
+                    // preseta mogu deliti iste dimenzije, filter ih razlikuje.
+                    const active = currentDims === p.dims && (searchParams?.productType ?? '') === (p.productType ?? '');
+                    return (
+                      <Link
+                        key={p.label}
+                        href={dimensionsHref(p.dims, p.productType)}
+                        className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
+                          active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                        }`}
+                      >
+                        {p.label}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             </>

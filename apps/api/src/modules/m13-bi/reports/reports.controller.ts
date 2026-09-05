@@ -67,7 +67,12 @@ export class ReportsController {
 
   @Get('dynamic')
   @RequirePermission('M13', 'report:dynamic', 'VIEW')
-  dynamic(@Query('from') from?: string, @Query('to') to?: string, @Query('group_by') groupBy?: string) {
+  dynamic(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('group_by') groupBy?: string,
+    @Query('productType') productType?: string,
+  ) {
     const dims = (groupBy ?? '')
       .split(',')
       .map((d) => d.trim())
@@ -79,7 +84,7 @@ export class ReportsController {
     if (invalid.length > 0) {
       throw new BadRequestException(`Nepoznate dimenzije: ${invalid.join(', ')}. Dozvoljeno: ${DYNAMIC_DIMENSIONS.join(', ')} (M13 spec §4.2).`);
     }
-    return this.reports.dynamic({ from, to }, dims);
+    return this.reports.dynamic({ from, to, productType }, dims);
   }
 
   @Get('marketing')
