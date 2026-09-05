@@ -8,7 +8,7 @@ import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from '../common/refundability';
-import { CountrySuggestion, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
+import { ActivityDestinationResult, CountrySuggestion, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
 export interface SearchParamsInput {
@@ -141,6 +141,44 @@ export class SearchService {
     return suggestions;
   }
 
+  /**
+   * M5 spec §3.0c.3e (dopuna 5.9.2026, vlasnikov zahtev) — pretraga po aktivnosti, alternativan
+   * ulaz u pretragu naspram geografskog toka (§3.0c.2): gost bira aktivnost, sistem vraća
+   * destinacije čiji `DestinationProfile.activities[]` je sadrži, sortirane po broju `EXCURSION`
+   * proizvoda tog `activity_type` u toj destinaciji (§2.1c napomena o tri nivoa — namerno druga
+   * kolekcija/polje od `DestinationProfile.activities[]`, ne meša nivoe).
+   */
+  async suggestDestinationsByActivity(activity: string, channel: SearchChannel): Promise<ActivityDestinationResult[]> {
+    const profiles = await this.prisma.destinationProfile.findMany({
+      where: { activities: { has: activity as any } },
+      orderBy: [{ destinationCountry: 'asc' }, { destinationCity: 'asc' }],
+    });
+    if (profiles.length === 0) return [];
+
+    const visible = channel === 'INTERNAL_PANEL' ? {} : { visibleChannels: { has: channel } };
+
+    const results: ActivityDestinationResult[] = [];
+    for (const profile of profiles) {
+      const excursions = await this.prisma.product.findMany({
+        where: {
+          type: 'EXCURSION',
+          status: 'ACTIVE',
+          destinationCountry: profile.destinationCountry,
+          destinationCity: profile.destinationCity,
+          ...visible,
+        },
+        select: { attributes: true },
+      });
+      const excursionCount = excursions.filter((e) => (e.attributes as any)?.activity_type === activity).length;
+      results.push({
+        destinationCountry: profile.destinationCountry,
+        destinationCity: profile.destinationCity,
+        excursionCount,
+      });
+    }
+    return results.sort((a, b) => b.excursionCount - a.excursionCount);
+  }
+
   async search(params: SearchParamsInput): Promise<SearchResultProduct[]> {
     const where: Prisma.ProductWhereInput = {
       status: 'ACTIVE',
@@ -211,6 +249,21 @@ export class SearchService {
       });
     }
 
+    // M2 spec §2.1c / M5 spec §3.0c.3d (dopuna 5.9.2026) — lookup DestinationProfile.destination_type
+    // po (destinationCountry, destinationCity) proizvoda. Jedan upit za sve destinacije prisutne u
+    // rezultatu, ne po proizvodu (desetine hotela dele istu destinaciju).
+    const destinationPairs = Array.from(
+      new Map(products.map((p) => [`${p.destinationCountry} ${p.destinationCity}`, { destinationCountry: p.destinationCountry, destinationCity: p.destinationCity }])).values(),
+    );
+    const destinationProfiles =
+      destinationPairs.length > 0
+        ? await this.prisma.destinationProfile.findMany({ where: { OR: destinationPairs } })
+        : [];
+    console.log('DEBUG', JSON.stringify({ destinationPairs, destinationProfiles }));
+    const destinationTypeByKey = new Map(
+      destinationProfiles.map((d) => [`${d.destinationCountry} ${d.destinationCity}`, d.destinationType as string]),
+    );
+
     const results: SearchResultProduct[] = [];
     for (const product of products) {
       // M5 spec §3.0d.6/§3.0d.6a — PACKAGE nikad nema sopstveni ugovor, sopstvena grana bez
@@ -249,6 +302,7 @@ export class SearchService {
         // `attributes` je JSONB, stariji zapisi polje nemaju, a string („4") bi na klijentu
         // tiho ispao iz poređenja sa brojem.
         stars: typeof (product.attributes as any)?.stars === 'number' ? ((product.attributes as any).stars as number) : null,
+        destinationType: (console.log('DEBUG2 key', `${product.destinationCountry} ${product.destinationCity}`, 'mapkeys', Array.from(destinationTypeByKey.keys()), 'value', destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`)), destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`) ?? null),
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
         offers,

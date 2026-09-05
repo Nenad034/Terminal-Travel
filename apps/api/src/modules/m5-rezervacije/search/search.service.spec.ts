@@ -6,6 +6,9 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       product: { findMany: jest.fn() },
       contractPeriod: { findMany: jest.fn() },
       packageDeparture: { findMany: jest.fn() },
+      // M2 spec §2.1c / M5 §3.0c.3d (dopuna 5.9.2026) — lookup destinationType po rezultatu;
+      // podrazumevano prazno (nijedna destinacija nema profil), testovi ispod ga po potrebi menjaju.
+      destinationProfile: { findMany: jest.fn().mockResolvedValue([]) },
     };
     const markupRules = { resolveForContracted: jest.fn(), resolveForApi: jest.fn() };
     const integrations = { checkAvailabilityAndPrice: jest.fn() };
@@ -526,6 +529,89 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
       const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
 
       expect(results[0].offers).toHaveLength(1);
+    });
+  });
+
+  // M2 spec §2.1c / M5 spec §3.0c.3d (dopuna 5.9.2026) — SearchResultProduct.destinationType.
+  describe('destinationType (M2 §2.1c, M5 §3.0c.3d)', () => {
+    it('nosi DestinationProfile.destination_type kad profil postoji za destinaciju proizvoda', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([baseProduct]);
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        {
+          id: 'period1', roomType: 'STD', allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 0,
+          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          cancellationRules: [],
+        },
+      ]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+      prisma.destinationProfile.findMany.mockResolvedValue([
+        { destinationCountry: 'Grčka', destinationCity: 'Rodos', destinationType: 'COASTAL' },
+      ]);
+
+      const results = await service.search({ channel: 'B2C_SITE' });
+      expect(results[0].destinationType).toBe('COASTAL');
+    });
+
+    it('je null kad destinacija nema profil (nepoznata vrednost se ne pogađa, §2.1a princip)', async () => {
+      const { service, prisma, markupRules } = makeService();
+      prisma.product.findMany.mockResolvedValue([baseProduct]);
+      prisma.contractPeriod.findMany.mockResolvedValue([
+        {
+          id: 'period1', roomType: 'STD', allotmentMode: 'FIXED', totalCapacity: 10, unitsSold: 0,
+          rateLines: [{ id: 'rl1', price: 10000, priceBasis: 'PER_ROOM_PER_NIGHT', occupancy: 'dvokrevetna', cribFeePerNight: null, boardType: 'BB', agePricing: [] }],
+          cancellationRules: [],
+        },
+      ]);
+      markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+      prisma.destinationProfile.findMany.mockResolvedValue([]);
+
+      const results = await service.search({ channel: 'B2C_SITE' });
+      expect(results[0].destinationType).toBeNull();
+    });
+  });
+
+  // M5 spec §3.0c.3e (dopuna 5.9.2026) — pretraga po aktivnosti.
+  describe('suggestDestinationsByActivity (M5 spec §3.0c.3e)', () => {
+    it('vraća destinacije čiji DestinationProfile.activities[] sadrži traženu aktivnost', async () => {
+      const { service, prisma } = makeService();
+      prisma.destinationProfile.findMany.mockResolvedValue([
+        { destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', activities: ['CYCLING'] },
+      ]);
+      prisma.product.findMany.mockResolvedValue([]);
+
+      const results = await service.suggestDestinationsByActivity('CYCLING', 'B2C_SITE');
+
+      expect(prisma.destinationProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { activities: { has: 'CYCLING' } } }),
+      );
+      expect(results).toEqual([
+        { destinationCountry: 'Austrija', destinationCity: 'Bad Klajnkirhajm', excursionCount: 0 },
+      ]);
+    });
+
+    it('sortira destinacije po broju EXCURSION proizvoda istog activity_type, opadajuće', async () => {
+      const { service, prisma } = makeService();
+      prisma.destinationProfile.findMany.mockResolvedValue([
+        { destinationCountry: 'Srbija', destinationCity: 'Zlatibor', activities: ['HIKING'] },
+        { destinationCountry: 'Crna Gora', destinationCity: 'Žabljak', activities: ['HIKING'] },
+      ]);
+      prisma.product.findMany
+        .mockResolvedValueOnce([{ attributes: { activity_type: 'HIKING' } }])
+        .mockResolvedValueOnce([{ attributes: { activity_type: 'HIKING' } }, { attributes: { activity_type: 'HIKING' } }]);
+
+      const results = await service.suggestDestinationsByActivity('HIKING', 'B2C_SITE');
+
+      expect(results[0]).toEqual({ destinationCountry: 'Crna Gora', destinationCity: 'Žabljak', excursionCount: 2 });
+      expect(results[1]).toEqual({ destinationCountry: 'Srbija', destinationCity: 'Zlatibor', excursionCount: 1 });
+    });
+
+    it('vraća praznu listu kad nijedna destinacija ne podržava traženu aktivnost', async () => {
+      const { service, prisma } = makeService();
+      prisma.destinationProfile.findMany.mockResolvedValue([]);
+
+      const results = await service.suggestDestinationsByActivity('DIVING', 'B2C_SITE');
+      expect(results).toEqual([]);
     });
   });
 });

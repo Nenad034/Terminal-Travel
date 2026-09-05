@@ -70,6 +70,22 @@ export class SearchController {
     return this.search.suggestDestinations(country, q, (channel ?? 'B2C_SITE') as never, lang);
   }
 
+  /**
+   * M5 spec §3.0c.3e (dopuna 5.9.2026) — pretraga po aktivnosti, alternativan ulaz u pretragu.
+   * Isti pristup/vidljivost kao `GET /sales/search/destinations` (§3.0c.2) — `channel=INTERNAL_PANEL`
+   * traži prijavu + `M5/booking/VIEW`, ostatak je javan (anonimna M8 pretraga).
+   */
+  @Get('destinations-by-activity')
+  async destinationsByActivity(
+    @Query('activity') activity: string,
+    @Query('channel') channel: string,
+    @Req() req: Request,
+  ) {
+    if (!activity) throw new BadRequestException('Parametar `activity` je obavezan (M5 spec §3.0c.3e).');
+    await this.assertInternalPanelAccess(channel, req);
+    return this.search.suggestDestinationsByActivity(activity, (channel ?? 'B2C_SITE') as never);
+  }
+
   @Get()
   async find(@Query() query: SearchQueryDto, @Req() req: Request) {
     await this.assertInternalPanelAccess(query.channel, req);

@@ -70,7 +70,10 @@ interface Drzava {
 
 const MORE = ['WIFI_FREE', 'POOL_OUTDOOR', 'RESTAURANT', 'PARKING', 'SEA_VIEW'];
 const MORE_PORODICNO = [...MORE, 'POOL_KIDS', 'FAMILY_FRIENDLY', 'BEACH_SAND'];
-const PLANINA = ['WIFI_FREE', 'RESTAURANT', 'PARKING', 'SPA_WELLNESS', 'MOUNTAIN_VIEW'];
+// M2 spec §2.3c — grupa "Aktivnosti u okolini" (dodato 5.9.2026, vlasnikov zahtev): PLANINA
+// dobija BIKE_RENTAL (planinski biciklizam), namerno ODVOJENO od ActivityTag/DestinationProfile
+// (§2.1c) — ovo znači da BAŠ TAJ hotel iznajmljuje bicikle, ne da destinacija podržava biciklizam.
+const PLANINA = ['WIFI_FREE', 'RESTAURANT', 'PARKING', 'SPA_WELLNESS', 'MOUNTAIN_VIEW', 'BIKE_RENTAL', 'BIKE_STORAGE'];
 const GRAD = ['WIFI_FREE', 'RESTAURANT', 'PARKING', 'NON_SMOKING', 'ROOM_SERVICE'];
 
 const KATALOG: Drzava[] = [

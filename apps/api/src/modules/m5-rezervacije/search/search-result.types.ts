@@ -64,9 +64,27 @@ export interface SearchResultProduct {
    * nije smeštaj i za smeštaj kome kategorija nije uneta.
    */
   stars: number | null;
+  /**
+   * M2 spec §2.1c `DestinationProfile.destination_type` — tip destinacije (COASTAL/MOUNTAIN/...),
+   * lookup po (destinationCountry, destinationCity) ovog proizvoda.
+   *
+   * Dodato 5.9.2026, M5 spec §3.0c.3d — bez ovoga klijent ne zna koji kontekstualni filter
+   * (npr. "udaljenost od mora") ima smisla za rezultate trenutne pretrage. `null` kad destinacija
+   * nema profil (nov grad, još netagovan) — "nepoznata vrednost se ne pogađa", isto pravilo kao
+   * M2 §2.1a. Klijentska logika (koji filter prikazati) je van obima ovog prolaza.
+   */
+  destinationType: string | null;
   thumbnail: { url: string; category: string } | null;
   shortDescription: string | null;
   offers: SearchResultOffer[];
+}
+
+/** Stavka rezultata M5 spec §3.0c.3e — pretraga po aktivnosti. */
+export interface ActivityDestinationResult {
+  destinationCountry: string;
+  destinationCity: string;
+  /** Broj `EXCURSION` proizvoda istog `activity_type` u ovoj destinaciji (§2.1c napomena o tri nivoa). */
+  excursionCount: number;
 }
 
 /**
