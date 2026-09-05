@@ -172,6 +172,14 @@
      upadljiva boja tabova, ne akcent brenda). */
   --tab-line: #f97316;
   --tab-line-strong: #c2410c;
+  /* Brend logotip — narandzast, fiksno u sva tri moda (5.9.2026, vlasnikova ideja: dva "T" oblika
+     [gornje T i donje obrnuto T, sa stvarnim praznim razmakom u sredini stuba, ne obojena linija]
+     ispred "erminal"/"ravel", zamenjuju veliko "T" u "Terminal"/"Travel"). Ista vrednost kao
+     `--tab-line` ali ODVOJEN token — semantički druga stvar (brend znak naspram linija tabova),
+     namerno ne deljen slučaj gde bi izmena jednog nehotice promenila drugo. Zamenjuje raniji
+     `bg-accent` (temom zavisna boja) na logotipu — logotip sad ostaje isti u sva tri moda, isti
+     princip kao `--tab-line`. */
+  --brand: #f97316;
 }
 
 @media (prefers-color-scheme: dark) {
