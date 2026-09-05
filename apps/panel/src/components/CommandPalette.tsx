@@ -132,7 +132,9 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
         </div>
 
         {!showAiPanel && (
-          <div className="max-h-[50vh] overflow-y-auto p-2">
+          // Visina +30% (5.9.2026, vlasnikov zahtev: "povecajte visinu za 30% modula kada se
+          // klikne na trazi ili izvrsi") — 50vh → 65vh.
+          <div className="max-h-[65vh] overflow-y-auto p-2">
             {!query.trim() && recentTabs.length > 0 && (
               <div className="mb-2 border-b border-border pb-2">
                 <p className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-ink-faint">Nedavno otvoreno</p>
@@ -168,7 +170,8 @@ export default function CommandPalette({ items }: { items: NavItem[] }) {
         )}
 
         {showAiPanel && (
-          <div className="max-h-[60vh] overflow-y-auto p-2">
+          // Visina +30% (isti zahtev kao iznad) — 60vh → 78vh.
+          <div className="max-h-[78vh] overflow-y-auto p-2">
             {/* BAG (28.8.2026, prijavio vlasnik uživo — "ne radi pretraga u ovom panelu") —
                 unos teksta potpuno sakriva statičnu navigaciju (navResults) u korist AI panela;
                 za kratke upite AI korak ne zove ništa i vraća prazan rezultat bez ijednog
