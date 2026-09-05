@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from './Icon';
+import SidebarSection from './SidebarSection';
 import { Button } from './ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from './ui/command';
@@ -114,6 +115,9 @@ export default function KatalogSidebarPanel() {
   const filters = readKatalogFilters(sp);
   const [qDraft, setQDraft] = useState(filters.q);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Sklopivo (5.9.2026, vlasnikov zahtev — isti princip primenjen i kod ostalih pretraga),
+  // isti obrazac kao "Filteri" u SearchSidebarPanel.tsx.
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   function apply(next: Partial<KatalogFilters>) {
     router.replace(buildHref({ ...filters, ...next }));
@@ -168,7 +172,8 @@ export default function KatalogSidebarPanel() {
   ];
 
   return (
-    <div className="flex flex-col gap-3 overflow-y-auto px-2 pb-3 text-xs">
+    <div className="flex flex-col overflow-y-auto px-2 pb-3 text-xs">
+    <SidebarSection title="Filteri" open={filtersOpen} onToggle={() => setFiltersOpen((v) => !v)} contentClassName="flex flex-col gap-3">
       {activeChips.length > 0 && (
         <div className="flex flex-col gap-1.5 rounded border border-accent bg-accent-soft p-1.5 text-[11px] text-accent-strong">
           <div className="flex flex-wrap gap-1">
@@ -218,6 +223,7 @@ export default function KatalogSidebarPanel() {
           options={connections.map((k) => ({ value: k, label: connectionLabel(k) }))}
         />
       )}
+    </SidebarSection>
     </div>
   );
 }

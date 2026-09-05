@@ -68,17 +68,19 @@ export default function Sidebar({
       </button>
       {selected ? (
         <>
+          {/* Naziv grupe ("Prodaja"...) i naziv sekcije (ikonica+"Pretraga i rezervacije"...)
+              uklonjeni (5.9.2026, vlasnikov zahtev: "nema razloga da stoje ovde") — tab već
+              nosi naziv ekrana (isti razlog kao uklanjanje "$ pretraga" naslova, commit
+              1b9b7a9), a otvoren tab niže u ActivityBar/gornjoj traci već pokazuje u kojoj je
+              grupi korisnik. Ostaje samo strelica za povratak na spisak sekcija grupe, sa
+              `title` umesto vidljivog teksta. Važi za SVE grupe, ne samo "Pretraga". */}
           <button
             onClick={() => setForceShowList(true)}
-            className="mx-2 mb-2 flex items-center gap-1.5 rounded px-2 py-1.5 text-xs text-ink-faint hover:bg-panel hover:text-ink"
+            title={`Nazad na: ${activeGroup.label}`}
+            className="mx-2 mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
           >
             <Icon name="chevron-left" />
-            <span className="truncate">{activeGroup.label}</span>
           </button>
-          <div className="mx-2 mb-1 flex items-center gap-2 px-2 text-xs font-medium text-ink">
-            <Icon name={selected.icon} />
-            <span className="truncate">{selected.label}</span>
-          </div>
           {/* M5 pretraga — vođena pretraga + filteri u levom panelu (dizajn dok. §5b/§6d),
               van obima za ostatak sekcija (M17 spec §4a), ostaje sledeći korak po sekciji. */}
           {selected.id === 'pretraga' && <SearchSidebarPanel />}
