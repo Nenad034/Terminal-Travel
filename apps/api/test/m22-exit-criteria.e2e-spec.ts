@@ -219,13 +219,19 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
   it('§3.1a/§8.8/§9 — jedinstveno sanduče dobavljača: [REF: TT-NNNNNN] predlaže M5 vezu, correspondentType=SUPPLIER, M22 NIKAD ne piše M5 potvrdu', async () => {
     const vlasnik = await createUser(SYSTEM_ROLES.VLASNIK);
 
-    const mailbox = await createMailbox(vlasnik.accessToken, {
-      address: `dobavljaci-${testRunId}@tt.rs`,
-      displayName: 'Dobavljači (jedinstveno)',
-      mailboxType: 'SHARED',
-      providerConnectionRef: 'mock',
-      isSupplierUnifiedInbox: true,
-    });
+    // Od 5.9.2026 seed pravi jedinstveno sanduče za dobavljače (M5 §8.8), a `MailboxesService`
+    // dozvoljava samo JEDNO takvo — pokušaj da se napravi drugo vraća 400. Test zato koristi
+    // postojeće ako ga ima, a pravi novo samo kad baza nije seed-ovana.
+    const postojece = await prisma.mailbox.findFirst({ where: { isSupplierUnifiedInbox: true } });
+    const mailbox =
+      postojece ??
+      (await createMailbox(vlasnik.accessToken, {
+        address: `dobavljaci-${testRunId}@tt.rs`,
+        displayName: 'Dobavljači (jedinstveno)',
+        mailboxType: 'SHARED',
+        providerConnectionRef: 'mock',
+        isSupplierUnifiedInbox: true,
+      }));
 
     const supplier = await prisma.supplier.create({
       data: {
@@ -336,11 +342,25 @@ describe('M22 — izlazni kriterijum (e2e)', () => {
     expect(sendRes.status).toBe(201);
     expect(sendRes.body.sentBy).toBe(staff.user.id);
 
+    // IZMENA PRAVILA 5.9.2026 (dok. 39 nalaz 1.2, M22 §2.4): ponovno slanje se odbija na osnovu
+    // ISPORUKE (`deliveredAt`), ne na osnovu toga da je neko kliknuo (`sentBy`). Sa mock
+    // provajderom isporuke NEMA, pa je ponovni pokušaj DOZVOLJEN i to je smisao izmene — poruka
+    // koja nije otišla mora moći da se pošalje ponovo kad provajder proradi. Ranije je ostajala
+    // zauvek „poslata" a nikad isporučena.
     const secondSend = await request(app.getHttpServer())
       .post(`/api/v1/email/threads/${thread.id}/messages/${draftRes.body.id}/send`)
       .set(authed(staff.accessToken))
       .send({});
-    expect(secondSend.status).toBe(400);
+    expect(secondSend.status).toBe(201);
+    expect(secondSend.body.deliveredAt).toBeNull();
+
+    // Ono što se NE sme desiti dvaput je slanje STVARNO isporučene poruke — to i dalje stoji.
+    await prisma.emailMessage.update({ where: { id: draftRes.body.id }, data: { deliveredAt: new Date() } });
+    const thirdSend = await request(app.getHttpServer())
+      .post(`/api/v1/email/threads/${thread.id}/messages/${draftRes.body.id}/send`)
+      .set(authed(staff.accessToken))
+      .send({});
+    expect(thirdSend.status).toBe(400);
   });
 
   // ==========================================================================

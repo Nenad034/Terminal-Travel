@@ -109,7 +109,8 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
         .query({ channel: 'B2C_SITE' })
         .set(authed(accessToken));
       expect(listRes.status).toBe(200);
-      expect(listRes.body.some((p: { id: string }) => p.id === productId)).toBe(true);
+      // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
+      expect(listRes.body.data.some((p: { id: string }) => p.id === productId)).toBe(true);
     });
 
     it('odbija objavu (DRAFT → ACTIVE) bez srpskog i engleskog prevoda', async () => {
@@ -262,8 +263,9 @@ describe('M2 — izlazni kriterijum (e2e)', () => {
         .get('/api/v1/catalog/products')
         .query({ type })
         .set(authed(accessToken));
-      expect(listRes.body.every((p: { type: string }) => p.type === type)).toBe(true);
-      expect(listRes.body.some((p: { id: string }) => p.id === createRes.body.id)).toBe(true);
+      // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
+      expect(listRes.body.data.every((p: { type: string }) => p.type === type)).toBe(true);
+      expect(listRes.body.data.some((p: { id: string }) => p.id === createRes.body.id)).toBe(true);
     });
   });
 

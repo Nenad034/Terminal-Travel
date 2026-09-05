@@ -47,7 +47,13 @@ describe('M5 vlasništvo/zaduženje + M7 franšiza — izlazni kriterijum (e2e)'
 
   afterAll(async () => {
     if (createdHandoffIds.length) await prisma.bookingHandoffRequest.deleteMany({ where: { id: { in: createdHandoffIds } } });
-    if (createdBookingIds.length) await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    if (createdBookingIds.length) {
+      // M6 pretplatnik na dogadjaje sam pravi anketu posle putovanja za potvrdjenu rezervaciju,
+      // pa je brisanje rezervacije padalo na stranom kljucu `post_trip_surveys_booking_id_fkey`
+      // i rusilo CEO paket u `afterAll` (iako su svi testovi prosli). Zateceno 5.9.2026.
+      await prisma.postTripSurvey.deleteMany({ where: { bookingId: { in: createdBookingIds } } });
+      await prisma.booking.deleteMany({ where: { id: { in: createdBookingIds } } });
+    }
     if (createdSubagentIds.length) await prisma.subagent.deleteMany({ where: { id: { in: createdSubagentIds } } });
     if (createdClientAccountIds.length) await prisma.clientAccount.deleteMany({ where: { id: { in: createdClientAccountIds } } });
     if (createdUserIds.length) {
@@ -366,7 +372,8 @@ describe('M5 vlasništvo/zaduženje + M7 franšiza — izlazni kriterijum (e2e)'
 
       const res = await request(app.getHttpServer()).get('/api/v1/sales/bookings').set(authed(accessToken));
       expect(res.status).toBe(200);
-      const ids = res.body.map((b: any) => b.id);
+      // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
+      const ids = res.body.data.map((b: any) => b.id);
       expect(ids).toContain(bookingA.id);
       expect(ids).not.toContain(bookingB.id);
     });

@@ -685,14 +685,16 @@ describe('M3 — izlazni kriterijum (e2e)', () => {
       const flatRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
         .set(authed(accessToken))
-        .send({ name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT', flatAmount: 1000, unit: 'PER_STAY', isMandatory: false });
+        // `priceBasis` je postao OBAVEZAN u M3 v1.13 (commit baa5675), a ovaj test nije ažuriran —
+        // od tada je vraćao 400 i rušio CI. Zatečeno 5.9.2026 pri uvođenju CI provera.
+        .send({ name: 'Kućni ljubimac', pricingMode: 'FLAT_PER_UNIT', flatAmount: 1000, priceBasis: 'PER_PET_PER_STAY', isMandatory: false });
       expect(flatRes.status).toBe(200);
       expect(flatRes.body.flatAmount).toBe(1000);
 
       const percentageRes = await request(app.getHttpServer())
         .put(`/api/v1/contracting/contracts/${contract.id}/periods/${periodId}/ancillary-services`)
         .set(authed(accessToken))
-        .send({ name: 'Rani check-in', pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE', percentageOfNightlyRate: 30, unit: 'PER_STAY' });
+        .send({ name: 'Rani check-in', pricingMode: 'PERCENTAGE_OF_NIGHTLY_RATE', percentageOfNightlyRate: 30, priceBasis: 'PER_PERSON_PER_STAY' });
       expect(percentageRes.status).toBe(200);
       expect(Number(percentageRes.body.percentageOfNightlyRate)).toBe(30);
 
