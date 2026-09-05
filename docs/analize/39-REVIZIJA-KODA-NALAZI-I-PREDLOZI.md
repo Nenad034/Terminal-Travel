@@ -18,25 +18,34 @@ Nalazi nisu pretpostavljeni — svaki je proveren nad **stvarnim kodom, stvarnom
 
 ## 1. Kritično — korisnik danas vidi pokvarenu funkciju
 
-### 1.1 Klik na rezervaciju u listi otvara „nije pronađena"
+### 1.1 Dva ulaza u rezervaciju vode na staru mock rutu — ISPRAVLJENO 5.9.2026
 
-**Simptom (dokazano, ne pretpostavljeno):** lista rezervacija prikazuje stvarne rezervacije iz baze. Klik na bilo koju otvara ekran koji ispisuje doslovno:
+> **Ispravka opisa (5.9.2026).** Prva verzija ovog nalaza (4.9.2026) bila je **netačna u obimu**: tvrdila je da lista rezervacija u celini vodi na mock ekran i da je pravi dosije od 1.742 linije mrtav kod. Provera koda je pokazala da to nije tako — glavni put je već bio ispravan, a zaostala su bila **dva sporedna ulaza**. Uzrok greške u proceni: nalaz je izveden iz jedne posmatrane poruke na ekranu, bez provere kojim je tačno od tri puta ta poruka dobijena; a `BookingsTable.tsx`, u koji sam gledao, uopšte se ne renderuje (živa tabela je `RealBookingsTable.tsx`). Upisano kao zamka 8.4.
+
+**Simptom (dokazano na ekranu):** klik na rezervaciju otvori sažetak u desnom panelu; dugme **„Otvori pun zapis"** u tom sažetku ispisuje:
 
 > „Rezervacija MOCK-LISTA-2026-0001 **nije pronađena** (mock lista)."
 
-**Uzrok:** u panelu postoje **dva odvojena ekrana za istu stvar**:
+Isto se dešavalo i pri kliku na termin u **kalendaru**. Klik na sam **broj rezervacije** u tabeli je sve vreme radio ispravno — otvarao pravi dosije.
 
-| Ekran | Veličina | Izvor podataka | Koristi se? |
-| :---- | :---- | :---- | :---- |
-| `rezervacije/[id]/page.tsx` | **1.742 linije** | pravi API (`/sales/bookings/:id`), pun dosije sa svim karticama | **ne otvara se iz liste** |
-| `rezervacije/lista/[bookingNumber]/page.tsx` | 44 linije | hardkodovan niz `MOCK_BOOKINGS` | da — lista vodi ovde |
+**Uzrok:** dva načina adresiranja iste stvari. Stara mock pod-ruta `rezervacije/lista/[bookingNumber]` (44 linije, v1.42–v1.53) traži zapis po **broju** u hardkodovanom nizu `MOCK_BOOKINGS`. Pravi dosije `rezervacije/[id]` (1.742 linije, API `/sales/bookings/:id`) traži po **internom ID-u**. Kad je lista v1.54 prešla na prave podatke, tabela je preusmerena na `id`, ali dva potrošača su ostala na broju:
 
-Lista je u međuvremenu prešla na prave podatke (`apiFetch('/sales/bookings')`), ali `openTab` u `BookingsTable.tsx:161` i dalje vodi na mock ekran, koji rezervaciju traži po broju u hardkodovanoj listi. Stvarne rezervacije tamo ne postoje, pa se svaka završi praznim stanjem.
+| Ulaz | Stanje pre | Zašto |
+| :---- | :---- | :---- |
+| `RealBookingsTable.tsx:177` — klik na broj | ispravan | već je nosio `b.id` |
+| `RightPanel.tsx:278` — „Otvori pun zapis" | **na mock rutu** | sažetak (`BookingRowSummary`) uopšte nije nosio `id`, samo broj |
+| `DayAgenda.tsx:40` — kalendar | **na mock rutu** | `DayDetailEntry` je imao `bookingId`, ali se koristio broj |
 
-**Zašto je ovo najozbiljniji nalaz:** ovo je tačno obrazac zbog kog `CLAUDE.md` i postoji — *„više paralelnih modula koji rade sličan posao"* iz PrimeTravel analize. Ovde je gore nego u PrimeTravel-u: verzija sa 1.742 linije stvarnog rada je **mrtva**, a živa je ona sa 44 linije koja ne radi ništa.
+`BookingsTable.tsx` (446 linija, mock) više se ne renderuje nigde — `FiltersModal.tsx` iz njega uvozi samo tip `ColumnKey`. Nije uzrok, ali jeste mrtav kod.
 
-**Predlog:** preusmeriti klik iz liste na `/rezervacije/[id]` (koristeći `id` koji API već vraća, umesto broja rezervacije), pa mock ekran i `mock-data.ts` obrisati. Ako u mock ekranu ima prikaza kojih nema u pravom (npr. „tok rezervacije" raspored), preneti ih pre brisanja.
-**Procena:** pola dana, uz pregled šta tačno ne sme da se izgubi.
+**Šta je ispravljeno (5.9.2026):**
+1. `BookingRowSummary` dobio opciono polje `bookingId`; `RealBookingsTable` ga popunjava.
+2. `RightPanel` vodi na `/rezervacije/<id>`. Kad `bookingId` nedostaje, dugme se **ne prikazuje** — odsutno dugme je bolje od dugmeta koje otvori „nije pronađena".
+3. `DayAgenda` vodi na `/rezervacije/<entry.bookingId>`.
+
+**Provereno kroz stvarne ekrane** (prijava u panel, TOTP, pa učitavanje stranica), ne iz koda: `/rezervacije/<id>` vraća HTTP 200 sa brojem rezervacije, bez „nije pronađena" i bez „MOCK prikaz" upozorenja; lista sada nosi interni ID; kalendar više ne emituje nijedan `/rezervacije/lista/MOCK...` link. `tsc --noEmit` čist.
+
+**Ostaje kao odluka vlasnika (ne diram bez potvrde):** stara mock ruta i `mock-data.ts` sada su bez ijednog ulaza — niko ih više ne otvara, ali stoje. Brisanje je čist dobitak *ako* vam više ne trebaju za pregled izgleda. Vlasnikova odluka od 5.9.2026 je da mock podaci **svesno ostaju** dok se ne pređe na stvaran rad, pa se ništa ne briše bez izričite potvrde. Napomena: ovo se odnosi na mock *ekran*; same rezervacije `MOCK-LISTA-*` su prave rezervacije u bazi i njih ovo ne dotiče.
 
 ---
 
@@ -197,7 +206,7 @@ Ovo **nije propust** — u kodu izričito piše „čeka potvrdu izgleda pre pra
 
 Ovo su stvari kojih **nema**, a koje bi sprečile da se nalazi iz ovog spiska ponove:
 
-**5.1 Provera „mock ili pravo" na jednom mestu.** Nalaz 1.1 je nastao jer se prelazak sa mock-a na prave podatke desio na pola — lista je prešla, ekran nije, i ništa to nije primetilo. Predlog: jedan popis (npr. `docs/analize/STANJE-EKRANA.md` ili tabela u M17 spec) sa jednim redom po ekranu: koristi mock / koristi API / delimično. Popunjava se u istom prolazu kad se ekran menja. Bez toga „delimično prešli" ostaje nevidljivo.
+**5.1 Provera „mock ili pravo" na jednom mestu.** Nalaz 1.1 je nastao jer se prelazak sa mock-a na prave podatke desio na pola — tabela je prešla, dva sporedna ulaza u isti zapis nisu, i ništa to nije primetilo. Predlog: jedan popis (npr. `docs/analize/STANJE-EKRANA.md` ili tabela u M17 spec) sa jednim redom po ekranu: koristi mock / koristi API / delimično. Popunjava se u istom prolazu kad se ekran menja. Bez toga „delimično prešli" ostaje nevidljivo.
 
 **5.2 Provera zdravlja lokalnog okruženja jednom komandom.** Danas se za podizanje traži: Docker, migracije, trigger, seed, tri mock skripte tačnim redosledom, geokodiranje na kraju, `.env` sa 8 novih ključeva. Svaki od tih koraka me je danas ili juče negde iznenadio. Predlog: `npm run doctor` koji proveri i **jasno kaže** šta nedostaje (baza podignuta? migracije primenjene? seed pušten? `.env` potpun? koliko proizvoda/rezervacija ima?). Nova sesija na novoj mašini time prestaje da bude arheologija.
 
@@ -225,7 +234,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** 1.1 klik na rezervaciju · 1.2 lažno „poslato" dobavljaču · 2.1 indeksi · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ (urađeno 5.9.2026) · 1.2 lažno „poslato" dobavljaču · 2.1 indeksi · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
 **Zatim (nedelja):** 2.2 paginacija · 3.1 globalni guard · 3.2 ESLint za API · 2.3 N+1 · 3.4 preimenovanje „Stub"
 

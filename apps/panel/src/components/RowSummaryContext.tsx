@@ -22,6 +22,12 @@ export interface Traveler {
 
 export interface BookingRowSummary {
   kind: 'booking';
+  // Interni ID reda iz baze (5.9.2026) — bez njega je sazetak mogao da otvori pun zapis SAMO po
+  // broju rezervacije, sto je vodilo na staru mock pod-rutu `/rezervacije/lista/<broj>`; pravi
+  // zapis (`/rezervacije/<id>`, poglavlje 6 M5 spec) trazi ID. Opciono jer stari mock izvor
+  // (`BookingsTable.tsx`) ID nema — kad nedostaje, dugme "Otvori pun zapis" se ne prikazuje,
+  // umesto da vodi na ekran koji ce reci "nije pronadjena".
+  bookingId?: string;
   bookingNumber: string;
   buyerName: string;
   status: string;

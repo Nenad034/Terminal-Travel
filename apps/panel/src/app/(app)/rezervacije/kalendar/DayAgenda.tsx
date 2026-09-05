@@ -36,8 +36,11 @@ export default function DayAgenda({ detail, compact = false }: { detail: DayDeta
 
 function Entry({ entry, dot, compact }: { entry: DayDetailEntry; dot: string; compact: boolean }) {
   return (
+    // ISPRAVKA (5.9.2026, dok. 39 nalaz 1.1) — isto kao u desnom panelu: bilo je
+    // `/rezervacije/lista/<broj>` (mock pod-ruta iz v1.42-v1.53), sad pravi zapis po `bookingId`,
+    // koji `DayDetailEntry` vec nosi.
     <TabLink
-      href={`/rezervacije/lista/${entry.bookingNumber}`}
+      href={`/rezervacije/${entry.bookingId}`}
       label={entry.bookingNumber}
       className={`flex items-center gap-1.5 rounded border border-transparent bg-panel2 px-1.5 py-1 text-ink hover:border-accent ${compact ? 'text-[11px]' : 'text-xs'}`}
     >

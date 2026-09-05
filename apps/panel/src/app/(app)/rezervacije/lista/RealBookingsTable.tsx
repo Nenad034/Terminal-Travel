@@ -180,6 +180,7 @@ export default function RealBookingsTable({
   function openSummary(b: DecoratedRow) {
     showSummary({
       kind: 'booking',
+      bookingId: b.id,
       bookingNumber: b.bookingNumber,
       buyerName: b.buyerName,
       status: b.status,

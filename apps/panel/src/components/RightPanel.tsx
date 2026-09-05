@@ -275,7 +275,20 @@ export default function RightPanel({
       {isProdaja && items.length === 0 && previewItems.length > 0 && <ProductPreviewCard />}
 
       {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'booking' && (
-        <BookingSummary summary={summary} onOpenFullRecord={() => openTab(`/rezervacije/lista/${summary.bookingNumber}`, summary.bookingNumber)} />
+        // ISPRAVKA (5.9.2026, vlasnikov nalaz preko revizije koda, dok. 39 nalaz 1.1): ovo dugme
+        // je vodilo na `/rezervacije/lista/<broj>` — mock pod-rutu iz v1.42-v1.53, koja zapis
+        // trazi u hardkodovanoj listi izmisljenih primera. Lista je od v1.54 stvarna, pa je za
+        // svaku pravu rezervaciju ispisivalo "nije pronadjena (mock lista)", dok je klik na sam
+        // broj rezervacije u istoj tabeli (RealBookingsTable.tsx) vec vodio ispravno. Sad oba
+        // ulaza vode na isti pravi zapis `/rezervacije/<id>`.
+        <BookingSummary
+          summary={summary}
+          onOpenFullRecord={
+            summary.bookingId
+              ? () => openTab(`/rezervacije/${summary.bookingId}`, summary.bookingNumber)
+              : undefined
+          }
+        />
       )}
 
       {isProdaja && items.length === 0 && previewItems.length === 0 && summary?.kind === 'calendar-day' && (
@@ -554,7 +567,7 @@ function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
 // Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
 // smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
-function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord: () => void }) {
+function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord?: () => void }) {
   const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
@@ -562,12 +575,17 @@ function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./R
         <span className="font-mono font-semibold text-ink">{s.bookingNumber}</span>
         <span className="rounded bg-panel px-2 py-0.5 text-[11px] font-medium text-ink-dim">{s.status}</span>
       </div>
-      <button
-        onClick={onOpenFullRecord}
-        className="mb-3 flex w-full items-center justify-center gap-1.5 rounded border border-accent px-2 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft"
-      >
-        <Icon name="link-external" /> Otvori pun zapis
-      </button>
+      {/* Dugme postoji samo kad sazetak nosi interni ID (5.9.2026, dok. 39 nalaz 1.1) — bez ID-a
+          nema cime da se otvori pravi zapis, a ranije ponasanje (otvori pa ispisi "nije
+          pronadjena") je gore od odsutnog dugmeta. */}
+      {onOpenFullRecord && (
+        <button
+          onClick={onOpenFullRecord}
+          className="mb-3 flex w-full items-center justify-center gap-1.5 rounded border border-accent px-2 py-1.5 text-[11px] font-semibold text-accent hover:bg-accent-soft"
+        >
+          <Icon name="link-external" /> Otvori pun zapis
+        </button>
+      )}
       <SummaryRow label="Nosilac rezervacije" value={s.buyerName} />
       {(s.country || s.destinationCity) && <SummaryRow label="Destinacija" value={[s.destinationCity, s.country].filter(Boolean).join(', ')} />}
       {s.hotelName && <SummaryRow label="Hotel/objekat" value={s.hotelName} />}
