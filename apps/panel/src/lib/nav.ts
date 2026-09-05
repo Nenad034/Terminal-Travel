@@ -274,7 +274,9 @@ export interface NavGroup {
  */
 export const NAV_GROUPS: NavGroup[] = [
   { id: 'pocetna', label: 'Početna', icon: 'home', itemIds: ['pocetna'] },
-  { id: 'prodaja', label: 'Prodaja', icon: 'search', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
+  // `icon: 'euro'` (5.9.2026, vlasnikov zahtev: "umesto ikone lupe... stavite ikonu za EUR") —
+  // rezervisano ime bez sopstvenog Codicon glifa, `Icon.tsx` ga posebno tretira (prikazuje "€").
+  { id: 'prodaja', label: 'Prodaja', icon: 'euro', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
   { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'destinacije', 'dobavljaci'] },
   { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
   { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },
