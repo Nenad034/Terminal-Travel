@@ -33,8 +33,17 @@ export interface MapPoint {
   city?: string;
   country?: string;
   image?: string;
-  /** Čitljiv naziv usluge, npr. "HB - Polupansion". */
+  /** Vrsta proizvoda (5.9.2026 dopuna, vlasnikov zahtev: "dodaj sve informacije kao na
+   * banerima u rezultatima pretrage") — isti podatak koji `ResultCard`/`ResultRowGroup`
+   * (`RealResults.tsx`) prikazuju ispod naziva. */
+  productType?: string;
+  /** Čitljiv naziv usluge, npr. "HB - Polupansion" — koristi se SAMO kad `offers` nije prosleđeno
+   * (stariji, jednostavniji pozivalac, npr. mock). */
   boardLabel?: string;
+  /** Do tri ponude za prikaz u baneru (isti "do 3" limit kao `ResultCard`), 5.9.2026 dopuna —
+   * ČISTO prikazno, dugme "dodaj u izbor" i dalje bira najjeftiniju (isto što određuje cenu
+   * ispisanu na samoj tački mape), ne pojedinačnu ponudu sa liste. */
+  offers?: { label: string; price: number; currency: string }[];
 }
 
 /**
@@ -201,14 +210,28 @@ function bannerHtml(p: MapPoint, addLabel: string): string {
   const place = [p.city, p.country].filter(Boolean).join(', ');
   const stars = p.stars ? `<span class="tt-map-stars">${'★'.repeat(p.stars)}</span>` : '';
   const image = p.image ? `<div class="tt-map-img" style="background-image:url('${esc(p.image)}')"></div>` : '';
+  // "Sve informacije kao na banerima u rezultatima pretrage" (5.9.2026, vlasnikov zahtev) —
+  // isti podaci koje `ResultCard`/`ResultRowGroup` (`RealResults.tsx`) prikazuju: tip proizvoda
+  // ispod destinacije, i do tri ponude (soba/usluga + cena) umesto samo najniže cene. Kad
+  // `offers` nije prosleđeno (stariji jednostavniji pozivalac), pada nazad na `boardLabel` +
+  // jednu cenu, isto ponašanje kao pre ove dopune.
+  const offersHtml =
+    p.offers && p.offers.length > 0
+      ? p.offers
+          .map(
+            (o) =>
+              `<div class="tt-map-offer"><span>${esc(o.label)}</span><span class="tt-map-offer-price">${esc(money(o.price, o.currency))}</span></div>`,
+          )
+          .join('')
+      : `${p.boardLabel ? `<div class="tt-map-sub">${esc(p.boardLabel)}</div>` : ''}<div class="tt-map-price">${esc(money(p.price, p.currency))}</div>`;
   return `
     <div class="tt-map-banner">
       ${image}
       <div class="tt-map-body">
         <div class="tt-map-title">${esc(p.name)} ${stars}</div>
         ${place ? `<div class="tt-map-sub">${esc(place)}</div>` : ''}
-        ${p.boardLabel ? `<div class="tt-map-sub">${esc(p.boardLabel)}</div>` : ''}
-        <div class="tt-map-price">${esc(money(p.price, p.currency))}</div>
+        ${p.productType ? `<div class="tt-map-sub">${esc(p.productType)}</div>` : ''}
+        ${offersHtml}
         <button type="button" class="tt-map-add" data-id="${esc(p.id)}">${esc(addLabel)}</button>
       </div>
     </div>`;

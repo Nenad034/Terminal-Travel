@@ -74,6 +74,10 @@ export default function RealResults({
 
   if (resultsView === 'mapa') {
     // Proizvod bez koordinata se preskače — ostaje u listi, samo ga nema na mapi (§3.0h).
+    // "Dodaj sve informacije kao na banerima u rezultatima pretrage" (5.9.2026, vlasnikov
+    // zahtev) — isti podaci koje `ResultCard`/`ResultRowGroup` ispod prikazuju: kategorija
+    // (zvezdice), destinacija, slika, tip proizvoda, i do tri ponude (soba/usluga + cena) umesto
+    // samo najniže cene.
     const points = sorted
       .filter((r) => r.geoLat != null && r.geoLng != null)
       .map((r) => ({
@@ -83,6 +87,16 @@ export default function RealResults({
         lng: r.geoLng as number,
         price: cheapest(r),
         currency: r.offers[0].finalPriceCurrency,
+        stars: r.stars ?? undefined,
+        city: r.destinationCity,
+        country: r.destinationCountry,
+        image: r.thumbnail?.url,
+        productType: r.type,
+        offers: r.offers.slice(0, 3).map((o) => ({
+          label: [o.roomTypeName ?? o.roomTypeCode, o.boardType].filter(Boolean).join(' · ') || r.type,
+          price: o.finalPrice,
+          currency: o.finalPriceCurrency,
+        })),
       }));
     // Baner na klik (M5 spec §3.0h.7) — "dodaj u izbor" mora da stavi hotel u desni panel,
     // ISTO što radi dugme u listi (§3.0e.3), da mapa i lista ne budu dva odvojena toka.
