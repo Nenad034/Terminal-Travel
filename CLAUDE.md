@@ -57,6 +57,14 @@ Od avgusta 2026. ovo ide kroz Skill strukturu u `.claude/skills/` umesto obavezn
 - **Pre nego što zadatak proglasiš gotovim** ponovo prođi kroz taj odeljak — nekoliko zamki (npr. "build prolazi a ekran je pokvaren", "prazan ekran je prazna baza, ne pokvaren kod") postoje upravo zato što su prvi put promašene na kraju posla.
 - **Kad naiđeš na novu zamku, dodaj je u taj fajl u istom prolazu**, u istom obliku (simptom → uzrok → provera). Zamka se ne briše kad se jednom ispravi — samo ako je uzrok strukturno uklonjen.
 
+## Revizija koda — kako se piše nalaz (i kada se revizija ponavlja)
+
+`docs/analize/40-PRAVILA-REVIZIJE-KODA.md` je obavezan pre pisanja BILO KAKVOG pregleda, revizije, audita ili spiska nalaza o postojećem kodu. Nastao 5.9.2026. na zahtev vlasnika, posle netačnog nalaza 1.1 u dokumentu 39 (nalaz preteran u obimu: tvrdio da ceo ekran vodi na mock, a bila su pokvarena dva od tri ulaza).
+
+Suština: **svaki nalaz nosi klasu dokaza (izmereno / viđeno na ekranu / pročitano u kodu / procena)**; simptom i uzrok su dva odvojena dokaza; tvrdnja „X je mrtav kod" traži izlaz pretrage ko ga uvozi; obim se broji („2 od 3 ulaza"), ne procenjuje; nalaz Kritično/Visoko traži pokušaj obaranja. Revizija bez kritičnih nalaza je validan rezultat — kvote nema.
+
+Poglavlje 10 tog dokumenta navodi **okidače** posle kojih reviziju treba ponovo predložiti vlasniku (prelazak ekrana sa mock na prave podatke, zatvaranje faze, pre prvih stvarnih podataka, nova aplikacija u `apps/`, period paralelnog rada više sesija, kvar koji je „trebalo da bude uhvaćen"). Sesija koja primeti okidač **sama predlaže reviziju** i navodi koji je okidač nastupio. Puna revizija bez okidača se ne ponavlja.
+
 ## Tvrdo pravilo — nema koda bez oslonca u specifikaciji
 
 - Ako je zadatak već pokriven postojećom Nivo 2 specifikacijom — implementiraj tačno po njoj.

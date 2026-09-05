@@ -20,7 +20,7 @@ Nalazi nisu pretpostavljeni — svaki je proveren nad **stvarnim kodom, stvarnom
 
 ### 1.1 Dva ulaza u rezervaciju vode na staru mock rutu — ISPRAVLJENO 5.9.2026
 
-> **Ispravka opisa (5.9.2026).** Prva verzija ovog nalaza (4.9.2026) bila je **netačna u obimu**: tvrdila je da lista rezervacija u celini vodi na mock ekran i da je pravi dosije od 1.742 linije mrtav kod. Provera koda je pokazala da to nije tako — glavni put je već bio ispravan, a zaostala su bila **dva sporedna ulaza**. Uzrok greške u proceni: nalaz je izveden iz jedne posmatrane poruke na ekranu, bez provere kojim je tačno od tri puta ta poruka dobijena; a `BookingsTable.tsx`, u koji sam gledao, uopšte se ne renderuje (živa tabela je `RealBookingsTable.tsx`). Upisano kao zamka 8.4.
+> **Ispravka opisa (5.9.2026).** Prva verzija ovog nalaza (4.9.2026) bila je **netačna u obimu**: tvrdila je da lista rezervacija u celini vodi na mock ekran i da je pravi dosije od 1.742 linije mrtav kod. Provera koda je pokazala da to nije tako — glavni put je već bio ispravan, a zaostala su bila **dva sporedna ulaza**. Uzrok greške u proceni: nalaz je izveden iz jedne posmatrane poruke na ekranu, bez provere kojim je tačno od tri puta ta poruka dobijena; a `BookingsTable.tsx`, u koji sam gledao, uopšte se ne renderuje (živa tabela je `RealBookingsTable.tsx`). Upisano kao zamka 8.4, a iz iste greške je nastao i `40-PRAVILA-REVIZIJE-KODA.md` — postupak po kom se od 5.9.2026. piše svaki nalaz (klasa dokaza, odvojen uzrok, prebrojan obim, obavezan pokušaj obaranja).
 
 **Simptom (dokazano na ekranu):** klik na rezervaciju otvori sažetak u desnom panelu; dugme **„Otvori pun zapis"** u tom sažetku ispisuje:
 
