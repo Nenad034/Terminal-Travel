@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
+import { useTabs } from './TabsContext';
 
 // Dizajn dok. §5b — desni panel, "sažetak reda kad je centar lista i korisnik klikne red bez
 // ulaska u pun zapis" (18.8.2026 dopuna — polje-lista tamo: "npr. broj rezervacije/profakture,
@@ -120,15 +121,33 @@ const RowSummaryContext = createContext<RowSummaryContextValue | null>(null);
 
 // `onFirstShow` otvara desni panel (Shell.tsx) — isti "pojavljuje se čim ima šta da pokaže"
 // obrazac kao `SelectionProvider.onFirstAdd`.
+//
+// Po TABU, ne globalno (M17 spec v2.58, 5.9.2026, vlasnikov nalaz: "u desnom panelu treba da se
+// vidi brz prikaz podataka iz taba u kom se korisnik trenutno nalazi... ne treba da se vide
+// podaci iz pretrage rezervacija ako se korisnik nalazi u tabu kalendar rezervacija"). Ranije je
+// `summary` bio JEDAN globalan objekat — klik na dan u Kalendaru i klik na red u Pretrazi su OBOJE
+// u istom modulu "Prodaja" (v2.10), pa je poslednji upisan sažetak ostajao vidljiv u SVA tri taba
+// tog modula (kalendar/pretraga/lista), bez obzira gde je korisnik stvarno bio. `summariesByTab`
+// je ključan `activeTabId`-jem iz `TabsContext.tsx` (`RowSummaryProvider` je već ugnježden unutar
+// `TabsProvider`-a u Shell.tsx, pa `useTabs()` ovde ne uvodi novu zavisnost) — `summary` koji se
+// izlaže spolja ostaje ISTA jednostavna vrednost (`Record` slice za trenutan tab), pa `RightPanel.tsx`
+// nije morao da se menja.
 export function RowSummaryProvider({ children, onFirstShow }: { children: React.ReactNode; onFirstShow?: () => void }) {
-  const [summary, setSummary] = useState<RowSummary | null>(null);
+  const { activeTabId } = useTabs();
+  const [summariesByTab, setSummariesByTab] = useState<Record<string, RowSummary>>({});
+  const summary = summariesByTab[activeTabId] ?? null;
 
   function showSummary(s: RowSummary) {
     if (summary === null) onFirstShow?.();
-    setSummary(s);
+    setSummariesByTab((prev) => ({ ...prev, [activeTabId]: s }));
   }
   function clearSummary() {
-    setSummary(null);
+    setSummariesByTab((prev) => {
+      if (!(activeTabId in prev)) return prev;
+      const next = { ...prev };
+      delete next[activeTabId];
+      return next;
+    });
   }
 
   return <RowSummaryContext.Provider value={{ summary, showSummary, clearSummary }}>{children}</RowSummaryContext.Provider>;
