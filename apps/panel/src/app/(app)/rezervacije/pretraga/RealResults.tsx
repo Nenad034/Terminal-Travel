@@ -4,6 +4,7 @@ import Icon from '@/components/Icon';
 import QuoteButton from './QuoteButton';
 import ProductPreviewButton from './ProductPreviewButton';
 import SearchResultsMap from '@/components/SearchResultsMap';
+import { useSelection } from '@/components/SelectionContext';
 import { useSearchFilters } from '@/components/SearchFiltersContext';
 import { amenitiesMatch, commonFiltersFrom, offerMatches, starsMatch } from '@/lib/search-filters';
 import { offerKey } from '@/lib/search-offer-key';
@@ -48,6 +49,7 @@ export default function RealResults({
   emptyMessage: string;
 }) {
   const filters = useSearchFilters();
+  const { addItem } = useSelection();
   const { priceMin, priceMax, availability, refundable, boardTypes, amenityTags, stars } = commonFiltersFrom(filters);
 
   const filtered = results
@@ -82,7 +84,39 @@ export default function RealResults({
         price: cheapest(r),
         currency: r.offers[0].finalPriceCurrency,
       }));
-    return <SearchResultsMap points={points} />;
+    // Baner na klik (M5 spec §3.0h.7) — "dodaj u izbor" mora da stavi hotel u desni panel,
+    // ISTO što radi dugme u listi (§3.0e.3), da mapa i lista ne budu dva odvojena toka.
+    // ISPRAVKA (5.9.2026, vlasnikov nalaz uživo — "popunite ovu prazninu", desni panel prazan
+    // pored mape): `onSelect` ovde nikad nije bio prosleđen (za razliku od
+    // `AccommodationResultsMock.tsx`, koji ga ima), pa je dugme u baneru tiho radilo NIŠTA —
+    // birala se najjeftinija ponuda tog proizvoda, isti izbor koji određuje cenu ispisanu na
+    // samoj tački mape.
+    return (
+      <SearchResultsMap
+        points={points}
+        onSelect={(id) => {
+          const r = sorted.find((x) => x.productId === id);
+          if (!r || r.offers.length === 0) return;
+          const offer = r.offers.reduce((min, o) => (o.finalPrice < min.finalPrice ? o : min), r.offers[0]);
+          addItem({
+            key: `${r.productId}:${offer.rateLineId ?? offer.providerQuoteReference ?? 'na'}`,
+            productId: r.productId,
+            productName: r.name,
+            productType: r.type,
+            sourceType: r.sourceType,
+            rateLineId: offer.rateLineId,
+            providerQuoteReference: offer.providerQuoteReference,
+            stayFrom: quoteDefaults.stayFrom,
+            stayTo: quoteDefaults.stayTo,
+            adults: quoteDefaults.adults,
+            children: quoteDefaults.children,
+            finalPrice: offer.finalPrice,
+            finalPriceCurrency: offer.finalPriceCurrency,
+            quoteExpiresAt: offer.quoteExpiresAt,
+          });
+        }}
+      />
+    );
   }
 
   if (sorted.length === 0) {

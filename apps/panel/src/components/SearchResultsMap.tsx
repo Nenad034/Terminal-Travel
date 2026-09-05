@@ -347,7 +347,19 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+    // ISPRAVKA (5.9.2026, vlasnikov nalaz uživo, uz snimak ekrana — prazan beo prostor desno od
+    // mape). MapLibre meri svoj kontejner SAMO pri pravljenju — ako se širina te kolone posle
+    // toga promeni (otvaranje/zatvaranje desnog panela, prevlačenje granice bočne trake preko
+    // `ResizablePane`, ili samo to što je flex layout tek posle prvog render-a stigao do konačne
+    // širine), platno ostaje na STAROJ, užoj veličini dok `<div>` oko njega already zauzima punu
+    // širinu — razlika između njih je tačno taj prazan beli prostor, bez ijedne greške u konzoli.
+    // `ResizeObserver` nad sopstvenim kontejnerom + `map.resize()` je standardno rešenje (nema ga
+    // ugrađenog u samu biblioteku — mora se ručno pratiti).
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(containerRef.current);
+
     return () => {
+      resizeObserver.disconnect();
       observer.disconnect();
       popupRef.current?.remove();
       map.remove();
