@@ -6,16 +6,15 @@ import Icon, { IconDuo } from '@/components/Icon';
 import PeriodRangeField from './PeriodRangeField';
 import FilterLocationFields from './FilterLocationFields';
 import FieldInline from './FieldInline';
+import DimensionsPicker from './DimensionsPicker';
 import {
   type TabKey,
   type SearchParams,
   OCCUPANCY_GROUP_BY,
   CHANNEL_OPTIONS,
   PRODUCT_TYPE_OPTIONS,
-  DYNAMIC_DIMENSIONS,
   DYNAMIC_DRILLDOWN_DIMS,
   DYNAMIC_PRODUCT_ICONS,
-  DYNAMIC_OTHER_PRESETS,
   DATE_FIELD_LABELS,
   DATE_FIELD_OPTIONS,
   SEGMENT_LABELS,
@@ -213,49 +212,39 @@ export default function IzvestajiFilterForm({ tab, searchParams, view }: { tab: 
         </FieldInline>
       )}
       {tab === 'dinamicki' && (
-        <>
-          {/* Ikonice vrsta proizvoda — BEZ vidljivog naziva (5.9.2026, vlasnikov zahtev: "pored
-              ikona za vrstu uskuge uklonite nazive samo neka ostane pojavljivanje kada se predje
-              misem preko ikone") — `title` (već postojao) ostaje jedini nosilac naziva, native
-              hover tooltip. Dugme akcije u ISTOM redu (isti zahtev: "u istom redu stavite i
-              strekicu u narandzaston tagu") — za ovaj tab dugme NIJE na kraju forme (dole), nego
-              odmah posle poslednje ikonice. */}
-          <div className="flex w-full flex-wrap items-center gap-1">
-            <span className="mr-1 text-[11px] text-ink-faint">po vrsti proizvoda (država → mesto → proizvod)</span>
-            {DYNAMIC_PRODUCT_ICONS.map((p) => {
-              const typeParam = p.types.join(',');
-              const active = currentDims === DYNAMIC_DRILLDOWN_DIMS && (searchParams?.productType ?? '') === typeParam;
-              return (
-                <Link
-                  key={p.label}
-                  href={dimensionsHref(DYNAMIC_DRILLDOWN_DIMS, typeParam)}
-                  title={p.label}
-                  className={`flex items-center justify-center rounded-full border p-1.5 ${
-                    active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
-                  }`}
-                >
-                  {p.iconDuo ? <IconDuo name={p.icon} /> : <Icon name={p.icon} />}
-                </Link>
-              );
-            })}
-            {submitButton}
-          </div>
+        // Jedan red — bez rečenice iznad (6.9.2026, vlasnikov zahtev: "recenica po vrsti
+        // proizvoda pre ikona treba da se ukloni"): ikonice (BEZ vidljivog naziva, samo hover
+        // `title`, 5.9.2026), pa `DimensionsPicker` ("iza ikona staviti polje... osposobiti jer
+        // i dalje ne radi" — zamenjuje slobodan tekst dugmadima za poznat, fiksan skup
+        // dimenzija, klik odmah primenjuje formu), pa dugme akcije NA KRAJU reda ("na kraju
+        // stavite strelicu za akciju... dakle ukupno dva reda").
+        <div className="flex w-full flex-wrap items-center gap-1">
+          {DYNAMIC_PRODUCT_ICONS.map((p) => {
+            const typeParam = p.types.join(',');
+            const active = currentDims === DYNAMIC_DRILLDOWN_DIMS && (searchParams?.productType ?? '') === typeParam;
+            return (
+              <Link
+                key={p.label}
+                href={dimensionsHref(DYNAMIC_DRILLDOWN_DIMS, typeParam)}
+                title={p.label}
+                className={`flex items-center justify-center rounded-full border p-1.5 ${
+                  active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                }`}
+              >
+                {p.iconDuo ? <IconDuo name={p.icon} /> : <Icon name={p.icon} />}
+              </Link>
+            );
+          })}
           {/* Kanal/Dobavljač premešteni IZNAD tabele/grafika, uz desnu ivicu (5.9.2026,
               vlasnikov zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne
               gornje ivice tabele") — vidi render tela izveštaja u `page.tsx`, van ove forme. */}
-          {/* Bez ovog hidden polja bi automatska primena (na promenu ručnog polja za dimenzije)
-              tiho obrisala izabranu vrstu proizvoda — `productType` se postavlja SAMO preko
-              ikonica (`<Link>`), ne kroz ijedno pravo polje ove forme. */}
+          {/* Bez ovog hidden polja bi automatska primena (na promenu `DimensionsPicker`-a) tiho
+              obrisala izabranu vrstu proizvoda — `productType` se postavlja SAMO preko ikonica
+              (`<Link>`), ne kroz ijedno pravo polje ove forme. */}
           <input type="hidden" name="productType" value={searchParams?.productType ?? ''} />
-          <FieldInline label="dimenzije">
-            <input
-              name="groupBy"
-              defaultValue={currentDims}
-              placeholder={DYNAMIC_DIMENSIONS.join(',')}
-              className={inputClassName}
-            />
-          </FieldInline>
-        </>
+          <DimensionsPicker initial={currentDims} />
+          {submitButton}
+        </div>
       )}
       {tab !== 'dinamicki' && submitButton}
     </form>
