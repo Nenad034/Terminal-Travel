@@ -110,8 +110,11 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         title="Obaveštenja — istorija"
-        className={`relative flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded ${
-          open ? 'bg-panel text-accent' : 'text-ink-faint hover:bg-panel hover:text-ink'
+        // Kvadratni "tag" (5.9.2026, vlasnikov zahtev: "ikone u desnoj traci takodje stavite u
+        // tagove, kao sto su u levoj") — isti jezik kao `ActivityBar.tsx` bedž (36px, `rounded-md`,
+        // `bg-panel`/`bg-accent-soft`), otkad je ovo dugme preseljeno iz `TopBar.tsx` u `RightRail.tsx`.
+        className={`relative flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
+          open ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`}
       >
         <Icon name="bell" />

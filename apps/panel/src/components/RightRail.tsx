@@ -53,7 +53,9 @@ function InboxButton() {
     <button
       onClick={() => openTab('/', 'Agent Inbox')}
       title="Agent Inbox — čeka odobrenje"
-      className="relative flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+      // Kvadratni "tag", isti jezik kao ActivityBar bedž (5.9.2026, vlasnikov zahtev: "ikone u
+      // desnoj traci takodje stavite u tagove, kao sto su u levoj").
+      className="relative flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md bg-panel text-ink-faint hover:bg-panel2 hover:text-ink"
     >
       <Icon name="inbox" />
       {count > 0 && (
@@ -99,8 +101,8 @@ export default function RightRail({
       <button
         onClick={onToggleRightPanel}
         title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
-        className={`flex h-[43px] w-[43px] items-center justify-center rounded ${
-          rightPanelOpen ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
+        className={`flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md ${
+          rightPanelOpen ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
         }`}
       >
         <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
@@ -108,7 +110,7 @@ export default function RightRail({
       <button
         onClick={logout}
         title="Odjava"
-        className="flex h-[43px] w-[43px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-danger"
+        className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md bg-panel text-ink-faint hover:bg-panel2 hover:text-danger"
       >
         <Icon name="sign-out" />
       </button>
