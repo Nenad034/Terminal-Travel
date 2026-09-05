@@ -163,6 +163,15 @@
   /* "Navy teget" (21.8.2026, na zahtev vlasnika) — nepromenjeno ovom paleta-promenom, boja
      ikonica ostaje odvojena odluka od pozadine/akcenta (§ komentar iznad .codicon). */
   --icon-line: #1f3a5f;
+  /* Linije tabova — narandžaste (5.9.2026, vlasnikov zahtev: "linije tabova treba da budu u
+     narandzastoj boji"). NAMERNO fiksno, bez izmene po modu (nema ga ni u jednom `[data-theme=]`
+     bloku ispod ni u `@media (prefers-color-scheme: dark)`) — ista boja u sva tri moda, isti
+     princip kao `--icon-line` u tamnom/dim modu iznad (CSS custom property se, kad nije
+     redeklarisana u konkretnijem `:root[data-theme=...]` pravilu, i dalje čita iz ovog opšteg
+     `:root` bloka). Tailwind `orange-500`/`orange-700` (van "Horizont"/"Azur" palete — namerna,
+     upadljiva boja tabova, ne akcent brenda). */
+  --tab-line: #f97316;
+  --tab-line-strong: #c2410c;
 }
 
 @media (prefers-color-scheme: dark) {

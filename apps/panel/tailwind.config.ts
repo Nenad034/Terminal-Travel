@@ -39,6 +39,12 @@ const config: Config = {
           DEFAULT: 'var(--accent2)',
           soft: 'var(--accent2-soft)',
         },
+        // Linije tabova (5.9.2026, vlasnikov zahtev) — narandžasta, fiksna u sva tri moda, vidi
+        // `--tab-line`/`--tab-line-strong` u globals.css.
+        tabline: {
+          DEFAULT: 'var(--tab-line)',
+          strong: 'var(--tab-line-strong)',
+        },
         ok: { DEFAULT: 'var(--ok)', bg: 'var(--ok-bg)' },
         warn: { DEFAULT: 'var(--warn)', bg: 'var(--warn-bg)' },
         danger: { DEFAULT: 'var(--danger)', bg: 'var(--danger-bg)' },

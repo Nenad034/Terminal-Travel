@@ -92,19 +92,23 @@ export default function StatusBar({
   const env = process.env.NODE_ENV === 'production' ? 'PRODUKCIJA' : 'TEST';
 
   return (
-    <footer className="relative flex h-[29px] flex-shrink-0 items-center gap-3 bg-bar px-2 text-[11px] text-ink-faint">
-      {/* Na sredini trake (5.9.2026, vlasnikov zahtev: "ovo prenesite iz gornje trake u donju
-          traku tačno na sredinu") — "traži ili izvrši" (Ctrl K) preseljeno ovde sa mesta koje je
-          do sad zauzimala AI ikonica (sad poslednja stavka `ActivityBar.tsx`). Apsolutno
-          centrirano u odnosu na CELU traku, isti razlog kao ranija AI ikonica — ne u odnosu na
-          flex tok teksta oko njega. */}
+    <footer className="relative flex h-[43px] flex-shrink-0 items-center gap-3 bg-bar px-2 text-[11px] text-ink-faint">
+      {/* Visina izjednačena sa gornjom trakom (5.9.2026, vlasnikov zahtev: "visina donje trake
+          treba da bude ista kao i gornje trake") — bila je 29px (v1.65, poravnata sa poljem
+          pretrage tada u TopBar-u), TopBar je oduvek 43px; sad su obe trake iste visine.
+          "traži ili izvrši" (Ctrl K), na sredini trake (5.9.2026, "ovo prenesite iz gornje trake
+          u donju traku tačno na sredinu") — dobija izgled TAGA (5.9.2026, vlasnikov zahtev:
+          "Trazi ili izvrsi stavite u tag"), isti obrazac kartice/pilule kao ostali tagovi u
+          panelu (`rounded-md border`), ne više go tekst. Centrirano preko `top-1/2
+          -translate-y-1/2` (umesto ranijeg `top-0 h-[29px]`) da ostane vertikalno na sredini sad
+          više trake. */}
       <button
         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-        className="absolute left-1/2 top-0 flex h-[29px] -translate-x-1/2 items-center gap-2 rounded px-2 font-mono text-ink-faint hover:text-ink"
+        className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-md border border-border bg-panel-2 px-2 py-1 font-mono text-ink-faint hover:border-accent hover:text-ink"
       >
         <Icon name="search" />
         traži ili izvrši
-        <kbd className="rounded border border-border bg-panel-2 px-1 text-[11px]">Ctrl K</kbd>
+        <kbd className="rounded border border-border bg-panel px-1 text-[11px]">Ctrl K</kbd>
       </button>
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>

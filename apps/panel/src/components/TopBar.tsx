@@ -1,71 +1,7 @@
 'use client';
 
-import { useEffect, useState, type ComponentProps } from 'react';
-import { useRouter } from 'next/navigation';
-import Icon from './Icon';
-import ThemeToggle from './ThemeToggle';
+import { useState } from 'react';
 import TabBar from './TabBar';
-import CustomizeLayoutButton from './CustomizeLayoutButton';
-import { useTabs } from './TabsContext';
-import NotificationBell from './NotificationBell';
-
-interface AgentInboxSource {
-  moduleCode: string;
-  actionCode: string;
-  label: string;
-  count: number;
-}
-
-// Dizajn dok. §5c / M15 spec poglavlje 6 — "stalno vidljiva ikonica sa brojem na kraju gornje
-// trake", ne stavka menija. Agent Inbox nema sopstvenu rutu — isti agregovan prikaz kao
-// kontrolna tabla (Početna, M17 spec §5, kartica "Agent Inbox — čeka odobrenje") — klik zato
-// otvara Početnu kao nov tab, ne novu stranicu. Nema M15/agent-inbox/VIEW dozvolu → 403 →
-// ikonica se ne prikazuje (isti princip ćutljivog izostavljanja kao StatusBar AI status).
-function InboxButton() {
-  const { openTab } = useTabs();
-  const [count, setCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function poll() {
-      try {
-        const res = await fetch('/api/ai-orchestration/inbox', { cache: 'no-store' });
-        if (cancelled) return;
-        if (!res.ok) {
-          setCount(null);
-          return;
-        }
-        const sources: AgentInboxSource[] = await res.json();
-        setCount(sources.reduce((sum, s) => sum + s.count, 0));
-      } catch {
-        if (!cancelled) setCount(null);
-      }
-    }
-    poll();
-    const t = setInterval(poll, 30_000);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, []);
-
-  if (count === null) return null;
-
-  return (
-    <button
-      onClick={() => openTab('/', 'Agent Inbox')}
-      title="Agent Inbox — čeka odobrenje"
-      className="relative flex h-[43px] w-[43px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
-    >
-      <Icon name="inbox" />
-      {count > 0 && (
-        <span className="absolute right-0.5 top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-accent px-0.5 text-[11px] font-semibold leading-none text-accent-ink">
-          {count > 99 ? '99+' : count}
-        </span>
-      )}
-    </button>
-  );
-}
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5c — grupne ikonice preseljene u ActivityBar.tsx
 // (vertikalna traka, 21.8.2026) — gornja traka sad nosi tabove, pretragu i desni klaster
@@ -93,33 +29,20 @@ const HEADER_PADDING_GAP = 12; // header `px-2` (8px) + `gap-1` (4px) pre spacer
 export default function TopBar({
   leftColumnWidth,
   tabOffset,
-  rightPanelOpen,
-  onToggleRightPanel,
-  layoutProps,
 }: {
   leftColumnWidth: number;
   /** Razmak od leve ivice centralne kolone do leve ivice suženog sadržaja (Shell.tsx,
    * 2.9.2026) — 0 kad je izabrana puna širina, pa je ponašanje tada nepromenjeno. */
   tabOffset: number;
-  rightPanelOpen: boolean;
-  onToggleRightPanel: () => void;
-  layoutProps: Omit<ComponentProps<typeof CustomizeLayoutButton>, 'rightPanelOpen' | 'onToggleRightPanel'>;
 }) {
   const spacerWidth = Math.max(0, leftColumnWidth - HEADER_PADDING_GAP);
   const showLabel = spacerWidth >= 100;
-  const router = useRouter();
   // Logo zumiranje na klik (24.8.2026, na zahtev vlasnika: "Omogucite da se logo na jedan klik
   // uveca duplo, a na drugi klik da se vrati nazad") — prost toggle, isti troetapno-nazad obrazac
   // kao zvonce/urgentOnly (M5). `overflow-hidden` uklonjen sa roditelja (label i dalje sam sebi
   // ograničava tekst preko `truncate`, ne treba mu roditeljski overflow) da uvećan logo stvarno
   // vizuelno "izađe" preko trake tabova, ne da bude isečen na granici spacer-a.
   const [logoZoomed, setLogoZoomed] = useState(false);
-
-  async function logout() {
-    await fetch('/api/session/logout', { method: 'POST' });
-    router.push('/prijava');
-    router.refresh();
-  }
 
   return (
     <header className="flex h-[43px] flex-shrink-0 items-center gap-1 bg-bar px-2 text-xs">
@@ -193,29 +116,12 @@ export default function TopBar({
       <div className="flex h-full min-w-0 flex-1" style={tabOffset > 0 ? { paddingLeft: tabOffset } : undefined}>
         <TabBar />
       </div>
-      {/* "traži ili izvrši" (Ctrl K) preseljeno u donju traku, na sredinu (5.9.2026, vlasnikov
-          zahtev) — StatusBar.tsx sad nosi to dugme, na mestu koje je oslobodila AI ikonica
-          (preseljena u ActivityBar.tsx, poslednja stavka). */}
-      <ThemeToggle />
-      <NotificationBell />
-      <InboxButton />
-      <CustomizeLayoutButton {...layoutProps} rightPanelOpen={rightPanelOpen} onToggleRightPanel={onToggleRightPanel} />
-      <button
-        onClick={onToggleRightPanel}
-        title="Desni panel — sažetak/Povezano (dizajn dok. §5b)"
-        className={`flex h-[43px] w-[43px] items-center justify-center rounded ${
-          rightPanelOpen ? 'bg-accent-soft text-accent-strong' : 'text-ink-faint hover:bg-panel hover:text-ink'
-        }`}
-      >
-        <Icon name={rightPanelOpen ? 'layout-sidebar-right' : 'layout-sidebar-right-off'} />
-      </button>
-      <button
-        onClick={logout}
-        title="Odjava"
-        className="flex h-[43px] w-[43px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-danger"
-      >
-        <Icon name="sign-out" />
-      </button>
+      {/* Gornja traka posle ovoga NE nosi više nijednu ikonicu (5.9.2026, vlasnikov zahtev: "na
+          gornjoj traci treba da se prikazuju samo tabovi i ikona za brisanje svih tagova") —
+          "traži ili izvrši" je već u donjoj traci (StatusBar.tsx), "zatvori sve tabove" je već
+          deo `TabBar`-a (`ml-auto` unutar trake tabova). Tema/zvono/Agent Inbox/Customize
+          Layout/desni panel/odjava sele se u `RightRail.tsx`, novu vertikalnu traku uz desnu
+          ivicu ekrana — ogledalo `ActivityBar.tsx` na suprotnoj strani (vidi Shell.tsx). */}
     </header>
   );
 }
