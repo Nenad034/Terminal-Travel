@@ -4,6 +4,8 @@
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
 
+**Verzija:** 2.32 — Kontekstualni filteri po tipu destinacije i sezoni, poglavlje 3.0c.3d (5.9.2026, vlasnikov zahtev: "nervira me kad gledam hotel u unutrašnjosti a postoji filter za udaljenost od mora") — novi entitet `FilterDefinition` (katalog svih filtera pretrage smeštaja, sa opcionim `applicable_destination_types[]` i `active_months[]`) odlučuje koji filter se uopšte PRIKAZUJE za datu pretragu, na osnovu `DestinationProfile.destination_type` destinacije (M2 §2.1c, novi entitet, isti prolaz) i trenutnog meseca pretrage. Primer: "udaljenost od mora" se ne nudi za `MOUNTAIN`/`URBAN`/`RURAL` destinacije; "blizina ski lifta" se ne nudi van zimskih meseci čak ni za `MOUNTAIN` destinaciju. Detalji: §3.0c.3d ispod.
+
 **Verzija:** 2.31 — `font-medium` nije bilo dovoljno podebljano — `font-semibold` (4.9.2026, na zahtev vlasnika: "meni tako ne deluje", uz snimak ekrana koji pokazuje da tri reda i dalje ne odskaču od pozadine). Sva tri reda (destinacija/država, tip smeštaja/usluga, termin/noćenja/putnika) prebačena sa `font-medium` na `font-semibold` — ista debljina kao naziv proizvoda iznad, jasna i nedvosmislena razlika u odnosu na običan tekst, umesto suptilnog koraka koji se u praksi nije osetio. Treći red (termin/noćenja/putnici) uz to prebačen sa `ink-faint` na `ink-dim` — razlika između te dve nijanse boje nije bila dovoljno uočljiva da opravda zadržavanje najbleđeg tona. Napomena: vlasnikov snimak je pokazivao žućkasto-braon nijansu teksta koje nijedan token u `globals.css`/`tailwind.config.ts` ne proizvodi (`--text-dim`/`--text-faint` su tamno sive/skoro crne u svetloj temi) — verovatno filter tople boje na monitoru/OS-u (npr. Night Light), van domašaja ove izmene; `font-semibold` je namerno robustan izbor koji ostaje čitljiv bez obzira na takav filter, jer menja OBLIK slova, ne samo boju. **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo potvrđeno da su sva tri reda vizuelno iste debljine kao naziv proizvoda.
 
 **Verzija:** 2.30 — Podebljana destinacija/tip smeštaja/termin u stavci Aranžmana (4.9.2026, na zahtev vlasnika, neposredan nastavak v2.29: "ove informacije podebljajte"). Sva tri reda (destinacija/država, tip smeštaja/usluga, termin/noćenja/putnika) dobijaju `font-medium` — veličina/boja i dalje nose glavnu razliku u težini iz v2.29, podebljanje je dodatan korak preko sve tri linije, uključujući i termin/noćenja/putnika koji ostaju vizuelno najtiši (i dalje `text-[11px] text-ink-faint`, samo sad i `font-medium`). **Provera:** `tsc --noEmit` čist za `apps/panel`; uživo, sa stvarno povezanim `rateLine`/`ContractPeriod` (soba+usluga podaci) — sve tri linije potvrđene čitljivo podebljane, tekst se poklapa sa vlasnikovim citiranim primerom ("Standardna soba (STD) · Polupansion (HB) · 2 odraslih").
@@ -466,6 +468,28 @@ Dva para filtera koji ostaju **vrlo vidljivi**, ne sklopljeni unutar grupe kao o
 
 - **Odmah potvrda / Upit** — filtrira po već postojećem `SearchResultOffer.availability_status` (poglavlje 3.0b.2): "Odmah potvrda" = `AVAILABLE`, "Upit" = `ON_REQUEST`. Filtrira se **na klijentu** nad već dobijenim rezultatima, isti princip kao "vrsta usluge" (poglavlje 3.0c.2, tačka 3) — polje već postoji u odgovoru, nema potrebe za novim parametrom `GET /search`.
 - **Refundabilno / Nerefundabilno** — filtrira po `SearchResultOffer.is_refundable` (poglavlje 3.0b.2). Isto klijentsko filtriranje. Polje je uvek `boolean` (dopuna 1.9.2026 — više ne postoji `null` slučaj, izračunato za oba izvora), pa se ovaj filter ponaša isto kao "vrsta usluge"/"Odmah potvrda/Upit" iznad, bez posebnog trećeg stanja. **Sam filter UI i dalje čeka žicu** — `/rezervacije/pretraga` je i dalje potpuno MOCK ekran (poglavlje 3.0b.2 dopuna 1.9.2026), poznat nedostatak, ne prećutan.
+
+### 3.0c.3d Kontekstualni filteri po tipu destinacije i sezoni (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikova primedba — filter "udaljenost od mora" se prikazivao i za hotele u unutrašnjosti, gde nema smisla; isti problem postoji i obrnuto (npr. "blizina ski lifta" van zimske sezone). Rešenje uvodi jedan nov entitet koji odlučuje koji filter se uopšte PRIKAZUJE, nezavisno od toga da li bi filtriranje po njemu tehnički "radilo".
+
+**`FilterDefinition`** — katalog svih filtera koje pretraga smeštaja zna da ponudi (cena, zvezdice, ocena gostiju, `amenity_tags[]` iz M2 §2.3c, "vrsta usluge", "odmah potvrda/upit", "refundabilno", i novi lokacijski/sezonski filteri poput "udaljenost od mora"/"blizina ski lifta"):
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| key | string (PK) | npr. `DISTANCE_TO_SEA`, `DISTANCE_TO_SKI_LIFT`, `PRICE`, `STAR_RATING` — stabilan tehnički identifikator |
+| applicable_destination_types | niz `DestinationType` (M2 §2.1c), nullable | `null`/prazno = filter je relevantan za SVAKI tip destinacije (npr. cena, zvezdice, wi-fi) — ne menja se ponašanje postojećih filtera |
+| active_months | niz brojeva 1–12, nullable | `null`/prazno = filter je relevantan celu godinu |
+
+**Pravilo prikaza:** filter iz `FilterDefinition` se nudi u datoj pretrazi samo ako (a) `applicable_destination_types` je prazno, ILI bar jedna destinacija iz rezultata pretrage ima `DestinationProfile.destination_type` na toj listi, **I** (b) `active_months` je prazno, ILI je trenutni mesec pretrage na toj listi. Oba uslova moraju proći — tip destinacije sam po sebi nije dovoljan za sezonski filter (primer ispod).
+
+**Konkretan primer (potvrđen sa vlasnikom):** pretraga za Bad Klajnkirhajm (Austrija, `destination_type = MOUNTAIN`) za jul 2027. "Blizina ski lifta" ima `applicable_destination_types = [MOUNTAIN]` (uslov a prolazi) i `active_months = [11,12,1,2,3]` (uslov b NE prolazi, jul nije na listi) — filter se **ne prikazuje**, iako je destinacija planinska. Postojeći generički filteri (cena, zvezdice, ocena, `amenity_tags[]`) imaju oba polja prazna i ponašaju se identično kao danas — ova dopuna ne menja njihov prikaz.
+
+**Odnos prema postojećem klijentskom filtriranju (§3.0c.3b):** ovo pravilo odlučuje KOJI filteri se uopšte iscrtavaju u UI (pre bilo kakvog klika), ne menja kako se filtriranje izvršava kad je filter već prikazan — filteri koji prođu proveru i dalje rade klijentski nad već dobijenim rezultatima, isti mehanizam kao ostatak §3.0c.3.
+
+**Poreklo `DestinationProfile`/`destination_type` po destinaciji:** M2 §2.1c — AI predlaže, čovek potvrđuje, jednom po destinaciji (ne po proizvodu). Destinacija bez profila se ponaša kao da nema tip: filteri sa `applicable_destination_types` popunjenim se za nju ne prikazuju (isti princip "nepoznata vrednost se ne pogađa" kao M2 §2.1a).
+
+**Namerno van obima ovog prolaza:** tačan, kompletan spisak koji od budućih lokacijskih/sezonskih filtera (osim gore navedena dva primera) ulazi u `FilterDefinition` i sa kojim vrednostima — čeka konkretnu listu filtera koje vlasnik/tim smatra vrednim uvođenja, upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`; sezonski izuzetak po POJEDINAČNOJ destinaciji (mesto koje leti radi "jezersko" a zimi "planinsko") — danas `destination_type` (M2 §2.1c) je jedna, celogodišnja vrednost po mestu, sezonska granularnost postoji samo na nivou filtera, ne destinacije.
 
 Oba filtera su nezavisna jedan od drugog i od ostatka sekcije "Filteri" (I-logika sa svim ostalim aktivnim filterima, isto kao amenity tagovi).
 

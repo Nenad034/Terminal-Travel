@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M2) i poglavlje 8 (Faza 1)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.20 — novi entitet **`DestinationProfile`** i enum **`DestinationType`**, poglavlje 2.1c (5.9.2026, vlasnikov zahtev, tokom razgovora o M5 filterima pretrage) — vlasnikov nalaz: filter "udaljenost od mora" se prikazivao i za hotele u unutrašnjosti, gde nema smisla. Rešenje: destinacija (par `destination_country`+`destination_city`) dobija tip (`COASTAL`/`MOUNTAIN`/`URBAN`/`SPA`/`LAKE`/`RURAL`), tagovan JEDNOM po mestu, ne po proizvodu. M5 §3.0c.3d (isti prolaz) koristi ovaj tip, uz sezonski prozor po filteru, da odluči koji filter uopšte ponuditi u datoj pretrazi — npr. "blizina ski lifta" se ne nudi za planinsku destinaciju van zimskih meseci. `DestinationProfile` popunjava AI predlogom (iz naziva mesta i `geo_lat`/`geo_lng`), čovek potvrđuje pre upisa (poglavlje 7 Master dokumenta, "predloži pa čovek odobri"). Detalji: §2.1c ispod.
 **Verzija:** 1.19 — novo polje **`destination_area`** i poglavlje 2.1b (4.9.2026, vlasnikova odluka, "idi na opciju 1"): nalaz na M5 ekranu rezervacije — grčki region Halkidiki ima tri poluostrva (jedno je Sitonija), a `destination_city` je za jedan hotel nosio vrednost `"Sitonija, Halkidiki"` umesto stvarnog naselja (npr. Nikiti). `destination_city` ostaje STVARNO naselje; `destination_area` je novo opciono polje za širu regiju/poluostrvo/grupu ostrva kad se razlikuje od naselja. Detalji, obrazloženje i namerno odloženi ekrani: §2.1b ispod. **Provera:** migracija primenjena (`prisma migrate deploy`), `tsc` čist na `apps/api`+`apps/panel`; uživo — Pregled/Aranžman tab i vaučer prikazuju "Nikiti, Sitonija, Halkidiki, Grčka", izmena postojećeg proizvoda moguća kroz `katalog/[id]` formu.
 **Verzija:** 1.18 — `Product` dobija **`supplier_id`** i `ProductSourceType` dobija **`MANUAL`** (3.9.2026, uz M5 §6.7b — ručno uneta usluga na rezervaciji). Ugovoreni proizvod ima dobavljača posredno (kroz `source_contract`), API proizvod kroz provajdera; **ručno uneta usluga ga nije imala nigde**, a bez dobavljača ne mogu ni vaučer po dobavljaču ni najava po dobavljaču (M5 §6/§6.7) — vlasnikov zahtev je bio da „svaka usluga ima svog dobavljača". Polje je opciono (postojeći proizvodi ga nemaju), ali **obavezno pri ručnom unosu**. Jednokratna ručna usluga se upisuje kao `status = DRAFT` sa praznim `visible_channels` — postoji, ima cenu i dobavljača, i ne vidi se ni u pretrazi (`GET /search` traži `ACTIVE`), ni na sajtu, ni u B2B portalu; kvačica „sačuvaj u katalog" je prevodi u `ACTIVE`. Time katalog ne postaje spisak jednokratnih unosa, a ne uvodi se ni drugi paralelan zapis za „proizvod koji nije proizvod".
 
@@ -87,6 +88,27 @@ Vlasniku su predložene dve opcije: (1) novo opciono polje `destination_area` uz
 - M5 predikativni unos/filter u polju pretrage (autocomplete predlaže mesta, ne regije).
 
 Svaka od ovih stavki je otvorena stavka — upisano u `docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md`.
+
+### 2.1c `DestinationProfile` i `DestinationType` — tip destinacije za kontekstualne filtere (dopuna, 5.9.2026, vlasnikov zahtev)
+
+**Povod:** vlasnikova primedba — filter "udaljenost od mora" se u M5 pretrazi prikazivao i za hotele u unutrašnjosti, gde je besmislen. Isti problem postoji i u drugom smeru (npr. "blizina ski lifta" prikazano za primorski hotel, ili za planinski hotel van sezone). Rešenje ne dira `Product` — dodaje se mali, odvojen entitet koji tipizuje **mesto**, ne pojedinačan proizvod, jer desetine hotela dele istu destinaciju i ne treba tagovati svaki posebno.
+
+**`DestinationProfile`**
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| destination_country | string | mora se poklapati sa kanonskim oblikom iz §2.1a |
+| destination_city | string | mora se poklapati sa stvarnim naseljem iz §2.1b (nikad regija) |
+| destination_type | enum: `COASTAL`, `MOUNTAIN`, `URBAN`, `SPA`, `LAKE`, `RURAL` | glavna, celogodišnja odrednica tipa mesta |
+| created_by | UUID | M1 User koji je potvrdio predlog, ili AI agent koji ga je pripremio (poglavlje 7 Master dokumenta) — potvrđeno tek pri odobrenju, ne pri predlogu |
+| created_at / updated_at | timestamp | |
+
+Jedinstven par (`destination_country`, `destination_city`) — svaka destinacija ima najviše jedan profil. Destinacija bez profila (nov grad, još netagovan) se tretira kao "nepoznat tip" — filteri vezani za tip se jednostavno ne prikazuju za nju (isti princip kao svuda u sistemu: nepoznata vrednost se ne pogađa, §2.1a).
+
+**Popunjavanje — AI predlaže, čovek potvrđuje.** Jednokratno, u seriji nad svim postojećim destinacijama (izvedeno iz `destination_city`/`destination_country`/`geo_lat`/`geo_lng` koji već postoje na `Product`, §2.1) — AI agent predlaže `destination_type` po destinaciji, ne po proizvodu, čovek pregleda listu predloga i odobrava pre upisa. Ubuduće, kad se doda proizvod u novu destinaciju, isti mali predlog-i-odobri korak se ponavlja samo za tu jednu destinaciju. Ovo je klasifikacija/predlog (poglavlje 7 Master dokumenta, nivo "autonomno" — priprema predloga, ne izvršenje), ali upis u `DestinationProfile` je akcija koja menja šta gost vidi u pretrazi (M5 §3.0c.3d), pa ide kroz "predloži pa čovek odobri" nivo pre nego što utiče na filtere.
+
+**Namerno van obima ovog prolaza:** sezonske izuzetke po destinaciji (mesto koje leti radi "jezersko", zimi "planinsko") — `destination_type` je za sada jedna, celogodišnja vrednost po mestu; sezonski deo problema (npr. "ski lift" filter van zimskih meseci) rešava se na nivou FILTERA, ne destinacije — vidi M5 §3.0c.3d.
 
 ### 2.2 `ProductTranslation` — jezički zavisan sadržaj
 Prevodi se **ne** čuvaju kao fiksne kolone (sr_name, en_name...) jer je broj jezika velik (8) i može rasti — čuvaju se kao redovi, po jeziku:
