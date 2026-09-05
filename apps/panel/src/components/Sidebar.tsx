@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import Icon from './Icon';
+import Icon, { IconDuo } from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
 import SavedViewsSidebarPanel from './SavedViewsSidebarPanel';
 import SavedGroupSearchesSidebarPanel from './SavedGroupSearchesSidebarPanel';
@@ -59,28 +59,34 @@ export default function Sidebar({
 
   return (
     <nav className="flex h-full flex-col gap-0.5 overflow-y-auto bg-panel-2 py-3">
-      <button
-        onClick={onCollapse}
-        title="Skupi levu traku"
-        className="mx-2 mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center self-end rounded text-ink-faint hover:bg-panel hover:text-ink"
-      >
-        <Icon name="chevron-left" />
-      </button>
-      {selected ? (
-        <>
-          {/* Naziv grupe ("Prodaja"...) i naziv sekcije (ikonica+"Pretraga i rezervacije"...)
-              uklonjeni (5.9.2026, vlasnikov zahtev: "nema razloga da stoje ovde") — tab već
-              nosi naziv ekrana (isti razlog kao uklanjanje "$ pretraga" naslova, commit
-              1b9b7a9), a otvoren tab niže u ActivityBar/gornjoj traci već pokazuje u kojoj je
-              grupi korisnik. Ostaje samo strelica za povratak na spisak sekcija grupe, sa
-              `title` umesto vidljivog teksta. Važi za SVE grupe, ne samo "Pretraga". */}
+      {/* Jedan red, dve namene na suprotnim krajevima (5.9.2026, vlasnikov zahtev) — LEVO:
+          jedna strelica, povratak na spisak sekcija TEKUĆE grupe (samo kad je nešto izabrano,
+          `selected`); DESNO: dve strelice (`IconDuo`, isti "dupli glif" obrazac kao "Putovanja"
+          ikonica), skupljanje CELE leve trake (ActivityBar+Sidebar kolona), uvek prisutno.
+          Vizuelna razlika (jedna naspram dve strelice) razdvaja "nazad jedan nivo" od
+          "skupi sve" — ranije su obe akcije delile isti `chevron-left` glif. */}
+      <div className="mx-2 mb-1 flex h-[29px] flex-shrink-0 items-center justify-between">
+        {selected ? (
           <button
             onClick={() => setForceShowList(true)}
             title={`Nazad na: ${activeGroup.label}`}
-            className="mx-2 mb-1 flex h-[29px] w-[29px] flex-shrink-0 items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+            className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
           >
             <Icon name="chevron-left" />
           </button>
+        ) : (
+          <span />
+        )}
+        <button
+          onClick={onCollapse}
+          title="Skupi levu traku"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+        >
+          <IconDuo name="chevron-left" />
+        </button>
+      </div>
+      {selected ? (
+        <>
           {/* M5 pretraga — vođena pretraga + filteri u levom panelu (dizajn dok. §5b/§6d),
               van obima za ostatak sekcija (M17 spec §4a), ostaje sledeći korak po sekciji. */}
           {selected.id === 'pretraga' && <SearchSidebarPanel />}
