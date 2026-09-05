@@ -419,12 +419,20 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       {!error && tab && (
         <form className="mb-4 flex flex-wrap items-end gap-2 text-xs" action="/izvestaji">
           <input type="hidden" name="tab" value={tab} />
-          <Field label="od (datum)">
-            <DateField name="from" defaultValue={searchParams?.from ?? ''} />
-          </Field>
-          <Field label="do (datum)">
-            <DateField name="to" defaultValue={searchParams?.to ?? ''} />
-          </Field>
+          {/* "Dinamički" datume iznosi u SVOJ red, spojene sa ručnim poljem za dimenzije ispod
+              (5.9.2026, vlasnikov zahtev: "da ne bi bilo 3 vec dva reda polja za pretragu datuma
+              premestite u istu liniju sa poljem po pretrazi pojma") — za ostale tabove ostaju
+              ovde, na vrhu, nepromenjeno. */}
+          {tab !== 'dinamicki' && (
+            <>
+              <Field label="od (datum)">
+                <DateField name="from" defaultValue={searchParams?.from ?? ''} />
+              </Field>
+              <Field label="do (datum)">
+                <DateField name="to" defaultValue={searchParams?.to ?? ''} />
+              </Field>
+            </>
+          )}
           {(tab === 'profitabilnost' || tab === 'smestaj') && (
             <>
               <Field label="država">
@@ -499,35 +507,27 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
                   })}
                 </div>
               </div>
-              {/* Preostala dva preseta, van vrste proizvoda — kanal/dobavljač imaju smisla za
-                  sve vrste odjednom, ostaju tekstualni linkovi kao pre. */}
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[11px] text-ink-faint">po drugom kriterijumu</span>
-                <div className="flex flex-wrap gap-1">
-                  {DYNAMIC_OTHER_PRESETS.map((p) => {
-                    const active = currentDims === p.dims && !searchParams?.productType;
-                    return (
-                      <Link
-                        key={p.label}
-                        href={dimensionsHref(p.dims, p.productType)}
-                        className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
-                          active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
-                        }`}
-                      >
-                        {p.label}
-                      </Link>
-                    );
-                  })}
-                </div>
+              {/* Kanal/Dobavljač premešteni IZNAD tabele/grafika, uz desnu ivicu (5.9.2026,
+                  vlasnikov zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne
+                  gornje ivice tabele") — vidi render tela izveštaja ispod, van ove forme.
+                  Datumi + ručno polje za dimenzije u ISTOM redu (isti zahtev, "spojite u istu
+                  liniju sa poljem za pretragu pojma") — svega dva reda za "Dinamički" umesto tri. */}
+              <div className="flex flex-wrap items-end gap-2">
+                <Field label="od (datum)">
+                  <DateField name="from" defaultValue={searchParams?.from ?? ''} />
+                </Field>
+                <Field label="do (datum)">
+                  <DateField name="to" defaultValue={searchParams?.to ?? ''} />
+                </Field>
+                <Field label="dimenzije (ručno, redosled zarezom)">
+                  <input
+                    name="groupBy"
+                    defaultValue={currentDims}
+                    placeholder={DYNAMIC_DIMENSIONS.join(',')}
+                    className="input w-72"
+                  />
+                </Field>
               </div>
-              <Field label="dimenzije (ručno, redosled zarezom)">
-                <input
-                  name="groupBy"
-                  defaultValue={currentDims}
-                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                  className="input w-72"
-                />
-              </Field>
             </>
           )}
           <Button type="submit" variant="secondary" size="sm" className="border-transparent bg-brand text-brand-ink hover:bg-brand hover:brightness-90">
@@ -614,7 +614,26 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       )}
 
       {!error && tab === 'dinamicki' && dynamicReport && (
-        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-2">
+          {/* Kanal/Dobavljač — iznad desne gornje ivice tabele/grafika (5.9.2026, vlasnikov
+              zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne gornje ivice
+              tabele"), izmešteno iz filter forme iznad (bilo je treći red polja). */}
+          <div className="flex justify-end gap-1">
+            {DYNAMIC_OTHER_PRESETS.map((p) => {
+              const active = currentDims === p.dims && !searchParams?.productType;
+              return (
+                <Link
+                  key={p.label}
+                  href={dimensionsHref(p.dims, p.productType)}
+                  className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
+                    active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
+                  }`}
+                >
+                  {p.label}
+                </Link>
+              );
+            })}
+          </div>
           {dynamicReport.tree.length === 0 ? (
             <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema rezultata za zadate filtere.</p>
           ) : view === 'grafik' ? (
