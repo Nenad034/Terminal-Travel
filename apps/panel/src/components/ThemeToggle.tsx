@@ -73,7 +73,10 @@ export default function ThemeToggle() {
     <button
       onClick={toggle}
       title={LABELS[theme ?? 'light']}
-      className="flex h-[43px] w-[43px] items-center justify-center rounded text-ink-faint hover:bg-panel hover:text-ink"
+      // Kvadratni "tag" (5.9.2026, vlasnikov zahtev: "ikone u desnoj traci takodje stavite u
+      // tagove, kao sto su u levoj") — isti jezik kao `ActivityBar.tsx` bedž (h-9 w-9 → 36px,
+      // `rounded-md`, `bg-panel`), otkad je ovo dugme preseljeno iz `TopBar.tsx` u `RightRail.tsx`.
+      className="flex h-[36px] w-[36px] flex-shrink-0 items-center justify-center rounded-md bg-panel text-ink-faint hover:bg-panel2 hover:text-ink"
     >
       <Icon name={ICONS[theme ?? 'light']} />
     </button>
