@@ -332,9 +332,12 @@ export default async function BookingDetailPage(props: {
   if (booking && activeTab === 'aranzman' && canModifyBooking && canViewProducts) {
     await Promise.all(
       modifiableTypes.map(async (type) => {
-        const list = await apiFetch<
-          { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[]
-        >(`/catalog/products?type=${type}&status=ACTIVE&lang=sr`).catch(() => []);
+        // Odgovor je od 5.9.2026 `{ data, total, ... }` (dok. 39 nalaz 2.2).
+        const list = await apiFetch<{
+          data: { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[];
+        }>(`/catalog/products?type=${type}&status=ACTIVE&lang=sr`)
+          .then((r) => r.data)
+          .catch(() => []);
         candidatesByType.set(
           type,
           list.map((p) => ({

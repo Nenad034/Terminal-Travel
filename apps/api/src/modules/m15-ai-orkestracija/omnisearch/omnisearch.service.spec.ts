@@ -2,6 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ForbiddenException } from '@nestjs/common';
 import { OmnisearchService } from './omnisearch.service';
+import { MAX_PAGE_SIZE } from '../../../common/pagination/pagination';
+
+// Straničen oblik odgovora `BookingsService.findAll`/`ProductsService.findAll` (5.9.2026,
+// dok. 39 nalaz 2.2) — test zadaje samo redove, omotač je uvek isti.
+function stranica<T>(data: T[]) {
+  return { data, total: data.length, page: 1, limit: 50, pageCount: 1, hasMore: false };
+}
 
 // M15 spec §10 izlazni kriterijum — testovi koji dokazuju: (1) aktivacioni gate blokira dok
 // nije ACTIVATED, (2) omnisearch nikad ne poziva mutirajući endpoint drugih modula, (3) poziva
@@ -18,8 +25,8 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
     };
     const auditLog = { write: jest.fn().mockResolvedValue(undefined) };
     const permissions = { hasPermission: jest.fn().mockResolvedValue(true) };
-    const bookings = { findAll: jest.fn().mockResolvedValue([]), calendarDay: jest.fn().mockResolvedValue({ ARRIVAL: [], DEPARTURE: [], STAYOVER: [], SINGLE_DAY: [] }) };
-    const products = { findAll: jest.fn().mockResolvedValue([]), findAllPublic: jest.fn().mockResolvedValue([]) };
+    const bookings = { findAll: jest.fn().mockResolvedValue(stranica([])), calendarDay: jest.fn().mockResolvedValue({ ARRIVAL: [], DEPARTURE: [], STAYOVER: [], SINGLE_DAY: [] }) };
+    const products = { findAll: jest.fn().mockResolvedValue(stranica([])), findAllPublic: jest.fn().mockResolvedValue([]) };
     const anthropic = {
       isConfigured: jest.fn().mockReturnValue(overrides?.anthropicConfigured ?? false),
       getClient: jest.fn(),
@@ -50,7 +57,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   it('poziva BookingsService.findAll sa identitetom korisnika koji pretražuje, nikad sopstvenim širim pristupom agenta', async () => {
     const { service, bookings } = makeService();
     await service.search({ query: 'TT-2027-000482', channel: 'INTERNAL_PANEL', actorUserId: 'prodajni-agent-42' });
-    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'prodajni-agent-42' });
+    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'prodajni-agent-42' }, { limit: MAX_PAGE_SIZE });
   });
 
   it('kratak pozdrav ("dobro veče") dobija ljubazan odgovor bez poziva jezičkom modelu, ne "nema rezultata"', async () => {
@@ -63,7 +70,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   it('vidljivost — različiti akteri dobijaju tačno ono što njihov identitet vraća, omnisearch ne proširuje rezultat', async () => {
     const { service, bookings } = makeService();
     bookings.findAll.mockImplementation((_filters: unknown, actor: { userId: string }) =>
-      actor.userId === 'agent-A' ? [{ id: 'b1', bookingNumber: 'TT-2027-000001', buyerName: 'Marko' }] : [],
+      stranica(actor.userId === 'agent-A' ? [{ id: 'b1', bookingNumber: 'TT-2027-000001', buyerName: 'Marko' }] : []),
     );
 
     const resultA = await service.search({ query: 'Marko', channel: 'INTERNAL_PANEL', actorUserId: 'agent-A' });
@@ -86,7 +93,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
 
   it('upit koji liči na zahtev za radnju ("otkaži...") vraća link/navigaciju, ne izvršava radnju', async () => {
     const { service, bookings } = makeService();
-    bookings.findAll.mockResolvedValue([{ id: 'b1', bookingNumber: 'TT-2027-000482', buyerName: 'Ana' }]);
+    bookings.findAll.mockResolvedValue(stranica([{ id: 'b1', bookingNumber: 'TT-2027-000482', buyerName: 'Ana' }]));
     const result = await service.search({
       query: 'otkaži rezervaciju TT-2027-000482',
       channel: 'INTERNAL_PANEL',
@@ -121,9 +128,9 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
 
   it('B2C_SITE prijavljen gost: pretražuje sopstvene rezervacije preko user-scoped BookingsService.findAll', async () => {
     const { service, bookings } = makeService();
-    bookings.findAll.mockResolvedValue([{ id: 'b1', bookingNumber: 'TT-2027-000777', buyerName: 'Ana' }]);
+    bookings.findAll.mockResolvedValue(stranica([{ id: 'b1', bookingNumber: 'TT-2027-000777', buyerName: 'Ana' }]));
     const result = await service.search({ query: 'TT-2027-000777', channel: 'B2C_SITE', actorUserId: 'gost-1' });
-    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'gost-1' });
+    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'gost-1' }, { limit: MAX_PAGE_SIZE });
     expect(result.entityResults[0].href).toBe('/nalog/moje-rezervacije');
   });
 
@@ -251,7 +258,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // redove (bez čekanja da model pozove filter_list) i ubacuje ih direktno u prompt.
   it('contextItems (FILTERED_LIST, bookings) odmah ubacuje STVARNE redove u prompt, bez čekanja na filter_list poziv', async () => {
     const { service, anthropic, bookings } = makeService({ anthropicConfigured: true });
-    bookings.findAll.mockResolvedValue([
+    bookings.findAll.mockResolvedValue(stranica([
       {
         id: 'b1',
         bookingNumber: 'TT-2027-000001',
@@ -263,7 +270,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
         createdAt: new Date('2027-01-15T00:00:00.000Z'),
         items: [{ product: { destinationCity: 'Budva', destinationCountry: 'Crna Gora', type: 'ACCOMMODATION' } }],
       },
-    ]);
+    ]));
     const create = jest.fn().mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], usage: { input_tokens: 10, output_tokens: 5 } });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
@@ -489,7 +496,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // ima" dobijao "ne mogu da izbrojim iz linka", jer je filter_list do sada vraćao SAMO link).
   it('filter_list (bookings) vraća i stvaran broj rezultata, preko BookingsService.findAll sa identitetom pozivaoca', async () => {
     const { service, anthropic, bookings } = makeService({ anthropicConfigured: true });
-    bookings.findAll.mockResolvedValue(Array.from({ length: 28 }, (_, i) => ({ id: `b${i}` })));
+    bookings.findAll.mockResolvedValue(stranica(Array.from({ length: 28 }, (_, i) => ({ id: `b${i}` }))));
     const create = jest
       .fn()
       .mockResolvedValueOnce({
@@ -501,7 +508,7 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
 
     await service.search({ query: 'koliko rezervacija ima u sistemu', channel: 'INTERNAL_PANEL', actorUserId: 'u1' });
 
-    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'u1' });
+    expect(bookings.findAll).toHaveBeenCalledWith({}, { userId: 'u1' }, { limit: MAX_PAGE_SIZE });
     const toolResultMessage = create.mock.calls[1][0].messages.find((m: any) => m.role === 'user' && Array.isArray(m.content));
     const toolResultContent = JSON.parse(toolResultMessage.content[0].content);
     expect(toolResultContent.count).toBe(28);

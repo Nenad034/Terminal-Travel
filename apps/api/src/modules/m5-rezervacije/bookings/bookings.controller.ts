@@ -1,3 +1,4 @@
+import { parsePagination } from '../../../common/pagination/pagination';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
@@ -56,6 +57,11 @@ export class BookingsController {
     @Query('destinationCity') destinationCity: string | undefined,
     @Query('destinationCountry') destinationCountry: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+    // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — do sada je lista tiho odsecala na 200 redova
+    // bez ijedne poruke. Odgovor je od sada `{ data, total, page, limit, ... }`, ne go niz.
+    // Pojedinačni parametri, NE `@Query() dto` — v. obrazloženje u `common/pagination`.
+    @Query('page') page: string | undefined,
+    @Query('limit') limit: string | undefined,
     @CurrentUser() actor: { userId: string },
   ) {
     // Multiselect (24.8.2026, na zahtev vlasnika) — NestJS `@Query` vraća string kad je
@@ -85,6 +91,7 @@ export class BookingsController {
         hasTravelGuarantee,
       },
       actor,
+      parsePagination(page, limit),
     );
   }
 

@@ -1,3 +1,4 @@
+import { PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Booking, BookingItem, PaymentStatus, Prisma, QuoteItem, TipNastupanja } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -512,6 +513,7 @@ export class BookingsService {
       hasTravelGuarantee?: string;
     },
     actor: { userId: string },
+    pagination?: PaginationQueryDto,
   ) {
     const { context, ownClientAccountId, franchiseSubagentId } = await this.resolveApiContext(actor.userId);
     // Gost/B2B kontekst: ownership se NAMEĆE (ownClientAccountId), klijentski
@@ -582,16 +584,31 @@ export class BookingsService {
       if (!hasViewAll) where.OR = [{ ownerId: actor.userId }, { assignedToId: actor.userId }];
     }
 
-    const bookings = await this.prisma.booking.findMany({
-      where,
-      include: {
-        items: { include: { product: { select: { destinationCountry: true, destinationCity: true, type: true } } } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+    // STRANIČENJE (5.9.2026, dok. 39 nalaz 2.2). Do danas je ovde stajalo golo `take: 200` bez
+    // ijednog objašnjenja — nije bilo straničenje nego tiho odsecanje: agencija sa 201
+    // rezervacijom ne bi videla najstariju, a nijedan ekran ne bi rekao da nešto nedostaje.
+    // `count` ide u istoj transakciji sa upitom da broj i redovi ne dođu iz dva različita
+    // trenutka (inače „prikazano 50 od 1.240" ume da laže dok neko drugi upisuje).
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [bookings, total] = await this.prisma.$transaction([
+      this.prisma.booking.findMany({
+        where,
+        include: {
+          items: { include: { product: { select: { destinationCountry: true, destinationCity: true, type: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.booking.count({ where }),
+    ]);
     const { serializeBooking } = await import('./booking-visibility');
-    return bookings.map((b) => serializeBooking(b as any, context));
+    return paginated(
+      bookings.map((b) => serializeBooking(b as any, context)),
+      total,
+      page,
+      limit,
+    );
   }
 
   async findOne(id: string, actorUserId: string) {

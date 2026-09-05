@@ -1,3 +1,4 @@
+import { parsePagination } from '../../../common/pagination/pagination';
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LanguageCode, ProductStatus, ProductType, VisibleChannel } from '@prisma/client';
@@ -28,8 +29,14 @@ export class ProductsController {
     @Query('status') status?: ProductStatus,
     @Query('channel') channel?: VisibleChannel,
     @Query('lang') lang?: LanguageCode,
+    // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — katalog je do danas vraćao SVE proizvode bez
+    // ikakve granice. Danas ih je par stotina; čim se uključi API dobavljač (M4) to su desetine
+    // hiljada u jednom odgovoru. Odgovor je od sada `{ data, total, ... }`, ne go niz.
+    // Pojedinačni parametri, NE `@Query() dto` — v. obrazloženje u `common/pagination`.
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.products.findAll({ type, destinationCountry, status, channel, lang });
+    return this.products.findAll({ type, destinationCountry, status, channel, lang }, parsePagination(page, limit));
   }
 
   @Post()

@@ -452,9 +452,10 @@ describe('M7 — izlazni kriterijum (e2e)', () => {
       await createBooking(childAccount.id);
 
       const { user: parentPortalUser } = await createSubagentAdminUser(parent.id);
+      // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — redovi su u `.data`.
       const visible = await bookings.findAll({}, { userId: parentPortalUser.id });
-      expect(visible.every((b: any) => b.clientAccountId === parentAccount.id)).toBe(true);
-      expect(visible.some((b: any) => b.clientAccountId === childAccount.id)).toBe(false);
+      expect(visible.data.every((b: any) => b.clientAccountId === parentAccount.id)).toBe(true);
+      expect(visible.data.some((b: any) => b.clientAccountId === childAccount.id)).toBe(false);
     });
   });
 

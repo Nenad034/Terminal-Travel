@@ -14,7 +14,12 @@ export default async function MyBookingsPage({ params }: { params: Promise<{ loc
   const session = await getSession();
   if (!session) redirect(`/${locale}/nalog/prijava`);
 
-  const bookings = await apiFetch<Booking[]>('/sales/bookings', { requireAuth: true }).catch(() => []);
+  // Straničen odgovor od 5.9.2026 (dok. 39 nalaz 2.2) — `{ data, total, ... }`. Gost realno
+  // ima nekoliko rezervacija, pa je prva stranica dovoljna; kad neko pređe podrazumevanih 50,
+  // ovde treba dugme „prikaži još" (zavedeno u backlogu, nije prećutano).
+  const bookings = await apiFetch<{ data: Booking[] }>('/sales/bookings', { requireAuth: true })
+    .then((r) => r.data)
+    .catch(() => []);
 
   return (
     <div>

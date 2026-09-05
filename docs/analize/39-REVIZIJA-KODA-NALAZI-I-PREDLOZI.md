@@ -156,7 +156,7 @@ Broj pročitanih blokova bez indeksa raste sa veličinom tabele; sa indeksom ost
 
 ---
 
-### 2.2 Paginacije nema nigde, a lista rezervacija tiho odseca na 200
+### 2.2 Paginacije nema nigde, a lista rezervacija tiho odseca na 200 — OBRAZAC NAPRAVLJEN, PRIMENJEN NA DVE LISTE 5.9.2026
 
 **Dokaz:** u celom `apps/api` ima **0** pojava `skip:` i **0** pojava `cursor:`. Od 209 poziva `findMany`, samo 5 ima ikakav limit. Nijedan query DTO ne prima `page` ni `limit`.
 
@@ -166,6 +166,25 @@ Katalog proizvoda nema ni to — vraća sve. Danas 217 zapisa, ali kad se uklju�
 
 **Predlog:** zajednički obrazac paginacije (`page`/`limit` u DTO sa `@Max()`, odgovor u obliku `{ data, total, page }`), pa primena redom po ekranima — prvo rezervacije, katalog i CRM. Do tada, `take: 200` bar zameniti jasnom porukom „prikazano prvih 200 od N".
 **Procena:** 1 dan za obrazac + 2–3 dana za primenu na glavne liste.
+
+---
+
+**URAĐENO 5.9.2026 — obrazac i dve liste; ostatak zaveden, ne prećutan.**
+
+Zajednički obrazac je u `apps/api/src/common/pagination/`: `parsePagination` (čita `page`/`limit`), `paginationArgs` (prevod u Prisma `skip`/`take`), `paginated` (omotač odgovora `{ data, total, page, limit, pageCount, hasMore }`). `total` uvek dolazi iz `count` u ISTOJ transakciji sa upitom — inače „prikazano 50 od 1.240" ume da laže dok neko drugi upisuje.
+
+| Lista | Pre | Posle |
+| :---- | :---- | :---- |
+| `GET /sales/bookings` | golo `take: 200`, bez poruke | straničeno; panel ispisuje „prikazano 21–25 od 25" i strelice |
+| `GET /catalog/products` | bez ikakve granice | `{ data, total }`; straničenje **opciono** (v. niže) |
+
+**Katalog namerno NIJE straničen podrazumevano** — i to je nalaz koji prvobitni predlog nije uzeo u obzir. U `katalog/page.tsx` stoji vlasnikova odluka od 4.9.2026 da filteri rade trenutno, nad celom dovučenom listom. Podrazumevano straničenje bi ih tiho svelo na jednu stranu: korisnik bi filtrirao 50 od 217 proizvoda misleći da vidi sve — ista klasa greške koju nalaz i prijavljuje, samo obrnuta. Isto ograničenje stoji za `GET /search` (M5 v2.20 izričito uslovljava klijentsko filtriranje time da pretraga vraća sve). Kad se uključi M4, obe odluke prestaju da važe i filtriranje mora na server — zavedeno.
+
+**Greška koju sam usput napravio i uhvatio tek na živom API-ju:** prvo sam straničenje primio kao `@Query() dto: PaginationQueryDto`. Globalni `ValidationPipe` radi sa `forbidNonWhitelisted`, pa je ceo query string tada validiran protiv tog DTO-a i **svaki drugi filter je počeo da vraća `400 property status should not exist`** — svi filteri liste rezervacija bi prestali da rade. `tsc` čist, 997 testova prolazi, ništa nije upozorilo. Uhvaćeno tek pozivom pravog endpointa (zamka 5.13). Rešenje: pojedinačni `@Query('page')`/`@Query('limit')` uz ručnu proveru.
+
+**Provereno na živom sistemu:** `?status=CONFIRMED&limit=5&page=2` → HTTP 200, „prikazano 6–10 od 12"; `?limit=999` → HTTP 400 sa jasnom porukom (limit se **odbija**, ne seče tiho — tiho svođenje na granicu je ista greška kao tiho odsecanje); `?page=0` → HTTP 400. Pet ekrana kroz pravu prijavu bez greške. 1.007 testova prolazi (10 novih zaključavaju baš računicu straničenja).
+
+**Preostaje (u backlogu):** sedam preostalih mesta sa golim `take: 200` i sve ostale liste bez granice — obrazac postoji, primena je mehanička.
 
 ---
 

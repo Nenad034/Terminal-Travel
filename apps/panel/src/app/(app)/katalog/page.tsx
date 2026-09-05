@@ -24,7 +24,10 @@ export default async function KatalogPage() {
   let products: Product[] = [];
   let error: string | null = null;
   try {
-    products = await apiFetch<Product[]>('/catalog/products');
+    // Odgovor je od 5.9.2026 `{ data, total, ... }` (dok. 39 nalaz 2.2). Bez `page`/`limit`
+    // i dalje stižu SVI proizvodi — filteri ispod rade nad celom listom, v. komentar iznad.
+    const page = await apiFetch<{ data: Product[]; total: number }>('/catalog/products');
+    products = page.data;
   } catch {
     error = 'Nemate dozvolu za uvid u katalog (M2/product/VIEW).';
   }

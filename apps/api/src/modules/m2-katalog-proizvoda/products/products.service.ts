@@ -1,3 +1,4 @@
+import { PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 import { BadRequestException, Injectable, NotImplementedException } from '@nestjs/common';
 import { LanguageCode, Prisma, ProductStatus, ProductType, VisibleChannel } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -40,23 +41,47 @@ export class ProductsService {
     status?: ProductStatus;
     channel?: VisibleChannel;
     lang?: LanguageCode;
-  }) {
-    const products = await this.prisma.product.findMany({
-      where: {
-        type: filters.type,
-        destinationCountry: filters.destinationCountry,
-        status: filters.status,
-        visibleChannels: filters.channel ? { has: filters.channel } : undefined,
-      },
-      include: { translations: true },
-      orderBy: { createdAt: 'desc' },
-    });
+  }, pagination?: PaginationQueryDto) {
+    // Straničenje (5.9.2026, dok. 39 nalaz 2.2) je ovde NAMERNO OPCIONO, ne podrazumevano.
+    //
+    // Razlog je vlasnikova odluka već upisana u `apps/panel/.../katalog/page.tsx`: filteri
+    // kataloga (vrsta/država/destinacija/konekcija) rade TRENUTNO, nad celom već dovučenom
+    // listom, bez novog poziva serveru — isti princip kao filteri pretrage (M5 §3.0c.3b).
+    // Podrazumevano straničenje bi te filtere tiho svelo na jednu stranicu: korisnik bi
+    // filtrirao 50 od 217 proizvoda i mislio da vidi sve. Zato bez `page`/`limit` ovaj poziv
+    // i dalje vraća SVE redove, samo u novom obliku `{ data, total, ... }`.
+    //
+    // OGRANIČENJE KOJE OSTAJE OTVORENO: čim se uključi API dobavljač (M4), „sve" postaje
+    // desetine hiljada zapisa i ova odluka više neće važiti — tada filtriranje mora na server,
+    // a straničenje postati podrazumevano. Zavedeno u backlogu, nije prećutano.
+    const where = {
+      type: filters.type,
+      destinationCountry: filters.destinationCountry,
+      status: filters.status,
+      visibleChannels: filters.channel ? { has: filters.channel } : undefined,
+    };
+    const wantsPage = pagination?.page !== undefined || pagination?.limit !== undefined;
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [products, total] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where,
+        include: { translations: true },
+        orderBy: { createdAt: 'desc' },
+        ...(wantsPage ? { skip, take } : {}),
+      }),
+      this.prisma.product.count({ where }),
+    ]);
 
     const lang = filters.lang ?? DEFAULT_LANGUAGE;
-    return products.map((p) => ({
-      ...this.withResolvedAttributes(p),
-      translation: resolveTranslation(p.translations, lang),
-    }));
+    return paginated(
+      products.map((p) => ({
+        ...this.withResolvedAttributes(p),
+        translation: resolveTranslation(p.translations, lang),
+      })),
+      total,
+      wantsPage ? page : 1,
+      wantsPage ? limit : Math.max(1, total),
+    );
   }
 
   async findOne(id: string, lang?: LanguageCode) {

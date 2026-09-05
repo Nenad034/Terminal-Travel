@@ -4,6 +4,7 @@ import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
+import Pagination from '@/components/Pagination';
 
 
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
@@ -13,6 +14,12 @@ import RealFilterBar, { type BookingFilters } from './RealFilterBar';
 export default async function BookingListPage(props: { searchParams: Promise<BookingFilters> }) {
   const searchParams = await props.searchParams;
   let bookings: RealBooking[] = [];
+  // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — do danas je lista tiho odsecala na 200 redova
+  // i ništa na ekranu nije reklo da nešto nedostaje.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
     // Multiselect (24.8.2026, na zahtev vlasnika) — `value` može biti `string[]` za polja sa
@@ -33,7 +40,12 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
       }
     }
     const qs = params.toString() ? `?${params.toString()}` : '';
-    bookings = await apiFetch<RealBooking[]>(`/sales/bookings${qs}`);
+    const result = await apiFetch<{ data: RealBooking[]; total: number; page: number; pageCount: number; limit: number }>(`/sales/bookings${qs}`);
+    bookings = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u rezervacije (M5/booking/VIEW).';
   }
@@ -54,7 +66,22 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
       {!error && (
-        <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
+        <>
+          <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
+          {/* Straničenje (5.9.2026, dok. 39 nalaz 2.2) — traka uvek kaže i UKUPAN broj, ne samo
+              koja je strana: nemogućnost da se sazna koliko rezervacija zapravo ima bila je
+              jezgro nalaza. */}
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            shown={bookings.length}
+            limit={limit}
+            basePath="/rezervacije/lista"
+            searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>}
+            itemLabel="rezervacija"
+          />
+        </>
       )}
     </div>
   );

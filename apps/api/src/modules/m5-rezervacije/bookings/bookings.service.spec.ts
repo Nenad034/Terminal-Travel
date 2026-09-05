@@ -8,6 +8,8 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       product: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn(), create: jest.fn().mockResolvedValue({ id: 'p-manual' }) },
       providerConfig: { findUnique: jest.fn() },
       rateLine: { findUniqueOrThrow: jest.fn(), findUnique: jest.fn() },
+      // v. komentar u products.service.spec.ts — straničenje koristi $transaction.
+      $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
       booking: { create: jest.fn(), count: jest.fn().mockResolvedValue(0), findUnique: jest.fn(), findUniqueOrThrow: jest.fn(), findMany: jest.fn(), update: jest.fn() },
       // `aggregate` ima podrazumevanu vrednost otkako otkazivanje i dodavanje doplate
       // preračunavaju ukupno zaduženje (§6.7a) — bez nje bi svaki test koji ne mari za zbir

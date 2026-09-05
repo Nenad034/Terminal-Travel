@@ -4,7 +4,11 @@ import { ProductsService } from './products.service';
 describe('ProductsService', () => {
   function makeService() {
     const prisma = {
+      // `count` + `$transaction` (5.9.2026) — `findAll` je od uvođenja straničenja (dok. 39
+      // nalaz 2.2) jedan `$transaction` sa dva upita, da broj i redovi dođu iz istog trenutka.
+      $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
       product: {
+        count: jest.fn().mockResolvedValue(0),
         findMany: jest.fn(),
         findUniqueOrThrow: jest.fn(),
         findFirstOrThrow: jest.fn(),
@@ -140,8 +144,8 @@ describe('ProductsService', () => {
 
       const result = await service.findAll({ lang: 'fr' as any });
 
-      expect(result[0].translation?.name).toBe('English'); // fallback fr → en
-      expect((result[0].attributes as any).room_types[0].age_policy).toHaveLength(3);
+      expect(result.data[0].translation?.name).toBe('English'); // fallback fr → en
+      expect((result.data[0].attributes as any).room_types[0].age_policy).toHaveLength(3);
     });
 
     it('findAll koristi srpski kao podrazumevan jezik kad lang nije prosleđen', async () => {
@@ -151,7 +155,7 @@ describe('ProductsService', () => {
       ]);
 
       const result = await service.findAll({});
-      expect(result[0].translation?.name).toBe('Srpski');
+      expect(result.data[0].translation?.name).toBe('Srpski');
     });
   });
 

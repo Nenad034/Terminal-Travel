@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '../../../common/pagination/pagination';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { LanguageCode } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -376,7 +377,10 @@ export class OmnisearchService {
    * korisnika koji pretražuje (actorUserId), nikad sa širim pristupom agenta (M15 spec §6.5.2).
    */
   private async searchBookings(channel: OmnisearchChannel, actorUserId: string, query: string): Promise<EntityResult[]> {
-    const all = await this.bookings.findAll({}, { userId: actorUserId });
+    // Straničenje (5.9.2026) — pretraga po imenu/broju ide kroz PRVU stranicu najveće dozvoljene
+    // veličine. Isti domet kao ranije (`take: 200`), samo sada eksplicitan umesto skriven; pravu
+    // pretragu po celom skupu treba da radi baza, ne filter u memoriji — upisano u §11.
+    const { data: all } = await this.bookings.findAll({}, { userId: actorUserId }, { limit: MAX_PAGE_SIZE });
     const refMatch = BOOKING_REFERENCE_PATTERN.exec(query);
     const lowerQuery = query.toLowerCase();
 
@@ -478,8 +482,11 @@ export class OmnisearchService {
       filters[key] = MULTI_FIELDS.has(key) ? value : value[0];
     }
     try {
-      const rows = await this.bookings.findAll(filters as any, { userId: actorUserId });
-      return { count: (rows as unknown[]).length, rows: (rows as any[]).map((b) => this.projectBookingRow(b)) };
+      // `count` je od 5.9.2026 STVARAN broj redova koji odgovaraju filteru (dolazi iz baze),
+      // ne broj vraćenih — ranije je bio gornja granica od 200 i agent je na „koliko ih ima"
+      // odgovarao pogrešno čim je lista bila veća.
+      const result = await this.bookings.findAll(filters as any, { userId: actorUserId }, { limit: MAX_PAGE_SIZE });
+      return { count: result.total, rows: (result.data as any[]).map((b) => this.projectBookingRow(b)) };
     } catch {
       return undefined;
     }
@@ -512,7 +519,9 @@ export class OmnisearchService {
   }
 
   private async searchProducts(channel: OmnisearchChannel, query: string): Promise<EntityResult[]> {
-    const all = await this.products.findAll({});
+    // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — najveća dozvoljena stranica; poklapanje po
+      // nazivu i dalje ide u memoriji, pa je domet ograničen na `MAX_PAGE_SIZE` (upisano u §11).
+      const { data: all } = await this.products.findAll({}, { limit: MAX_PAGE_SIZE });
     const lowerQuery = query.toLowerCase();
     // Poklapanje ide po nazivu I PO DESTINACIJI (država/grad). Do 3.9.2026 se gledao samo naziv,
     // iako opis alata izričito kaže „naziv proizvoda ili destinacije" — pitanje „koliko hotela
@@ -553,7 +562,9 @@ export class OmnisearchService {
     if (UUID_RE.test(query.trim())) {
       product = await this.products.findOne(query.trim()).catch(() => null);
     } else {
-      const all = await this.products.findAll({});
+      // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — najveća dozvoljena stranica; poklapanje po
+      // nazivu i dalje ide u memoriji, pa je domet ograničen na `MAX_PAGE_SIZE` (upisano u §11).
+      const { data: all } = await this.products.findAll({}, { limit: MAX_PAGE_SIZE });
       const lowerQuery = query.toLowerCase();
       product = (all as any[]).find((p) => p.translation?.name?.toLowerCase().includes(lowerQuery)) ?? null;
     }

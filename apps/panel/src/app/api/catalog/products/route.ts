@@ -16,11 +16,13 @@ export async function GET(req: NextRequest) {
   if (!type) return NextResponse.json({ message: 'Nedostaje `type`.' }, { status: 400 });
 
   try {
-    const result = await apiFetch<
-      { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[]
-    >(`/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`, { requireAuth: true });
+    // Odgovor je od 5.9.2026 `{ data, total, ... }` (dok. 39 nalaz 2.2); ovaj posrednik i dalje
+    // vraća go niz, jer ga `AddServicePanel` koristi kao spisak opcija, ne kao stranicu.
+    const result = await apiFetch<{
+      data: { id: string; destinationCity: string; destinationArea: string | null; destinationCountry: string; translation: { name: string } | null }[];
+    }>(`/catalog/products?type=${encodeURIComponent(type)}&status=ACTIVE&lang=sr`, { requireAuth: true });
     return NextResponse.json(
-      result.map((p) => ({
+      result.data.map((p) => ({
         id: p.id,
         name: p.translation?.name ?? p.id.slice(0, 8),
         destinationCity: p.destinationCity,
