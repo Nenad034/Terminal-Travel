@@ -35,10 +35,7 @@ export default async function NadzorKanaliPage() {
     <div className="p-6">
       <RegisterTab label="Nadzor — kanali" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> nadzor/kanali/
-        </h1>
-        <p className="text-xs text-ink-dim">Spoljni kanali dostave obaveštenja (Telegram/email) — M18 spec §3.</p>
+        <h1 className="text-lg font-semibold text-ink">Nadzor — kanali</h1>
       </div>
 
       <NadzorSubnav active="/nadzor/kanali" />

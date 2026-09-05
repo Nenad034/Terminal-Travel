@@ -84,10 +84,7 @@ export default async function NadzorPage(
     <div className="p-6">
       <RegisterTab label="Operativni nadzor" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls nadzor/signali/
-        </h1>
-        <p className="text-xs text-ink-dim">Kvalitetni/nadzorni agent — signali kvarova/nepravilnosti kroz sve module, M18.</p>
+        <h1 className="text-lg font-semibold text-ink">Operativni nadzor</h1>
       </div>
 
       <NadzorSubnav active="/nadzor" />

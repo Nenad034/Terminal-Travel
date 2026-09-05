@@ -48,10 +48,7 @@ export default async function MarketingPage(props: { searchParams: Promise<{ typ
       <RegisterTab label="Marketing sadržaj" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls marketing/sadrzaj/
-          </h1>
-          <p className="text-xs text-ink-dim">Proizvod → sadržaj → kalendar/odobrenje → distribucija na kanale — M12.</p>
+          <h1 className="text-lg font-semibold text-ink">Marketing sadržaj</h1>
         </div>
         <div className="flex gap-2">
           {canChannels && (

@@ -1,5 +1,4 @@
 import RegisterTab from '@/components/RegisterTab';
-import Icon from '@/components/Icon';
 import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
@@ -54,14 +53,7 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
     <div className="p-6">
       <RegisterTab label="Lista rezervacija" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> rezervacije/lista
-        </h1>
-        <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-faint">
-          <Icon name="info" /> Filteri (status/uplata/datumi/destinacija/tip nastupanja/valuta/garancija putovanja) rade nad pravim
-          podacima. Zvonce &quot;Hitno&quot;, kontakt, poslovnica, dodeljeni korisnik i naziv hotela su i dalje vizuelni primer bez
-          pravog izvora — jasno obeleženi na svakom mestu gde se pojavljuju.
-        </p>
+        <h1 className="text-lg font-semibold text-ink">Lista rezervacija</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

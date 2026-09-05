@@ -87,9 +87,7 @@ export default async function DashboardPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> dobrodošli, {me.fullName}
-        </h1>
+        <h1 className="text-lg font-semibold text-ink">Dobrodošli, {me.fullName}</h1>
         <p className="mt-1 text-xs text-ink-faint">
           Uloga: <span className="rounded-full bg-accent2-soft px-2 py-0.5 text-accent2">{me.roles.join(', ') || '—'}</span>
         </p>

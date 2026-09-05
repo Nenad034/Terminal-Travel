@@ -43,13 +43,7 @@ export default async function McpClientsPage() {
     <div className="p-6">
       <RegisterTab label="MCP klijenti" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls mcp-clients/
-        </h1>
-        <p className="text-xs text-ink-dim">
-          Spoljni AI agenti koji pristupaju katalogu i rezervacijama preko Model Context Protocol (M16 spec §2/§3) —
-          isti kanal kao M8/M9, iste provere kreditnog limita i kapaciteta.
-        </p>
+        <h1 className="text-lg font-semibold text-ink">MCP klijenti</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

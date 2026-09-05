@@ -40,13 +40,7 @@ export default async function ProductDetailPage(props: { params: Promise<{ id: s
   return (
     <div className="p-6">
       <RegisterTab label={name} />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> {name}
-      </h1>
-      <p className="mb-1 text-xs text-ink-faint">
-        {product.type} · {product.destinationCity}
-        {product.destinationArea ? `, ${product.destinationArea}` : ''}, {product.destinationCountry} · izvor: {product.sourceType}
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">{name}</h1>
       {/* Koordinate — dok mapa u pretrazi (M5 §3.0h) ne postoji, ovo je jedino mesto gde se
           vidi da li je tačka uopšte popunjena i da li je tačna. Veza otvara tačku na
           OpenStreetMap-u, pa čovek može da proveri pogodak bez ijedne nove biblioteke. */}

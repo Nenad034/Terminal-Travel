@@ -35,10 +35,7 @@ export default async function SuppliersPage() {
       <RegisterTab label="Dobavljači i ugovori" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls dobavljaci/
-          </h1>
-          <p className="text-xs text-ink-dim">Direktni ugovori sa dobavljačima, kapaciteti, cenovnici, rokovi.</p>
+          <h1 className="text-lg font-semibold text-ink">Dobavljači i ugovori</h1>
         </div>
         <div className="flex gap-2">
           {canViewContracts && (

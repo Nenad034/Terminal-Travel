@@ -80,9 +80,7 @@ export default async function GuestProfileDetailPage(props: { params: Promise<{ 
       {guest && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="font-mono text-lg">
-              <span className="text-accent">$</span> {guest.fullName}
-            </h1>
+            <h1 className="text-lg font-semibold text-ink">{guest.fullName}</h1>
             <span className="rounded bg-panel2 px-2 py-0.5 text-[11px] font-medium text-ink-faint">
               {guest.documentType} {guest.documentNumber}
             </span>

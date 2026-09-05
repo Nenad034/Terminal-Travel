@@ -29,9 +29,7 @@ export default function CalendarHeader({ view, date, filters }: { view: Calendar
             ›
           </TabLink>
         </div>
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> {rangeLabel(view, date)}
-        </h1>
+        <h1 className="text-lg font-semibold text-ink">{rangeLabel(view, date)}</h1>
       </div>
       <div className="flex items-center gap-1 rounded-lg border border-border bg-panel p-0.5 text-xs">
         {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => (

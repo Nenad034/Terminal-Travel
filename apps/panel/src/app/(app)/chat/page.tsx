@@ -93,10 +93,7 @@ export default async function ChatPage() {
       <RegisterTab label="Razgovori" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls chat/razgovori/
-          </h1>
-          <p className="text-xs text-ink-dim">Interni real-time tim-chat — M19.</p>
+          <h1 className="text-lg font-semibold text-ink">Razgovori</h1>
         </div>
         <Link
           href="/chat/dobavljaci"

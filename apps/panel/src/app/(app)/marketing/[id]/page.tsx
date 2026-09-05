@@ -55,9 +55,7 @@ export default async function ContentDetailPage(props: { params: Promise<{ id: s
 
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> marketing/sadrzaj/{content.slug ?? content.id.slice(0, 8)}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{content.slug ?? content.trackingCode}</h1>
           {/* 29-DIZAJN-SISTEM-UI.md §6a — autor nacrta kao i svuda drugde; odobrenje objave
               (approvedBy, §3 korak 4) ostaje isključivo ljudsko i prikazano je posebno ispod. */}
           <p className="flex flex-wrap items-center gap-1 text-xs text-ink-faint">

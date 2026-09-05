@@ -37,13 +37,7 @@ export default async function NewSubagentPage(props: { searchParams: Promise<{ e
   return (
     <div className="p-6">
       <RegisterTab label="Novi subagent" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> novi_subagent
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">
-        Registracija novog Tier 1 subagenta (M7 spec §2.1/§9) — direktan partner agencije, ostaje <b>PENDING_APPROVAL</b> dok se ne odobri
-        (kreditni limit i provizija se postavljaju pri odobravanju, na sledećem ekranu).
-      </p>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Novi subagent</h1>
 
       <form className="mb-4 flex gap-2 rounded-lg border border-border bg-panel p-3 text-xs" action="/b2b/novi">
         <input name="email" defaultValue={searchParams?.email ?? ''} placeholder="pretraga nalogodavca (pravno lice) po email-u" className="input flex-1" />

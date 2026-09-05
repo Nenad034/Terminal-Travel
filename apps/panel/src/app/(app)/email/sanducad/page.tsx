@@ -69,10 +69,7 @@ export default async function MailboxManagementPage() {
       </Link>
 
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls email/sanducad/
-        </h1>
-        <p className="text-xs text-ink-dim">Upravljanje sandučadima i pojedinačna dodela pristupa — M22 spec §2.1/§2.2.</p>
+        <h1 className="text-lg font-semibold text-ink">Sandučad</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

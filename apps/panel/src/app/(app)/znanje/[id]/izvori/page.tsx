@@ -52,13 +52,7 @@ export default async function IzvoriPage(props: { params: Promise<{ id: string }
         <Icon name="arrow-left" /> nazad na članak
       </Link>
 
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> znanje/clanci/{params.id.slice(0, 8)}/izvori
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">
-        Kandidati izvora (§2.3/§4a) — samo zvaničan sajt/društvena mreža hotela ili državni/turistički portal. Nijedan se ne koristi za sadržaj dok se ne
-        odobri (§4b).
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">{`Izvori — ${article.translation?.title ?? params.id.slice(0, 8)}`}</h1>
 
       <ArticleTabs id={params.id} active="izvori" />
 

@@ -62,9 +62,7 @@ export default async function UlogaPage({ params }: { params: Promise<{ id: stri
     <div className="p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> korisnici/uloge/{role.name}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{role.name}</h1>
           <p className="text-xs text-ink-dim">{role.description}</p>
           <p className="mt-1 text-[11px] text-ink-faint">
             {role._count.userRoles} {role._count.userRoles === 1 ? 'nosilac' : 'nosilaca'} · izmena važi odmah, bez

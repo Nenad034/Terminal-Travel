@@ -45,10 +45,7 @@ export default async function ContractsPage() {
       <RegisterTab label="Ugovori" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls ugovori/
-          </h1>
-          <p className="text-xs text-ink-dim">Ugovori sa dobavljačima — kapaciteti, cenovnici, rokovi.</p>
+          <h1 className="text-lg font-semibold text-ink">Ugovori</h1>
         </div>
         <div className="flex gap-2">
           <Link href="/dobavljaci" className="flex items-center gap-1.5 rounded border border-border bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim hover:border-accent">

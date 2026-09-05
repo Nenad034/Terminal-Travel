@@ -42,10 +42,7 @@ export default async function KorisniciPage(props: { searchParams: Promise<{ q?:
       <RegisterTab label="Korisnici i uloge" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls korisnici/
-          </h1>
-          <p className="text-xs text-ink-dim">Nalozi internog tima, dodeljene uloge, status i 2FA — M1.</p>
+          <h1 className="text-lg font-semibold text-ink">Korisnici i uloge</h1>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">

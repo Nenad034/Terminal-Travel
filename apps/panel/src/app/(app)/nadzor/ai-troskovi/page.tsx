@@ -68,10 +68,7 @@ export default async function NadzorAiTroskoviPage() {
     <div className="p-6">
       <RegisterTab label="Nadzor — AI troškovi" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> nadzor/ai-troskovi/
-        </h1>
-        <p className="text-xs text-ink-dim">Potrošnja AI provajdera i pojedinačnih agenata naspram EUR budžeta — M18 spec §6.4/§6.5.</p>
+        <h1 className="text-lg font-semibold text-ink">Nadzor — AI troškovi</h1>
       </div>
 
       <NadzorSubnav active="/nadzor/ai-troskovi" />

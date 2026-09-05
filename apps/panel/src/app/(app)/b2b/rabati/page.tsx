@@ -73,13 +73,7 @@ export default async function CommissionRebatesPage(props: { searchParams: Promi
     <div className="p-6">
       <RegisterTab label="Rabati provizije" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls b2b/rabati/
-        </h1>
-        <p className="text-xs text-ink-dim">
-          Retroaktivni rabati provizije (M7 §3.2) preko svih subagenata — kreirani automatski kad se pređe obimski prag usred perioda,
-          čekaju ljudsko odobrenje pre nego što M10 pošalje knjižno odobrenje.
-        </p>
+        <h1 className="text-lg font-semibold text-ink">Rabati provizije</h1>
       </div>
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}

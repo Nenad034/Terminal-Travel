@@ -74,10 +74,7 @@ export default async function EmailThreadDetailPage(props: { params: Promise<{ t
 
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> email/niti/{thread.id.slice(0, 8)}
-          </h1>
-          <p className="mt-1 text-sm text-ink">{thread.subject}</p>
+          <h1 className="text-lg font-semibold text-ink">{thread.subject}</h1>
           <p className="text-xs text-ink-faint">
             {thread.mailbox.displayName || thread.mailbox.address} · {thread.correspondentType} · poslednja poruka{' '}
             {new Date(thread.lastMessageAt).toLocaleString('sr-RS')}

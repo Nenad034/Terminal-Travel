@@ -78,12 +78,7 @@ export default async function ConversationPage(props: { params: Promise<{ conver
       </Link>
 
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> chat/{title}
-        </h1>
-        <p className="text-xs text-ink-faint">
-          {conversation.type} · {conversation.participants.length} učesnik(a) · otvoren {new Date(conversation.createdAt).toLocaleDateString('sr-RS')}
-        </p>
+        <h1 className="text-lg font-semibold text-ink">{title}</h1>
       </div>
 
       <div className="min-h-0 flex-1">

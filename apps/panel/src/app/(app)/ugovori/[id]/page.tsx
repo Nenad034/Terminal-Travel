@@ -50,9 +50,7 @@ export default async function ContractDetailPage(props: { params: Promise<{ id: 
       <RegisterTab label={contract.contractNumber} />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> {contract.contractNumber}
-          </h1>
+          <h1 className="text-lg font-semibold text-ink">{contract.contractNumber}</h1>
           <p className="text-xs text-ink-faint">
             {supplierName} · {contract.currency} · {new Date(contract.validFrom).toLocaleDateString('sr-RS')} – {new Date(contract.validTo).toLocaleDateString('sr-RS')}
           </p>

@@ -60,10 +60,7 @@ export default async function B2bPage() {
       <RegisterTab label="B2B partneri" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls b2b/subagenti/
-          </h1>
-          <p className="text-xs text-ink-dim">Mreža poslovnih partnera (subagenata) — kreditni limit, provizija, obimski status — M7.</p>
+          <h1 className="text-lg font-semibold text-ink">B2B partneri</h1>
         </div>
         <div className="flex gap-2">
           {canViewRebates && (

@@ -49,10 +49,7 @@ export default async function PodrskaPage(props: { searchParams: Promise<{ statu
       <RegisterTab label="Podrška" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls podrska/tiketi/
-          </h1>
-          <p className="text-xs text-ink-dim">Tiketing za goste i subagente — M14.</p>
+          <h1 className="text-lg font-semibold text-ink">Podrška</h1>
         </div>
         {canCreate && (
           <Button asChild size="sm">

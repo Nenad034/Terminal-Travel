@@ -39,10 +39,7 @@ export default async function UlogePage() {
       <RegisterTab label="Uloge" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> korisnici/uloge/
-          </h1>
-          <p className="text-xs text-ink-dim">Sistemske uloge i broj nosilaca. Klik na karticu otvara dozvole te uloge — M1 spec poglavlje 4 i 7.</p>
+          <h1 className="text-lg font-semibold text-ink">Uloge</h1>
         </div>
         <Link href="/korisnici" className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-ink">
           <Icon name="arrow-left" /> nazad na korisnike

@@ -37,10 +37,7 @@ export default async function KatalogPage() {
       <RegisterTab label="Katalog proizvoda" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls katalog/
-          </h1>
-          <p className="text-xs text-ink-dim">Svi proizvodi (ugovoreni i API), bez obzira na izvor.</p>
+          <h1 className="text-lg font-semibold text-ink">Katalog proizvoda</h1>
         </div>
         {canCreate && (
           <Button asChild size="sm">

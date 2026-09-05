@@ -12,12 +12,7 @@ export default async function NoviClanakPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Nov članak" />
-      <h1 className="mb-1 font-mono text-lg">
-        <span className="text-accent">$</span> znanje/clanci/nov
-      </h1>
-      <p className="mb-4 text-xs text-ink-dim">
-        Kreira se kao DRAFT (M23 spec §2.1). Prazan članak je takođe validan — može se popuniti kasnije kroz reviziju.
-      </p>
+      <h1 className="mb-1 text-lg font-semibold text-ink">Nov članak</h1>
       <NewArticleForm />
     </div>
   );

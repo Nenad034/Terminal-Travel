@@ -79,9 +79,7 @@ export default async function FiscalDocumentDetailPage(props: { params: Promise<
       {doc && (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="font-mono text-lg">
-              <span className="text-accent">$</span> {doc.documentType}
-            </h1>
+            <h1 className="text-lg font-semibold text-ink">{doc.documentType}</h1>
             <StatusBadge status={doc.status} />
           </div>
 

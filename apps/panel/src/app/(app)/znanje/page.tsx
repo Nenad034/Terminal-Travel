@@ -55,12 +55,7 @@ export default async function ZnanjePage(
       <RegisterTab label="Znanje" />
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls znanje/clanci/
-          </h1>
-          <p className="text-xs text-ink-dim">
-            Baza znanja o destinacijama/hotelima/izletima (M23) — ista lista za interni tim i subagente (§3.1), za razliku od M21.
-          </p>
+          <h1 className="text-lg font-semibold text-ink">Znanje</h1>
         </div>
         {canCreate && (
           <Button asChild size="sm">

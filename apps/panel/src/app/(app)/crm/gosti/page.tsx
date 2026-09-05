@@ -38,10 +38,7 @@ export default async function GuestProfilesPage(props: { searchParams: Promise<{
       <RegisterTab label="Gosti" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls crm/gosti/
-          </h1>
-          <p className="text-xs text-ink-dim">Profili gostiju (ko putuje) — dokument, preference, istorija putovanja.</p>
+          <h1 className="text-lg font-semibold text-ink">Gosti</h1>
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm">

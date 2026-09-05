@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DateField from '@/components/DateField';
 import BarChart, { type ChartSeries } from './BarChart';
+import ShareReportButton from './ShareReportButton';
 
 
 interface Bucket {
@@ -347,8 +348,20 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && tab === 'profitabilnost' && profitability && (
-        <div className="flex flex-col gap-4">
-          <LastSynced value={profitability.lastSyncedAt} />
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <LastSynced value={profitability.lastSyncedAt} />
+            {/* "Podeli izveštaj" (5.9.2026, vlasnikov zahtev) — nosi TAČNO ono što je trenutno
+                izabrano pod-tabom (destinacija/dobavljač/kanal), ne ceo skup od tri tabele
+                odjednom; `captureElementId` cilja OVAJ omotač (isti sadržaj koji korisnik vidi,
+                tabela ili grafik u zavisnosti od `view`). */}
+            <ShareReportButton
+              reportKind="profitability"
+              title={`Profitabilnost — ${PROFITABILNOST_SUB_LABELS[profSub]}`}
+              rows={profSub === 'destinacija' ? profitability.byDestination : profSub === 'dobavljac' ? profitability.bySupplier : profitability.byChannel}
+              captureElementId="izvestaj-sadrzaj"
+            />
+          </div>
           {/* Pod-tabovi (5.9.2026, vlasnikov zahtev: "izvestaje po kategorijama stavite takodje
               u tabove kako se ne bi skrolovalo na dole") — tri razlaganja ove kategorije su do
               sad stajala naslagana jedno ispod drugog; sad je vidljivo samo IZABRANO. */}
@@ -381,8 +394,16 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       )}
 
       {!error && tab === 'prodaja' && sales && (
-        <div className="flex flex-col gap-4">
-          <LastSynced value={sales.lastSyncedAt} />
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <LastSynced value={sales.lastSyncedAt} />
+            <ShareReportButton
+              reportKind="sales"
+              title={`Prodaja — ${PRODAJA_SUB_LABELS[prodajaSub]}`}
+              rows={prodajaSub === 'kanal' ? sales.byChannel : sales.byProductType}
+              captureElementId="izvestaj-sadrzaj"
+            />
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <Stat label="broj rezervacija" value={sales.bookingCount.toLocaleString('sr-RS')} />
             <Stat label="ukupna vrednost" value={formatMoney(sales.totalValue)} />
@@ -409,8 +430,16 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       )}
 
       {!error && tab === 'smestaj' && occupancy && (
-        <div className="flex flex-col gap-4">
-          <LastSynced value={occupancy.lastSyncedAt} />
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <LastSynced value={occupancy.lastSyncedAt} />
+            <ShareReportButton
+              reportKind="occupancy"
+              title="Operativna statistika smeštaja"
+              rows={occupancy.breakdown ?? []}
+              captureElementId="izvestaj-sadrzaj"
+            />
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <Stat label="broj osoba" value={occupancy.guestCount.toLocaleString('sr-RS')} />
             <Stat label="noćenja (gost-noćenja)" value={occupancy.nights.toLocaleString('sr-RS')} />
@@ -436,8 +465,16 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       )}
 
       {!error && tab === 'marketing' && marketing && (
-        <div className="flex flex-col gap-4">
-          <LastSynced value={marketing.lastSyncedAt} />
+        <div id="izvestaj-sadrzaj" className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <LastSynced value={marketing.lastSyncedAt} />
+            <ShareReportButton
+              reportKind="marketing"
+              title="Marketing performanse"
+              rows={marketing.byContent}
+              captureElementId="izvestaj-sadrzaj"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Stat label="udeo atribuisanih rezervacija" value={`${(marketing.attributedShare * 100).toFixed(1)}%`} />
             <Stat
@@ -502,15 +539,29 @@ function OccupancyBreakdown({
       {view === 'grafik' ? (
         <BarChart rows={breakdown} series={NIGHTS_SERIES} />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          {breakdown.map((b) => (
-            <div key={b.key} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-xs last:border-b-0">
-              <span className="font-medium text-ink">{b.key}</span>
-              <span className="text-ink-faint">
-                {b.count} stavki · {b.nights.toLocaleString('sr-RS')} noćenja ({formatPct(b.nights, total)})
-              </span>
-            </div>
-          ))}
+        <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-2 text-left font-medium">naziv</th>
+                <th className="px-4 py-2 text-right font-medium">stavki</th>
+                <th className="px-4 py-2 text-right font-medium">noćenja</th>
+                <th className="px-4 py-2 text-right font-medium">udeo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {breakdown.map((b, i) => (
+                <tr key={b.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+                  <td className="border-t border-border px-4 py-2 font-medium text-ink">{b.key}</td>
+                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{b.count.toLocaleString('sr-RS')}</td>
+                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{b.nights.toLocaleString('sr-RS')}</td>
+                  <td className="border-t border-border px-4 py-2 text-right">
+                    <PctBadge value={formatPct(b.nights, total)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -555,6 +606,14 @@ function ChartSection({ title, children }: { title: string; children: React.Reac
   );
 }
 
+// "Kibana" stil — prava tabela sa kolonama umesto jednog reda teksta po stavci (5.9.2026,
+// vlasnikov zahtev: "tekstualno mozemo malo da unapredimo da izgleda kao tabela elastic
+// kibana"). Obeležja tog stila primenjena ovde: fiksno zaglavlje sa suptilno drugačijom
+// pozadinom, naizmenične pruge između redova (zebra), brojevi monospejs i desno poravnati (lakše
+// je porediti kolonu cifara kad im decimalna tačka pada na isto mesto), sitna "beidž" oznaka za
+// procenat udela. Isti markap (pravi `<table>`) koristi se i kad se ovaj sadržaj snimi kao
+// infografik (`ShareReportButton.tsx`, html2canvas) — izgled sa ekrana IDE u sliku, ne posebna
+// "verzija za slanje".
 function BucketTable({ title, buckets, showMargin = false }: { title: string; buckets: Bucket[]; showMargin?: boolean }) {
   // Udeo u procentima (4.9.2026, na zahtev vlasnika: "prikazite i u % u obe vrste izvestaja")
   // — udeo reda u zbiru CELE grupe (svih redova, ne samo prikazanih), ne u ukupnom prometu
@@ -567,16 +626,39 @@ function BucketTable({ title, buckets, showMargin = false }: { title: string; bu
       {buckets.length === 0 ? (
         <p className="rounded-lg border border-border bg-panel p-4 text-center text-xs text-ink-faint">Nema podataka za zadate filtere.</p>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border">
-          {buckets.map((b) => (
-            <div key={b.key} className="flex items-center justify-between border-b border-border bg-panel px-4 py-2 text-xs last:border-b-0">
-              <span className="font-medium text-ink">{b.key}</span>
-              <span className="text-ink-faint">
-                {b.count} rez. · prihod {formatMoney(b.revenue)} ({formatPct(b.revenue, totalRevenue)})
-                {showMargin ? ` · marža ${formatMoney(b.margin)} (${formatPct(b.margin, totalMargin)})` : ''}
-              </span>
-            </div>
-          ))}
+        <div className="overflow-hidden overflow-x-auto rounded-lg border border-border">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-sunken text-[11px] uppercase tracking-wide text-ink-faint">
+                <th className="px-4 py-2 text-left font-medium">naziv</th>
+                <th className="px-4 py-2 text-right font-medium">rezervacija</th>
+                <th className="px-4 py-2 text-right font-medium">prihod</th>
+                <th className="px-4 py-2 text-right font-medium">udeo</th>
+                {showMargin && <th className="px-4 py-2 text-right font-medium">marža</th>}
+                {showMargin && <th className="px-4 py-2 text-right font-medium">udeo</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {buckets.map((b, i) => (
+                <tr key={b.key} className={i % 2 === 1 ? 'bg-panel2/40' : undefined}>
+                  <td className="border-t border-border px-4 py-2 font-medium text-ink">{b.key}</td>
+                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{b.count.toLocaleString('sr-RS')}</td>
+                  <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.revenue)}</td>
+                  <td className="border-t border-border px-4 py-2 text-right">
+                    <PctBadge value={formatPct(b.revenue, totalRevenue)} />
+                  </td>
+                  {showMargin && (
+                    <td className="border-t border-border px-4 py-2 text-right font-mono text-ink-dim">{formatMoney(b.margin)}</td>
+                  )}
+                  {showMargin && (
+                    <td className="border-t border-border px-4 py-2 text-right">
+                      <PctBadge value={formatPct(b.margin, totalMargin)} />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -590,6 +672,12 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="mt-1 text-lg font-semibold text-ink">{value}</div>
     </div>
   );
+}
+
+// Sitna "beidž" oznaka za procenat udela — deo "Kibana" tabelarnog stila (5.9.2026), ista ideja
+// kao Kibana-ove sitne pilule za kategorijalne/izvedene vrednosti u ćeliji tabele.
+function PctBadge({ value }: { value: string }) {
+  return <span className="inline-block rounded bg-panel2 px-1.5 py-0.5 font-mono text-[11px] text-ink-dim">{value}</span>;
 }
 
 function LastSynced({ value }: { value: string | null }) {

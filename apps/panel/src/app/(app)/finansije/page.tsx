@@ -56,12 +56,7 @@ export default async function FinansijePage() {
     <div className="p-6">
       <RegisterTab label="Finansije" />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> ls finansije/
-        </h1>
-        <p className="text-xs text-ink-dim">
-          Fiskalni dokumenti se pripremaju/šalju sa stranice pojedinačne rezervacije. Ovde je pregled onoga što zahteva pažnju Računovođe.
-        </p>
+        <h1 className="text-lg font-semibold text-ink">Finansije</h1>
       </div>
 
       {noAccess && <p className="rounded bg-danger-bg p-3 text-sm text-danger">Nemate dozvolu za uvid u finansijske podatke.</p>}

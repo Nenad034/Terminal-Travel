@@ -35,10 +35,7 @@ export default async function ProcessMapDetailPage(props: { params: Promise<{ ke
     <div className="p-6">
       <RegisterTab label={map?.label ?? 'Procesna mapa'} />
       <div className="mb-4">
-        <h1 className="font-mono text-lg">
-          <span className="text-accent">$</span> {map?.label ?? params.key}
-        </h1>
-        <p className="text-xs text-ink-dim">Osvežava se na svakih 5 sekundi. Klik na čvor prikazuje detalje u desnom panelu.</p>
+        <h1 className="text-lg font-semibold text-ink">{map?.label ?? 'Procesna mapa'}</h1>
       </div>
 
       <NadzorSubnav active="/nadzor/procesne-mape" />

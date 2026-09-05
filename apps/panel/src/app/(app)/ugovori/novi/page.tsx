@@ -20,9 +20,7 @@ export default async function NewContractPage() {
   return (
     <div className="p-6">
       <RegisterTab label="Novi ugovor" />
-      <h1 className="mb-4 font-mono text-lg">
-        <span className="text-accent">$</span> novi_ugovor
-      </h1>
+      <h1 className="mb-4 text-lg font-semibold text-ink">Novi ugovor</h1>
       <NewContractForm suppliers={suppliers} />
     </div>
   );
