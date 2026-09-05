@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import ActivityBar from './ActivityBar';
+import RightRail from './RightRail';
 import CommandPalette from './CommandPalette';
 import ResizablePane from './ResizablePane';
 import StatusBar from './StatusBar';
@@ -360,23 +361,7 @@ export default function Shell({
             namerno se vizuelno stapaju u jednu masu, isto kao naslovna traka i traka tabova
             u pravom VS Code-u. */}
         <div className="flex h-screen flex-col overflow-hidden bg-bg text-ink">
-          <TopBar
-            leftColumnWidth={leftColumnWidth}
-            tabOffset={tabOffset}
-            rightPanelOpen={rightPanelOpen}
-            onToggleRightPanel={toggleRightPanelForCurrentModule}
-            layoutProps={{
-              sidebarVisible: layoutVisibility.sidebar,
-              onToggleSidebar: () => toggleLayout('sidebar'),
-              statusBarVisible: layoutVisibility.statusBar,
-              onToggleStatusBar: () => toggleLayout('statusBar'),
-              showTerminal: showBiTerminal,
-              terminalOpen: layoutVisibility.terminal,
-              onToggleTerminal: () => toggleLayout('terminal'),
-              mainWidth,
-              onChangeMainWidth: changeMainWidth,
-            }}
-          />
+          <TopBar leftColumnWidth={leftColumnWidth} tabOffset={tabOffset} />
           <div className="flex flex-1 overflow-hidden">
             {/* `leftColumnRef` (23.8.2026, uz snimak ekrana — "i dalje nije dobra pozicija prvog
                 taba") — dva uzastopna pokušaja da se TopBar-ov razmak POGODI (statična vrednost
@@ -513,7 +498,11 @@ export default function Shell({
                 />
               </ResizablePane>
             ) : (
-              <div className="fixed bottom-[38px] right-0 top-[43px] z-30 shadow-lg" style={{ display: rightPanelOpen ? undefined : 'none' }}>
+              // `right-[43px]`/`bottom-[43px]` (5.9.2026, dopuna) — desna traka (`RightRail.tsx`)
+              // sad zauzima 43px uz desnu ivicu ekrana, i StatusBar je porastao sa 29px na 43px
+              // (isti zahtev, "visina donje trake ista kao gornje") — overlay panel mora da
+              // ostavi prostor za oboje, ne da ih prekrije.
+              <div className="fixed bottom-[43px] right-[43px] top-[43px] z-30 shadow-lg" style={{ display: rightPanelOpen ? undefined : 'none' }}>
                 <ResizablePane storageKey="tt-panel-right-width" defaultWidth={420} minWidth={260} maxWidth={560} handleSide="left">
                   <RightPanel
                     moduleId={currentModuleId}
@@ -528,6 +517,25 @@ export default function Shell({
                 </ResizablePane>
               </div>
             )}
+            {/* Desna vertikalna traka (5.9.2026, vlasnikov zahtev: "formirajte desnu traku i tu
+                smestite sve ikone iz gornje trake iz desnog ugla") — ogledalo `ActivityBar.tsx`
+                na suprotnoj ivici ekrana, POSLEDNJI element ovog reda tako da ostaje uz desnu
+                ivicu ekrana bez obzira na push/overlay stanje desnog panela iznad. */}
+            <RightRail
+              rightPanelOpen={rightPanelOpen}
+              onToggleRightPanel={toggleRightPanelForCurrentModule}
+              layoutProps={{
+                sidebarVisible: layoutVisibility.sidebar,
+                onToggleSidebar: () => toggleLayout('sidebar'),
+                statusBarVisible: layoutVisibility.statusBar,
+                onToggleStatusBar: () => toggleLayout('statusBar'),
+                showTerminal: showBiTerminal,
+                terminalOpen: layoutVisibility.terminal,
+                onToggleTerminal: () => toggleLayout('terminal'),
+                mainWidth,
+                onChangeMainWidth: changeMainWidth,
+              }}
+            />
           </div>
           {layoutVisibility.statusBar && (
             <StatusBar

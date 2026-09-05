@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import Icon, { IconDuo } from './Icon';
 import { NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/nav';
 
@@ -65,7 +64,6 @@ export default function ActivityBar({
   collapsed: boolean;
   onToggleCollapse: () => void;
 }) {
-  const pathname = usePathname();
   return (
     <nav className="flex w-[43px] flex-shrink-0 flex-col items-center gap-1 bg-panel-2 py-1">
       {/* Strelica za PONOVNO širenje (4.9.2026, vlasnikov nalaz: "kada skupimo levi panel
@@ -154,22 +152,9 @@ export default function ActivityBar({
           </div>
         );
       })}
-      {/* AI Agent — poslednja stavka menija (5.9.2026, vlasnikov zahtev: "ikonu za AI Agenta
-          stavite kao poslednju stavku menija u levoj traci"). Vodi na PUN tab (`/ai-asistent`,
-          Fokus tab, dizajn dok. §6c.0), ne otvara desni panel — isti razlog kao "Klikom na tu
-          ikonu treba da se otvori ceo tab, a ne desni panel". Nema flyout/podmeni (nije grupa
-          sa stavkama, jedna destinacija), zato stoji van `groups.map` petlje. */}
-      <div className="relative flex-shrink-0">
-        <Link
-          href="/ai-asistent"
-          title="AI asistent"
-          className={`flex h-[36px] w-[36px] items-center justify-center rounded-md ${
-            pathname === '/ai-asistent' ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
-          }`}
-        >
-          <Icon name="sparkle" />
-        </Link>
-      </div>
+      {/* AI Agent ikonica preseljena u dno `RightRail.tsx` (5.9.2026, vlasnikov zahtev: "ikonu za
+          AI Agenta premesti u dno desne trake") — ranije je stajala ovde, poslednja stavka
+          ove (leve) trake. */}
     </nav>
   );
 }

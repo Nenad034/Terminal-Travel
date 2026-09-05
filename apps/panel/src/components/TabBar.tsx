@@ -78,9 +78,14 @@ export default function TabBar() {
             // (ne samo monospace). Pun naziv i dalje dostupan preko `title` (native tooltip
             // na hover, "misem preko taba da se pojavi ceo tekst" — nema potrebe za sopstvenim
             // JS tooltip-om, browser to već radi).
+            // Linije tabova — narandžaste (5.9.2026, vlasnikov zahtev: "linije tabova treba da
+            // budu u narandzastoj boji"), `--tab-line`/`--tab-line-strong` (globals.css) umesto
+            // dotadašnjeg `border-accent`/`border-ink-faint`. Pozadina/tekst aktivnog taba
+            // ostaju nepromenjeni (`bg-accent-soft`/`text-ink`) — zahtev se odnosi na LINIJE, ne
+            // na popunu.
             className={`group flex h-[29px] w-[20ch] flex-shrink-0 cursor-grab items-center gap-1.5 rounded border px-2 text-[11px] transition-colors active:cursor-grabbing ${
-              active ? 'border-accent bg-accent-soft text-ink' : 'border-ink-faint text-ink-faint hover:border-accent hover:text-ink'
-            } ${draggedId === tab.id ? 'opacity-40' : ''} ${dragOverId === tab.id ? 'border-accent-strong border-2' : ''}`}
+              active ? 'border-tabline-strong bg-accent-soft text-ink' : 'border-tabline text-ink-faint hover:border-tabline-strong hover:text-ink'
+            } ${draggedId === tab.id ? 'opacity-40' : ''} ${dragOverId === tab.id ? 'border-tabline-strong border-2' : ''}`}
           >
             {tab.dirty && <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" title="Nesačuvane izmene" />}
             {/* `flex-1` (dopuna 25.8.2026, na zahtev vlasnika: "x za zatvaranje tabova stavite u
