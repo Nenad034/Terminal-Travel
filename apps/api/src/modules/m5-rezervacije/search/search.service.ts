@@ -8,7 +8,7 @@ import { applyMarkup } from '../common/markup-formula';
 import { assertRoomConfigMatchesTotals, computeRoomBaseCost, OccupancyInput, RoomTypeDefinition } from '../common/occupancy';
 import { TOLERANCE_MS } from '../common/date-mismatch';
 import { isRefundableForPackage, isRefundableFromCancellationRules, isRefundableFromQuoteCancellationPolicy } from '../common/refundability';
-import { ActivityDestinationResult, CountrySuggestion, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
+import { ActivityDestinationResult, CountrySuggestion, DailyProgramDay, DestinationSuggestion, SearchResultOffer, SearchResultProduct } from './search-result.types';
 import { SearchChannel } from './dto/search-query.dto';
 
 export interface SearchParamsInput {
@@ -38,6 +38,9 @@ export interface SearchParamsInput {
   /** M2 spec §2.3c `attributes.amenities[]` (AmenityTag), M5 spec §3.0c.3 — samo ACCOMMODATION,
    * proizvod prolazi samo ako njegov niz sadrži SVE tražene tagove (I-logika, ne ILI). */
   amenityTags?: string[];
+  /** M2 spec §2.3f `attributes.has_expert_guide` — samo PACKAGE, M5 spec §3.0d.6b. Kad NIJE
+   * prosleđen, filter se ne primenjuje (vraća i "Putovanja" i obične "Grupne pakete"). */
+  hasExpertGuide?: boolean;
 }
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
@@ -248,6 +251,11 @@ export class SearchService {
         return Array.isArray(amenities) && params.amenityTags!.every((tag) => amenities.includes(tag));
       });
     }
+    // M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — samo PACKAGE, razdvaja "Putovanja" od
+    // "Grupni paketi" bez novog Product.type. Bez ovog parametra ponašanje je nepromenjeno.
+    if (params.hasExpertGuide) {
+      products = products.filter((p) => (p.attributes as any)?.has_expert_guide === true);
+    }
 
     // M2 spec §2.1c / M5 spec §3.0c.3d (dopuna 5.9.2026) — lookup DestinationProfile.destination_type
     // po (destinationCountry, destinationCity) proizvoda. Jedan upit za sve destinacije prisutne u
@@ -259,7 +267,6 @@ export class SearchService {
       destinationPairs.length > 0
         ? await this.prisma.destinationProfile.findMany({ where: { OR: destinationPairs } })
         : [];
-    console.log('DEBUG', JSON.stringify({ destinationPairs, destinationProfiles }));
     const destinationTypeByKey = new Map(
       destinationProfiles.map((d) => [`${d.destinationCountry} ${d.destinationCity}`, d.destinationType as string]),
     );
@@ -302,13 +309,45 @@ export class SearchService {
         // `attributes` je JSONB, stariji zapisi polje nemaju, a string („4") bi na klijentu
         // tiho ispao iz poređenja sa brojem.
         stars: typeof (product.attributes as any)?.stars === 'number' ? ((product.attributes as any).stars as number) : null,
-        destinationType: (console.log('DEBUG2 key', `${product.destinationCountry} ${product.destinationCity}`, 'mapkeys', Array.from(destinationTypeByKey.keys()), 'value', destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`)), destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`) ?? null),
+        destinationType: destinationTypeByKey.get(`${product.destinationCountry} ${product.destinationCity}`) ?? null,
         thumbnail,
         shortDescription: translation?.description?.slice(0, 240) ?? null,
+        // M2 §2.3f / M5 §3.0d.6b — samo PACKAGE nosi ova polja; ostali tipovi uvek dobijaju `null`
+        // (isto defanzivno čitanje kao `amenities`/`stars` iznad, `attributes` je JSONB).
+        hasExpertGuide:
+          typeof (product.attributes as any)?.has_expert_guide === 'boolean' ? ((product.attributes as any).has_expert_guide as boolean) : null,
+        guideLanguage: typeof (product.attributes as any)?.guide_language === 'string' ? ((product.attributes as any).guide_language as string) : null,
+        dailyProgram: this.mapDailyProgram((product.attributes as any)?.daily_program),
+        optionalProductIds: Array.isArray((product.attributes as any)?.optional_products)
+          ? ((product.attributes as any).optional_products as unknown[]).filter((id): id is string => typeof id === 'string')
+          : null,
         offers,
       });
     }
     return results;
+  }
+
+  /**
+   * M2 spec §2.3f `attributes.daily_program[]` — čita se defanzivno (JSONB, oblik strane
+   * validacije nema na nivou baze) i prevodi u `camelCase` DailyProgramDay isti obrazac kao
+   * ostatak API odgovora. Stavka sa nevalidnim `day_number`/`title`/`description` se izostavlja
+   * umesto da sruši ceo odgovor — "prazan/nepotpun program" ostaje prikaziv kao takav (M2 §2.3f).
+   */
+  private mapDailyProgram(raw: unknown): DailyProgramDay[] | null {
+    if (!Array.isArray(raw) || raw.length === 0) return null;
+    const days: DailyProgramDay[] = [];
+    for (const entry of raw) {
+      const e = entry as any;
+      if (typeof e?.day_number !== 'number' || typeof e?.title !== 'string' || typeof e?.description !== 'string') continue;
+      days.push({
+        dayNumber: e.day_number,
+        title: e.title,
+        description: e.description,
+        meals: Array.isArray(e.meals) ? (e.meals.filter((m: unknown) => typeof m === 'string') as DailyProgramDay['meals']) : null,
+        overnightProductId: typeof e.overnight_product_id === 'string' ? e.overnight_product_id : null,
+      });
+    }
+    return days.length > 0 ? days : null;
   }
 
   private pickThumbnail(media: { url: string; category: string; order: number }[]): { url: string; category: string } | null {

@@ -114,6 +114,7 @@ export class SearchController {
       durationNights: query.durationNights,
       cabinType: query.cabinType,
       amenityTags: query.amenityTags,
+      hasExpertGuide: query.hasExpertGuide,
     });
   }
 }

@@ -105,6 +105,15 @@ export class QuoteItemBuilderService {
     roomConfig: ReturnType<typeof assertRoomConfigMatchesTotals>,
     unitCount: number,
   ): Promise<BuiltQuoteItemData[]> {
+    // M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — `attributes.optional_products[]`
+    // (fakultativni izleti "Putovanja") se NAMERNO ne čita ovde. Cena se dodaje SAMO ako gost/agent
+    // eksplicitno izabere stavku — to znači da se opcioni proizvod NE sabira automatski u paket,
+    // nego se dodaje kao SVOJA POSEBNA `QuoteItem` van ovog metoda. `CreateQuoteDto.items[]`
+    // (M5 spec §3.1/§11) već prihvata više stavki u jednom `POST /quotes` pozivu — gost/agent bira
+    // paket (ovaj `productId`) I eksplicitno bira opcioni proizvod kao DODATNU stavku (sopstveni
+    // `productId` iz `optional_products[]`) u istom pozivu; ta dodatna stavka prolazi kroz obično
+    // grananje `build()` iznad (nije PACKAGE), isto poreklo cene CONTRACTED/API kao svaki drugi
+    // proizvod. Nema potrebe za novom logikom ovde — postojeći tok već pokriva slučaj.
     const includedIds = ((product.attributes as any)?.included_products ?? []) as string[];
     if (includedIds.length === 0) {
       throw new BadRequestException(`PACKAGE ${product.id} nema included_products[] (M2 spec §2.3).`);

@@ -530,6 +530,105 @@ describe('SearchService (M5 spec §3.0b/§11)', () => {
 
       expect(results[0].offers).toHaveLength(1);
     });
+
+    // M2 spec §2.3f / M5 spec §3.0d.6b (dopuna 5.9.2026) — "Putovanja": has_expert_guide,
+    // guide_language, daily_program[], optional_products[].
+    describe('"Putovanja" — has_expert_guide/guide_language/daily_program/optional_products (§2.3f/§3.0d.6b)', () => {
+      const guidedProduct = {
+        ...packageProduct,
+        id: 'pkg2',
+        attributes: {
+          included_products: ['flight1', 'hotel1'],
+          duration_days: 7,
+          has_expert_guide: true,
+          guide_language: 'sr',
+          optional_products: ['excursion1'],
+          daily_program: [
+            { day_number: 1, title: 'Beograd — Tbilisi', description: 'Let i transfer do hotela.', meals: ['DINNER'], overnight_product_id: 'hotel1' },
+            { day_number: 2, title: 'Manastiri Sanahin i Haghpat, jezero Sevan', description: 'Prelazak u Jermeniju.', meals: ['BREAKFAST', 'LUNCH'] },
+          ],
+        },
+      };
+
+      it('hasExpertGuide=true filtrira samo PACKAGE sa attributes.has_expert_guide === true', async () => {
+        const { service, prisma, markupRules } = makeService();
+        prisma.product.findMany
+          .mockResolvedValueOnce([packageProduct, guidedProduct])
+          .mockResolvedValueOnce([flightComponent, hotelComponent])
+          .mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany
+          .mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')])
+          .mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.contractPeriod.findMany
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')])
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+        markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+        const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'], hasExpertGuide: true });
+
+        expect(results.map((r) => r.productId)).toEqual(['pkg2']);
+      });
+
+      it('bez hasExpertGuide parametra vraća i "Putovanja" i obične "Grupne pakete" (ponašanje nepromenjeno)', async () => {
+        const { service, prisma, markupRules } = makeService();
+        prisma.product.findMany
+          .mockResolvedValueOnce([packageProduct, guidedProduct])
+          .mockResolvedValueOnce([flightComponent, hotelComponent])
+          .mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany
+          .mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')])
+          .mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.contractPeriod.findMany
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')])
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+        markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+        const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+        expect(results.map((r) => r.productId).sort()).toEqual(['pkg1', 'pkg2']);
+      });
+
+      it('SearchResultProduct nosi hasExpertGuide/guideLanguage/dailyProgram/optionalProductIds za "Putovanja"', async () => {
+        const { service, prisma, markupRules } = makeService();
+        prisma.product.findMany.mockResolvedValueOnce([guidedProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.contractPeriod.findMany
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+        markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+        const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+        expect(results[0].hasExpertGuide).toBe(true);
+        expect(results[0].guideLanguage).toBe('sr');
+        expect(results[0].optionalProductIds).toEqual(['excursion1']);
+        expect(results[0].dailyProgram).toEqual([
+          { dayNumber: 1, title: 'Beograd — Tbilisi', description: 'Let i transfer do hotela.', meals: ['DINNER'], overnightProductId: 'hotel1' },
+          { dayNumber: 2, title: 'Manastiri Sanahin i Haghpat, jezero Sevan', description: 'Prelazak u Jermeniju.', meals: ['BREAKFAST', 'LUNCH'], overnightProductId: null },
+        ]);
+      });
+
+      it('obična PACKAGE (bez has_expert_guide) ima hasExpertGuide/guideLanguage/dailyProgram/optionalProductIds = null', async () => {
+        const { service, prisma, markupRules } = makeService();
+        prisma.product.findMany.mockResolvedValueOnce([packageProduct]).mockResolvedValueOnce([flightComponent, hotelComponent]);
+        prisma.packageDeparture.findMany.mockResolvedValueOnce([departure('2027-09-03', '2027-09-10')]);
+        prisma.contractPeriod.findMany
+          .mockResolvedValueOnce([flightPeriod('2027-09-03')])
+          .mockResolvedValueOnce([hotelPeriod('2027-09-03', '2027-09-10')]);
+        markupRules.resolveForContracted.mockResolvedValue({ percentage: 0, fixedAmount: null });
+
+        const results = await service.search({ channel: 'B2C_SITE', type: ['PACKAGE'] });
+
+        expect(results[0].hasExpertGuide).toBeNull();
+        expect(results[0].guideLanguage).toBeNull();
+        expect(results[0].dailyProgram).toBeNull();
+        expect(results[0].optionalProductIds).toBeNull();
+      });
+    });
   });
 
   // M2 spec §2.1c / M5 spec §3.0c.3d (dopuna 5.9.2026) — SearchResultProduct.destinationType.
