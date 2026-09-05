@@ -141,7 +141,7 @@ export default async function NadzorPage(
             title="Filtriraj"
             className="h-9 w-9 border-transparent bg-brand p-0 text-brand-ink hover:bg-brand hover:brightness-90"
           >
-            <Icon name="arrow-right" />
+            <Icon name="play" />
           </Button>
           {(searchParams?.module || searchParams?.type || searchParams?.severity) && (
             <Button asChild variant="ghost" size="sm">

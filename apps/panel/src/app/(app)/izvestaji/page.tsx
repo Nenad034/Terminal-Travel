@@ -2,16 +2,23 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
-import Icon, { IconDuo } from '@/components/Icon';
-import { PRODUCT_ICONS } from '@/lib/search-product-types';
+import Icon from '@/components/Icon';
 import ReconciliationButton from './ReconciliationButton';
 import { Badge } from '@/components/ui/badge';
-import PeriodRangeField from './PeriodRangeField';
-import FilterLocationFields from './FilterLocationFields';
-import FieldInline from './FieldInline';
+import IzvestajiFilterForm from './IzvestajiFilterForm';
 import BarChart, { type ChartSeries } from './BarChart';
 import ShareReportButton from './ShareReportButton';
 import DynamicTree, { type DynamicNode } from './DynamicTree';
+import {
+  TAB_LABELS,
+  type TabKey,
+  PROFITABILNOST_SUB_LABELS,
+  type ProfitabilnostSub,
+  PRODAJA_SUB_LABELS,
+  type ProdajaSub,
+  DYNAMIC_OTHER_PRESETS,
+  type SearchParams,
+} from './constants';
 
 
 interface Bucket {
@@ -65,34 +72,6 @@ interface MarketingReport {
   lastSyncedAt: string | null;
 }
 
-const TAB_LABELS = {
-  profitabilnost: 'Profitabilnost',
-  prodaja: 'Prodaja',
-  smestaj: 'Smeštaj',
-  dinamicki: 'Dinamički',
-  marketing: 'Marketing',
-} as const;
-type TabKey = keyof typeof TAB_LABELS;
-
-// Pod-tabovi unutar "Profitabilnost"/"Prodaja" (5.9.2026, vlasnikov zahtev: "izvestaje po
-// kategorijama stavite takodje u tabove kako se ne bi skrolovalo na dole... kada se klikne na
-// Profitabilnost da se dole takodje pojave tabovi") — te dve kategorije imaju po više (3, odn. 2)
-// naslaganih tabela/grafikona jedan ispod drugog; sad je vidljiv samo IZABRAN, ostatak je iza
-// tabova umesto skrolovanja. "Smeštaj"/"Dinamički"/"Marketing" imaju samo JEDAN takav blok pod
-// glavnim tabom — pod-tabovi im ne trebaju, ne dobijaju ih.
-const PROFITABILNOST_SUB_LABELS = {
-  destinacija: 'Po destinaciji',
-  dobavljac: 'Po dobavljaču/provajderu',
-  kanal: 'Po kanalu',
-} as const;
-type ProfitabilnostSub = keyof typeof PROFITABILNOST_SUB_LABELS;
-
-const PRODAJA_SUB_LABELS = {
-  kanal: 'Po kanalu',
-  tip: 'Po tipu proizvoda',
-} as const;
-type ProdajaSub = keyof typeof PRODAJA_SUB_LABELS;
-
 // Serije za grafike (BarChart.tsx) — `var(--accent)`/`var(--accent2)`, isti tokeni kao svaki
 // drugi akcent u panelu (dizajn dok. §2.0f), ne nova paleta.
 // Za tabele BEZ marže (samo marketing) — jedina novčana kolona je "prihod".
@@ -113,45 +92,6 @@ const OCCUPANCY_SERIES: ChartSeries<Bucket & { nights: number }>[] = [
   { label: 'noćenja', color: 'var(--accent)', value: (b) => b.nights },
 ];
 
-const OCCUPANCY_GROUP_BY = ['room_type', 'board_type', 'stars', 'accommodation_type'] as const;
-// Kanal/tip proizvoda kao padajući meni umesto slobodnog teksta (5.9.2026, vlasnikov nalaz uz
-// snimak ekrana: "polja u kojima se kuca ne reaguju, a tu treba da vec postoje podaci koji se
-// biraju") — vrednosti su poznat, fiksan skup (M5 spec `M5Channel`/M2 `ProductType`), isti
-// princip kao `RealFilterBar.tsx`/`CalendarFilterBar.tsx` (ti fajlovi drže sopstvenu kopiju iste
-// liste — mala dupliranost, isti obrazac).
-const CHANNEL_OPTIONS = ['B2C_SITE', 'B2B_PORTAL', 'MOBILE', 'INTERNAL_PANEL', 'PHONE', 'MCP_AGENT'] as const;
-const PRODUCT_TYPE_OPTIONS = [
-  'ACCOMMODATION',
-  'PACKAGE',
-  'TRANSFER',
-  'EXCURSION',
-  'FLIGHT',
-  'INSURANCE',
-  'TRANSPORT',
-  'TICKET',
-  'EVENT',
-  'CRUISE',
-] as const;
-const DYNAMIC_DIMENSIONS = ['destination_country', 'destination_city', 'product_name', 'supplier_name', 'channel', 'subagent_name'] as const;
-// Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "nije dobro ovo kod dinamickih paketa.
-// Stavi ikone iz pretrage i koju ikonu ukljucimo... treba da se kreira dinamicki izvestaj i sve
-// treba da ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — poništava raniji
-// tekstualni preset "Destinacija"/"Destinacija → Hotel" (v1.8/v1.9): ISTE ikonice kao ekran
-// pretrage (`PRODUCT_ICONS`, `lib/search-product-types.ts`, jedan izvor istine — vidi komentar
-// tamo), ne nova, druga lista. Klik UVEK postavlja isti trodelni niz dimenzija (država → mesto →
-// proizvod), filtriran na TU vrstu — "proizvod koji smo odabrali" doslovno znači `product_name`
-// filtrirano na kliknutu ikonicu, ne generičko "sve vrste zajedno" kao ranije. Samo ikonice sa
-// nepraznim `types` ulaze ovde ("Individualni paketi" je `packageMode` bez sopstvenog
-// `ProductType`, ne postoji u M13 projekciji). Neke ikonice (npr. "Things to do") pokrivaju VIŠE
-// `ProductType` vrednosti — spojene zarezom, `dynamic()` na API strani ih čita kao `IN` listu.
-const DYNAMIC_DRILLDOWN_DIMS = 'destination_country,destination_city,product_name';
-const DYNAMIC_PRODUCT_ICONS = PRODUCT_ICONS.filter((p) => p.types.length > 0);
-// Preostala dva preseta koja NISU vezana za vrstu proizvoda — kanal/dobavljač imaju smisla za
-// sve vrste odjednom, ostaju kao pre.
-const DYNAMIC_OTHER_PRESETS = [
-  { label: 'Kanal', dims: 'channel', productType: undefined },
-  { label: 'Dobavljač', dims: 'supplier_name', productType: undefined },
-] as const;
 interface DynamicLeafRow {
   key: string;
   count: number;
@@ -191,42 +131,6 @@ function flattenDynamicLeaves(nodes: DynamicNode[], parentPath: string, out: Dyn
     }
   }
 }
-
-interface SearchParams {
-  tab?: string;
-  from?: string;
-  to?: string;
-  /** Na koje polje se `from`/`to` odnosi — 5.9.2026, vlasnikov zahtev: "dinamicki izvestaj treba
-   * da ima datume za filtriranje... Kreirano od...do, Dolasci od...do, Odlasci od...do... Mozete
-   * staviti jedan kalendar a ovo gore kao okidace... da ustedimo prostor" — JEDAN par od/do,
-   * ovo bira NA ŠTA se odnosi (umesto tri istovremena para kao u Listi rezervacija). */
-  dateField?: string;
-  /** Segment prodaje — B2B/B2C/Subagenti, tačno jedan aktivan (5.9.2026, vlasnikov zahtev:
-   * "treba dodati i fitere Subagenti, B2B, B2C"). */
-  segment?: string;
-  destinationCountry?: string;
-  destinationCity?: string;
-  supplierId?: string;
-  providerCode?: string;
-  channel?: string;
-  productType?: string;
-  groupBy?: string;
-  view?: string;
-  sub?: string;
-}
-
-const DATE_FIELD_LABELS: Record<string, string> = {
-  stay_from: 'Dolasci',
-  stay_to: 'Odlasci',
-  created: 'Kreirano',
-};
-const DATE_FIELD_OPTIONS = ['stay_from', 'stay_to', 'created'] as const;
-const SEGMENT_LABELS: Record<string, string> = {
-  B2B: 'B2B',
-  B2C: 'B2C',
-  SUBAGENT: 'Subagenti',
-};
-const SEGMENT_OPTIONS = ['B2B', 'B2C', 'SUBAGENT'] as const;
 
 // M17 spec §4/§7 (Faza 5) — "Izveštaji", M13 §7 API ugovor. Svaki izveštaj je čist read-only
 // upit nad M13 projekciji (M13 spec §1.1) — ova stranica ne uvodi novu logiku, samo poziva
@@ -301,13 +205,6 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     else v.delete('productType');
     return `/izvestaji?${v.toString()}`;
   }
-  // Kreirano/Dolasci/Odlasci — jedan aktivan par od/do, ovo bira na šta se odnosi (5.9.2026,
-  // vlasnikov zahtev). Podrazumevano "Dolasci" (`stay_from`) — najbliže starom podrazumevanom
-  // ponašanju (preklapanje sa terminom boravka) od sva tri eksplicitna kriterijuma. Renderuje se
-  // kao pravi `<select name="dateField">` (dopuna isti dan — "odnosi se na"/"segment" ne smeju
-  // vizuelno da odudaraju od ostalih polja), pa mu više ne treba `<Link>`-zasnovan href helper
-  // niti skriveno polje da preživi "primeni filter" — ista forma ga nosi kao svako drugo polje.
-  const currentDateField = searchParams?.dateField && searchParams.dateField in DATE_FIELD_LABELS ? searchParams.dateField : 'stay_from';
   const currentDims = searchParams?.groupBy || 'destination_country,destination_city';
   const profSub: ProfitabilnostSub =
     searchParams?.sub && searchParams.sub in PROFITABILNOST_SUB_LABELS ? (searchParams.sub as ProfitabilnostSub) : 'destinacija';
@@ -503,198 +400,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
         ))}
       </div>
 
-      {!error && tab && (
-        <form className="mb-4 flex flex-wrap items-center gap-2 text-xs" action="/izvestaji">
-          <input type="hidden" name="tab" value={tab} />
-          {/* Jedan red, sva polja istog izgleda — ivica + naziv UNUTAR polja, ravnomerna širina
-              (5.9.2026, vlasnikov nalaz uz snimak ekrana: "razlikuju se polja... nazive polja
-              stavite unutar polja ne iznad ili ispod... nema razloga da 'odnosi se na' i
-              'segment' budu drugaciji vizuelno od ostalih polja... ravnomerno rasporedite sirinu
-              svih drugih polja prema velicini ekrana"). `FieldInline` (ivica+naziv), `flex-1
-              min-w-[140px]` po polju — raspoređuju se ravnomerno preko širine ekrana, prelamaju
-              u novi red kad ponestane prostora (isti flex-wrap obrazac kao `RealFilterBar.tsx`).
-              `dateField`/`segment` su sad PRAVI `<select>` (ne `<Link>` dugmad) — nema više
-              potrebe za skrivenim poljima da prežive "primeni filter", ista forma ih nosi kao i
-              svako drugo polje. */}
-          <PeriodRangeField initialFrom={searchParams?.from ?? ''} initialTo={searchParams?.to ?? ''} />
-          <FieldInline label="odnosi se na">
-            <select
-              name="dateField"
-              defaultValue={currentDateField}
-              className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-            >
-              {DATE_FIELD_OPTIONS.map((f) => (
-                <option key={f} value={f}>
-                  {DATE_FIELD_LABELS[f]}
-                </option>
-              ))}
-            </select>
-          </FieldInline>
-          <FieldInline label="segment">
-            <select
-              name="segment"
-              defaultValue={searchParams?.segment ?? ''}
-              className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-            >
-              <option value="">svi</option>
-              {SEGMENT_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {SEGMENT_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </FieldInline>
-          {(tab === 'profitabilnost' || tab === 'smestaj') && (
-            <>
-              <FilterLocationFields
-                initialCountry={searchParams?.destinationCountry ?? ''}
-                initialCity={searchParams?.destinationCity ?? ''}
-              />
-              <FieldInline label="dobavljač (ID)">
-                <input
-                  name="supplierId"
-                  defaultValue={searchParams?.supplierId ?? ''}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
-                />
-              </FieldInline>
-            </>
-          )}
-          {tab === 'profitabilnost' && (
-            <>
-              <FieldInline label="provajder (M4)">
-                <input
-                  name="providerCode"
-                  defaultValue={searchParams?.providerCode ?? ''}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
-                />
-              </FieldInline>
-              <FieldInline label="kanal">
-                <select
-                  name="channel"
-                  defaultValue={searchParams?.channel ?? ''}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-                >
-                  <option value="">svi</option>
-                  {CHANNEL_OPTIONS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </FieldInline>
-            </>
-          )}
-          {tab === 'prodaja' && (
-            <>
-              <FieldInline label="kanal">
-                <select
-                  name="channel"
-                  defaultValue={searchParams?.channel ?? ''}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-                >
-                  <option value="">svi</option>
-                  {CHANNEL_OPTIONS.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </FieldInline>
-              <FieldInline label="tip proizvoda">
-                <select
-                  name="productType"
-                  defaultValue={searchParams?.productType ?? ''}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-                >
-                  <option value="">svi</option>
-                  {PRODUCT_TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </FieldInline>
-            </>
-          )}
-          {tab === 'smestaj' && (
-            <FieldInline label="razvrstaj po">
-              <select
-                name="groupBy"
-                defaultValue={searchParams?.groupBy ?? ''}
-                className="w-full min-w-0 bg-transparent text-xs text-ink outline-none"
-              >
-                <option value="">bez razvrstavanja</option>
-                {OCCUPANCY_GROUP_BY.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </FieldInline>
-          )}
-          {tab === 'dinamicki' && (
-            <>
-              {/* Ikonice vrsta proizvoda (5.9.2026, vlasnikov zahtev: "stavi ikone iz pretrage i
-                  koju ikonu ukljucimo za to treba da se kreira dinamicki izvestaj i sve treba da
-                  ide u tri nivoa Drzava, Mesto, proizvod koji smo odabrali") — iste ikonice kao
-                  ekran pretrage (`PRODUCT_ICONS`), klik UVEK postavlja isti trodelni niz
-                  (država → mesto → proizvod) filtriran na tu vrstu. `w-full` — sopstven red,
-                  van ravnomerne mreže polja iznad/ispod (širok skup ikonica, ne "polje"). */}
-              <div className="flex w-full flex-col gap-0.5">
-                <span className="text-[11px] text-ink-faint">po vrsti proizvoda (država → mesto → proizvod)</span>
-                <div className="flex flex-wrap gap-1">
-                  {DYNAMIC_PRODUCT_ICONS.map((p) => {
-                    const typeParam = p.types.join(',');
-                    const active = currentDims === DYNAMIC_DRILLDOWN_DIMS && (searchParams?.productType ?? '') === typeParam;
-                    return (
-                      <Link
-                        key={p.label}
-                        href={dimensionsHref(DYNAMIC_DRILLDOWN_DIMS, typeParam)}
-                        title={p.label}
-                        className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-medium ${
-                          active ? 'border-accent bg-accent-soft text-accent-strong' : 'border-border text-ink-dim hover:text-ink'
-                        }`}
-                      >
-                        {p.iconDuo ? <IconDuo name={p.icon} /> : <Icon name={p.icon} />}
-                        {p.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Kanal/Dobavljač premešteni IZNAD tabele/grafika, uz desnu ivicu (5.9.2026,
-                  vlasnikov zahtev: "po kriterijumu kanal i dobavljac linkove stavite iznad desne
-                  gornje ivice tabele") — vidi render tela izveštaja ispod, van ove forme. */}
-              {/* Nalaz uz ovaj isti prolaz (isti razlog kao ranije "segment" hidden polje) —
-                  `productType` se postavlja SAMO preko ikonica (`<Link>`), bez ovog hidden polja
-                  bi klik na "primeni filter" (posle izmene ručnog polja za dimenzije ili datuma)
-                  tiho obrisao izabranu vrstu proizvoda. */}
-              <input type="hidden" name="productType" value={searchParams?.productType ?? ''} />
-              <FieldInline label="dimenzije">
-                <input
-                  name="groupBy"
-                  defaultValue={currentDims}
-                  placeholder={DYNAMIC_DIMENSIONS.join(',')}
-                  className="w-full min-w-0 bg-transparent text-xs text-ink outline-none placeholder:text-ink-faint"
-                />
-              </FieldInline>
-            </>
-          )}
-          {/* Dugme akcije — zatvorena strelica umesto teksta (5.9.2026, vlasnikov zahtev: "sva
-              dugmad koja pozivaju na akciju (narandzasta) umesto slova treba da imaju zatvorenu
-              strelicu sa vrhom prema desno... skratite to dugme na cetvrtasti tag sa strelicom
-              unutra") — isti obrazac primenjen na sve slične "filtriraj/pretraži/primeni" tastere
-              u panelu (vidi dizajn dok. §izmena istog dana), `title` nosi tekstualno objašnjenje
-              za hover/čitač ekrana pošto slovo nestaje iz samog dugmeta. */}
-          <button
-            type="submit"
-            title="Primeni filter"
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
-          >
-            <Icon name="arrow-right" />
-          </button>
-        </form>
-      )}
+      {!error && tab && <IzvestajiFilterForm tab={tab} searchParams={searchParams} view={view} />}
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
