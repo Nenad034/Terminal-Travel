@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Icon from './Icon';
+import Icon, { IconDuo } from './Icon';
 import SearchCriteriaForm, { valuesFromSearchParams, type SearchCriteriaValues } from './SearchCriteriaForm';
 import SearchCriteriaChip from './SearchCriteriaChip';
 import { useSearchState } from './SearchStateContext';
@@ -178,7 +178,7 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
                     : 'text-ink-dim hover:bg-panel hover:text-ink'
               }`}
             >
-              <Icon name={p.icon} className="text-lg" />
+              {p.iconDuo ? <IconDuo name={p.icon} className="text-lg" /> : <Icon name={p.icon} className="text-lg" />}
               <span className="text-center">{p.label}</span>
             </button>
           );
