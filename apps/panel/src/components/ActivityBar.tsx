@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Icon, { IconDuo } from './Icon';
 import { NAV_ITEMS, type NavGroup, type NavItem } from '@/lib/nav';
 
@@ -61,12 +62,10 @@ export default function ActivityBar({
   items: NavItem[];
   activeGroupId: string;
   onSelectGroup: (id: string) => void;
-  // Dopuna (23.8.2026, na zahtev vlasnika — kolabovana leva traka sad ide na 0px, poglavlje
-  // Shell.tsx, pa gubi sopstvenu strelicu za ponovno širenje) — isti VS Code obrazac kao ovde:
-  // klik na VEĆ AKTIVNU grupu prebacuje skupi/proširi umesto da ništa ne uradi.
   collapsed: boolean;
   onToggleCollapse: () => void;
 }) {
+  const pathname = usePathname();
   return (
     <nav className="flex w-[43px] flex-shrink-0 flex-col items-center gap-1 bg-panel-2 py-1">
       {/* Strelica za PONOVNO širenje (4.9.2026, vlasnikov nalaz: "kada skupimo levi panel
@@ -119,43 +118,25 @@ export default function ActivityBar({
         const wrapperClassName = `group relative flex-shrink-0 ${isLast ? 'mt-auto' : ''}`;
         // Dok podmeni radi, izostavlja se `title` — inače bi se preko stilizovanog menija
         // pojavio i sistemski tooltip sa istim tekstom (dva različita prikaza iste stvari).
-        const title = flyout
-          ? undefined
-          : active
-            ? `${group.label} — klik za ${collapsed ? 'proširivanje' : 'skupljanje'} leve trake`
-            : group.label;
+        const title = flyout ? undefined : group.label;
         if (single) {
-          // ISPRAVKA (26.8.2026, na zahtev vlasnika — "kad se klikne na dugme Home ništa se ne
-          // dešava... nije mi ni logično klikanje") — Home je jedina single-item grupa čiji je
-          // POSAO da uvek stvarno vodi na Početnu, ne da nudi skupi/proširi prečicu kao ostale
-          // (Audit log, API konekcije, MCP) kad se ponovo klikne dok je već aktivna. Sa
-          // stvarnim uzrokom "ništa se ne dešava" ispravljenim u Shell.tsx (activeGroupId sad
-          // prati stvarnu putanju), ovaj izuzetak sprečava da PREOSTALI, ređi slučaj (korisnik
-          // je STVARNO na Početnoj i opet klikne Home) i dalje samo skuplja traku umesto da
-          // ponovo, pouzdano fokusira Početnu.
+          // Home ostaje jedina single-item grupa koja dodatno ŠIRI traku kad je skupljena
+          // (26.8.2026, "kada zatvorimo levi panel i kliknemo na ikonu Home, opet se otvori").
+          // ISPRAVKA (5.9.2026, vlasnikov nalaz: "raширim pa odem na neku stavku menija onda se
+          // opet skupi, a ne treba") — klik na VEĆ AKTIVNU grupu više NE skuplja/širi traku (ta
+          // prečica je ukinuta u istom prolazu za sve grupe ispod); sad kad postoje eksplicitne
+          // strelice za oboje (`IconDuo` gore i `Sidebar.tsx`), implicitna prečica je samo
+          // pravila iznenađenje kad bi korisnik posle svesnog širenja kliknuo na već aktivnu
+          // ikonicu misleći da samo navigira.
           const isHome = group.id === 'pocetna';
           return (
             <div key={group.id} className={wrapperClassName}>
               <Link
                 href={single.href}
-                title={flyout ? undefined : isHome ? group.label : title}
+                title={flyout ? undefined : title}
                 className={className}
-                onClick={(e) => {
-                // ISPRAVKA (26.8.2026, na zahtev vlasnika — "kada zatvorimo levi panel i
-                // kliknemo na ikonu Home, opet se otvori. sada to nije tako") — Home je i dalje
-                // izuzet iz "klik na već-aktivnu grupu skuplja/širi" prečice iznad (namerno, isti
-                // razlog), ALI dok je traka skupljena, Home mora i dalje da je ponovo otvori —
-                // dosadašnji potpun izuzetak (`return` bez ičega) nikad nije dirao `collapsed`
-                // stanje, pa je klik na Home dok je traka skupljena samo navigirao bez ikakvog
-                // vidljivog efekta na traku. Ne zove se `e.preventDefault()` ovde — navigacija
-                // ka Početnoj i dalje radi normalno, ovo samo DODATNO širi traku ako je skupljena.
-                  if (isHome) {
-                    if (collapsed) onToggleCollapse();
-                    return;
-                  }
-                  if (!active) return;
-                  e.preventDefault();
-                  onToggleCollapse();
+                onClick={() => {
+                  if (isHome && collapsed) onToggleCollapse();
                 }}
               >
                 <Icon name={group.icon} />
@@ -166,17 +147,29 @@ export default function ActivityBar({
         }
         return (
           <div key={group.id} className={wrapperClassName}>
-            <button
-              title={title}
-              onClick={() => (active ? onToggleCollapse() : onSelectGroup(group.id))}
-              className={className}
-            >
+            <button title={title} onClick={() => onSelectGroup(group.id)} className={className}>
               <Icon name={group.icon} />
             </button>
             {flyout && <GroupFlyout group={group} groupItems={groupItems} />}
           </div>
         );
       })}
+      {/* AI Agent — poslednja stavka menija (5.9.2026, vlasnikov zahtev: "ikonu za AI Agenta
+          stavite kao poslednju stavku menija u levoj traci"). Vodi na PUN tab (`/ai-asistent`,
+          Fokus tab, dizajn dok. §6c.0), ne otvara desni panel — isti razlog kao "Klikom na tu
+          ikonu treba da se otvori ceo tab, a ne desni panel". Nema flyout/podmeni (nije grupa
+          sa stavkama, jedna destinacija), zato stoji van `groups.map` petlje. */}
+      <div className="relative flex-shrink-0">
+        <Link
+          href="/ai-asistent"
+          title="AI asistent"
+          className={`flex h-[36px] w-[36px] items-center justify-center rounded-md ${
+            pathname === '/ai-asistent' ? 'bg-accent-soft text-accent-strong' : 'bg-panel text-ink-faint hover:bg-panel2 hover:text-ink'
+          }`}
+        >
+          <Icon name="sparkle" />
+        </Link>
+      </div>
     </nav>
   );
 }

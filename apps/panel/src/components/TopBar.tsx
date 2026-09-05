@@ -193,16 +193,9 @@ export default function TopBar({
       <div className="flex h-full min-w-0 flex-1" style={tabOffset > 0 ? { paddingLeft: tabOffset } : undefined}>
         <TabBar />
       </div>
-      <button
-        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
-        // Visina izjednačena sa tabovima (22.8.2026, na zahtev vlasnika: "tabovi neka budu
-        // visine kao i polje pretrage" — obe strane usklađene na h-[29px], TabBar.tsx).
-        className="flex h-[29px] items-center gap-2 rounded border border-border bg-panel px-2 font-mono text-ink-faint hover:border-accent"
-      >
-        <Icon name="search" />
-        traži ili izvrši
-        <kbd className="rounded border border-border bg-panel-2 px-1 text-[11px]">Ctrl K</kbd>
-      </button>
+      {/* "traži ili izvrši" (Ctrl K) preseljeno u donju traku, na sredinu (5.9.2026, vlasnikov
+          zahtev) — StatusBar.tsx sad nosi to dugme, na mestu koje je oslobodila AI ikonica
+          (preseljena u ActivityBar.tsx, poslednja stavka). */}
       <ThemeToggle />
       <NotificationBell />
       <InboxButton />

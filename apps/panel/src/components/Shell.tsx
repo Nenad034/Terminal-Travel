@@ -534,8 +534,6 @@ export default function Shell({
               fullName={fullName}
               roleLabel={roles.join(', ')}
               moduleCode={moduleCodeForHref(pathname)}
-              chatOpen={rightPanelOpen}
-              onToggleChat={toggleRightPanelForCurrentModule}
             />
           )}
         </div>

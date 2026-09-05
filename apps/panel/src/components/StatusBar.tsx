@@ -22,14 +22,10 @@ export default function StatusBar({
   fullName,
   roleLabel,
   moduleCode,
-  chatOpen,
-  onToggleChat,
 }: {
   fullName: string;
   roleLabel: string;
   moduleCode: string | null;
-  chatOpen: boolean;
-  onToggleChat: () => void;
 }) {
   const { openTab } = useTabs();
   const [connection, setConnection] = useState<'checking' | 'ok' | 'down'>('checking');
@@ -97,18 +93,18 @@ export default function StatusBar({
 
   return (
     <footer className="relative flex h-[29px] flex-shrink-0 items-center gap-3 bg-bar px-2 text-[11px] text-ink-faint">
-      {/* Na sredini trake (22.8.2026, na zahtev vlasnika: "ikonu za AI... na sredinu donje
-          trake") — apsolutno centrirano u odnosu na CELU traku, ne u odnosu na flex tok teksta
-          oko njega (jedina stavka ovde koja odstupa od levo/desno poravnanja ostatka trake). */}
+      {/* Na sredini trake (5.9.2026, vlasnikov zahtev: "ovo prenesite iz gornje trake u donju
+          traku tačno na sredinu") — "traži ili izvrši" (Ctrl K) preseljeno ovde sa mesta koje je
+          do sad zauzimala AI ikonica (sad poslednja stavka `ActivityBar.tsx`). Apsolutno
+          centrirano u odnosu na CELU traku, isti razlog kao ranija AI ikonica — ne u odnosu na
+          flex tok teksta oko njega. */}
       <button
-        data-chat-toggle
-        onClick={onToggleChat}
-        title={chatOpen ? 'Sakrij AI chat (istorija se čuva)' : 'Prikaži AI chat'}
-        className={`absolute left-1/2 top-0 flex h-[29px] w-[29px] -translate-x-1/2 items-center justify-center rounded ${
-          chatOpen ? 'text-accent-strong' : 'text-ink-faint hover:text-ink'
-        }`}
+        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
+        className="absolute left-1/2 top-0 flex h-[29px] -translate-x-1/2 items-center gap-2 rounded px-2 font-mono text-ink-faint hover:text-ink"
       >
-        <Icon name="sparkle" />
+        <Icon name="search" />
+        traži ili izvrši
+        <kbd className="rounded border border-border bg-panel-2 px-1 text-[11px]">Ctrl K</kbd>
       </button>
       <span title={roleLabel}>
         {fullName} <span className="text-ink-faint">· {roleLabel}</span>
