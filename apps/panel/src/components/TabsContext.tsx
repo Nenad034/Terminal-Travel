@@ -8,6 +8,12 @@ export interface OpenTab {
   path: string;
   label: string;
   dirty?: boolean;
+  /** Zakačen tab (5.9.2026, vlasnikov zahtev: "omoguci pinovanje tabova... i kada se aplikacija
+   * ugasi pa ponovo pokrene") — preživljava i osvežavanje stranice (sessionStorage, kao i pre) I
+   * gašenje/ponovno pokretanje aplikacije (dodatno upisan u `localStorage`, vidi PINNED_STORAGE_KEY
+   * ispod). Ne može se zatvoriti pojedinačnim × ni preko "zatvori sve" dok je zakačen — prvo se
+   * otkači. */
+  pinned?: boolean;
 }
 
 interface TabsContextValue {
@@ -34,8 +40,12 @@ interface TabsContextValue {
    * (druga stavka već ima istu putanju kao trenutno aktivna, 23.8.2026 dopuna). */
   setActiveTab: (id: string) => void;
   closeTab: (id: string) => void;
-  /** Zatvara sve tabove osim Početne (na zahtev vlasnika, 19.8.2026 — "previše otvorenih"). */
+  /** Zatvara sve tabove osim Početne I osim zakačenih (na zahtev vlasnika, 19.8.2026 — "previše
+   * otvorenih"; dopuna 5.9.2026 — zakačeni tabovi opstaju i posle "zatvori sve", isti razlog kao
+   * pojedinačno zatvaranje: svrha kačenja je da tab OSTANE, ne samo da preživi refresh). */
   closeAllTabs: () => void;
+  /** Kači/otkači tab (5.9.2026, vlasnikov zahtev) — vidi `OpenTab.pinned`. */
+  togglePin: (id: string) => void;
   markDirty: (path: string, dirty: boolean) => void;
   /** Ručno premeštanje taba prevlačenjem (26.8.2026, na zahtev vlasnika: "omogućite ručno
    * menjanje pozicije tabova u centralnom panelu, horizontalno") — ubacuje `draggedId` na
@@ -51,11 +61,15 @@ function newTabId(): string {
 const TabsCtx = createContext<TabsContextValue | null>(null);
 
 const STORAGE_KEY = 'tt-panel-tabs';
+// Zakačeni tabovi (5.9.2026) — POSEBAN ključ, u `localStorage` (ne sessionStorage), namerno:
+// svrha kačenja je baš da tab preživi i zatvaranje/ponovno pokretanje aplikacije, ne samo
+// refresh u toku iste smene (za to služi već postojeći `STORAGE_KEY` iznad, nepromenjen).
+const PINNED_STORAGE_KEY = 'tt-panel-pinned-tabs';
 
 // docs/analize/29-DIZAJN-SISTEM-UI.md §5a — traka tabova, VS Code/browser obrazac unutar
 // same aplikacije. "Otvoreni tabovi se pamte preko osvežavanja stranice (lokalno, po
 // sesiji)" -> sessionStorage, ne localStorage (namerno — ne treba da preživi zatvaranje
-// browsera, samo refresh/pad konekcije u toku smene).
+// browsera, samo refresh/pad konekcije u toku smene). Izuzetak: ZAKAČENI tabovi (v. dole).
 export function TabsProvider({ children, homeLabel }: { children: React.ReactNode; homeLabel: string }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -79,19 +93,37 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   }
 
   useEffect(() => {
+    let restored: OpenTab[] | null = null;
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         // Migracija (23.8.2026) — stariji sačuvan zapis nema `id` (dodato uz forceNew/duplikate
         // dopunu), dodeli ga ovde umesto da se osloni na to da je uvek prisutan.
-        const restored: OpenTab[] = JSON.parse(raw).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, dirty: t.dirty }));
-        commitTabs(restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }]);
-        const match = restored.find((t) => t.path === pathname) ?? restored[0];
-        if (match) setActiveTabId(match.id);
+        restored = JSON.parse(raw).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, dirty: t.dirty, pinned: t.pinned }));
       }
     } catch {
       // ignoriši oštećen zapis
     }
+    let base = restored && restored.length > 0 ? restored : [{ id: 'home', path: '/', label: homeLabel }];
+    // Zakačeni tabovi (5.9.2026) — `sessionStorage` se briše kad se aplikacija (browser)
+    // ugasi i ponovo pokrene, pa `restored` iznad tada NE postoji; zakačeni tabovi se zato
+    // dodatno čitaju iz `localStorage` i UVEK se vrate, spojeni sa onim što je sesija zatekla
+    // (poklapanje po `path`-u, ne po `id`-ju — posle punog restarta stari `id` više nije bitan).
+    try {
+      const rawPinned = localStorage.getItem(PINNED_STORAGE_KEY);
+      if (rawPinned) {
+        const pinned: OpenTab[] = JSON.parse(rawPinned).map((t: Partial<OpenTab>) => ({ id: t.id ?? newTabId(), path: t.path!, label: t.label!, pinned: true }));
+        for (const p of pinned) {
+          const existing = base.find((t) => t.path === p.path);
+          base = existing ? base.map((t) => (t.path === p.path ? { ...t, pinned: true } : t)) : [...base, p];
+        }
+      }
+    } catch {
+      // ignoriši oštećen zapis — zakačeni tabovi se tad prosto ne vraćaju
+    }
+    commitTabs(base);
+    const match = base.find((t) => t.path === pathname) ?? base[0];
+    if (match) setActiveTabId(match.id);
     setHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,6 +131,12 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   useEffect(() => {
     if (!hydrated) return;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+    try {
+      const pinned = tabs.filter((t) => t.pinned).map(({ id, path, label }) => ({ id, path, label }));
+      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(pinned));
+    } catch {
+      // localStorage nedostupan — kačenje i dalje radi za ovu sesiju, samo se ne pamti trajno
+    }
   }, [tabs, hydrated]);
 
   // ISPRAVKA (22.8.2026, na zahtev vlasnika — "kada se klikne na ikonu čime se otvara novi tab,
@@ -165,7 +203,9 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
     (id: string) => {
       const prev = tabsRef.current;
       const idx = prev.findIndex((t) => t.id === id);
-      if (idx === -1 || prev.length === 1) return;
+      // Zakačen tab se ne zatvara direktno (5.9.2026) — mora se prvo otkačiti (`togglePin`);
+      // odbrambena provera i ovde, iako `TabBar.tsx` uopšte ne prikazuje × dok je tab zakačen.
+      if (idx === -1 || prev.length === 1 || prev[idx].pinned) return;
       const next = prev.filter((t) => t.id !== id);
       commitTabs(next);
       if (id === activeTabId) {
@@ -194,15 +234,25 @@ export function TabsProvider({ children, homeLabel }: { children: React.ReactNod
   }, []);
 
   const closeAllTabs = useCallback(() => {
-    const id = newTabId();
-    commitTabs([{ id, path: '/', label: homeLabel }]);
-    setActiveTabId(id);
+    // Zakačeni tabovi opstaju (5.9.2026, dopuna) — "zatvori sve" je do sad brisalo BAŠ SVE osim
+    // Početne; kačenje bi bilo besmisleno da ga ovo dugme svejedno pobriše. Ako je Početna sama
+    // već zakačena, ne pravi se DRUGA (duplirana) Početna pored nje.
+    const prev = tabsRef.current;
+    const pinned = prev.filter((t) => t.pinned);
+    const homeTab = pinned.find((t) => t.path === '/') ?? { id: newTabId(), path: '/', label: homeLabel };
+    const next = pinned.some((t) => t.path === '/') ? pinned : [homeTab, ...pinned];
+    commitTabs(next);
+    setActiveTabId(homeTab.id);
     if (pathname !== '/') router.push('/');
   }, [homeLabel, pathname, router]);
 
+  const togglePin = useCallback((id: string) => {
+    commitTabs(tabsRef.current.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)));
+  }, []);
+
   return (
     <TabsCtx.Provider
-      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, markDirty, reorderTabs }}
+      value={{ tabs, activePath: pathname, activeTabId, openTab, navigateInTab, setActiveTab, closeTab, closeAllTabs, togglePin, markDirty, reorderTabs }}
     >
       {children}
     </TabsCtx.Provider>

@@ -17,7 +17,7 @@ import Icon from './Icon';
 // tabovi nisu imali eksplicitnu visinu nego su je nasleđivali od `<header>` reda preko
 // `items-center`/padding-a).
 export default function TabBar() {
-  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs, reorderTabs } = useTabs();
+  const { tabs, activeTabId, setActiveTab, openTab, closeTab, closeAllTabs, togglePin, reorderTabs } = useTabs();
   // Ručno premeštanje tabova (26.8.2026, na zahtev vlasnika: "omogućite ručno menjanje
   // pozicije tabova u centralnom panelu, horizontalno") — nativan HTML5 drag-and-drop (bez
   // nove biblioteke — `docs/00-MASTER-ARHITEKTURA.md` poglavlje 6 nema DnD paket, a nativan
@@ -103,17 +103,48 @@ export default function TabBar() {
                   prostorom do desne ivice taba. Sad labela puni preostali prostor (i dalje se seče
                   na `truncate` kad ne stane), "x" je UVEK na desnoj ivici bez obzira na dužinu teksta. */}
               <span className="min-w-0 flex-1 truncate">{tab.label}</span>
-              {tabs.length > 1 && (
+              {/* Pinovanje (5.9.2026, vlasnikov zahtev: "omoguci pinovanje tabova... i kada se
+                  aplikacija ugasi pa ponovo pokrene") — zakačen tab dobija UVEK vidljivu (ne
+                  samo na hover) punu ikonicu umesto ×; klik otkačuje. Nezakačen tab na hover
+                  dobija DVE sitne ikonice — obris pribadače (kači) i × (zatvara, kao ranije). */}
+              {tab.pinned ? (
                 <span
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    closeTab(tab.id);
+                    togglePin(tab.id);
                   }}
-                  className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
+                  title="Otkači tab"
+                  className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded text-accent hover:bg-panel2"
                 >
-                  <Icon name="close" className="!text-[12px]" />
+                  <Icon name="pinned" className="!text-[12px]" />
                 </span>
+              ) : (
+                <>
+                  <span
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      togglePin(tab.id);
+                    }}
+                    title="Zakači tab (ostaje otvoren i posle gašenja i ponovnog pokretanja aplikacije)"
+                    className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-panel2"
+                  >
+                    <Icon name="pin" className="!text-[12px]" />
+                  </span>
+                  {tabs.length > 1 && (
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        closeTab(tab.id);
+                      }}
+                      className="flex h-[15px] w-[15px] flex-shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-danger-bg hover:text-danger"
+                    >
+                      <Icon name="close" className="!text-[12px]" />
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           );
