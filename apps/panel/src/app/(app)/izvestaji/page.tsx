@@ -76,6 +76,25 @@ const TAB_LABELS = {
 } as const;
 type TabKey = keyof typeof TAB_LABELS;
 
+// Pod-tabovi unutar "Profitabilnost"/"Prodaja" (5.9.2026, vlasnikov zahtev: "izvestaje po
+// kategorijama stavite takodje u tabove kako se ne bi skrolovalo na dole... kada se klikne na
+// Profitabilnost da se dole takodje pojave tabovi") — te dve kategorije imaju po više (3, odn. 2)
+// naslaganih tabela/grafikona jedan ispod drugog; sad je vidljiv samo IZABRAN, ostatak je iza
+// tabova umesto skrolovanja. "Smeštaj"/"Dinamički"/"Marketing" imaju samo JEDAN takav blok pod
+// glavnim tabom — pod-tabovi im ne trebaju, ne dobijaju ih.
+const PROFITABILNOST_SUB_LABELS = {
+  destinacija: 'Po destinaciji',
+  dobavljac: 'Po dobavljaču/provajderu',
+  kanal: 'Po kanalu',
+} as const;
+type ProfitabilnostSub = keyof typeof PROFITABILNOST_SUB_LABELS;
+
+const PRODAJA_SUB_LABELS = {
+  kanal: 'Po kanalu',
+  tip: 'Po tipu proizvoda',
+} as const;
+type ProdajaSub = keyof typeof PRODAJA_SUB_LABELS;
+
 // Serije za grafike (BarChart.tsx) — `var(--accent)`/`var(--accent2)`, isti tokeni kao svaki
 // drugi akcent u panelu (dizajn dok. §2.0f), ne nova paleta.
 const REVENUE_SERIES: ChartSeries<Bucket>[] = [{ label: 'prihod', color: 'var(--accent)', value: (b) => b.revenue, money: true }];
@@ -100,6 +119,7 @@ interface SearchParams {
   productType?: string;
   groupBy?: string;
   view?: string;
+  sub?: string;
 }
 
 // M17 spec §4/§7 (Faza 5) — "Izveštaji", M13 §7 API ugovor. Svaki izveštaj je čist read-only
@@ -128,7 +148,9 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
   // (tačno "i", ne "umesto"). Stanje ide u adresu kao i ostatak ekrana (nema klijentskog stanja
   // na ovoj stranici — server komponenta, isti obrazac kao tabovi/filter forma iznad).
   const view = searchParams?.view === 'grafik' ? 'grafik' : 'tabela';
-  function viewHref(next: 'tabela' | 'grafik'): string {
+  // Zajednička osnova za sve linkove OVOG tab-a (view/sub) — čuva filtere iz forme ispod, isti
+  // spisak parametara na oba mesta da se nijedan slučajno ne izgubi pri promeni jednog od njih.
+  function baseParams(): URLSearchParams {
     const v = new URLSearchParams();
     if (tab) v.set('tab', tab);
     if (searchParams?.from) v.set('from', searchParams.from);
@@ -140,9 +162,24 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
     if (searchParams?.channel) v.set('channel', searchParams.channel);
     if (searchParams?.productType) v.set('productType', searchParams.productType);
     if (searchParams?.groupBy) v.set('groupBy', searchParams.groupBy);
+    return v;
+  }
+  function viewHref(next: 'tabela' | 'grafik'): string {
+    const v = baseParams();
+    if (searchParams?.sub) v.set('sub', searchParams.sub);
     if (next === 'grafik') v.set('view', 'grafik');
     return `/izvestaji?${v.toString()}`;
   }
+  // Pod-tabovi (5.9.2026, vlasnikov zahtev) — isti obrazac kao `viewHref`, menja SAMO `sub`.
+  function subHref(next: string): string {
+    const v = baseParams();
+    if (view === 'grafik') v.set('view', 'grafik');
+    v.set('sub', next);
+    return `/izvestaji?${v.toString()}`;
+  }
+  const profSub: ProfitabilnostSub =
+    searchParams?.sub && searchParams.sub in PROFITABILNOST_SUB_LABELS ? (searchParams.sub as ProfitabilnostSub) : 'destinacija';
+  const prodajaSub: ProdajaSub = searchParams?.sub && searchParams.sub in PRODAJA_SUB_LABELS ? (searchParams.sub as ProdajaSub) : 'kanal';
 
   if (availableTabs.length === 0) {
     return (
@@ -200,10 +237,7 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       <RegisterTab label="Izveštaji" />
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h1 className="font-mono text-lg">
-            <span className="text-accent">$</span> ls izvestaji/
-          </h1>
-          <p className="text-xs text-ink-dim">Upravljački izveštaji nad M13 projekcijom (profitabilnost, prodaja, smeštaj, marketing) — read-only.</p>
+          <h1 className="text-lg font-semibold text-ink">Izveštaji</h1>
         </div>
         <div className="flex items-center gap-2">
           {tab && tab !== 'dinamicki' && (
@@ -315,25 +349,34 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
       {!error && tab === 'profitabilnost' && profitability && (
         <div className="flex flex-col gap-4">
           <LastSynced value={profitability.lastSyncedAt} />
-          {view === 'grafik' ? (
-            <>
+          {/* Pod-tabovi (5.9.2026, vlasnikov zahtev: "izvestaje po kategorijama stavite takodje
+              u tabove kako se ne bi skrolovalo na dole") — tri razlaganja ove kategorije su do
+              sad stajala naslagana jedno ispod drugog; sad je vidljivo samo IZABRANO. */}
+          <SubTabBar labels={PROFITABILNOST_SUB_LABELS} active={profSub} hrefFor={subHref} />
+          {profSub === 'destinacija' &&
+            (view === 'grafik' ? (
               <ChartSection title="Po destinaciji">
                 <BarChart rows={profitability.byDestination} series={PROFIT_SERIES} />
               </ChartSection>
+            ) : (
+              <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin />
+            ))}
+          {profSub === 'dobavljac' &&
+            (view === 'grafik' ? (
               <ChartSection title="Po dobavljaču/provajderu">
                 <BarChart rows={profitability.bySupplier} series={PROFIT_SERIES} />
               </ChartSection>
+            ) : (
+              <BucketTable title="Po dobavljaču/provajderu" buckets={profitability.bySupplier} showMargin />
+            ))}
+          {profSub === 'kanal' &&
+            (view === 'grafik' ? (
               <ChartSection title="Po kanalu">
                 <BarChart rows={profitability.byChannel} series={PROFIT_SERIES} />
               </ChartSection>
-            </>
-          ) : (
-            <>
-              <BucketTable title="Po destinaciji" buckets={profitability.byDestination} showMargin />
-              <BucketTable title="Po dobavljaču/provajderu" buckets={profitability.bySupplier} showMargin />
+            ) : (
               <BucketTable title="Po kanalu" buckets={profitability.byChannel} showMargin />
-            </>
-          )}
+            ))}
         </div>
       )}
 
@@ -345,21 +388,23 @@ export default async function IzvestajiPage(props: { searchParams: Promise<Searc
             <Stat label="ukupna vrednost" value={formatMoney(sales.totalValue)} />
             <Stat label="prosečna vrednost" value={formatMoney(sales.averageValue)} />
           </div>
-          {view === 'grafik' ? (
-            <>
+          <SubTabBar labels={PRODAJA_SUB_LABELS} active={prodajaSub} hrefFor={subHref} />
+          {prodajaSub === 'kanal' &&
+            (view === 'grafik' ? (
               <ChartSection title="Po kanalu">
                 <BarChart rows={sales.byChannel} series={REVENUE_SERIES} />
               </ChartSection>
+            ) : (
+              <BucketTable title="Po kanalu" buckets={sales.byChannel} />
+            ))}
+          {prodajaSub === 'tip' &&
+            (view === 'grafik' ? (
               <ChartSection title="Po tipu proizvoda">
                 <BarChart rows={sales.byProductType} series={REVENUE_SERIES} />
               </ChartSection>
-            </>
-          ) : (
-            <>
-              <BucketTable title="Po kanalu" buckets={sales.byChannel} />
+            ) : (
               <BucketTable title="Po tipu proizvoda" buckets={sales.byProductType} />
-            </>
-          )}
+            ))}
         </div>
       )}
 
@@ -468,6 +513,35 @@ function OccupancyBreakdown({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Pod-tabovi unutar kategorije (5.9.2026) — isti vizuelni jezik kao glavni tabovi iznad
+// (donja linija umesto pilule, da se vizuelno razlikuju kao DRUGI nivo), samo manji tekst.
+function SubTabBar<K extends string>({
+  labels,
+  active,
+  hrefFor,
+}: {
+  labels: Record<K, string>;
+  active: K;
+  hrefFor: (key: K) => string;
+}) {
+  const keys = Object.keys(labels) as K[];
+  return (
+    <div className="-mt-2 flex gap-1 border-b border-border">
+      {keys.map((k) => (
+        <Link
+          key={k}
+          href={hrefFor(k)}
+          className={`rounded-t px-2.5 py-1.5 text-[11px] font-medium ${
+            k === active ? 'border-b-2 border-accent text-accent' : 'text-ink-faint hover:text-ink'
+          }`}
+        >
+          {labels[k]}
+        </Link>
+      ))}
     </div>
   );
 }
