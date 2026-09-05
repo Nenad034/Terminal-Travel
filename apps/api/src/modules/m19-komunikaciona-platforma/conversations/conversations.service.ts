@@ -54,6 +54,33 @@ export class ConversationsService {
       include: { conversation: true },
     });
 
+    // DIRECT razgovor NEMA sopstveno `name` (§2.1 — `name` postoji samo za GROUP), pa je do sad
+    // svaka DIRECT stavka na klijentu padala na `type` ("DIRECT") kad god ovaj (lakši) spisak
+    // nosi ime — više DIRECT razgovora je izgledalo kao gomila IDENTIČNIH stavki (5.9.2026,
+    // vlasnikov nalaz na ekranu "Podeli izveštaj": "zasto ima onoliko stavki... i sva su ista...
+    // tu treba da bude naziv korisnika"). `/chat` (glavna lista, `chat/page.tsx`) je ovo već
+    // zaobilazio dodatnim pozivom po razgovoru (`GET /chat/conversations/:id`) — ovde se rešava
+    // u samom spisku, JEDNIM dodatnim upitom za sve DIRECT razgovore odjednom, da svaki
+    // pozivalac ove liste (uklj. `ShareReportButton.tsx`) dobije čitljivo ime bez sopstvenog
+    // N+1 zaobilaznog rešenja.
+    const directIds = memberships.filter((m) => m.conversation.type === 'DIRECT').map((m) => m.conversationId);
+    const otherParticipants =
+      directIds.length > 0
+        ? await this.prisma.conversationParticipant.findMany({
+            where: { conversationId: { in: directIds }, userId: { not: actorUserId } },
+          })
+        : [];
+    const otherUsers =
+      otherParticipants.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: otherParticipants.map((p) => p.userId) } },
+            select: { id: true, fullName: true },
+          })
+        : [];
+    const directNameByConversationId = new Map(
+      otherParticipants.map((p) => [p.conversationId, otherUsers.find((u) => u.id === p.userId)?.fullName ?? null]),
+    );
+
     const result = [];
     for (const m of memberships) {
       const lastMessage = await this.prisma.message.findFirst({
@@ -63,7 +90,7 @@ export class ConversationsService {
       result.push({
         id: m.conversation.id,
         type: m.conversation.type,
-        name: m.conversation.name,
+        name: m.conversation.type === 'DIRECT' ? (directNameByConversationId.get(m.conversationId) ?? null) : m.conversation.name,
         supplierId: m.conversation.supplierId,
         createdAt: m.conversation.createdAt,
         lastReadAt: m.lastReadAt,

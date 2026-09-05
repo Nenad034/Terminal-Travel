@@ -29,18 +29,45 @@ describe('ConversationsService', () => {
   describe('findAllForUser (M19 spec §2.2/§9.3 scoping)', () => {
     it('vraća isključivo razgovore gde je pozivalac ConversationParticipant', async () => {
       const { service, prisma } = makeService();
-      prisma.conversationParticipant.findMany.mockResolvedValue([
-        { conversationId: 'c1', lastReadAt: null, conversation: { id: 'c1', type: 'DIRECT', name: null, supplierId: null, createdAt: new Date() } },
+      prisma.conversationParticipant.findMany
+        .mockResolvedValueOnce([
+          { conversationId: 'c1', lastReadAt: null, conversation: { id: 'c1', type: 'DIRECT', name: null, supplierId: null, createdAt: new Date() } },
+        ])
+        .mockResolvedValueOnce([{ conversationId: 'c1', userId: 'staff-2' }]);
+      prisma.user.findMany.mockResolvedValue([{ id: 'staff-2', fullName: 'Marko Marković' }]);
+      prisma.message.findFirst.mockResolvedValue(null);
+
+      const result = await service.findAllForUser('staff-1');
+
+      expect(prisma.conversationParticipant.findMany).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ where: { userId: 'staff-1' } }),
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('c1');
+    });
+
+    it('DIRECT razgovor dobija ime DRUGOG učesnika, ne generičko "DIRECT" (5.9.2026, vlasnikov nalaz: "zasto ima onoliko stavki... i sva su ista... tu treba da bude naziv korisnika")', async () => {
+      const { service, prisma } = makeService();
+      prisma.conversationParticipant.findMany
+        .mockResolvedValueOnce([
+          { conversationId: 'c1', lastReadAt: null, conversation: { id: 'c1', type: 'DIRECT', name: null, supplierId: null, createdAt: new Date() } },
+          { conversationId: 'c2', lastReadAt: null, conversation: { id: 'c2', type: 'DIRECT', name: null, supplierId: null, createdAt: new Date() } },
+        ])
+        .mockResolvedValueOnce([
+          { conversationId: 'c1', userId: 'staff-2' },
+          { conversationId: 'c2', userId: 'staff-3' },
+        ]);
+      prisma.user.findMany.mockResolvedValue([
+        { id: 'staff-2', fullName: 'Marko Marković' },
+        { id: 'staff-3', fullName: 'Ana Anić' },
       ]);
       prisma.message.findFirst.mockResolvedValue(null);
 
       const result = await service.findAllForUser('staff-1');
 
-      expect(prisma.conversationParticipant.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { userId: 'staff-1' } }),
-      );
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('c1');
+      expect(result.find((r) => r.id === 'c1')?.name).toBe('Marko Marković');
+      expect(result.find((r) => r.id === 'c2')?.name).toBe('Ana Anić');
     });
   });
 

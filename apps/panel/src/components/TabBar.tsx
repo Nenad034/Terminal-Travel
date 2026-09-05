@@ -102,7 +102,11 @@ export default function TabBar() {
                   prirodnu širinu, pa je "x" kod kratkih naziva sedeo odmah uz tekst sa praznim
                   prostorom do desne ivice taba. Sad labela puni preostali prostor (i dalje se seče
                   na `truncate` kad ne stane), "x" je UVEK na desnoj ivici bez obzira na dužinu teksta. */}
-              <span className="min-w-0 flex-1 truncate">{tab.label}</span>
+              {/* Boldirana slova (5.9.2026, vlasnikov zahtev: "boldiraj slova u tabovima
+                  centralnog panela") — `font-semibold` za sve tabove, ne samo aktivan (dizajn
+                  dok. §5a i dalje razlikuje aktivan/neaktivan isključivo bojom pozadine/teksta i
+                  linijom, ne debljinom slova). */}
+              <span className="min-w-0 flex-1 truncate font-semibold">{tab.label}</span>
               {/* Pinovanje (5.9.2026, vlasnikov zahtev: "omoguci pinovanje tabova... i kada se
                   aplikacija ugasi pa ponovo pokrene") — zakačen tab dobija UVEK vidljivu (ne
                   samo na hover) punu ikonicu umesto ×; klik otkačuje. Nezakačen tab na hover
