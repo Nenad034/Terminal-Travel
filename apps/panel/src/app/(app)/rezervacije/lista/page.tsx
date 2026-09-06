@@ -3,6 +3,8 @@ import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
+import { FilterModeProvider } from './FilterModeContext';
+import FilterModeToggle from './FilterModeToggle';
 import Pagination from '@/components/Pagination';
 
 
@@ -52,29 +54,37 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
   return (
     <div className="p-6">
       <RegisterTab label="Lista rezervacija" />
-      <div className="mb-4">
-        <h1 className="text-lg font-semibold text-ink">Lista rezervacija</h1>
-      </div>
+      <FilterModeProvider>
+        {/* Prekidač traka/prozor/levi panel u liniji sa naslovom, iznad trake ikonica (6.9.2026,
+            vlasnikov zahtev: "traka prozor levi panel staviti u liniji sa naslovom taba iznad
+            brzih [ikonica] u desnom kraju") — stanje živi u `FilterModeContext.tsx` jer ga i
+            ovaj red i `RealFilterBar.tsx` (unutar `BookingsListClient`, ispod trake ikonica)
+            moraju deliti. */}
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-ink">Lista rezervacija</h1>
+          <FilterModeToggle />
+        </div>
 
-      {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {!error && (
-        <>
-          <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
-          {/* Straničenje (5.9.2026, dok. 39 nalaz 2.2) — traka uvek kaže i UKUPAN broj, ne samo
-              koja je strana: nemogućnost da se sazna koliko rezervacija zapravo ima bila je
-              jezgro nalaza. */}
-          <Pagination
-            page={page}
-            pageCount={pageCount}
-            total={total}
-            shown={bookings.length}
-            limit={limit}
-            basePath="/rezervacije/lista"
-            searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>}
-            itemLabel="rezervacija"
-          />
-        </>
-      )}
+        {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
+        {!error && (
+          <>
+            <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
+            {/* Straničenje (5.9.2026, dok. 39 nalaz 2.2) — traka uvek kaže i UKUPAN broj, ne samo
+                koja je strana: nemogućnost da se sazna koliko rezervacija zapravo ima bila je
+                jezgro nalaza. */}
+            <Pagination
+              page={page}
+              pageCount={pageCount}
+              total={total}
+              shown={bookings.length}
+              limit={limit}
+              basePath="/rezervacije/lista"
+              searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>}
+              itemLabel="rezervacija"
+            />
+          </>
+        )}
+      </FilterModeProvider>
     </div>
   );
 }
