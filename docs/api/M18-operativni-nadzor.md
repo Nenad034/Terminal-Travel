@@ -307,15 +307,15 @@ GET /api/v1/ops/process-maps/m1-security/live?windowMinutes=60
   "key": "m1-security",
   "label": "M1 — bezbednosni signali",
   "nodes": [
-    { "id": "login-success", "label": "Uspešna prijava", "count": 60, "capped": false, "lastAt": "2026-08-29T19:56:49.355Z" },
-    { "id": "login-failed", "label": "Pogrešna lozinka", "count": 2, "capped": false, "lastAt": "2026-08-29T20:01:18.000Z" },
-    { "id": "mfa-failed", "label": "Pogrešan MFA kod", "count": 0, "capped": false, "lastAt": null },
-    { "id": "account-locked", "label": "Nalog zaključan", "count": 0, "capped": false, "lastAt": null },
-    { "id": "password-reset", "label": "Lozinka resetovana", "count": 0, "capped": false, "lastAt": null }
+    { "id": "login-success", "label": "Uspešna prijava", "count": 60, "lastAt": "2026-08-29T19:56:49.355Z" },
+    { "id": "login-failed", "label": "Pogrešna lozinka", "count": 2, "lastAt": "2026-08-29T20:01:18.000Z" },
+    { "id": "mfa-failed", "label": "Pogrešan MFA kod", "count": 0, "lastAt": null },
+    { "id": "account-locked", "label": "Nalog zaključan", "count": 0, "lastAt": null },
+    { "id": "password-reset", "label": "Lozinka resetovana", "count": 0, "lastAt": null }
   ]
 }
 ```
 
-`capped: true` znači da je broj zapisa dostigao interni limit od 200 (`AuditLogService.find()`) — stvaran broj u prozoru može biti veći, namerno vidljivo umesto tiho pogrešno.
+**Izmena 6.9.2026 — polje `capped` je UKLONJENO.** Značilo je „broj je dostigao interni limit od 200, stvaran broj može biti veći" (panel je to prikazivao kao „200+"). Otkad `AuditLogService.find()` ima straničenje (dok. 39 nalaz 2.2), `count` dolazi iz `count` upita nad bazom i **tačan je bez gornje granice**, pa polje više nema šta da znači — uklonjeno je umesto da zauvek stoji na `false`. Integrator koji ga je čitao može ga jednostavno izostaviti; brojevi su od sada uvek potpuni.
 
 `404` ako `:key` nije registrovan.

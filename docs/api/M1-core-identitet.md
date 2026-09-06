@@ -429,10 +429,29 @@ Dozvola: `M1/audit-log/VIEW`.
 | `action` | **prima više vrednosti razdvojenih zarezom** (`auth.login_success,auth.login_failed`) |
 | `q` | slobodna pretraga |
 | `from` / `to` | datumi; `to` naveden samo kao datum obuhvata **ceo taj dan** |
+| `page` / `limit` | straničenje (vidi ispod) |
+
+**Straničenje.** Odgovor NIJE go niz nego omotač `{ data, total, page, limit, pageCount, hasMore }`:
+
+| Polje | Značenje |
+| :---- | :---- |
+| `data` | redovi tražene strane |
+| `total` | **stvaran** broj redova koji odgovaraju filteru — ne broj vraćenih |
+| `page` / `limit` | koja je strana i koliko redova nosi (podrazumevano `1` i `50`) |
+| `pageCount` | ukupan broj strana (najmanje `1`, i kad nema nijednog reda) |
+| `hasMore` | ima li još strana posle ove |
+
+Parametri `?page=` i `?limit=` su opcioni. Neispravna vrednost se **odbija sa `400`**, ne ispravlja se tiho: `limit` veći od `200` (`MAX_PAGE_SIZE`), nula, negativan ili necelobrojan daju `400` sa objašnjenjem. Tiho svođenje na granicu bilo bi isto što i tiho odsecanje — pozivalac bi mislio da je dobio sve.
 
 **Odgovor `200`:**
 ```json
-[
+{
+  "total": 1240,
+  "page": 1,
+  "limit": 50,
+  "pageCount": 25,
+  "hasMore": true,
+  "data": [
   {
     "id": "b381b05d-f56b-44a1-8f9d-bbb7eea05f4a",
     "timestamp": "2026-09-03T16:51:13.345Z",
@@ -458,8 +477,11 @@ Dozvola: `M1/audit-log/VIEW`.
     "resourceId": "7a510a40-bad7-46cb-b010-1faa16661699",
     "context": {}
   }
-]
+  ]
+}
 ```
+
+Straničenje dodato 6.9.2026 (dok. 39 nalaz 2.2). Do tada je endpoint vraćao go niz sa tihom granicom od 200 zapisa — audit log raste svakim potezom u sistemu, pa je ta granica dostizana za nekoliko dana rada, a ništa u odgovoru nije govorilo da nešto nedostaje.
 
 **`actorType` razlikuje `HUMAN`, `AI_AGENT` i `SYSTEM`.** Svaki potez AI agenta je zapisan pod `AI_AGENT` sa sopstvenim nalogom — u svakom trenutku se može odgovoriti na pitanje „da li je ovo uradio čovek ili agent". Ovo je jedno od nosećih pravila celog sistema, ne detalj M1.
 

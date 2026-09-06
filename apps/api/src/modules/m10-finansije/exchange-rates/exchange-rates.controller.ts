@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M10 spec §10, prefiks /api/v1/finance
 @ApiTags('finance-exchange-rates')
@@ -17,8 +18,14 @@ export class ExchangeRatesController {
 
   @Get()
   @RequirePermission('M10', 'exchange-rate', 'VIEW')
-  findAll(@Query('currency') currency: string | undefined) {
-    return this.exchangeRates.findAll({ currency });
+  // Straničenje (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`, ne go niz.
+  // `page`/`limit` su pojedinačni parametri, ne DTO (v. common/pagination/pagination.ts).
+  findAll(
+    @Query('currency') currency: string | undefined,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.exchangeRates.findAll({ currency }, parsePagination(page, limit));
   }
 
   @Post()

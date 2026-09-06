@@ -154,7 +154,11 @@ Korisnikova potvrda eskalacije sopstvenog pitanja → kreira M14 `Ticket` (`chan
 
 Istorija pitanja (`M21/question-log/VIEW` — HR/Direktor/Vlasnik), radi kvaliteta sadržaja i bezbednosnog pregleda.
 
-**Query parametri (opciono):** `audienceContext` (`STAFF`/`SUBAGENT`/`BUSINESS_CLIENT`/`PUBLIC_GUEST`), `confidence` (`HIGH`/`LOW`/`NONE`).
+**Query parametri (opciono):** `audienceContext` (`STAFF`/`SUBAGENT`/`BUSINESS_CLIENT`/`PUBLIC_GUEST`), `confidence` (`HIGH`/`LOW`/`NONE`), `page`, `limit`.
+
+**Straničenje** (dodato 6.9.2026, dok. 39 nalaz 2.2). Odgovor NIJE go niz nego `{ data, total, page, limit, pageCount, hasMore }`, gde je `total` **stvaran** broj redova koji odgovaraju filteru (ne broj vraćenih). Opcioni `?page=` (podrazumevano `1`) i `?limit=` (podrazumevano `50`, najviše `200`); neispravna vrednost vraća `400`, ne ispravlja se tiho. Do tog datuma endpoint je vraćao go niz sa tihom granicom od 200 redova, bez ijedne naznake da ostatak postoji.
+
+Dnevnik postoji radi kvaliteta sadržaja i bezbednosnog pregleda — pregled nad tiho odsečenom listom je gori od nikakvog, jer ostavlja utisak da je pregledano sve.
 
 ---
 

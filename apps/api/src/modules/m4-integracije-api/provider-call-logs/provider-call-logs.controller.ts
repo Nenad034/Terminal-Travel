@@ -5,6 +5,7 @@ import { ProviderCallLogsService } from './provider-call-logs.service';
 import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 @ApiTags('integrations-call-logs')
 @ApiBearerAuth()
@@ -20,12 +21,18 @@ export class ProviderCallLogsController {
     @Query('operation') operation?: ProviderCallOperation,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.logs.find({
-      providerCode,
-      operation,
-      from: from ? new Date(from) : undefined,
-      to: to ? new Date(to) : undefined,
-    });
+    // Straničenje (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`, ne go niz.
+    return this.logs.find(
+      {
+        providerCode,
+        operation,
+        from: from ? new Date(from) : undefined,
+        to: to ? new Date(to) : undefined,
+      },
+      parsePagination(page, limit),
+    );
   }
 }

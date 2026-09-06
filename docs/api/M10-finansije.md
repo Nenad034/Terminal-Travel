@@ -352,7 +352,11 @@ Dozvola: `M10/supplier-invoice-import/REVIEW`.
 ### GET /finance/exchange-rates
 Dozvola: `M10/exchange-rate/VIEW`.
 
-**Odgovor `200` (stvarno uhvaćeno):**
+**Straničenje** (dodato 6.9.2026, dok. 39 nalaz 2.2). Odgovor NIJE go niz nego `{ data, total, page, limit, pageCount, hasMore }`, gde je `total` **stvaran** broj redova koji odgovaraju filteru (ne broj vraćenih). Opcioni `?page=` (podrazumevano `1`) i `?limit=` (podrazumevano `50`, najviše `200`); neispravna vrednost vraća `400`, ne ispravlja se tiho. Do tog datuma endpoint je vraćao go niz sa tihom granicom od 200 redova, bez ijedne naznake da ostatak postoji.
+
+Kursna lista raste jednim redom po valuti PO DANU — ranija granica od 200 pokrivala je manje od godinu dana za tri valute, pa bi upit za prošlu sezonu vratio prazno bez objašnjenja.
+
+**Odgovor `200` (redovi u `data`, oblik uhvaćen stvarnim pozivom):**
 ```json
 [
   { "id": "d646093d-1912-475f-9645-401d7a58cf94", "currency": "EUR", "rateDate": "2026-08-28T00:00:00.000Z", "nbsMiddleRate": "117.3707", "source": "NBS_API", "createdAt": "2026-08-28T06:30:02.451Z" },

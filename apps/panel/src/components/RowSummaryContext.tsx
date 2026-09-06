@@ -85,7 +85,6 @@ export interface ProcessMapNodeSummary {
   nodeLabel: string;
   matchActions: string[];
   count: number;
-  capped: boolean;
   lastAt: string | null;
 }
 

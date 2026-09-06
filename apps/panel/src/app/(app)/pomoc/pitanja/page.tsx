@@ -6,6 +6,7 @@ import Icon from '@/components/Icon';
 import HelpTabs from '../HelpTabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Pagination from '@/components/Pagination';
 
 
 interface HelpQuestion {
@@ -29,20 +30,39 @@ const CONFIDENCES = ['HIGH', 'LOW', 'NONE'];
 // red pokazuje odgovor, pouzdanost, koji su članci korišćeni (sledljivost, isto načelo kao M13
 // "svaki izveštaj pokazuje izvor") i povratnu informaciju korisnika.
 export default async function PitanjaPage(
-  props: { searchParams: Promise<{ audienceContext?: string; confidence?: string }> }
+  props: { searchParams: Promise<{ audienceContext?: string; confidence?: string; page?: string }> }
 ) {
   const searchParams = await props.searchParams;
   const me = await getMe();
   const showSuggestions = hasPermission(me, 'M21', 'suggestion', 'APPROVE');
 
   let questions: HelpQuestion[] = [];
+  // Straničenje (6.9.2026, dok. 39 nalaz 2.2). Dnevnik pitanja postoji radi kvaliteta sadržaja
+  // i bezbednosnog pregleda — pregled nad tiho odsečenom listom je gori od nikakvog, jer
+  // ostavlja utisak da je pregledano sve.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
     const params = new URLSearchParams();
     if (searchParams?.audienceContext) params.set('audienceContext', searchParams.audienceContext);
     if (searchParams?.confidence) params.set('confidence', searchParams.confidence);
+    if (searchParams?.page) params.set('page', searchParams.page);
     const qs = params.toString() ? `?${params.toString()}` : '';
-    questions = await apiFetch<HelpQuestion[]>(`/help/questions${qs}`);
+    const result = await apiFetch<{
+      data: HelpQuestion[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/help/questions${qs}`);
+    questions = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u istoriju pitanja (M21/question-log/VIEW).';
   }
@@ -129,6 +149,17 @@ export default async function PitanjaPage(
               )}
             </div>
           ))}
+          {/* Traka uvek ispisuje i UKUPAN broj pitanja, ne samo koja je strana. */}
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            shown={questions.length}
+            limit={limit}
+            basePath="/pomoc/pitanja"
+            searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>}
+            itemLabel="pitanja"
+          />
         </div>
       )}
     </div>

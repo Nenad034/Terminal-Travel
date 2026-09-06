@@ -78,6 +78,11 @@ Zapis svakog poziva ka provajderu — za dijagnostiku „zašto pretraga nije vr
 | `providerCode` | oznaka provajdera |
 | `operation` | `SEARCH`, `CONTENT`, `AVAILABILITY`, `BOOK`, `CANCEL` |
 | `from` / `to` | datumi |
+| `page` / `limit` | straničenje (vidi ispod) |
+
+**Straničenje** (dodato 6.9.2026, dok. 39 nalaz 2.2). Odgovor NIJE go niz nego `{ data, total, page, limit, pageCount, hasMore }`, gde je `total` **stvaran** broj redova koji odgovaraju filteru (ne broj vraćenih). Opcioni `?page=` (podrazumevano `1`) i `?limit=` (podrazumevano `50`, najviše `200`); neispravna vrednost vraća `400`, ne ispravlja se tiho. Do tog datuma endpoint je vraćao go niz sa tihom granicom od 200 redova, bez ijedne naznake da ostatak postoji.
+
+Dnevnik se puni svakom pretragom, pa je 200 redova pokrivalo minute rada — a ovo je dijagnostički alat, gde nepotpuna lista vodi na pogrešan zaključak („nema poziva u tom periodu" umesto „ima ih, ali iza granice").
 
 ---
 

@@ -6,6 +6,7 @@ import { AnthropicClientService } from '../../m15-ai-orkestracija/anthropic/anth
 import { GeminiEmbeddingService } from '../../m15-ai-orkestracija/gemini/gemini-embedding.service';
 import { AgentInvocationLogService } from '../../m18-operativni-nadzor/agent-invocations/agent-invocation-log.service';
 import { AskQuestionDto } from './dto/ask-question.dto';
+import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const CANDIDATE_LIMIT = 5;
@@ -320,8 +321,17 @@ export class KnowledgeAssistantService {
     };
   }
 
-  async findQuestionLog(filter: { confidence?: ArticleConfidence }) {
-    return this.prisma.question.findMany({ where: { confidence: filter.confidence }, orderBy: { createdAt: 'desc' }, take: 200 });
+  // STRANIČENJE (6.9.2026, dok. 39 nalaz 2.2) — isti razlog kao M21 dnevnik pitanja: ovo je
+  // uvid radi kvaliteta sadržaja, gde nepotpuna lista vodi na pogrešan zaključak da pitanja
+  // sa niskim poverenjem nema više nego što ih stvarno ima.
+  async findQuestionLog(filter: { confidence?: ArticleConfidence }, pagination?: PaginationQueryDto) {
+    const where = { confidence: filter.confidence };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [redovi, total] = await this.prisma.$transaction([
+      this.prisma.question.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.question.count({ where }),
+    ]);
+    return paginated(redovi, total, page, limit);
   }
 
   private async findOwnQuestion(questionId: string, actorUserId: string) {

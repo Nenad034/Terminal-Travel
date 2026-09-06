@@ -10,6 +10,7 @@ import { TicketsService } from '../../m14-helpdesk/tickets/tickets.service';
 import { HelpAbuseDetectorService } from '../abuse-detection/help-abuse-detector.service';
 import { audienceToPermissionSegment, resolveHelpAudience } from '../audience-context';
 import { AskQuestionDto } from './dto/ask-question.dto';
+import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 
 const DEFAULT_LANGUAGE: LanguageCode = 'sr';
 const CANDIDATE_LIMIT = 5;
@@ -409,12 +410,22 @@ export class HelpAssistantService {
   // §3 — M21/question-log/VIEW (HR/Direktor/Vlasnik), "uvid u istoriju pitanja radi kvaliteta
   // sadržaja i bezbednosnog pregleda". Nije u §6 tabeli (koja je eksplicitno "ključni
   // endpoint-i", ne iscrpna lista) — dodato jer je permission bez pripadajuće rute mrtvo slovo.
-  async findQuestionLog(filter: { audienceContext?: HelpAudience; confidence?: HelpConfidence }) {
-    return this.prisma.helpQuestion.findMany({
-      where: { audienceContext: filter.audienceContext, confidence: filter.confidence },
-      orderBy: { createdAt: 'desc' },
-      take: 200,
-    });
+  //
+  // STRANIČENJE (6.9.2026, dok. 39 nalaz 2.2). Ranije golo `take: 200`. Ovaj dnevnik postoji
+  // radi KVALITETA sadržaja i bezbednosnog pregleda — a pregled nad nepotpunom listom je gori
+  // od nikakvog: onaj ko traži pitanja sa niskim poverenjem zaključio bi da ih nema više, iako
+  // su samo iza granice. Broj i redovi dolaze iz iste transakcije.
+  async findQuestionLog(
+    filter: { audienceContext?: HelpAudience; confidence?: HelpConfidence },
+    pagination?: PaginationQueryDto,
+  ) {
+    const where = { audienceContext: filter.audienceContext, confidence: filter.confidence };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [redovi, total] = await this.prisma.$transaction([
+      this.prisma.helpQuestion.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take }),
+      this.prisma.helpQuestion.count({ where }),
+    ]);
+    return paginated(redovi, total, page, limit);
   }
 
   private async findOwnQuestion(questionId: string, actorUserId: string): Promise<HelpQuestion> {

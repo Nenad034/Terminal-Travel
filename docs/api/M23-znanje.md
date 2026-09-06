@@ -196,7 +196,11 @@ Samo za sopstveno pitanje (`askedBy=actor`), zahteva `confidence=NONE`. **Implem
 
 ### GET /knowledge/questions
 
-Zahteva `M23/question-log/VIEW`. Query: `confidence` (`HIGH`/`LOW`/`NONE`).
+Zahteva `M23/question-log/VIEW`. Query: `confidence` (`HIGH`/`LOW`/`NONE`), `page`, `limit`.
+
+**Straničenje** (dodato 6.9.2026, dok. 39 nalaz 2.2). Odgovor NIJE go niz nego `{ data, total, page, limit, pageCount, hasMore }`, gde je `total` **stvaran** broj redova koji odgovaraju filteru (ne broj vraćenih). Opcioni `?page=` (podrazumevano `1`) i `?limit=` (podrazumevano `50`, najviše `200`); neispravna vrednost vraća `400`, ne ispravlja se tiho. Do tog datuma endpoint je vraćao go niz sa tihom granicom od 200 redova, bez ijedne naznake da ostatak postoji.
+
+Isti razlog kao M21 dnevnik pitanja: ovo je uvid radi kvaliteta sadržaja, gde nepotpuna lista vodi na pogrešan zaključak da pitanja sa niskim poverenjem ima manje nego što ih stvarno ima.
 
 ---
 

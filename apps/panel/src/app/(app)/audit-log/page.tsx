@@ -4,6 +4,7 @@ import RegisterTab from '@/components/RegisterTab';
 import { Button } from '@/components/ui/button';
 import AuditLogRows, { type AuditLogEntry } from './AuditLogRows';
 import AuditLogSearchForm from './AuditLogSearchForm';
+import Pagination from '@/components/Pagination';
 
 
 // M17 spec §7 (Faza 0 izlazni kriterijum) — Vlasnik/Direktor vidi audit log. Dozvola
@@ -28,11 +29,19 @@ interface AuditLogSearchParams {
   to?: string;
   back?: string;
   backLabel?: string;
+  page?: string;
 }
 
 export default async function AuditLogPage(props: { searchParams: Promise<AuditLogSearchParams> }) {
   const searchParams = await props.searchParams;
   let entries: AuditLogEntry[] = [];
+  // Straničenje (6.9.2026, dok. 39 nalaz 2.2). Audit log je append-only i raste svakim potezom
+  // u sistemu, pa je ranija tiha granica od 200 redova dostizana za nekoliko dana rada — a
+  // ekran je i dalje izgledao kao da prikazuje ceo rezultat pretrage.
+  let total = 0;
+  let page = 1;
+  let pageCount = 1;
+  let limit = 50;
   let error: string | null = null;
   try {
     const qs = new URLSearchParams();
@@ -41,8 +50,20 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
     if (searchParams?.q) qs.set('q', searchParams.q);
     if (searchParams?.from) qs.set('from', searchParams.from);
     if (searchParams?.to) qs.set('to', searchParams.to);
+    if (searchParams?.page) qs.set('page', searchParams.page);
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    entries = await apiFetch<AuditLogEntry[]>(`/iam/audit-log${suffix}`);
+    const result = await apiFetch<{
+      data: AuditLogEntry[];
+      total: number;
+      page: number;
+      pageCount: number;
+      limit: number;
+    }>(`/iam/audit-log${suffix}`);
+    entries = result.data;
+    total = result.total;
+    page = result.page;
+    pageCount = result.pageCount;
+    limit = result.limit;
   } catch {
     error = 'Nemate dozvolu za uvid u audit log (M1/audit-log/VIEW).';
   }
@@ -98,10 +119,24 @@ export default async function AuditLogPage(props: { searchParams: Promise<AuditL
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
 
       {!error && (
-        <div className="overflow-hidden rounded-lg border border-border">
-          {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
-          <AuditLogRows entries={entries} />
-        </div>
+        <>
+          <div className="overflow-hidden rounded-lg border border-border">
+            {entries.length === 0 && <p className="p-4 text-center text-xs text-ink-faint">Nema zapisa.</p>}
+            <AuditLogRows entries={entries} />
+          </div>
+          {/* Traka uvek ispisuje i UKUPAN broj zapisa, ne samo koju stranu gledaš — nemogućnost
+              da se sazna koliko ih zaista ima bila je jezgro nalaza 2.2. */}
+          <Pagination
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            shown={entries.length}
+            limit={limit}
+            basePath="/audit-log"
+            searchParams={(searchParams ?? {}) as Record<string, string | string[] | undefined>}
+            itemLabel="zapisa"
+          />
+        </>
       )}
     </div>
   );

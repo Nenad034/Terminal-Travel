@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateExchangeRateDto } from './dto/create-exchange-rate.dto';
 import { NbsRateFetcherService } from './nbs-rate-fetcher.service';
@@ -28,12 +29,18 @@ export class ExchangeRatesService {
     });
   }
 
-  async findAll(filters: { currency?: string }) {
-    return this.prisma.exchangeRateSnapshot.findMany({
-      where: { currency: filters.currency },
-      orderBy: { rateDate: 'desc' },
-      take: 200,
-    });
+  // STRANIČENJE (6.9.2026, dok. 39 nalaz 2.2). Ranije golo `take: 200`: kursna lista raste
+  // jednim redom po valuti PO DANU, pa 200 pokriva manje od godinu dana za tri valute — a
+  // pozivalac koji traži kurs iz prošle sezone dobio bi prazno bez ijedne poruke o tome.
+  // `count` ide u istoj transakciji sa upitom da broj i redovi ne dođu iz dva trenutka.
+  async findAll(filters: { currency?: string }, pagination?: PaginationQueryDto) {
+    const where = { currency: filters.currency };
+    const { skip, take, page, limit } = paginationArgs(pagination);
+    const [redovi, total] = await this.prisma.$transaction([
+      this.prisma.exchangeRateSnapshot.findMany({ where, orderBy: { rateDate: 'desc' }, skip, take }),
+      this.prisma.exchangeRateSnapshot.count({ where }),
+    ]);
+    return paginated(redovi, total, page, limit);
   }
 
   // Vraća kurs za valutu na dan `date`, ili najbliži prethodni ako tačan dan ne postoji

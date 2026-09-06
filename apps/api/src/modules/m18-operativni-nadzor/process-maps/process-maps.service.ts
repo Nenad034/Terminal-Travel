@@ -18,11 +18,16 @@ const DEFAULT_WINDOW_MINUTES = 1440;
 export interface ProcessMapNodeLive {
   id: string;
   label: string;
+  /**
+   * TAČAN broj događaja u prozoru — ne procena i ne gornja granica.
+   *
+   * Do 6.9.2026. ovde je stajao broj dobijen brojanjem povučenih redova, uz prateće polje
+   * `capped: boolean` koje je značilo „stigli smo do 200, stvaran broj je veći" (ekran je to
+   * prikazivao kao „200+"). Otkad `AuditLogService.find()` ima straničenje (dok. 39 nalaz 2.2),
+   * broj dolazi iz `count` upita nad istim filterom, pa gornja granica više ne postoji —
+   * `capped` je zato UKLONJEN, a ne ostavljen da zauvek stoji na `false`.
+   */
   count: number;
-  // AuditLogService.find() vraća najviše 200 zapisa — ako je count===200, stvaran broj u
-  // prozoru može biti veći (namerno vidljivo, ne tiho pogrešan broj, isti princip "bez tihog
-  // ograničenja" kao svaka druga lista u ovom sistemu).
-  capped: boolean;
   lastAt: string | null;
 }
 
@@ -50,13 +55,22 @@ export class ProcessMapsService {
 
     const nodes = await Promise.all(
       definition.nodes.map(async (node) => {
-        const entries = await this.auditLog.find({ module: definition.module, actions: node.matchActions, from });
+        // Straničenje audit loga (6.9.2026, dok. 39 nalaz 2.2) donelo je ovde dve stvari:
+        // (1) broj je sada TAČAN. Ranije se povlačilo do 200 redova pa se brojala dužina niza,
+        //     pa je čvor sa 5.000 događaja pisao „200+" — što nije broj nego priznanje da se
+        //     broj ne zna. `total` dolazi iz `count` upita nad istim filterom.
+        // (2) povlači se JEDAN red umesto dvesta. Za čvor treba samo poslednje vreme; ostalih
+        //     199 redova se nikad nije ni pogledalo, a mapa ih je dovlačila za svaki čvor
+        //     posebno (`Promise.all` po definiciji mape).
+        const { data, total } = await this.auditLog.find(
+          { module: definition.module, actions: node.matchActions, from },
+          { limit: 1 },
+        );
         return {
           id: node.id,
           label: node.label,
-          count: entries.length,
-          capped: entries.length === 200,
-          lastAt: entries.length > 0 ? entries[0].timestamp.toISOString() : null,
+          count: total,
+          lastAt: data.length > 0 ? data[0].timestamp.toISOString() : null,
         };
       }),
     );

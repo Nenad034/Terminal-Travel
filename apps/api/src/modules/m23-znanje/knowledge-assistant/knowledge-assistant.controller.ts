@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M23 spec §8 — POST /ask, POST /questions/:id/feedback, POST /questions/:id/request-research.
 // GET /questions je M23/question-log/VIEW (§6 — Vlasnik/Direktor, uvid radi kvaliteta sadržaja).
@@ -36,7 +37,12 @@ export class KnowledgeAssistantController {
 
   @Get('questions')
   @RequirePermission('M23', 'question-log', 'VIEW')
-  findQuestionLog(@Query('confidence') confidence?: ArticleConfidence) {
-    return this.assistant.findQuestionLog({ confidence });
+  // Straničenje (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`, ne go niz.
+  findQuestionLog(
+    @Query('confidence') confidence?: ArticleConfidence,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.assistant.findQuestionLog({ confidence }, parsePagination(page, limit));
   }
 }

@@ -8,6 +8,7 @@ import { JwtAuthGuard } from '../../m1-core-identitet/auth/guards/jwt-auth.guard
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { RequirePermission } from '../../../common/decorators/require-permission.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
+import { parsePagination } from '../../../common/pagination/pagination';
 
 // M21 spec §6, prefiks /api/v1/help. ask/feedback/escalate su namerno BEZ @RequirePermission
 // (isti obrazac kao M15 OmnisearchController) — vidljivost/publika se rešava unutar
@@ -37,7 +38,13 @@ export class HelpAssistantController {
 
   @Get('questions')
   @RequirePermission('M21', 'question-log', 'VIEW')
-  findQuestionLog(@Query('audienceContext') audienceContext?: HelpAudience, @Query('confidence') confidence?: HelpConfidence) {
-    return this.assistant.findQuestionLog({ audienceContext, confidence });
+  // Straničenje (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`, ne go niz.
+  findQuestionLog(
+    @Query('audienceContext') audienceContext?: HelpAudience,
+    @Query('confidence') confidence?: HelpConfidence,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.assistant.findQuestionLog({ audienceContext, confidence }, parsePagination(page, limit));
   }
 }

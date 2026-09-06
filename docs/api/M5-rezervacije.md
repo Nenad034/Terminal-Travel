@@ -187,7 +187,21 @@ Pokreće tok Ponuda → Rezervacija (poglavlje 4). Sve-ili-ništa — ako bilo k
 ## Bookings
 
 ### GET /bookings?status=CONFIRMED&channel=INTERNAL_PANEL&clientAccountId=acc-123
-**Odgovor `200`:** niz `Booking` objekata (isti oblik kao pojedinačan `GET /bookings/:id`).
+**Odgovor `200`:** straničen skup `Booking` objekata (svaki istog oblika kao pojedinačan `GET /bookings/:id`).
+
+**Straničenje.** Odgovor NIJE go niz nego omotač `{ data, total, page, limit, pageCount, hasMore }`:
+
+| Polje | Značenje |
+| :---- | :---- |
+| `data` | redovi tražene strane |
+| `total` | **stvaran** broj redova koji odgovaraju filteru — ne broj vraćenih |
+| `page` / `limit` | koja je strana i koliko redova nosi (podrazumevano `1` i `50`) |
+| `pageCount` | ukupan broj strana (najmanje `1`, i kad nema nijednog reda) |
+| `hasMore` | ima li još strana posle ove |
+
+Parametri `?page=` i `?limit=` su opcioni. Neispravna vrednost se **odbija sa `400`**, ne ispravlja se tiho: `limit` veći od `200` (`MAX_PAGE_SIZE`), nula, negativan ili necelobrojan daju `400` sa objašnjenjem. Tiho svođenje na granicu bilo bi isto što i tiho odsecanje — pozivalac bi mislio da je dobio sve.
+
+Ispravka dokumentacije 6.9.2026 — straničenje je u kodu od 5.9.2026 (dok. 39 nalaz 2.2), ali je ovde do danas stajalo „niz `Booking` objekata". Spoljni integrator koji bi verovao tom opisu dobio bi objekat umesto niza.
 
 ### GET /bookings/:id
 Poziv iz internog panela (M17) vraća pun sadržaj, uključujući `supplier_reference`. Isti poziv iz B2C/B2B/gost konteksta (M8/M9/M7) NIKAD ne sadrži `supplierReference`, `rateLineId`, `markupRuleId`, `baseCost` (poglavlje 6.2).

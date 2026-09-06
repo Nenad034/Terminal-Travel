@@ -64,6 +64,15 @@ const EKRANI = [
   { kljuc: 'katalog', naziv: 'Katalog proizvoda', putanja: '/katalog' },
   { kljuc: 'e-posta', naziv: 'E-pošta', putanja: '/email' },
   { kljuc: 'izvestaji', naziv: 'Izveštaji', putanja: '/izvestaji' },
+  // Dodato 6.9.2026 uz uvođenje straničenja na ove ekrane (dok. 39 nalaz 2.2). Sva tri su u
+  // istom prolazu prešla sa golog niza na `{ data, total, ... }` — greška u toj promeni
+  // („`entries.map` nije funkcija") živi ISKLJUČIVO u browseru: prolazi i `tsc` i testove,
+  // jer je oblik odgovora tačan u tipovima a pogrešan u onome što server stvarno vrati.
+  { kljuc: 'audit-log', naziv: 'Audit log', putanja: '/audit-log' },
+  { kljuc: 'pitanja', naziv: 'Pitanja AI asistentu', putanja: '/pomoc/pitanja' },
+  // Procesna mapa ne menja oblik odgovora nego GUBI polje (`capped`) — ekran koji ga i dalje
+  // čita ne puca, samo tiho prikazuje pogrešno; zato je ovde, da se bar otvaranje potvrdi.
+  { kljuc: 'procesne-mape', naziv: 'Procesne mape', putanja: '/nadzor/procesne-mape/m1-security' },
 ];
 
 // Upozorenja koja dolaze iz alata, a ne iz našeg koda — prijavljuju se odvojeno od grešaka da

@@ -465,8 +465,12 @@ export class OmnisearchService {
   // OGRANIČENO na `bookings` u ovom prolazu (jedini pogled iz stvarno prijavljenog problema) —
   // ostalih 5 pogleda (crm/marketing/health_signals/help_questions/reports) bi zahtevalo uvoz
   // dodatnih servisa u ovaj već širok servis, van obima ove ispravke (upisano u poglavlje 11).
-  // `findAll` je već ograničen na `take: 200` (§ta stranica), pa je i ovaj broj gornja granica od
-  // 200, ne beskonačan count — isti, već postojeći kapacitet kao sama lista rezervacija.
+  // ISPRAVKA KOMENTARA 6.9.2026 — ovde je stajalo „`findAll` je već ograničen na `take: 200`,
+  // pa je i ovaj broj gornja granica od 200, ne beskonačan count". To je prestalo da važi istog
+  // dana kad je uvedeno straničenje (5.9.2026): `count` ispod dolazi iz `total`, dakle iz
+  // `count` upita nad bazom, i tačan je bez obzira na veličinu stranice. Redovi (`rows`) jesu
+  // ograničeni na jednu stranicu; broj nije. Ostavljena netačna tvrdnja je opasnija od
+  // nikakve — sledeća sesija bi po njoj zaključila da agent ne ume da odgovori „koliko ih ima".
   // v1.42 dopuna (25.8.2026) — zamenjuje raniji countForFilterListView(): sad vraća i STVARNE
   // redove (projectBookingRow), ne samo count, da bi priložen modul (buildContextItemsBlock)
   // mogao da odgovori na PROIZVOLJNO pitanje o skupu, ne samo "koliko ima".

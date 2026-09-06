@@ -77,7 +77,7 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
       <div className="mb-3 font-mono font-semibold text-ink">{summary.nodeLabel}</div>
 
       <div className="mb-3 flex flex-col gap-0.5 rounded-lg border border-border bg-panel p-2">
-        <SummaryRow label="Broj (poslednjih 24h)" value={summary.capped ? `${summary.count}+` : String(summary.count)} strong />
+        <SummaryRow label="Broj (poslednjih 24h)" value={String(summary.count)} strong />
         <SummaryRow
           label="Poslednji u tom prozoru"
           value={summary.lastAt ? new Date(summary.lastAt).toLocaleString('sr-RS') : 'nema u poslednjih 24h'}

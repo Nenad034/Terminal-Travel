@@ -15,8 +15,8 @@ interface NodeDefinition {
 interface NodeLive {
   id: string;
   label: string;
+  /** TAČAN broj — od 6.9.2026. dolazi iz `count` upita, nema više gornje granice od 200. */
   count: number;
-  capped: boolean;
   lastAt: string | null;
 }
 
@@ -67,7 +67,6 @@ export default function ProcessMapView({
       nodeLabel: node.label,
       matchActions: node.matchActions,
       count: nodeLive?.count ?? 0,
-      capped: nodeLive?.capped ?? false,
       lastAt: nodeLive?.lastAt ?? null,
     });
   }
@@ -118,7 +117,6 @@ export default function ProcessMapView({
               nodeLabel: node.label,
               matchActions: node.matchActions,
               count: nodeLive?.count ?? 0,
-              capped: nodeLive?.capped ?? false,
               lastAt: nodeLive?.lastAt ?? null,
             });
           }
@@ -157,8 +155,9 @@ export default function ProcessMapView({
             >
               <span className="text-xs text-ink-faint">{node.label}</span>
               <span className="font-mono text-2xl font-semibold text-ink">
+                {/* Do 6.9.2026. je uz broj stajao „+“ kad se dostigne 200 — znak da se stvaran
+                    broj NE ZNA. Audit log od tada ima straničenje, broj je tačan, znak više ne treba. */}
                 {nodeLive ? nodeLive.count : '—'}
-                {nodeLive?.capped && <span className="ml-1 text-sm text-warn">+</span>}
               </span>
               <span className="text-[11px] text-ink-faint">
                 {nodeLive?.lastAt ? `poslednji: ${new Date(nodeLive.lastAt).toLocaleString('sr-RS')}` : 'nema zapisa u prozoru'}
