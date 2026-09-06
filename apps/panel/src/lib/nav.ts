@@ -47,6 +47,19 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "TT moze da ima vise ili jednu poslovnicu i
+    // to treba omoguciti podesavanjima na globalnom nivou aplikacije") — prvi ekran globalnih
+    // podešavanja u panelu; gate preko `branch/EDIT` (nema posebnu VIEW dozvolu u katalogu,
+    // vidi napomenu u `prisma/seed/seed.ts`) — isti krug (Vlasnik/Direktor) kao samo upravljanje.
+    id: 'poslovnice',
+    label: 'Poslovnice',
+    icon: 'organization',
+    href: '/podesavanja/poslovnice',
+    permission: { module: 'M1', resource: 'branch', action: 'EDIT' },
+    phase: 0,
+    implemented: true,
+  },
+  {
     id: 'katalog',
     label: 'Katalog proizvoda',
     icon: 'package',
@@ -283,7 +296,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
   { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
   { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },
-  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'audit-log', 'mcp', 'integracije'] },
+  { id: 'administracija', label: 'Administracija', icon: 'settings-gear', itemIds: ['korisnici', 'poslovnice', 'audit-log', 'mcp', 'integracije'] },
 ];
 
 function itemForHref(href: string): NavItem | null {

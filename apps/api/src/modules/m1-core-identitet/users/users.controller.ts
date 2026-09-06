@@ -63,7 +63,7 @@ export class UsersController {
   @RequirePermission('M1', 'user', 'EDIT')
   update(
     @Param('id') id: string,
-    @Body() dto: { fullName?: string; phone?: string },
+    @Body() dto: { fullName?: string; phone?: string; branchId?: string | null },
     @CurrentUser() actor: { userId: string },
   ) {
     return this.users.update(id, dto, actor.userId);

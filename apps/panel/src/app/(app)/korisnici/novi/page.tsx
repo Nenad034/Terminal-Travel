@@ -23,12 +23,14 @@ export default async function NoviKorisnikPage() {
   }
 
   const roles = await apiFetch<RoleOption[]>('/iam/roles');
+  // M1 spec dopuna (6.9.2026) — poslovnica je opciona dok postoji samo jedna (ili nijedna).
+  const branches = await apiFetch<{ id: string; name: string }[]>('/iam/branches');
 
   return (
     <div className="p-6">
       <RegisterTab label="Pozovi korisnika" />
       <h1 className="mb-4 text-lg font-semibold text-ink">Pozovi korisnika</h1>
-      <NewUserForm roles={roles} />
+      <NewUserForm roles={roles} branches={branches} />
     </div>
   );
 }

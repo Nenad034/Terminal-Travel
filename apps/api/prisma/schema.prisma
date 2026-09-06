@@ -28,9 +28,16 @@ model User {
   lastLoginAt         DateTime?   @map("last_login_at")
   // M9 spec §5 v1.4 — Expo push token mobilnog uređaja, registruje se preko POST /mobile/push-token.
   pushToken           String?     @map("push_token")
+  // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "TT moze da ima vise ili jednu poslovnicu i to
+  // treba omoguciti podesavanjima na globalnom nivou aplikacije") — matična poslovnica zaposlenog
+  // (STAFF nalozi), opciono dok postoji samo jedna poslovnica/dok se ne popuni. Prava FK relacija
+  // (ne slab weak-ref kao `owner_id`/`created_by` na drugim modelima) jer `Branch` živi u ISTOM
+  // modulu (M1) — nema razloga za slabu vezu unutar istog modula.
+  branchId            String?     @map("branch_id")
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
+  branch              Branch?                   @relation(fields: [branchId], references: [id])
   roles               UserRole[]
   permissionOverrides UserPermissionOverride[] @relation("OverrideSubject")
   grantedOverrides    UserPermissionOverride[] @relation("OverrideGrantedBy")
@@ -39,7 +46,23 @@ model User {
   passwordResetTokens PasswordResetToken[]
   preferences         UserPreference[]
 
+  @@index([branchId])
   @@map("users")
+}
+
+// M1 spec dopuna (6.9.2026, vlasnikov zahtev) — Poslovnica. TT može imati jednu ili više
+// poslovnica; podešava se na globalnom nivou (Podešavanja → Poslovnice, Vlasnik/Direktor).
+// Namerno minimalan entitet (naziv + aktivna) — proširuje se tek ako se pokaže potreba (adresa,
+// kontakt...), isti princip kao ostali "polazni, ne konačan" entiteti u ovom dokumentu.
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  users User[]
+
+  @@map("branches")
 }
 
 // account_type §3.1 — dodavano kako su moduli dolazili na red (M15 Faza 7, M19 dopuna avgust 2026)
@@ -1357,6 +1380,12 @@ model Booking {
   ownerId                   String?       @map("owner_id")
   assignedToId              String?       @map("assigned_to_id")
   franchiseSubagentId       String?       @map("franchise_subagent_id")
+  // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "poslovnica se nasledjuje iz zaposlenog") —
+  // SNAPSHOT `User.branch_id` zaposlenog koji kreira rezervaciju, u trenutku kreiranja. Namerno
+  // weak-ref bez FK, isti obrazac kao `owner_id`/`created_by` iznad — ne sme se tiho promeniti
+  // ako zaposleni kasnije pređe u drugu poslovnicu (rezervacija ostaje evidentirana tamo gde je
+  // stvarno nastala).
+  branchId                  String?       @map("branch_id")
 
   items                       BookingItem[]
   fiscalDocuments             FiscalDocument[]

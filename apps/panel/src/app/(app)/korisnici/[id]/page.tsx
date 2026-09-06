@@ -20,6 +20,7 @@ interface UserDetail {
   mfaEnabled: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  branchId: string | null;
   roles: { roleId: string; role: { id: string; name: string } }[];
 }
 
@@ -75,10 +76,11 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
     throw err;
   }
 
-  const [allRoles, overrides, allPermissions] = await Promise.all([
+  const [allRoles, overrides, allPermissions, branches] = await Promise.all([
     canEdit ? apiFetch<RoleOption[]>('/iam/roles').catch(() => []) : Promise.resolve<RoleOption[]>([]),
     canViewOverrides ? apiFetch<PermissionOverrideRow[]>(`/iam/users/${params.id}/permission-overrides`).catch(() => []) : Promise.resolve<PermissionOverrideRow[]>([]),
     canCreateOverride ? apiFetch<PermissionOption[]>('/iam/permissions').catch(() => []) : Promise.resolve<PermissionOption[]>([]),
+    canEdit ? apiFetch<{ id: string; name: string }[]>('/iam/branches').catch(() => []) : Promise.resolve<{ id: string; name: string }[]>([]),
   ]);
 
   const assignedRoleIds = new Set(user.roles.map((r) => r.roleId));
@@ -111,7 +113,7 @@ export default async function KorisnikDetailPage(props: { params: Promise<{ id: 
             poslednja prijava {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('sr-RS') : 'nikad'}
           </p>
           {canEdit ? (
-            <EditUserForm id={user.id} fullName={user.fullName} phone={user.phone} />
+            <EditUserForm id={user.id} fullName={user.fullName} phone={user.phone} branchId={user.branchId} branches={branches} />
           ) : (
             <p className="text-xs text-ink-faint">telefon: {user.phone ?? '—'}</p>
           )}

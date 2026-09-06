@@ -2,10 +2,11 @@
 
 import { useFilterMode, type FilterDisplayMode } from './FilterModeContext';
 
+// Dopuna 6.9.2026 — "levi panel" ukinut (vlasnikov zahtev: "ukinite pretragu u levom panelu
+// zadrzite u traci i u prozoru"), ostaju samo dve opcije.
 const OPTIONS: { mode: FilterDisplayMode; label: string; title: string }[] = [
   { mode: 'traka', label: 'traka', title: 'Traka filtera — uvek vidljiva' },
   { mode: 'prozor', label: 'prozor', title: 'Iskačući prozor — bolji raspored na manjim ekranima (laptop/tablet)' },
-  { mode: 'ladica', label: 'levi panel', title: 'Levi panel — filteri se otvaraju sa leve strane, dosledno mesto na svakom modulu' },
 ];
 
 // U liniji sa naslovom stranice, iznad trake ikonica (6.9.2026, vlasnikov zahtev) — vidi

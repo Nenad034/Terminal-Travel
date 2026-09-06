@@ -3,6 +3,7 @@
 **Odnosi se na:** `00-MASTER-ARHITEKTURA.md`, poglavlje 4 (M1) i poglavlje 8 (Faza 0)
 **Nivo:** Nivo 2 — detaljna specifikacija, dovoljna da AI agent direktno programira po njoj
 **Status:** Nacrt za usvajanje
+**Verzija:** 1.14 — Nov entitet `Branch` (Poslovnica), globalno podešavanje (6.9.2026, vlasnikov zahtev: "TT moze da ima vise ili jednu poslovnicu i to treba omoguciti podesavanjima na globalnom nivou aplikacije" — kontekst: M5 spec v2.43 "dodatni filteri" tražili filter po poslovnici, koji nije imao oslonac ni u modelu ni u specifikaciji). Namerno minimalan entitet (`name`, `active`) — proširuje se tek ako se pokaže potreba, isti princip kao ostali "polazni" entiteti u ovom dokumentu. `User.branchId` (opciono, prava FK — `Branch` je u ISTOM modulu, nema razloga za slab weak-ref) — matična poslovnica zaposlenog, podešava se pri pozivanju/izmeni naloga (`POST/PATCH /iam/users`, forme u `korisnici/novi`/`korisnici/[id]`). `Booking.branchId` (M5 model, weak-ref bez FK — isti obrazac kao `owner_id`/`created_by`) — **SNAPSHOT** poslovnice zaposlenog u trenutku kreiranja rezervacije (vlasnikova odluka: "nasledjuje se iz zaposlenog", potvrđeno kad je pitano da li se sme ručno menjati po rezervaciji — ne sme, uvek nasleđuje), ne živa veza (zaposleni koji kasnije pređe u drugu poslovnicu ne menja tiho već kreiranu rezervaciju). Nov `BranchesController`/`BranchesService` (`GET/POST /iam/branches`, `PATCH /iam/branches/:id`) — `GET` namerno BEZ `@RequirePermission` (svaki STAFF nalog treba da vidi listu radi izbora sopstvene poslovnice/filtriranja, isti obrazac kao `GET /iam/users/directory`), `POST`/`PATCH` ograničeni na `M1/branch/CREATE`/`EDIT` (Vlasnik/Direktor, jedini koji dobijaju te dozvole preko `DEFAULT_ROLE_PERMISSIONS` spread-a M1 kataloga). Prvi ekran globalnih podešavanja u panelu (`/podesavanja/poslovnice`), nova nav grupa-stavka u "Administracija". **Provera:** `tsc --noEmit` čist za `apps/api`+`apps/panel`; migracija `20260906103428_m1_branch_poslovnica` primenjena i potvrđena uživo (Nest boot bez DI grešaka, `GET/POST /iam/branches`+`PATCH /iam/branches/:id` registrovane u ruter logu). Nema novog jediničnog testa za `BranchesService`/`BranchesController` u ovom prolazu — poznat nedostatak, isti minimalan CRUD obrazac kao `RolesService` koji takođe nema sopstvene teste za `create`/`update`.
 **Verzija:** 1.13 — `GET /iam/users/directory` sa `role` filterom sad vraća i `phone`/`email` (2.9.2026, na zahtev vlasnika — kartica Predstavnici M5 §4.5: "kontakt telefon, email adresa"). Namerno SUŽENO: kontakt podaci se izlažu ISKLJUČIVO kad je poziv već sužen na konkretnu ulogu (npr. `?role=VODIC`) — opšti direktorijum (bez `role`, korišćen za prenos vlasništva/predaju zaduženja, M5 §6.5) ostaje nepromenjen na `id`+`fullName`, da se ne probije originalna namera v1.11 ("ne email/uloge/MFA status — to ostaje iza pune VIEW dozvole"). **Provera:** 1 novi jedinični test (`users.service.spec.ts`).
 **Verzija:** 1.12 — `GET /iam/users/directory` prima opcioni `role` (1.9.2026, za dodelu predstavnika na stavku rezervacije, M5 spec §4.5) — bez parametra ponašanje nepromenjeno. **Nije novo pravo**: sužava već dozvoljen skup (aktivni STAFF nalozi, vidljivi svakom STAFF pozivaocu), da ekran koji bira vodiča ne nudi ceo tim.
 **Verzija:** 1.11 — `GET /users/directory` implementiran (31.8.2026, otkriveno pri gradnji M17 ekrana za M5 §6.5) — lagan spisak kolega (`id`+`fullName`, ACTIVE `STAFF`), bez `M1/user/VIEW` (koju Prodajni agent/Sales Manager/Računovođa po difoltu nemaju — isti nalaz kao M19 chat). Poglavlje 6 dopunjeno. **Provera:** 2 nova jedinična testa (`users.service.spec.ts`), uživo potvrđeno kroz M17 `/rezervacije/:id` ekran. v1.10 — VIEW_ALL konvencija i franšizna ownership provera implementirane u kodu (31.8.2026, isti prolaz kao M5 v1.85/M7 v1.11). `UsersService.invite()` sprovodi §5 proveru (franšizni pozivalac sme samo za sopstveni `linked_profile_id`). **Provera:** 3 nova jedinična testa (`users.service.spec.ts`) + e2e (`test/m5-booking-ownership-franchise.e2e-spec.ts`, deo M7 §2.0.7 scenarija). v1.9 — (31.8.2026, na zahtev vlasnika, isti prolaz kao M5 §6.5/M7 §2.0.7 franšiza) Nova opšta konvencija **`VIEW_ALL`** dozvole uz svaku osnovnu `VIEW` dozvolu (§3.9a) — zamenjuje raniji, neusklađen podrazumevani model ("Prodajni agent vidi samo svoje") sa stvarnom odlukom vlasnika: **podrazumevano svi vide sve**, sužavanje na "samo svoje" je podesiva opcija po korisniku (`DENY` na `VIEW_ALL`), primenjuje se prvo u M5 (poglavlje 6.5), opšta je za ceo sistem. `User.linked_profile_id` (§3.1) prošireno da nosi referencu ka M7 `Subagent` i za `STAFF` naloge (§3.1a) — omogućava franšiznim zaposlenima pune M1 uloge (Prodajni agent, Sales Manager, Direktor) uz vezu ka sopstvenoj franšizi; `POST /users` dobija ownership proveru kad ga poziva franšizni "lokalni Direktor" (dopuna poglavlja 5). Čisto specifikaciona dopuna, bez koda u ovom prolazu — implementacija prati M5/M7 gradnju.
@@ -160,6 +161,21 @@ Ovo je oslonac za: dizajn dokument (`29-DIZAJN-SISTEM-UI.md`) §5b (širina pane
 
 ---
 
+### 3.9b `Branch` — poslovnica (dopuna, 6.9.2026, na zahtev vlasnika: "TT moze da ima vise ili jednu poslovnicu i to treba omoguciti podesavanjima na globalnom nivou aplikacije")
+
+Namerno minimalan entitet — proširuje se tek ako se pokaže potreba (adresa, kontakt...), isti princip kao `UserPreference` iznad.
+
+| Polje | Tip | Napomena |
+| :---- | :---- | :---- |
+| id | UUID (PK) | |
+| name | string | |
+| active | boolean | meko gašenje — poslovnica se ne briše (postojeći `User.branch_id`/`Booking.branch_id` se oslanjaju na red), samo `active=false` |
+| created_at | timestamp | |
+
+`User.branch_id` (opciono, prava FK) — matična poslovnica zaposlenog. `Booking.branch_id` (M5 model, weak-ref bez FK) — **SNAPSHOT** poslovnice zaposlenog koji kreira rezervaciju, u trenutku kreiranja; ne živa veza (vlasnikova odluka: "nasledjuje se iz zaposlenog", potvrđeno da se ne menja ručno po rezervaciji). `GET /iam/branches` bez RBAC-a iznad JWT-a (svaki STAFF nalog treba da vidi listu radi izbora sopstvene poslovnice/filtriranja rezervacija), `POST`/`PATCH /iam/branches/:id` iza `M1/branch/CREATE`/`EDIT` (Vlasnik/Direktor). Prvi ekran globalnih podešavanja u panelu (`/podesavanja/poslovnice`).
+
+---
+
 ## 4. Podrazumevane uloge i njihov opseg (polazni šabloni)
 
 | Uloga | Podrazumevani opseg (dopunjuje se u specifikaciji svakog modula kad dođe na red) |
@@ -230,6 +246,9 @@ Prefiks: `/api/v1/iam`
 | `/audit-log` | GET | filtriranje po korisniku/modulu/datumu (`from`/`to` — `to` bez vremena, npr. iz `<input type="date">`, tretira se kao KRAJ tog dana 23:59:59.999 UTC, ne njegova ponoć — nalaz 29.8.2026, `new Date("YYYY-MM-DD")` je inače isključivao skoro sve zapise tog dana)/**akciji** (`action`, opciono, više vrednosti odvojenih zarezom — dodato 29.8.2026 za M18 "Live procesna mapa", poglavlje 9a te specifikacije)/**pojmu** (`q`, opciono, slobodan tekst case-insensitive preko action/resourceType/resourceId/module odjednom — dodato 29.8.2026, na zahtev vlasnika) — samo za uloge sa `M1/audit-log/VIEW` (podrazumevano: Vlasnik, Direktor) |
 | `/users/me/preferences` | GET | vraća sve `UserPreference` (poglavlje 3.9) trenutno prijavljenog korisnika, kao mapu `key → value` |
 | `/users/me/preferences/:key` | PUT | upisuje/menja jednu vrednost; nema poseban guard osim prijave — korisnik menja isključivo svoje |
+| `/branches` | GET | dopuna 6.9.2026 (poglavlje 3.9b) — lista poslovnica, BEZ posebne dozvole (svaki STAFF nalog treba da vidi listu radi izbora sopstvene poslovnice/filtriranja rezervacija) |
+| `/branches` | POST | kreiranje nove poslovnice — `M1/branch/CREATE` (Vlasnik/Direktor) |
+| `/branches/:id` | PATCH | izmena naziva i/ili aktivna/neaktivna (meko gašenje) — `M1/branch/EDIT` (Vlasnik/Direktor) |
 
 Svi endpoint-i dokumentovani OpenAPI šemom pre implementacije — u skladu sa principom iz poglavlja 6 da ugovor mora biti mašinski proverljiv.
 

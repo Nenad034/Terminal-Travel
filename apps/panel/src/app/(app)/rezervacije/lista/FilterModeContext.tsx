@@ -8,7 +8,10 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 // naslovom stranice (`page.tsx`, iznad cele trake ikonica). Stanje mora da postoji IZNAD oba
 // mesta koja ga koriste (naslov i `RealFilterBar`) — otud kontekst umesto lokalnog `useState`
 // unutar `RealFilterBar.tsx` kao ranije.
-export type FilterDisplayMode = 'traka' | 'prozor' | 'ladica';
+// Dopuna 6.9.2026 (vlasnikov zahtev: "ukinite pretragu u levom panelu zadrzite u traci i u
+// prozoru") — "ladica"/levi panel UKINUT, ne samo sakriven; `FilterDrawer` obrisan iz
+// `RealFilterBar.tsx` u istom prolazu. Ostaju samo "traka" i "prozor".
+export type FilterDisplayMode = 'traka' | 'prozor';
 const MODE_STORAGE_KEY = 'rezervacije-lista-filter-mode';
 
 const FilterModeContext = createContext<{ mode: FilterDisplayMode; setMode: (m: FilterDisplayMode) => void } | null>(null);
@@ -19,7 +22,8 @@ export function FilterModeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      if (saved === 'traka' || saved === 'prozor' || saved === 'ladica') setModeState(saved);
+      // Stara vrednost "ladica" (pre ukidanja) se tiho ignoriše — pada na podrazumevanu "traka".
+      if (saved === 'traka' || saved === 'prozor') setModeState(saved);
     } catch {
       // privatan prozor/blokirano skladište — ostaje podrazumevana "traka", bez greške na ekranu
     }

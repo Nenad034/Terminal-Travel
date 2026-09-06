@@ -3,9 +3,22 @@ import { apiFetch } from '@/lib/api-client';
 import BookingsListClient from './BookingsListClient';
 import type { RealBooking } from './RealBookingsTable';
 import RealFilterBar, { type BookingFilters } from './RealFilterBar';
+import type { FilterOption } from './RealFilterFields';
 import { FilterModeProvider } from './FilterModeContext';
 import FilterModeToggle from './FilterModeToggle';
 import Pagination from '@/components/Pagination';
+
+// Liste za "dodatni filteri" (6.9.2026 dopuna) — svaka se učitava nezavisno i tiho pada nazad na
+// praznu listu (a ne ruši celu stranicu) ako pozivalac nema dozvolu za taj konkretan resurs
+// (npr. dobavljači su M3 domen, ne M5) — filter tad samo ostaje bez opcija, isto ponašanje kao
+// ostatak ekrana kad neki opcioni podatak nedostaje.
+async function safeList<T>(path: string): Promise<T[]> {
+  try {
+    return await apiFetch<T[]>(path);
+  } catch {
+    return [];
+  }
+}
 
 
 // M5 spec v1.54 (24.8.2026, na zahtev vlasnika: "krenite" posle potvrđenog v1 skupa filtera) —
@@ -51,6 +64,15 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
     error = 'Nemate dozvolu za uvid u rezervacije (M5/booking/VIEW).';
   }
 
+  const [branchRows, employeeRows, supplierRows] = await Promise.all([
+    safeList<{ id: string; name: string }>('/iam/branches'),
+    safeList<{ id: string; fullName: string }>('/iam/users/directory'),
+    safeList<{ id: string; name: string }>('/contracting/suppliers'),
+  ]);
+  const branches: FilterOption[] = branchRows.map((b) => ({ id: b.id, name: b.name }));
+  const employees: FilterOption[] = employeeRows.map((u) => ({ id: u.id, name: u.fullName }));
+  const suppliers: FilterOption[] = supplierRows.map((s) => ({ id: s.id, name: s.name }));
+
   return (
     <div className="p-6">
       <RegisterTab label="Lista rezervacija" />
@@ -68,7 +90,10 @@ export default async function BookingListPage(props: { searchParams: Promise<Boo
         {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
         {!error && (
           <>
-            <BookingsListClient bookings={bookings} filterBar={<RealFilterBar filters={searchParams ?? {}} />} />
+            <BookingsListClient
+              bookings={bookings}
+              filterBar={<RealFilterBar filters={searchParams ?? {}} branches={branches} employees={employees} suppliers={suppliers} />}
+            />
             {/* Straničenje (5.9.2026, dok. 39 nalaz 2.2) — traka uvek kaže i UKUPAN broj, ne samo
                 koja je strana: nemogućnost da se sazna koliko rezervacija zapravo ima bila je
                 jezgro nalaza. */}

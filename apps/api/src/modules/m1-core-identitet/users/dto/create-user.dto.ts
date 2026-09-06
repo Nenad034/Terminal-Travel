@@ -21,4 +21,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsUUID()
   linkedProfileId?: string;
+
+  // M1 spec dopuna (6.9.2026) — matična poslovnica; opciono dok postoji samo jedna poslovnica.
+  @IsOptional()
+  @IsUUID()
+  branchId?: string;
 }

@@ -46,6 +46,7 @@ export async function inviteUser(_prev: InviteState, formData: FormData): Promis
         fullName: str(formData, 'fullName'),
         email: str(formData, 'email'),
         phone: str(formData, 'phone'),
+        branchId: str(formData, 'branchId'),
         roleIds: formData.getAll('roleIds').filter((v): v is string => typeof v === 'string' && v !== ''),
       },
     });
@@ -64,6 +65,10 @@ export async function updateUser(id: string, _prev: FormState, formData: FormDat
       body: {
         fullName: str(formData, 'fullName'),
         phone: str(formData, 'phone'),
+        // Dopuna 6.9.2026 — "—" (prazna opcija) mora eksplicitno da POŠALJE `null` (uklanjanje
+        // poslovnice), ne da izostavi ključ (`str()` bi vratio `undefined`, koji PATCH tiho
+        // ignoriše umesto da očisti već postavljenu vrednost).
+        branchId: formData.get('branchId') === '' ? null : str(formData, 'branchId'),
       },
     });
   } catch (err) {

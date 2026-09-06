@@ -78,6 +78,7 @@ export class UsersService {
         accountType: 'STAFF',
         status: 'INVITED',
         linkedProfileId: dto.linkedProfileId ?? null,
+        branchId: dto.branchId ?? null,
         roles: {
           create: dto.roleIds.map((roleId) => ({ roleId, assignedBy: invitedBy })),
         },
@@ -111,7 +112,7 @@ export class UsersService {
     return { user, inviteToken, emailDelivered: sent.delivered };
   }
 
-  async update(id: string, data: { fullName?: string; phone?: string }, actorId: string) {
+  async update(id: string, data: { fullName?: string; phone?: string; branchId?: string | null }, actorId: string) {
     const after = await this.prisma.user.update({ where: { id }, data });
     await this.auditLog.write({
       actorType: 'HUMAN',

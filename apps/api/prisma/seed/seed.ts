@@ -32,6 +32,14 @@ const M1_PERMISSIONS: { module: string; resource: string; action: string; descri
   { module: 'M1', resource: 'permission-override', action: 'VIEW', description: 'Uvid u pojedinačne izuzetke korisnika' },
   { module: 'M1', resource: 'permission-override', action: 'CREATE', description: 'Dodela/oduzimanje pojedinačnog izuzetka' },
   { module: 'M1', resource: 'audit-log', action: 'VIEW', description: 'Uvid u audit log' },
+  // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "TT moze da ima vise ili jednu poslovnicu i to
+  // treba omoguciti podesavanjima na globalnom nivou aplikacije") — CRUD nad poslovnicama, samo
+  // Vlasnik/Direktor (isti krug kao ostala globalna podešavanja ovog modula). Bez VIEW dozvole
+  // u katalogu — `GET /iam/branches` je namerno otvoren svakom STAFF nalogu (isti obrazac kao
+  // `GET /iam/users/directory`), jer i HR/agent bez prava nad poslovnicama treba da vidi listu
+  // pri izboru poslovnice na profilu korisnika/filteru rezervacija.
+  { module: 'M1', resource: 'branch', action: 'CREATE', description: 'Kreiranje nove poslovnice' },
+  { module: 'M1', resource: 'branch', action: 'EDIT', description: 'Izmena/gašenje poslovnice' },
 ];
 
 // M2 spec §6 — dozvole kataloga proizvoda.

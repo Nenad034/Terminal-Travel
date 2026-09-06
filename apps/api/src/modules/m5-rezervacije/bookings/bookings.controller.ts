@@ -60,6 +60,13 @@ export class BookingsController {
     // `calendar/:date` ispod, dosad nedostajao ovde (vidi napomenu u `bookings.service.ts`).
     @Query('productName') productName: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
+    // Dopuna 6.9.2026 (vlasnikov zahtev — dodatni filteri: Poslovnica/Zaposleni/Dobavljač/
+    // Vrsta dobavljača/Vrsta objekta) — vidi komentar uz `BookingsService.findAll`.
+    @Query('branchId') branchId: string | undefined,
+    @Query('ownerId') ownerId: string | undefined,
+    @Query('supplierId') supplierId: string | undefined,
+    @Query('supplierType') supplierType: string | undefined,
+    @Query('accommodationType') accommodationType: string | undefined,
     // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — do sada je lista tiho odsecala na 200 redova
     // bez ijedne poruke. Odgovor je od sada `{ data, total, page, limit, ... }`, ne go niz.
     // Pojedinačni parametri, NE `@Query() dto` — v. obrazloženje u `common/pagination`.
@@ -93,6 +100,11 @@ export class BookingsController {
         destinationCountry,
         productName,
         hasTravelGuarantee,
+        branchId,
+        ownerId,
+        supplierId,
+        supplierType,
+        accommodationType,
       },
       actor,
       parsePagination(page, limit),
