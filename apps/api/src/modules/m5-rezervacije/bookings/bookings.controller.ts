@@ -56,6 +56,9 @@ export class BookingsController {
     @Query('productId') productId: string | undefined,
     @Query('destinationCity') destinationCity: string | undefined,
     @Query('destinationCountry') destinationCountry: string | undefined,
+    // Naziv hotela/proizvoda (6.9.2026 dopuna) — isti parametar kao `calendar-summary`/
+    // `calendar/:date` ispod, dosad nedostajao ovde (vidi napomenu u `bookings.service.ts`).
+    @Query('productName') productName: string | undefined,
     @Query('hasTravelGuarantee') hasTravelGuarantee: string | undefined,
     // Straničenje (5.9.2026, dok. 39 nalaz 2.2) — do sada je lista tiho odsecala na 200 redova
     // bez ijedne poruke. Odgovor je od sada `{ data, total, page, limit, ... }`, ne go niz.
@@ -88,6 +91,7 @@ export class BookingsController {
         productId,
         destinationCity,
         destinationCountry,
+        productName,
         hasTravelGuarantee,
       },
       actor,

@@ -525,6 +525,12 @@ export class BookingsService {
       productId?: string;
       destinationCity?: string;
       destinationCountry?: string;
+      /** Naziv hotela/proizvoda (6.9.2026 dopuna) — isti parametar/obrazac kao
+       * `buildCalendarItemWhere` ispod (kalendar); ovde je nedostajao otkad je uveden tamo
+       * (5.9.2026), Lista rezervacija ga nikad nije primala iako joj je "Naziv hotela" polje
+       * upravo zbog toga i tražilo (vlasnikov zahtev: "Polja za filtriranje Drzave, destinacije
+       * i hotela stavite da bude jedno"). */
+      productName?: string;
       hasTravelGuarantee?: string;
     },
     actor: { userId: string },
@@ -577,11 +583,14 @@ export class BookingsService {
           ...(filters.returnTo ? { lte: new Date(`${filters.returnTo}T23:59:59.999Z`) } : {}),
         };
       }
-      if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry) {
+      if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry || filters.productName) {
         itemWhere.product = {
           ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
           ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
           ...(filters.destinationCountry ? { destinationCountry: filters.destinationCountry } : {}),
+          // Isti obrazac kao `buildCalendarItemWhere` — naziv je jezički zavisan (M2 §2.2
+          // `ProductTranslation`), pretražuje se preko SVIH prevoda odjednom.
+          ...(filters.productName ? { translations: { some: { name: { contains: filters.productName, mode: 'insensitive' } } } } : {}),
         };
       }
       // Dopuna (26.8.2026, na zahtev vlasnika — "aktivne rezervacije za ovaj hotel" link iz

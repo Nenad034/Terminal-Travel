@@ -123,6 +123,18 @@ function SortLabel({
   );
 }
 
+// Brzo filtriranje po koloni (6.9.2026, vlasnikov zahtev: "ranije smo imali sada je nestalo
+// brzo filtrianje po kolonama liste. vratite to.") — postojalo je na MOCK tabeli
+// (`BookingsTable.tsx`/`FiltersModal.tsx`, `ColumnKey`), ali nikad nije preneto ovde kad je
+// lista prešla na prave podatke (`da28ed8`) — nova tabela je napravljena bez tog dela, ne
+// namerno uklonjena. Radi ISKLJUČIVO nad već učitanom stranom rezultata (kao i
+// `productTypeFilters`/`demoOnly` ispod) — trenutno filtriranje bez čekanja na server, dopuna
+// stvarnim server-side poljima iz `RealFilterBar.tsx`, ne zamena za njih. Datumske kolone
+// (Kreirano/Dolazak/Odlazak) NAMERNO nisu ovde — `RealFilterBar`/popup već imaju prave
+// opsežne kalendare za njih, dupliranje bi samo zbunjivalo koje polje šta tačno radi.
+type ColumnKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus';
+const EMPTY_COLUMN_FILTERS: Record<ColumnKey, string> = { bookingNumber: '', buyerName: '', channel: '', status: '', paymentStatus: '' };
+
 function formatAmount(amount: number): string {
   return (amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -172,6 +184,12 @@ export default function RealBookingsTable({
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [urgentFor, setUrgentFor] = useState<DecoratedRow | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<ColumnKey, string>>(EMPTY_COLUMN_FILTERS);
+  const hasColumnFilters = Object.values(columnFilters).some(Boolean);
+
+  function setColumnFilter(key: ColumnKey, value: string) {
+    setColumnFilters((prev) => ({ ...prev, [key]: value }));
+  }
 
   const { showSummary } = useRowSummary();
   const { openTab } = useTabs();
@@ -190,12 +208,18 @@ export default function RealBookingsTable({
   }
 
   const filtered = useMemo(() => {
+    const needle = (key: ColumnKey) => columnFilters[key].trim().toLowerCase();
     return decorated.filter((b) => {
       if (productTypeFilters.length > 0 && !productTypeFilters.includes(b.productType ?? '')) return false;
       if (demoOnly && !b.demoUrgent) return false;
+      if (needle('bookingNumber') && !b.bookingNumber.toLowerCase().includes(needle('bookingNumber'))) return false;
+      if (needle('buyerName') && !b.buyerName.toLowerCase().includes(needle('buyerName'))) return false;
+      if (needle('channel') && !b.channel.toLowerCase().includes(needle('channel'))) return false;
+      if (needle('status') && !b.status.toLowerCase().includes(needle('status'))) return false;
+      if (needle('paymentStatus') && !b.paymentStatus.toLowerCase().includes(needle('paymentStatus'))) return false;
       return true;
     });
-  }, [decorated, productTypeFilters, demoOnly]);
+  }, [decorated, productTypeFilters, demoOnly, columnFilters]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
@@ -260,6 +284,41 @@ export default function RealBookingsTable({
                     Iznos
                   </SortLabel>
                 </div>
+              </TableHead>
+            </TableRow>
+            {/* Brzo filtriranje po koloni (6.9.2026, vlasnikov zahtev: "vratite to") — trenutno,
+                bez čekanja na server, nad već učitanom stranom rezultata. */}
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[70px]" />
+              <TableHead>
+                <ColumnFilterInput value={columnFilters.bookingNumber} onChange={(v) => setColumnFilter('bookingNumber', v)} />
+              </TableHead>
+              <TableHead />
+              <TableHead>
+                <ColumnFilterInput value={columnFilters.buyerName} onChange={(v) => setColumnFilter('buyerName', v)} />
+              </TableHead>
+              <TableHead>
+                <ColumnFilterInput value={columnFilters.channel} onChange={(v) => setColumnFilter('channel', v)} />
+              </TableHead>
+              <TableHead>
+                <ColumnFilterInput value={columnFilters.status} onChange={(v) => setColumnFilter('status', v)} />
+              </TableHead>
+              <TableHead>
+                <ColumnFilterInput value={columnFilters.paymentStatus} onChange={(v) => setColumnFilter('paymentStatus', v)} />
+              </TableHead>
+              <TableHead />
+              <TableHead />
+              <TableHead className="text-right">
+                {hasColumnFilters && (
+                  <button
+                    type="button"
+                    onClick={() => setColumnFilters(EMPTY_COLUMN_FILTERS)}
+                    title="Obriši brze filtere po koloni"
+                    className="text-ink-faint hover:text-danger"
+                  >
+                    <Icon name="close" />
+                  </button>
+                )}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -348,5 +407,16 @@ export default function RealBookingsTable({
         />
       )}
     </>
+  );
+}
+
+function ColumnFilterInput({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  return (
+    <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="filtriraj…"
+      className="w-full rounded border border-transparent bg-panel2 px-1.5 py-1 text-[11px] font-normal text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+    />
   );
 }
