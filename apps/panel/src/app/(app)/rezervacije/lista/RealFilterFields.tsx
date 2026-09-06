@@ -35,6 +35,7 @@ export default function RealFilterFields({
     layout === 'grid' ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4' : layout === 'drawer' ? 'flex flex-col gap-3' : 'flex items-end gap-2';
 
   return (
+    <div className="flex flex-col gap-3">
       <div className={rowClass}>
         <Field label="Broj">
           <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={autoSubmit} />
@@ -64,7 +65,6 @@ export default function RealFilterFields({
           defaultValues={toArray(filters.productType)}
           autoSubmit={autoSubmit}
         />
-        <LocationOrHotelField filters={filters} autoSubmit={autoSubmit} />
         <Field label="Valuta">
           <ClearableTextField name="currency" defaultValue={filters.currency ?? ''} placeholder="EUR" className={inputClass} autoSubmit={autoSubmit} />
         </Field>
@@ -75,8 +75,18 @@ export default function RealFilterFields({
             <option value="false">nema</option>
           </select>
         </Field>
+      </div>
+      {/* Država/Mesto/Objekat i Kreirano/Dolazak/Odlazak dobijaju SOPSTVEN, pun red (6.9.2026,
+          vlasnikov nalaz uz snimak ekrana: "razocaran sam kako ovo izgleda... sada lepo
+          rasporedite sva polja pretrage u sva tri prikaza") — svaka grupa menja širinu zavisno
+          od toga koliko je ciljeva trenutno aktivno, što je lomilo poravnanje kad je stajala
+          UNUTAR istog reda kao kratka jednolinijska polja iznad (`items-end` je gurao kraću
+          ikonicu na dno, a viši aktivan "čip" je ostajao odsečen od ostatka reda). */}
+      <div className="flex flex-wrap gap-4">
+        <LocationOrHotelField filters={filters} autoSubmit={autoSubmit} />
         <PeriodTogglePicker filters={filters} autoSubmit={autoSubmit} />
       </div>
+    </div>
   );
 }
 
