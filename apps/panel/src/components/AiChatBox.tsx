@@ -299,9 +299,14 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   const manualLabels = new Set(contextItems.filter((i): i is Extract<AiContextItem, { type: 'RECORD' }> => i.type === 'RECORD').map((i) => i.refLabel));
   const effectiveContextLabels = [...(autoContext && !manualLabels.has(autoContext) ? [autoContext] : []), ...contextItems.map(itemLabel)];
 
-  useEffect(() => {
+  // Isti obrazac kao u `Sidebar.tsx` (6.9.2026, dok. 41): uklonjen čip konteksta važi za JEDAN
+  // tab, pa se prelaskom na drugi poništava. Podešavanje u renderu, ne u efektu — inače se
+  // novi tab na trenutak iscrta sa nasleđenim „uklonjeno" stanjem.
+  const [poslednjaPutanja, setPoslednjaPutanja] = useState(activePath);
+  if (poslednjaPutanja !== activePath) {
+    setPoslednjaPutanja(activePath);
     setDismissedForPath(null);
-  }, [activePath]);
+  }
 
   // Vidljiv tekst trenutnog taba, automatski prilagan na svaku poruku (22.8.2026, na zahtev
   // vlasnika, posle uživo razjašnjenja — "AI treba da može da vidi sadržaj u centralnom panelu").

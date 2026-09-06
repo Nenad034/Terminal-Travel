@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Icon from './Icon';
 import AddToAiContextButton from './AddToAiContextButton';
 import { useProductPreview } from './ProductPreviewContext';
@@ -21,18 +21,22 @@ interface ProductPreviewDetail {
 // M17 spec "Desni panel — brzi pregled proizvoda" (26.8.2026, Faza B) — zamenjuje raniji MOCK
 // (v1, 26.8.2026 ranije istog dana) stvarnim podacima preko `/api/catalog/products/:id/preview`
 // BFF rute. Traka do 3 taba = `ProductPreviewContext` istorija (klik na naziv u rezultatima
-// pretrage). Kešira po `productId` (`cacheRef`) da prebacivanje između tabova ne ponavlja fetch.
+// pretrage). Kešira po `productId` (stanje `cache`) da prebacivanje između tabova ne ponavlja fetch.
 export default function ProductPreviewCard() {
   const { items, activeId, setActiveId } = useProductPreview();
   const { openTab } = useTabs();
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const cacheRef = useRef<Map<string, ProductPreviewDetail>>(new Map());
-  const [, forceRerender] = useState(0);
+  // Keš je STANJE, ne `ref` (6.9.2026, ESLint `react-hooks/refs`, dok. 41 B2). Ranije je stajao
+  // u `useRef`-u, čitao se usred rendera i ručno se okidalo ponovno iscrtavanje kroz neiskorišćen
+  // `useState` brojač. To radi dok radi, ali render tada zavisi od vrednosti koju React ne prati:
+  // podatak stigne, a ekran ga pokaže tek kad ga nešto drugo osveži. Kao stanje, keš preživljava
+  // prebacivanje između tabova isto kao pre — `useState` vrednost se ne gubi između rendera.
+  const [cache, setCache] = useState<Map<string, ProductPreviewDetail>>(new Map());
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!activeId || cacheRef.current.has(activeId)) return;
+    if (!activeId || cache.has(activeId)) return;
     let cancelled = false;
     setLoadingId(activeId);
     setErrorId(null);
@@ -40,8 +44,7 @@ export default function ProductPreviewCard() {
       .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((data: ProductPreviewDetail) => {
         if (cancelled) return;
-        cacheRef.current.set(activeId, data);
-        forceRerender((n) => n + 1);
+        setCache((prethodni) => new Map(prethodni).set(activeId, data));
       })
       .catch(() => {
         if (!cancelled) setErrorId(activeId);
@@ -52,11 +55,15 @@ export default function ProductPreviewCard() {
     return () => {
       cancelled = true;
     };
+    // `cache` NIJE u listi zavisnosti namerno: efekat ga samo dopunjava, pa bi njegovo dodavanje
+    // pokrenulo efekat ponovo posle svakog upisa. Provera `cache.has(activeId)` na vrhu čita
+    // vrednost iz rendera u kom je efekat zakazan, što je ovde tačno ono što treba.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeId]);
 
   if (!activeId) return null;
   const activeRef = items.find((i) => i.productId === activeId);
-  const detail = cacheRef.current.get(activeId);
+  const detail = cache.get(activeId);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden">

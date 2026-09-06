@@ -60,6 +60,13 @@ export default function ResizablePane({
     [minWidth, maxWidth, sign],
   );
 
+  // Osluškivači prevlačenja se skidaju preko `AbortController`, ne preko `removeEventListener`
+  // (6.9.2026, ESLint nalaz `react-hooks/immutability`, dok. 41 B1). Raniji oblik je unutar
+  // `onPointerUp` pozivao `removeEventListener('pointerup', onPointerUp)` — funkcija je
+  // pokazivala na SAMU SEBE i hvatala svoju staru verziju: čim bi joj se zavisnost promenila,
+  // skidala bi pogrešnu referencu i osluškivač bi ostao zakačen za `window`.
+  const dragAbort = useRef<AbortController | null>(null);
+
   const onPointerUp = useCallback(() => {
     setDragging(false);
     setWidth((w) => {
@@ -70,16 +77,21 @@ export default function ResizablePane({
       }
       return w;
     });
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-  }, [onPointerMove, storageKey]);
+    dragAbort.current?.abort();
+    dragAbort.current = null;
+  }, [storageKey]);
+
+  // Ako se komponenta ukloni usred prevlačenja, osluškivači bi inače ostali na `window`.
+  useEffect(() => () => dragAbort.current?.abort(), []);
 
   const onPointerDown = (e: React.PointerEvent) => {
     setDragging(true);
     startX.current = e.clientX;
     startWidth.current = width;
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    const ctrl = new AbortController();
+    dragAbort.current = ctrl;
+    window.addEventListener('pointermove', onPointerMove, { signal: ctrl.signal });
+    window.addEventListener('pointerup', onPointerUp, { signal: ctrl.signal });
   };
 
   const resetWidth = () => {

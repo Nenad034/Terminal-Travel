@@ -257,22 +257,6 @@ export default function Shell({
   // Izbor "sužava sadržaj" naspram "prelazi preko sadržaja" (§6c.0) — po korisniku preko
   // `UserPreference` (M1 §3.9, ključ `right_panel_display_mode`), učitano jednom pri montiranju.
   const [rightPanelMode, setRightPanelMode] = useState<'push' | 'overlay'>('push');
-  useEffect(() => {
-    fetch('/api/preferences', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const value = data?.right_panel_display_mode;
-        if (value === 'overlay' || value === 'push') setRightPanelMode(value);
-        // Isti odgovor nosi SVE preference korisnika (`GET /iam/users/me/preferences` vraća mapu),
-        // pa se širina centralnog sadržaja čita iz njega — bez drugog mrežnog poziva.
-        if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY])) setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
-        const dock = data?.[AI_DOCK_PREFERENCE_KEY];
-        if (dock === 'right' || dock === 'bottom') setAiDock(dock);
-      })
-      .catch(() => {
-        // Podrazumevano ostaje "push" — ne blokira prikaz panela zbog neuspelog čitanja podešavanja.
-      });
-  }, []);
   function toggleRightPanelMode() {
     const next = rightPanelMode === 'push' ? 'overlay' : 'push';
     setRightPanelMode(next);
@@ -319,6 +303,28 @@ export default function Shell({
   // posle montiranja i pamti u `UserPreference` (M1 §3.9), dakle po NALOGU a ne po browseru —
   // korisnik zatiče svoju širinu i na drugom računaru.
   const [mainWidth, setMainWidth] = useState<MainWidth>(DEFAULT_MAIN_WIDTH);
+
+  // Jedan poziv učitava SVA TRI podešavanja odjednom (`GET /iam/users/me/preferences` vraća mapu),
+  // pa stoji ovde — ispod poslednjeg stanja koje puni, ne uz prvo. Ranije je stajao iznad
+  // `aiDock` i `mainWidth` i koristio njihove settere pre nego što su deklarisani; setteri iz
+  // `useState` imaju stabilan identitet pa posledice nije bilo, ali je nalaz zaklanjao tri
+  // stvarna slučaja iste vrste (dok. 41 B1, ESLint `react-hooks/immutability`).
+  useEffect(() => {
+    fetch('/api/preferences', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const value = data?.right_panel_display_mode;
+        if (value === 'overlay' || value === 'push') setRightPanelMode(value);
+        // Isti odgovor nosi SVE preference korisnika (`GET /iam/users/me/preferences` vraća mapu),
+        // pa se širina centralnog sadržaja čita iz njega — bez drugog mrežnog poziva.
+        if (isMainWidth(data?.[MAIN_WIDTH_PREFERENCE_KEY])) setMainWidth(data[MAIN_WIDTH_PREFERENCE_KEY]);
+        const dock = data?.[AI_DOCK_PREFERENCE_KEY];
+        if (dock === 'right' || dock === 'bottom') setAiDock(dock);
+      })
+      .catch(() => {
+        // Podrazumevano ostaje "push" — ne blokira prikaz panela zbog neuspelog čitanja podešavanja.
+      });
+  }, []);
   function changeMainWidth(next: MainWidth) {
     setMainWidth(next);
     fetch(`/api/preferences/${MAIN_WIDTH_PREFERENCE_KEY}`, {

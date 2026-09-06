@@ -47,7 +47,14 @@ export default function ProcessMapView({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const previousCounts = useRef<Record<string, number>>({});
   const selectedNodeIdRef = useRef<string | null>(null);
-  selectedNodeIdRef.current = selectedNodeId;
+  // Upis u `ref` ide kroz efekat, ne u toku rendera (6.9.2026, ESLint `react-hooks/refs`,
+  // dok. 41 B2). Render mora biti čist: `ref` se menja bez ponovnog iscrtavanja, pa pisanje u
+  // njega usred rendera pravi razliku između onoga što je React iscrtao i onoga što kod vidi.
+  // Početnu vrednost daje `useRef(...)`, pa prvi prolaz ništa ne gubi; efekat je bez liste
+  // zavisnosti namerno — treba da se izvrši posle SVAKOG rendera.
+  useEffect(() => {
+    selectedNodeIdRef.current = selectedNodeId;
+  });
 
   function selectNode(node: NodeDefinition, nodeLive: NodeLive | undefined) {
     setSelectedNodeId(node.id);

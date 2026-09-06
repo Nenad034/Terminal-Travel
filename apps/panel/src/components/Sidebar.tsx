@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Icon, { IconDuo } from './Icon';
 import SearchSidebarPanel from './SearchSidebarPanel';
@@ -30,11 +30,18 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const { openTab } = useTabs();
+  // Prelazak na drugu grupu poništava „prikaži celu listu" (korisnik je to tražio za PRETHODNU
+  // grupu). Podešavanje ide U RENDERU, ne kroz `useEffect` (6.9.2026, ESLint
+  // `react-hooks/set-state-in-effect`, dok. 41): sa efektom React prvo iscrta stari, pogrešan
+  // sadržaj pa ga odmah zameni — vidljivo kao treptaj na sporijoj mašini. Ovo je obrazac koji
+  // React dokumentacija zove „prilagođavanje stanja kad se promeni prop"; poređenje sa
+  // prethodnom vrednošću sprečava beskonačan krug.
   const [forceShowList, setForceShowList] = useState(false);
-
-  useEffect(() => {
+  const [poslednjaGrupa, setPoslednjaGrupa] = useState(activeGroup?.id);
+  if (poslednjaGrupa !== activeGroup?.id) {
+    setPoslednjaGrupa(activeGroup?.id);
     setForceShowList(false);
-  }, [activeGroup?.id]);
+  }
 
   if (!mePresent || !activeGroup) return null;
 

@@ -244,17 +244,24 @@ export default function SearchResultsMap({ points, onSelect }: { points: MapPoin
   // pa se pretraga po okviru može podeliti linkom i preživi osvežavanje stranice.
   const followMap = sp.get('pratiMapu') === '1';
   const followRef = useRef(followMap);
-  followRef.current = followMap;
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   // Poslednje poznate tačke — mapa se učitava asinhrono, pa prvi skup mora da bude dostupan
   // i onda kad `load` stigne POSLE nego što je roditelj već poslao rezultate.
   const pointsRef = useRef<MapPoint[]>(points);
-  pointsRef.current = points;
   // Isti razlog: slušalac klika se kači jednom, a `onSelect` se može promeniti.
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  // Upis u `ref` ide kroz efekat, ne u toku rendera (6.9.2026, ESLint `react-hooks/refs`,
+  // dok. 41 B2). Render mora biti čist: `ref` se menja bez ponovnog iscrtavanja, pa pisanje u
+  // njega usred rendera pravi razliku između onoga što je React iscrtao i onoga što kod vidi.
+  // Početnu vrednost daje `useRef(...)`, pa prvi prolaz ništa ne gubi; efekat je bez liste
+  // zavisnosti namerno — treba da se izvrši posle SVAKOG rendera.
+  useEffect(() => {
+    followRef.current = followMap;
+    pointsRef.current = points;
+    onSelectRef.current = onSelect;
+  });
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
 

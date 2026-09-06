@@ -48,23 +48,37 @@ export default function AiDockBottom({
     setHeight(next);
   }, []);
 
+  // Osluškivači prevlačenja se skidaju preko `AbortController`, ne preko `removeEventListener`
+  // (6.9.2026, ESLint nalaz `react-hooks/immutability`, dok. 41 B1). Raniji oblik je unutar
+  // `onPointerUp` pozivao `removeEventListener('pointerup', onPointerUp)` — funkcija je
+  // pokazivala na SAMU SEBE, pa je hvatala svoju staru verziju: čim bi joj se zavisnost
+  // promenila, skidala bi pogrešnu referencu i osluškivač bi ostao zakačen za `window`. Tiho
+  // curenje, ne pad — vidi se tek kad se panel otvara i zatvara mnogo puta. `abort()` skida
+  // OBA osluškivača odjednom i ne traži nikakvu referencu na samu funkciju.
+  const dragAbort = useRef<AbortController | null>(null);
+
   const onPointerUp = useCallback(() => {
     setDragging(false);
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
+    dragAbort.current?.abort();
+    dragAbort.current = null;
     setHeight((h) => {
       window.localStorage.setItem(HEIGHT_KEY, String(h));
       return h;
     });
-  }, [onPointerMove]);
+  }, []);
+
+  // Ako se komponenta ukloni usred prevlačenja, osluškivači bi inače ostali na `window`.
+  useEffect(() => () => dragAbort.current?.abort(), []);
 
   function onPointerDown(e: React.PointerEvent) {
     if (collapsed) return;
     setDragging(true);
     startY.current = e.clientY;
     startHeight.current = height;
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    const ctrl = new AbortController();
+    dragAbort.current = ctrl;
+    window.addEventListener('pointermove', onPointerMove, { signal: ctrl.signal });
+    window.addEventListener('pointerup', onPointerUp, { signal: ctrl.signal });
   }
 
   return (

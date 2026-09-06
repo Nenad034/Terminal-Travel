@@ -96,7 +96,7 @@ Preporuka: **ne ispravljati kod**, nego podesiti pravilo — uz obrazloženje up
 |---|---|---|
 | Čitanje stanja iz browsera posle montiranja (`localStorage`, `matchMedia`, `document`, `new Date()`) | 11 | **Ispravno i obavezno.** Ovo je jedini bezbedan način u SSR-u: server i prvi klijentski render moraju biti identični, pa se vrednost sme pročitati tek posle hidratacije. Ranija verzija koja je čitala `localStorage` direktno u `useState` inicijalizatoru je **napravila prijavljenu „Hydration failed" grešku** (21.8.2026) — današnji oblik je ispravka te greške. |
 | Brisanje starog podatka pre novog dohvatanja (`setX(null)` pa `fetch`) | 8 | **Ispravno.** Bez toga ekran drži tuđ podatak dok novi ne stigne. |
-| Izvedeno stanje iz propova (`useEffect(() => setX(f(prop)), [prop])`) | 7 | **Nalaz je opravdan.** Ovo React dokumentacija izričito ne preporučuje — vrednost treba računati u renderu ili menjati `key`. Mesta: `AuditLogSearchForm.tsx:47`, `DateField.tsx:80`, `DateRangeField.tsx:205–207`, `AiChatBox.tsx:303`, `Sidebar.tsx:36`. |
+| Izvedeno stanje iz propova (`useEffect(() => setX(f(prop)), [prop])`) | 7 | **Ispravka ranije ocene — vidi „Ispravka" ispod.** Dva su bila stvaran nalaz i ispravljena su; pet nisu. |
 | Ostalo (animacija kucanja, sinhronizacija sa putanjom, zatvaranje forme posle uspeha) | 6 | Traži pojedinačan pogled. |
 
 **Preporuka:** pravilo spustiti sa **greške na upozorenje**, uz komentar u `eslint.config.mjs` koji kaže zašto (19 od 32 su namerni SSR obrasci, alat ih ne razlikuje). Sedam slučajeva izvedenog stanja ispraviti zasebno — to je stvaran, mada blag, nalaz. **Ne** stavljati 19 `eslint-disable` komentara: toliko izuzetaka čini pravilo nečitljivim.
@@ -123,3 +123,26 @@ Preporuka: **ne ispravljati kod**, nego podesiti pravilo — uz obrazloženje up
 5. **Lint u CI** — tek kad panel bude čist. Crven CI koji se ignoriše gori je nego da ga nema (zamka 11.3).
 
 **Van ovog prolaza, kao zasebna odluka vlasnika:** brisanje `BookingsTable.tsx` (ne renderuje se nigde — zamka 8.4), čime devet nalaza iz A2 nestaje samo od sebe.
+
+---
+
+## Urađeno 6.9.2026 (gomila B i dva slučaja iz C1)
+
+Vlasnik je odobrio korake 1 i 2 iz preporuke. Stanje posle: **101 → 89 grešaka**; `react-hooks/immutability` i `react-hooks/refs` su na **nuli**.
+
+**B1 — tri funkcije koje su pokazivale na same sebe** (`AiDockBottom`, `ResizablePane`, `TerminalPanel`). Osluškivači prevlačenja se sada skidaju preko `AbortController` (`addEventListener(..., { signal })` pa `abort()`), pa nema potrebe za referencom na samu funkciju. Usput dodato i čišćenje pri uklanjanju komponente — ranije bi osluškivači ostali na `window` ako se panel zatvori usred prevlačenja.
+
+**B1 — dva bezopasna** (`Shell.tsx`): efekat koji učitava sva tri podešavanja jednim pozivom premešten je ispod poslednjeg stanja koje puni. Ponašanje isto; nalaz je uklonjen da ne bi zaklanjao stvarne.
+
+**B2 — šest čitanja `ref`-a u renderu.** Kod `ProcessMapView` i `SearchResultsMap` upis u `ref` prebačen je u efekat bez liste zavisnosti (početnu vrednost i dalje daje `useRef(...)`, pa prvi prolaz ništa ne gubi). Kod `ProductPreviewCard` keš proizvoda prebačen je iz `ref`-a u **stanje** — time je uklonjen i ručni okidač ponovnog iscrtavanja kroz neiskorišćen brojač.
+
+**C1 — dva slučaja poništavanja stanja pri promeni propa** (`Sidebar`, `AiChatBox`) prebačena su iz efekta u render, obrascem koji React dokumentacija zove „prilagođavanje stanja kad se promeni prop". Time nestaje i treptaj: sa efektom React prvo iscrta stari sadržaj pa ga odmah zameni.
+
+### Ispravka ranije ocene u ovom dokumentu
+
+Prvi nacrt je tvrdio da je **svih sedam** slučajeva „izvedeno stanje iz propova" opravdan nalaz. Pošto sam ih pročitao jedan po jedan, to je tačno za **dva** (`Sidebar`, `AiChatBox` — poništavanje stanja pri promeni propa). Preostalih pet — `AuditLogSearchForm.tsx:47`, `DateField.tsx:80`, `DateRangeField.tsx:205–207` — **nisu** izvedeno stanje nego **radna verzija unosa uz spoljnu vrednost**: polje drži ono što korisnik trenutno kuca (nepotpun datum `12.0…`), a mora da se uskladi kad se spoljna vrednost promeni sa druge strane (povratak dugmetom „nazad", izbor u kalendaru). Bez tog usklađivanja polje prikazuje staru vrednost posle navigacije. To je nužan obrazac, ne propust — ostaju kako jesu.
+
+### Provereno u ovom prolazu
+
+- `tsc --noEmit` čist; `npm run qa` — svih 8 ekrana 200, bez greške iz browsera.
+- **Prevlačenje provereno posebno**, jer otvaranje ekrana ne dokazuje ponašanje pri interakciji: privremenom skriptom u pravom browseru leva traka je prevučena sa 224 na 311 piksela, širina je upamćena u `localStorage`, a **naknadno pomeranje miša bez pritisnutog dugmeta više nije menjalo širinu** — što je tačno ono što bi pokvareno skidanje osluškivača propustilo. Skripta je posle brisanja obrisana.
