@@ -198,3 +198,17 @@ Stanje: **panel 0 grešaka**, 32 upozorenja; **sajt 0 prijava**. Oba `npm run li
 
 `tsc --noEmit` čist u obe aplikacije; `npm run build` sajta prolazi; `npm run lint` bez greške u obe; `npm run qa` — svih 8 ekrana 200, bez greške iz browsera.
 
+---
+
+## Regresija 6.9.2026 — ispravka iz gomile B oborila je levu traku
+
+**Vlasnik je uživo prijavio:** „nekontrolisano širenje i skupljanje levog panela — kada uđem u zonu panela, skupljanje i širenje se dogadja bez moje kontrole."
+
+**Uzrok je bila moja ispravka nalaza B1**, ne funkcija panela. Prelazak sa `removeEventListener` na `AbortController` uveo je kvar koga pre toga nije bilo: `addEventListener` sa istom funkcijom i istim tipom drugi put je **duplikat i po specifikaciji se zanemaruje zajedno sa svojim `signal`-om**, pa osluškivač ostaje vezan za PRVI `AbortController`. Kad se taj prepiše u `ref`-u, `abort()` na novom ne skida ništa i prevlačenje ostaje upaljeno — svaki naredni pokret miša menja širinu. Dovoljan je bio dvoklik na ručku. Stari oblik na to nije bio osetljiv, jer `removeEventListener` po referenci skida jedinu registraciju bez obzira koliko je puta dodata.
+
+**Ispravljeno** u sva tri fajla (`ResizablePane`, `AiDockBottom`, `TerminalPanel`): prethodni `AbortController` se prekida pre nego što se napravi nov, i `pointercancel` se osluškuje uz `pointerup` (pregledač ume sam da prekine pokazivač, i tada `pointerup` nikad ne stigne).
+
+**Zašto provera nije uhvatila.** Skripta napisana uz tu ispravku izvodila je JEDNO uredno prevlačenje — pritisak, pomeranje, otpuštanje — i prošla. Pisana je da potvrdi ono što je izmena htela da uradi, a ne da traži način da je obori; uredan scenario je jedini koji je bio u glavi, jer su izmenu i proveru pisali isti ja u istom trenutku. Zavedeno kao zamka **7.1e**, sa pravilom: *provera koja proverava samo ono što je izmena nameravala nije provera nego ponovljena namera.*
+
+**Trajna provera:** `node tools/provera-prevlacenja.mjs` — četiri slučaja, uključujući dvoklik i otpuštanje na ivici prozora, plus pozitivnu kontrolu da uredno prevlačenje MORA da menja širinu. Sa vraćenom greškom alat prijavljuje 2 od 4 pale provere; sa ispravkom prolaze sve četiri.
+

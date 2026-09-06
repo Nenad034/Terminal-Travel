@@ -88,10 +88,24 @@ export default function ResizablePane({
     setDragging(true);
     startX.current = e.clientX;
     startWidth.current = width;
+    // Prekini prethodno prevlačenje ako je ostalo otvoreno. OVO JE OBAVEZNO, ne opreznost
+    // (regresija 6.9.2026, prijavio vlasnik: „nekontrolisano širenje i skupljanje levog panela").
+    // `addEventListener` sa ISTOM funkcijom i istim tipom drugi put je duplikat i po specifikaciji
+    // se ZANEMARUJE — zajedno sa svojim `signal`-om. Osluškivač zato ostaje vezan za PRVI
+    // `AbortController`; ako je taj u međuvremenu prepisan u `dragAbort.current`, `abort()` na
+    // novom ne skida ništa i osluškivač ostaje zauvek na `window`. Dovoljan je jedan dvoklik ili
+    // drhtaj ruke (dva `pointerdown` bez `pointerup` između) da panel počne da se menja na svaki
+    // pokret miša. Raniji oblik sa `removeEventListener` na to nije bio osetljiv, jer uklanjanje
+    // po referenci skida jedinu registraciju bez obzira koliko je puta dodata.
+    dragAbort.current?.abort();
+
     const ctrl = new AbortController();
     dragAbort.current = ctrl;
     window.addEventListener('pointermove', onPointerMove, { signal: ctrl.signal });
     window.addEventListener('pointerup', onPointerUp, { signal: ctrl.signal });
+    // `pointercancel` — pregledač sam prekida pokazivač (prelazak na dodir, gubitak prozora,
+    // sistemski meni). Bez ovoga `pointerup` nikad ne stigne i prevlačenje ostaje „upaljeno".
+    window.addEventListener('pointercancel', onPointerUp, { signal: ctrl.signal });
   };
 
   const resetWidth = () => {
