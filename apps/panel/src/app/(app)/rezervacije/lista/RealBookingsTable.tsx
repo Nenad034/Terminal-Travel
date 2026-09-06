@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { deriveEmail, derivePhoneFromSeed } from './mock-data';
 import UrgentModal from './UrgentModal';
+import ExportButton from './ExportButton';
 
 export interface RealBookingItem {
   id: string;
@@ -391,7 +392,41 @@ export default function RealBookingsTable({
           </TableBody>
         </Table>
       </div>
-      <p className="mt-2 text-[11px] text-ink-faint">{sorted.length} / {bookings.length} rezervacija</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-[11px] text-ink-faint">{sorted.length} / {bookings.length} rezervacija</p>
+        {/* Izvoz u Excel (vraćen 6.9.2026). Tražen 23.8.2026 („Omoguciti export liste rezervacija
+            u excel ili gogle drive"), napravljen tada, ali samo na mock tabeli — pri prelasku
+            liste na prave podatke nije prenet, pa ga na ekranu nije bilo. Isti obrazac kao brzo
+            filtriranje po kolonama, koje je istog dana vraćeno.
+
+            Izvoze se TRENUTNO PRIKAZANI redovi (posle filtera i sortiranja), ne uvek cela lista —
+            ono što korisnik stvarno vidi.
+
+            NAMERNO BEZ demo kolona (poslovnica, zaduženi, dobavljač, hotel): te vrednosti nemaju
+            pravi izvor nego se izvode iz broja rezervacije (vidi `decorate`). Na ekranu ih prati
+            oznaka „(demo)"; u Excel tabeli koja izađe iz sistema te oznake nema, pa bi ih neko
+            mogao pročitati kao stvarne podatke i po njima postupiti. Vraćaju se kad dobiju pravi
+            izvor. */}
+        <ExportButton
+          rows={sorted.map((b) => ({
+            Broj: b.bookingNumber,
+            Kreirano: formatDate(b.createdAt),
+            Nosilac: b.buyerName,
+            'Tip kupca': b.buyerType,
+            Kanal: b.channel,
+            'Tip nastupanja': b.tipNastupanja,
+            Status: b.status,
+            Uplata: b.paymentStatus,
+            Država: b.destinationCountry ?? '',
+            Destinacija: b.destinationCity ?? '',
+            'Vrsta proizvoda': b.productType ?? '',
+            Dolazak: formatDate(b.stayFrom),
+            Odlazak: formatDate(b.stayTo),
+            'Iznos (ukupno)': b.totalPrice / 100,
+            Valuta: b.currency,
+          }))}
+        />
+      </div>
 
       {urgentFor?.demoUrgent && (
         <UrgentModal

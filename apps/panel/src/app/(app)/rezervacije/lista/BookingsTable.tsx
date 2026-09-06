@@ -290,7 +290,25 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
           <Icon name="filter" /> Filteri
         </button>
         <div className="ml-auto">
-          <ExportButton rows={sorted} />
+          {/* Spljoštavanje je od 6.9.2026 na pozivaocu, ne u samom dugmetu — vidi komentar u
+              `ExportButton.tsx`. */}
+          <ExportButton
+            rows={sorted.map((b) => ({
+              Broj: b.bookingNumber,
+              Kreirano: b.createdAt,
+              Nosilac: b.buyerName,
+              Država: b.country,
+              Destinacija: b.destinationCity,
+              Hotel: b.hotelName,
+              Kanal: b.channel,
+              Status: b.status,
+              Uplata: b.paymentStatus,
+              Dolazak: b.stayFrom,
+              Odlazak: b.stayTo,
+              'Iznos (ukupno)': b.totalPrice / 100,
+              Valuta: b.currency,
+            }))}
+          />
         </div>
       </div>
 

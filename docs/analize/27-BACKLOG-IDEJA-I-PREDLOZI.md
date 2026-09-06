@@ -190,6 +190,7 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 ## M5 — Rezervacije i tok prodaje
 *(§13, `docs/moduli/M05-rezervacije/06-SPECIFIKACIJA-M5-REZERVACIJE.md`)*
+- **Filteri liste po zaduženom korisniku, partneru, dobavljaču i poslovnici** (§13, 6.9.2026, vlasnik potvrdio da su potrebni) — dva od četiri su POSTALA moguća 31.8.2026 (`assigned_to_id`, `franchise_subagent_id` već stižu u odgovoru liste, fali samo ime i filter), dobavljač traži dopunu upita, **poslovnica čeka poslovnu odluku vlasnika** — taj pojam ne postoji ni u šemi ni u M1.
 - **Mapa — slova i ikonice se povlače sa javnog Protomaps skladišta** (§3.0h.5, 2.9.2026) — sami podaci mape su kod nas, ali fontovi i sprite idu sa GitHub Pages. Jedini deo mape koji izlazi van naše infrastrukture; za produkciju se preseljava, inače odluka o EU hostingu nije dosledno sprovedena.
 - **Mapa — povezivanje kartice i tačke** (§3.0h.5, 2.9.2026) — prelaz mišem preko rezultata da istakne tačku i obrnuto (Airbnb obrazac). Traži da lista i mapa stoje jedna pored druge; danas se smenjuju.
 - **Mapa — gde fajl živi u produkciji** (§3.0h.5, 2.9.2026) — lokalno radi iz `apps/panel/public/maps/`, produkciono skladište čeka izbor hosting provajdera (namerno odložen, CLAUDE.md).

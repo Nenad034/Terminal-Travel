@@ -2,42 +2,27 @@
 
 import { useState } from 'react';
 import Icon from '@/components/Icon';
-import type { MockBookingRow } from './mock-data';
 
 // Dopuna (23.8.2026, na zahtev vlasnika: "Omoguciti export liste rezervacija u excel ili gogle
 // drive") — izvozi TRENUTNO FILTRIRANE redove (ono što je vlasnik stvarno video na ekranu, ne
 // uvek celu listu). Google Drive dugme namerno ONEMOGUĆENO — objašnjenje u title-u, čeka novu
 // tech-stack odluku (OAuth/Drive API), ne prećutan propust.
-export default function ExportButton({ rows }: { rows: MockBookingRow[] }) {
+// Dopuna (6.9.2026): komponenta prima VEĆ SPLJOŠTENE redove (naziv kolone → vrednost) umesto
+// mock tipa. Razlog: izvoz je od 23.8.2026 postojao samo na mock tabeli i pri prelasku liste na
+// prave podatke nije prenet — funkcija koju je vlasnik tražio nestala je sa ekrana a da to niko
+// nije primetio (isti obrazac kao brzo filtriranje po kolonama, vraćeno istog dana). Sa ovim
+// oblikom svaka tabela sama bira ŠTA izvozi, pa komponenta više ne zavisi ni od jednog izvora
+// podataka.
+export default function ExportButton({ rows }: { rows: Record<string, string | number>[] }) {
   const [exporting, setExporting] = useState(false);
 
   async function exportExcel() {
     setExporting(true);
     try {
-      const flatRows = rows.map((b) => ({
-        Broj: b.bookingNumber,
-        Kreirano: b.createdAt,
-        Nosilac: b.buyerName,
-        Država: b.country,
-        Destinacija: b.destinationCity,
-        Hotel: b.hotelName,
-        'Tip smeštaja': b.accommodationType,
-        Kanal: b.channel,
-        Status: b.status,
-        Uplata: b.paymentStatus,
-        Dolazak: b.stayFrom,
-        Odlazak: b.stayTo,
-        'Iznos (ukupno)': b.totalPrice / 100,
-        Valuta: b.currency,
-        Poslovnica: b.branch,
-        Zadužen: b.assignedUser,
-        Dobavljač: b.supplierName,
-        Partner: b.partnerName ?? '',
-      }));
       const res = await fetch('/api/rezervacije/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rows: flatRows }),
+        body: JSON.stringify({ rows }),
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
