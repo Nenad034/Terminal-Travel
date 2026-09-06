@@ -107,10 +107,21 @@ export default function Shell({
   // sinhronizuje sa STVARNOM putanjom na svaku promenu (dodatno uz ručne klikove, ne umesto njih —
   // ručno "pregledanje" druge grupe preko ActivityBar/TopBar ikonice i dalje radi jer ne menja
   // putanju dok se ne klikne stavka unutar nje).
-  useEffect(() => {
+  // Podešavanje ide U RENDERU, ne kroz `useEffect` (6.9.2026, dok. 41 C1 — poslednji od šest
+  // slučajeva koji su čekali pojedinačan pregled). Sa efektom se posle svake navigacije jednom
+  // iscrta STARA grupa u levoj traci pa se odmah zameni — kratak, ali vidljiv treptaj na ekranu
+  // koji se menja desetinama puta dnevno.
+  //
+  // Poređenje je sa prethodnom PUTANJOM, ne sa prethodnom grupom: `activeGroupId` se namerno
+  // menja i ručno (klik na ikonicu grupe u levoj traci „pregleda" drugu grupu bez navigacije,
+  // vidi `onSelectGroup` niže). Da se poredila grupa, taj ručni izbor bi se poništavao pri
+  // svakom sledećem renderu — ovako ga dira samo stvarna promena adrese, isto kao i pre.
+  const [poslednjaPutanja, setPoslednjaPutanja] = useState(pathname);
+  if (poslednjaPutanja !== pathname) {
+    setPoslednjaPutanja(pathname);
     const g = groupForHref(pathname);
     if (g) setActiveGroupId(g.id);
-  }, [pathname]);
+  }
   // VS Code obrazac — leva traka se skuplja na tanku traku, ne nestaje (na zahtev vlasnika,
   // 19.8.2026). Podrazumevano `false` na SERVERU I na prvom klijentskom renderu (moraju biti
   // identični zbog hidratacije) — localStorage se čita tek u useEffect POSLE hidratacije, isti

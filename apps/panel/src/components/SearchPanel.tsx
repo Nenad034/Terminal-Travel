@@ -94,9 +94,15 @@ export default function SearchPanel({ hasResults }: { hasResults: boolean }) {
 
   // Čim stignu rezultati, red se skuplja sam (§3.0g.2). Ako korisnik promeni vrstu proizvoda i
   // za nju nema upamćenih kriterijuma, forma se otvara — nema šta da se skuplja.
-  useEffect(() => {
+  //
+  // U RENDERU, ne kroz `useEffect` (6.9.2026, dok. 41 C1): sa efektom se forma prvo iscrta
+  // raširena pa se odmah skupi — treptaj tačno u trenutku kad korisnik gleda rezultate.
+  const [poslednjiUpit, setPoslednjiUpit] = useState(`${typeKey}|${criteria}`);
+  const tekuciUpit = `${typeKey}|${criteria}`;
+  if (poslednjiUpit !== tekuciUpit) {
+    setPoslednjiUpit(tekuciUpit);
     setExpanded(false);
-  }, [typeKey, criteria]);
+  }
 
   /** §3.0d.5a — uključuje/isključuje praćenje datuma; ne menja vrstu pretrage niti briše išta. */
   function togglePackageMode() {

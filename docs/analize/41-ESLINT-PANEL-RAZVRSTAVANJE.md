@@ -212,3 +212,31 @@ Stanje: **panel 0 grešaka**, 32 upozorenja; **sajt 0 prijava**. Oba `npm run li
 
 **Trajna provera:** `node tools/provera-prevlacenja.mjs` — četiri slučaja, uključujući dvoklik i otpuštanje na ivici prozora, plus pozitivnu kontrolu da uredno prevlačenje MORA da menja širinu. Sa vraćenom greškom alat prijavljuje 2 od 4 pale provere; sa ispravkom prolaze sve četiri.
 
+---
+
+## Zatvoreno 6.9.2026 — šest neproverenih slučajeva iz C1
+
+U prvom razvrstavanju je šest `set-state-in-effect` prijava svrstano u „ostalo — traži pojedinačan pogled" i tako ostalo. Prošao sam kroz svih šest. **Četiri su ispravna i ostaju, dva su prebačena u render.** Broj upozorenja u panelu: 32 → 30.
+
+| Mesto | Šta radi | Ocena |
+|---|---|---|
+| `SearchResultsMap` | `setFailed(...)` u `catch` pri pokretanju mape | **Ostaje.** Rukovanje greškom pri pokretanju spoljnog sistema, ne izvedeno stanje. |
+| `AiChatBox` (animacija kucanja) | čita `prefers-reduced-motion` posle montiranja | **Ostaje.** Isto kao ostalih 11 hidratacijskih slučajeva — vrednost iz pregledača sme se čitati tek posle hidratacije. |
+| `SearchRefreshNotice` | `recordOffers(...)` pa upis rezultata i obaveštavanje konteksta | **Ostaje.** Efekat sa stvarnim sporednim dejstvom (beleženje viđenih cena), ne prepisivanje propa u stanje. |
+| `BookingItemGuestsEditor` | zatvara formu kad serverska akcija uspe | **Ostaje.** Reakcija na rezultat spoljne akcije. Prebacivanje u render dobija samo dosledost, a menja tok koji zavisi od odgovora API-ja — nesrazmeran rizik. |
+| `Shell` | usklađuje aktivnu grupu leve trake sa adresom | **Prebačeno u render.** Sa efektom se posle svake navigacije jednom iscrta STARA grupa pa se odmah zameni — treptaj na ekranu koji se menja desetinama puta dnevno. |
+| `SearchPanel` | skuplja formu kad se promeni upit | **Prebačeno u render.** Isto: forma se prvo iscrta raširena pa se skupi, tačno kad korisnik gleda rezultate. |
+
+**Zamka izbegnuta u `Shell`:** poređenje mora biti sa prethodnom **putanjom**, ne sa prethodnom grupom. `activeGroupId` se namerno menja i ručno — klik na ikonicu u uskoj levoj traci „pregleda" drugu grupu bez navigacije. Da se poredila grupa, taj ručni izbor bi se poništavao pri svakom sledećem renderu.
+
+### Provereno u ovom prolazu
+
+Po pravilu iz zamke 7.1e, provera je uključila i **neuredan** slučaj, ne samo onaj koji je izmena nameravala:
+
+- leva traka prati adresu i posle **tri uzastopne brze navigacije** (`/izvestaji` → `/email` → `/katalog`), sadržaj isti kao pri običnom otvaranju;
+- **ručni izbor grupe klikom na ikonicu ostaje** — sadržaj trake se promeni bez navigacije i ne vraća se sam ni posle dve sekunde (to je tačno ono što bi poređenje po grupi pokvarilo);
+- pretraga: promena vrste proizvoda menja formu (53 → 14 polja) i povratak je vraća (14 → 53), bez greške iz pregledača;
+- `tools/provera-prevlacenja.mjs` i dalje prolazi sve četiri; `npm run qa` svih 8 ekrana; lint 0 grešaka.
+
+**Utrošena dva pokušaja na samu proveru.** Prva verzija je čitala `<a>` linkove iz leve trake i vratila prazno — traka koristi dugmad, ne linkove. Druga je pogodila pogrešan `nav` (usku traku umesto široke) i vratila „€". Oba puta bi zaključak „traka prati adresu: DA" bio besmislen, jer su se poredila dva prazna niza. Isti oblik greške kao kod kataloga jutros — zabeleženo uz zamku 5.25.
+
