@@ -7,7 +7,19 @@ import { Button } from '@/components/ui/button';
 
 const initialState: FormState = { error: null };
 
-export default function EditUserForm({ id, fullName, phone }: { id: string; fullName: string; phone: string | null }) {
+export default function EditUserForm({
+  id,
+  fullName,
+  phone,
+  branchId,
+  branches,
+}: {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  branchId: string | null;
+  branches: { id: string; name: string }[];
+}) {
   const boundAction = updateUser.bind(null, id);
   const [state, formAction] = useActionState(boundAction, initialState);
 
@@ -21,6 +33,17 @@ export default function EditUserForm({ id, fullName, phone }: { id: string; full
       <label className="text-xs text-ink-faint">
         telefon
         <input name="phone" defaultValue={phone ?? ''} className="input mt-1" />
+      </label>
+      <label className="text-xs text-ink-faint">
+        poslovnica
+        <select name="branchId" defaultValue={branchId ?? ''} className="input mt-1">
+          <option value="">—</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
       </label>
       <SubmitButton />
     </form>

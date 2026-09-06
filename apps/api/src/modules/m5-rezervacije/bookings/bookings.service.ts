@@ -236,6 +236,12 @@ export class BookingsService {
       guestsByIndex.set(g.itemIndex, list);
     }
 
+    // M1 spec dopuna (6.9.2026, vlasnikov zahtev: "poslovnica se nasledjuje iz zaposlenog") —
+    // SNAPSHOT poslovnice zaposlenog u trenutku kreiranja (vidi komentar uz Booking.branch_id u
+    // schema.prisma). Za GOST_SELF kanale `actor.userId` je sam gost (GUEST nalog, bez
+    // poslovnice) — ostaje `null`, što je tačno (samouslužna rezervacija nema poslovnicu).
+    const creator = await this.prisma.user.findUnique({ where: { id: actor.userId }, select: { branchId: true } });
+
     const booking = await this.prisma.booking.create({
       data: {
         bookingNumber,
@@ -256,6 +262,7 @@ export class BookingsService {
         // subagenta preko resolveApiContext), prazno za matičnu agenciju/gost/B2B.
         ownerId: actor.userId,
         assignedToId: actor.userId,
+        branchId: creator?.branchId ?? null,
         franchiseSubagentId,
         referralTrackingCode: quote.referralTrackingCode,
         // M20 spec §3.2 dopuna — prenosi već dati clickwrap pristanak (samouslužni kanali)
@@ -532,6 +539,16 @@ export class BookingsService {
        * i hotela stavite da bude jedno"). */
       productName?: string;
       hasTravelGuarantee?: string;
+      // Dopuna 6.9.2026 (vlasnikov zahtev — dodatni, sakriveni filteri Liste rezervacija):
+      // Poslovnica (snapshot, §6.9.2026 dopuna Booking.branch_id), Zaposleni (owner_id, ista
+      // kolona kao već postojeće scoping-ovanje na sopstvene rezervacije ispod), Dobavljač i
+      // Vrsta dobavljača (BookingItem.supplier — preko istog itemWhere kao productType/
+      // destinationCity), Vrsta objekta (Product.attributes.accommodation_type, M2 §2.3).
+      branchId?: string;
+      ownerId?: string;
+      supplierId?: string;
+      supplierType?: string;
+      accommodationType?: string;
     },
     actor: { userId: string },
     pagination?: PaginationQueryDto,
@@ -569,6 +586,8 @@ export class BookingsService {
       }
       if (filters.hasTravelGuarantee === 'true') where.travelGuaranteeRegistration = { isNot: null };
       if (filters.hasTravelGuarantee === 'false') where.travelGuaranteeRegistration = { is: null };
+      if (filters.branchId) where.branchId = filters.branchId;
+      if (filters.ownerId) where.ownerId = filters.ownerId;
 
       const itemWhere: Prisma.BookingItemWhereInput = {};
       if (filters.stayFrom || filters.stayTo) {
@@ -583,7 +602,28 @@ export class BookingsService {
           ...(filters.returnTo ? { lte: new Date(`${filters.returnTo}T23:59:59.999Z`) } : {}),
         };
       }
-      if ((filters.productType && filters.productType.length > 0) || filters.destinationCity || filters.destinationCountry || filters.productName) {
+      // Dobavljač/vrsta dobavljača (6.9.2026 dopuna) — `BookingItem` NEMA sopstveni
+      // `supplier_id`: ugovoreni proizvod (većina) nosi dobavljača posredno preko
+      // `Product.sourceContract.supplierId` (M3 `Contract`), samo ručno uneta usluga (§6.7b)
+      // ima `Product.supplierId` direktno (M2 §2.1 dopuna). Filter mora da pokrije OBA puta,
+      // inače bi "Dobavljač" tiho propuštao sve CONTRACTED stavke (velika većina rezervacija).
+      const supplierConditions: Prisma.ProductWhereInput[] = [];
+      if (filters.supplierId) {
+        supplierConditions.push({ OR: [{ supplierId: filters.supplierId }, { sourceContract: { supplierId: filters.supplierId } }] });
+      }
+      if (filters.supplierType) {
+        supplierConditions.push({
+          OR: [{ supplier: { type: filters.supplierType as any } }, { sourceContract: { supplier: { type: filters.supplierType as any } } }],
+        });
+      }
+      if (
+        (filters.productType && filters.productType.length > 0) ||
+        filters.destinationCity ||
+        filters.destinationCountry ||
+        filters.productName ||
+        filters.accommodationType ||
+        supplierConditions.length > 0
+      ) {
         itemWhere.product = {
           ...(filters.productType && filters.productType.length > 0 ? { type: { in: filters.productType as any } } : {}),
           ...(filters.destinationCity ? { destinationCity: filters.destinationCity } : {}),
@@ -591,6 +631,10 @@ export class BookingsService {
           // Isti obrazac kao `buildCalendarItemWhere` — naziv je jezički zavisan (M2 §2.2
           // `ProductTranslation`), pretražuje se preko SVIH prevoda odjednom.
           ...(filters.productName ? { translations: { some: { name: { contains: filters.productName, mode: 'insensitive' } } } } : {}),
+          // Vrsta objekta (6.9.2026 dopuna) — M2 §2.3 konvencija, `accommodation_type` živi u
+          // `Product.attributes` JSON-u (samo `type=ACCOMMODATION`), nema sopstvenu kolonu.
+          ...(filters.accommodationType ? { attributes: { path: ['accommodation_type'], equals: filters.accommodationType } } : {}),
+          ...(supplierConditions.length > 0 ? { AND: supplierConditions } : {}),
         };
       }
       // Dopuna (26.8.2026, na zahtev vlasnika — "aktivne rezervacije za ovaj hotel" link iz
