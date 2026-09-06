@@ -44,14 +44,16 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
     let cancelled = false;
     setEntries(null);
     setError(null);
-    const qs = new URLSearchParams({ module: summary.module, action: akcijeKljuc });
+    // Straničenje audit loga (6.9.2026) — traži se tačno onoliko redova koliko se prikazuje,
+    // umesto cele stranice od kojih se koristi prvih nekoliko.
+    const qs = new URLSearchParams({ module: summary.module, action: akcijeKljuc, limit: String(RECENT_LIMIT) });
     fetch(`/api/iam/audit-log?${qs.toString()}`, { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Greška pri učitavanju');
         return res.json();
       })
-      .then((data: AuditLogEntry[]) => {
-        if (!cancelled) setEntries(data.slice(0, RECENT_LIMIT));
+      .then((odgovor: { data: AuditLogEntry[] }) => {
+        if (!cancelled) setEntries(odgovor.data);
       })
       .catch(() => {
         if (!cancelled) setError('Poslednji zapisi nisu učitani.');

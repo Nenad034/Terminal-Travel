@@ -73,6 +73,8 @@ const EKRANI = [
   // Procesna mapa ne menja oblik odgovora nego GUBI polje (`capped`) — ekran koji ga i dalje
   // čita ne puca, samo tiho prikazuje pogrešno; zato je ovde, da se bar otvaranje potvrdi.
   { kljuc: 'procesne-mape', naziv: 'Procesne mape', putanja: '/nadzor/procesne-mape/m1-security' },
+  // Dodato 6.9.2026 uz nov ekran (M10 spec §3.1a) — jedini ulaz u kursnu listu kroz interfejs.
+  { kljuc: 'kursna-lista', naziv: 'Kursna lista', putanja: '/finansije/kursna-lista' },
 ];
 
 // Upozorenja koja dolaze iz alata, a ne iz našeg koda — prijavljuju se odvojeno od grešaka da

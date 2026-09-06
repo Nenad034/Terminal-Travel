@@ -50,7 +50,12 @@ export default async function DashboardPage() {
   const canAgentInbox = hasPermission(me, 'M15', 'agent-inbox', 'VIEW');
 
   const [auditEntries, expiringReleases, guaranteeUtilization, agentInbox] = await Promise.all([
-    canAudit ? apiFetch<AuditLogEntry[]>('/iam/audit-log').catch(() => []) : Promise.resolve([]),
+    // Straničenje audit loga (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`.
+    // Filter ide SERVERU umesto u memoriju, i traži se tačno onoliko redova koliko se prikazuje.
+    canAudit
+      ? apiFetch<{ data: AuditLogEntry[] }>('/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=5')
+          .catch(() => ({ data: [] }))
+      : Promise.resolve({ data: [] }),
     canContractPeriods
       ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => [])
       : Promise.resolve([]),
@@ -62,9 +67,7 @@ export default async function DashboardPage() {
     canAgentInbox ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => []) : Promise.resolve([]),
   ]);
 
-  const securityAlerts = (auditEntries as AuditLogEntry[])
-    .filter((e) => e.module === 'M1' && (e.action === 'user.locked' || e.action === 'auth.login_failed'))
-    .slice(0, 5);
+  const securityAlerts = (auditEntries as { data: AuditLogEntry[] }).data;
 
   // Rok povrata = dan dolaska minus release_days_before (M3 spec §6) — nema odvojenog polja u
   // bazi, računa se ovde isto kao što bi ga računao svaki drugi potrošač ovog endpoint-a.

@@ -140,6 +140,18 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // Dodato 6.9.2026 na zahtev vlasnika. Do tada su `GET`/`POST /finance/exchange-rates`
+    // postojali BEZ ijednog ekrana — kurs se nije mogao ni videti ni ručno uneti kroz
+    // interfejs. Vidi M10 spec §3.1a.
+    id: 'kursna-lista',
+    label: 'Kursna lista',
+    icon: 'graph',
+    href: '/finansije/kursna-lista',
+    permission: { module: 'M10', resource: 'exchange-rate', action: 'VIEW' },
+    phase: 2,
+    implemented: true,
+  },
+  {
     id: 'compliance',
     label: 'Compliance (garancija putovanja)',
     icon: 'shield',
@@ -292,7 +304,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { id: 'prodaja', label: 'Prodaja', icon: 'euro', itemIds: ['pretraga', 'kalendar', 'rezervacije-lista', 'rezervacije-najave'] },
   { id: 'katalog-nabavka', label: 'Katalog i nabavka', icon: 'package', itemIds: ['katalog', 'destinacije', 'dobavljaci'] },
   { id: 'klijenti-partneri', label: 'Klijenti i partneri', icon: 'organization', itemIds: ['crm', 'b2b'] },
-  { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'compliance', 'ugovori-klijenti'] },
+  { id: 'finansije-pravno', label: 'Finansije i pravno', icon: 'law', itemIds: ['finansije', 'kursna-lista', 'compliance', 'ugovori-klijenti'] },
   { id: 'komunikacija-podrska', label: 'Komunikacija i podrška', icon: 'comment-discussion', itemIds: ['podrska', 'chat', 'pomoc', 'email'] },
   { id: 'sadrzaj-znanje', label: 'Sadržaj i znanje', icon: 'book', itemIds: ['marketing', 'znanje'] },
   { id: 'analitika-nadzor', label: 'Analitika i nadzor', icon: 'graph-line', itemIds: ['izvestaji', 'nadzor'] },

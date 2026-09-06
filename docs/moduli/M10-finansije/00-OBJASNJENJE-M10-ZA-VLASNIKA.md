@@ -46,7 +46,9 @@ Dve stvari koje je vredno znati:
 
 Rezultat, proveren na živim podacima: svih 12 uplata je sada u izveštajima, i svaka je preračunata po kursu **svog** dana (117,4175 za 29. maj, 117,3823 za 8. jun, i tako dalje), ne po jednom istom kursu za sve.
 
-**Šta i dalje nedostaje, da znate:** kursna lista **nema svoj ekran** u panelu. Kurs se ne može ni pogledati ni ručno uneti kroz interfejs — samo automatski. Dok automatika radi, to se ne primećuje; primetiće se tačno onda kad zakaže, a to je i jedini trenutak kad bi ručni unos zatrebao. Nije nastalo ovom izmenom, ali je sada zapisano kao poznat nedostatak.
+**Kursna lista sada ima i svoj ekran** (Finansije → Kursna lista). Do 6.9.2026. kurs se nije mogao ni pogledati ni ručno uneti kroz aplikaciju — postojao je samo automatski uvoz. Sada na tom ekranu vidite sve kurseve, sa jasnom oznakom da li je zapis došao iz Narodne banke ili ga je uneo čovek, i možete uneti kurs ručno ako automatika zakaže. Ako je poslednji kurs stariji od tri dana, ekran vas na to sam upozori (tri dana, a ne jedan, jer se vikendom kurs ne objavljuje — inače bi vas alarmirao svake subote bez razloga).
+
+Jedna sitnica koja je usput popravljena: ako pokušate da unesete kurs za dan koji ga već ima, dobijate jasnu poruku umesto opšte greške. Postojeći kurs se **ne prepisuje** — kurs po kom je nešto već obračunato ne sme se naknadno promeniti pod nogama računima koji se na njega pozivaju.
 
 ## Kad gost plati karticom — plaćanje ide PRE potvrde rezervacije
 

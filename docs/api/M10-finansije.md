@@ -369,6 +369,13 @@ Kursna lista raste jednim redom po valuti PO DANU — ranija granica od 200 pokr
 `source` razlikuje kurs povučen sa NBS-a od ručno unetog.
 
 ### POST /finance/exchange-rates
+
+Dozvola: `M10/exchange-rate/EDIT`. Svaki unos kroz ovaj endpoint dobija `source = MANUAL` — vrednost se ne prima iz tela zahteva, da bi se po zapisu uvek videlo šta je došlo iz NBS-a a šta je čovek uneo.
+
+**`409 Conflict`** kad za tu valutu i taj dan kurs već postoji (jedinstveni indeks `currency + rate_date`). Postojeći zapis se **ne prepisuje** — kurs koji je već upotrebljen u obračunu ne sme se tiho promeniti pod nogama dokumentima koji ga citiraju. Do 6.9.2026. isti slučaj je vraćao golo `500 Internal server error`.
+```json
+{ "statusCode": 409, "message": "Kurs za EUR na dan 2026-08-28 već postoji i ne prepisuje se.", "error": "Conflict" }
+```
 Dozvola: `M10/exchange-rate/EDIT`.
 ```json
 { "currency": "EUR", "rateDate": "2027-05-14", "nbsMiddleRate": 117.3707 }

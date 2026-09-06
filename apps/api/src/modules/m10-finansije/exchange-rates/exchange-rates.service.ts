@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { type PaginationQueryDto, paginated, paginationArgs } from '../../../common/pagination/pagination';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -19,14 +19,29 @@ export class ExchangeRatesService {
   ) {}
 
   async create(dto: CreateExchangeRateDto, actor: { userId: string }) {
-    return this.prisma.exchangeRateSnapshot.create({
-      data: {
-        currency: dto.currency,
-        rateDate: new Date(dto.rateDate),
-        nbsMiddleRate: dto.nbsMiddleRate,
-        source: 'MANUAL',
-      },
-    });
+    try {
+      return await this.prisma.exchangeRateSnapshot.create({
+        data: {
+          currency: dto.currency,
+          rateDate: new Date(dto.rateDate),
+          nbsMiddleRate: dto.nbsMiddleRate,
+          source: 'MANUAL',
+        },
+      });
+    } catch (err) {
+      // Dan koji već ima kurs (jedinstveni indeks `@@unique([currency, rate_date])`) je
+      // NAJVEROVATNIJA greška pri ručnom unosu — čovek unosi kurs baš zato što misli da
+      // nedostaje. Bez ovoga bi dobio golo `500 Internal server error` i ne bi znao ni šta je
+      // pošlo naopako ni šta da uradi (ista klasa kao zamka 13.1). Postojeći zapis se NE
+      // prepisuje: kurs koji je već upotrebljen u obračunu ne sme se tiho promeniti pod nogama
+      // dokumentima koji se na njega pozivaju.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException(
+          `Kurs za ${dto.currency} na dan ${dto.rateDate} već postoji i ne prepisuje se.`,
+        );
+      }
+      throw err;
+    }
   }
 
   // STRANIČENJE (6.9.2026, dok. 39 nalaz 2.2). Ranije golo `take: 200`: kursna lista raste

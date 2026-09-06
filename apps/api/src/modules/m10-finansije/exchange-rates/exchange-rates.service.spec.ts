@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ExchangeRatesService } from './exchange-rates.service';
 
@@ -22,6 +22,29 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
     expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ currency: 'EUR', nbsMiddleRate: 117.25, source: 'MANUAL' }),
     });
+  });
+
+  // Dodato 6.9.2026 uz ekran za kursnu listu: dupli unos je NAJVEROVATNIJA greška na tom
+  // ekranu (čovek unosi kurs baš zato što misli da nedostaje), a do tada je vraćao golo
+  // `500 Internal server error` — ista klasa kao zamka 13.1.
+  it('dupli unos za isti dan i valutu vraća 409 sa objašnjenjem, ne 500', async () => {
+    const { service, prisma } = makeService();
+    prisma.exchangeRateSnapshot.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('duplikat', { code: 'P2002', clientVersion: '5.22.0' }),
+    );
+
+    await expect(
+      service.create({ currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 }, { userId: 'actor-1' }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('greška koja NIJE duplikat se propagira (ne pretvara se u 409)', async () => {
+    const { service, prisma } = makeService();
+    prisma.exchangeRateSnapshot.create.mockRejectedValue(new Error('baza nedostupna'));
+
+    await expect(
+      service.create({ currency: 'EUR', rateDate: '2026-08-28', nbsMiddleRate: 117.37 }, { userId: 'actor-1' }),
+    ).rejects.toThrow('baza nedostupna');
   });
 
   it('vraća najbliži prethodni kurs kad tačan dan ne postoji', async () => {

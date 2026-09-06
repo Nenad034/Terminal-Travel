@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 
-interface AuditLogEntry {
-  action: string;
-  module: string;
+interface StranicenBroj {
+  total: number;
 }
 interface ExpiringRelease {
   id: string;
@@ -28,7 +27,13 @@ export async function GET() {
   const canAgentInbox = hasPermission(me, 'M15', 'agent-inbox', 'VIEW');
 
   const [auditEntries, expiringReleases, guaranteeUtilization, agentInbox] = await Promise.all([
-    canAudit ? apiFetch<AuditLogEntry[]>('/iam/audit-log').catch(() => []) : Promise.resolve([]),
+    // Straničenje audit loga (6.9.2026, dok. 39 nalaz 2.2) — odgovor je `{ data, total, ... }`, ne go
+    // niz. Umesto da se povlači stranica pa filtrira u memoriji, filter ide SERVERU (`action` prima
+    // više vrednosti razdvojenih zarezom) i broj se čita iz `total` — tako je tačan bez obzira na
+    // veličinu stranice, a povlači se najmanje što treba.
+    canAudit
+      ? apiFetch<StranicenBroj>('/iam/audit-log?module=M1&action=user.locked,auth.login_failed&limit=1').catch(() => null)
+      : Promise.resolve(null),
     canContractPeriods ? apiFetch<ExpiringRelease[]>('/contracting/contracts/expiring-releases').catch(() => []) : Promise.resolve([]),
     canTravelGuarantee
       ? apiFetch<{ utilizationPercent: number; guaranteeStatus: string | null }>('/compliance/travel-guarantee/utilization').catch(() => null)
@@ -36,9 +41,7 @@ export async function GET() {
     canAgentInbox ? apiFetch<AgentInboxSource[]>('/ai-orchestration/inbox').catch(() => []) : Promise.resolve([]),
   ]);
 
-  const securityAlertsCount = (auditEntries as AuditLogEntry[]).filter(
-    (e) => e.module === 'M1' && (e.action === 'user.locked' || e.action === 'auth.login_failed'),
-  ).length;
+  const securityAlertsCount = (auditEntries as StranicenBroj | null)?.total ?? 0;
   const agentInboxTotal = (agentInbox as AgentInboxSource[]).reduce((sum, s) => sum + s.count, 0);
 
   return NextResponse.json({
