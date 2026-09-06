@@ -455,6 +455,19 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
     });
   });
 
+  describe('findAll — productName (6.9.2026 dopuna, isti obrazac kao calendar-summary)', () => {
+    it('filtrira preko ProductTranslation.name (svi jezici, insensitive)', async () => {
+      const { service, prisma } = makeService();
+      prisma.user.findUnique.mockResolvedValue({ accountType: 'STAFF', linkedProfileId: null });
+      prisma.booking.findMany.mockResolvedValue([]);
+
+      await service.findAll({ productName: 'Sunce' }, { userId: 'staff-1' });
+
+      const where = prisma.booking.findMany.mock.calls[0][0].where;
+      expect(where.items.some.product.translations).toEqual({ some: { name: { contains: 'Sunce', mode: 'insensitive' } } });
+    });
+  });
+
   describe('findAll/findOne — VIEW_ALL vidljivost (§6.6, 31.8.2026)', () => {
     it('podrazumevano (VIEW_ALL=true) interno osoblje NE dobija OR filter na vlasništvo/zaduženje', async () => {
       const { service, prisma, permissions } = makeService();
