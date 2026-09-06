@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import RealFilterFields from './RealFilterFields';
+import { useFilterMode } from './FilterModeContext';
 
 // Multiselect (24.8.2026, na zahtev vlasnika: "u svakom polju filtera gde je to moguce
 // multiselect opciju") — polja koja su kategorička (konačan, mali skup vrednosti) prihvataju
@@ -52,14 +53,13 @@ const TEXT_DEBOUNCE_MS = 600;
 // u kom bolje rasporedite polja..."; dopunjeno isti dan — "dodamo i mogucnost prikaza filtera po
 // defoltu za svaki modul, u levom panelu... Ja volim da dam korisnicima izbor pa neka bude da
 // dodamo to trece mesto... pa neka biraju od tri resenja") — korisnikov izbor, ne automatska
-// zamena; pamti se po pregledaču (nema potrebe za serverskim poljem, ovo je čisto vizuelna
-// preferenca ekrana, isti princip kao ostala "samo ovaj pregledač" stanja u panelu). "Ladica"
-// deli isti sadržaj/obrazac kao "prozor" (`FilterModal`/`FilterDrawer` ispod su skoro identični —
-// razlikuju se samo pozicijom/oblikom omotača), namerno NIJE trajno prikovana uz levu ivicu —
-// vlasnikov razlog za treću opciju je "izbor" i "velicina ekrana", ne zamena za "prozor".
-type DisplayMode = 'traka' | 'prozor' | 'ladica';
-const MODE_STORAGE_KEY = 'rezervacije-lista-filter-mode';
-
+// zamena; pamti se po pregledaču. "Ladica" deli isti sadržaj/obrazac kao "prozor"
+// (`FilterModal`/`FilterDrawer` ispod su skoro identični — razlikuju se samo pozicijom/oblikom
+// omotača), namerno NIJE trajno prikovana uz levu ivicu. Sâmo STANJE (koje polje je aktivno) i
+// prekidač koji ga menja žive u `FilterModeContext.tsx`/`FilterModeToggle.tsx` — premešteno u red
+// sa naslovom stranice (6.9.2026, vlasnikov zahtev: "traka prozor levi panel staviti u liniji sa
+// naslovom taba iznad brzih [ikonica] u desnom kraju"), ovaj fajl samo ČITA `mode` preko
+// `useFilterMode()`, više ga ne prikazuje ni ne menja sam.
 function countActiveFilters(f: BookingFilters): number {
   // "Kreirano od/do", "Dolazak od/do", "Odlazak od/do" broje se kao PO JEDAN kriterijum (ne dva)
   // — isti princip kao `CalendarFilterBar.tsx` `countActiveCriteria`.
@@ -86,28 +86,10 @@ function countActiveFilters(f: BookingFilters): number {
 
 export default function RealFilterBar({ filters }: { filters: BookingFilters }) {
   const hasAnyFilter = Object.values(filters).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
-  const [mode, setMode] = useState<DisplayMode>('traka');
+  const { mode } = useFilterMode();
   const [modalOpen, setModalOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      if (saved === 'traka' || saved === 'prozor' || saved === 'ladica') setMode(saved);
-    } catch {
-      // privatan prozor/blokirano skladište — ostaje podrazumevana "traka", bez greške na ekranu
-    }
-  }, []);
-
-  function chooseMode(next: DisplayMode) {
-    setMode(next);
-    try {
-      localStorage.setItem(MODE_STORAGE_KEY, next);
-    } catch {
-      // isti razlog kao iznad — čisto vizuelna preferenca, ne mora da uspe
-    }
-  }
 
   function handleFormChange(e: React.ChangeEvent<HTMLFormElement>) {
     const target = e.target as unknown as HTMLInputElement;
@@ -121,34 +103,6 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
   }
 
   const activeCount = countActiveFilters(filters);
-  const modeToggle = (
-    <div className="flex flex-shrink-0 overflow-hidden rounded border border-border text-[11px]">
-      <button
-        type="button"
-        onClick={() => chooseMode('traka')}
-        title="Traka filtera — uvek vidljiva"
-        className={`px-2 py-1 font-medium ${mode === 'traka' ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
-      >
-        traka
-      </button>
-      <button
-        type="button"
-        onClick={() => chooseMode('prozor')}
-        title="Iskačući prozor — bolji raspored na manjim ekranima (laptop/tablet)"
-        className={`border-l border-border px-2 py-1 font-medium ${mode === 'prozor' ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
-      >
-        prozor
-      </button>
-      <button
-        type="button"
-        onClick={() => chooseMode('ladica')}
-        title="Levi panel — filteri se otvaraju sa leve strane, dosledno mesto na svakom modulu"
-        className={`border-l border-border px-2 py-1 font-medium ${mode === 'ladica' ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
-      >
-        levi panel
-      </button>
-    </div>
-  );
 
   if (mode === 'prozor' || mode === 'ladica') {
     return (
@@ -168,7 +122,6 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
             obriši filter
           </Link>
         )}
-        <div className="ml-auto">{modeToggle}</div>
         {modalOpen && mode === 'prozor' && <FilterModal filters={filters} onClose={() => setModalOpen(false)} />}
         {modalOpen && mode === 'ladica' && <FilterDrawer filters={filters} onClose={() => setModalOpen(false)} />}
       </div>
@@ -190,7 +143,6 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           Napomena 27.8.2026: brzi period Dan/Nedelja/Mesec (`PeriodQuickFilter.tsx`) NIJE ovde —
           vlasnik je pojasnio da je mislio na traku ikonica koja je UVEK vidljiva
           (`BookingsListClient.tsx`, sticky), ne na ovu formu koja se može sakriti dugmetom −/+. */}
-      <div className="flex justify-end">{modeToggle}</div>
       <RealFilterFields filters={filters} autoSubmit layout="bar" />
       <div className="flex items-center gap-2">
         <button
