@@ -105,7 +105,7 @@ export default function BookingRecordClient({ booking }: { booking: MockBookingR
           <Row label="Dug" value={money(owed)} tone={owed > 0 ? 'danger' : undefined} />
           <Row label="Status uplate" value={b.paymentStatus} />
           <p className="mt-2 text-[11px] italic text-ink-faint">
-            Zbir iznad ostaje istorijski snimak sa liste — raščlana po stavkama (sa mogućnošću izmene) je u sekciji "Stavke (segmenti)" ispod.
+            Zbir iznad ostaje istorijski snimak sa liste — raščlana po stavkama (sa mogućnošću izmene) je u sekciji „Stavke (segmenti)“ ispod.
           </p>
         </Section>
 

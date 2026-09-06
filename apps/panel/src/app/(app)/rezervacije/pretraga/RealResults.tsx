@@ -200,7 +200,7 @@ function ResultCard({ result: r, quoteDefaults }: { result: SearchResult; quoteD
                   stayFrom={quoteDefaults.stayFrom}
                   stayTo={quoteDefaults.stayTo}
                   adults={quoteDefaults.adults}
-                  children={quoteDefaults.children}
+                  childrenCount={quoteDefaults.children}
                   finalPrice={o.finalPrice}
                   finalPriceCurrency={o.finalPriceCurrency}
                   quoteExpiresAt={o.quoteExpiresAt}
@@ -250,7 +250,7 @@ function ResultRowGroup({ result: r, quoteDefaults }: { result: SearchResult; qu
                 stayFrom={quoteDefaults.stayFrom}
                 stayTo={quoteDefaults.stayTo}
                 adults={quoteDefaults.adults}
-                children={quoteDefaults.children}
+                childrenCount={quoteDefaults.children}
                 finalPrice={o.finalPrice}
                 finalPriceCurrency={o.finalPriceCurrency}
                 quoteExpiresAt={o.quoteExpiresAt}

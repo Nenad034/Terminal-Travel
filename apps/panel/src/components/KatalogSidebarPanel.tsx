@@ -142,10 +142,20 @@ export default function KatalogSidebarPanel() {
     () => [...new Set(products.map((p) => p.destinationCountry).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sr')),
     [products],
   );
+  // Zavisnost je NIZ SPOJEN U STRING, ne sam niz (6.9.2026, ESLint
+  // `react-hooks/preserve-manual-memoization`, dok. 41 A5). `filters` nastaje iznova pri svakom
+  // renderu (`readKatalogFilters(sp)`), pa je i `filters.drzava` svaki put NOV niz — poređenje
+  // po identitetu nikad nije bilo tačno i `useMemo` se ovde ponovo računao pri svakom renderu,
+  // dakle nije radio ništa. Sa spojenim ključem poređenje je po sadržaju i memoizacija stvarno
+  // radi. Znak `|` kao razdvajač jer se ne pojavljuje u nazivu države. Čita se direktno
+  // iz `sp` (adresa), ne iz `filters`: React Compiler prati poreklo vrednosti i za sve izvedeno
+  // iz `filters` odbija da zadrži memoizaciju.
+  const drzaveKljuc = sp.getAll('drzava').join('|');
   const cities = useMemo(() => {
-    const scoped = filters.drzava.length > 0 ? products.filter((p) => filters.drzava.includes(p.destinationCountry)) : products;
+    const izabrane = drzaveKljuc ? drzaveKljuc.split('|') : [];
+    const scoped = izabrane.length > 0 ? products.filter((p) => izabrane.includes(p.destinationCountry)) : products;
     return [...new Set(scoped.map((p) => p.destinationCity).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sr'));
-  }, [products, filters.drzava]);
+  }, [products, drzaveKljuc]);
   const connections = useMemo(() => {
     const keys = new Set(products.map(connectionKey));
     return [...keys].sort((a, b) => connectionLabel(a).localeCompare(connectionLabel(b), 'sr'));

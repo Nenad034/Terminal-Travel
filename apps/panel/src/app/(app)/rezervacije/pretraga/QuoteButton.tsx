@@ -17,7 +17,12 @@ export default function QuoteButton(props: {
   stayFrom?: string;
   stayTo?: string;
   adults: number;
-  children: number;
+  // Broj dece na putovanju. Prop se NE zove `children` (6.9.2026, ESLint
+  // `react/no-children-prop`, dok. 41 A4): `children` je u React-u rezervisano ime za ugnježden
+  // sadržaj, pa `<QuoteButton children={2} />` čita kao da se komponenti prosleđuje sadržaj, a
+  // ne broj. Polje u podacima (`SelectionItem.children`, API `occupancy.children`) ostaje kako
+  // jeste — problem je bio isključivo u imenu propa.
+  childrenCount: number;
   finalPrice: number;
   finalPriceCurrency: string;
   quoteExpiresAt?: string;
@@ -43,7 +48,7 @@ export default function QuoteButton(props: {
           stayFrom: props.stayFrom,
           stayTo: props.stayTo,
           adults: props.adults,
-          children: props.children,
+          children: props.childrenCount,
           finalPrice: props.finalPrice,
           finalPriceCurrency: props.finalPriceCurrency,
           quoteExpiresAt: props.quoteExpiresAt,

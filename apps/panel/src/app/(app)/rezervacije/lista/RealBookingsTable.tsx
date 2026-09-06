@@ -84,6 +84,45 @@ function decorate(b: RealBooking) {
 type DecoratedRow = ReturnType<typeof decorate>;
 type SortKey = 'bookingNumber' | 'buyerName' | 'channel' | 'status' | 'paymentStatus' | 'stayFrom' | 'stayTo' | 'createdAt' | 'totalPrice';
 
+// Zaglavlja koja se sortiraju — jedan red po koloni umesto devet ponovljenih blokova.
+// „Iznos" nije ovde jer je jedina desno poravnata, pa ostaje ispisana zasebno.
+const KOLONE: { kljuc: SortKey; naslov: string }[] = [
+  { kljuc: 'bookingNumber', naslov: 'Broj' },
+  { kljuc: 'createdAt', naslov: 'Kreirano' },
+  { kljuc: 'buyerName', naslov: 'Nosilac rezervacije' },
+  { kljuc: 'channel', naslov: 'Kanal' },
+  { kljuc: 'status', naslov: 'Status' },
+  { kljuc: 'paymentStatus', naslov: 'Uplata' },
+  { kljuc: 'stayFrom', naslov: 'Dolazak' },
+  { kljuc: 'stayTo', naslov: 'Odlazak' },
+];
+
+// Stoji IZVAN tabele (6.9.2026, ESLint `react-hooks/static-components`, dok. 41 A2). Dok je
+// bila definisana unutar komponente, React ju je pri svakom renderu video kao NOVU komponentu
+// i iscrtavao je ispočetka — nepotreban posao na tabeli koja se osvežava pri svakoj promeni
+// filtera. Stanje sortiranja zato ulazi kao prop, ne kroz zatvaranje nad okolnim opsegom.
+function SortLabel({
+  sortKeyValue,
+  sortKey,
+  sortDir,
+  onToggle,
+  children,
+}: {
+  sortKeyValue: SortKey;
+  sortKey: SortKey | null;
+  sortDir: 'asc' | 'desc';
+  onToggle: (key: SortKey) => void;
+  children: React.ReactNode;
+}) {
+  const active = sortKey === sortKeyValue;
+  return (
+    <button type="button" onClick={() => onToggle(sortKeyValue)} title="Sortiraj" className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}>
+      {children}
+      <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
+    </button>
+  );
+}
+
 function formatAmount(amount: number): string {
   return (amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -201,16 +240,6 @@ export default function RealBookingsTable({
     });
   }
 
-  function SortLabel({ sortKeyValue, children }: { sortKeyValue: SortKey; children: React.ReactNode }) {
-    const active = sortKey === sortKeyValue;
-    return (
-      <button type="button" onClick={() => toggleSort(sortKeyValue)} title="Sortiraj" className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}>
-        {children}
-        <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
-      </button>
-    );
-  }
-
   return (
     <>
       <div className="rounded-lg border border-border bg-panel">
@@ -218,33 +247,18 @@ export default function RealBookingsTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[70px]" />
-              <TableHead>
-                <SortLabel sortKeyValue="bookingNumber">Broj</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="createdAt">Kreirano</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="buyerName">Nosilac rezervacije</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="channel">Kanal</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="status">Status</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="paymentStatus">Uplata</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="stayFrom">Dolazak</SortLabel>
-              </TableHead>
-              <TableHead>
-                <SortLabel sortKeyValue="stayTo">Odlazak</SortLabel>
-              </TableHead>
+              {KOLONE.map(({ kljuc, naslov }) => (
+                <TableHead key={kljuc}>
+                  <SortLabel sortKeyValue={kljuc} sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>
+                    {naslov}
+                  </SortLabel>
+                </TableHead>
+              ))}
               <TableHead className="text-right">
                 <div className="flex justify-end">
-                  <SortLabel sortKeyValue="totalPrice">Iznos</SortLabel>
+                  <SortLabel sortKeyValue="totalPrice" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>
+                    Iznos
+                  </SortLabel>
                 </div>
               </TableHead>
             </TableRow>

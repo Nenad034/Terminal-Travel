@@ -298,7 +298,7 @@ export default function RightPanel({
       {isProdaja && items.length === 0 && previewItems.length === 0 && !summary && (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 p-4 text-center text-xs text-ink-faint">
           <Icon name="inspect" className="text-2xl" />
-          <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za "Povezano" prikaz.</p>
+          <p>Klikni na red liste (bez otvaranja zapisa) da vidiš sažetak ovde, ili otvori pun zapis za „Povezano“ prikaz.</p>
         </div>
       )}
 

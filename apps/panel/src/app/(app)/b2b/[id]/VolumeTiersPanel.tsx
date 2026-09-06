@@ -88,15 +88,15 @@ export default function VolumeTiersPanel({ subagentId, tiers }: { subagentId: st
             </select>
           </label>
           <label className="text-xs text-ink-faint">
-            prag ("ako")
+            prag („ako“)
             <input name="thresholdValue" type="number" min={0} step="0.01" required className="input mt-1 w-28" />
           </label>
           <label className="text-xs text-ink-faint">
-            nova provizija % ("onda")
+            nova provizija % („onda“)
             <input name="resultingCommissionPercentage" type="number" min={0} max={100} step="0.01" className="input mt-1 w-24" />
           </label>
           <label className="text-xs text-ink-faint">
-            fiksan iznos ("onda", opciono)
+            fiksan iznos („onda“, opciono)
             <input name="resultingCommissionFixedAmount" type="number" step="0.01" className="input mt-1 w-24" />
           </label>
           <label className="text-xs text-ink-faint">

@@ -22,7 +22,7 @@ export default async function ResetLozinkePage({
         ) : (
           <p className="rounded bg-danger-bg p-3 text-sm text-danger">
             Link nije potpun — nedostaje deo posle <code>?token=</code>. Zatražite nov link na stranici
-            „zaboravljena lozinka".
+            „zaboravljena lozinka“.
           </p>
         )}
       </div>

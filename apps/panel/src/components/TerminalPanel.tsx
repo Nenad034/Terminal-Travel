@@ -126,7 +126,7 @@ function ReportCard({ report }: { report: NonNullable<Turn['report']> }) {
         </div>
       </div>
       {sentTo && <span className="flex items-center gap-1 text-ok">
-        <Icon name="check" /> Poslato u "{sentTo}"
+        <Icon name="check" /> Poslato u „{sentTo}“
       </span>}
       {error && <span className="text-danger">{error}</span>}
     </div>
@@ -364,7 +364,7 @@ const TerminalPane = forwardRef<TerminalPaneHandle, { showOwnHeader?: boolean; o
         </div>
       )}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-2">
-        {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. "šta je danas prodato", "lista nenaplaćenih aranžmana".</p>}
+        {turns.length === 0 && <p className="text-ink-faint">Postavi pitanje o poslovanju — npr. „šta je danas prodato“, „lista nenaplaćenih aranžmana“.</p>}
         {turns.map((t, i) => (
           <div key={i} className={`group flex flex-col gap-1 py-2 ${i > 0 ? 'border-t border-ink-faint/40' : ''}`}>
             <div className="flex items-start justify-between gap-2">

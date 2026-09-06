@@ -41,7 +41,7 @@ export default async function ProcessMapDetailPage(props: { params: Promise<{ ke
       <NadzorSubnav active="/nadzor/procesne-mape" />
 
       {error && <p className="rounded bg-danger-bg p-3 text-sm text-danger">{error}</p>}
-      {!error && !map && <p className="rounded bg-danger-bg p-3 text-sm text-danger">Procesna mapa "{params.key}" nije registrovana.</p>}
+      {!error && !map && <p className="rounded bg-danger-bg p-3 text-sm text-danger">Procesna mapa „{params.key}“ nije registrovana.</p>}
       {!error && map && <ProcessMapView mapKey={map.key} mapLabel={map.label} module={map.module} nodes={map.nodes} />}
     </div>
   );

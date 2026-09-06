@@ -236,7 +236,7 @@ export default function AranzmanItemCard({
             // §3.0g.5 obrazac — izričita rečenica umesto prazne liste. Doplate su UGOVORNA
             // kategorija (M3 §2.6): stavka preko API veze ih nema, i to nije kvar.
             <p className="text-ink-faint">
-              Za ovu stavku nema ugovorenih doplata ni popusta — unose se na periodu ugovora (M3), kartica „Dodatne usluge".
+              Za ovu stavku nema ugovorenih doplata ni popusta — unose se na periodu ugovora (M3), kartica „Dodatne usluge“.
             </p>
           )}
           <div className="flex flex-col gap-1">
@@ -366,7 +366,7 @@ export default function AranzmanItemCard({
           </div>
 
           <p className="text-[11px] text-ink-faint">
-            Sistem staru stavku otkazuje i pravi novu po novom zahtevu (M5 spec §6) — dugme "Potvrdi" je zaključano dok se ne proveri cena za
+            Sistem staru stavku otkazuje i pravi novu po novom zahtevu (M5 spec §6) — dugme „Potvrdi“ je zaključano dok se ne proveri cena za
             tačno ono što je uneto.
           </p>
 

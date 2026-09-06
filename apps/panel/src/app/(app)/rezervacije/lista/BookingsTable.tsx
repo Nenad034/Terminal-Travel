@@ -108,6 +108,35 @@ function matchesDateRange(iso: string, filterText: string): boolean {
 // Sve aktivne kolone se AND-uju.
 const EMPTY_EXTRA_FILTERS: ExtraFilters = { branch: '', assignedUser: '', supplierName: '', partnerName: '' };
 
+// Stoji IZVAN komponente (6.9.2026, ESLint `react-hooks/static-components`, dok. 41 A2) —
+// unutar nje bi je React pri svakom renderu video kao novu komponentu i iscrtavao ispočetka.
+function SortLabel({
+  sortKeyValue,
+  sortKey,
+  sortDir,
+  onToggle,
+  children,
+}: {
+  sortKeyValue: SortKey;
+  sortKey: SortKey | null;
+  sortDir: 'asc' | 'desc';
+  onToggle: (key: SortKey) => void;
+  children: React.ReactNode;
+}) {
+  const active = sortKey === sortKeyValue;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(sortKeyValue)}
+      title="Sortiraj"
+      className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
+    >
+      {children}
+      <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
+    </button>
+  );
+}
+
 export default function BookingsTable({ bookings }: { bookings: MockBookingRow[] }) {
   const [filters, setFilters] = useState<Record<ColumnKey, string>>({
     bookingNumber: '',
@@ -219,20 +248,6 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
     });
   }
 
-  function SortLabel({ sortKeyValue, children }: { sortKeyValue: SortKey; children: React.ReactNode }) {
-    const active = sortKey === sortKeyValue;
-    return (
-      <button
-        type="button"
-        onClick={() => toggleSort(sortKeyValue)}
-        title="Sortiraj"
-        className={`flex items-center gap-1 hover:text-ink ${active ? 'text-ink' : ''}`}
-      >
-        {children}
-        <span className="w-[10px]">{active && <Icon name={sortDir === 'asc' ? 'triangle-up' : 'triangle-down'} />}</span>
-      </button>
-    );
-  }
 
   const filterInputClass =
     'w-full rounded border border-ink-faint bg-panel px-1.5 py-0.5 text-[11px] font-normal text-ink outline-none placeholder:text-ink-faint focus:border-accent';
@@ -285,17 +300,17 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
             <tr className="border-b border-border bg-panel2 text-ink-faint">
               <th className="w-[64px] px-3 py-2 font-medium" />
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="bookingNumber">Broj</SortLabel>
+                <SortLabel sortKeyValue="bookingNumber" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Broj</SortLabel>
                 <input value={filters.bookingNumber} onChange={(e) => setFilter('bookingNumber', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               {/* "Kreirano" premešteno između "Broj" i "Nosilac rezervacije" (23.8.2026, na
                   zahtev vlasnika) — poništava raniji redosled (bilo je poslednja kolona). */}
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="createdAt">Kreirano</SortLabel>
+                <SortLabel sortKeyValue="createdAt" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Kreirano</SortLabel>
                 <input value={filters.createdAt} onChange={(e) => setFilter('createdAt', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="buyerName">Nosilac rezervacije</SortLabel>
+                <SortLabel sortKeyValue="buyerName" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Nosilac rezervacije</SortLabel>
                 <input
                   value={filters.buyerName}
                   onChange={(e) => setFilter('buyerName', e.target.value)}
@@ -304,28 +319,28 @@ export default function BookingsTable({ bookings }: { bookings: MockBookingRow[]
                 />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="channel">Kanal</SortLabel>
+                <SortLabel sortKeyValue="channel" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Kanal</SortLabel>
                 <input value={filters.channel} onChange={(e) => setFilter('channel', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="status">Status</SortLabel>
+                <SortLabel sortKeyValue="status" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Status</SortLabel>
                 <input value={filters.status} onChange={(e) => setFilter('status', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="paymentStatus">Uplata</SortLabel>
+                <SortLabel sortKeyValue="paymentStatus" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Uplata</SortLabel>
                 <input value={filters.paymentStatus} onChange={(e) => setFilter('paymentStatus', e.target.value)} placeholder="pretraži..." className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="stayFrom">Dolazak</SortLabel>
+                <SortLabel sortKeyValue="stayFrom" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Dolazak</SortLabel>
                 <input value={filters.stayFrom} onChange={(e) => setFilter('stayFrom', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 font-medium">
-                <SortLabel sortKeyValue="stayTo">Odlazak</SortLabel>
+                <SortLabel sortKeyValue="stayTo" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Odlazak</SortLabel>
                 <input value={filters.stayTo} onChange={(e) => setFilter('stayTo', e.target.value)} placeholder="dd/mm/gggg...dd/mm/gggg" className={`mt-1 ${filterInputClass}`} />
               </th>
               <th className="px-3 py-2 text-right font-medium">
                 <div className="flex justify-end">
-                  <SortLabel sortKeyValue="totalPrice">Iznos</SortLabel>
+                  <SortLabel sortKeyValue="totalPrice" sortKey={sortKey} sortDir={sortDir} onToggle={toggleSort}>Iznos</SortLabel>
                 </div>
               </th>
             </tr>

@@ -146,3 +146,31 @@ Prvi nacrt je tvrdio da je **svih sedam** slučajeva „izvedeno stanje iz propo
 
 - `tsc --noEmit` čist; `npm run qa` — svih 8 ekrana 200, bez greške iz browsera.
 - **Prevlačenje provereno posebno**, jer otvaranje ekrana ne dokazuje ponašanje pri interakciji: privremenom skriptom u pravom browseru leva traka je prevučena sa 224 na 311 piksela, širina je upamćena u `localStorage`, a **naknadno pomeranje miša bez pritisnutog dugmeta više nije menjalo širinu** — što je tačno ono što bi pokvareno skidanje osluškivača propustilo. Skripta je posle brisanja obrisana.
+
+---
+
+## Urađeno 6.9.2026, drugi prolaz (gomila A)
+
+Stanje posle: **89 → 35 grešaka**. Gomila A je **cela zatvorena (54 → 0)**; preostalih 35 je gomila C u celini (31 `set-state-in-effect`, 3 `purity`, 1 `no-html-link-for-pages`).
+
+**A1 — 29 navodnika.** Zamenjeni srpskim parom „…" na svih 11 mesta. Ispostavilo se da je na tri mesta otvoreni navodnik već bio ispravan, a zatvoreni prav — greška je bila polovična, ne odsutna.
+
+**A2 — 18 komponenti pravljenih u renderu.** `SortLabel` je izmešten izvan obe tabele; stanje sortiranja ulazi kao prop umesto kroz zatvaranje nad okolnim opsegom. U `RealBookingsTable` je devet ponovljenih blokova zaglavlja svedeno na jedan red po koloni (`KOLONE`), pa je ista izmena usput uklonila i ponavljanje.
+
+**A3 — 4 × `any`.** Odnosili su se na Web Speech API, koji nije deo standardnih TypeScript DOM tipova. Opisan je minimalan interfejs — samo ono što se stvarno koristi. Ranije je `any` gasio svaku proveru: pogrešno ime svojstva prošlo bi i `tsc` i build, a puklo tek u pregledaču, i to samo u Chrome/Edge.
+
+**A4 — 2 propa `children`.** Preimenovani u `childrenCount` na `QuoteButton`. Polje u podacima (`SelectionItem.children`, `occupancy.children` u API-ju) **ostaje kako jeste** — problem je bio isključivo u imenu propa, jer je `children` u React-u rezervisano za ugnježden sadržaj.
+
+**A5 — izgubljena memoizacija.** Ispostavilo se da je nalaz pokrivao stvarnu grešku: `useMemo` za listu destinacija zavisio je od `filters.drzava`, a `filters` nastaje iznova pri svakom renderu — zavisnost je svaki put bila NOV niz, pa **memoizacija nikad nije radila**. Sada zavisi od spojenog stringa čitanog direktno iz adrese; poređenje je po sadržaju.
+
+### Provereno u ovom prolazu
+
+- `tsc --noEmit` čist; `npm run qa` — svih 8 ekrana 200, bez greške iz browsera.
+- **Sortiranje liste provereno posebno** (jer `SortLabel` više nije ista komponenta): klik na „Broj" daje rastući redosled — potvrđeno poređenjem sa sortiranom kopijom, ne na oko — a drugi klik ga obrće.
+- **Filter kataloga proveren posebno** (jer je promenjena zavisnost `useMemo`-a): bez filtera 225 proizvoda, sa `drzava=Grčka` 33 — tačno onoliko koliko ih je u bazi (`select destination_country, count(*) …`). Pilula filtera vidljiva.
+- Privremena skripta za obe provere obrisana.
+
+### Napomena o utrošenom pokušaju
+
+Prva verzija provere kataloga brojala je `<tbody tr>` i vratila **0 redova** — katalog nije tabela nego lista kartica. Da sam taj rezultat pročitao kao nalaz, prijavio bih nepostojeći kvar. Zabeleženo jer je isti oblik greške kao zamka 7.2 („prazan ekran je često prazna baza, ne pokvaren kod"), samo ovde sa prazne strane merenja: **prazan rezultat provere je prvo sumnja na provera, tek onda na kod.**
+

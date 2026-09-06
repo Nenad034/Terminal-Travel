@@ -24,7 +24,7 @@ export default async function BookingFullRecordPage(props: { params: Promise<{ b
     return (
       <div className="p-6">
         <RegisterTab label={params.bookingNumber} />
-        <p className="rounded bg-danger-bg p-3 text-sm text-danger">Rezervacija "{params.bookingNumber}" nije pronađena (mock lista).</p>
+        <p className="rounded bg-danger-bg p-3 text-sm text-danger">Rezervacija „{params.bookingNumber}“ nije pronađena (mock lista).</p>
         <Link href="/rezervacije/lista" className="mt-3 inline-block text-xs text-accent hover:underline">
           ← nazad na listu
         </Link>

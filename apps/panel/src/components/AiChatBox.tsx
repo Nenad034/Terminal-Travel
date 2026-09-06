@@ -72,10 +72,31 @@ function TypewriterText({ text }: { text: string }) {
 // zvučni zapis, na server ide isključivo tekst, identično kao ručno kucanje. Podržano u Chrome/
 // Edge (Chromium `webkitSpeechRecognition`); dugme se ne prikazuje uopšte u pregledačima bez
 // podrške (Firefox/stariji Safari) — nema polovičnog/pokvarenog stanja.
+// Web Speech API nije deo standardnih TypeScript DOM tipova (`webkitSpeechRecognition` je
+// Chromium-ovo proširenje), pa se opisuje ovde — i to SAMO ono što se stvarno koristi
+// (6.9.2026, ESLint `@typescript-eslint/no-explicit-any`, dok. 41 A3). Ranije je stajalo `any`,
+// što je gasilo svaku proveru: pogrešno ime svojstva ili poziv nepostojećeg metoda prošli bi
+// i kroz `tsc` i kroz build, a pukli tek u pregledaču — i to samo u Chrome/Edge, gde jedini
+// i radi.
+interface PrepoznavanjeGovoraDogadjaj {
+  results: { [index: number]: { [index: number]: { transcript?: string } } };
+}
+
+interface PrepoznavanjeGovora {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((event: PrepoznavanjeGovoraDogadjaj) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition?: new () => any;
-    webkitSpeechRecognition?: new () => any;
+    SpeechRecognition?: new () => PrepoznavanjeGovora;
+    webkitSpeechRecognition?: new () => PrepoznavanjeGovora;
   }
 }
 
@@ -268,7 +289,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
   }
 
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<PrepoznavanjeGovora | null>(null);
   // BAG (23.8.2026, prijavio vlasnik uživo — "Hydration failed... Expected server HTML to
   // contain a matching <button>") — `typeof window !== 'undefined'` direktno u telu komponente
   // je na serveru uvek `false` (nema mikrofon dugmeta), ali na klijentu tokom SAME hidratacije
@@ -412,7 +433,7 @@ export default function AiChatBox({ fokus = false }: { fokus?: boolean }) {
     recognition.lang = 'sr-RS';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript = event.results?.[0]?.[0]?.transcript?.trim();
       if (transcript) send(transcript);
     };

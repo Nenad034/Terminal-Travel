@@ -78,7 +78,7 @@ export default function SavedGroupSearchesSidebarPanel() {
       <SidebarSection title={`Grupne pretrage (${groups.length}/10)`} icon="layers" open={open} onToggle={() => setOpen((v) => !v)}>
       {groups.length === 0 ? (
         <p className="px-1 text-[11px] text-ink-faint">
-          Dodaj bar dve pretrage u grupu (dugme "dodaj u grupu" pored "sačuvaj" na vrhu) da je vidiš ovde.
+          Dodaj bar dve pretrage u grupu (dugme „dodaj u grupu“ pored „sačuvaj“ na vrhu) da je vidiš ovde.
         </p>
       ) : (
         <ul className="flex flex-col gap-1">
