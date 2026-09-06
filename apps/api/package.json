@@ -23,6 +23,7 @@
     "normalize:countries": "ts-node prisma/seed/normalize-destination-country.ts",
     "seed:mock-destinacije": "ts-node prisma/seed/mock-destinacije.ts",
     "seed:mock-destinacije:clean": "ts-node prisma/seed/mock-destinacije-clean.ts",
+    "rates:backfill": "ts-node prisma/seed/backfill-exchange-rates.ts",
     "seed:mock-lista-rezervacija": "ts-node prisma/seed/mock-lista-rezervacija.ts",
     "seed:mock-lista-rezervacija:clean": "ts-node prisma/seed/mock-lista-rezervacija-clean.ts"
   },

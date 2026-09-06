@@ -4,8 +4,11 @@ import { ExchangeRatesService } from './exchange-rates.service';
 
 describe('ExchangeRatesService (M10 spec §3.1)', () => {
   function makeService() {
-    const prisma: any = { exchangeRateSnapshot: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn() } };
-    const nbsFetcher: any = { fetchTodaysRates: jest.fn() };
+    const prisma: any = {
+      exchangeRateSnapshot: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
+      $transaction: jest.fn((o: Promise<unknown>[]) => Promise.all(o)),
+    };
+    const nbsFetcher: any = { fetchTodaysRates: jest.fn(), fetchRatesForDate: jest.fn() };
     const service = new ExchangeRatesService(prisma, nbsFetcher);
     return { service, prisma, nbsFetcher };
   }
@@ -90,6 +93,87 @@ describe('ExchangeRatesService (M10 spec §3.1)', () => {
       prisma.exchangeRateSnapshot.create.mockRejectedValue(new Error('DB nedostupna'));
 
       await expect(service.importFromNbs()).rejects.toThrow('DB nedostupna');
+    });
+  });
+  // --- Popunjavanje rupa u kursnoj listi (6.9.2026, M10 spec §3.1a) ---
+  //
+  // Greška koju ovi testovi zaključavaju nije pad nego TIŠINA: dan bez kursa nije prijavljen
+  // nigde, samo se M13 sinhronizacija uplate odloži i izveštaj o naplati ostane prazan.
+  describe('importFromNbsForDate / backfillMissingRates (§3.1a)', () => {
+    const dan = (s: string) => new Date(`${s}T00:00:00.000Z`);
+
+    it('upisuje kurs kad NBS vrati listu baš za traženi dan', async () => {
+      const { service, prisma, nbsFetcher } = makeService();
+      nbsFetcher.fetchRatesForDate.mockResolvedValue({
+        rateDate: dan('2026-08-27'),
+        rows: [{ currency: 'EUR', rate: 117.3865 }],
+      });
+      prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-1' });
+
+      const r = await service.importFromNbsForDate(dan('2026-08-27'));
+
+      expect(r).toEqual({ imported: ['EUR'], skipped: [] });
+      expect(prisma.exchangeRateSnapshot.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ currency: 'EUR', rateDate: dan('2026-08-27'), source: 'NBS_API' }),
+      });
+    });
+
+    // Ovo je jezgro: za neradni dan NBS vraća poslednju VAŽEĆU listu, ne prazan odgovor.
+    // Upisati je pod traženim datumom značilo bi izmisliti kurs za dan koji ga nema.
+    it('NE upisuje ništa kad NBS za traženi dan vrati listu ranijeg dana (vikend/praznik)', async () => {
+      const { service, prisma, nbsFetcher } = makeService();
+      nbsFetcher.fetchRatesForDate.mockResolvedValue({
+        rateDate: dan('2026-08-28'),
+        rows: [{ currency: 'EUR', rate: 117.3707 }],
+      });
+
+      const r = await service.importFromNbsForDate(dan('2026-08-30'));
+
+      expect(r).toBeNull();
+      expect(prisma.exchangeRateSnapshot.create).not.toHaveBeenCalled();
+    });
+
+    it('preskače dane koji već imaju kurs — ne poziva NBS i ne prepisuje postojeće', async () => {
+      const { service, prisma, nbsFetcher } = makeService();
+      prisma.exchangeRateSnapshot.findMany.mockResolvedValue([
+        { rateDate: dan('2026-08-24'), currency: 'EUR' },
+        { rateDate: dan('2026-08-24'), currency: 'USD' },
+      ]);
+
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), { pauseMs: 0 });
+
+      expect(nbsFetcher.fetchRatesForDate).not.toHaveBeenCalled();
+      expect(r).toEqual({ popunjeno: 1 - 1, preskoceno: 1, neuspelo: 0 });
+    });
+
+    it('dan kome nedostaje makar JEDNA valuta se ponovo dovlači', async () => {
+      const { service, prisma, nbsFetcher } = makeService();
+      // EUR postoji, USD ne — dan nije potpun, pa se mora ponoviti.
+      prisma.exchangeRateSnapshot.findMany.mockResolvedValue([{ rateDate: dan('2026-08-24'), currency: 'EUR' }]);
+      nbsFetcher.fetchRatesForDate.mockResolvedValue({
+        rateDate: dan('2026-08-24'),
+        rows: [{ currency: 'USD', rate: 100.4622 }],
+      });
+      prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-2' });
+
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-24'), { pauseMs: 0 });
+
+      expect(nbsFetcher.fetchRatesForDate).toHaveBeenCalledTimes(1);
+      expect(r.popunjeno).toBe(1);
+    });
+
+    it('jedan neuspeo dan ne prekida ceo raspon — ostali se svejedno dovuku', async () => {
+      const { service, prisma, nbsFetcher } = makeService();
+      prisma.exchangeRateSnapshot.findMany.mockResolvedValue([]);
+      nbsFetcher.fetchRatesForDate
+        .mockRejectedValueOnce(new Error('NBS stranica vratila HTTP 500'))
+        .mockResolvedValue({ rateDate: dan('2026-08-25'), rows: [{ currency: 'EUR', rate: 117.3772 }] });
+      prisma.exchangeRateSnapshot.create.mockResolvedValue({ id: 'ex-3' });
+
+      const r = await service.backfillMissingRates(dan('2026-08-24'), dan('2026-08-25'), { pauseMs: 0 });
+
+      expect(r.neuspelo).toBe(1);
+      expect(nbsFetcher.fetchRatesForDate).toHaveBeenCalledTimes(2);
     });
   });
 });

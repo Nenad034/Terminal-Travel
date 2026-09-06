@@ -24,6 +24,30 @@ Zvuči tehnički, ali je važno: kompjuteri koji čuvaju novac kao "decimalni br
 
 Ako ugovor sa hotelom glasi na evre, faktura gostu ipak mora biti u dinarima. Koji kurs se koristi? Sistem prvo napravi nacrt sa kursom "od danas" (jer se nacrt pravi odmah, često pre nego što je gost uopšte platio), ali **pre stvarnog slanja fakture, ponovo proveri** da li je u međuvremenu stigla uplata, i ako jeste, koristi kurs sa dana te uplate — testirano da se iznos stvarno ispravno preračuna kad se kurs u međuvremenu promeni.
 
+## Zašto su izveštaji o naplati bili prazni — i šta je popravljeno (6.9.2026)
+
+Sistem svako jutro sam preuzme kurs sa sajta Narodne banke. Ali preuzimao je **samo kurs za taj dan** — ništa više. To zvuči dovoljno, dok se ne pogleda šta se dešava kad taj jutarnji posao jednom ne prođe: server je bio ugašen, sajt Narodne banke nedostupan, ili je sistem tek postavljen. Tada taj dan **zauvek** ostane bez kursa, jer ništa nikad ne pokuša ponovo.
+
+Zamislite svesku u koju svako jutro upisujete kurs. Ako preskočite jedno jutro, ta stranica ostaje prazna dok je neko ručno ne popuni — a niko ne zna da je prazna.
+
+Posledica nije bila poruka o grešci, nego **tišina**. Uplata u evrima na dan bez kursa jednostavno se ne bi preračunala u dinare, pa ne bi ni ušla u izveštaje. Izveštaj o naplati bi bio prazan, a ništa na ekranu ne bi reklo zašto. Zatečeno stanje: 12 uplata u evrima, u celoj bazi dva zapisa kursa — nijedan na dan tih uplata ni pre njih.
+
+Popravljeno na dva načina:
+
+1. **Sistem sada ume da pita za stariji dan.** Isti javni sajt Narodne banke ima i pretragu po datumu; sistem je sada koristi. Proverio sam da čita tačno ono što treba, tako što sam tražio kurs za dan koji već imamo u bazi i uporedio — poklopilo se do poslednje decimale.
+2. **Jutarnji posao sam krpi rupe.** Posle današnjeg kursa proveri poslednjih mesec dana i dovuče svaki dan koji nedostaje. Kratak prekid rada se tako zatvori sam, bez ijedne vaše radnje.
+
+Za dublju istoriju (period pre nego što je sistem uopšte postojao) postoji zasebna komanda koja se pokrene jednom. Pokrenuo sam je za period od maja: uvezena su 84 dana, nijedan pokušaj nije propao.
+
+Dve stvari koje je vredno znati:
+
+- **Vikendom i praznikom kurs se ne objavljuje.** Kad se pita za nedelju, Narodna banka vrati petkovu listu. Sistem to prepozna i upiše je pod **petkom**, ne pod nedeljom — inače bi vikend dobio izmišljen sopstveni kurs koji nikad nije postojao.
+- **Ništa se ne prepisuje.** Dan koji već ima kurs se preskače, uključujući i kurseve unete ručno.
+
+Rezultat, proveren na živim podacima: svih 12 uplata je sada u izveštajima, i svaka je preračunata po kursu **svog** dana (117,4175 za 29. maj, 117,3823 za 8. jun, i tako dalje), ne po jednom istom kursu za sve.
+
+**Šta i dalje nedostaje, da znate:** kursna lista **nema svoj ekran** u panelu. Kurs se ne može ni pogledati ni ručno uneti kroz interfejs — samo automatski. Dok automatika radi, to se ne primećuje; primetiće se tačno onda kad zakaže, a to je i jedini trenutak kad bi ručni unos zatrebao. Nije nastalo ovom izmenom, ali je sada zapisano kao poznat nedostatak.
+
 ## Kad gost plati karticom — plaćanje ide PRE potvrde rezervacije
 
 Za bankovni prenos, logika je "prvo rezervacija, pa čekamo uplatu" (partneri i firme rade tako). Ali za karticu na sajtu, gost očekuje da mu se sve desi u jednom kliku "Plati i rezerviši". Zato je tu redosled **obrnut**: prvo se kartica naplati, tek onda sistem pokuša da potvrdi rezervaciju. Ako se ispostavi da je u međuvremenu neko drugi kupio poslednje mesto — **novac se automatski vraća gostu**, i nijedna polovična rezervacija ne ostaje da "visi". Testirano uživo: simulirali smo da rezervacija u poslednjem trenutku ne uspe, i sistem je zaista vratio novac i ništa nije kreirao.

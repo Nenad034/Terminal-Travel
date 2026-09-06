@@ -84,3 +84,43 @@ describe('NbsRateFetcherService.parse (M10 spec §11 — javna NBS stranica)', (
     expect(() => service.parse(html)).toThrow(/Nijedna praćena valuta/);
   });
 });
+
+// Dovlačenje kursa za raniji dan (6.9.2026, M10 spec §3.1a). Parser je isti i već je pokriven
+// testovima iznad; ovde se proverava ADRESA, jer je ona jedino što je novo — a pogrešan
+// parametar ovde ne puca nego tiho vraća pogrešnu vrstu kursa ili pogrešan dan.
+describe('NbsRateFetcherService.fetchRatesForDate (M10 spec §3.1a)', () => {
+  const service = new NbsRateFetcherService();
+  const originalFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  function uhvatiUrl(): { url: () => string } {
+    let poslednji = '';
+    global.fetch = jest.fn(async (url: any) => {
+      poslednji = String(url);
+      return { ok: true, text: async () => SAMPLE_HTML } as any;
+    }) as any;
+    return { url: () => poslednji };
+  }
+
+  it('traži datum u obliku DD.MM.GGGG (jednocifren dan/mesec sa vodećom nulom)', async () => {
+    const uhvaceno = uhvatiUrl();
+    await service.fetchRatesForDate(new Date('2026-06-07T00:00:00.000Z'));
+    expect(uhvaceno.url()).toContain('Date=07.06.2026');
+  });
+
+  it('traži SREDNJI kurs (ExchangeRateListTypeID=3), ne kurs za devize ni efektivu', async () => {
+    const uhvaceno = uhvatiUrl();
+    await service.fetchRatesForDate(new Date('2026-08-28T00:00:00.000Z'));
+    // Potvrđeno poređenjem sa stvarnim podatkom: tip 3 za 28.8.2026 daje EUR 117,3707, isto
+    // što je dnevni uvoz tog dana upisao u bazu. Tipovi 1 i 2 su druge vrste kursa.
+    expect(uhvaceno.url()).toContain('ExchangeRateListTypeID=3');
+    expect(uhvaceno.url()).toContain('isSearchExecuted=true');
+  });
+
+  it('baca grešku kad stranica vrati HTTP grešku', async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, status: 503 })) as any;
+    await expect(service.fetchRatesForDate(new Date('2026-08-28T00:00:00.000Z'))).rejects.toThrow(/503/);
+  });
+});
