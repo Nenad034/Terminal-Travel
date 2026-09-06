@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import { getMe, hasPermission } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
-import Icon from '@/components/Icon';
 import TabLink from '@/components/TabLink';
 import RebateActions from '../RebateActions';
 import { Badge } from '@/components/ui/badge';

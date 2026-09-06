@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicArticle } from '@/lib/types';

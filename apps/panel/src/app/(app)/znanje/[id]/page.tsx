@@ -55,6 +55,13 @@ export default async function ZnanjeDetailPage(props: { params: Promise<{ id: st
   const canEdit = hasPermission(me, 'M23', 'article', 'EDIT');
   const canPublish = hasPermission(me, 'M23', 'article', 'PUBLISH');
 
+  // Serverska komponenta — `Date.now()` se izvršava na SERVERU, jednom po zahtevu, i vrednost
+  // stiže u HTML-u kao svaki drugi podatak. Pravilo `react-hooks/purity` pisano je za
+  // klijentske komponente, gde bi neosvežen render zadržao staru vrednost; ovde tog slučaja
+  // nema, a oznaka ionako gleda dnevni rok (6.9.2026, dok. 41 C2).
+  // eslint-disable-next-line react-hooks/purity
+  const osvezavanjeDospelo = !!article.nextRefreshDueAt && new Date(article.nextRefreshDueAt).getTime() <= Date.now();
+
   return (
     <div className="p-6">
       <RegisterTab label={article.translation?.title ?? article.subjectType} />
@@ -90,7 +97,7 @@ export default async function ZnanjeDetailPage(props: { params: Promise<{ id: st
         <Info
           label="sledeće osvežavanje"
           value={article.nextRefreshDueAt ? new Date(article.nextRefreshDueAt).toLocaleDateString('sr-RS') : '—'}
-          danger={!!article.nextRefreshDueAt && new Date(article.nextRefreshDueAt).getTime() <= Date.now()}
+          danger={osvezavanjeDospelo}
         />
       </div>
 

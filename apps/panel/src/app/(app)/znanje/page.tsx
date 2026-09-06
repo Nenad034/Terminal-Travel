@@ -155,6 +155,8 @@ function StatusBadge({ status }: { status: string }) {
 // posao (KnowledgeRefreshService, dnevni cron) priprema PENDING_REVIEW placeholder reviziju,
 // ova oznaka samo signalizira da vredi proveriti /revizije za taj članak.
 function RefreshBadge({ dueAt }: { dueAt: string }) {
+  // Serverska komponenta — vidi isto obrazloženje u `znanje/[id]/page.tsx` (dok. 41 C2).
+  // eslint-disable-next-line react-hooks/purity
   const due = new Date(dueAt).getTime() <= Date.now();
   if (!due) return null;
   return <Badge variant="danger">osvežavanje dospelo</Badge>;

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 
 // Stranica greške javnog sajta (5.9.2026, dok. 39 nalaz 2.5). Do danas `apps/web` nije imao
 // nijedan `error.tsx` — greška u prikazu je gostu davala golu Next.js stranicu na engleskom.
@@ -15,6 +16,11 @@ import { useTranslations } from 'next-intl';
 // prevoda dobijaju engleski, ne prazan tekst.
 export default function SiteError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const t = useTranslations('errors');
+  // Adresa mora da nosi jezik (6.9.2026): golo `/` je gosta sa nemačkog sajta vraćalo na
+  // podrazumevani jezik — usred greške, još i promena jezika. Uhvaćeno preko ESLint pravila
+  // `no-html-link-for-pages`, koje je prijavilo `<a>` umesto `<Link>`; sam prelazak na
+  // `<Link>` otkrio je i ovaj drugi, stvarni propust.
+  const locale = useLocale();
 
   useEffect(() => {
     console.error('[web] greška na stranici:', error);
@@ -32,9 +38,9 @@ export default function SiteError({ error, retry }: { error: Error & { digest?: 
         >
           {t('retry')}
         </button>
-        <a href="/" className="rounded border border-border px-4 py-2 text-sm hover:bg-panel2">
+        <Link href={`/${locale}`} className="rounded border border-border px-4 py-2 text-sm hover:bg-panel2">
           {t('home')}
-        </a>
+        </Link>
       </div>
 
       {error.digest && (

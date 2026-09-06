@@ -5,7 +5,7 @@ import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
 import { cancelBooking, modifyBookingItem } from './booking-changes-actions';
-import { ChangeFormState, emptyChangeState } from './change-form-state';
+import { emptyChangeState } from './change-form-state';
 
 export interface ChangeableItem {
   id: string;

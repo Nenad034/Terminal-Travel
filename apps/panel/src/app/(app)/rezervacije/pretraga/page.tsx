@@ -1,6 +1,5 @@
 import { apiFetch, ApiError } from '@/lib/api-client';
 import RegisterTab from '@/components/RegisterTab';
-import Icon from '@/components/Icon';
 import SearchPanel from '@/components/SearchPanel';
 import SearchRefreshNotice from '@/components/SearchRefreshNotice';
 import { findIconByTypes } from '@/lib/search-product-types';

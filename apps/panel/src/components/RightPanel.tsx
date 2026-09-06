@@ -545,6 +545,12 @@ function CollectedItemRow({
 }
 
 function ExpiryBadge({ quoteExpiresAt }: { quoteExpiresAt: string }) {
+  // POZNATO OGRANIČENJE (6.9.2026, dok. 41 C2): ovo je klijentska komponenta, pa preostalo
+  // vreme ponude NE odbrojava samo — izračuna se pri iscrtavanju i stoji dok se panel ne
+  // osveži iz drugog razloga. Prikaz je zato u minutima, ne u sekundama, i vrednost se ne
+  // koristi ni za jednu odluku (važenje ponude proverava server pri potvrdi). Živo
+  // odbrojavanje traži tajmer i zaseban prolaz — zavedeno, ne prećutano.
+  // eslint-disable-next-line react-hooks/purity
   const minutesLeft = Math.round((new Date(quoteExpiresAt).getTime() - Date.now()) / 60000);
   const expired = minutesLeft <= 0;
   return (

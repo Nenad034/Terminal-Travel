@@ -35,11 +35,16 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
   const [entries, setEntries] = useState<AuditLogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Lista zavisnosti sme da sadrži samo vrednosti, ne izraze — `matchActions.join(',')` je zato
+  // izračunat ovde (6.9.2026, ESLint `react-hooks/exhaustive-deps`). Sadržajno je isto, ali je
+  // sada alat u stanju da proveri da li lista odgovara onome što efekat stvarno koristi.
+  const akcijeKljuc = summary.matchActions.join(',');
+
   useEffect(() => {
     let cancelled = false;
     setEntries(null);
     setError(null);
-    const qs = new URLSearchParams({ module: summary.module, action: summary.matchActions.join(',') });
+    const qs = new URLSearchParams({ module: summary.module, action: akcijeKljuc });
     fetch(`/api/iam/audit-log?${qs.toString()}`, { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Greška pri učitavanju');
@@ -54,7 +59,7 @@ export default function ProcessMapNodeSummaryCard({ summary }: { summary: Proces
     return () => {
       cancelled = true;
     };
-  }, [summary.module, summary.matchActions.join(',')]);
+  }, [summary.module, akcijeKljuc]);
 
   function openFullAuditLog() {
     const qs = new URLSearchParams({

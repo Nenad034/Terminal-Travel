@@ -164,7 +164,6 @@ export default function ChatPanel({
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, currentUserId]);
 
   useEffect(() => {
@@ -175,7 +174,6 @@ export default function ChatPanel({
   // pozvana direktno iz klijentske komponente, isti mehanizam kao svaki drugi 'use server' poziv).
   useEffect(() => {
     markConversationRead(conversationId).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
   function handleDraftChange(value: string) {

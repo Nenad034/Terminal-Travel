@@ -174,3 +174,27 @@ Stanje posle: **89 → 35 grešaka**. Gomila A je **cela zatvorena (54 → 0)**;
 
 Prva verzija provere kataloga brojala je `<tbody tr>` i vratila **0 redova** — katalog nije tabela nego lista kartica. Da sam taj rezultat pročitao kao nalaz, prijavio bih nepostojeći kvar. Zabeleženo jer je isti oblik greške kao zamka 7.2 („prazan ekran je često prazna baza, ne pokvaren kod"), samo ovde sa prazne strane merenja: **prazan rezultat provere je prvo sumnja na provera, tek onda na kod.**
 
+---
+
+## Urađeno 6.9.2026, treći prolaz (gomila C) — lint je u CI
+
+Stanje: **panel 0 grešaka**, 32 upozorenja; **sajt 0 prijava**. Oba `npm run lint` posla su od sada uslov za prolaz CI-ja.
+
+**C1 — `set-state-in-effect` (32) spušteno na upozorenje**, uz obrazloženje upisano u `apps/panel/eslint.config.mjs`, ne u ovaj dokument — da ga vidi onaj ko menja pravilo, a ne samo onaj ko traži analizu. Razlog je merenje iz prvog prolaza: 19 od 32 su namerni SSR obrazac, 8 brisanje starog podatka pre novog. **Poznato ograničenje:** šest slučajeva iz reda „ostalo" i dalje nije pregledano jedan po jedan; kao upozorenje ostaju vidljiva, ali ih ništa ne tera da se reše.
+
+**C2 — `purity` (3).** Dva su u **serverskim** komponentama, gde se `Date.now()` izvršava na serveru jednom po zahtevu i stiže u HTML-u kao svaki drugi podatak — pravilo je pisano za klijentske komponente i ovde ne opisuje stvarnu opasnost. Treći (`RightPanel`, preostalo vreme ponude) **jeste** klijentski i zaveden je kao poznato ograničenje uz sam kod: broj se ne odbrojava sam, prikazuje se u minutima i ne koristi se ni za jednu odluku — važenje ponude proverava server pri potvrdi. Sva tri nose tačkast izuzetak sa razlogom, ne globalno gašenje.
+
+**C3 — `no-html-link-for-pages` (1 u panelu).** Tačkast izuzetak u `global-error.tsx`: taj fajl se prikazuje kad padne i sam korenski raspored, gde se na router ne sme računati.
+
+**`no-unused-vars`:** 79 od 84 prijave bilo je imena sa donjom crtom (`_prev`, `_req`) — potpisi koje ne biramo mi. Podešeno je da donja crta znači „namerno neiskorišćeno". Preostalih pet je bilo stvarno mrtvo i uklonjeno.
+
+### Nalazi koje je ovaj poslednji prolaz otkrio
+
+1. **Sajt je gosta vraćao na pogrešan jezik.** Dugme „na početnu" na stranici greške vodilo je na golo `/`, pa je posetilac nemačke verzije završavao na podrazumevanom jeziku — usred greške, još i promena jezika. Pravilo je prijavilo samo `<a>` umesto `<Link>`; sam prelazak je otkrio drugi, stvarni propust. Ispravljeno na `/{locale}`.
+2. **`canView` u „Ugovori sa klijentima" izračunavao se i nigde koristio.** Ograda nije nedostajala — pravo proverava API, a odbijen zahtev daje poruku na srpskom — ali je promenljiva svojim imenom sugerisala proveru koja se ne izvršava. Isti oblik zablude kao zamka 13.5, ovde bezopasan. Uklonjena, uz belešku na tom mestu.
+3. **Sedam prijava na sajtu bila je jedna te ista linija**, prijavljena jednom po jeziku. Brojka prijava nije brojka problema — isti razlog zbog kog je 1058 prijava iz `public/maplibre` bilo jedan problem, ne hiljadu.
+
+### Provereno u ovom prolazu
+
+`tsc --noEmit` čist u obe aplikacije; `npm run build` sajta prolazi; `npm run lint` bez greške u obe; `npm run qa` — svih 8 ekrana 200, bez greške iz browsera.
+

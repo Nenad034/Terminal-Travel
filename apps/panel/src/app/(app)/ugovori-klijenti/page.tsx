@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
-import { getMe, hasPermission } from '@/lib/me';
+import { getMe } from '@/lib/me';
 import RegisterTab from '@/components/RegisterTab';
 import TabLink from '@/components/TabLink';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +21,15 @@ const STATUSES = ['', 'DRAFT', 'GENERATED', 'ACCEPTED', 'VOIDED'];
 // (filtrirano po statusu — jedini filter koji API podržava jeftino).
 export default async function ClientContractsPage(props: { searchParams: Promise<{ status?: string }> }) {
   const searchParams = await props.searchParams;
-  const me = await getMe();
-  const canView = hasPermission(me, 'M20', 'client-contract', 'VIEW');
+  // Poziv ostaje bez dodele: `me` je koristila samo uklonjena provera, ali `getMe()` puca ako
+  // sesije nema, pa je i dalje najranija tačka u kojoj se to vidi. Uklanjanje poziva bi bila
+  // izmena ponašanja, ne čišćenje — a za to nema razloga.
+  await getMe();
+  // Ovde je stajalo `const canView = hasPermission(...)` — izračunato i NIGDE upotrebljeno
+  // (6.9.2026, ESLint `no-unused-vars`). Ograda nije nedostajala: pravo proverava API, a
+  // odbijen zahtev pada u `catch` ispod i daje poruku na srpskom. Promenljiva je uklonjena
+  // jer je svojim imenom sugerisala proveru koja se ne izvršava — isti oblik zablude kao
+  // zamka 13.5 („ograda izgleda postavljeno, a propušta sve"), samo bezopasan.
 
   let contracts: ClientContract[] = [];
   let error: string | null = null;

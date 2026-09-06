@@ -139,6 +139,18 @@ jobs:
         working-directory: apps/web
         run: npm run build
 
+      # ESLint je do 6.9.2026 na obe aplikacije PUCAO pre nego što pogleda ijedan fajl (zamka
+      # 5.23), pa nikad nije ni radio. Sada je čist od grešaka i ulazi u CI — ali tek sada, jer
+      # crven CI koji se ignoriše gori je nego da ga nema (zamka 11.3). Upozorenja ne obaraju
+      # posao: 32 preostala su namerni SSR obrazac, obrazloženo u `apps/panel/eslint.config.mjs`.
+      - name: ESLint — apps/panel
+        working-directory: apps/panel
+        run: npm run lint
+
+      - name: ESLint — apps/web
+        working-directory: apps/web
+        run: npm run lint
+
       # Fajl sa `'use server'` sme da izvozi samo async funkcije. Obična konstanta u njemu ruši
       # CEO ekran u browseru, a ni tsc ni next build to ne prijavljuju (zamka 7.1a) — greška je
       # 5.9.2026 stigla do ekrana upravo tako.

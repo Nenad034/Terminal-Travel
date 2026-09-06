@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { assignGuide } from './booking-guide-actions';
-import { GuideFormState, emptyGuideState } from './guide-form-state';
+import { emptyGuideState } from './guide-form-state';
 
 export interface RepItem {
   id: string;

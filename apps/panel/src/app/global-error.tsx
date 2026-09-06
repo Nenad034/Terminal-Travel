@@ -29,7 +29,10 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
           >
             pokušaj ponovo
           </button>
-          {/* Obična adresa, ne `<Link>` — u ovom stanju se ne oslanjamo na router. */}
+          {/* Obična adresa, ne `<Link>` — u ovom stanju se ne oslanjamo na router: ovaj fajl se
+              prikazuje kad padne i sam korenski raspored, gde ni router ne mora da postoji.
+              `<Link>` bi tu bio upravo ono što ne sme — zavisnost od sloja koji je otkazao. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
           <a
             href="/"
             style={{
