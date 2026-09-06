@@ -244,6 +244,9 @@ Ovaj fajl je **indeks, ne izvor istine** — svaka stavka ovde je jedan red sa p
 
 - **Šest implementiranih modula nema API dokumentaciju ni objašnjenje za vlasnika, iako CLAUDE.md to traži kao obaveznu stavku** (nalaz 3.9.2026, pri dopuni M5 dokumentacije). `docs/api/` sadrži M5–M23, ali **ne** M1, M2, M3, M4, M8 i M10 — svi su implementirani i izlažu REST API. Isto važi za `00-OBJASNJENJE-M<broj>-ZA-VLASNIKA.md`: M3 (i drugi) ga nemaju. Nije nastalo današnjim radom nego je zatečeno; upisano da se vidi kao dug, a ne kao „nekad ćemo". Najkorisnije bi bilo početi od M3 i M2, jer njih M5 najviše dotiče, i jer je M3 danas dobio izmenu modela (`AncillaryService` v1.13) čiji API primeri ne postoje nigde.
 
+- **K/D/O tagovi (Kreirano/Dolazak/Odlazak) + ikonice Država/Mesto/Objekat, danas samo na Listi rezervacija — čeka Kalendar rezervacija i Izveštaje** (6.9.2026, M5 spec v2.40 — vlasnikova odluka "hajde za sada u Listi rezervacija pa cemo videti za dalje"). `CalendarFilterBar.tsx` ima identičan skup polja u starom (stalno vidljivom) obliku; Izveštaji (M13) žele isti princip ali zahtevaju i izmenu API ugovora (pet izveštaja danas prima samo JEDAN period odjednom, K/D/O traži tri nezavisna istovremeno). Nijedno nije počelo.
+- **Treći izgled filtera ("levi panel") — danas po-ekranu preferenca, ne globalno pravilo panela** (6.9.2026, M5 spec v2.40). Ako vlasnik poželi da izbor traka/prozor/levi panel važi ISTOVREMENO za sve module (jedan zajednički prekidač), treba zamena po-modulnog `localStorage` ključa jednim zajedničkim — nije potvrđeno da je to cilj, samo mogućnost.
+
 ## M6 — CRM (Gosti i Nalogodavci)
 *(§11, `docs/moduli/M06-crm/09-SPECIFIKACIJA-M6-CRM.md`)*
 - **`GuestProfile` nema rok važenja dokumenta, pol, ni mesto/zemlju rođenja** (M5 §3.0g.7, 2.9.2026) — potrebno zbog vlasnikove odluke da se podaci putnika traže odmah i u celosti; avio-kompanije traže pol i rok važenja dokumenta, a rok važenja je i uslov za vizu.

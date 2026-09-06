@@ -48,12 +48,16 @@ export interface BookingFilters {
 // (kucanje) čekaju kratku pauzu (debounce) da se ne pokreće cela navigacija na svaki taster.
 const TEXT_DEBOUNCE_MS = 600;
 
-// Dva izgleda (6.9.2026, vlasnikov zahtev: "omoguci dva izgleda modula kako je sada i onaj popup
-// u kom bolje rasporedite polja kako bi se sve lepo videlo posebno na laptopovima i tabletima")
-// — korisnikov izbor, ne automatska zamena; pamti se po pregledaču (nema potrebe za serverskim
-// poljem, ovo je čisto vizuelna preferenca ekrana, isti princip kao ostala "samo ovaj pregledač"
-// stanja u panelu).
-type DisplayMode = 'traka' | 'prozor';
+// Tri izgleda (6.9.2026, vlasnikov zahtev: "omoguci dva izgleda modula kako je sada i onaj popup
+// u kom bolje rasporedite polja..."; dopunjeno isti dan — "dodamo i mogucnost prikaza filtera po
+// defoltu za svaki modul, u levom panelu... Ja volim da dam korisnicima izbor pa neka bude da
+// dodamo to trece mesto... pa neka biraju od tri resenja") — korisnikov izbor, ne automatska
+// zamena; pamti se po pregledaču (nema potrebe za serverskim poljem, ovo je čisto vizuelna
+// preferenca ekrana, isti princip kao ostala "samo ovaj pregledač" stanja u panelu). "Ladica"
+// deli isti sadržaj/obrazac kao "prozor" (`FilterModal`/`FilterDrawer` ispod su skoro identični —
+// razlikuju se samo pozicijom/oblikom omotača), namerno NIJE trajno prikovana uz levu ivicu —
+// vlasnikov razlog za treću opciju je "izbor" i "velicina ekrana", ne zamena za "prozor".
+type DisplayMode = 'traka' | 'prozor' | 'ladica';
 const MODE_STORAGE_KEY = 'rezervacije-lista-filter-mode';
 
 function countActiveFilters(f: BookingFilters): number {
@@ -90,7 +94,7 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(MODE_STORAGE_KEY);
-      if (saved === 'traka' || saved === 'prozor') setMode(saved);
+      if (saved === 'traka' || saved === 'prozor' || saved === 'ladica') setMode(saved);
     } catch {
       // privatan prozor/blokirano skladište — ostaje podrazumevana "traka", bez greške na ekranu
     }
@@ -135,10 +139,18 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
       >
         prozor
       </button>
+      <button
+        type="button"
+        onClick={() => chooseMode('ladica')}
+        title="Levi panel — filteri se otvaraju sa leve strane, dosledno mesto na svakom modulu"
+        className={`border-l border-border px-2 py-1 font-medium ${mode === 'ladica' ? 'bg-accent-soft text-accent-strong' : 'text-ink-dim hover:bg-panel2'}`}
+      >
+        levi panel
+      </button>
     </div>
   );
 
-  if (mode === 'prozor') {
+  if (mode === 'prozor' || mode === 'ladica') {
     return (
       <div className="mb-3 flex items-center gap-2 text-xs">
         <button
@@ -157,7 +169,8 @@ export default function RealFilterBar({ filters }: { filters: BookingFilters }) 
           </Link>
         )}
         <div className="ml-auto">{modeToggle}</div>
-        {modalOpen && <FilterModal filters={filters} onClose={() => setModalOpen(false)} />}
+        {modalOpen && mode === 'prozor' && <FilterModal filters={filters} onClose={() => setModalOpen(false)} />}
+        {modalOpen && mode === 'ladica' && <FilterDrawer filters={filters} onClose={() => setModalOpen(false)} />}
       </div>
     );
   }
@@ -227,6 +240,56 @@ function FilterModal({ filters, onClose }: { filters: BookingFilters; onClose: (
         <form action="/rezervacije/lista" className="flex flex-col gap-3 text-xs">
           <RealFilterFields filters={filters} autoSubmit={false} layout="grid" />
           <div className="mt-1 flex items-center gap-2 border-t border-border pt-3">
+            <button
+              type="submit"
+              title="Pretraži"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded bg-brand text-brand-ink hover:brightness-90"
+            >
+              <Icon name="play" />
+            </button>
+            <Link href="/rezervacije/lista" className="rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+              obriši filter
+            </Link>
+            <button type="button" onClick={onClose} className="ml-auto rounded px-3 py-1.5 font-medium text-ink-faint hover:text-ink">
+              otkaži
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Levi panel (6.9.2026, vlasnikov zahtev: "dodamo i mogucnost prikaza filtera... u levom
+// panelu... da ne bude kako udjemo u neki modul da pretraga bude na drugom mestu") — isti sadržaj
+// i obrazac kao `FilterModal` iznad (sopstvena forma, `autoSubmit={false}`, `layout="drawer"` —
+// JEDNA kolona jer je ladica uža od centriranog modala), samo omotač otvara sa LEVE ivice ekrana
+// umesto centriranog preklopa — dosledno mesto na svakom modulu koji ovaj obrazac usvoji, bez
+// obzira na širinu ekrana na kom se radi (vlasnikov razlog za treću opciju).
+function FilterDrawer({ filters, onClose }: { filters: BookingFilters; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose}>
+      <div
+        className="flex h-full w-[340px] flex-col overflow-y-auto border-r border-border bg-panel p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Filteri — Lista rezervacija</h2>
+          <button type="button" onClick={onClose} title="Zatvori" className="text-ink-faint hover:text-ink">
+            <Icon name="close" />
+          </button>
+        </div>
+        <form action="/rezervacije/lista" className="flex flex-1 flex-col gap-3 text-xs">
+          <RealFilterFields filters={filters} autoSubmit={false} layout="drawer" />
+          <div className="mt-auto flex items-center gap-2 border-t border-border pt-3">
             <button
               type="submit"
               title="Pretraži"

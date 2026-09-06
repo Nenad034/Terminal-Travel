@@ -1,19 +1,20 @@
 'use client';
 
 import ClearableTextField from '@/components/ClearableTextField';
-import ClearableDateRange from '@/components/ClearableDateRange';
 import MultiSelectDropdown from '@/components/MultiSelectDropdown';
 import LocationOrHotelField from './LocationOrHotelField';
+import PeriodTogglePicker from './PeriodTogglePicker';
 import type { BookingFilters } from './RealFilterBar';
 
-// Deljen skup polja između DVA prikaza filtera (6.9.2026, vlasnikov zahtev: "omoguci dva izgleda
-// modula kako je sada i onaj popup u kom bolje rasporedite polja... posebno na laptopovima i
-// tabletima") — `RealFilterBar.tsx` renderuje ovo ILI direktno u traci (`layout="bar"`, `flex`
-// red, nepromenjeno ponašanje) ILI unutar modala (`layout="grid"`, CSS grid koji se lomi u više
-// kolona kad ima mesta — bolje iskorišćava širinu na laptopu/tabletu nego jedan dugačak red).
-// `autoSubmit` prosleđen do svakog polja — modal NAMERNO ne šalje formu na svaku promenu (isti
-// razlog kao `CalendarFilterBar.tsx`: "momentalno filtriranje... svaki put treba da se ponovo
-// otvori modal"), traka i dalje šalje odmah (RealFilterBar.tsx forma nosi `onChange`).
+// Deljen skup polja između TRI prikaza filtera (6.9.2026, vlasnikov zahtev: "omoguci dva izgleda
+// modula kako je sada i onaj popup..." + kasnije "dodamo i mogucnost prikaza filtera... u levom
+// panelu... pa neka biraju od tri resenja") — `RealFilterBar.tsx` renderuje ovo u traci
+// (`layout="bar"`, `flex` red, nepromenjeno ponašanje), unutar modala (`layout="grid"`, CSS grid
+// koji se lomi u više kolona — bolje iskorišćava širinu na laptopu/tabletu) ili unutar leve
+// ladice (`layout="drawer"`, JEDNA kolona — ladica je uža od modala, grid kolone bi se gužvale).
+// `autoSubmit` prosleđen do svakog polja — modal/ladica NAMERNO ne šalju formu na svaku promenu
+// (isti razlog kao `CalendarFilterBar.tsx`: "momentalno filtriranje... svaki put treba da se
+// ponovo otvori modal"), traka i dalje šalje odmah (RealFilterBar.tsx forma nosi `onChange`).
 const STATUSES = ['PENDING_SUPPLIER_CONFIRMATION', 'CONFIRMED', 'MODIFIED', 'CANCELLED', 'COMPLETED'];
 const PAYMENT_STATUSES = ['UNPAID', 'PARTIALLY_PAID', 'PAID', 'INVOICE_PENDING'];
 const TIP_NASTUPANJA = ['ORGANIZATOR', 'POSREDNIK'];
@@ -28,13 +29,12 @@ export default function RealFilterFields({
 }: {
   filters: BookingFilters;
   autoSubmit: boolean;
-  layout: 'bar' | 'grid';
+  layout: 'bar' | 'grid' | 'drawer';
 }) {
-  const rowClass = layout === 'grid' ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4' : 'flex items-end gap-2';
-  const dateRowClass = layout === 'grid' ? 'grid grid-cols-1 gap-3 sm:grid-cols-3' : 'flex items-end gap-2';
+  const rowClass =
+    layout === 'grid' ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4' : layout === 'drawer' ? 'flex flex-col gap-3' : 'flex items-end gap-2';
 
   return (
-    <>
       <div className={rowClass}>
         <Field label="Broj">
           <ClearableTextField name="bookingNumber" defaultValue={filters.bookingNumber ?? ''} placeholder="TT-2026-..." className={inputClass} autoSubmit={autoSubmit} />
@@ -75,41 +75,8 @@ export default function RealFilterFields({
             <option value="false">nema</option>
           </select>
         </Field>
+        <PeriodTogglePicker filters={filters} autoSubmit={autoSubmit} />
       </div>
-
-      <div className={dateRowClass}>
-        <Field label="Kreirano od/do">
-          <ClearableDateRange
-            nameFrom="createdFrom"
-            nameTo="createdTo"
-            defaultFrom={filters.createdFrom ?? ''}
-            defaultTo={filters.createdTo ?? ''}
-            className={inputClass}
-            autoSubmit={autoSubmit}
-          />
-        </Field>
-        <Field label="Dolazak od/do">
-          <ClearableDateRange
-            nameFrom="stayFrom"
-            nameTo="stayTo"
-            defaultFrom={filters.stayFrom ?? ''}
-            defaultTo={filters.stayTo ?? ''}
-            className={inputClass}
-            autoSubmit={autoSubmit}
-          />
-        </Field>
-        <Field label="Odlazak od/do">
-          <ClearableDateRange
-            nameFrom="returnFrom"
-            nameTo="returnTo"
-            defaultFrom={filters.returnFrom ?? ''}
-            defaultTo={filters.returnTo ?? ''}
-            className={inputClass}
-            autoSubmit={autoSubmit}
-          />
-        </Field>
-      </div>
-    </>
   );
 }
 
