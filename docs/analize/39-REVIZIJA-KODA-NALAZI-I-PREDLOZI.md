@@ -382,7 +382,7 @@ Posledica je stvarna, ne kozmetička: sledeća sesija (ili nov saradnik) pročit
 
 **Provereno:** `tsc --noEmit` bez ijedne nove greške u izmenjenim fajlovima; 115 testova u svih sedam pogođenih test-fajlova prolazi (`compliance-bridge`, `client-contract-bridge`, `fiscal-document-bridge`, `commission-rebates`, `bookings`, `itineraries`, `quotes`).
 
-### 3.5 M21 i M23 imaju po svog AI asistenta nad člancima
+### 3.5 M21 i M23 imaju po svog AI asistenta nad člancima — REŠENO 7.9.2026
 
 Oba modula imaju članke sa prevodima, objavljivanje i AI asistenta koji odgovara na pitanja nad njima — `help-assistant.service.ts` (470 linija) i `knowledge-assistant.service.ts` (355 linija).
 
@@ -390,6 +390,23 @@ Oba modula imaju članke sa prevodima, objavljivanje i AI asistenta koji odgovar
 
 **Predlog:** ovo je pitanje za tebe, ne tehnička odluka: da li su „uputstvo za korišćenje platforme" (M21) i „znanje o destinacijama" (M23) dovoljno različiti da opravdaju dva odvojena asistenta. Ako jesu — ostaje kako jeste, samo se zapiše zašto. Ako nisu — spajanje u jedan asistent sa filterom po vrsti sadržaja štedi buduće održavanje na dva mesta.
 **Procena:** odluka; ako se spaja, 2–3 dana.
+
+---
+
+**REŠENO 7.9.2026 — vlasnikova odluka: "jedan AI asistent".**
+
+Spojena je **isključivo tehnika**, ne sadržaj: nov `AssistantEngineService` (`apps/api/src/modules/m15-ai-orkestracija/assistant-engine/`) nosi RAG logiku (embedding/keyword selekcija kandidata, Anthropic poziv sa prompt-injection ogradom) koju su obe implementacije duplirale gotovo identično. `HelpAssistantService` (M21) i `KnowledgeAssistantService` (M23) su sad tanki omotači — svaki učitava SVOJE kandidate (M21 sa audience filterom §3, M23 bez njega), predaje ih motoru sa sopstvenim `systemPrompt`-om i imenom embedding tabele, i ostaje odgovoran za sopstvenu perzistenciju (`HelpQuestion` vs `Question`), audit trag i eskalaciju (M21 → M14 tiket, M23 → "zahtev za istraživanje").
+
+**Sadržajni domeni NISU spojeni** — `HelpArticle`/`Article` ostaju odvojeni modeli sa odvojenim pristupnim pravilima; to bi zahtevalo migraciju podataka i promenu pristupnih pravila, što nije bio zahtev niti je ovde urađeno.
+
+**Šta je uklonjeno:** ~280 linija duplirane logike (selekcija kandidata, `ensureEmbeddings`, `askAnthropic`, pomoćne funkcije) iz oba servisa.
+
+**Provereno:**
+- `tsc --noEmit` čist, `eslint` 0 grešaka (832 upozorenja, sve pre-postojeća).
+- DI graf potvrđen podizanjem cele Nest aplikacije (`AssistantEngineService` registrovan nezavisno u oba modula, bez kružne zavisnosti — isti obrazac kao `AnthropicClientService`/`GeminiEmbeddingService`).
+- **1.059 unit testova** (127 test-fajlova) prolazi. RAG mehanika sad testirana JEDNOM (`assistant-engine.service.spec.ts`, 8 testova — heuristički fallback, prag preklapanja, `isPriority` prioritet nezavisno od embedding distance, pad na ključne reči kad embedding padne, HIGH/NONE/pad na heuristiku za Anthropic granu) umesto duplirano u oba modula. `help-assistant.service.spec.ts` (14 testova) i `knowledge-assistant.service.spec.ts` (9 testova) prepravljeni da mokuju `engine.resolveAnswer` i testiraju samo ono što je i dalje specifično za svoj modul.
+- **E2E dokaz nad pravom bazom** (ne samo mokovi): `m21-exit-criteria.e2e-spec.ts` + `m23-exit-criteria.e2e-spec.ts`, 15 slučajeva, svi prolaze posle refaktora — pravi HTTP pozivi, prava prijava, prava baza.
+- Specifikacije M21 (§5.2b, v1.8) i M23 (§3.2b, v1.9) dopunjene u istom prolazu.
 
 ### 3.6 Četiri ekrana pretrage prikazuju hardkodovane rezultate
 
@@ -451,7 +468,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 
-**Odluke koje su tvoje, ne tehničke:** 3.5 jedan ili dva AI asistenta (vlasnik odlučio 7.9.2026: jedan — implementacija u toku) · 3.6 da li je izgled pretrage potvrđen (vlasnik: NE, čeka izmenu izgleda) · ~~2.4b uvođenje `@testing-library/react`~~ (rešeno 7.9.2026)
+**Odluke koje su tvoje, ne tehničke:** ~~3.5 jedan ili dva AI asistenta~~ (vlasnik odlučio 7.9.2026: jedan — urađeno) · 3.6 da li je izgled pretrage potvrđen (vlasnik: NE, čeka izmenu izgleda) · ~~2.4b uvođenje `@testing-library/react`~~ (rešeno 7.9.2026)
 
 ---
 

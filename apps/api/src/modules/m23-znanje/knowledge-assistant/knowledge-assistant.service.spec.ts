@@ -3,6 +3,12 @@ import { KnowledgeAssistantService } from './knowledge-assistant.service';
 
 // M23 spec §3.2/§3.3/§9 — /ask odgovara isključivo iz PUBLISHED sadržaja, jezički fallback
 // traženi->en->sr, confidence=NONE nudi pokretanje istraživanja (offerResearch).
+//
+// Nalaz 3.5 (dok. 39, 7.9.2026) — RAG mehanika (embedding/keyword selekcija, Anthropic poziv) je
+// izdvojena u `AssistantEngineService` i testirana JEDNOM tamo (`assistant-engine.service.spec.ts`),
+// zajedničku za M21 i M23. Ovaj fajl mokuje `engine.resolveAnswer` i testira SAMO ono što je i
+// dalje ekskluzivno M23: učitavanje kandidata bez audience filtera, jezički fallback,
+// AgentInvocationLog grananje i "zahtev za istraživanje".
 describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
   function makeService() {
     const prisma = {
@@ -11,11 +17,20 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
       aIAgent: { findFirst: jest.fn() },
     };
     const auditLog = { write: jest.fn() };
-    const anthropic = { isConfigured: jest.fn().mockReturnValue(false), getClient: jest.fn() };
-    const geminiEmbedding = { isConfigured: jest.fn().mockReturnValue(false), embed: jest.fn() };
+    const engine = {
+      resolveAnswer: jest.fn().mockResolvedValue({
+        answerText: null,
+        matchedArticleIds: [],
+        confidence: 'NONE',
+        usedAnthropic: false,
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+      }),
+    };
     const invocationLog = { record: jest.fn() };
-    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, anthropic as any, geminiEmbedding as any, invocationLog as any);
-    return { service, prisma, auditLog, geminiEmbedding };
+    const service = new KnowledgeAssistantService(prisma as any, auditLog as any, engine as any, invocationLog as any);
+    return { service, prisma, auditLog, engine, invocationLog };
   }
 
   it('vraća confidence=NONE i offerResearch=true kad nema objavljenih članaka', async () => {
@@ -30,49 +45,80 @@ describe('KnowledgeAssistantService (M23 spec §3.2/§3.3/§9)', () => {
     expect(result.offerResearch).toBe(true);
   });
 
-  it('jezički fallback: traži lang=de, nema de prevoda, pada na en', async () => {
+  it('učitava SAMO status=PUBLISHED, bez audience filtera (za razliku od M21)', async () => {
     const { service, prisma } = makeService();
+    prisma.article.findMany.mockResolvedValue([]);
+    prisma.question.create.mockResolvedValue({ id: 'q1', answerText: null, matchedArticleIds: [], confidence: 'NONE' });
+
+    await service.ask({ question: 'Pitanje' }, 'staff-1');
+
+    expect(prisma.article.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { status: 'PUBLISHED' }, include: { translations: true } }),
+    );
+  });
+
+  it('jezički fallback: traži lang=de, nema de prevoda, pada na en (§3.2 lanac traženi→en→sr)', async () => {
+    const { service, prisma, engine } = makeService();
     prisma.article.findMany.mockResolvedValue([
       {
         id: 'a1',
         translations: [
-          { languageCode: 'en', title: 'Hotel wifi parking pool amenities', body: 'wifi parking pool amenities available here' },
-          { languageCode: 'sr', title: 'Hotel wifi parking bazen', body: 'wifi parking bazen dostupno ovde' },
+          { id: 't1-en', languageCode: 'en', title: 'Hotel wifi parking pool amenities', body: 'wifi parking pool amenities available here' },
+          { id: 't1-sr', languageCode: 'sr', title: 'Hotel wifi parking bazen', body: 'wifi parking bazen dostupno ovde' },
         ],
       },
     ]);
     prisma.question.create.mockImplementation(({ data }: any) => ({ id: 'q1', ...data }));
-    prisma.aIAgent.findFirst.mockResolvedValue(null);
 
-    const result = await service.ask({ question: 'Da li hotel ima wifi parking pool amenities', lang: 'de' as any }, 'staff-1');
+    await service.ask({ question: 'Da li hotel ima wifi parking pool amenities', lang: 'de' as any }, 'staff-1');
 
-    // Nema heurističkog poklapanja=0 jer MIN_HEURISTIC_OVERLAP proverava min 2 reči — proveravamo
-    // samo da servis nije pao i da je article.findMany pozvan (fallback lanac se dešava unutar
-    // resolveTranslation, testirano indirektno kroz matchedArticleIds kad postoji poklapanje).
-    expect(prisma.article.findMany).toHaveBeenCalled();
-    expect(result).toBeDefined();
+    // "de" ne postoji -> pada na "en" (ne "sr", koji je sledeći u lancu tek ako ni "en" ne postoji).
+    expect(engine.resolveAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        candidates: [expect.objectContaining({ translationId: 't1-en', title: 'Hotel wifi parking pool amenities' })],
+      }),
+    );
   });
 
-  it('kad je OpenAI podešen, koristi embedding rangiranje umesto ključnih reči', async () => {
-    const { service, prisma, geminiEmbedding } = makeService();
-    geminiEmbedding.isConfigured.mockReturnValue(true);
-    geminiEmbedding.embed.mockImplementation((texts: string[]) => Promise.resolve(texts.map(() => [0.1, 0.2, 0.3])));
-    prisma.article.findMany.mockResolvedValue([
-      { id: 'a1', translations: [{ id: 't1', languageCode: 'sr', title: 'Nesrodan naslov', body: 'nesrodan sadržaj' }] },
-    ]);
+  it('prosleđuje engine-u ispravnu tabelu za embedding (article_translations, za razliku od M21)', async () => {
+    const { service, prisma, engine } = makeService();
+    prisma.article.findMany.mockResolvedValue([]);
+    prisma.question.create.mockResolvedValue({ id: 'q1', answerText: null, matchedArticleIds: [], confidence: 'NONE' });
+
+    await service.ask({ question: 'Pitanje' }, 'staff-1');
+
+    expect(engine.resolveAnswer).toHaveBeenCalledWith(expect.objectContaining({ embeddingTable: 'article_translations' }));
+  });
+
+  it('kad engine javi usedAnthropic=true, upisuje AgentInvocationLog', async () => {
+    const { service, prisma, engine, invocationLog } = makeService();
+    prisma.article.findMany.mockResolvedValue([]);
+    engine.resolveAnswer.mockResolvedValue({
+      answerText: 'Ostrvo ima peščane plaže.',
+      matchedArticleIds: ['a1'],
+      confidence: 'HIGH',
+      usedAnthropic: true,
+      inputTokens: 100,
+      outputTokens: 20,
+      latencyMs: 150,
+    });
+    prisma.aIAgent.findFirst.mockResolvedValue({ id: 'agent-1', userId: 'agent-user-1', modelTier: 'LIGHT' });
     prisma.question.create.mockImplementation(({ data }: any) => ({ id: 'q1', ...data }));
-    prisma.aIAgent.findFirst.mockResolvedValue(null);
-    (prisma as any).$queryRaw = jest
-      .fn()
-      .mockResolvedValueOnce([{ id: 't1' }]) // ensureEmbeddings: nedostaje embedding
-      .mockResolvedValueOnce([{ id: 't1', distance: 0.1 }]); // rangiranje: blizak kandidat
-    (prisma as any).$executeRaw = jest.fn().mockResolvedValue(1);
 
-    const result = await service.ask({ question: 'Pitanje bez preklapanja ključnih reči' }, 'staff-1');
+    const result = await service.ask({ question: 'Kakve su plaže?' }, 'staff-1');
 
-    expect(geminiEmbedding.embed).toHaveBeenCalled();
-    expect((prisma as any).$executeRaw).toHaveBeenCalled(); // upisan embedding za t1
-    expect(result.matchedArticleIds).toContain('a1');
+    expect(result.confidence).toBe('HIGH');
+    expect(invocationLog.record).toHaveBeenCalledWith(expect.objectContaining({ agentId: 'agent-1', actionCode: 'knowledge_question.answer' }));
+  });
+
+  it('kad engine javi usedAnthropic=false, NE upisuje AgentInvocationLog', async () => {
+    const { service, prisma, invocationLog } = makeService();
+    prisma.article.findMany.mockResolvedValue([]);
+    prisma.question.create.mockImplementation(({ data }: any) => ({ id: 'q1', ...data }));
+
+    await service.ask({ question: 'Pitanje' }, 'staff-1');
+
+    expect(invocationLog.record).not.toHaveBeenCalled();
   });
 
   it('requestResearch odbija ako pitanje nije confidence=NONE', async () => {

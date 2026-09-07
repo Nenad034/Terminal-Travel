@@ -15,6 +15,7 @@ import { PermissionsModule } from '../m1-core-identitet/permissions/permissions.
 import { AuditLogModule } from '../m1-core-identitet/audit-log/audit-log.module';
 import { AnthropicClientService } from '../m15-ai-orkestracija/anthropic/anthropic-client.service';
 import { GeminiEmbeddingService } from '../m15-ai-orkestracija/gemini/gemini-embedding.service';
+import { AssistantEngineService } from '../m15-ai-orkestracija/assistant-engine/assistant-engine.service';
 import { M18OperativniNadzorModule } from '../m18-operativni-nadzor/m18-operativni-nadzor.module';
 import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-content-imports/product-content-imports.module';
 
@@ -23,8 +24,10 @@ import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-con
 // AuditLogModule su standardni. M18OperativniNadzorModule daje AgentInvocationLogService (§7
 // logovanje istraživanja/pitanja). ProductContentImportsModule daje ProductContentImportsService
 // (§4d most ka M2 kataloga — in-process DI poziv, isti hibridni obrazac kao M13 FactSyncService/
-// M21 TicketsService). AnthropicClientService (M15) registrovan lokalno kao sopstveni provider
-// (isti princip kao M19/M21/M22 — zavisi samo od globalnog ConfigService).
+// M21 TicketsService). AnthropicClientService/GeminiEmbeddingService/AssistantEngineService (M15)
+// registrovani lokalno kao sopstveni provideri (isti princip kao M19/M21/M22 — zavise samo od
+// globalnog ConfigService). Nalaz 3.5 (dok. 39, 7.9.2026) — AssistantEngineService je deljena RAG
+// tehnika sa M21 HelpAssistantService.
 @Module({
   imports: [AuthModule, PermissionsModule, AuditLogModule, M18OperativniNadzorModule, ProductContentImportsModule],
   controllers: [ArticlesController, ArticleSourcesController, ArticleRevisionsController, KnowledgeAssistantController, PublicKnowledgeController],
@@ -37,6 +40,7 @@ import { ProductContentImportsModule } from '../m2-katalog-proizvoda/product-con
     KnowledgeAssistantService,
     AnthropicClientService,
     GeminiEmbeddingService,
+    AssistantEngineService,
   ],
 })
 export class M23ZnanjeModule {}
