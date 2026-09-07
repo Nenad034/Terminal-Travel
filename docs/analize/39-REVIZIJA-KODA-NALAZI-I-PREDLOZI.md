@@ -257,7 +257,20 @@ Obe nove provere su **prvo dokazane obaranjem** — nije dovoljno da ćute nad i
 
 **Zatečeno usput:** `npm run lint` u panelu je pokvaren — `eslint-plugin-react` nije spojiv sa ESLint 10, `npx eslint .` puca. Skripta izgleda kao da radi dok se ne pokrene. Lint zato **nije** dodat u CI; popravka traži izmenu zavisnosti, pa čeka potvrdu. Zavedeno.
 
-**(b) Testovi panela — ne mogu bez odluke vlasnika.** `@testing-library/react` je nova zavisnost, a `CLAUDE.md` traži izričitu potvrdu pre uvođenja bilo čega van postojećeg steka.
+**(b) Testovi panela — REŠENO 7.9.2026** (vlasnikova potvrda za `@testing-library/react`). `jest.config.mjs` preko `next/jest` (SWC transform, CSS/asset mock-ovi — ugrađeno u `next`, bez ručne Babel konfiguracije), `@testing-library/react` + `jest-dom` + `user-event` + `jest-environment-jsdom` kao devDependencies.
+
+**Server Component stranice se ne mogu testirati sa `@testing-library/react`** (traže pravi Next runtime, ne samo React) — skoro sav sadržaj ekrana panela JESU Server Component-i (`async function` koji direktno pozivaju API). Zato testovi gađaju **izdvojene klijentske komponente** iz svakog od četiri kritična puta, ne cele ekrane:
+
+| Put | Komponenta | Šta zaključava |
+| :---- | :---- | :---- |
+| Prijava | `LoginForm` | uspešna prijava bez 2FA vodi na `/`; prelazak na MFA korak kad server to traži; greška sa servera ostaje na ekranu, ne odlazi nikuda |
+| Dosije | `BookingSummary` (izdvojeno iz `RightPanel`, dodat `export`) | regresija nalaza 1.1 — dugme „Otvori pun zapis" postoji SAMO kad sažetak nosi `bookingId` |
+| Pretraga | `SearchCriteriaForm` | dugme „pretraži" onemogućeno dok država nije uneta; slanje sastavlja tačnu adresu (`type`, `destinationCountry`) |
+| Lista rezervacija | `Pagination` | regresija bagova nalaza 2.2 — raspon na nepunoj poslednjoj strani (`21–25`, ne `11–15`); strelice se onemogućavaju na granicama; ostali query parametri se čuvaju kroz linkove |
+
+13 testova, 4 test-fajla, sva četiri prolaze zajedno bez kolizije. `tsc`, `eslint` (0 grešaka) i produkcijski `next build` i dalje čisti. Korak dodat u CI (`panel-web` job, posle ESLint-a).
+
+**Namerno izvan ovog prolaza:** integracioni testovi celih Server Component ekrana (traže pravi Next test runner ili E2E alat kao Playwright, ne Jest+RTL) i proširenje na ostale ekrane van ova četiri — minimalan skup je bio cilj, ne potpuna pokrivenost.
 
 ---
 
@@ -438,7 +451,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 
-**Odluke koje su tvoje, ne tehničke:** 3.5 jedan ili dva AI asistenta · 3.6 da li je izgled pretrage potvrđen · 2.4b uvođenje `@testing-library/react`
+**Odluke koje su tvoje, ne tehničke:** 3.5 jedan ili dva AI asistenta (vlasnik odlučio 7.9.2026: jedan — implementacija u toku) · 3.6 da li je izgled pretrage potvrđen (vlasnik: NE, čeka izmenu izgleda) · ~~2.4b uvođenje `@testing-library/react`~~ (rešeno 7.9.2026)
 
 ---
 

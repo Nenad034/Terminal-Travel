@@ -155,6 +155,15 @@ jobs:
         working-directory: apps/panel
         run: npm run lint
 
+      # Nalaz 2.4b (dok. 39) — minimalan skup testova za putanje koje se ne smeju pokvariti:
+      # prijava (LoginForm), dosije (BookingSummary — regresija nalaza 1.1), pretraga
+      # (SearchCriteriaForm), lista rezervacija (Pagination — regresija bagova nalaza 2.2).
+      # `@testing-library/react` na Server Component stranicama ne radi (traže pravi Next
+      # runtime) — testovi zato gađaju izdvojene klijentske komponente, ne cele ekrane.
+      - name: Testovi — apps/panel
+        working-directory: apps/panel
+        run: npm test
+
       - name: ESLint — apps/web
         working-directory: apps/web
         run: npm run lint

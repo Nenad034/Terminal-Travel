@@ -573,7 +573,9 @@ function travelerAgeLabel(t: import('./RowSummaryContext').Traveler): string {
 // Dopuna (23.8.2026, na zahtev vlasnika) — "sve najvažnije informacije": putnici, tip
 // smeštaja, koliko je uplaćeno, koliko je dug. Polja su opciona (`RowSummary` interfejs) jer
 // izvor može biti mock red (nema ih sva) ili, kasnije, stvaran API odgovor.
-function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord?: () => void }) {
+// `export` postoji radi testa (nalaz 2.4b, dok. 39) — regresija nalaza 1.1 (dok. 39): dugme
+// "Otvori pun zapis" je nekad vodilo na mrtvu mock rutu.
+export function BookingSummary({ summary: s, onOpenFullRecord }: { summary: import('./RowSummaryContext').BookingRowSummary; onOpenFullRecord?: () => void }) {
   const money = (amount: number) => `${(amount / 100).toLocaleString('sr-RS', { minimumFractionDigits: 2 })} ${s.currency}`;
   return (
     <div className="flex-1 overflow-y-auto p-3 text-xs">
