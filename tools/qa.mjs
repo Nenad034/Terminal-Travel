@@ -68,6 +68,7 @@ const EKRANI = [
     putanja: '/rezervacije/pretraga?type=ACCOMMODATION',
   },
   { kljuc: 'najave', naziv: 'Najave dobavljačima', putanja: '/rezervacije/najave' },
+  { kljuc: 'kalendar', naziv: 'Kalendar rezervacija', putanja: '/rezervacije/kalendar' },
   { kljuc: 'katalog', naziv: 'Katalog proizvoda', putanja: '/katalog' },
   { kljuc: 'e-posta', naziv: 'E-pošta', putanja: '/email' },
   { kljuc: 'izvestaji', naziv: 'Izveštaji', putanja: '/izvestaji' },
