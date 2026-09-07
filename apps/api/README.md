@@ -1,13 +1,14 @@
 # Terminal API
 
-NestJS backend. Implementirani moduli:
-
-- **M1 (Core / Identitet i pristup)** — `docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md`
-- **M2 (Katalog proizvoda)** — `docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md`
-- **M3 (Ugovaranje i alotmani)** — `docs/moduli/M03-ugovaranje-alotmani/04-SPECIFIKACIJA-M3-UGOVARANJE-ALOTMANI.md`
-- **M4 (Integracije spoljnih API konekcija)** — `docs/moduli/M04-integracije-api/05-SPECIFIKACIJA-M4-INTEGRACIJE-API.md`
+NestJS backend. Implementirani moduli (`src/modules/m<broj>-<slug>/`, po jedan po Nivo 2 specifikaciji u `docs/moduli/M<broj>-.../`): M1 (Core/Identitet), M2 (Katalog proizvoda), M3 (Ugovaranje i alotmani), M4 (Integracije API), M5 (Rezervacije), M6 (CRM), M7 (B2B subagenti), M9 (Mobilna — backend deo), M10 (Finansije), M11 (Compliance), M12 (Marketing), M13 (BI), M14 (Helpdesk), M15 (AI orkestracija), M16 (MCP distribucija), M18 (Operativni nadzor), M19 (Komunikaciona platforma), M20 (Ugovori/klijenti), M21 (Centar za pomoć), M22 (Email inbox), M23 (Znanje). Tačan spec za svaki je `docs/moduli/M<broj>-.../0X-SPECIFIKACIJA-M<broj>-*.md` — vidi `docs/00-PREGLED-DOKUMENTACIJE.html` za pun spisak. M8 (sajt) i M17 (interni panel) su odvojene Next.js aplikacije (`apps/web`, `apps/panel`), ne moduli ovde.
 
 Nema koda ovde bez oslonca u odgovarajućoj specifikaciji — vidi `CLAUDE.md` u korenu repozitorijuma.
+
+## Provera zdravlja okruženja
+
+```bash
+npm run doctor   # iz korena repozitorijuma — proverava .env, bazu, migracije, trigger, seed (dok. 39, nalaz 5.2)
+```
 
 ## Lokalno pokretanje
 
