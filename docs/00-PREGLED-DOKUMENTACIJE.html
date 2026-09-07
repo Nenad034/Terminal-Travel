@@ -710,6 +710,18 @@ Tu živi sva poslovna logika: pravila oko rezervacija, cena, korisničkih prava.
 
 Mesto gde se _stvarno_ čuvaju svi podaci: svaka rezervacija, svaki gost, svaka faktura. "Trezor" sistema. Izabrana je jer strogo čuva odnose između podataka (npr. ne dozvoljava da rezervacija postoji bez gosta, ili da faktura postoji bez rezervacije) — presudno kad se radi o novcu i zakonskim obavezama.
 
+**Gde baza fizički živi (odluka 7.9.2026, na pitanje vlasnika).** Na **našem serveru** (Hetzner, Nemačka), na disku odvojenom od samog servera — server se sme obrisati i napraviti iznova iz koda (`infra/tofu/`), a podaci pri tom ostaju.
+
+**Zašto ne gotov servis tipa Supabase**, koji je korišćen na ranijem projektu PrimeTravel (`docs/analize/22-ANALIZA-PRIMETRAVEL-NALAZI.md`). Tri razloga, po težini:
+
+1. **Isti pravni razlog zbog kog je već odbijen Vercel** (vidi odeljak o Next.js-u niže). Supabase je američka kompanija, dakle podleže US CLOUD Act-u — i kad su serveri u EU regiji, američki organi mogu pravno da traže pristup od kompanije koja njima upravlja. U bazi su lični podaci gostiju, pa je to u napetosti sa poglavljem 9 Master dokumenta (fizička lokacija podataka u EU). Bilo bi neusaglašeno odbiti Vercel iz tog razloga, a bazu — koja nosi znatno osetljiviji sadržaj od prikaza stranica — staviti kod provajdera sa istim pravnim položajem.
+2. **Plaćali bismo paket koji uglavnom ne koristimo.** Supabase nije samo baza nego i prijava korisnika, prava pristupa i skladište fajlova. Mi smo prijavu i prava već izgradili sami (M1) — ostalo bi preklapanje i zavisnost od tuđeg rešenja za posao koji je gotov.
+3. **Cena.** Provereno 7.9.2026: gotova upravljana Postgres baza u EU košta oko 80 EUR mesečno za produkcijski nivo (Scaleway), odnosno 60–200 EUR (Aiven). Ceo naš sistem — sa aplikacijom, bazom i kopijama — je ~13,55 EUR za testno okruženje i ~27 EUR za produkciju.
+
+**Šta gubimo time što je sami držimo, pošteno rečeno:** gotov servis sam pravi rezervne kopije, sam instalira nadogradnje i sam se brine o dostupnosti. Kod nas je to naša odgovornost — i upravo zato uz server idu dnevna šifrovana kopija i **nedeljna provera da se iz te kopije baza stvarno može vratiti** (`infra/skripte/`), a ne samo „podešen backup“. Poglavlje 9 Master dokumenta to i traži izričito.
+
+**Odluka je povratna.** Ovo je običan PostgreSQL, ne nešto što postoji samo kod jednog provajdera — prelazak na upravljanu bazu kasnije je prenos podataka, ne prepisivanje aplikacije.
+
 ### Prisma — prevodilac između koda i baze (ORM)
 
 Umesto da AI agent ručno piše sirove upite ka bazi (gde je lako pogrešiti kolonu ili tabelu), Prisma to radi automatski na osnovu jasno napisane šeme podataka. Zamisli je kao asistenta koji čita "recept" (šemu) i sam sastavlja tačan upit — smanjuje broj mesta gde AI može da napravi grešku.
