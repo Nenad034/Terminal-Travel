@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { TravelGuaranteeService } from './travel-guarantee.service';
 
 describe('TravelGuaranteeService (M11 spec §2)', () => {
@@ -71,7 +72,6 @@ describe('TravelGuaranteeService (M11 spec §2)', () => {
     });
 
     it('blokira potvrdu (ne baca grešku) kad kurs za valutu rezervacije nedostaje (§7, avgust 2026)', async () => {
-      const { NotFoundException } = require('@nestjs/common');
       const { service, prisma, exchangeRates } = makeService();
       prisma.travelGuarantee.findFirst.mockResolvedValue({ ...activeGuarantee, coverageAmount: 1_000_00, currency: 'RSD' });
       prisma.booking.findMany.mockResolvedValue([]);

@@ -216,7 +216,7 @@ export class BiTerminalService {
       { role: 'user', content: h.question },
       { role: 'assistant', content: h.answer },
     ]);
-    let messages: any[] = [...historyMessages, { role: 'user', content: question }];
+    const messages: any[] = [...historyMessages, { role: 'user', content: question }];
     const startedAt = Date.now();
     let totalInputTokens = 0;
     let totalOutputTokens = 0;

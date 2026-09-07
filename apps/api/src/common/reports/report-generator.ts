@@ -3,6 +3,7 @@
 // (otkriveno uživo testom, 23.8.2026) — `import X = require(...)` je jedini oblik koji stvarno
 // radi u ovom (CommonJS) projektu.
 import * as ExcelJS from 'exceljs';
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- namerno, vidi komentar iznad
 import PDFDocument = require('pdfkit');
 
 // M15 spec §6.9.3 dopuna (23.8.2026, na zahtev vlasnika: "omogucite kreiranje excel tabela,

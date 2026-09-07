@@ -777,7 +777,7 @@ export class OmnisearchService {
       { role: 'user', content: h.question },
       { role: 'assistant', content: h.answer },
     ]);
-    let messages: any[] = [...historyMessages, { role: 'user', content: userContent }];
+    const messages: any[] = [...historyMessages, { role: 'user', content: userContent }];
     const entityResults: EntityResult[] = [];
     const matchedRoutes: MatchedRoute[] = [];
     const startedAt = Date.now();

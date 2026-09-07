@@ -317,12 +317,27 @@ Problem je smer greške: ako sledeći kontroler zaboravi guard, endpoint je **ti
 
 **Provereno:** `tsc --noEmit` ne prijavljuje nijednu novu grešku u izmenjenim fajlovima (ostale, nepovezane greške potiču od needregenisanog Prisma klijenta posle paralelnog `git pull`-a, van obima ovog nalaza). DI graf potvrđen podizanjem cele Nest aplikacije (`NestFactory.create(AppModule).init()`) — prolazi bez greške sa globalnim guard-om. `JwtAuthGuard` unit testovi (7/7) prolaze, uz nov test koji dokazuje da `@Public()` stvarno propušta zahtev bez ijednog headera — bez toga bi tvrdnja „radi" počivala samo na čitanju koda, ne na dokazu (dok. 40, pravilo 3).
 
-### 3.2 `apps/api` nema ESLint
+### 3.2 `apps/api` nema ESLint — DELIMIČNO REŠENO 7.9.2026 (ESLint da, Prettier ne)
 
 Panel i web imaju `eslint.config.mjs`; backend od 65.000 linija **nema ga uopšte**, niti `lint` skriptu. Nema ni Prettier nigde, pa formatiranje zavisi od toga koja je sesija pisala fajl.
 
 **Predlog:** ESLint sa `@typescript-eslint` za `apps/api` (isto podešavanje kao panel) i Prettier u korenu, pa jednokratno formatiranje celog repozitorijuma u zasebnom commit-u da se ne meša sa stvarnim izmenama.
 **Procena:** pola dana.
+
+---
+
+**ESLint deo REŠEN 7.9.2026.** `apps/api/eslint.config.mjs` (flat config, `typescript-eslint` unifikovan paket — već u steku preko `apps/panel`), `lint` skripta u `package.json`, i korak u CI (`.github/workflows/ci.yml`, isti obrazac kao `panel-web` — upozorenja ne obaraju posao).
+
+**Zatečeno pri prvom pokretanju:** 840 nalaza (4 greške, 836 upozorenja). 836 upozorenja je gotovo isključivo `@typescript-eslint/no-explicit-any` (nalaz 3.3 — 189 u produkcijskom kodu, ostatak u testovima) i par `no-unused-vars` — pravilo za oboje je već namerno upozorenje (isto obrazloženje kao `apps/panel/eslint.config.mjs`), ne blokira CI.
+
+**4 stvarne greške, sve ispravljene:**
+1. `common/reports/report-generator.ts:6` — `import PDFDocument = require('pdfkit')` je **namerno** (komentar u fajlu: ESM `import` prolazi kroz `tsc` ali puca u runtime-u, dokazano uživo 23.8.2026) — pravilo lokalno isključeno sa `eslint-disable-next-line` i obrazloženjem, kod nije menjan.
+2. `m11-compliance/travel-guarantee/travel-guarantee.service.spec.ts:74` — `require('@nestjs/common')` unutar testa nije imao razlog da postoji: `NotFoundException` nije bio uvezen na vrhu fajla. Pravi propust, ne namera — prebačeno u top-level `import`.
+3–4. `m15-ai-orkestracija/bi-terminal/bi-terminal.service.ts:219` i `omnisearch/omnisearch.service.ts:780` — `let messages` nikad nije reosmišljen (samo `.push()` posle), `prefer-const` je bio u pravu. Provereno grep-om kroz ostatak oba fajla pre izmene, ne samo poverovano alatu.
+
+**Provereno:** `tsc --noEmit` čist, `npx eslint .` → 0 grešaka (exit 0), **1.048 testova u svih 126 test-fajlova prolazi** (pun paket, ne samo dirnuti fajlovi).
+
+**NIJE urađeno — Prettier.** Nije deo ovog prolaza: uvodi novu tehnologiju (`CLAUDE.md` — potvrda vlasnika pre uvođenja) i nosi poseban rizik (jednokratno preformatiranje celog repozitorijuma menja gotovo svaki fajl, otežava `git blame`/buduće diff-ove ako se uradi neoprezno). Ostaje otvoreno, zavedeno u backlog.
 
 ### 3.3 189 mesta sa tipom `any`
 
@@ -413,7 +428,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
-**Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ (oboje urađeno 7.9.2026) · 3.2 ESLint za API (čeka stabilizaciju `node_modules` — v. napomena ispod)
+**Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ · ~~3.2 ESLint za API~~ (sve troje urađeno 7.9.2026; Prettier deo 3.2 ostaje otvoren, v. napomena u 3.2)
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 
