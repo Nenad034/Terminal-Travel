@@ -10,13 +10,13 @@ describe('QuotesService', () => {
     };
     const builder = { build: jest.fn() };
     const loyalty = { getDiscountPercentage: jest.fn().mockResolvedValue(0) };
-    const subagentStub = {
+    const subagentBridge = {
       resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null),
       getEffectiveCommissionPercentageForClientAccount: jest.fn().mockResolvedValue(null),
     };
     const auditLog = { write: jest.fn() };
-    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentStub as any, auditLog as any);
-    return { service, prisma, builder, loyalty, subagentStub, auditLog };
+    const service = new QuotesService(prisma, builder as any, loyalty as any, subagentBridge as any, auditLog as any);
+    return { service, prisma, builder, loyalty, subagentBridge, auditLog };
   }
 
   describe('create — client_account_id se ne uzima slepo iz tela zahteva za gosta', () => {
@@ -239,18 +239,18 @@ describe('QuotesService', () => {
     });
 
     it('subagent NE vidi tuđu Ponudu — 404 (IDOR, bezbednosni nalaz 28.8.2026)', async () => {
-      const { service, prisma, subagentStub } = makeService();
+      const { service, prisma, subagentBridge } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
-      subagentStub.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
+      subagentBridge.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
       prisma.quote.findUnique.mockResolvedValue({ id: 'q2', clientAccountId: 'acc-tudj', status: 'DRAFT', expiresAt: new Date(), items: [] });
 
       await expect(service.findOne('q2', 'subagent-user-1')).rejects.toThrow(NotFoundException);
     });
 
     it('B2B/MCP pozivalac ne vidi baseCost/markupRuleId/providerQuoteReference (M2 spec §5.1)', async () => {
-      const { service, prisma, subagentStub } = makeService();
+      const { service, prisma, subagentBridge } = makeService();
       prisma.user.findUnique.mockResolvedValue({ accountType: 'SUBAGENT_CONTACT', linkedProfileId: 'subagent-1' });
-      subagentStub.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
+      subagentBridge.resolveClientAccountIdForSubagentContact.mockResolvedValue('acc-own-sub');
       prisma.quote.findUnique.mockResolvedValue({
         id: 'q3',
         clientAccountId: 'acc-own-sub',

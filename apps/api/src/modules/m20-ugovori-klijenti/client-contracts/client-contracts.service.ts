@@ -240,7 +240,7 @@ export class ClientContractsService {
   }
 
   // M5 spec §6 dopuna (M20 §3.3) — vaučer za ORGANIZATOR rezervaciju čeka bar GENERATED ugovor.
-  // Poziva se in-process iz M5 ClientContractStubService (isti obrazac kao M11 TravelGuaranteeService).
+  // Poziva se in-process iz M5 ClientContractBridgeService (isti obrazac kao M11 TravelGuaranteeService).
   async hasGeneratedContract(bookingId: string): Promise<boolean> {
     const contract = await this.prisma.clientContract.findFirst({
       where: { bookingId, status: { in: ['GENERATED', 'ACCEPTED'] } },

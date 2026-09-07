@@ -1,6 +1,6 @@
 import { PrismaService } from '../../../prisma/prisma.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
-import { SubagentStubService } from './subagent-stub.service';
+import { SubagentBridgeService } from './subagent-bridge.service';
 
 // M5 spec §6.2 — deljena rezolucija poziočevog konteksta (INTERNAL_PANEL vidi sve, B2C/B2B
 // dobijaju maskiran prikaz i strogo ownership ponašanje). IZDVOJENO iz `BookingsService`
@@ -11,14 +11,14 @@ export type M5CallerContext = 'INTERNAL_PANEL' | 'B2C' | 'B2B';
 
 export async function resolveApiContext(
   prisma: PrismaService,
-  subagentStub: SubagentStubService,
+  subagentBridge: SubagentBridgeService,
   userId: string,
 ): Promise<{ context: M5CallerContext; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
   const identity = await resolveCallerIdentity(prisma, userId);
   if (identity.accountType === 'GUEST') return { context: 'B2C', ownClientAccountId: identity.ownProfileId, franchiseSubagentId: null };
   if (identity.accountType === 'SUBAGENT_CONTACT') {
     const clientAccountId = identity.ownProfileId
-      ? await subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
+      ? await subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)
       : null;
     return { context: 'B2B', ownClientAccountId: clientAccountId, franchiseSubagentId: null };
   }

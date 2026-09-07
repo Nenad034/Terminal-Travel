@@ -5,7 +5,7 @@ import { CreateItineraryDto } from './dto/create-itinerary.dto';
 import { UpdateItineraryDto } from './dto/update-itinerary.dto';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { resolveApiContext } from '../common/resolve-api-context';
-import { SubagentStubService } from '../common/subagent-stub.service';
+import { SubagentBridgeService } from '../common/subagent-bridge.service';
 
 const DEFAULT_QUOTE_EXPIRY_MINUTES = 30;
 
@@ -14,7 +14,7 @@ export class ItinerariesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly builder: QuoteItemBuilderService,
-    private readonly subagentStub: SubagentStubService,
+    private readonly subagentBridge: SubagentBridgeService,
   ) {}
 
   // M5 spec §3.0.1 dopuna (31.8.2026, IDOR pregled — Itinerary nije bio obuhvaćen ranijim
@@ -29,7 +29,7 @@ export class ItinerariesService {
       if (identity.accountType === 'GUEST' || identity.accountType === 'AI_AGENT') {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
-        clientAccountId = (await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+        clientAccountId = (await this.subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
       }
     }
     return this.prisma.itinerary.create({
@@ -50,7 +50,7 @@ export class ItinerariesService {
   async findAll(clientAccountId: string | undefined, actorUserId?: string) {
     let effectiveClientAccountId = clientAccountId;
     if (actorUserId) {
-      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentBridge, actorUserId);
       if (context !== 'INTERNAL_PANEL') effectiveClientAccountId = ownClientAccountId ?? undefined;
     }
     return this.prisma.itinerary.findMany({
@@ -69,7 +69,7 @@ export class ItinerariesService {
     });
     if (!itinerary) throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
     if (actorUserId) {
-      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      const { context, ownClientAccountId } = await resolveApiContext(this.prisma, this.subagentBridge, actorUserId);
       if (context !== 'INTERNAL_PANEL' && itinerary.clientAccountId !== ownClientAccountId) {
         throw new NotFoundException(`Itinerary ${id} nije pronađen.`);
       }

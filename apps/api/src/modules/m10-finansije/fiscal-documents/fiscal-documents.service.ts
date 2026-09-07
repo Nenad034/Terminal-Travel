@@ -89,8 +89,8 @@ export class FiscalDocumentsService {
         vatRate: 0,
         vatAmount: 0,
         exchangeRateSnapshotId,
-        // §5.1a — subagent nema buyer_name na ovom nivou (nema Booking); M7 FiscalDocumentStubService
-        // (apps/api/src/modules/m7-b2b-subagenti/commission/fiscal-document-stub.service.ts) popunjava
+        // §5.1a — subagent nema buyer_name na ovom nivou (nema Booking); M7 FiscalDocumentBridgeService
+        // (apps/api/src/modules/m7-b2b-subagenti/commission/fiscal-document-bridge.service.ts) popunjava
         // stvarni naziv firme preko M6 ClientAccount.company_name pre poziva ovog metoda. Prazan string
         // ostaje fallback za pozive van tog toka (npr. ručno preko Swagger UI-ja) gde naziv nije poznat.
         buyerNameSnapshot: dto.buyerNameSnapshot ?? '',

@@ -5,14 +5,14 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
   function makeService() {
     const prisma: any = { commissionRebate: { findMany: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() } };
     const auditLog = { write: jest.fn() };
-    const fiscalDocumentStub = { prepareCreditNoteDraftForRebate: jest.fn() };
-    const service = new CommissionRebatesService(prisma, auditLog as any, fiscalDocumentStub as any);
-    return { service, prisma, auditLog, fiscalDocumentStub };
+    const fiscalDocumentBridge = { prepareCreditNoteDraftForRebate: jest.fn() };
+    const service = new CommissionRebatesService(prisma, auditLog as any, fiscalDocumentBridge as any);
+    return { service, prisma, auditLog, fiscalDocumentBridge };
   }
 
   describe('approve — DRAFT → APPROVED (ljudska odluka, ne APPLIED)', () => {
     it('postavlja status APPROVED, popunjava approvedBy/approvedAt, NE popunjava appliedAt', async () => {
-      const { service, prisma, auditLog, fiscalDocumentStub } = makeService();
+      const { service, prisma, auditLog, fiscalDocumentBridge } = makeService();
       const rebate = { id: 'rebate-1', status: 'DRAFT', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
       prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
@@ -28,15 +28,15 @@ describe('CommissionRebatesService (M7 spec §3.2)', () => {
       );
     });
 
-    it('poziva FiscalDocumentStubService.prepareCreditNoteDraftForRebate sa ažuriranim rabatom (M10 spec §5.1a)', async () => {
-      const { service, prisma, fiscalDocumentStub } = makeService();
+    it('poziva FiscalDocumentBridgeService.prepareCreditNoteDraftForRebate sa ažuriranim rabatom (M10 spec §5.1a)', async () => {
+      const { service, prisma, fiscalDocumentBridge } = makeService();
       const rebate = { id: 'rebate-1', status: 'DRAFT', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' };
       prisma.commissionRebate.findUnique.mockResolvedValue(rebate);
       prisma.commissionRebate.update.mockImplementation(({ data }: any) => Promise.resolve({ ...rebate, ...data }));
 
       await service.approve('rebate-1', { userId: 'staff-1' });
 
-      expect(fiscalDocumentStub.prepareCreditNoteDraftForRebate).toHaveBeenCalledWith(
+      expect(fiscalDocumentBridge.prepareCreditNoteDraftForRebate).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'rebate-1', status: 'APPROVED', subagentId: 'sub-1', calculatedAmount: 2000, currency: 'EUR' }),
       );
     });

@@ -41,10 +41,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       checkCreditLimitIfSubagent: jest.fn().mockResolvedValue({ isSubagent: false, allowed: true }),
       isActiveSubagentWithinCreditLimit: jest.fn().mockResolvedValue(false),
     };
-    const clientContractStub = { hasGeneratedContract: jest.fn().mockResolvedValue(false) };
+    const clientContractBridge = { hasGeneratedContract: jest.fn().mockResolvedValue(false) };
     const changeNotices = { prepareDraft: jest.fn() };
     const supplierManifests = { supersedeIfOnSentManifest: jest.fn(), prepareForBooking: jest.fn() };
-    const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
+    const subagentBridge = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
     // M5 spec §6.6 (31.8.2026) — podrazumevano VIEW_ALL=true u testovima da postojeći
     // testovi (pisani pre ovog mehanizma) i dalje vide sve, bez potrebe za dodatnim mock-om
     // po testu; testovi specifični za §6.5/§6.6 ga eksplicitno menjaju gde je bitno.
@@ -58,10 +58,10 @@ describe('BookingsService (M5 spec §4/§6.4)', () => {
       integrations as any,
       builder as any,
       compliance as any,
-      clientContractStub as any,
+      clientContractBridge as any,
       changeNotices as any,
       supplierManifests as any,
-      subagentStub as any,
+      subagentBridge as any,
       permissions as any,
     );
     return { service, prisma, auditLog, eventBus, contractPeriods, integrations, compliance, permissions, builder, supplierManifests };

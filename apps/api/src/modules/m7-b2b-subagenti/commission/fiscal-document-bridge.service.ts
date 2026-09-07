@@ -5,8 +5,8 @@ import { FiscalDocumentsService } from '../../m10-finansije/fiscal-documents/fis
 import { ClientAccountsService } from '../../m6-crm/client-accounts/client-accounts.service';
 
 /**
- * M7 spec §3.2 / M10 spec §5.1a — in-process most M7 → M10 (isti obrazac kao SubagentStubService
- * → M5, LoyaltyStubService → M6). Jedino mesto u M7 koje zna za M10 FiscalDocumentsService.
+ * M7 spec §3.2 / M10 spec §5.1a — in-process most M7 → M10 (isti obrazac kao SubagentBridgeService
+ * → M5, LoyaltyBridgeService → M6). Jedino mesto u M7 koje zna za M10 FiscalDocumentsService.
  *
  * Smer zavisnosti: M7 CommissionModule uvozi M10 FiscalDocumentsModule (ne obrnuto) — M10 nikad
  * ne uvozi M7 direktno, da ne bi napravio kružnu zavisnost sa M10→M7 vezom iz drugog smera
@@ -18,7 +18,7 @@ import { ClientAccountsService } from '../../m6-crm/client-accounts/client-accou
  * zavisnost ka SubagentsService bi napravila kružnu zavisnost unutar M7).
  */
 @Injectable()
-export class FiscalDocumentStubService {
+export class FiscalDocumentBridgeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fiscalDocuments: FiscalDocumentsService,
@@ -27,12 +27,12 @@ export class FiscalDocumentStubService {
 
   // Poziva se iz CommissionRebatesService.approve() čim rabat pređe u APPROVED (M7 spec §3.2:
   // "knjiži se kao umanjenje sledeće fakture/dugovanja subagenta u M10") — sinhrono, isti in-process
-  // DI obrazac kao ostali stub servisi u ovoj bazi koda (ne asinhroni event, za ovaj smer).
+  // DI obrazac kao ostali bridge servisi u ovoj bazi koda (ne asinhroni event, za ovaj smer).
   async prepareCreditNoteDraftForRebate(rebate: CommissionRebate): Promise<void> {
     const subagent = await this.prisma.subagent.findUnique({ where: { id: rebate.subagentId } });
     // Weak reference (M10 spec §5.1a) — Subagent bi trebalo uvek da postoji za validan rebate,
     // ali ne blokiramo APPROVED prelaz zbog nedosledne referentne celovitosti (isti opreza princip
-    // kao ostali stub servisi koji ne bacaju grešku na nedostajuću weak-referencu).
+    // kao ostali bridge servisi koji ne bacaju grešku na nedostajuću weak-referencu).
     if (!subagent) return;
 
     // M6 ClientAccount.company_name (weak reference preko Subagent.client_account_id) — stvarno

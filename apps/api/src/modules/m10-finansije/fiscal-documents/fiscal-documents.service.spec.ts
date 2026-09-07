@@ -283,7 +283,7 @@ describe('FiscalDocumentsService (M10 spec §6)', () => {
       expect(doc.buyerNameSnapshot).toBe(''); // nije prosleđeno — prazan string fallback
     });
 
-    it('koristi prosleđen buyer_name_snapshot (M7 FiscalDocumentStubService, M10 spec §5.1a dopuna)', async () => {
+    it('koristi prosleđen buyer_name_snapshot (M7 FiscalDocumentBridgeService, M10 spec §5.1a dopuna)', async () => {
       const { service, prisma } = makeService();
       prisma.fiscalDocument.create.mockImplementation(({ data }: any) => Promise.resolve({ id: 'fd-credit-2', ...data }));
 

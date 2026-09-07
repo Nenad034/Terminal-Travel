@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../../prisma/prisma.service';
 import { QuoteItemBuilderService } from './quote-item-builder.service';
 import { CreateQuoteDto } from './dto/create-quote.dto';
-import { LoyaltyStubService } from '../common/loyalty-stub.service';
-import { SubagentStubService } from '../common/subagent-stub.service';
+import { LoyaltyBridgeService } from '../common/loyalty-bridge.service';
+import { SubagentBridgeService } from '../common/subagent-bridge.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { resolveApiContext, type M5CallerContext } from '../common/resolve-api-context';
 import { serializeQuote, type RawQuote } from './quote-visibility';
@@ -19,8 +19,8 @@ export class QuotesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly builder: QuoteItemBuilderService,
-    private readonly loyalty: LoyaltyStubService,
-    private readonly subagentStub: SubagentStubService,
+    private readonly loyalty: LoyaltyBridgeService,
+    private readonly subagentBridge: SubagentBridgeService,
     private readonly auditLog: AuditLogService,
   ) {}
 
@@ -35,7 +35,7 @@ export class QuotesService {
     // M7 spec §6.2 dopuna — SUBAGENT_CONTACT pozivalac takođe dobija clientAccountId primoran
     // na sopstveni nalog, isti razlog kao GUEST iznad. identity.ownProfileId je za
     // SUBAGENT_CONTACT Subagent.id (resolve-caller-identity.ts), mora se mapirati na pravi
-    // ClientAccount.id preko SubagentStubService pre nego što uđe u Quote.client_account_id.
+    // ClientAccount.id preko SubagentBridgeService pre nego što uđe u Quote.client_account_id.
     let clientAccountId = dto.clientAccountId;
     let callerAccountType: string | null = null;
     if (actor?.userId) {
@@ -44,7 +44,7 @@ export class QuotesService {
       if (identity.accountType === 'GUEST') {
         clientAccountId = identity.ownProfileId ?? undefined;
       } else if (identity.accountType === 'SUBAGENT_CONTACT' && identity.ownProfileId) {
-        clientAccountId = (await this.subagentStub.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
+        clientAccountId = (await this.subagentBridge.resolveClientAccountIdForSubagentContact(identity.ownProfileId)) ?? undefined;
       } else if (identity.accountType === 'AI_AGENT') {
         // M16 spec §2 dopuna — MCP klijent, isti razlog kao GUEST iznad ali bez stub
         // posredovanja: User.linked_profile_id je već direktno ClientAccount.id (bookings.service.ts).
@@ -96,7 +96,7 @@ export class QuotesService {
     // (isti obrazac/mesto u toku cene kao M6 spec §3.3).
     let discountPercentage = 0;
     if (clientAccountId) {
-      const commissionPercentage = await this.subagentStub.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
+      const commissionPercentage = await this.subagentBridge.getEffectiveCommissionPercentageForClientAccount(clientAccountId);
       discountPercentage = commissionPercentage != null ? commissionPercentage : await this.loyalty.getDiscountPercentage(clientAccountId);
     }
     const applyDiscount = (price: number) => (discountPercentage > 0 ? Math.round(price * (1 - discountPercentage / 100)) : price);
@@ -164,7 +164,7 @@ export class QuotesService {
 
     let context: M5CallerContext = 'INTERNAL_PANEL';
     if (actorUserId) {
-      const resolved = await resolveApiContext(this.prisma, this.subagentStub, actorUserId);
+      const resolved = await resolveApiContext(this.prisma, this.subagentBridge, actorUserId);
       context = resolved.context;
       if (context !== 'INTERNAL_PANEL' && quote.clientAccountId !== resolved.ownClientAccountId) {
         throw new NotFoundException(`Ponuda ${id} nije pronađena.`);

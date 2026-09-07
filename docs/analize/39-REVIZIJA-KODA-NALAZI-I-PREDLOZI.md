@@ -331,7 +331,7 @@ U produkcijskom kodu (bez testova) ima 189 upotreba `any`. Svaka je mesto gde Ty
 **Predlog:** ne masovna zamena, nego pravilo: `any` se ne dodaje u nov kod, a postojeći se čisti u fajlu koji se ionako dira. Uz ESLint pravilo `no-explicit-any` kao upozorenje (ne greška), da se broj vidi i pada.
 **Procena:** kontinuirano, bez zasebnog zadatka.
 
-### 3.4 Pet servisa se zovu „Stub", a odavno nisu stubovi
+### 3.4 Pet servisa se zovu „Stub", a odavno nisu stubovi — REŠENO 7.9.2026
 
 `ComplianceStubsService`, `LoyaltyStubService`, `ClientContractStubService`, `SubagentStubService`, `FiscalDocumentStubService` — svih pet **stvarno rade posao** i pozivaju implementirane module. Ime je zaostalo iz vremena kad ti moduli nisu postojali.
 
@@ -339,6 +339,14 @@ Posledica je stvarna, ne kozmetička: sledeća sesija (ili nov saradnik) pročit
 
 **Predlog:** preimenovati u `…BridgeService` (most ka drugom modulu), a „Stub" ostaviti isključivo onome što stvarno ne radi.
 **Procena:** 1 sat.
+
+---
+
+**REŠENO 7.9.2026.** Preimenovano svih pet: `ComplianceBridgeService`, `LoyaltyBridgeService`, `ClientContractBridgeService`, `SubagentBridgeService`, `FiscalDocumentBridgeService` — fajlovi (`*-stub.service.ts` → `*-bridge.service.ts`, uz `.spec.ts`), klase, konstruktorska polja (`subagentStub` → `subagentBridge` itd.) i putanje uvoza u svih 28 pogođenih fajlova kroz M5/M7/M10/M11/M20. Dva komentara koja su kolektivno pominjala „ostali stub servisi" ažurirana na „bridge servisi"; komentar u `SubagentBridgeService` koji opisuje istorijske `TODO(M7)` stub-ove (stvarni stub kod koji je postojao PRE nego što je M7 implementiran, ne naziv klase) ostavljen nepromenjen — tačan je.
+
+`M22MailboxStubService` se ne pojavljuje na listi jer je već obrisan pri rešavanju nalaza 1.2 (5.9.2026).
+
+**Provereno:** `tsc --noEmit` bez ijedne nove greške u izmenjenim fajlovima; 115 testova u svih sedam pogođenih test-fajlova prolazi (`compliance-bridge`, `client-contract-bridge`, `fiscal-document-bridge`, `commission-rebates`, `bookings`, `itineraries`, `quotes`).
 
 ### 3.5 M21 i M23 imaju po svog AI asistenta nad člancima
 
@@ -405,7 +413,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
 
-**Zatim (nedelja):** ~~3.1 globalni guard~~ (urađeno 7.9.2026) · 3.2 ESLint za API · 3.4 preimenovanje „Stub"
+**Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ (oboje urađeno 7.9.2026) · 3.2 ESLint za API (čeka stabilizaciju `node_modules` — v. napomena ispod)
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 

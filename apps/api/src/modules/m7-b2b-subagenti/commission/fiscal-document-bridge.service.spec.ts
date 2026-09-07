@@ -1,11 +1,11 @@
-import { FiscalDocumentStubService } from './fiscal-document-stub.service';
+import { FiscalDocumentBridgeService } from './fiscal-document-bridge.service';
 
-describe('FiscalDocumentStubService (M7 → M10, M10 spec §5.1a)', () => {
+describe('FiscalDocumentBridgeService (M7 → M10, M10 spec §5.1a)', () => {
   function makeService() {
     const prisma: any = { subagent: { findUnique: jest.fn() } };
     const fiscalDocuments = { prepareCreditNoteDraft: jest.fn() };
     const clientAccounts = { findOne: jest.fn() };
-    const service = new FiscalDocumentStubService(prisma, fiscalDocuments as any, clientAccounts as any);
+    const service = new FiscalDocumentBridgeService(prisma, fiscalDocuments as any, clientAccounts as any);
     return { service, prisma, fiscalDocuments, clientAccounts };
   }
 

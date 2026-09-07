@@ -3,13 +3,13 @@ import { SubagentsService } from '../../m7-b2b-subagenti/subagents/subagents.ser
 import { SubagentVolumeStatusService } from '../../m7-b2b-subagenti/commission/subagent-volume-status.service';
 
 /**
- * M7 spec §4/§5/§6.2 — in-process most M5 → M7 (isti obrazac kao LoyaltyStubService → M6,
- * ComplianceStubsService → M11 TravelGuaranteeService). Jedino mesto u M5 koje zna za M7
+ * M7 spec §4/§5/§6.2 — in-process most M5 → M7 (isti obrazac kao LoyaltyBridgeService → M6,
+ * ComplianceBridgeService → M11 TravelGuaranteeService). Jedino mesto u M5 koje zna za M7
  * Subagent entitet — zamenjuje TODO(M7) stubove koji su postojali pre nego što je M7
  * implementiran (avgust 2026).
  */
 @Injectable()
-export class SubagentStubService {
+export class SubagentBridgeService {
   constructor(
     private readonly subagents: SubagentsService,
     private readonly volumeStatus: SubagentVolumeStatusService,

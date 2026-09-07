@@ -25,7 +25,7 @@ export class M7EventSubscribersService implements OnModuleInit {
     // M10 spec §5.1a/§6 — KNJIZNO_ODOBRENJE stvarno poslat: rabat prelazi APPROVED → APPLIED
     // tek sad (M7 spec §3.2). M10 ne uvozi M7 direktno (izbegava kružnu zavisnost sa M7→M10
     // vezom u CommissionRebatesService.approve()), zato ide preko Event Bus-a umesto DI poziva
-    // — vidi napomenu u fiscal-document-stub.service.ts i FiscalDocumentsService.submit().
+    // — vidi napomenu u fiscal-document-bridge.service.ts i FiscalDocumentsService.submit().
     this.eventListener.on('M10', 'credit_note.submitted', async (payload) => {
       await this.rebates.markApplied(payload.creditedRebateId as string);
     });

@@ -3,8 +3,8 @@ import { BookingsService } from './bookings.service';
 import { BookingsController } from './bookings.controller';
 import { PublicVoucherController } from './public-voucher.controller';
 import { QuoteItemBuilderService } from '../quotes/quote-item-builder.service';
-import { ComplianceStubsService } from '../common/compliance-stubs.service';
-import { ClientContractStubService } from '../common/client-contract-stub.service';
+import { ComplianceBridgeService } from '../common/compliance-bridge.service';
+import { ClientContractBridgeService } from '../common/client-contract-bridge.service';
 import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.module';
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
 import { PermissionsModule } from '../../m1-core-identitet/permissions/permissions.module';
@@ -15,7 +15,7 @@ import { MarkupRulesModule } from '../markup-rules/markup-rules.module';
 import { SupplierManifestsModule } from '../supplier-manifests/supplier-manifests.module';
 import { TravelGuaranteeModule } from '../../m11-compliance/travel-guarantee/travel-guarantee.module';
 import { ClientContractsModule } from '../../m20-ugovori-klijenti/client-contracts/client-contracts.module';
-import { SubagentStubService } from '../common/subagent-stub.service';
+import { SubagentBridgeService } from '../common/subagent-bridge.service';
 import { SubagentsModule } from '../../m7-b2b-subagenti/subagents/subagents.module';
 import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.module';
 
@@ -38,7 +38,7 @@ import { CommissionModule } from '../../m7-b2b-subagenti/commission/commission.m
     CommissionModule,
   ],
   controllers: [BookingsController, PublicVoucherController],
-  providers: [BookingsService, QuoteItemBuilderService, ComplianceStubsService, ClientContractStubService, SubagentStubService],
+  providers: [BookingsService, QuoteItemBuilderService, ComplianceBridgeService, ClientContractBridgeService, SubagentBridgeService],
   exports: [BookingsService],
 })
 export class BookingsModule {}

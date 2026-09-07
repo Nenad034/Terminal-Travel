@@ -3,7 +3,7 @@ import { CommissionAuthorityService } from './commission-authority.service';
 import { CommissionVolumeTiersService } from './commission-volume-tiers.service';
 import { SubagentVolumeStatusService } from './subagent-volume-status.service';
 import { CommissionRebatesService } from './commission-rebates.service';
-import { FiscalDocumentStubService } from './fiscal-document-stub.service';
+import { FiscalDocumentBridgeService } from './fiscal-document-bridge.service';
 import { CommissionController } from './commission.controller';
 import { AuditLogModule } from '../../m1-core-identitet/audit-log/audit-log.module';
 import { AuthModule } from '../../m1-core-identitet/auth/auth.module';
@@ -13,8 +13,8 @@ import { ClientAccountsModule } from '../../m6-crm/client-accounts/client-accoun
 
 // M7 spec §3.1/§3.2 — namerno bez zavisnosti od SubagentsModule (vidi napomenu u
 // CommissionAuthorityService) da SubagentsModule može da uvozi ovaj modul bez kružne zavisnosti.
-// FiscalDocumentsModule (M10) i ClientAccountsModule (M6) su uvezeni radi FiscalDocumentStubService
-// (M10 spec §5.1a) — smer M7→M10/M6, nikad obrnuto (vidi napomenu u fiscal-document-stub.service.ts).
+// FiscalDocumentsModule (M10) i ClientAccountsModule (M6) su uvezeni radi FiscalDocumentBridgeService
+// (M10 spec §5.1a) — smer M7→M10/M6, nikad obrnuto (vidi napomenu u fiscal-document-bridge.service.ts).
 @Module({
   imports: [AuditLogModule, AuthModule, PermissionsModule, FiscalDocumentsModule, ClientAccountsModule],
   controllers: [CommissionController],
@@ -23,7 +23,7 @@ import { ClientAccountsModule } from '../../m6-crm/client-accounts/client-accoun
     CommissionVolumeTiersService,
     SubagentVolumeStatusService,
     CommissionRebatesService,
-    FiscalDocumentStubService,
+    FiscalDocumentBridgeService,
   ],
   exports: [CommissionVolumeTiersService, SubagentVolumeStatusService, CommissionRebatesService],
 })

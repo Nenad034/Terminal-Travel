@@ -50,7 +50,7 @@ export class SubagentVolumeStatusService {
     };
   }
 
-  // §5 — koristi se u M5 toku cene (SubagentStubService, m5/common). Vraća samo procenat,
+  // §5 — koristi se u M5 toku cene (SubagentBridgeService, m5/common). Vraća samo procenat,
   // uvek dostupno čak i pre prvog preračuna (osnovna provizija).
   async getEffectiveCommissionPercentage(subagentId: string): Promise<number> {
     const status = await this.get(subagentId);

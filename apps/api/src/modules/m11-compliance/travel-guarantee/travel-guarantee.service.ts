@@ -138,7 +138,7 @@ export class TravelGuaranteeService {
     };
   }
 
-  // M5 spec §4 korak 1a — poziva se u in-process pozivu iz ComplianceStubsService pre potvrde
+  // M5 spec §4 korak 1a — poziva se u in-process pozivu iz ComplianceBridgeService pre potvrde
   // ORGANIZATOR rezervacije (isti obrazac cross-modularnog poziva kao M10 PaymentsService →
   // M5 BookingsService). Kombinuje dve odvojene provere: (a) da li uopšte postoji dovoljno
   // sveža garancija (hibridni grace period, vidi NO_GUARANTEE_GRACE_PERIOD_DAYS), (b) da li bi

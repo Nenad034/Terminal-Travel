@@ -7,8 +7,8 @@ import { EventBusService } from '../../../common/events/event-bus.service';
 import { ContractPeriodsService } from '../../m3-ugovaranje-alotmani/contract-periods/contract-periods.service';
 import { IntegrationsService } from '../../m4-integracije-api/integrations.service';
 import { QuoteItemBuilderService, BuiltQuoteItemData } from '../quotes/quote-item-builder.service';
-import { ComplianceStubsService } from '../common/compliance-stubs.service';
-import { ClientContractStubService } from '../common/client-contract-stub.service';
+import { ComplianceBridgeService } from '../common/compliance-bridge.service';
+import { ClientContractBridgeService } from '../common/client-contract-bridge.service';
 import { generateBookingNumber } from '../common/booking-number';
 import { classifyByDay, toMidnightUtc } from '../common/calendar-classification';
 import { namesMatch } from '../common/fuzzy-match';
@@ -25,7 +25,7 @@ import { SupplierChangeNoticesService } from '../supplier-manifests/supplier-cha
 import { SupplierManifestsService } from '../supplier-manifests/supplier-manifests.service';
 import { resolveCallerIdentity } from '../../../common/auth/resolve-caller-identity';
 import { resolveTranslation } from '../../m2-katalog-proizvoda/products/language-fallback';
-import { SubagentStubService } from '../common/subagent-stub.service';
+import { SubagentBridgeService } from '../common/subagent-bridge.service';
 import { resolveApiContext } from '../common/resolve-api-context';
 import { PermissionsService } from '../../m1-core-identitet/permissions/permissions.service';
 import { SYSTEM_ROLES } from '../../m1-core-identitet/roles/system-roles.constants';
@@ -91,11 +91,11 @@ export class BookingsService {
     private readonly contractPeriods: ContractPeriodsService,
     private readonly integrations: IntegrationsService,
     private readonly builder: QuoteItemBuilderService,
-    private readonly compliance: ComplianceStubsService,
-    private readonly clientContractStub: ClientContractStubService,
+    private readonly compliance: ComplianceBridgeService,
+    private readonly clientContractBridge: ClientContractBridgeService,
     private readonly changeNotices: SupplierChangeNoticesService,
     private readonly supplierManifests: SupplierManifestsService,
-    private readonly subagentStub: SubagentStubService,
+    private readonly subagentBridge: SubagentBridgeService,
     private readonly permissions: PermissionsService,
   ) {}
 
@@ -493,7 +493,7 @@ export class BookingsService {
   /**
    * M5 spec §6.2 dopuna (avgust 2026, priprema za M8) — vidi common/auth/resolve-caller-identity.ts.
    * M7 dopuna (avgust 2026): za SUBAGENT_CONTACT, identity.ownProfileId je Subagent.id (ne
-   * ClientAccount.id) — mora se mapirati preko SubagentStubService na pravi ClientAccount.id
+   * ClientAccount.id) — mora se mapirati preko SubagentBridgeService na pravi ClientAccount.id
    * pre poređenja sa Quote/Booking.client_account_id, inače ownership provera nikad ne pogađa.
    */
   // Ispravka 28.8.2026 (bezbednosni nalaz, pre lansiranja pregled) — bila je PRIVATNA metoda
@@ -503,7 +503,7 @@ export class BookingsService {
   private async resolveApiContext(
     userId: string,
   ): Promise<{ context: 'INTERNAL_PANEL' | 'B2C' | 'B2B'; ownClientAccountId: string | null; franchiseSubagentId: string | null }> {
-    return resolveApiContext(this.prisma, this.subagentStub, userId);
+    return resolveApiContext(this.prisma, this.subagentBridge, userId);
   }
 
   // M5 spec v1.54 (24.8.2026, na zahtev vlasnika — prava "Lista rezervacija") — v1 skup pravih
@@ -1781,7 +1781,7 @@ export class BookingsService {
     if (!eligible) return;
 
     if (booking.tipNastupanja === 'ORGANIZATOR') {
-      const hasContract = await this.clientContractStub.hasGeneratedContract(bookingId);
+      const hasContract = await this.clientContractBridge.hasGeneratedContract(bookingId);
       if (!hasContract) return; // M20 ClientContract još ne postoji GENERATED — vaučer čeka (§6 dopuna)
     }
 

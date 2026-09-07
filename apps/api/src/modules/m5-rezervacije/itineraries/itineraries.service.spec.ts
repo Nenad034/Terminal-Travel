@@ -15,9 +15,9 @@ describe('ItinerariesService — vlasništvo (§3.0.1 dopuna, 31.8.2026)', () =>
       $transaction: jest.fn((arg: any) => (typeof arg === 'function' ? arg(prisma) : Promise.all(arg))),
     };
     const builder = { build: jest.fn() };
-    const subagentStub = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
-    const service = new ItinerariesService(prisma, builder as any, subagentStub as any);
-    return { service, prisma, builder, subagentStub };
+    const subagentBridge = { resolveClientAccountIdForSubagentContact: jest.fn().mockResolvedValue(null) };
+    const service = new ItinerariesService(prisma, builder as any, subagentBridge as any);
+    return { service, prisma, builder, subagentBridge };
   }
 
   describe('create — client_account_id se ne uzima slepo iz tela zahteva', () => {

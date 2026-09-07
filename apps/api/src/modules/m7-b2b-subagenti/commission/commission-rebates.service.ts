@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { CommissionRebate } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AuditLogService } from '../../m1-core-identitet/audit-log/audit-log.service';
-import { FiscalDocumentStubService } from './fiscal-document-stub.service';
+import { FiscalDocumentBridgeService } from './fiscal-document-bridge.service';
 
 // M7 spec §3.2 — CommissionRebate: poseban jednokratan rabat kad se dostigne retroactive prag
 // usred perioda, NIKAD ponovno otvaranje/storniranje već poslatih fiskalnih dokumenata (M10).
@@ -11,7 +11,7 @@ export class CommissionRebatesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditLog: AuditLogService,
-    private readonly fiscalDocumentStub: FiscalDocumentStubService,
+    private readonly fiscalDocumentBridge: FiscalDocumentBridgeService,
   ) {}
 
   async findMany(subagentId: string): Promise<CommissionRebate[]> {
@@ -63,7 +63,7 @@ export class CommissionRebatesService {
   // DRAFT → APPROVED je ljudska odluka; APPLIED je posledica STVARNOG knjiženja u M10 (kad
   // fiskalni dokument KNJIZNO_ODOBRENJE bude poslat, ne u ovom trenutku — vidi markApplied()
   // i M10 spec §5.1a/§6). Odmah po prelasku u APPROVED, M10 dobija automatski pripremljen
-  // KNJIZNO_ODOBRENJE nacrt preko FiscalDocumentStubService (sinhrono, u istom toku).
+  // KNJIZNO_ODOBRENJE nacrt preko FiscalDocumentBridgeService (sinhrono, u istom toku).
   async approve(id: string, actor: { userId: string }): Promise<CommissionRebate> {
     const rebate = await this.findOneOrThrow(id);
     if (rebate.status !== 'DRAFT') {
@@ -87,7 +87,7 @@ export class CommissionRebatesService {
       afterState: updated,
     });
 
-    await this.fiscalDocumentStub.prepareCreditNoteDraftForRebate(updated);
+    await this.fiscalDocumentBridge.prepareCreditNoteDraftForRebate(updated);
 
     return updated;
   }
