@@ -23,26 +23,22 @@ describe('Slanje dobavljaču ne sme da tvrdi isporuku koje nije bilo (M5 §8.4)'
         update: jest.fn(async ({ data }: any) => ({ ...manifest, ...data })),
       },
       supplier: {
-        findUniqueOrThrow: jest
-          .fn()
-          .mockResolvedValue({
-            id: 'sup-1',
-            name: 'Hotel Vila',
-            contactEmail: 'hotel@example.com',
-          }),
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          id: 'sup-1',
+          name: 'Hotel Vila',
+          contactEmail: 'hotel@example.com',
+        }),
       },
       bookingItem: { updateMany: jest.fn() },
       $transaction: jest.fn(async (ops: any[]) => Promise.all(ops)),
     };
     const auditLog = { write: jest.fn() };
     const mailbox = {
-      sendViaSharedMailbox: jest
-        .fn()
-        .mockResolvedValue({
-          delivered,
-          reason: delivered ? undefined : 'nema sandučeta',
-          emailThreadId: null,
-        }),
+      sendViaSharedMailbox: jest.fn().mockResolvedValue({
+        delivered,
+        reason: delivered ? undefined : 'nema sandučeta',
+        emailThreadId: null,
+      }),
     };
     const service = new SupplierManifestsService(prisma, auditLog as any, mailbox as any);
     jest.spyOn(service, 'findOne').mockResolvedValue(manifest as any);

@@ -61,12 +61,10 @@ export class McpController {
     if (
       !this.rateLimiter.tryConsume(result.registration.id, result.registration.rateLimitPerMinute)
     ) {
-      res
-        .status(429)
-        .json({
-          jsonrpc: '2.0',
-          error: { code: -32000, message: 'Prekoračen rate_limit_per_minute (M16 spec §6).' },
-        });
+      res.status(429).json({
+        jsonrpc: '2.0',
+        error: { code: -32000, message: 'Prekoračen rate_limit_per_minute (M16 spec §6).' },
+      });
       return;
     }
 

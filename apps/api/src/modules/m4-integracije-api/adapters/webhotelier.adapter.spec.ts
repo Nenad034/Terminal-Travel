@@ -279,15 +279,13 @@ describe('WebHotelierAdapter (M4 spec §5b)', () => {
 
   describe('cancelBooking', () => {
     it('poziva /reservation/cancel/{res_id} i vraća cancelled:true', async () => {
-      const fetchMock = jest
-        .fn()
-        .mockResolvedValue(
-          okResponse({
-            result: 'OK',
-            cancellation_penalty_amount: 59.4,
-            cancellation_penalty_currency: 'EUR',
-          }),
-        );
+      const fetchMock = jest.fn().mockResolvedValue(
+        okResponse({
+          result: 'OK',
+          cancellation_penalty_amount: 59.4,
+          cancellation_penalty_currency: 'EUR',
+        }),
+      );
       const adapter = makeAdapter(fetchMock);
 
       const result = await adapter.cancelBooking('11234567');

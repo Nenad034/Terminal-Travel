@@ -10,3 +10,6 @@ apps/panel/public/maplibre
 apps/api/prisma/migrations
 docs/00-PREGLED-DOKUMENTACIJE.html
 qa-snimci
+
+# generise ga Next, format mu nije nas (obarao je Prettier proveru u CI-ju 7.9.2026)
+next-env.d.ts

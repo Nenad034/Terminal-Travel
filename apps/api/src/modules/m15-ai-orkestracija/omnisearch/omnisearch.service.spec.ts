@@ -323,12 +323,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // numerisana lista referenci, agent ih i dalje sam razrešava (nema sirovih podataka ovde).
   it('contextItems (RECORD, više stavki) se prosleđuju modelu kao numerisan blok "Priložen kontekst"', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -376,12 +374,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
         },
       ]),
     );
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -412,12 +408,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // izmišljenog spiska, agent se upućuje na filter_list SAMO ako pitanje traži drugačiju listu.
   it('contextItems (FILTERED_LIST, pogled bez podataka, npr. crm) priznaje da redovi nisu dostupni, ne izmišlja ih', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -440,12 +434,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // princip kao FILTERED_LIST redovi).
   it('contextItems (FILE) ubacuje izvučen tekst dokumenta direktno u prompt', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -470,12 +462,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // (Claude Vision), `content` poruke prelazi sa stringa na niz blokova.
   it('contextItems (IMAGE) šalje sliku modelu kao zaseban image content blok (Claude Vision)', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -506,12 +496,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // oblik ne remeti postojeći tok kad korisnik ne priloži nijednu sliku.
   it('bez IMAGE stavki, content poruke ostaje običan string, ne niz blokova', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({
@@ -527,12 +515,10 @@ describe('OmnisearchService (M15 spec §6.5, §10)', () => {
   // izostavi (fail soft, isti princip kao ostatak "agent ne izmišlja" — ovo je samo prompt tekst).
   it('contextItems (FILTERED_LIST, nepoznat view) se izostavlja iz prompta bez greške korisniku', async () => {
     const { service, anthropic } = makeService({ anthropicConfigured: true });
-    const create = jest
-      .fn()
-      .mockResolvedValue({
-        content: [{ type: 'text', text: 'ok' }],
-        usage: { input_tokens: 10, output_tokens: 5 },
-      });
+    const create = jest.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'ok' }],
+      usage: { input_tokens: 10, output_tokens: 5 },
+    });
     (anthropic.getClient as jest.Mock).mockReturnValue({ messages: { create } });
 
     await service.search({

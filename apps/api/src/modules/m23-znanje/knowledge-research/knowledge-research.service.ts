@@ -156,9 +156,7 @@ export class KnowledgeResearchService {
     return { source, revision };
   }
 
-  private async structureText(
-    rawText: string,
-  ): Promise<{
+  private async structureText(rawText: string): Promise<{
     title: string;
     body: string;
     usedAnthropic: boolean;
@@ -184,9 +182,7 @@ export class KnowledgeResearchService {
     };
   }
 
-  private async structureWithAnthropic(
-    rawText: string,
-  ): Promise<{
+  private async structureWithAnthropic(rawText: string): Promise<{
     title: string;
     body: string;
     usedAnthropic: boolean;

@@ -30,3 +30,9 @@ apps/panel/public/maplibre/
 
 # Snimci ekrana iz `npm run qa` — prave se iznova pri svakom pokretanju.
 qa-snimci/
+
+# Next.js sam pravi ovaj fajl pri svakom `next dev`/`next build`, i pise mu RAZLICIT
+# sadrzaj u ta dva rezima (`.next/dev/types/...` vs `.next/types/...`). Nijedna verzija zato
+# nije "tacna" — komitovana bi bila pogresna posle svakog pokretanja drugog rezima i stajala
+# bi vecno kao izmenjen fajl. Provereno 7.9.2026: `tsc --noEmit` prolazi i kad ga uopste nema.
+next-env.d.ts

@@ -609,9 +609,7 @@ export class BookingsService {
   // ove klase, pa je `QuotesService.findOne` napisala SOPSTVENU, nepotpunu verziju (samo GUEST
   // provera, IDOR za SUBAGENT_CONTACT/AI_AGENT) umesto da je deli. Sad je zajednička funkcija
   // (`common/resolve-api-context.ts`) — svaki naredni M5 servis je uvozi, ne prepisuje.
-  private async resolveApiContext(
-    userId: string,
-  ): Promise<{
+  private async resolveApiContext(userId: string): Promise<{
     context: 'INTERNAL_PANEL' | 'B2C' | 'B2B';
     ownClientAccountId: string | null;
     franchiseSubagentId: string | null;
