@@ -426,7 +426,7 @@ Ovo su stvari koje sam našao, ali **već stoje zapisane**. Navodim ih da se vid
 
 Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
-**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404) · 2.4a `tsc`+`build` u CI · 2.5 stranice greške
+**Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404 — v. 2.5)
 
 **Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ · ~~3.2 ESLint za API~~ (sve troje urađeno 7.9.2026; Prettier deo 3.2 ostaje otvoren, v. napomena u 3.2)
 
