@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
+import { getAgency } from '@/lib/agency';
 
 // M8 spec §5.1 — SEOMeta, dopuna avgust 2026: naslov po kategoriji/jeziku.
 export async function generateMetadata({
@@ -16,7 +17,7 @@ export async function generateMetadata({
   const type = slugToType(tip);
   if (!type) return {};
   const t = await getTranslations({ locale, namespace: 'categories' });
-  return { title: `${t(type)} — Terminal Travel` };
+  return { title: `${t(type)} — ${(await getAgency()).brandName}` };
 }
 
 // M8 spec poglavlje 2, dopuna avgust 2026 — "/[tip]" (kategorija): lista svih

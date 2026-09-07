@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicContent } from '@/lib/types';
+import { getAgency } from '@/lib/agency';
 
 // M8 spec poglavlje 2/6 — blog članak, čita objavljen sadržaj iz M12 preko javnog,
 // negardovanog endpoint-a (M12 spec §7, PublicContentController).
@@ -25,7 +26,7 @@ export async function generateMetadata({
   const content = await fetchContent(locale, slug);
   if (!content?.translation) return {};
   return {
-    title: `${content.translation.title} — Terminal Travel Blog`,
+    title: `${content.translation.title} — ${(await getAgency()).brandName} Blog`,
     description: content.translation.body?.slice(0, 160),
     openGraph: { title: content.translation.title, type: 'article' },
   };

@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import './globals.css';
+import { getAgencyBrand } from '@/lib/agency';
 
-export const metadata: Metadata = {
-  title: 'Terminal — interni panel',
-  description: 'M17 — interni radni panel agencije Terminal Travel.',
-};
+// Master dokument razdvaja DVA imena: naziv platforme je **Terminal**, naziv agencije/brenda je
+// zaseban podatak (M1 spec §3.9c). Zato naslov ostaje „Terminal“ i kad se agencija preimenuje —
+// menja se samo ono što imenuje AGENCIJU, ovde opis.
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'Terminal — interni panel',
+    description: `M17 — interni radni panel agencije ${await getAgencyBrand()}.`,
+  };
+}
 
 /** Ključ kolačića sa ručno izabranom temom — deli ga `ThemeToggle.tsx`. */
 export const THEME_COOKIE = 'tt-panel-theme';

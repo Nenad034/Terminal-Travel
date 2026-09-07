@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MailboxesService } from '../../m22-email-inbox/mailboxes/mailboxes.service';
 import { EmailProviderFactory } from '../../m22-email-inbox/email-provider/email-provider.factory';
+import { AgencySettingsService } from '../../m1-core-identitet/agency-settings/agency-settings.service';
 
 export interface SupplierSendResult {
   /** Jedina istina o tome da li je poruka otišla — pozivalac po njoj bira SENT ili PENDING_SEND. */
@@ -44,6 +45,10 @@ export class SupplierMailboxService {
     private readonly prisma: PrismaService,
     private readonly mailboxes: MailboxesService,
     private readonly providerFactory: EmailProviderFactory,
+    // M1 §3.9c — potpis u pismu dobavljaču je naziv agencije iz podešavanja, ne zakucan tekst.
+    // Ovo pismo čita neko IZVAN firme; zastareo potpis posle preimenovanja bio bi vidljiv njemu,
+    // ne nama.
+    private readonly agency: AgencySettingsService,
   ) {}
 
   async sendViaSharedMailbox(params: {
@@ -69,7 +74,8 @@ export class SupplierMailboxService {
     // prekucan naslov (poklapanje odgovora ide preko njega, M22 §3.1a).
     const subject = `[REF: ${params.referenceCode}] ${params.subject}`;
     const body =
-      params.body ?? this.defaultBody(params.subject, params.referenceCode, params.documentUrl);
+      params.body ??
+      (await this.defaultBody(params.subject, params.referenceCode, params.documentUrl));
 
     const thread = await this.prisma.emailThread.create({
       data: {
@@ -124,7 +130,12 @@ export class SupplierMailboxService {
    * Telo poruke kad pozivalac ne prosledi svoje. Namerno kratko i bez izmišljenih podataka —
    * sadržaj liste je u priloženom dokumentu, a ovde stoji samo ono što je sigurno tačno.
    */
-  private defaultBody(subject: string, referenceCode: string, documentUrl?: string | null): string {
+  private async defaultBody(
+    subject: string,
+    referenceCode: string,
+    documentUrl?: string | null,
+  ): Promise<string> {
+    const { brandName } = await this.agency.get();
     const lines = [
       'Poštovani,',
       '',
@@ -134,7 +145,7 @@ export class SupplierMailboxService {
       `Molimo Vas da u odgovoru zadržite oznaku ${referenceCode} u naslovu, kako bismo Vašu potvrdu automatski povezali sa rezervacijom.`,
       '',
       'Hvala unapred,',
-      'Terminal Travel',
+      brandName,
     ];
     return lines.filter((l) => l !== null).join('\n');
   }

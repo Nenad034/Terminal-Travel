@@ -37,7 +37,7 @@ model User {
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
-  branch              Branch?                   @relation(fields: [branchId], references: [id])
+  branch              Branch?                  @relation(fields: [branchId], references: [id])
   roles               UserRole[]
   permissionOverrides UserPermissionOverride[] @relation("OverrideSubject")
   grantedOverrides    UserPermissionOverride[] @relation("OverrideGrantedBy")
@@ -269,6 +269,29 @@ model UserPreference {
   @@map("user_preferences")
 }
 
+// §3.9c `AgencySettings` — identitet same agencije (naziv, adresa, PIB, licenca, kontakt).
+// JEDAN red za celu instalaciju: `id` je uvek 'singleton'. Namerno nije tabela sa vise redova —
+// vise redova bi znacilo "vise agencija u istoj bazi", a prava multi-tenant izolacija je svesno
+// odlozena (docs/analize/27-BACKLOG-IDEJA-I-PREDLOZI.md, dogovor 31.8.2026).
+// Postoji zato sto je naziv agencije bio zakucan na ~50 mesta u kodu, a po prirodi je podatak
+// koji se menja (rebrend, pravno ime razlicito od poslovnog, promena adrese/licence).
+model AgencySettings {
+  id               String   @id @default("singleton")
+  brandName        String   @map("brand_name") // ime koje gost i tim VIDE
+  legalName        String?  @map("legal_name") // pun pravni naziv ako se razlikuje od brenda
+  address          String?
+  taxId            String?  @map("tax_id") // PIB — potreban tek za fiskalizaciju (M10)
+  licenseNumber    String?  @map("license_number") // M20 §2.3 — licenca organizatora putovanja
+  emergencyContact String?  @map("emergency_contact") // M20 §2.3 — stampa se na ugovoru
+  email            String?
+  phone            String?
+  website          String?
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  updatedByUserId  String?  @map("updated_by_user_id") // weak ref -> M1 User; izmena ide i u audit log
+
+  @@map("agency_settings")
+}
+
 // ============================================================================
 // M2 — Katalog proizvoda
 // Izvor: docs/moduli/M02-katalog-proizvoda/03-SPECIFIKACIJA-M2-KATALOG-PROIZVODA.md
@@ -400,15 +423,15 @@ enum CacheStatus {
 // aktivnosti" (M5 §3.0c.3e). AI predlaže, čovek potvrđuje pre upisa (poglavlje 7 Master
 // dokumenta) — ovaj model ne sadrži tok predloga, samo potvrđen, upisan profil.
 model DestinationProfile {
-  id                 String         @id @default(uuid())
-  destinationCountry String         @map("destination_country") // mora se poklapati sa kanonskim oblikom, §2.1a
-  destinationCity    String         @map("destination_city") // mora biti STVARNO naselje, §2.1b
+  id                 String          @id @default(uuid())
+  destinationCountry String          @map("destination_country") // mora se poklapati sa kanonskim oblikom, §2.1a
+  destinationCity    String          @map("destination_city") // mora biti STVARNO naselje, §2.1b
   destinationType    DestinationType @map("destination_type")
   // §2.1c — koje aktivnosti destinacija podržava; prazno/`[]` = nepoznato, NE "nijedna".
   activities         ActivityTag[]
-  createdBy          String?        @map("created_by") // M1 User koji je potvrdio predlog, ili AI agent — plain UUID, bez FK
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  createdBy          String?         @map("created_by") // M1 User koji je potvrdio predlog, ili AI agent — plain UUID, bez FK
+  createdAt          DateTime        @default(now()) @map("created_at")
+  updatedAt          DateTime        @updatedAt @map("updated_at")
 
   @@unique([destinationCountry, destinationCity])
   @@map("destination_profiles")

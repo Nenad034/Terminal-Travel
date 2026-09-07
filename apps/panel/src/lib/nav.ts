@@ -60,6 +60,19 @@ export const NAV_ITEMS: NavItem[] = [
     implemented: true,
   },
   {
+    // M1 spec §3.9c (7.9.2026, na zahtev vlasnika) — identitet agencije (naziv/adresa/PIB/
+    // licenca/kontakt) na jednom mestu, umesto zakucan u kodu. Gate preko `agency-settings/EDIT`
+    // (Vlasnik/Direktor) — čitanje je otvoreno svima, ali stavka u meniju se pokazuje onome ko
+    // sme i da menja, isti obrazac kao „Poslovnice“ iznad.
+    id: 'podaci-agencije',
+    label: 'Podaci agencije',
+    icon: 'organization',
+    href: '/podesavanja/podaci-agencije',
+    permission: { module: 'M1', resource: 'agency-settings', action: 'EDIT' },
+    phase: 0,
+    implemented: true,
+  },
+  {
     id: 'katalog',
     label: 'Katalog proizvoda',
     icon: 'package',

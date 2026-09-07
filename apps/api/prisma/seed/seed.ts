@@ -97,6 +97,17 @@ const M1_PERMISSIONS: { module: string; resource: string; action: string; descri
       description: 'Kreiranje nove poslovnice',
     },
     { module: 'M1', resource: 'branch', action: 'EDIT', description: 'Izmena/gašenje poslovnice' },
+    // M1 spec §3.9c (7.9.2026) — identitet agencije (naziv, adresa, PIB, licenca, kontakt).
+    // Samo EDIT: čitanje je namerno bez dozvole (`GET /iam/agency-settings` je otvoren svakom
+    // prijavljenom nalogu, isti obrazac kao `branch` iznad) — dozvola koju bi ionako imali svi
+    // nije ograda nego administracija. EDIT ide samo Vlasniku/Direktoru jer ova polja završavaju
+    // na zakonski obavezujućem ugovoru sa gostom (M20 §2.3).
+    {
+      module: 'M1',
+      resource: 'agency-settings',
+      action: 'EDIT',
+      description: 'Izmena podataka agencije (naziv, adresa, PIB, licenca, kontakt)',
+    },
   ];
 
 // M2 spec §6 — dozvole kataloga proizvoda.
@@ -1774,6 +1785,22 @@ async function main() {
       });
     }
   }
+
+  // M1 spec §3.9c — identitet agencije. Red UVEK postoji (singleton), da nijedan pozivalac ne
+  // mora da rukuje stanjem "podešavanja ne postoje". `update: {}` — seed NIKAD ne pregazi ono
+  // što je vlasnik već upisao kroz panel; podrazumevane vrednosti važe samo pri prvom pravljenju.
+  await prisma.agencySettings.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
+      brandName: process.env.AGENCY_NAME ?? 'Terminal Travel',
+      legalName: process.env.AGENCY_LEGAL_NAME ?? null,
+      address: process.env.AGENCY_ADDRESS ?? null,
+      licenseNumber: process.env.AGENCY_LICENSE_NUMBER ?? null,
+      emergencyContact: process.env.AGENCY_EMERGENCY_CONTACT ?? null,
+    },
+  });
 
   await seedM15Omnisearch();
   await seedM15ActionRegistry();

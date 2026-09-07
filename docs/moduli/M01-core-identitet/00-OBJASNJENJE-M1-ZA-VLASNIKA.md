@@ -71,6 +71,22 @@ Sada su povezana dva mesta gde je to najvažnije: **pozivnica novom kolegi** i *
 
 **Šta i dalje ne šalje poštu, i zašto namerno.** Marketinški newsletter (M12) — jer masovna poruka traži i dugme „odjavi me" (zakonska obaveza), poštovanje pristanka svakog primaoca i usporavanje slanja da nas mail serveri ne označe kao izvor neželjene pošte. Poslati hiljadu poruka bez odjave gore je nego ne poslati ih. I sandučad iz modula M22 — tamo se poruke šalju _u ime konkretnog sandučeta_ i, što je teži deo, **dovlače** iz njega; to je zaseban izbor koji tek treba napraviti.
 
+## Ime agencije se sada menja na jednom mestu (dopuna, 7.9.2026)
+
+**Povod:** pitali ste šta se dešava ako promenite ime „Terminal Travel“. Izmerili smo: ime je bilo **zakucano na oko 50 mesta u kodu** — u naslovu svake stranice sajta, u podnožju, u zaglavlju panela, u uslovima poslovanja, u pismima dobavljačima. Promena imena značila bi da neko prođe kroz svih pedeset i nijedno ne promasi.
+
+**Šta je urađeno.** Napravljen je jedan ekran u panelu: **Podešavanja → Podaci agencije**. Tu stoje naziv, pun pravni naziv, adresa, PIB, broj licence, kontakt za hitne slučajeve, email, telefon i sajt. Sva ta mesta sada uzimaju vrednost odatle.
+
+Poređenje: ranije je ime bilo ispisano flomasterom na pedeset tabli po zgradi. Sada postoji jedna tabla na ulazu, a sve ostale je samo čitaju.
+
+**Dokaz da radi** — nije pretpostavka: promenili smo ime u „Probna Agencija DOO“ kroz API i javni sajt je odmah prikazao novo ime na pet mesta i u naslovu prozora, dok se staro nije pojavilo nijednom. Zatim je vraćeno nazad.
+
+**Ko sme da menja.** Samo Vlasnik i Direktor. Razlog nije hijerarhija nego to što ti podaci završavaju na **ugovoru koji gost potpisuje** — naziv, adresa i broj licence su tamo zakonski obavezni. Svaka izmena se upisuje u evidenciju izmena: ko je menjao, kada, i šta je bilo pre.
+
+**Zašto je ovo važno za vašu ideju o ustupanju aplikacije drugim agencijama.** Dok je ime agencije razasuto po kodu, aplikacija se ne može dati nikome drugom bez prepravke koda. Ovo je prvi korak koji tu prepreku uklanja. **Nije** puna podrška za više agencija u istom sistemu — to je odvojena, krupnija odluka koju ste već svesno odložili (31.8.2026); ovo je jedan red podataka za jednu agenciju.
+
+**Šta još nije prebačeno, i kažem to izričito.** AI asistenti se u svojim uputstvima i dalje predstavljaju starim imenom (osam mesta), kao i naslov operativnog obaveštenja. Nije zaboravljeno nego **namerno odloženo**: ta uputstva imaju ugrađenu zaštitu od pokušaja da im neko podmetne lažno naređenje, pa ubacivanje teksta koji se menja kroz panel u njih traži posebnu pažnju — neko sa pravom izmene mogao bi da umesto naziva upiše uputstvo agentu. Zavedeno kao otvorena stavka.
+
 ---
 
 _Za tehničke detalje (tačna imena tabela, API pozivi, pravila evaluacije prava) vidi `02-SPECIFIKACIJA-M1-CORE-IDENTITET.md` u istom folderu — ovaj dokument je namerno pojednostavljen, ne zamenjuje tu specifikaciju._

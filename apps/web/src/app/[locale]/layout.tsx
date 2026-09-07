@@ -4,15 +4,21 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { locales } from '@/i18n/config';
+import { getAgency } from '@/lib/agency';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export const metadata: Metadata = {
-  title: 'Terminal Travel',
-  description: 'Terminal Travel — pretraga i rezervacija smeštaja, aranžmana i izleta.',
-};
+// M1 spec §3.9c — naziv dolazi iz podešavanja agencije, ne iz koda. Zato `generateMetadata`
+// (funkcija) umesto statičnog `metadata` objekta: naslov se računa pri zahtevu.
+export async function generateMetadata(): Promise<Metadata> {
+  const agencija = await getAgency();
+  return {
+    title: agencija.brandName,
+    description: `${agencija.brandName} — pretraga i rezervacija smeštaja, aranžmana i izleta.`,
+  };
+}
 
 // Namerno BEZ Header/Footer ovde (dopuna avgust 2026) — premešteno u
 // app/[locale]/(site)/layout.tsx da /znanje/[shareToken] (sestrinska ruta van (site) grupe)

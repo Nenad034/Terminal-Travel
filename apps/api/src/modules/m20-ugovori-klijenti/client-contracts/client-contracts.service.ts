@@ -174,7 +174,7 @@ export class ClientContractsService {
       contractType,
       travelGuarantee,
       paymentSchedule,
-      agency: this.agencyConfig.get(),
+      agency: await this.agencyConfig.get(),
     });
 
     const { documentUrl } = await this.gateway.generate({ contractType, contentSnapshot });

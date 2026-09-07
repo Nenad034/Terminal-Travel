@@ -5,6 +5,7 @@ import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
 import { AuditLogModule } from './audit-log/audit-log.module';
 import { BranchesModule } from './branches/branches.module';
+import { AgencySettingsModule } from './agency-settings/agency-settings.module';
 
 // docs/moduli/M01-core-identitet/02-SPECIFIKACIJA-M1-CORE-IDENTITET.md
 @Module({
@@ -15,6 +16,7 @@ import { BranchesModule } from './branches/branches.module';
     PermissionsModule,
     AuditLogModule,
     BranchesModule,
+    AgencySettingsModule,
   ],
 })
 export class M1CoreIdentitetModule {}

@@ -24,6 +24,7 @@ Izuzeci su malobrojni, namerni i svaki nosi **sopstvenu ogradu umesto tokena**:
 | `GET /sales/bookings/public/:id/voucher*`, ankete posle putovanja, `POST /crm/client-accounts/guest-checkout`                                                           | gost bez naloga                                                                  | nepogodljiv token u adresi; kod guest-checkout-a gost upisuje isključivo sopstvene podatke                                                                                                       |
 | `POST /finance/payments/card/initiate`, `/card/webhook`                                                                                                                 | plaćanje pre nego što nalog postoji                                              | iznos se izvodi na serveru; webhook nosi **potpis** zahteva, ne token                                                                                                                            |
 | `POST /ai-orchestration/omnisearch`                                                                                                                                     | AI pretraga i za gosta na javnom sajtu                                           | kontroler **sam grana po kanalu**: `channel=INTERNAL_PANEL` bez tokena vraća `401`, `B2C_SITE` prolazi bez naloga i dobija samo javan obim. Prilog dokumenta (`/extract-file`) ostaje zaključan. |
+| `GET /iam/public/agency`                                                                                                                                                | naziv i kontakt agencije za naslov i podnožje javnog sajta                       | odgovor je razdvojen javni oblik — vraća **samo** `brandName`/`email`/`phone`/`website`/`address`; PIB i broj licence ne izlaze odavde nikad                                                     |
 | `/mcp/*`                                                                                                                                                                | spoljni AI agenti (M16)                                                          | sopstvena autentikacija protokola — interni JWT tu ne važi                                                                                                                                       |
 
 Ograničenje učestalosti (`ThrottlerGuard`) važi i na javnim rutama — tamo je i najpotrebnije, jer su one jedina površina sistema na koju može da kuca bilo ko.
@@ -660,3 +661,75 @@ Audit log je **samo za čitanje** — nema endpointa koji upisuje ili menja zapi
 | `409` | `{"message":"Nalog sa ovim email-om već postoji",...}` pri registraciji                                                                           |
 
 Nepoznato polje u telu zahteva vraća `400`, ne ignoriše se.
+
+---
+
+## Podaci agencije (`/iam/agency-settings`)
+
+Naziv, adresa, PIB, broj licence i kontakt agencije stoje na **jednom mestu** (M1 spec §3.9c) i odatle ih uzimaju svi: naslovi i podnožje javnog sajta, zaglavlje panela, ugovor sa gostom (M20) i potpis u pismu dobavljaču (M5 §8.8). Promena naziva je izmena jednog polja, ne izmena koda.
+
+### `GET /iam/agency-settings`
+
+Otvoren svakom prijavljenom nalogu (bez posebne dozvole, isti obrazac kao `/iam/branches`).
+
+```
+GET /api/v1/iam/agency-settings
+Authorization: Bearer <accessToken>
+```
+
+```json
+{
+  "id": "singleton",
+  "brandName": "Terminal Travel",
+  "legalName": null,
+  "address": null,
+  "taxId": null,
+  "licenseNumber": null,
+  "emergencyContact": null,
+  "email": null,
+  "phone": null,
+  "website": null,
+  "updatedAt": "2026-09-07T20:12:44.031Z",
+  "updatedByUserId": null
+}
+```
+
+### `PUT /iam/agency-settings`
+
+Traži dozvolu `M1/agency-settings/EDIT` (Vlasnik/Direktor). Izmena je **delimična** — šalju se samo polja koja se menjaju; `null` briše vrednost.
+
+```
+PUT /api/v1/iam/agency-settings
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "brandName": "Probna Agencija DOO", "address": "Probna 1, Beograd", "licenseNumber": "OTP-PROBA/2026" }
+```
+
+Odgovor `200` sa celim, ažuriranim zapisom. Izmena se upisuje u audit log kao `agency_settings.updated`, sa stanjem pre i posle.
+
+`brandName` ne sme biti prazan ni sastavljen samo od razmaka — vrednost se **odseca pre provere**, pa `"   "` vraća `400`:
+
+```json
+{ "statusCode": 400, "message": ["Naziv agencije ne sme biti prazan."], "error": "Bad Request" }
+```
+
+### `GET /iam/public/agency` — javan, bez tokena
+
+Za javni sajt (M8): naslov stranice, podnožje, strukturirani podaci za pretraživače.
+
+```
+GET /api/v1/iam/public/agency
+```
+
+```json
+{
+  "brandName": "Terminal Travel",
+  "email": null,
+  "phone": null,
+  "website": null,
+  "address": null
+}
+```
+
+**Ovaj odgovor NIKAD ne sadrži `taxId` ni `licenseNumber`** — ta dva se pojavljuju isključivo na ugovoru sa gostom (M20 §2.3), gde su zakonski obavezna i gde ih vidi samo strana u tom ugovoru. Provereno testom koji pada ako se pojave.

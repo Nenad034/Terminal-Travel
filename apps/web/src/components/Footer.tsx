@@ -1,18 +1,26 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { CATEGORY_TYPES } from '@/lib/categories';
+import { getAgency } from '@/lib/agency';
 
 export default async function Footer({ locale }: { locale: string }) {
   const t = await getTranslations({ locale, namespace: 'footer' });
   const tc = await getTranslations({ locale, namespace: 'categories' });
+  const agencija = await getAgency();
+  const [prvaRec, ...ostaleReci] = agencija.brandName.trim().split(/\s+/);
+  const ostatak = ostaleReci.join(' ');
 
   return (
     <footer className="mt-16 border-t border-border bg-panel2">
       {/* Puna širina, isti bočni prostor kao zaglavlje i main — vidi (site)/layout.tsx */}
       <div className="grid w-full grid-cols-2 gap-6 px-4 py-10 text-sm sm:grid-cols-4 sm:px-6 lg:px-8 xl:px-10">
         <div className="col-span-2 sm:col-span-1">
+          {/* M1 spec §3.9c — wordmark se sklapa iz naziva iz podešavanja, ne iz zakucanog teksta.
+              Prva reč nosi bojom istaknut deo, ostatak je običan — tako izgled ostaje isti za
+              „Terminal Travel“, a radi i za jednorečno ili trorečno ime posle rebrenda. */}
           <p className="text-lg font-bold text-accent">
-            Terminal <span className="text-ink">Travel</span>
+            {prvaRec}
+            {ostatak && <span className="text-ink"> {ostatak}</span>}
           </p>
         </div>
         <div>
@@ -39,7 +47,7 @@ export default async function Footer({ locale }: { locale: string }) {
         </div>
       </div>
       <div className="border-t border-border px-4 py-4 text-center text-xs text-ink-faint">
-        © {new Date().getFullYear()} Terminal Travel — {t('rightsReserved')}
+        © {new Date().getFullYear()} {agencija.brandName} — {t('rightsReserved')}
       </div>
     </footer>
   );

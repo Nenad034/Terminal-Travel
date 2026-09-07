@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { apiFetch } from '@/lib/api-client';
 import type { PublicProduct } from '@/lib/types';
 import { slugToType, typeToSlug } from '@/lib/categories';
+import { getAgency } from '@/lib/agency';
 
 // M8 spec poglavlje 2 — /[tip]/[slug]. M2 public endpoint pretražuje samo po :id, nema
 // slug lookup (dopuna po potrebi, zavedeno u backlogu) — ova stranica zato učita ceo
@@ -32,7 +33,7 @@ export async function generateMetadata({
   const product = await findProduct(locale, slug);
   if (!product?.translation) return {};
 
-  const title = `${product.translation.name} — Terminal Travel`;
+  const title = `${product.translation.name} — ${(await getAgency()).brandName}`;
   const description = product.translation.description?.slice(0, 160);
   return {
     title,

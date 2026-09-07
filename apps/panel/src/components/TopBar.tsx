@@ -54,7 +54,10 @@ export default function TopBar({
         <button
           onClick={() => setLogoZoomed((z) => !z)}
           title={logoZoomed ? 'Umanji logo' : 'Uvećaj logo'}
-          aria-label="Terminal Travel"
+          // M1 spec §3.9c — oznaka opisuje DUGME, ne brend. Ranije je ovde stajalo zakucano ime
+          // agencije; ime ovde ne treba (dugme samo uvećava/umanjuje logo, što `title` već kaže), a
+          // provlačenje naziva do klijentske komponente kroz `Shell` bilo bi više žice nego koristi.
+          aria-label="Logo agencije"
           // ISPRAVKA (24.8.2026, na zahtev vlasnika, uz snimak ekrana: "malo se ovde preklapa
           // kada se uveca logo") — uvećan logo (transform ne menja tok/layout ostalih elemenata,
           // samo iscrtavanje) je providno prelazio PREKO taba "Početna" jer PNG ima providnu

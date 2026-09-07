@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { apiFetch, ApiError } from '@/lib/api-client';
 import type { PublicContent } from '@/lib/types';
+import { getAgency } from '@/lib/agency';
 
 // M8 spec poglavlje 2/6 — opšte stranice sajta (npr. "O nama", "Kontakt"), čitaju objavljen
 // sadržaj iz M12 preko javnog, negardovanog endpoint-a (M12 spec §7, PublicContentController).
@@ -27,7 +28,7 @@ export async function generateMetadata({
   const content = await fetchContent(locale, slug);
   if (!content?.translation) return {};
   return {
-    title: `${content.translation.title} — Terminal Travel`,
+    title: `${content.translation.title} — ${(await getAgency()).brandName}`,
     description: content.translation.body?.slice(0, 160),
   };
 }
@@ -47,7 +48,7 @@ export default async function StaticContentPage({
     ? {
         '@context': 'https://schema.org',
         '@type': 'LocalBusiness',
-        name: 'Terminal Travel',
+        name: (await getAgency()).brandName,
         description: content.translation.title,
       }
     : null;
