@@ -13,6 +13,19 @@ import { Public } from '../../../common/decorators/public.decorator';
 
 // M1 spec §6, prefiks /api/v1/iam (postavljen globalno u main.ts kao /api/v1)
 @ApiTags('auth')
+/**
+ * JAVNE RUTE (7.9.2026, dok. 39 nalaz 3.1). `JwtAuthGuard` je od te izmene globalan, pa svaka
+ * ruta kojoj token NE TREBA mora to izričito reći preko `@Public()`. Ovde je takvih deset, i
+ * sve iz istog razloga: pozivaju se PRE nego što pristupni token uopšte postoji (prijava,
+ * registracija, drugi faktor, prvo podešavanje 2FA, aktivacija naloga, zaborav/reset lozinke),
+ * ili baš zato da bi ga poništile (odjava), ili da bi ga obnovile kad je istekao (`refresh`).
+ *
+ * Svaka od njih nosi sopstvenu ogradu umesto tokena: lozinku, TOTP kod, jednokratan token iz
+ * email-a, `setupToken` koji traje 10 minuta, ili `refreshToken` koji se rotira pri svakoj
+ * upotrebi. `ThrottlerGuard` je globalno registrovan PRE ovog guard-a, pa ograničenje
+ * učestalosti važi i ovde — što je i najpotrebnije, jer je ovo jedina površina sistema na koju
+ * može da kuca bilo ko.
+ */
 @Controller('iam/auth')
 export class AuthController {
   constructor(

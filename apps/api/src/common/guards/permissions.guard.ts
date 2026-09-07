@@ -15,9 +15,14 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.get<RequiredPermission | undefined>(
+    // `getAllAndOverride` umesto `get(..., getHandler())` (7.9.2026, zatvara zamku 13.5):
+    // ranije se metapodatak čitao ISKLJUČIVO sa metode, pa je `@RequirePermission` postavljen
+    // iznad `@Controller(...)` bio tiho ignorisan — ograda je izgledala postavljeno, a
+    // propuštala je sve. Fail-open u kodu napisanom baš da nešto zatvori. Sada dekorator na
+    // klasi važi za sve njene metode, a dekorator na metodi ga nadjačava.
+    const required = this.reflector.getAllAndOverride<RequiredPermission | undefined>(
       PERMISSION_KEY,
-      context.getHandler(),
+      [context.getHandler(), context.getClass()],
     );
     if (!required) return true; // ruta bez @RequirePermission — samo JwtAuthGuard važi
 

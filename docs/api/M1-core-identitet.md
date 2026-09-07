@@ -10,6 +10,26 @@
 
 ---
 
+## Šta traži token, a šta ne (od 7.9.2026)
+
+**Sve je zaključano osim onoga što je izričito javno.** Svaka ruta u celom sistemu traži `Authorization: Bearer <accessToken>`; bez njega vraća `401`. To je podrazumevano stanje — sprovodi ga jedan guard registrovan globalno, ne dekorator koji neko mora da se seti da napiše.
+
+Izuzeci su malobrojni, namerni i svaki nosi **sopstvenu ogradu umesto tokena**:
+
+| Ruta                                                                                                                                                                    | Zašto je javna                                                                   | Šta je štiti umesto tokena                                                                                                                                                                       |
+| :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /iam/auth/register`, `/login`, `/mfa/verify`, `/mfa/setup/start`, `/mfa/setup/confirm`, `/refresh`, `/logout`, `/activate`, `/password/forgot`, `/password/reset` | pozivaju se pre nego što token uopšte postoji, ili baš da bi ga izdale/poništile | lozinka, TOTP kod, jednokratan token iz email-a, `setupToken` (10 min), rotirajući `refreshToken`                                                                                                |
+| `GET /catalog/public/products*`, `GET /knowledge/public/:shareToken`, `GET /marketing/public/content*`                                                                  | javan sadržaj za sajt                                                            | servisni sloj učitava samo objavljeno i maskirano — bez nabavne cene i identiteta dobavljača                                                                                                     |
+| `GET /sales/search*`                                                                                                                                                    | anonimna pretraga za javni sajt (M8)                                             | kontroler sam proverava kanal: `channel=INTERNAL_PANEL` bez tokena vraća `401`, a uz token još i traži dozvolu `M5/booking/VIEW` — taj kanal jedini preskoči filter `visible_channels`           |
+| `GET /sales/bookings/public/:id/voucher*`, ankete posle putovanja, `POST /crm/client-accounts/guest-checkout`                                                           | gost bez naloga                                                                  | nepogodljiv token u adresi; kod guest-checkout-a gost upisuje isključivo sopstvene podatke                                                                                                       |
+| `POST /finance/payments/card/initiate`, `/card/webhook`                                                                                                                 | plaćanje pre nego što nalog postoji                                              | iznos se izvodi na serveru; webhook nosi **potpis** zahteva, ne token                                                                                                                            |
+| `POST /ai-orchestration/omnisearch`                                                                                                                                     | AI pretraga i za gosta na javnom sajtu                                           | kontroler **sam grana po kanalu**: `channel=INTERNAL_PANEL` bez tokena vraća `401`, `B2C_SITE` prolazi bez naloga i dobija samo javan obim. Prilog dokumenta (`/extract-file`) ostaje zaključan. |
+| `/mcp/*`                                                                                                                                                                | spoljni AI agenti (M16)                                                          | sopstvena autentikacija protokola — interni JWT tu ne važi                                                                                                                                       |
+
+Ograničenje učestalosti (`ThrottlerGuard`) važi i na javnim rutama — tamo je i najpotrebnije, jer su one jedina površina sistema na koju može da kuca bilo ko.
+
+---
+
 ## Kako izgleda prijava — ceo tok
 
 ```

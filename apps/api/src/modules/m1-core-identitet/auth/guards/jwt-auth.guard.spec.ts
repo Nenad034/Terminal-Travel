@@ -69,4 +69,28 @@ describe('JwtAuthGuard (M1 spec §3.7 — access token nosi samo user_id/session
 
     expect(publicGuard.canActivate(makeContext({}))).toBe(true);
   });
+
+  // Suprotan smer istog dokaza: bez `@Public()` i bez tokena ruta MORA da padne. Test koji
+  // proverava samo da izuzetak radi ne dokazuje da je podrazumevano stanje zaključano —
+  // dokazuje ga tek par (propušta označeno / odbija neoznačeno). Vidi zamku 13.6.
+  it('ruta BEZ @Public() i bez tokena se odbija — podrazumevano je zaključano', () => {
+    expect(() => guard.canActivate(makeContext({}))).toThrow(UnauthorizedException);
+  });
+
+  // Osam kontrolera je javno U CELINI (`@Public()` iznad `@Controller(...)`), ne po metodi —
+  // ako bi guard čitao oznaku samo sa metode, svi bi tiho tražili token. Isti oblik greške
+  // kao zamka 13.5 kod `PermissionsGuard`-a, zato se čita i dokazuje na oba nivoa.
+  it('čita oznaku i sa METODE i sa KLASE', () => {
+    const videno: unknown[] = [];
+    const reflectorKojiBelezi = {
+      getAllAndOverride: (_kljuc: string, meta: unknown[]) => {
+        videno.push(...meta);
+        return true;
+      },
+    } as unknown as Reflector;
+
+    new JwtAuthGuard(jwt, reflectorKojiBelezi).canActivate(makeContext({}));
+
+    expect(videno).toHaveLength(2); // handler + klasa, nikad samo jedno
+  });
 });
