@@ -448,7 +448,7 @@ Ovo su stvari kojih **nema**, a koje bi sprečile da se nalazi iz ovog spiska po
 
 **5.1 Provera „mock ili pravo" na jednom mestu.** Nalaz 1.1 je nastao jer se prelazak sa mock-a na prave podatke desio na pola — tabela je prešla, dva sporedna ulaza u isti zapis nisu, i ništa to nije primetilo. Predlog: jedan popis (npr. `docs/analize/STANJE-EKRANA.md` ili tabela u M17 spec) sa jednim redom po ekranu: koristi mock / koristi API / delimično. Popunjava se u istom prolazu kad se ekran menja. Bez toga „delimično prešli" ostaje nevidljivo.
 
-**5.2 Provera zdravlja lokalnog okruženja jednom komandom.** Danas se za podizanje traži: Docker, migracije, trigger, seed, tri mock skripte tačnim redosledom, geokodiranje na kraju, `.env` sa 8 novih ključeva. Svaki od tih koraka me je danas ili juče negde iznenadio. Predlog: `npm run doctor` koji proveri i **jasno kaže** šta nedostaje (baza podignuta? migracije primenjene? seed pušten? `.env` potpun? koliko proizvoda/rezervacija ima?). Nova sesija na novoj mašini time prestaje da bude arheologija.
+**5.2 Provera zdravlja lokalnog okruženja jednom komandom — REŠENO 7.9.2026.** Danas se za podizanje traži: Docker, migracije, trigger, seed, tri mock skripte tačnim redosledom, geokodiranje na kraju, `.env` sa 8 novih ključeva. Svaki od tih koraka me je danas ili juče negde iznenadio. `npm run doctor` (`tools/doctor.mjs`) proverava i **jasno kaže** šta nedostaje — pet provera, u redosledu u kom bi svaka sledeća zavisila od prethodne: `.env` potpun (isto poređenje kao `env-drift-check.ts`, nalaz 4.4) → Postgres dostupan na `DATABASE_URL` → svaka migracija sa diska ima završen red u `_prisma_migrations` → append-only trigger na `audit_log_entries` postoji (M1 spec §3.8, van Prisma šeme) → seed pušten (broj sistemskih uloga > 0). Na kraju ispisuje broj korisnika/proizvoda/rezervacija — informativno, ne uspeh/neuspeh. Ne ispravlja ništa sam (namerno — seed npr. nije bezbedno pustiti nasumično dvaput), samo kaže tačnu komandu za svaki nedostatak. **Provereno na stvarnom lokalnom okruženju** (ne izmišljen scenario): ispravno je prijavio postojeći, već poznati `.env` nedostatak (`SMTP_PASSWORD`, `SMTP_SECURE`, `SMTP_USER`, `TELEGRAM_BOT_TOKEN` — nalaz 4.4, vlasnik ih još nije dostavio) i potvrdio da je ostatak zdrav (60/60 migracija, trigger, 9 uloga, 236 proizvoda, 18 rezervacija).
 
 **5.3 Merenje umesto pretpostavke o brzini.** Nalazi 2.1–2.3 danas nikoga ne bole jer baza ima 217 proizvoda i 17 rezervacija. Predlog: seed skripta za „veliku bazu" (npr. 50.000 rezervacija) koja se pušta samo namerno, da se pred lansiranje vidi šta stvarno puca. Bez toga se prvi put meri na pravim gostima.
 
@@ -476,7 +476,7 @@ Ako se ide redom po odnosu „koliko boli" naspram „koliko traje":
 
 **Prvo (par dana):** ~~1.1 klik na rezervaciju~~ · ~~1.2 lažno „poslato" dobavljaču~~ · ~~2.1 indeksi~~ · ~~2.2 straničenje~~ · ~~2.3 N+1~~ · ~~2.4a `tsc`+`build` u CI~~ · ~~2.5 stranice greške~~ (sve urađeno 5.9.2026, osim 404 — v. 2.5)
 
-**Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ · ~~3.2 ESLint za API~~ (sve troje urađeno 7.9.2026; Prettier deo 3.2 ostaje otvoren, v. napomena u 3.2)
+**Zatim (nedelja):** ~~3.1 globalni guard~~ · ~~3.4 preimenovanje „Stub"~~ · ~~3.2 ESLint i Prettier za ceo repo~~ (sve urađeno 7.9.2026)
 
 **Pred lansiranje (uz hosting):** sve iz poglavlja 6 (nadogradnje, CORS, login limit, RLS) · 5.3 merenje na velikoj bazi
 

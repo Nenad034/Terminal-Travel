@@ -19,6 +19,7 @@
     "start:mobile": "npm run start --workspace=@terminal/mobile",
     "test:mobile": "npm run test --workspace=@terminal/mobile",
     "qa": "node tools/qa.mjs",
+    "doctor": "node tools/doctor.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
