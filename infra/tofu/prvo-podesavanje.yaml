@@ -1,0 +1,54 @@
+#cloud-config
+# Sta se desi sa serverom u prvom minutu zivota — pre nego sto ijedan covek udje na njega.
+# Cilj: masina koja je od prvog trenutka zatvorena, a ne masina koju posle "treba obezbediti".
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - docker.io
+  - docker-compose-plugin
+  - age # sifrovanje rezervnih kopija
+  - rclone # slanje kopija na drugo mesto
+  - fail2ban # automatski blokira adrese koje pokusavaju da provale SSH
+  - unattended-upgrades # sam preuzima bezbednosne zakrpe
+
+write_files:
+  # Bezbednosne zakrpe se instaliraju same. Server na koji niko ne gleda mesecima je
+  # najcesci nacin da se upadne — ne kroz nasu aplikaciju nego kroz nezakrpljen sistem.
+  - path: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+  # Dnevna kopija baze u 3 ujutru.
+  - path: /etc/systemd/system/terminal-backup.timer
+    content: |
+      [Unit]
+      Description=Dnevna rezervna kopija baze
+      [Timer]
+      OnCalendar=*-*-* 03:00:00
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
+
+  # Nedeljna PROVERA da se iz te kopije baza stvarno moze vratiti (poglavlje 9 Master
+  # dokumenta trazi testiran backup, ne samo napravljen). Ako padne, systemd to zabelezi
+  # kao neuspeh jedinice — M18 nadzor to hvata kao signal kvara.
+  - path: /etc/systemd/system/terminal-provera-oporavka.timer
+    content: |
+      [Unit]
+      Description=Nedeljna provera da se baza moze vratiti iz kopije
+      [Timer]
+      OnCalendar=Sun *-*-* 04:00:00
+      Persistent=true
+      [Install]
+      WantedBy=timers.target
+
+runcmd:
+  # Prijava lozinkom se gasi — ostaje iskljucivo SSH kljuc.
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+  - systemctl restart ssh
+  - systemctl enable --now docker fail2ban
+  - mkdir -p /opt/terminal /mnt/podaci/postgres /mnt/podaci/backup

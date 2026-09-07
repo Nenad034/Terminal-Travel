@@ -36,3 +36,10 @@ qa-snimci/
 # nije "tacna" — komitovana bi bila pogresna posle svakog pokretanja drugog rezima i stajala
 # bi vecno kao izmenjen fajl. Provereno 7.9.2026: `tsc --noEmit` prolazi i kad ga uopste nema.
 next-env.d.ts
+
+# OpenTofu radni fajlovi (preuzeti dodaci i lokalno stanje) — ne idu u repozitorijum
+infra/tofu/.terraform/
+infra/tofu/.terraform.lock.hcl
+infra/tofu/*.tfstate
+infra/tofu/*.tfstate.*
+infra/tofu/*.tfvars

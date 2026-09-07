@@ -1,0 +1,62 @@
+# Produkcijsko okruzenje — pokrece se NA SERVERU, ne na razvojnoj masini.
+# Lokalni razvoj i dalje koristi docker-compose.yml u korenu (samo baza + hvatac poste).
+#
+# Sta je gde: jedini port otvoren ka internetu je Caddy (80/443). Baza, API, panel i sajt
+# razgovaraju iskljucivo preko unutrasnje Docker mreze i NEMAJU objavljen port — masina
+# spolja nema nijedan otvoren ulaz osim HTTPS-a i SSH-a (SSH zatvara firewall iz infra/tofu).
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # ovde zive izdati sertifikati — mora da prezivi restart
+      - caddy_config:/config
+    environment:
+      DOMEN_PANEL: ${DOMEN_PANEL}
+      DOMEN_SAJT: ${DOMEN_SAJT}
+      DOMEN_API: ${DOMEN_API}
+    depends_on: [api, panel, web]
+
+  postgres:
+    # Ista slika kao lokalni razvoj i CI — pgvector je uslov za M21/M23 semanticku pretragu.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - /mnt/podaci/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ${REGISTRY}/terminal-api:${VERZIJA}
+    restart: unless-stopped
+    env_file: [.env.api]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  panel:
+    image: ${REGISTRY}/terminal-panel:${VERZIJA}
+    restart: unless-stopped
+    env_file: [.env.panel]
+    depends_on: [api]
+
+  web:
+    image: ${REGISTRY}/terminal-web:${VERZIJA}
+    restart: unless-stopped
+    env_file: [.env.web]
+    depends_on: [api]
+
+volumes:
+  caddy_data:
+  caddy_config:

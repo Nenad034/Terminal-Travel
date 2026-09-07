@@ -1,0 +1,28 @@
+# Caddy sam pribavlja i obnavlja HTTPS sertifikat (Let's Encrypt) — bez rucnog posla i bez
+# datuma isteka koji neko mora da pamti. Time je pokriven zahtev "enkripcija u transportu"
+# iz Master dokumenta, poglavlje 9.
+
+{
+	# Adresa na koju Let's Encrypt salje upozorenje ako obnova sertifikata pocne da pada.
+	email {$ADMIN_EMAIL}
+}
+
+# Interni panel (M17) — za tim agencije.
+{$DOMEN_PANEL} {
+	encode gzip
+	reverse_proxy panel:3000
+}
+
+# Javni sajt (M8) — za goste.
+{$DOMEN_SAJT} {
+	encode gzip
+	reverse_proxy web:3000
+}
+
+# API (apps/api). Odvojen poddomen jer mu pristupaju i spoljni pozivaoci koji ne prolaze
+# kroz nas frontend: povratni pozivi platnog provajdera i SEF-a (M10 §7.2), MCP klijenti
+# (M16) i B2B integracije (M7).
+{$DOMEN_API} {
+	encode gzip
+	reverse_proxy api:3000
+}

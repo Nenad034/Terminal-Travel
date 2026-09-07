@@ -1,0 +1,26 @@
+# Sta se NE salje Docker-u pri gradnji slike. Bez ovoga bi svaka gradnja prvo prekopirala
+# ~1,4 GB `node_modules` i `.next` kesa — minutima, i bez ikakve koristi, jer se zavisnosti
+# unutar slike instaliraju iznova (`npm ci`) da bi odgovarale Linux-u, ne Windows-u.
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+.git
+.github
+docs
+intent
+qa-snimci
+coverage
+**/coverage
+*.log
+.env
+**/.env
+**/.env.local
+# Mobilna aplikacija se ne isporucuje na server (React Native, ide u prodavnice aplikacija).
+# Ali njen `package.json` MORA u kontekst: `npm ci` nad workspace-om proverava da se svaki
+# manifest poklapa sa package-lock.json, pa bez njega instalacija odbija da krene.
+apps/mobile
+!apps/mobile/package.json
+infra/tofu/.terraform
