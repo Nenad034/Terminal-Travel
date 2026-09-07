@@ -23,6 +23,7 @@ function clampHeight(v: number) {
 const SPLIT_KEY = 'tt-panel-terminal-split';
 
 interface Turn {
+  id: string;
   question: string;
   contextLabel?: string;
   answer?: string;
@@ -317,7 +318,13 @@ const TerminalPane = forwardRef<
       .map((t) => ({ question: t.question, answer: t.answer! }));
     setTurns((t) => [
       ...t,
-      { question, contextLabel: sentContext, loading: true, inactive: false },
+      {
+        id: crypto.randomUUID(),
+        question,
+        contextLabel: sentContext,
+        loading: true,
+        inactive: false,
+      },
     ]);
 
     const query = sentContext ? `[Kontekst: ${sentContext}] ${question}` : question;
@@ -404,7 +411,7 @@ const TerminalPane = forwardRef<
         )}
         {turns.map((t, i) => (
           <div
-            key={i}
+            key={t.id}
             className={`group flex flex-col gap-1 py-2 ${i > 0 ? 'border-t border-ink-faint/40' : ''}`}
           >
             <div className="flex items-start justify-between gap-2">

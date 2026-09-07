@@ -201,9 +201,9 @@ function ResultCard({
           {r.destinationCity}, {r.destinationCountry} · {r.type}
         </div>
         <div className="flex flex-col gap-2">
-          {r.offers.slice(0, 3).map((o, i) => (
+          {r.offers.slice(0, 3).map((o) => (
             <div
-              key={i}
+              key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
               // §3.0g.3 — obeležavanje promenjenih redova posle osvežavanja radi
               // SearchRefreshNotice.tsx nad ovim atributom (isti ključ kao selekcija, §3.0e.3).
               data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
@@ -259,9 +259,9 @@ function ResultRowGroup({
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        {r.offers.map((o, i) => (
+        {r.offers.map((o) => (
           <div
-            key={i}
+            key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
             data-offer-key={offerKey(r.productId, o.rateLineId, o.providerQuoteReference)}
             className="flex items-center justify-between rounded bg-panel2 px-3 py-2 text-sm"
           >
