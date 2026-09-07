@@ -285,7 +285,13 @@ Posledica: svaka greška u renderu — kao ona sa `base_beds` — daje golu Next
 
 **Napomena o dometu provere:** ekran greške panela je dokazan uživo. Verzija za sajt koristi ISTI mehanizam u istoj verziji Next-a, ali nije zasebno pokrenuta u browseru — kaže se, ne prećutkuje.
 
-**NIJE REŠENO — 404.** Pogrešna adresa i dalje daje Next-ovu englesku stranicu. Napravljen `not-found.tsx` (u korenu i u `(app)` grupi) **nije se aktivirao** — ni za nepostojeću adresu ni za `notFound()` pozvan iz ekrana, ni u dev ni u produkciji. Fajlovi su **uklonjeni**, a ne ostavljeni: mrtav fajl koji sugeriše pokrivenost koje nema je gori od odsustva. Uputstvo te verzije kaže da adrese van svih ruta pokriva `global-not-found.js`, koji je **eksperimentalan** i traži prekidač u konfiguraciji — izmena steka, čeka potvrdu. Zavedeno u backlog, uz otvoreno pitanje zašto se ni obična `not-found.tsx` nije aktivirala.
+**404 REŠENO 7.9.2026.** Jedan `apps/panel/src/app/not-found.tsx`, u korenu `app/` (ne u `(app)` grupi) — po Next-ovoj sopstvenoj dokumentaciji (`node_modules/next/dist/docs/.../not-found.md`, "v13.0.0 — Root app/not-found handles global unmatched URLs") koren treba da hvata SVAKU neupoznatu adresu bez ikakvog eksperimentalnog prekidača; `globalNotFound` (eksperimentalno, traži konfiguracioni fleg) je namenjen samo projektima sa VIŠE korenskih rasporeda ili dinamičkim segmentom na vrhu stabla — ovaj panel ima ni jedno ni drugo (jedan `app/layout.tsx`), pa taj prekidač nije bio ni potreban.
+
+**Zašto prethodni pokušaj (5.9.2026) nije radio ostaje nerazjašnjeno** — fajl je tada bio uklonjen bez zabeleženog uzroka, pa nije bilo šta da se ponovo proveri sem da se napravi isti fajl i stvarno isproba, ovaj put uz dokaz umesto pretpostavke.
+
+**Provereno u pravom browseru, nad produkcijskim buildom** (`next build && next start`, ne `next dev` — dev servira sopstveni dijagnostički ekran, dok. 39 zamka 7.1b), oba scenarija iz Next dokumentacije:
+- **Neupoznata adresa** (`/ovo-ne-postoji-nigde`) — HTTP 404, srpski tekst „Stranica nije pronađena", bez ljuske panela (adresa nije ni pod jednim poznatim ekranom, pa nema šta da je nosi).
+- **Eksplicitan `notFound()` iz ekrana** (`/pomoc/ne-postoji-ovaj-id`, postojeći poziv u `pomoc/[id]/page.tsx`) — HTTP 404, ista poruka, **ljuska panela ostaje vidljiva** (leva traka, tabovi) jer `(app)/layout.tsx` ostaje montiran dok se bubl-uje do korenskog `not-found.tsx` — bolje ponašanje nego što je dizajn tražio, ne lošije.
 
 ---
 
