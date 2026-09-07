@@ -6,8 +6,12 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 import { ProviderExceptionFilter } from './common/filters/provider-exception.filter';
+import { checkEnvDrift } from './common/env-drift-check';
 
 async function bootstrap() {
+  // Nalaz 4.4 (dok. 39) — upozorenje, ne rušenje; vidi env-drift-check.ts.
+  checkEnvDrift();
+
   const app = await NestFactory.create(AppModule);
 
   // Faza 8 (docs/analize/34-FAZA8-BEZBEDNOSNI-PREGLED.md, 29.8.2026, potvrđeno vlasnikom) —
